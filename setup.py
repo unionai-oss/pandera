@@ -12,5 +12,6 @@ setup(
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
         "schema >= 0.6.8",
+        "wrapt",
     ]
 )

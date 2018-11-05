@@ -1,7 +1,8 @@
 """Validate Pandas Data Structures."""
 
-import functools
 import inspect
+import pandas as pd
+import wrapt
 
 from collections import OrderedDict
 from enum import Enum
@@ -11,13 +12,12 @@ from schema import Schema, Use, And, SchemaError
 class PandasDtype(Enum):
     Bool = "bool"
     DateTime = "datetime64[ns]"
-    DateTimeTZ = "datetime64[ns, tz]"
     Category = "category"
     Float = "float"
     Int = "int"
     Object = "object"
     String = "object"
-    Timedelta = "timedelta[ns]"
+    Timedelta = "timedelta64[ns]"
 
 
 class DataFrameSchema(object):
@@ -44,14 +44,15 @@ class DataFrameSchema(object):
         self.schema = Schema(schema_arg)
 
     def validate(self, dataframe):
+        if not isinstance(dataframe, pd.DataFrame):
+            raise TypeError("expected series, got %s" % type(dataframe))
         return self.schema.validate(dataframe)
 
 
 class SeriesSchemaBase(object):
     """Column validator object."""
 
-    def __init__(
-            self, pandas_dtype, validator=None, element_wise=True):
+    def __init__(self, pandas_dtype, validators=None, element_wise=True):
         """Initialize column validator object.
 
         Parameters
@@ -60,18 +61,32 @@ class SeriesSchemaBase(object):
             datatype of the column. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        validator : callable
-            If element_wise is True, then callable signature should be:
-            x -> x where x is a scalar element in the column. Otherwise,
-            x is assumed to be a pandas.Series object.
-        element_wise : bool
-            Whether or not to apply validator in an element-wise fashion.
+        validators : callable|list[callable]
+            list of function with which to check series schema. If element_wise
+            is True, then callable signature should be: x -> x where x is a
+            scalar element in the column. Otherwise, x is assumed to be a
+            pandas.Series object. Can also be a single callable.
+        element_wise : bool|list[bool]
+            Whether or not to apply validator in an element-wise fashion. If
+            bool, assumes that all validators should be applied to the column
+            element-wise. If list, should be the same number of elements
+            as validators.
         """
         self._pandas_dtype = pandas_dtype
-        self._validator = validator
+        if validators is None:
+            validators = []
+        if callable(validators):
+            validators = [validators]
+        if isinstance(element_wise, bool):
+            element_wise = [element_wise] * len(validators)
+        if len(validators) != len(element_wise):
+            raise ValueError(
+                "validators and element_wise must be the same length")
         self._element_wise = element_wise
+        self._validators = validators
 
     def __call__(self, series):
+        """Validate a series."""
         _dtype = self._pandas_dtype if isinstance(self._pandas_dtype, str) \
             else self._pandas_dtype.value
         type_val_result = series.dtype == _dtype
@@ -79,44 +94,48 @@ class SeriesSchemaBase(object):
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, self._pandas_dtype.value, series.dtype))
-        if self._validator is not None:
-            validator_schema = Schema(self._validator)
-            if self._element_wise:
-                try:
-                    series.map(validator_schema.validate)
-                except SchemaError:
-                    failure_cases = ~series.map(self._validator)
-                    raise SchemaError(
-                        "series '%s' did not pass element-wise validator "
-                        "'%s'. failure cases: %s" %
-                        (series.name, inspect.getsource(
-                            self._validator).strip(),
-                         series[failure_cases].tolist()))
-            else:
-                try:
-                    validator_schema.validate(series)
-                except SchemaError:
-                    raise SchemaError(
-                        "series '%s' did not pass series validator '%s', " %
-                        (series.name,
-                         inspect.getsource(self._validator).strip()))
+        for validator, element_wise in zip(
+                self._validators, self._element_wise):
+            self._validate(series, validator, element_wise)
         return type_val_result
+
+    def _validate(self, series, validator, element_wise):
+        validator_schema = Schema(validator)
+        if element_wise:
+            try:
+                series.map(validator_schema.validate)
+            except SchemaError:
+                failure_cases = ~series.map(validator)
+                raise SchemaError(
+                    "series did not pass element-wise validator "
+                    "'%s'. failure cases: %s" %
+                    (inspect.getsource(validator).strip(),
+                     series[failure_cases].to_dict()))
+        else:
+            try:
+                validator_schema.validate(series)
+            except SchemaError:
+                raise SchemaError(
+                    "series did not pass series validator '%s', " %
+                    (inspect.getsource(validator).strip()))
 
 
 class SeriesSchema(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, validator=None, element_wise=True):
+    def __init__(self, pandas_dtype, validators=None, element_wise=True):
         super(SeriesSchema, self).__init__(
-            pandas_dtype, validator=None, element_wise=True)
+            pandas_dtype, validators, element_wise)
 
     def validate(self, series):
-        super(SeriesSchema, self).__call__(series)
+        if not isinstance(series, pd.Series):
+            raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
+        return super(SeriesSchema, self).__call__(series)
 
 
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, column, pandas_dtype, validator=None, element_wise=True):
+            self, column, pandas_dtype, validators=None, element_wise=True):
         """Initialize column validator object.
 
         Parameters
@@ -127,14 +146,14 @@ class Column(SeriesSchemaBase):
             datatype of the column. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        validator : callable
+        validators : callable
             If element_wise is True, then callable signature should be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
         element_wise : bool
             Whether or not to apply validator in an element-wise fashion.
         """
-        super(Column, self).__init__(pandas_dtype, validator, element_wise)
+        super(Column, self).__init__(pandas_dtype, validators, element_wise)
         self._column = column
 
     def __call__(self, df):
@@ -144,7 +163,7 @@ class Column(SeriesSchemaBase):
         return "<Column: %s>" % self._column
 
 
-def validate_dataframe_arg(df_arg, schema, is_positional=True):
+def validate_input(schema, obj_getter=None):
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -154,29 +173,69 @@ def validate_dataframe_arg(df_arg, schema, is_positional=True):
 
     Parameters
     ----------
-    df_arg : str
-        name of the dataframe argument in the function being decorated
-    schema : PandasDataFrameSchema
-        dataframe schema object
-    is_positional : bool
-        whether or not the dataframe argument is a positional or keyword
-        argument. Default = True.
+    schema : DataFrameSchema|SeriesSchema
+        dataframe/series schema object
+    obj_getter : int|str|None
+        if int, obj_getter refers to the the index of the pandas
+        dataframe/series to be validated in the args part of the function
+        signature. If str, obj_getter refers to the argument name of the pandas
+        dataframe/series in the function signature. This works even if the
+        series/dataframe is passed in as a positional argument when the
+        function is called. If None, assumes that thedataframe/series is the
+        first argument of the decorated function
+
     """
-    def _validator(fn):
-
-        @functools.wraps(fn)
-        def _wrapper(*args, **kwargs):
-            if is_positional:
-                arg_dict = OrderedDict(zip(inspect.getargspec(fn).args, args))
+    @wrapt.decorator
+    def _wrapper(fn, instance, args, kwargs):
+        args = list(args)
+        if isinstance(obj_getter, int):
+            args[obj_getter] = schema.validate(args[obj_getter])
+        elif isinstance(obj_getter, str):
+            if obj_getter in kwargs:
+                kwargs[obj_getter] = schema.validate(kwargs[obj_getter])
             else:
-                arg_dict = kwargs
-            df = schema.validate(arg_dict[df_arg])
-            arg_dict[df_arg] = df
-            if is_positional:
-                fn(*list(arg_dict.values()), **kwargs)
-            else:
-                fn(*args, **arg_dict)
+                args_dict = OrderedDict(zip(inspect.getargspec(fn).args, args))
+                args_dict[obj_getter] = schema.validate(args_dict[obj_getter])
+                args = list(args_dict.values())
+        elif obj_getter is None:
+            args[0] = schema.validate(args[0])
+        else:
+            raise ValueError(
+                "obj_getter is unrecognized type: %s" % type(obj_getter))
+        return fn(*args, **kwargs)
+    return _wrapper
 
-        return _wrapper
 
-    return _validator
+def validate_output(schema, obj_getter=None):
+    """Validate function output.
+
+    Similar to input validator, but validates the output of the decorated
+    function.
+
+    Parameters
+    ----------
+    schema : DataFrameSchema|SeriesSchema
+        dataframe/series schema object
+    obj_getter : int|str|callable|None
+        if int, assumes that the output of the decorated function is a
+        list-like object, where obj_getter is the index of the pandas data
+        dataframe/series to be validated. If str, expects that the output
+        is a dict-like object, and obj_getter is the key pointing to the
+        dataframe/series to be validated. If a callable is supplied, it expects
+        the output of decorated function and should return the dataframe/series
+        to be validated.
+    """
+    @wrapt.decorator
+    def _wrapper(fn, instance, args, kwargs):
+        out = fn(*args, **kwargs)
+        if isinstance(obj_getter, int):
+            obj = out[obj_getter]
+        elif isinstance(obj_getter, str):
+            obj = out[obj_getter]
+        elif callable(obj_getter):
+            obj = obj_getter(out)
+        elif obj_getter is None:
+            obj = out
+        schema.validate(obj)
+        return out
+    return _wrapper
