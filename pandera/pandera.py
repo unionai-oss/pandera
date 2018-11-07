@@ -23,7 +23,7 @@ class PandasDtype(Enum):
 class DataFrameSchema(object):
     """A light-weight pandas DataFrame validator."""
 
-    def __init__(self, columns, transformer=None):
+    def __init__(self, columns, index=None, transformer=None):
         """Initialize pandas dataframe schema.
 
         Parameters
@@ -31,19 +31,33 @@ class DataFrameSchema(object):
         columns : list of Column
             a list of Column objects specifying the datatypes and properties
             of a particular column.
+        index : Index
+            specify the datatypes and properties of the index.
         transformer : callable
             a callable with signature: pandas.DataFrame -> pandas.DataFrame.
             If specified, calling `validate` will verify properties of the
             columns and return the transformed dataframe object.
 
         """
+        self.index = index
+        self.columns = columns
         self.transformer = transformer
-        schema_arg = And(*columns)
+        if self.index is not None:
+            args = columns + [Index]
+        else:
+            args = columns
+        schema_arg = And(*args)
         if self.transformer is not None:
             schema_arg = And(schema_arg, Use(transformer))
         self.schema = Schema(schema_arg)
 
     def validate(self, dataframe):
+        for c in self.columns:
+            if c.column not in dataframe:
+                raise SchemaError(
+                    "column '%s' not in dataframe\n%s" %
+                    (c.column, dataframe.head()))
+
         if not isinstance(dataframe, pd.DataFrame):
             raise TypeError("expected series, got %s" % type(dataframe))
         return self.schema.validate(dataframe)
@@ -107,8 +121,8 @@ class SeriesSchemaBase(object):
             except SchemaError:
                 failure_cases = ~series.map(validator)
                 raise SchemaError(
-                    "series did not pass element-wise validator "
-                    "'%s'. failure cases: %s" %
+                    "series did not pass element-wise validator\n"
+                    "'%s'.\nfailure cases: %s" %
                     (inspect.getsource(validator).strip(),
                      series[failure_cases].to_dict()))
         else:
@@ -132,10 +146,30 @@ class SeriesSchema(SeriesSchemaBase):
         return super(SeriesSchema, self).__call__(series)
 
 
+class Index(SeriesSchemaBase):
+
+    def __init__(self, pandas_dtype, name=None, validators=None,
+                 element_wise=True, to_series=False):
+        super(Index, self).__init__(pandas_dtype, validators, element_wise)
+        self._to_series = to_series
+        self._name = name
+
+    def __call__(self, df):
+        if self._to_series:
+            arg = pd.Series(df.index)
+        else:
+            arg = df.index
+        return super(Index, self).__call__(arg)
+
+    def __repr__(self):
+        return "<Index: %s>" % self._name
+
+
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, column, pandas_dtype, validators=None, element_wise=True):
+            self, column, pandas_dtype, validators=None, element_wise=True,
+            nullable=False):
         """Initialize column validator object.
 
         Parameters
@@ -152,12 +186,25 @@ class Column(SeriesSchemaBase):
             x is assumed to be a pandas.Series object.
         element_wise : bool
             Whether or not to apply validator in an element-wise fashion.
+        nullable : bool
+            Whether or not column can be null.
         """
         super(Column, self).__init__(pandas_dtype, validators, element_wise)
         self._column = column
+        self._nullable = nullable
+
+    @property
+    def column(self):
+        return self._column
+
+    def get_column(self, df):
+        column = df[self._column]
+        if self._nullable:
+            return column.dropna().astype(self._pandas_dtype.value)
+        return column
 
     def __call__(self, df):
-        return super(Column, self).__call__(df[self._column])
+        return super(Column, self).__call__(self.get_column(df))
 
     def __repr__(self):
         return "<Column: %s>" % self._column

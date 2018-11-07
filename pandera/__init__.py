@@ -1,2 +1,2 @@
-from .pandera import DataFrameSchema, Column, PandasDtype, SeriesSchema, \
-    validate_input, validate_output
+from .pandera import DataFrameSchema, Column, Index, PandasDtype, \
+    SeriesSchema, validate_input, validate_output

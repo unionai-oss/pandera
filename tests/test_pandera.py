@@ -6,8 +6,8 @@ import pytest
 
 from schema import SchemaError
 
-from pandera import DataFrameSchema, SeriesSchema, Column, PandasDtype, \
-    validate_input, validate_output
+from pandera import Column, DataFrameSchema, Index, PandasDtype, \
+    SeriesSchema, validate_input, validate_output
 
 
 def test_series_schema():
@@ -76,6 +76,18 @@ def test_dataframe_schema():
     # error case
     with pytest.raises(SchemaError):
         schema.validate(df.drop("a", axis=1))
+
+
+def test_index_schema():
+    schema = Index(
+        PandasDtype.Int,
+        validators=[
+            lambda x: 1 <= x <= 12,
+            lambda index: index.mean() > 1],
+        element_wise=[True, False],
+        to_series=True)
+    df = pd.DataFrame(index=pd.Index(range(1, 11), dtype="int64"))
+    schema(df)
 
 
 def test_validate_decorators():
