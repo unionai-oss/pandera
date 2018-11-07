@@ -36,7 +36,7 @@ Example Usage
 
 Basic Usage: validate a `pandas.DataFrame`
 
-```{python}
+```python
 import pandas as pd
 
 from pandera import Column, DataFrameSchema, PandasDtype
@@ -74,7 +74,7 @@ print(validated_df)
 If the dataframe does not pass validation checks, `pandera` provides useful
 error messages.
 
-```{python}
+```python
 simple_schema = DataFrameSchema(
     columns=[Column("column1", PandasDtype.Int, lambda x: 0 <= x <= 10)])
 
@@ -118,7 +118,7 @@ simple_schema.validate(wrong_column_df)
 Decorator that validates input pandas DataFrame/Series before entering the
 wrapped function.
 
-```{python}
+```python
 from pandera import validate_input
 
 
@@ -158,7 +158,7 @@ print(preprocessed_df)
 The same as `validate_input`, but this decorator checks the output
 DataFrame/Series of the decorated function.
 
-```{python}
+```python
 from pandera import validate_output
 
 
