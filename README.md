@@ -68,9 +68,10 @@ error messages. An `error` argument can also be supplied to `Validator` for
 custom error messages.
 
 ```python
-simple_schema = DataFrameSchema(
+simple_schema = DataFrameSchema([
     Column("column1", PandasDtype.Int,
-           Validator(lambda x: 0 <= x <= 10, error="range checker [0, 10]")))
+           Validator(lambda x: 0 <= x <= 10, error="range checker [0, 10]"))
+])
 
 # validation rule violated
 fail_check_df = pd.DataFrame({
