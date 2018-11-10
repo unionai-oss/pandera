@@ -7,7 +7,7 @@ A light-weight and flexible validation package for
 built on top of
 <a href="https://github.com/keleshev/schema" target="_blank">schema</a>,
 a powerful Python data structure validation tool. API inspired by
-<a href="https://tmiguelt.github.io/PandasSchema" target="_blank">pandas-schema</a>
+<a href="https://tmiguelt.github.io/PandasSchema" target="_blank">pandas-schema</a>.
 
 
 ## Why?
