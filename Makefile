@@ -11,3 +11,6 @@ clean_pyc:
 
 upload-pypi:
 	python setup.py sdist upload -r pypi
+
+requirements:
+	pip install -r requirements.txt
