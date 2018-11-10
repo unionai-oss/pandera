@@ -2,6 +2,7 @@
 
 import inspect
 import pandas as pd
+import re
 import wrapt
 
 from collections import OrderedDict
@@ -18,6 +19,73 @@ class PandasDtype(Enum):
     Object = "object"
     String = "object"
     Timedelta = "timedelta64[ns]"
+
+
+class Validator(object):
+
+    def __init__(self, fn, element_wise=True, error=None):
+        """Validator object applies function element-wise or series-wise
+
+        Parameters
+        ----------
+        fn : callable
+            A function to check series schema. If element_wise is True,
+            then callable signature should be: x -> bool where x is a
+            scalar element in the column. Otherwise, signature is expected
+            to be: pd.Series -> bool|pd.Series[bool].
+        element_wise : bool|list[bool]
+            Whether or not to apply validator in an element-wise fashion. If
+            bool, assumes that all validators should be applied to the column
+            element-wise. If list, should be the same number of elements
+            as validators.
+        error : str
+            custom error message if series fails validation check.
+
+        """
+        self.fn = fn
+        self.element_wise = element_wise
+        self.error = error
+
+    @property
+    def error_message(self):
+        if self.error:
+            return "%s: %s" % (self.fn.__name__, self.error)
+        return "%s" % self.fn.__name__
+
+    def vectorized_error_message(self, index, failure_cases):
+        return (
+            "series failed element-wise validator %d:\n"
+            "%s\nfailure cases: %s" %
+            (index, self.error_message, failure_cases))
+
+    def __call__(self, series, index):
+        if self.element_wise:
+            val_result = series.map(self.fn)
+            if val_result.all():
+                return True
+            raise SchemaError(self.vectorized_error_message(
+                index, series[~val_result].to_dict()))
+        else:
+            # series-wise validator can return either a boolean or a
+            # pd.Series of booleans.
+            val_result = self.fn(series)
+            if isinstance(val_result, pd.Series):
+                if not val_result.dtype == PandasDtype.Bool.value:
+                    raise TypeError(
+                        "validator %d: %s must return bool or Series of type "
+                        "bool, found %s" %
+                        (index, self.fn.__name__, val_result.dtype))
+                if val_result.all():
+                    return True
+                raise SchemaError(self.vectorized_error_message(
+                    index, series[~val_result].to_dict()))
+            else:
+                if val_result:
+                    return True
+                else:
+                    raise SchemaError(
+                        "series did not pass series validator %d: %s" %
+                        (index, self.error_message))
 
 
 class DataFrameSchema(object):
@@ -66,7 +134,7 @@ class DataFrameSchema(object):
 class SeriesSchemaBase(object):
     """Column validator object."""
 
-    def __init__(self, pandas_dtype, validators=None, element_wise=True):
+    def __init__(self, pandas_dtype, validators=None):
         """Initialize column validator object.
 
         Parameters
@@ -75,28 +143,13 @@ class SeriesSchemaBase(object):
             datatype of the column. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        validators : callable|list[callable]
-            list of function with which to check series schema. If element_wise
-            is True, then callable signature should be: x -> x where x is a
-            scalar element in the column. Otherwise, x is assumed to be a
-            pandas.Series object. Can also be a single callable.
-        element_wise : bool|list[bool]
-            Whether or not to apply validator in an element-wise fashion. If
-            bool, assumes that all validators should be applied to the column
-            element-wise. If list, should be the same number of elements
-            as validators.
+        validators : Validator|list[Validator]
         """
         self._pandas_dtype = pandas_dtype
         if validators is None:
             validators = []
-        if callable(validators):
+        if isinstance(validators, Validator):
             validators = [validators]
-        if isinstance(element_wise, bool):
-            element_wise = [element_wise] * len(validators)
-        if len(validators) != len(element_wise):
-            raise ValueError(
-                "validators and element_wise must be the same length")
-        self._element_wise = element_wise
         self._validators = validators
 
     def __call__(self, series):
@@ -108,49 +161,30 @@ class SeriesSchemaBase(object):
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, self._pandas_dtype.value, series.dtype))
-        for validator, element_wise in zip(
-                self._validators, self._element_wise):
-            self._validate(series, validator, element_wise)
-        return type_val_result
-
-    def _validate(self, series, validator, element_wise):
-        validator_schema = Schema(validator)
-        if element_wise:
-            try:
-                series.map(validator_schema.validate)
-            except SchemaError:
-                failure_cases = ~series.map(validator)
-                raise SchemaError(
-                    "series did not pass element-wise validator\n"
-                    "'%s'.\nfailure cases: %s" %
-                    (inspect.getsource(validator).strip(),
-                     series[failure_cases].to_dict()))
-        else:
-            try:
-                validator_schema.validate(series)
-            except SchemaError:
-                raise SchemaError(
-                    "series did not pass series validator '%s', " %
-                    (inspect.getsource(validator).strip()))
+        validator_results = []
+        for i, validator in enumerate(self._validators):
+            validator_results.append(validator(series, i))
+        return all([type_val_result] + validator_results)
 
 
 class SeriesSchema(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, validators=None, element_wise=True):
-        super(SeriesSchema, self).__init__(
-            pandas_dtype, validators, element_wise)
+    def __init__(self, pandas_dtype, validators=None):
+        super(SeriesSchema, self).__init__(pandas_dtype, validators)
 
     def validate(self, series):
         if not isinstance(series, pd.Series):
             raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
-        return super(SeriesSchema, self).__call__(series)
+        if super(SeriesSchema, self).__call__(series):
+            return series
+        raise SchemaError()
 
 
 class Index(SeriesSchemaBase):
 
     def __init__(self, pandas_dtype, name=None, validators=None,
-                 element_wise=True, to_series=False):
-        super(Index, self).__init__(pandas_dtype, validators, element_wise)
+                 to_series=False):
+        super(Index, self).__init__(pandas_dtype, validators)
         self._to_series = to_series
         self._name = name
 
@@ -168,8 +202,7 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, column, pandas_dtype, validators=None, element_wise=True,
-            nullable=False):
+            self, column, pandas_dtype, validators=None, nullable=False):
         """Initialize column validator object.
 
         Parameters
@@ -189,7 +222,7 @@ class Column(SeriesSchemaBase):
         nullable : bool
             Whether or not column can be null.
         """
-        super(Column, self).__init__(pandas_dtype, validators, element_wise)
+        super(Column, self).__init__(pandas_dtype, validators)
         self._column = column
         self._nullable = nullable
 

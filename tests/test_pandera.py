@@ -7,12 +7,14 @@ import pytest
 from schema import SchemaError
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
-    SeriesSchema, validate_input, validate_output
+    SeriesSchema, Validator, validate_input, validate_output
 
 
 def test_series_schema():
-    schema = SeriesSchema(PandasDtype.Int, lambda x: 0 <= x <= 100)
-    assert schema.validate(pd.Series([0, 30, 50, 100]))
+    schema = SeriesSchema(
+        PandasDtype.Int, Validator(lambda x: 0 <= x <= 100))
+    validated_series = schema.validate(pd.Series([0, 30, 50, 100]))
+    assert isinstance(validated_series, pd.Series)
 
     # error cases
     for data in [-1, 101, 50.0, "foo"]:
@@ -26,12 +28,11 @@ def test_series_schema():
 
 def test_series_schema_multiple_validators():
     schema = SeriesSchema(
-        PandasDtype.Int,
-        validators=[
-            lambda x: 0 <= x <= 50,
-            lambda series: 21 in series.values],
-        element_wise=[True, False])
-    assert schema.validate(pd.Series([1, 5, 21, 50]))
+        PandasDtype.Int, [
+            Validator(lambda x: 0 <= x <= 50),
+            Validator(lambda s: 21 in s.values, element_wise=False)])
+    validated_series = schema.validate(pd.Series([1, 5, 21, 50]))
+    assert isinstance(validated_series, pd.Series)
 
     # raise error if any of the validators fails
     with pytest.raises(SchemaError):
@@ -41,21 +42,23 @@ def test_series_schema_multiple_validators():
 def test_dataframe_schema():
     schema = DataFrameSchema(
         [
-            Column("a", PandasDtype.Int, lambda x: x > 0),
-            Column("b", PandasDtype.Float, lambda x: 0 <= x <= 10),
+            Column("a", PandasDtype.Int, Validator(lambda x: x > 0)),
+            Column("b", PandasDtype.Float, Validator(lambda x: 0 <= x <= 10)),
             Column("c", PandasDtype.String,
-                   lambda x: set(x) == {"x", "y", "z"}, element_wise=False),
+                   Validator(lambda x: set(x) == {"x", "y", "z"},
+                             element_wise=False)),
             Column("d", PandasDtype.Bool,
-                   lambda x: x.mean() > 0.5, element_wise=False),
+                   Validator(lambda x: x.mean() > 0.5, element_wise=False)),
             Column("e", PandasDtype.Category,
-                   lambda x: set(x) == {"c1", "c2", "c3"}, element_wise=False),
+                   Validator(lambda x: set(x) == {"c1", "c2", "c3"},
+                             element_wise=False)),
             Column("f", PandasDtype.Object,
-                   lambda x: x.isin([(1,), (2,), (3,)]).all(),
-                   element_wise=False),
+                   Validator(lambda x: x.isin([(1,), (2,), (3,)]),
+                             element_wise=False)),
             Column("g", PandasDtype.DateTime,
-                   lambda x: x >= pd.Timestamp("2015-01-01")),
+                   Validator(lambda x: x >= pd.Timestamp("2015-01-01"))),
             Column("i", PandasDtype.Timedelta,
-                   lambda x: x < pd.Timedelta(10, unit="D"))
+                   Validator(lambda x: x < pd.Timedelta(10, unit="D")))
         ])
     df = pd.DataFrame({
         "a": [1, 2, 3],
@@ -80,11 +83,9 @@ def test_dataframe_schema():
 
 def test_index_schema():
     schema = Index(
-        PandasDtype.Int,
-        validators=[
-            lambda x: 1 <= x <= 12,
-            lambda index: index.mean() > 1],
-        element_wise=[True, False],
+        PandasDtype.Int, [
+            Validator(lambda x: 1 <= x <= 12),
+            Validator(lambda index: index.mean() > 1, element_wise=False)],
         to_series=True)
     df = pd.DataFrame(index=pd.Index(range(1, 11), dtype="int64"))
     schema(df)
@@ -93,21 +94,24 @@ def test_index_schema():
 def test_validate_decorators():
     in_schema = DataFrameSchema(
         [
-            Column("a", PandasDtype.Int,
-                   [lambda x: x >= 1, lambda series: series.mean() > 0],
-                   element_wise=[True, False]),
-            Column("b", PandasDtype.String, lambda x: x in ["x", "y", "z"]),
+            Column("a", PandasDtype.Int, [
+                Validator(lambda x: x >= 1),
+                Validator(lambda s: s.mean() > 0, element_wise=False)]),
+            Column("b", PandasDtype.String,
+                   Validator(lambda x: x in ["x", "y", "z"])),
             Column("c", PandasDtype.DateTime,
-                   lambda x: pd.Timestamp("2018-01-01") <= x),
-            Column("d", PandasDtype.Float, lambda x: np.isnan(x) or x < 3)
+                   Validator(lambda x: pd.Timestamp("2018-01-01") <= x)),
+            Column("d", PandasDtype.Float,
+                   Validator(lambda x: np.isnan(x) or x < 3))
         ],
         transformer=lambda df: df.assign(e="foo")
     )
     out_schema = DataFrameSchema(
         [
-            Column("e", PandasDtype.String, lambda x: (x == "foo").all(),
-                   element_wise=False),
-            Column("f", PandasDtype.String, lambda x: x in ["a", "b"])])
+            Column("e", PandasDtype.String,
+                   Validator(lambda s: s == "foo", element_wise=False)),
+            Column("f", PandasDtype.String,
+                   Validator(lambda x: x in ["a", "b"]))])
 
     # case 1: simplest path test - df is first argument and function returns
     # single dataframe as output.
