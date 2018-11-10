@@ -134,7 +134,7 @@ class DataFrameSchema(object):
 class SeriesSchemaBase(object):
     """Column validator object."""
 
-    def __init__(self, pandas_dtype, validators=None):
+    def __init__(self, pandas_dtype, validators=None, nullable=False):
         """Initialize column validator object.
 
         Parameters
@@ -144,8 +144,11 @@ class SeriesSchemaBase(object):
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         validators : Validator|list[Validator]
+        nullable : bool
+            Whether or not column can contain null values.
         """
         self._pandas_dtype = pandas_dtype
+        self._nullable = nullable
         if validators is None:
             validators = []
         if isinstance(validators, Validator):
@@ -154,6 +157,24 @@ class SeriesSchemaBase(object):
 
     def __call__(self, series):
         """Validate a series."""
+        if self._nullable:
+            series = series.dropna()
+            _series = series.astype(self._pandas_dtype.value)
+            # in case where dtype is meant to be int, make sure that casting
+            # to int results in the same values.
+            if self._pandas_dtype is PandasDtype.Int and \
+                    (_series != series).any():
+                raise SchemaError(
+                    "after dropping null values, expected series values to "
+                    "be int, found: %s" % set(series))
+            series = _series
+        else:
+            nulls = series.isnull()
+            if nulls.sum() > 0:
+                raise SchemaError(
+                    "non-nullable series contains null values: %s" %
+                    series[nulls].to_dict())
+
         _dtype = self._pandas_dtype if isinstance(self._pandas_dtype, str) \
             else self._pandas_dtype.value
         type_val_result = series.dtype == _dtype
@@ -169,8 +190,25 @@ class SeriesSchemaBase(object):
 
 class SeriesSchema(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, validators=None):
-        super(SeriesSchema, self).__init__(pandas_dtype, validators)
+    def __init__(self, pandas_dtype, validators=None, nullable=False):
+        """Initialize series schema object.
+
+        Parameters
+        ----------
+        column : str
+            column name in the dataframe
+        pandas_dtype : str|PandasDtype
+            datatype of the column. If a string is specified, then assumes
+            one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+        validators : callable
+            If element_wise is True, then callable signature should be:
+            x -> x where x is a scalar element in the column. Otherwise,
+            x is assumed to be a pandas.Series object.
+        nullable : bool
+            Whether or not column can contain null values.
+        """
+        super(SeriesSchema, self).__init__(pandas_dtype, validators, nullable)
 
     def validate(self, series):
         if not isinstance(series, pd.Series):
@@ -217,14 +255,11 @@ class Column(SeriesSchemaBase):
             If element_wise is True, then callable signature should be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
-        element_wise : bool
-            Whether or not to apply validator in an element-wise fashion.
         nullable : bool
-            Whether or not column can be null.
+            Whether or not column can contain null values.
         """
-        super(Column, self).__init__(pandas_dtype, validators)
+        super(Column, self).__init__(pandas_dtype, validators, nullable)
         self._column = column
-        self._nullable = nullable
 
     @property
     def column(self):
@@ -232,8 +267,6 @@ class Column(SeriesSchemaBase):
 
     def get_column(self, df):
         column = df[self._column]
-        if self._nullable:
-            return column.dropna().astype(self._pandas_dtype.value)
         return column
 
     def __call__(self, df):

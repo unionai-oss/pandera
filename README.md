@@ -44,6 +44,13 @@ schema = DataFrameSchema([
            Validator(lambda x: x.startswith("value_")))
 ])
 
+# optionally, you can pass strings representing the legal pandas datatypes:
+# http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+schema = DataFrameSchema([
+    Column("column1", "int[64]", Validator(lambda x: 0 <= x <= 10)),
+    ...
+])
+
 df = pd.DataFrame({
     "column1": [1, 4, 0, 10, 9],
     "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
@@ -61,7 +68,7 @@ print(validated_df)
 #  4        9    -20.4  value_1
 ```
 
-#### Errors
+#### Informative Errors
 
 If the dataframe does not pass validation checks, `pandera` provides useful
 error messages. An `error` argument can also be supplied to `Validator` for
@@ -102,6 +109,41 @@ simple_schema.validate(wrong_column_df)
 #  4  bar    1
 ```
 
+### Nullable Columns
+
+By default, SeriesSchema/Column objects assume that values are not nullable.
+In order to accept null values, you need to explicitly specify `nullable=True`,
+or else you'll get an error.
+
+```python
+df = pd.DataFrame({"column1": [5, 1, np.nan]})
+
+non_null_schema = DataFrameSchema([
+    Column("column1", PandasDtype.Int, Validator(lambda x: x > 0))])
+
+non_null_schema.validate(df)
+
+# SchemaError: non-nullable series contains null values: {2: nan}
+```
+
+**NOTE:** Due to a known limitation in
+[pandas](http://pandas.pydata.org/pandas-docs/stable/gotchas.html#support-for-integer-na),
+integer arrays cannot contain `NaN` values, so this schema will return a
+dataframe where `column1` is of type `float`.
+
+```python
+null_schema = DataFrameSchema([
+    Column("column1", PandasDtype.Int, Validator(lambda x: x > 0),
+           nullable=True)])
+
+null_schema.validate(df)
+
+#    column1
+# 0      5.0
+# 1      1.0
+# 2      NaN
+```
+
 
 ### `SeriesSchema`
 
@@ -124,41 +166,38 @@ schema.validate(pd.Series(["1_foobar", "2_foobar", "3_foobar"]))
 ```
 
 
-### Aggregate Validators
+### Vectorized Validators
 
-If you need to make basic statistical assertions about a column, use the
+If you need to make basic statistical assertions about a column, or you want
+to take advantage of the speed gains affarded by the pd.Series API, use the
 `element_wise=False` keyword argument. The signature of validators then becomes
-`pd.Series -> bool|pd.Series[bool]`, where the function has access to the
-Series API:
+`pd.Series -> bool|pd.Series[bool]`.
 
 ```python
 schema = DataFrameSchema([
     Column("a", PandasDtype.Int,
-           [Validator(lambda s: s.mean() > 5, element_wise=True),
-            Validator(lambda s: s.median() >= 6)])
+           [
+                # this validator returns a bool
+                Validator(lambda s: s.mean() > 5, element_wise=False),
+                # this validator returns a boolean series
+                Validator(lambda s: s > 0, element_wise=False)])
 ])
 
 df = pd.DataFrame({"a": [4, 4, 5, 6, 6, 7, 8, 9]})
 schema.validate(df)
 ```
 
-To specify validators that apply both element- and series-wise, supply
-a list of `Validators` with the appropriate `element_wise` argument (default
-is `element_wise=True`.
 
-```python
-schema = DataFrameSchema([
-    Column("a", PandasDtype.Int,
-           [Validator(lambda s: s.mean() > 5, element_wise=False),
-            Validator(lambda x: x > 0)])
-])
-```
+## Plugging into Existing Workflows
+
+If you have an existing data pipeline that uses pandas data structures, you can
+use the `validate_input` and `validate_output` decorators to easily check
+function arguments or returned variables from existing functions.
 
 
 ### `validate_input`
 
-Decorator that validates input pandas DataFrame/Series before entering the
-wrapped function.
+Validates input pandas DataFrame/Series before entering the wrapped function.
 
 ```python
 from pandera import validate_input
@@ -174,17 +213,21 @@ in_schema = DataFrameSchema([
     Column("column2", PandasDtype.Float, Validate(lambda x: x < -1.2)),
 ])
 
+# by default, assumes that the first argument is dataframe/series.
+@validate_input(in_schema)
+def preprocessor(dataframe):
+    dataframe["column4"] = dataframe["column1"] + dataframe["column2"]
+    return dataframe
 
-# provide the argument name as a string
+# or you can provide the argument name as a string
 @validate_input(in_schema, "dataframe")
 def preprocessor(dataframe):
     dataframe["column4"] = dataframe["column1"] + dataframe["column2"]
     return dataframe
 
-# or integer representing index in the positional arguments. If second argument
-# is not specified, assumes that the first argument is dataframe/series.
-@validate_input(in_schema, 0)
-def preprocessor(dataframe):
+# or integer representing index in the positional arguments.
+@validate_input(in_schema, 1)
+def preprocessor(foo, dataframe):
     ...
 
 preprocessed_df = preprocessor(df)

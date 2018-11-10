@@ -17,7 +17,7 @@ def test_series_schema():
     assert isinstance(validated_series, pd.Series)
 
     # error cases
-    for data in [-1, 101, 50.0, "foo"]:
+    for data in [-1, 101, 50.1, "foo"]:
         with pytest.raises(SchemaError):
             schema.validate(pd.Series([data]))
 
@@ -102,7 +102,7 @@ def test_validate_decorators():
             Column("c", PandasDtype.DateTime,
                    Validator(lambda x: pd.Timestamp("2018-01-01") <= x)),
             Column("d", PandasDtype.Float,
-                   Validator(lambda x: np.isnan(x) or x < 3))
+                   Validator(lambda x: np.isnan(x) or x < 3), nullable=True)
         ],
         transformer=lambda df: df.assign(e="foo")
     )
