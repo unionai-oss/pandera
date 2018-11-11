@@ -2,7 +2,6 @@
 
 import inspect
 import pandas as pd
-import re
 import wrapt
 
 from collections import OrderedDict

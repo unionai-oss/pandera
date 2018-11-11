@@ -222,8 +222,7 @@ def preprocessor(dataframe):
 # or you can provide the argument name as a string
 @validate_input(in_schema, "dataframe")
 def preprocessor(dataframe):
-    dataframe["column4"] = dataframe["column1"] + dataframe["column2"]
-    return dataframe
+    ...
 
 # or integer representing index in the positional arguments.
 @validate_input(in_schema, 1)
