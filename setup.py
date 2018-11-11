@@ -15,5 +15,6 @@ setup(
         "pandas >= 0.23.0",
         "schema >= 0.6.8",
         "wrapt",
-    ]
+    ],
+    python_requires=">3.6"
 )
