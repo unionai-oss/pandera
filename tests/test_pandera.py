@@ -82,13 +82,18 @@ def test_dataframe_schema():
 
 
 def test_index_schema():
-    schema = Index(
-        PandasDtype.Int, [
-            Validator(lambda x: 1 <= x <= 12),
-            Validator(lambda index: index.mean() > 1, element_wise=False)],
-        to_series=True)
-    df = pd.DataFrame(index=pd.Index(range(1, 11), dtype="int64"))
-    schema(df)
+    schema = DataFrameSchema(
+        columns=[],
+        index=Index(
+            PandasDtype.Int, [
+                Validator(lambda x: 1 <= x <= 11),
+                Validator(lambda index: index.mean() > 1, element_wise=False)]
+        ))
+    df = pd.DataFrame(index=range(1, 11), dtype="int64")
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+    with pytest.raises(SchemaError):
+        schema.validate(pd.DataFrame(index=range(1, 20)))
 
 
 def test_validate_decorators():

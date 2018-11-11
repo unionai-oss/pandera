@@ -68,6 +68,38 @@ print(validated_df)
 #  4        9    -20.4  value_1
 ```
 
+#### Validating DataFrame Index
+
+You can also specify an `Index` in the `DataFrameSchema`.
+
+```python
+from pandera import Index
+
+schema = DataFrameSchema(
+    columns=[Column("a", PandasDtype.Int)],
+    index=Index(
+        PandasDtype.String,
+        Validator(lambda x: x.startswith("index_"))))
+
+df = pd.DataFrame({"a": [1, 2, 3]}, index=["index_1", "index_2", "index_3"])
+
+print(schema.validate(df))
+
+#          a
+# index_1  1
+# index_2  2
+# index_3  3
+
+
+df.index = ["foo1", "foo2", "foo3"]
+schema.validate(df)
+
+# SchemaError: <Schema Index> failed element-wise validator 0:
+# <lambda>
+# failure cases: {0: 'foo1', 1: 'foo2', 2: 'foo3'}
+```
+
+
 #### Informative Errors
 
 If the dataframe does not pass validation checks, `pandera` provides useful

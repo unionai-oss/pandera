@@ -51,19 +51,19 @@ class Validator(object):
             return "%s: %s" % (self.fn.__name__, self.error)
         return "%s" % self.fn.__name__
 
-    def vectorized_error_message(self, index, failure_cases):
+    def vectorized_error_message(self, parent_schema, index, failure_cases):
         return (
-            "series failed element-wise validator %d:\n"
+            "%s failed element-wise validator %d:\n"
             "%s\nfailure cases: %s" %
-            (index, self.error_message, failure_cases))
+            (parent_schema, index, self.error_message, failure_cases))
 
-    def __call__(self, series, index):
+    def __call__(self, parent_schema, series, index):
         if self.element_wise:
             val_result = series.map(self.fn)
             if val_result.all():
                 return True
             raise SchemaError(self.vectorized_error_message(
-                index, series[~val_result].to_dict()))
+                parent_schema, index, series[~val_result].to_dict()))
         else:
             # series-wise validator can return either a boolean or a
             # pd.Series of booleans.
@@ -77,7 +77,7 @@ class Validator(object):
                 if val_result.all():
                     return True
                 raise SchemaError(self.vectorized_error_message(
-                    index, series[~val_result].to_dict()))
+                    parent_schema, index, series[~val_result].to_dict()))
             else:
                 if val_result:
                     return True
@@ -110,10 +110,10 @@ class DataFrameSchema(object):
         self.columns = columns
         self.transformer = transformer
         if self.index is not None:
-            args = columns + [Index]
+            schema_arg = self.columns + [self.index]
         else:
-            args = columns
-        schema_arg = And(*args)
+            schema_arg = self.columns
+        schema_arg = And(*schema_arg)
         if self.transformer is not None:
             schema_arg = And(schema_arg, Use(transformer))
         self.schema = Schema(schema_arg)
@@ -183,7 +183,7 @@ class SeriesSchemaBase(object):
                 (series.name, self._pandas_dtype.value, series.dtype))
         validator_results = []
         for i, validator in enumerate(self._validators):
-            validator_results.append(validator(series, i))
+            validator_results.append(validator(self, series, i))
         return all([type_val_result] + validator_results)
 
 
@@ -219,21 +219,18 @@ class SeriesSchema(SeriesSchemaBase):
 
 class Index(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, name=None, validators=None,
-                 to_series=False):
-        super(Index, self).__init__(pandas_dtype, validators)
-        self._to_series = to_series
+    def __init__(self, pandas_dtype, validators=None, nullable=False,
+                 name=None):
+        super(Index, self).__init__(pandas_dtype, validators, nullable)
         self._name = name
 
     def __call__(self, df):
-        if self._to_series:
-            arg = pd.Series(df.index)
-        else:
-            arg = df.index
-        return super(Index, self).__call__(arg)
+        return super(Index, self).__call__(pd.Series(df.index))
 
     def __repr__(self):
-        return "<Index: %s>" % self._name
+        if self._name is None:
+            return "<Schema Index>"
+        return "<Schema Index: %s>" % self._name
 
 
 class Column(SeriesSchemaBase):
@@ -272,7 +269,7 @@ class Column(SeriesSchemaBase):
         return super(Column, self).__call__(self.get_column(df))
 
     def __repr__(self):
-        return "<Column: %s>" % self._column
+        return "<Schema Column: %s>" % self._column
 
 
 def validate_input(schema, obj_getter=None):
