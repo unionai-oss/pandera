@@ -285,7 +285,7 @@ from pandera import validate_output
 
 # assert that all elements in "column1" are zero
 out_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, lambda x: x == 0)])
+    Column("column1", PandasDtype.Int, Validate(lambda x: x == 0))])
 
 
 # by default assumes that the pandas DataFrame/Schema is the only output
