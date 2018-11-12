@@ -20,7 +20,7 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda env create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
+  - conda create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
   - pip install requirements.txt
   - source activate ci-env
   - python setup.py install
