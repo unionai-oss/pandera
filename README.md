@@ -1,5 +1,8 @@
 # pandera
 
+[![Build Status](https://travis-ci.org/cosmicBboy/pandera.svg?branch=master)](https://travis-ci.org/cosmicBboy/pandera)
+
+
 Validating pandas data structures for people seeking correct things.
 
 A light-weight and flexible validation package for
