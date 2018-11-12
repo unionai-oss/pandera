@@ -21,7 +21,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   - conda create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
-  - pip install -r requirements.txt
   - source activate ci-env
+  - pip install -r requirements.txt
   - python setup.py install
 script: pytest
