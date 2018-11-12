@@ -7,11 +7,9 @@
 Validating pandas data structures for people seeking correct things.
 
 A light-weight and flexible validation package for
-<a href="http://pandas.pydata.org" target="_blank">pandas</a> data structures,
-built on top of
-<a href="https://github.com/keleshev/schema" target="_blank">schema</a>,
-a powerful Python data structure validation tool. API inspired by
-<a href="https://tmiguelt.github.io/PandasSchema" target="_blank">pandas-schema</a>.
+[pandas](http://pandas.pydata.org) data structures, built on top of
+[schema](https://github.com/keleshev/schema), a powerful Python data structure
+validation tool. API inspired by [pandas-schema](https://tmiguelt.github.io/PandasSchema)
 
 
 ## Why?
@@ -336,5 +334,5 @@ pytest tests
 Issues
 ------
 
-Go <a href="https://github.com/cosmicBboy/pandera/issues" target="_blank">here</a>
-to submit feature requests or bugfixes.
+Go [here](https://github.com/cosmicBboy/pandera/issues) to submit feature
+requests or bugfixes.
