@@ -10,6 +10,9 @@ setup(
     url="https://github.com/cosmicBboy/pandera",
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
+    packages=[
+        "pandera",
+    ],
     install_requires=[
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
