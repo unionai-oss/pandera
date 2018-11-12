@@ -6,7 +6,7 @@ tests:
 clean:
 	python setup.py clean
 
-clean_pyc:
+clean-pyc:
 	find . -name '*.pyc' -exec rm {} \;
 
 upload-pypi:
@@ -14,3 +14,6 @@ upload-pypi:
 
 requirements:
 	pip install -r requirements.txt
+
+mock-ci-tests:
+	. ./ci_tests.sh

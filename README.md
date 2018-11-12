@@ -25,9 +25,6 @@ And it also makes it easier to review pandas code :)
 pip install pandera
 ```
 
-Currently only tested on `python>3.6+`.
-
-
 ## Example Usage
 
 ### `DataFrameSchema`
