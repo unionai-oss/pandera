@@ -14,6 +14,7 @@ setup(
         "pandera",
     ],
     install_requires=[
+        "enum34",
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
         "schema >= 0.6.8",
