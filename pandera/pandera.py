@@ -126,7 +126,7 @@ class DataFrameSchema(object):
                     (c.column, dataframe.head()))
 
         if not isinstance(dataframe, pd.DataFrame):
-            raise TypeError("expected series, got %s" % type(dataframe))
+            raise TypeError("expected dataframe, got %s" % type(dataframe))
         return self.schema.validate(dataframe)
 
 
