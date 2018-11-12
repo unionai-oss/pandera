@@ -17,7 +17,7 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
+  - conda update -q --yes conda
   # Useful for debugging any issues with conda
   - conda info -a
   - conda create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
