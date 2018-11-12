@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/cosmicBboy/pandera.svg?branch=master)](https://travis-ci.org/cosmicBboy/pandera)
 
+**Supports:** python 2.7, 3.5, 3.6
 
 Validating pandas data structures for people seeking correct things.
 
@@ -46,7 +47,7 @@ schema = DataFrameSchema([
            Validator(lambda x: x.startswith("value_")))
 ])
 
-# optionally, you can pass strings representing the legal pandas datatypes:
+# alternatively, you can pass strings representing the legal pandas datatypes:
 # http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
 schema = DataFrameSchema([
     Column("column1", "int[64]", Validator(lambda x: 0 <= x <= 10)),
