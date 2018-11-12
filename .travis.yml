@@ -24,4 +24,4 @@ install:
   - source activate ci-env
   - pip install -r requirements.txt
   - python setup.py install
-script: pytest
+script: source activate ci-env && pytest
