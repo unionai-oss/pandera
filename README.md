@@ -244,8 +244,8 @@ df = pd.DataFrame({
 })
 
 in_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, Validate(lambda x: 0 <= x <= 10)),
-    Column("column2", PandasDtype.Float, Validate(lambda x: x < -1.2)),
+    Column("column1", PandasDtype.Int, Validator(lambda x: 0 <= x <= 10)),
+    Column("column2", PandasDtype.Float, Validator(lambda x: x < -1.2)),
 ])
 
 # by default, assumes that the first argument is dataframe/series.
@@ -288,7 +288,7 @@ from pandera import validate_output
 
 # assert that all elements in "column1" are zero
 out_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, Validate(lambda x: x == 0))])
+    Column("column1", PandasDtype.Int, Validator(lambda x: x == 0))])
 
 
 # by default assumes that the pandas DataFrame/Schema is the only output
