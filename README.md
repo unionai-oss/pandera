@@ -41,8 +41,10 @@ from pandera import Column, DataFrameSchema, PandasDtype, Validator
 schema = DataFrameSchema([
     Column("column1", PandasDtype.Int, Validator(lambda x: 0 <= x <= 10)),
     Column("column2", PandasDtype.Float, Validator(lambda x: x < -1.2)),
+    # you can provide a list of validators
     Column("column3", PandasDtype.String,
-           Validator(lambda x: x.startswith("value_")))
+           [Validator(lambda x: x.startswith("value_")),
+            Validator(lambda x: len(x.split("_")) == 2)])
 ])
 
 # alternatively, you can pass strings representing the legal pandas datatypes:
