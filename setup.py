@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="pandera",
-    version="0.0.3",
+    version="0.0.4",
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
     description="A pandas data structure validation library",
