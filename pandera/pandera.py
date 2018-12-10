@@ -13,8 +13,8 @@ class PandasDtype(Enum):
     Bool = "bool"
     DateTime = "datetime64[ns]"
     Category = "category"
-    Float = "float"
-    Int = "int"
+    Float = "float64"
+    Int = "int64"
     Object = "object"
     String = "object"
     Timedelta = "timedelta64[ns]"
@@ -156,13 +156,14 @@ class SeriesSchemaBase(object):
 
     def __call__(self, series):
         """Validate a series."""
+        _dtype = self._pandas_dtype if isinstance(self._pandas_dtype, str) \
+            else self._pandas_dtype.value
         if self._nullable:
             series = series.dropna()
-            _series = series.astype(self._pandas_dtype.value)
+            _series = series.astype(_dtype)
             # in case where dtype is meant to be int, make sure that casting
             # to int results in the same values.
-            if self._pandas_dtype is PandasDtype.Int and \
-                    (_series != series).any():
+            if (_dtype == "int64") and (_series != series).any():
                 raise SchemaError(
                     "after dropping null values, expected series values to "
                     "be int, found: %s" % set(series))
@@ -174,8 +175,6 @@ class SeriesSchemaBase(object):
                     "non-nullable series contains null values: %s" %
                     series[nulls].to_dict())
 
-        _dtype = self._pandas_dtype if isinstance(self._pandas_dtype, str) \
-            else self._pandas_dtype.value
         type_val_result = series.dtype == _dtype
         if not type_val_result:
             raise SchemaError(
