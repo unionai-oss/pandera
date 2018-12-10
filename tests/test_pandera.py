@@ -177,3 +177,11 @@ def test_validate_decorators():
     df = test_func4("foo", df)
     assert x == "foo"
     assert isinstance(df, pd.DataFrame)
+
+
+def test_string_dtypes():
+    # TODO: add tests for all datatypes
+    schema = DataFrameSchema(
+        [Column("col", "float64", nullable=True)])
+    df = pd.DataFrame({"col": [np.nan, 1.0, 2.0]})
+    assert isinstance(schema.validate(df), pd.DataFrame)
