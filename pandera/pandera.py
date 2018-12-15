@@ -6,6 +6,7 @@ import wrapt
 
 from collections import OrderedDict
 from enum import Enum
+from functools import partial
 from schema import Schema, Use, And, SchemaError
 
 
@@ -20,10 +21,20 @@ class PandasDtype(Enum):
     Timedelta = "timedelta64[ns]"
 
 
-class Validator(object):
+Bool = PandasDtype.Bool
+DateTime = PandasDtype.DateTime
+Category = PandasDtype.Category
+Float = PandasDtype.Float
+Int = PandasDtype.Int
+Object = PandasDtype.Object
+String = PandasDtype.String
+Timedelta = PandasDtype.Timedelta
+
+
+class Check(object):
 
     def __init__(self, fn, element_wise=True, error=None):
-        """Validator object applies function element-wise or series-wise
+        """Check object applies function element-wise or series-wise
 
         Parameters
         ----------
@@ -34,9 +45,9 @@ class Validator(object):
             to be: pd.Series -> bool|pd.Series[bool].
         element_wise : bool|list[bool]
             Whether or not to apply validator in an element-wise fashion. If
-            bool, assumes that all validators should be applied to the column
+            bool, assumes that all checks should be applied to the column
             element-wise. If list, should be the same number of elements
-            as validators.
+            as checks.
         error : str
             custom error message if series fails validation check.
 
@@ -95,9 +106,9 @@ class DataFrameSchema(object):
 
         Parameters
         ----------
-        columns : list of Column
-            a list of Column objects specifying the datatypes and properties
-            of a particular column.
+        columns : dict[str -> Column]
+            a dict where keys are column names and values are Column objects
+            specifying the datatypes and properties of a particular column.
         index : Index
             specify the datatypes and properties of the index.
         transformer : callable
@@ -109,21 +120,22 @@ class DataFrameSchema(object):
         self.index = index
         self.columns = columns
         self.transformer = transformer
-        if self.index is not None:
-            schema_arg = self.columns + [self.index]
-        else:
-            schema_arg = self.columns
-        schema_arg = And(*schema_arg)
-        if self.transformer is not None:
-            schema_arg = And(schema_arg, Use(transformer))
-        self.schema = Schema(schema_arg)
 
     def validate(self, dataframe):
         for c in self.columns:
-            if c.column not in dataframe:
+            if c not in dataframe:
                 raise SchemaError(
                     "column '%s' not in dataframe\n%s" %
-                    (c.column, dataframe.head()))
+                    (c, dataframe.head()))
+
+        schema_arg = [
+            partial(col, col_name) for col_name, col in self.columns.items()]
+        if self.index is not None:
+            schema_arg += [self.index]
+        schema_arg = And(*schema_arg)
+        if self.transformer is not None:
+            schema_arg = And(schema_arg, Use(self.transformer))
+        self.schema = Schema(schema_arg)
 
         if not isinstance(dataframe, pd.DataFrame):
             raise TypeError("expected dataframe, got %s" % type(dataframe))
@@ -131,10 +143,10 @@ class DataFrameSchema(object):
 
 
 class SeriesSchemaBase(object):
-    """Column validator object."""
+    """Base series validator object."""
 
-    def __init__(self, pandas_dtype, validators=None, nullable=False):
-        """Initialize column validator object.
+    def __init__(self, pandas_dtype, checks=None, nullable=False):
+        """Initialize series schema object.
 
         Parameters
         ----------
@@ -142,17 +154,17 @@ class SeriesSchemaBase(object):
             datatype of the column. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        validators : Validator|list[Validator]
+        checks : Check|list[Check]
         nullable : bool
             Whether or not column can contain null values.
         """
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
-        if validators is None:
-            validators = []
-        if isinstance(validators, Validator):
-            validators = [validators]
-        self._validators = validators
+        if checks is None:
+            checks = []
+        if isinstance(checks, Check):
+            checks = [checks]
+        self._checks = checks
 
     def __call__(self, series):
         """Validate a series."""
@@ -180,15 +192,15 @@ class SeriesSchemaBase(object):
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, self._pandas_dtype.value, series.dtype))
-        validator_results = []
-        for i, validator in enumerate(self._validators):
-            validator_results.append(validator(self, series, i))
-        return all([type_val_result] + validator_results)
+        check_results = []
+        for i, validator in enumerate(self._checks):
+            check_results.append(validator(self, series, i))
+        return all([type_val_result] + check_results)
 
 
 class SeriesSchema(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, validators=None, nullable=False):
+    def __init__(self, pandas_dtype, checks=None, nullable=False):
         """Initialize series schema object.
 
         Parameters
@@ -199,14 +211,14 @@ class SeriesSchema(SeriesSchemaBase):
             datatype of the column. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        validators : callable
+        checks : callable
             If element_wise is True, then callable signature should be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
         nullable : bool
             Whether or not column can contain null values.
         """
-        super(SeriesSchema, self).__init__(pandas_dtype, validators, nullable)
+        super(SeriesSchema, self).__init__(pandas_dtype, checks, nullable)
 
     def validate(self, series):
         if not isinstance(series, pd.Series):
@@ -218,9 +230,9 @@ class SeriesSchema(SeriesSchemaBase):
 
 class Index(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, validators=None, nullable=False,
+    def __init__(self, pandas_dtype, checks=None, nullable=False,
                  name=None):
-        super(Index, self).__init__(pandas_dtype, validators, nullable)
+        super(Index, self).__init__(pandas_dtype, checks, nullable)
         self._name = name
 
     def __call__(self, df):
@@ -235,43 +247,36 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, column, pandas_dtype, validators=None, nullable=False):
+            self, pandas_dtype, checks=None, nullable=False):
         """Initialize column validator object.
 
         Parameters
         ----------
-        column : str
-            column name in the dataframe
         pandas_dtype : str|PandasDtype
             datatype of the column. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        validators : callable
+        checks : callable
             If element_wise is True, then callable signature should be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
         nullable : bool
             Whether or not column can contain null values.
         """
-        super(Column, self).__init__(pandas_dtype, validators, nullable)
-        self._column = column
+        super(Column, self).__init__(pandas_dtype, checks, nullable)
 
-    @property
-    def column(self):
-        return self._column
-
-    def get_column(self, df):
-        column = df[self._column]
-        return column
-
-    def __call__(self, df):
-        return super(Column, self).__call__(self.get_column(df))
+    def __call__(self, column_name, df):
+        return super(Column, self).__call__(df[column_name])
 
     def __repr__(self):
-        return "<Schema Column: %s>" % self._column
+        if isinstance(self._pandas_dtype, PandasDtype):
+            dtype = self._pandas_dtype.value
+        else:
+            dtype = self._pandas_dtype
+        return "<Schema Column: type=%s>" % dtype
 
 
-def validate_input(schema, obj_getter=None):
+def check_input(schema, obj_getter=None):
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -314,7 +319,7 @@ def validate_input(schema, obj_getter=None):
     return _wrapper
 
 
-def validate_output(schema, obj_getter=None):
+def check_output(schema, obj_getter=None):
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
@@ -332,6 +337,7 @@ def validate_output(schema, obj_getter=None):
         dataframe/series to be validated. If a callable is supplied, it expects
         the output of decorated function and should return the dataframe/series
         to be validated.
+
     """
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
