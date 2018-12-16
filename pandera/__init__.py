@@ -1,5 +1,7 @@
 from .pandera import DataFrameSchema, Column, Index, PandasDtype, \
-    SeriesSchema, Validator, validate_input, validate_output
+    SeriesSchema, Check, check_input, check_output
+from .pandera import Bool, DateTime, Category, Float, Int, Object, String, \
+    Timedelta
 
 
 __version__ = "0.0.5"

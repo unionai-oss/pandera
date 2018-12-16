@@ -7,12 +7,20 @@ import pytest
 from schema import SchemaError
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
-    SeriesSchema, Validator, validate_input, validate_output
+    SeriesSchema, Check, check_input, check_output
+
+
+def test_column():
+    schema = DataFrameSchema({
+        "a": Column(PandasDtype.Int, Check(lambda x: x > 0))
+    })
+    data = pd.DataFrame({"a": [1, 2, 3]})
+    assert isinstance(schema.validate(data), pd.DataFrame)
 
 
 def test_series_schema():
     schema = SeriesSchema(
-        PandasDtype.Int, Validator(lambda x: 0 <= x <= 100))
+        PandasDtype.Int, Check(lambda x: 0 <= x <= 100))
     validated_series = schema.validate(pd.Series([0, 30, 50, 100]))
     assert isinstance(validated_series, pd.Series)
 
@@ -29,8 +37,8 @@ def test_series_schema():
 def test_series_schema_multiple_validators():
     schema = SeriesSchema(
         PandasDtype.Int, [
-            Validator(lambda x: 0 <= x <= 50),
-            Validator(lambda s: 21 in s.values, element_wise=False)])
+            Check(lambda x: 0 <= x <= 50),
+            Check(lambda s: 21 in s.values, element_wise=False)])
     validated_series = schema.validate(pd.Series([1, 5, 21, 50]))
     assert isinstance(validated_series, pd.Series)
 
@@ -41,25 +49,26 @@ def test_series_schema_multiple_validators():
 
 def test_dataframe_schema():
     schema = DataFrameSchema(
-        [
-            Column("a", PandasDtype.Int, Validator(lambda x: x > 0)),
-            Column("b", PandasDtype.Float, Validator(lambda x: 0 <= x <= 10)),
-            Column("c", PandasDtype.String,
-                   Validator(lambda x: set(x) == {"x", "y", "z"},
-                             element_wise=False)),
-            Column("d", PandasDtype.Bool,
-                   Validator(lambda x: x.mean() > 0.5, element_wise=False)),
-            Column("e", PandasDtype.Category,
-                   Validator(lambda x: set(x) == {"c1", "c2", "c3"},
-                             element_wise=False)),
-            Column("f", PandasDtype.Object,
-                   Validator(lambda x: x.isin([(1,), (2,), (3,)]),
-                             element_wise=False)),
-            Column("g", PandasDtype.DateTime,
-                   Validator(lambda x: x >= pd.Timestamp("2015-01-01"))),
-            Column("i", PandasDtype.Timedelta,
-                   Validator(lambda x: x < pd.Timedelta(10, unit="D")))
-        ])
+        {
+            "a": Column(PandasDtype.Int, Check(lambda x: x > 0)),
+            "b": Column(PandasDtype.Float, Check(lambda x: 0 <= x <= 10)),
+            "c": Column(PandasDtype.String,
+                        Check(lambda x: set(x) == {"x", "y", "z"},
+                                  element_wise=False)),
+            "d": Column(PandasDtype.Bool,
+                        Check(lambda x: x.mean() > 0.5,
+                                  element_wise=False)),
+            "e": Column(PandasDtype.Category,
+                        Check(lambda x: set(x) == {"c1", "c2", "c3"},
+                                  element_wise=False)),
+            "f": Column(PandasDtype.Object,
+                        Check(lambda x: x.isin([(1,), (2,), (3,)]),
+                                  element_wise=False)),
+            "g": Column(PandasDtype.DateTime,
+                        Check(lambda x: x >= pd.Timestamp("2015-01-01"))),
+            "i": Column(PandasDtype.Timedelta,
+                        Check(lambda x: x < pd.Timedelta(10, unit="D")))
+        })
     df = pd.DataFrame({
         "a": [1, 2, 3],
         "b": [1.1, 2.5, 9.9],
@@ -83,11 +92,11 @@ def test_dataframe_schema():
 
 def test_index_schema():
     schema = DataFrameSchema(
-        columns=[],
+        columns={},
         index=Index(
             PandasDtype.Int, [
-                Validator(lambda x: 1 <= x <= 11),
-                Validator(lambda index: index.mean() > 1, element_wise=False)]
+                Check(lambda x: 1 <= x <= 11),
+                Check(lambda index: index.mean() > 1, element_wise=False)]
         ))
     df = pd.DataFrame(index=range(1, 11), dtype="int64")
     assert isinstance(schema.validate(df), pd.DataFrame)
@@ -98,43 +107,45 @@ def test_index_schema():
 
 def test_validate_decorators():
     in_schema = DataFrameSchema(
-        [
-            Column("a", PandasDtype.Int, [
-                Validator(lambda x: x >= 1),
-                Validator(lambda s: s.mean() > 0, element_wise=False)]),
-            Column("b", PandasDtype.String,
-                   Validator(lambda x: x in ["x", "y", "z"])),
-            Column("c", PandasDtype.DateTime,
-                   Validator(lambda x: pd.Timestamp("2018-01-01") <= x)),
-            Column("d", PandasDtype.Float,
-                   Validator(lambda x: np.isnan(x) or x < 3), nullable=True)
-        ],
+        {
+            "a": Column(PandasDtype.Int, [
+                Check(lambda x: x >= 1),
+                Check(lambda s: s.mean() > 0, element_wise=False)]),
+            "b": Column(PandasDtype.String,
+                        Check(lambda x: x in ["x", "y", "z"])),
+            "c": Column(PandasDtype.DateTime,
+                        Check(lambda x: pd.Timestamp("2018-01-01") <= x)),
+            "d": Column(PandasDtype.Float,
+                        Check(lambda x: np.isnan(x) or x < 3),
+                        nullable=True)
+        },
         transformer=lambda df: df.assign(e="foo")
     )
     out_schema = DataFrameSchema(
-        [
-            Column("e", PandasDtype.String,
-                   Validator(lambda s: s == "foo", element_wise=False)),
-            Column("f", PandasDtype.String,
-                   Validator(lambda x: x in ["a", "b"]))])
+        {
+            "e": Column(PandasDtype.String,
+                        Check(lambda s: s == "foo", element_wise=False)),
+            "f": Column(PandasDtype.String,
+                        Check(lambda x: x in ["a", "b"]))
+        })
 
     # case 1: simplest path test - df is first argument and function returns
     # single dataframe as output.
-    @validate_input(in_schema)
-    @validate_output(out_schema)
+    @check_input(in_schema)
+    @check_output(out_schema)
     def test_func1(dataframe, x):
         return dataframe.assign(f=["a", "b", "a"])
 
     # case 2: input and output validation using positional arguments
-    @validate_input(in_schema, 1)
-    @validate_output(out_schema, 0)
+    @check_input(in_schema, 1)
+    @check_output(out_schema, 0)
     def test_func2(x, dataframe):
         return dataframe.assign(f=["a", "b", "a"]), x
 
     # case 3: dataframe to validate is called as a keyword argument and the
     # output is in a dictionary
-    @validate_input(in_schema, "in_dataframe")
-    @validate_output(out_schema, "out_dataframe")
+    @check_input(in_schema, "in_dataframe")
+    @check_output(out_schema, "out_dataframe")
     def test_func3(x, in_dataframe=None):
         return {
             "x": x,
@@ -142,9 +153,9 @@ def test_validate_decorators():
         }
 
     # case 4: dataframe is a positional argument but the obj_getter in the
-    # validate_input decorator refers to the argument name of the dataframe
-    @validate_input(in_schema, "dataframe")
-    @validate_output(out_schema)
+    # check_input decorator refers to the argument name of the dataframe
+    @check_input(in_schema, "dataframe")
+    @check_output(out_schema)
     def test_func4(x, dataframe):
         return dataframe.assign(f=["a", "b", "a"])
 
@@ -168,7 +179,7 @@ def test_validate_decorators():
     assert isinstance(df, pd.DataFrame)
 
     # case: even if the pandas object to validate is called as a positional
-    # argument, the validate_input decorator should still be able to handle
+    # argument, the check_input decorator should still be able to handle
     # it.
     result = test_func3("foo", df)
     assert result["x"] == "foo"
@@ -182,6 +193,6 @@ def test_validate_decorators():
 def test_string_dtypes():
     # TODO: add tests for all datatypes
     schema = DataFrameSchema(
-        [Column("col", "float64", nullable=True)])
+        {"col": Column("float64", nullable=True)})
     df = pd.DataFrame({"col": [np.nan, 1.0, 2.0]})
     assert isinstance(schema.validate(df), pd.DataFrame)

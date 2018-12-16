@@ -34,25 +34,25 @@ pip install pandera
 ```python
 import pandas as pd
 
-from pandera import Column, DataFrameSchema, PandasDtype, Validator
+from pandera import Column, DataFrameSchema, Float, Int, String, Check
 
 
 # validate columns
-schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, Validator(lambda x: 0 <= x <= 10)),
-    Column("column2", PandasDtype.Float, Validator(lambda x: x < -1.2)),
+schema = DataFrameSchema({
+    "column1": Column(Int, Check(lambda x: 0 <= x <= 10)),
+    "column2": Column(Float, Check(lambda x: x < -1.2)),
     # you can provide a list of validators
-    Column("column3", PandasDtype.String,
-           [Validator(lambda x: x.startswith("value_")),
-            Validator(lambda x: len(x.split("_")) == 2)])
-])
+    "column3": Column(String, [
+        Check(lambda x: x.startswith("value_")),
+        Check(lambda x: len(x.split("_")) == 2)])
+})
 
 # alternatively, you can pass strings representing the legal pandas datatypes:
 # http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-schema = DataFrameSchema([
-    Column("column1", "int[64]", Validator(lambda x: 0 <= x <= 10)),
+schema = DataFrameSchema({
+    "column1": Column("int64", Check(lambda x: 0 <= x <= 10)),
     ...
-])
+})
 
 df = pd.DataFrame({
     "column1": [1, 4, 0, 10, 9],
@@ -76,13 +76,15 @@ print(validated_df)
 You can also specify an `Index` in the `DataFrameSchema`.
 
 ```python
-from pandera import Index
+import pandas as pd
+
+from pandera import Column, DataFrameSchema, Index, Int, String, Check
 
 schema = DataFrameSchema(
-    columns=[Column("a", PandasDtype.Int)],
+    columns={"a": Column(Int)},
     index=Index(
-        PandasDtype.String,
-        Validator(lambda x: x.startswith("index_"))))
+        String,
+        Check(lambda x: x.startswith("index_"))))
 
 df = pd.DataFrame({"a": [1, 2, 3]}, index=["index_1", "index_2", "index_3"])
 
@@ -106,14 +108,18 @@ schema.validate(df)
 #### Informative Errors
 
 If the dataframe does not pass validation checks, `pandera` provides useful
-error messages. An `error` argument can also be supplied to `Validator` for
+error messages. An `error` argument can also be supplied to `Check` for
 custom error messages.
 
 ```python
-simple_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int,
-           Validator(lambda x: 0 <= x <= 10, error="range checker [0, 10]"))
-])
+import pandas as pd
+
+from pandera import Column, DataFrameSchema, Int, Check
+
+simple_schema = DataFrameSchema({
+    "column1": Column(
+        Int, Check(lambda x: 0 <= x <= 10, error="range checker [0, 10]"))
+})
 
 # validation rule violated
 fail_check_df = pd.DataFrame({
@@ -151,10 +157,16 @@ In order to accept null values, you need to explicitly specify `nullable=True`,
 or else you'll get an error.
 
 ```python
+import numpy as np
+import pandas as pd
+
+from pandera import Check, Column, DataFrameSchema, Int
+
 df = pd.DataFrame({"column1": [5, 1, np.nan]})
 
-non_null_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, Validator(lambda x: x > 0))])
+non_null_schema = DataFrameSchema({
+    "column1": Column(Int, Check(lambda x: x > 0))
+})
 
 non_null_schema.validate(df)
 
@@ -167,9 +179,12 @@ integer arrays cannot contain `NaN` values, so this schema will return a
 dataframe where `column1` is of type `float`.
 
 ```python
-null_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, Validator(lambda x: x > 0),
-           nullable=True)])
+from pandera import Check, Column, DataFrameSchema, Int
+
+df = ...
+null_schema = DataFrameSchema({
+    "column1": Column(Int, Check(lambda x: x > 0), nullable=True)
+})
 
 null_schema.validate(df)
 
@@ -183,14 +198,15 @@ null_schema.validate(df)
 ### `SeriesSchema`
 
 ```python
-from pandera import SeriesSchema
+import pandas as pd
+
+from pandera import Check, SeriesSchema, String
 
 # specify multiple validators
-schema = SeriesSchema(
-    PandasDtype.String, [
-        Validator(lambda x: "foo" in x),
-        Validator(lambda x: x.endswith("bar")),
-        Validator(lambda x: len(x) > 3)])
+schema = SeriesSchema(String, [
+    Check(lambda x: "foo" in x),
+    Check(lambda x: x.endswith("bar")),
+    Check(lambda x: len(x) > 3)])
 
 schema.validate(pd.Series(["1_foobar", "2_foobar", "3_foobar"]))
 
@@ -201,7 +217,7 @@ schema.validate(pd.Series(["1_foobar", "2_foobar", "3_foobar"]))
 ```
 
 
-### Vectorized Validators
+### Vectorized Checks
 
 If you need to make basic statistical assertions about a column, or you want
 to take advantage of the speed gains affarded by the pd.Series API, use the
@@ -209,14 +225,17 @@ to take advantage of the speed gains affarded by the pd.Series API, use the
 `pd.Series -> bool|pd.Series[bool]`.
 
 ```python
-schema = DataFrameSchema([
-    Column("a", PandasDtype.Int,
-           [
-                # this validator returns a bool
-                Validator(lambda s: s.mean() > 5, element_wise=False),
-                # this validator returns a boolean series
-                Validator(lambda s: s > 0, element_wise=False)])
-])
+import pandas as pd
+
+from pandera import Check, Column, DataFrameSchema, Int
+
+schema = DataFrameSchema({
+    "a": Column(Int, [
+        # this validator returns a bool
+        Check(lambda s: s.mean() > 5, element_wise=False),
+        # this validator returns a boolean series
+        Check(lambda s: s > 0, element_wise=False)])
+})
 
 df = pd.DataFrame({"a": [4, 4, 5, 6, 6, 7, 8, 9]})
 schema.validate(df)
@@ -226,16 +245,18 @@ schema.validate(df)
 ## Plugging into Existing Workflows
 
 If you have an existing data pipeline that uses pandas data structures, you can
-use the `validate_input` and `validate_output` decorators to easily check
+use the `check_input` and `check_output` decorators to easily check
 function arguments or returned variables from existing functions.
 
 
-### `validate_input`
+### `check_input`
 
 Validates input pandas DataFrame/Series before entering the wrapped function.
 
 ```python
-from pandera import validate_input
+import pandas as pd
+
+from pandera import DataFrameSchema, Column, Check, Int, Float, check_input
 
 
 df = pd.DataFrame({
@@ -243,26 +264,30 @@ df = pd.DataFrame({
     "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
 })
 
-in_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, Validator(lambda x: 0 <= x <= 10)),
-    Column("column2", PandasDtype.Float, Validator(lambda x: x < -1.2)),
-])
+in_schema = DataFrameSchema({
+    "column1": Column(Int, Check(lambda x: 0 <= x <= 10)),
+    "column2": Column(Float, Check(lambda x: x < -1.2)),
+})
+
 
 # by default, assumes that the first argument is dataframe/series.
-@validate_input(in_schema)
+@check_input(in_schema)
 def preprocessor(dataframe):
     dataframe["column4"] = dataframe["column1"] + dataframe["column2"]
     return dataframe
 
+
 # or you can provide the argument name as a string
-@validate_input(in_schema, "dataframe")
+@check_input(in_schema, "dataframe")
 def preprocessor(dataframe):
     ...
 
+
 # or integer representing index in the positional arguments.
-@validate_input(in_schema, 1)
+@check_input(in_schema, 1)
 def preprocessor(foo, dataframe):
     ...
+
 
 preprocessed_df = preprocessor(df)
 print(preprocessed_df)
@@ -277,43 +302,46 @@ print(preprocessed_df)
 ```
 
 
-### `validate_output`
+### `check_output`
 
-The same as `validate_input`, but this decorator checks the output
+The same as `check_input`, but this decorator checks the output
 DataFrame/Series of the decorated function.
 
 ```python
-from pandera import validate_output
+from pandera import DataFrameSchema, Column, Check, Int, check_output
 
+
+preprocessed_df = ...
 
 # assert that all elements in "column1" are zero
-out_schema = DataFrameSchema([
-    Column("column1", PandasDtype.Int, Validator(lambda x: x == 0))])
+out_schema = DataFrameSchema({
+    "column1": Column(Int, Check(lambda x: x == 0))
+})
 
 
 # by default assumes that the pandas DataFrame/Schema is the only output
-@validate_output(out_schema)
+@check_output(out_schema)
 def zero_column_1(df):
     df["column1"] = 0
     return df
 
 
 # you can also specify in the index of the argument if the output is list-like
-@validate_output(out_schema, 1)
+@check_output(out_schema, 1)
 def zero_column_1_arg(df):
     df["column1"] = 0
     return "foobar", df
 
 
 # or the key containing the data structure to verify if the output is dict-like
-@validate_output(out_schema, "out_df")
+@check_output(out_schema, "out_df")
 def zero_column_1_dict(df):
     df["column1"] = 0
     return {"out_df": df, "out_str": "foobar"}
 
 
 # for more complex outputs, you can specify a function
-@validate_output(out_schema, lambda x: x[1]["out_df"])
+@check_output(out_schema, lambda x: x[1]["out_df"])
 def zero_column_1_custom(df):
     df["column1"] = 0
     return ("foobar", {"out_df": df})
