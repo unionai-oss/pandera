@@ -357,7 +357,7 @@ Tests
 -----
 
 ```
-pip install pytest twine
+pip install pytest
 pytest tests
 ```
 
