@@ -7,7 +7,7 @@ import pytest
 from schema import SchemaError
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
-    SeriesSchema, Check, Int, check_input, check_output
+    SeriesSchema, Check, Int, DateTime, String, check_input, check_output
 
 
 def test_column():
@@ -207,3 +207,38 @@ def test_nullable_int():
         "column1": Column(Int, Check(lambda x: x > 0), nullable=True)
     })
     assert isinstance(null_schema.validate(df), pd.DataFrame)
+
+
+def test_coerce_dtype():
+    df = pd.DataFrame({
+        "column1": [10.0, 20.0, 30.0],
+        "column2": ["2018-01-01", "2018-02-01", "2018-03-01"],
+        "column3": [1, 2, 3],
+        "column4": [1., 1., np.nan],
+    })
+    # specify `coerce` at the Column level
+    schema1 = DataFrameSchema({
+        "column1": Column(Int, Check(lambda x: x > 0), coerce=True),
+        "column2": Column(DateTime, coerce=True),
+        "column3": Column(String, coerce=True),
+    })
+    # specify `coerce` at the DataFrameSchema level
+    schema2 = DataFrameSchema({
+        "column1": Column(Int, Check(lambda x: x > 0)),
+        "column2": Column(DateTime),
+        "column3": Column(String),
+    }, coerce=True)
+
+    for schema in [schema1, schema2]:
+        result = schema.validate(df)
+        assert result.column1.dtype == Int.value
+        assert result.column2.dtype == DateTime.value
+        assert result.column3.dtype == String.value
+
+        # make sure that correct error is raised when null values are present
+        # in a float column that's coerced to an int
+        schema = DataFrameSchema({
+            "column4": Column(Int, coerce=True)
+        })
+        with pytest.raises(ValueError):
+            schema.validate(df)

@@ -204,6 +204,62 @@ null_schema.validate(df)
 ```
 
 
+### Coercing Types on Columns
+
+If you specify `Column(dtype, ..., coerce=True)` as part of the DataFrameSchema
+definition, calling `schema.validate` will first coerce the column into the
+specified `dtype`.
+
+```python
+import pandas as pd
+
+from pandera import Column, DataFrameSchema, String
+
+df = pd.DataFrame({"column1": [1, 2, 3]})
+schema = DataFrameSchema({"column1": Column(String, coerce=True)})
+
+validated_df = schema.validate(df)
+assert validated_df.column1.dtype == String.value
+
+print(validated_df)
+```
+
+Note the special case of integers columns not supporting `nan` values. In this
+case, `schema.validate` will complain if `coerce == True` and null
+values are allowed in the column.
+
+The best way to handle this case is to simply specify the column as a `Float`
+or `Object`.
+
+```python
+import pandas as pd
+
+from pandera import Column, DataFrameSchema, Float, Int, Object
+
+df = pd.DataFrame({"column1": [1., 2., 3, pd.np.nan]})
+schema = DataFrameSchema({"column1": Column(Int, coerce=True, nullable=True)})
+
+validated_df = schema.validate(df)
+# ValueError: cannot convert float NaN to integer
+
+
+schema_object = DataFrameSchema({
+    "column1": Column(Object, coerce=True, nullable=True)})
+schema_float = DataFrameSchema({
+    "column1": Column(Float, coerce=True, nullable=True)})
+
+schema_object.validate(df).dtypes
+# column1    object
+
+
+schema_float.validate(df).dtypes
+# column1    float64
+```
+
+If you want to coerce all of the columns specified in the `DataFrameSchema`,
+you can specify the `coerce` argument with `DataFrameSchema(..., coerce=True)`.
+
+
 ### `SeriesSchema`
 
 ```python

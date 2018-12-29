@@ -120,7 +120,7 @@ class Check(object):
 class DataFrameSchema(object):
     """A light-weight pandas DataFrame validator."""
 
-    def __init__(self, columns, index=None, transformer=None):
+    def __init__(self, columns, index=None, transformer=None, coerce=False):
         """Initialize pandas dataframe schema.
 
         Parameters
@@ -134,18 +134,24 @@ class DataFrameSchema(object):
             a callable with signature: pandas.DataFrame -> pandas.DataFrame.
             If specified, calling `validate` will verify properties of the
             columns and return the transformed dataframe object.
-
+        coerce : bool
+            whether or not to coerce all of the columns on validation.
         """
         self.index = index
         self.columns = columns
         self.transformer = transformer
+        self.coerce = coerce
 
     def validate(self, dataframe):
-        for c in self.columns:
+        for c, col in self.columns.items():
             if c not in dataframe:
                 raise SchemaError(
                     "column '%s' not in dataframe\n%s" %
                     (c, dataframe.head()))
+
+            # coercing logic
+            if col.coerce or self.coerce:
+                dataframe[c] = col.coerce_dtype(dataframe[c])
 
         schema_arg = [
             col.set_name(col_name) for col_name, col in self.columns.items()]
@@ -266,7 +272,7 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, pandas_dtype, checks=None, nullable=False):
+            self, pandas_dtype, checks=None, nullable=False, coerce=False):
         """Initialize column validator object.
 
         Parameters
@@ -281,13 +287,20 @@ class Column(SeriesSchemaBase):
             x is assumed to be a pandas.Series object.
         nullable : bool
             Whether or not column can contain null values.
+        coerce : bool
+            Whether or not to coerce the column to the specified pandas_dtype
+            before validation
         """
         super(Column, self).__init__(pandas_dtype, checks, nullable)
         self._name = None
+        self.coerce = coerce
 
     def set_name(self, name):
         self._name = name
         return self
+
+    def coerce_dtype(self, series):
+        return series.astype(self._pandas_dtype.value)
 
     def __call__(self, df):
         if self._name is None:
