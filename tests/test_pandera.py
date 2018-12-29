@@ -7,7 +7,7 @@ import pytest
 from schema import SchemaError
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
-    SeriesSchema, Check, check_input, check_output
+    SeriesSchema, Check, Int, check_input, check_output
 
 
 def test_column():
@@ -38,7 +38,7 @@ def test_series_schema_multiple_validators():
     schema = SeriesSchema(
         PandasDtype.Int, [
             Check(lambda x: 0 <= x <= 50),
-            Check(lambda s: 21 in s.values, element_wise=False)])
+            Check(lambda s: (s == 21).any(), element_wise=False)])
     validated_series = schema.validate(pd.Series([1, 5, 21, 50]))
     assert isinstance(validated_series, pd.Series)
 
@@ -54,16 +54,16 @@ def test_dataframe_schema():
             "b": Column(PandasDtype.Float, Check(lambda x: 0 <= x <= 10)),
             "c": Column(PandasDtype.String,
                         Check(lambda x: set(x) == {"x", "y", "z"},
-                                  element_wise=False)),
+                              element_wise=False)),
             "d": Column(PandasDtype.Bool,
                         Check(lambda x: x.mean() > 0.5,
-                                  element_wise=False)),
+                              element_wise=False)),
             "e": Column(PandasDtype.Category,
                         Check(lambda x: set(x) == {"c1", "c2", "c3"},
-                                  element_wise=False)),
+                              element_wise=False)),
             "f": Column(PandasDtype.Object,
                         Check(lambda x: x.isin([(1,), (2,), (3,)]),
-                                  element_wise=False)),
+                              element_wise=False)),
             "g": Column(PandasDtype.DateTime,
                         Check(lambda x: x >= pd.Timestamp("2015-01-01"))),
             "i": Column(PandasDtype.Timedelta,
@@ -88,6 +88,9 @@ def test_dataframe_schema():
     # error case
     with pytest.raises(SchemaError):
         schema.validate(df.drop("a", axis=1))
+
+    with pytest.raises(SchemaError):
+        schema.validate(df.assign(a=[-1, -2, -1]))
 
 
 def test_index_schema():
@@ -196,3 +199,11 @@ def test_string_dtypes():
         {"col": Column("float64", nullable=True)})
     df = pd.DataFrame({"col": [np.nan, 1.0, 2.0]})
     assert isinstance(schema.validate(df), pd.DataFrame)
+
+
+def test_nullable_int():
+    df = pd.DataFrame({"column1": [5, 1, np.nan]})
+    null_schema = DataFrameSchema({
+        "column1": Column(Int, Check(lambda x: x > 0), nullable=True)
+    })
+    assert isinstance(null_schema.validate(df), pd.DataFrame)

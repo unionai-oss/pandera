@@ -101,7 +101,12 @@ schema.validate(df)
 
 # SchemaError: <Schema Index> failed element-wise validator 0:
 # <lambda>
-# failure cases: {0: 'foo1', 1: 'foo2', 2: 'foo3'}
+# failure cases:
+#              index  count
+# failure_case
+# foo1           [0]      1
+# foo2           [1]      1
+# foo3           [2]      1
 ```
 
 
@@ -130,7 +135,11 @@ simple_schema.validate(fail_check_df)
 
 # schema.SchemaError: series failed element-wise validator 0:
 # <lambda>: range checker [0, 10]
-# failure cases: {0: -20, 3: 30}
+# failure cases:
+#              index  count
+# failure_case
+# -20            [0]      1
+#  30            [3]      1
 
 
 # column name mis-specified
