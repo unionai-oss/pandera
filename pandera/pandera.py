@@ -6,7 +6,6 @@ import wrapt
 
 from collections import OrderedDict
 from enum import Enum
-from functools import partial
 from schema import Schema, Use, And, SchemaError
 
 
@@ -31,9 +30,12 @@ String = PandasDtype.String
 Timedelta = PandasDtype.Timedelta
 
 
+N_FAILURE_CASES = 10
+
+
 class Check(object):
 
-    def __init__(self, fn, element_wise=True, error=None):
+    def __init__(self, fn, element_wise=True, error=None, n_failure_cases=10):
         """Check object applies function element-wise or series-wise
 
         Parameters
@@ -50,11 +52,14 @@ class Check(object):
             as checks.
         error : str
             custom error message if series fails validation check.
-
+        n_failure_cases : int|None
+            report the top n failure cases. If None, then report all failure
+            cases.
         """
         self.fn = fn
         self.element_wise = element_wise
         self.error = error
+        self.n_failure_cases = n_failure_cases
 
     @property
     def error_message(self):
@@ -65,8 +70,22 @@ class Check(object):
     def vectorized_error_message(self, parent_schema, index, failure_cases):
         return (
             "%s failed element-wise validator %d:\n"
-            "%s\nfailure cases: %s" %
-            (parent_schema, index, self.error_message, failure_cases))
+            "%s\nfailure cases:\n%s" %
+            (parent_schema, index,
+             self.error_message,
+             self._format_failure_cases(failure_cases)))
+
+    def _format_failure_cases(self, failure_cases):
+        failure_cases = (
+            failure_cases.rename("failure_case").reset_index()
+            .groupby("failure_case").index.agg([list, len])
+            .rename(columns={"list": "index", "len": "count"})
+            .sort_values("count", ascending=False)
+        )
+        if self.n_failure_cases is None:
+            return failure_cases
+        else:
+            return failure_cases.head(self.n_failure_cases)
 
     def __call__(self, parent_schema, series, index):
         if self.element_wise:
@@ -74,7 +93,7 @@ class Check(object):
             if val_result.all():
                 return True
             raise SchemaError(self.vectorized_error_message(
-                parent_schema, index, series[~val_result].to_dict()))
+                parent_schema, index, series[~val_result]))
         else:
             # series-wise validator can return either a boolean or a
             # pd.Series of booleans.
@@ -88,7 +107,7 @@ class Check(object):
                 if val_result.all():
                     return True
                 raise SchemaError(self.vectorized_error_message(
-                    parent_schema, index, series[~val_result].to_dict()))
+                    parent_schema, index, series[~val_result]))
             else:
                 if val_result:
                     return True
@@ -129,7 +148,7 @@ class DataFrameSchema(object):
                     (c, dataframe.head()))
 
         schema_arg = [
-            partial(col, col_name) for col_name, col in self.columns.items()]
+            col.set_name(col_name) for col_name, col in self.columns.items()]
         if self.index is not None:
             schema_arg += [self.index]
         schema_arg = And(*schema_arg)
@@ -172,20 +191,20 @@ class SeriesSchemaBase(object):
             else self._pandas_dtype.value
         if self._nullable:
             series = series.dropna()
-            _series = series.astype(_dtype)
-            # in case where dtype is meant to be int, make sure that casting
-            # to int results in the same values.
-            if (_dtype == "int64") and (_series != series).any():
-                raise SchemaError(
-                    "after dropping null values, expected series values to "
-                    "be int, found: %s" % set(series))
-            series = _series
+            if (_dtype == Int.value):
+                _dtype = Float.value
+                if (series.astype(_dtype) != series).any():
+                    # in case where dtype is meant to be int, make sure that
+                    # casting to int results in the same values.
+                    raise SchemaError(
+                        "after dropping null values, expected series values "
+                        "to be int, found: %s" % set(series))
         else:
             nulls = series.isnull()
             if nulls.sum() > 0:
                 raise SchemaError(
                     "non-nullable series contains null values: %s" %
-                    series[nulls].to_dict())
+                    series[nulls].head(N_FAILURE_CASES).to_dict())
 
         type_val_result = series.dtype == _dtype
         if not type_val_result:
@@ -193,8 +212,8 @@ class SeriesSchemaBase(object):
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, self._pandas_dtype.value, series.dtype))
         check_results = []
-        for i, validator in enumerate(self._checks):
-            check_results.append(validator(self, series, i))
+        for i, check in enumerate(self._checks):
+            check_results.append(check(self, series, i))
         return all([type_val_result] + check_results)
 
 
@@ -241,7 +260,7 @@ class Index(SeriesSchemaBase):
     def __repr__(self):
         if self._name is None:
             return "<Schema Index>"
-        return "<Schema Index: %s>" % self._name
+        return "<Schema Index: '%s'>" % self._name
 
 
 class Column(SeriesSchemaBase):
@@ -264,16 +283,24 @@ class Column(SeriesSchemaBase):
             Whether or not column can contain null values.
         """
         super(Column, self).__init__(pandas_dtype, checks, nullable)
+        self._name = None
 
-    def __call__(self, column_name, df):
-        return super(Column, self).__call__(df[column_name])
+    def set_name(self, name):
+        self._name = name
+        return self
+
+    def __call__(self, df):
+        if self._name is None:
+            raise RuntimeError(
+                "need to `set_name` of column before calling it.")
+        return super(Column, self).__call__(df[self._name])
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
             dtype = self._pandas_dtype.value
         else:
             dtype = self._pandas_dtype
-        return "<Schema Column: type=%s>" % dtype
+        return "<Schema Column: '%s' type=%s>" % (self._name, dtype)
 
 
 def check_input(schema, obj_getter=None):
