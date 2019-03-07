@@ -2,6 +2,7 @@
 
 import inspect
 import pandas as pd
+import sys
 import wrapt
 
 from collections import OrderedDict
@@ -357,8 +358,12 @@ def check_input(schema, obj_getter=None):
             if obj_getter in kwargs:
                 kwargs[obj_getter] = schema.validate(kwargs[obj_getter])
             else:
+                if sys.version_info.major >= 3:
+                    arg_spec_args = inspect.getfullargspec(fn).args
+                else:
+                    arg_spec_args = inspect.getargspec(fn).args
                 args_dict = OrderedDict(
-                    zip(inspect.getfullargspec(fn).args, args))
+                    zip(arg_spec_args, args))
                 args_dict[obj_getter] = schema.validate(args_dict[obj_getter])
                 args = list(args_dict.values())
         elif obj_getter is None:
