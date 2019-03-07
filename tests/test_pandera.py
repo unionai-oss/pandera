@@ -34,6 +34,18 @@ def test_series_schema():
             schema.validate(TypeError)
 
 
+def test_vectorized_checks():
+    schema = SeriesSchema(
+        PandasDtype.Int, Check(
+            lambda s: s.value_counts() == 2, element_wise=False))
+    validated_series = schema.validate(pd.Series([1, 1, 2, 2, 3, 3]))
+    assert isinstance(validated_series, pd.Series)
+
+    # error case
+    with pytest.raises(SchemaError):
+        schema.validate(pd.Series([1, 2, 3]))
+
+
 def test_series_schema_multiple_validators():
     schema = SeriesSchema(
         PandasDtype.Int, [
@@ -233,7 +245,8 @@ def test_coerce_dtype():
         result = schema.validate(df)
         assert result.column1.dtype == Int.value
         assert result.column2.dtype == DateTime.value
-        assert result.column3.dtype == String.value
+        for _, x in result.column3.iteritems():
+            assert isinstance(x, str)
 
         # make sure that correct error is raised when null values are present
         # in a float column that's coerced to an int

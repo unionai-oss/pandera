@@ -75,6 +75,10 @@ class Check(object):
              self.error_message,
              self._format_failure_cases(failure_cases)))
 
+    def generic_error_message(self, parent_schema, index):
+        return "%s failed series validator %d: %s" % \
+            (parent_schema, index, self.error_message)
+
     def _format_failure_cases(self, failure_cases):
         failure_cases = (
             failure_cases.rename("failure_case").reset_index()
@@ -82,6 +86,7 @@ class Check(object):
             .rename(columns={"list": "index", "len": "count"})
             .sort_values("count", ascending=False)
         )
+        self.failure_cases = failure_cases
         if self.n_failure_cases is None:
             return failure_cases
         else:
@@ -106,15 +111,18 @@ class Check(object):
                         (index, self.fn.__name__, val_result.dtype))
                 if val_result.all():
                     return True
-                raise SchemaError(self.vectorized_error_message(
-                    parent_schema, index, series[~val_result]))
+                try:
+                    raise SchemaError(self.vectorized_error_message(
+                        parent_schema, index, series[~val_result]))
+                except pd.core.indexing.IndexingError:
+                    raise SchemaError(
+                        self.generic_error_message(parent_schema, index))
             else:
                 if val_result:
                     return True
                 else:
                     raise SchemaError(
-                        "series did not pass series validator %d: %s" %
-                        (index, self.error_message))
+                        self.generic_error_message(parent_schema, index))
 
 
 class DataFrameSchema(object):
@@ -300,7 +308,9 @@ class Column(SeriesSchemaBase):
         return self
 
     def coerce_dtype(self, series):
-        return series.astype(self._pandas_dtype.value)
+        _dtype = str if self._pandas_dtype is String \
+            else self._pandas_dtype.value
+        return series.astype(_dtype)
 
     def __call__(self, df):
         if self._name is None:
@@ -347,7 +357,8 @@ def check_input(schema, obj_getter=None):
             if obj_getter in kwargs:
                 kwargs[obj_getter] = schema.validate(kwargs[obj_getter])
             else:
-                args_dict = OrderedDict(zip(inspect.getargspec(fn).args, args))
+                args_dict = OrderedDict(
+                    zip(inspect.getfullargspec(fn).args, args))
                 args_dict[obj_getter] = schema.validate(args_dict[obj_getter])
                 args = list(args_dict.values())
         elif obj_getter is None:

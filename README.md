@@ -44,7 +44,7 @@ schema = DataFrameSchema({
     # you can provide a list of validators
     "column3": Column(String, [
         Check(lambda x: x.startswith("value_")),
-        Check(lambda x: len(x.split("_")) == 2)])
+        Check(lambda x: len(x.split("_")) == 2)]),
 })
 
 # alternatively, you can pass strings representing the legal pandas datatypes:
@@ -219,9 +219,7 @@ df = pd.DataFrame({"column1": [1, 2, 3]})
 schema = DataFrameSchema({"column1": Column(String, coerce=True)})
 
 validated_df = schema.validate(df)
-assert validated_df.column1.dtype == String.value
-
-print(validated_df)
+assert isinstance(validated_df.column1.iloc[0], str)
 ```
 
 Note the special case of integers columns not supporting `nan` values. In this
@@ -299,7 +297,7 @@ schema = DataFrameSchema({
         # this validator returns a bool
         Check(lambda s: s.mean() > 5, element_wise=False),
         # this validator returns a boolean series
-        Check(lambda s: s > 0, element_wise=False)])
+        Check(lambda s: s > 0, element_wise=True)])
 })
 
 df = pd.DataFrame({"a": [4, 4, 5, 6, 6, 7, 8, 9]})
