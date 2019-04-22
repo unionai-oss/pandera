@@ -4,4 +4,4 @@ from .pandera import Bool, DateTime, Category, Float, Int, Object, String, \
     Timedelta
 
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
