@@ -153,7 +153,7 @@ class DataFrameSchema(object):
 
     def validate(self, dataframe):
         for c, col in self.columns.items():
-            if c not in dataframe:
+            if c not in dataframe and col.required:
                 raise SchemaError(
                     "column '%s' not in dataframe\n%s" %
                     (c, dataframe.head()))
@@ -163,7 +163,9 @@ class DataFrameSchema(object):
                 dataframe[c] = col.coerce_dtype(dataframe[c])
 
         schema_arg = [
-            col.set_name(col_name) for col_name, col in self.columns.items()]
+            col.set_name(col_name) for col_name, col in self.columns.items()
+            if col.required or col_name in dataframe
+        ]
         if self.index is not None:
             schema_arg += [self.index]
         schema_arg = And(*schema_arg)
@@ -281,7 +283,8 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, pandas_dtype, checks=None, nullable=False, coerce=False):
+        self, pandas_dtype, checks=None, nullable=False, coerce=False, required=True
+    ):
         """Initialize column validator object.
 
         Parameters
@@ -303,6 +306,7 @@ class Column(SeriesSchemaBase):
         super(Column, self).__init__(pandas_dtype, checks, nullable)
         self._name = None
         self.coerce = coerce
+        self.required = required
 
     def set_name(self, name):
         self._name = name
