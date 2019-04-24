@@ -302,6 +302,8 @@ class Column(SeriesSchemaBase):
         coerce : bool
             Whether or not to coerce the column to the specified pandas_dtype
             before validation
+        required: bool
+            Whether or not column is allowed to be missing
         """
         super(Column, self).__init__(pandas_dtype, checks, nullable)
         self._name = None
