@@ -255,3 +255,36 @@ def test_coerce_dtype():
         })
         with pytest.raises(ValueError):
             schema.validate(df)
+
+
+def test_required():
+    schema = DataFrameSchema({
+        "col1": Column(Int, required=False),
+        "col2": Column(String)
+    })
+
+    df_ok_1 = pd.DataFrame({
+        "col2": ['hello', 'world']
+    })
+
+    df = schema.validate(df_ok_1)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df.columns) == 1
+    assert set(df.columns) == {"col2"}
+
+    df_ok_2 = pd.DataFrame({
+        "col1": [1, 2],
+        "col2": ['hello', 'world']
+    })
+
+    df = schema.validate(df_ok_2)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df.columns) == 2
+    assert set(df.columns) == {"col1", "col2"}
+
+    df_not_ok = pd.DataFrame({
+        "col1": [1, 2]
+    })
+
+    with pytest.raises(Exception):
+        schema.validate(df_not_ok)
