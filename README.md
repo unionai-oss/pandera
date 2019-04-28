@@ -257,6 +257,27 @@ schema_float.validate(df).dtypes
 If you want to coerce all of the columns specified in the `DataFrameSchema`,
 you can specify the `coerce` argument with `DataFrameSchema(..., coerce=True)`.
 
+### Required columns
+
+By default all columns specified in the schema are required, meaning that if a column is missing in the input
+dataframe an exception will be thrown. If you want to make a column optional specify `required=False`
+in the column constructor:
+
+```python
+import pandas as pd
+
+from pandera import Column, DataFrameSchema, Int, String
+
+df = pd.DataFrame({"column2": ["hello", "pandera"]})
+schema = DataFrameSchema({
+    "column1": Column(Int, required=False),
+    "column2": Column(String)
+})
+
+validated_df = schema.validate(df)
+# list(validated_df.columns) == ["column2"]
+
+```
 
 ### `SeriesSchema`
 
