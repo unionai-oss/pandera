@@ -181,7 +181,7 @@ class DataFrameSchema(object):
 class SeriesSchemaBase(object):
     """Base series validator object."""
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False):
+    def __init__(self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True):
         """Initialize series schema object.
 
         Parameters
@@ -196,6 +196,7 @@ class SeriesSchemaBase(object):
         """
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
+        self._allow_duplicates = allow_duplicates
         if checks is None:
             checks = []
         if isinstance(checks, Check):
@@ -223,6 +224,14 @@ class SeriesSchemaBase(object):
                     "non-nullable series contains null values: %s" %
                     series[nulls].head(N_FAILURE_CASES).to_dict())
 
+        # Check if the series contains duplicate values
+        if not self._allow_duplicates:
+            duplicates = series.duplicated()
+            if any(duplicates):
+                raise SchemaError(
+                    "series contains duplicate valuesvalues: %s" %
+                    series[duplicates].head(N_FAILURE_CASES).to_dict())
+
         type_val_result = series.dtype == _dtype
         if not type_val_result:
             raise SchemaError(
@@ -236,7 +245,7 @@ class SeriesSchemaBase(object):
 
 class SeriesSchema(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False):
+    def __init__(self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True):
         """Initialize series schema object.
 
         Parameters
@@ -254,7 +263,7 @@ class SeriesSchema(SeriesSchemaBase):
         nullable : bool
             Whether or not column can contain null values.
         """
-        super(SeriesSchema, self).__init__(pandas_dtype, checks, nullable)
+        super(SeriesSchema, self).__init__(pandas_dtype, checks, nullable, allow_duplicates)
 
     def validate(self, series):
         if not isinstance(series, pd.Series):
@@ -266,9 +275,8 @@ class SeriesSchema(SeriesSchemaBase):
 
 class Index(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False,
-                 name=None):
-        super(Index, self).__init__(pandas_dtype, checks, nullable)
+    def __init__(self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True, name=None):
+        super(Index, self).__init__(pandas_dtype, checks, nullable, allow_duplicates)
         self._name = name
 
     def __call__(self, df):
@@ -283,7 +291,7 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-        self, pandas_dtype, checks=None, nullable=False, coerce=False, required=True
+        self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True, coerce=False, required=True
     ):
         """Initialize column validator object.
 
@@ -305,7 +313,7 @@ class Column(SeriesSchemaBase):
         required: bool
             Whether or not column is allowed to be missing
         """
-        super(Column, self).__init__(pandas_dtype, checks, nullable)
+        super(Column, self).__init__(pandas_dtype, checks, nullable, allow_duplicates)
         self._name = None
         self.coerce = coerce
         self.required = required
