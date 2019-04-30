@@ -33,6 +33,11 @@ def test_series_schema():
         with pytest.raises(TypeError):
             schema.validate(TypeError)
 
+    non_duplicate_schema = SeriesSchema(
+        PandasDtype.Int, allow_duplicates=False)
+    with pytest.raises(SchemaError):
+        non_duplicate_schema.validate(pd.Series([0,1,2,3,4,1]))
+
 
 def test_vectorized_checks():
     schema = SeriesSchema(
