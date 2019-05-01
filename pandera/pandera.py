@@ -215,28 +215,29 @@ class SeriesSchemaBase(object):
                     # in case where dtype is meant to be int, make sure that
                     # casting to int results in the same values.
                     raise SchemaError(
-                        "after dropping null values, expected series values "
-                        "to be int, found: %s" % set(series))
+                        "after dropping null values, expected values in series '%s' "
+                        "to be int, found: %s" % (series.name, set(series)))
         else:
             nulls = series.isnull()
             if nulls.sum() > 0:
                 raise SchemaError(
-                    "non-nullable series contains null values: %s" %
-                    series[nulls].head(N_FAILURE_CASES).to_dict())
+                    "non-nullable series '%s' contains null values: %s" %
+                    (series.name, series[nulls].head(N_FAILURE_CASES).to_dict()))
 
         # Check if the series contains duplicate values
         if not self._allow_duplicates:
             duplicates = series.duplicated()
             if any(duplicates):
                 raise SchemaError(
-                    "series contains duplicate valuesvalues: %s" %
-                    series[duplicates].head(N_FAILURE_CASES).to_dict())
+                    "series '%s' contains duplicate values: %s" %
+                    (series.name, series[duplicates].head(N_FAILURE_CASES).to_dict()))
 
         type_val_result = series.dtype == _dtype
         if not type_val_result:
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, self._pandas_dtype.value, series.dtype))
+
         check_results = []
         for i, check in enumerate(self._checks):
             check_results.append(check(self, series, i))
