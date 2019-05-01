@@ -220,9 +220,15 @@ class SeriesSchemaBase(object):
         else:
             nulls = series.isnull()
             if nulls.sum() > 0:
-                raise SchemaError(
-                    "non-nullable series '%s' contains null values: %s" %
-                    (series.name, series[nulls].head(N_FAILURE_CASES).to_dict()))
+                type_val_result = series.dtype == _dtype
+                if not type_val_result:
+                    raise SchemaError(
+                        "expected series '%s' to have type %s, got %s and non-nullable series contains null values: %s" %
+                        (series.name, self._pandas_dtype.value, series.dtype, series[nulls].head(N_FAILURE_CASES).to_dict()))
+                else:
+                    raise SchemaError(
+                        "non-nullable series '%s' contains null values: %s" %
+                        (series.name, series[nulls].head(N_FAILURE_CASES).to_dict()))
 
         # Check if the series contains duplicate values
         if not self._allow_duplicates:
