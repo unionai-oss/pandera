@@ -220,9 +220,8 @@ class SeriesSchemaBase(object):
             nulls = series.isnull()
             if nulls.sum() > 0:
                 raise SchemaError(
-                    "non-nullable series '%s' contains null values: %s" %
-                    (series.name,
-                     series[nulls].head(N_FAILURE_CASES).to_dict())
+                    "non-nullable series contains null values: %s" %
+                    series[nulls].head(N_FAILURE_CASES).to_dict()
                 )
 
         # Check if the series contains duplicate values
