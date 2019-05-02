@@ -17,7 +17,6 @@ setup(
         "enum34 ; python_version<'3.4'",
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
-        "schema >= 0.6.8",
         "wrapt",
     ],
 )

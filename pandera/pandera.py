@@ -7,7 +7,10 @@ import wrapt
 
 from collections import OrderedDict
 from enum import Enum
-from schema import Schema, Use, And, SchemaError
+
+
+class SchemaError(Exception):
+    pass
 
 
 class PandasDtype(Enum):
@@ -162,20 +165,16 @@ class DataFrameSchema(object):
             if col.coerce or self.coerce:
                 dataframe[c] = col.coerce_dtype(dataframe[c])
 
-        schema_arg = [
+        schema_elements = [
             col.set_name(col_name) for col_name, col in self.columns.items()
             if col.required or col_name in dataframe
         ]
         if self.index is not None:
-            schema_arg += [self.index]
-        schema_arg = And(*schema_arg)
+            schema_elements += [self.index]
+        assert all(s(dataframe) for s in schema_elements)
         if self.transformer is not None:
-            schema_arg = And(schema_arg, Use(self.transformer))
-        self.schema = Schema(schema_arg)
-
-        if not isinstance(dataframe, pd.DataFrame):
-            raise TypeError("expected dataframe, got %s" % type(dataframe))
-        return self.schema.validate(dataframe)
+            dataframe = self.transformer(dataframe)
+        return dataframe
 
 
 class SeriesSchemaBase(object):
