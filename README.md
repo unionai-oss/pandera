@@ -7,9 +7,7 @@
 Validating pandas data structures for people seeking correct things.
 
 A light-weight and flexible validation package for
-[pandas](http://pandas.pydata.org) data structures, built on top of
-[schema](https://github.com/keleshev/schema), a powerful Python data structure
-validation tool. API inspired by [pandas-schema](https://tmiguelt.github.io/PandasSchema)
+[pandas](http://pandas.pydata.org) data structures.
 
 
 ## Why?
