@@ -4,10 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from schema import SchemaError
-
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
-    SeriesSchema, Check, Int, DateTime, String, check_input, check_output
+    SeriesSchema, Check, Int, DateTime, String, check_input, check_output, \
+    SchemaError
 
 
 def test_column():
