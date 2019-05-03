@@ -108,6 +108,9 @@ def test_dataframe_schema():
     with pytest.raises(SchemaError):
         schema.validate(df.assign(a=[-1, -2, -1]))
 
+    # checks if 'a' is converted to float, while schema says int, will a schema error be thrown
+    with pytest.raises(SchemaError):
+        schema.validate(df.assign(a=[1.7, 2.3, 3.1]))
 
 def test_index_schema():
     schema = DataFrameSchema(

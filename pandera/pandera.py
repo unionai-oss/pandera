@@ -1,11 +1,11 @@
 """Validate Pandas Data Structures."""
 
 import inspect
-import pandas as pd
 import sys
-import wrapt
-
 from collections import OrderedDict
+
+import pandas as pd
+import wrapt
 from enum import Enum
 
 
@@ -32,7 +32,6 @@ Int = PandasDtype.Int
 Object = PandasDtype.Object
 String = PandasDtype.String
 Timedelta = PandasDtype.Timedelta
-
 
 N_FAILURE_CASES = 10
 
@@ -73,22 +72,22 @@ class Check(object):
 
     def vectorized_error_message(self, parent_schema, index, failure_cases):
         return (
-            "%s failed element-wise validator %d:\n"
-            "%s\nfailure cases:\n%s" %
-            (parent_schema, index,
-             self.error_message,
-             self._format_failure_cases(failure_cases)))
+                "%s failed element-wise validator %d:\n"
+                "%s\nfailure cases:\n%s" %
+                (parent_schema, index,
+                 self.error_message,
+                 self._format_failure_cases(failure_cases)))
 
     def generic_error_message(self, parent_schema, index):
         return "%s failed series validator %d: %s" % \
-            (parent_schema, index, self.error_message)
+               (parent_schema, index, self.error_message)
 
     def _format_failure_cases(self, failure_cases):
         failure_cases = (
             failure_cases.rename("failure_case").reset_index()
-            .groupby("failure_case").index.agg([list, len])
-            .rename(columns={"list": "index", "len": "count"})
-            .sort_values("count", ascending=False)
+                .groupby("failure_case").index.agg([list, len])
+                .rename(columns={"list": "index", "len": "count"})
+                .sort_values("count", ascending=False)
         )
         self.failure_cases = failure_cases
         if self.n_failure_cases is None:
@@ -214,29 +213,37 @@ class SeriesSchemaBase(object):
                     # in case where dtype is meant to be int, make sure that
                     # casting to int results in the same values.
                     raise SchemaError(
-                        "after dropping null values, expected series values "
-                        "to be int, found: %s" % set(series))
+                        "after dropping null values, expected values in series '%s' "
+                        "to be int, found: %s" % (series.name, set(series)))
         else:
             nulls = series.isnull()
             if nulls.sum() > 0:
-                raise SchemaError(
-                    "non-nullable series contains null values: %s" %
-                    series[nulls].head(N_FAILURE_CASES).to_dict()
-                )
+                type_val_result = series.dtype == _dtype
+                if not type_val_result:
+                    raise SchemaError(
+                        "expected series '%s' to have type %s, got %s and "
+                        "non-nullable series contains null values: %s" %
+                        (series.name, self._pandas_dtype.value, series.dtype,
+                         series[nulls].head(N_FAILURE_CASES).to_dict()))
+                else:
+                    raise SchemaError(
+                        "non-nullable series '%s' contains null values: %s" %
+                        (series.name, series[nulls].head(N_FAILURE_CASES).to_dict()))
 
         # Check if the series contains duplicate values
         if not self._allow_duplicates:
             duplicates = series.duplicated()
             if any(duplicates):
                 raise SchemaError(
-                    "series contains duplicate valuesvalues: %s" %
-                    series[duplicates].head(N_FAILURE_CASES).to_dict())
+                    "series '%s' contains duplicate values: %s" %
+                    (series.name, series[duplicates].head(N_FAILURE_CASES).to_dict()))
 
         type_val_result = series.dtype == _dtype
         if not type_val_result:
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, self._pandas_dtype.value, series.dtype))
+
         check_results = []
         for i, check in enumerate(self._checks):
             check_results.append(check(self, series, i))
@@ -291,7 +298,7 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-        self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True, coerce=False, required=True
+            self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True, coerce=False, required=True
     ):
         """Initialize column validator object.
 
@@ -363,6 +370,7 @@ def check_input(schema, obj_getter=None):
         first argument of the decorated function
 
     """
+
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
         args = list(args)
@@ -386,6 +394,7 @@ def check_input(schema, obj_getter=None):
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         return fn(*args, **kwargs)
+
     return _wrapper
 
 
@@ -409,6 +418,7 @@ def check_output(schema, obj_getter=None):
         to be validated.
 
     """
+
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
         out = fn(*args, **kwargs)
@@ -422,4 +432,5 @@ def check_output(schema, obj_getter=None):
             obj = out
         schema.validate(obj)
         return out
+
     return _wrapper
