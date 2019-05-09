@@ -2,10 +2,11 @@
 
 import inspect
 import sys
-from collections import OrderedDict
-
+import warnings
 import pandas as pd
 import wrapt
+
+from collections import OrderedDict
 from enum import Enum
 
 
@@ -84,10 +85,12 @@ class Check(object):
 
     def _format_failure_cases(self, failure_cases):
         failure_cases = (
-            failure_cases.rename("failure_case").reset_index()
-                .groupby("failure_case").index.agg([list, len])
-                .rename(columns={"list": "index", "len": "count"})
-                .sort_values("count", ascending=False)
+            failure_cases
+            .rename("failure_case")
+            .reset_index()
+            .groupby("failure_case").index.agg([list, len])
+            .rename(columns={"list": "index", "len": "count"})
+            .sort_values("count", ascending=False)
         )
         self.failure_cases = failure_cases
         if self.n_failure_cases is None:
@@ -179,7 +182,8 @@ class DataFrameSchema(object):
 class SeriesSchemaBase(object):
     """Base series validator object."""
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True):
+    def __init__(self, pandas_dtype, checks=None, nullable=False,
+                 allow_duplicates=True):
         """Initialize series schema object.
 
         Parameters
@@ -213,8 +217,9 @@ class SeriesSchemaBase(object):
                     # in case where dtype is meant to be int, make sure that
                     # casting to int results in the same values.
                     raise SchemaError(
-                        "after dropping null values, expected values in series '%s' "
-                        "to be int, found: %s" % (series.name, set(series)))
+                        "after dropping null values, expected values in "
+                        "series '%s' to be int, found: %s" %
+                        (series.name, set(series)))
         else:
             nulls = series.isnull()
             if nulls.sum() > 0:
@@ -228,7 +233,8 @@ class SeriesSchemaBase(object):
                 else:
                     raise SchemaError(
                         "non-nullable series '%s' contains null values: %s" %
-                        (series.name, series[nulls].head(N_FAILURE_CASES).to_dict()))
+                        (series.name,
+                         series[nulls].head(N_FAILURE_CASES).to_dict()))
 
         # Check if the series contains duplicate values
         if not self._allow_duplicates:
@@ -236,7 +242,8 @@ class SeriesSchemaBase(object):
             if any(duplicates):
                 raise SchemaError(
                     "series '%s' contains duplicate values: %s" %
-                    (series.name, series[duplicates].head(N_FAILURE_CASES).to_dict()))
+                    (series.name,
+                     series[duplicates].head(N_FAILURE_CASES).to_dict()))
 
         type_val_result = series.dtype == _dtype
         if not type_val_result:
@@ -252,7 +259,8 @@ class SeriesSchemaBase(object):
 
 class SeriesSchema(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True):
+    def __init__(self, pandas_dtype, checks=None, nullable=False,
+                 allow_duplicates=True):
         """Initialize series schema object.
 
         Parameters
@@ -270,7 +278,8 @@ class SeriesSchema(SeriesSchemaBase):
         nullable : bool
             Whether or not column can contain null values.
         """
-        super(SeriesSchema, self).__init__(pandas_dtype, checks, nullable, allow_duplicates)
+        super(SeriesSchema, self).__init__(
+            pandas_dtype, checks, nullable, allow_duplicates)
 
     def validate(self, series):
         if not isinstance(series, pd.Series):
@@ -282,8 +291,10 @@ class SeriesSchema(SeriesSchemaBase):
 
 class Index(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True, name=None):
-        super(Index, self).__init__(pandas_dtype, checks, nullable, allow_duplicates)
+    def __init__(self, pandas_dtype, checks=None, nullable=False,
+                 allow_duplicates=True, name=None):
+        super(Index, self).__init__(
+            pandas_dtype, checks, nullable, allow_duplicates)
         self._name = name
 
     def __call__(self, df):
@@ -298,7 +309,8 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True, coerce=False, required=True
+        self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True,
+        coerce=False, required=True
     ):
         """Initialize column validator object.
 
@@ -320,7 +332,8 @@ class Column(SeriesSchemaBase):
         required: bool
             Whether or not column is allowed to be missing
         """
-        super(Column, self).__init__(pandas_dtype, checks, nullable, allow_duplicates)
+        super(Column, self).__init__(
+            pandas_dtype, checks, nullable, allow_duplicates)
         self._name = None
         self.coerce = coerce
         self.required = required
@@ -389,7 +402,12 @@ def check_input(schema, obj_getter=None):
                 args_dict[obj_getter] = schema.validate(args_dict[obj_getter])
                 args = list(args_dict.values())
         elif obj_getter is None:
-            args[0] = schema.validate(args[0])
+            try:
+                args[0] = schema.validate(args[0])
+            except SchemaError as e:
+                raise SchemaError(
+                    "error in check_input decorator of function '%s': %s" %
+                    (fn.__name__, e))
         else:
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
@@ -402,7 +420,9 @@ def check_output(schema, obj_getter=None):
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
-    function.
+    function. Note that the `transformer` function supplied to the
+    DataFrameSchema will not have an effect in the check_output schema
+    validator.
 
     Parameters
     ----------
@@ -421,16 +441,28 @@ def check_output(schema, obj_getter=None):
 
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
+        if schema.transformer is not None:
+            warnings.warn(
+                "The schema transformer function has no effect in a "
+                "check_output decorator. Please perform the necessary "
+                "transformations in the '%s' function instead." % fn.__name__)
         out = fn(*args, **kwargs)
-        if isinstance(obj_getter, int):
-            obj = out[obj_getter]
-        elif isinstance(obj_getter, str):
+        if obj_getter is None:
+            obj = out
+        elif isinstance(obj_getter, (int, str)):
             obj = out[obj_getter]
         elif callable(obj_getter):
             obj = obj_getter(out)
-        elif obj_getter is None:
-            obj = out
-        schema.validate(obj)
+        else:
+            raise ValueError(
+                "obj_getter is unrecognized type: %s" % type(obj_getter))
+        try:
+            schema.validate(obj)
+        except SchemaError as e:
+            raise SchemaError(
+                "error in check_output decorator of function '%s': %s" %
+                (fn.__name__, e))
+
         return out
 
     return _wrapper

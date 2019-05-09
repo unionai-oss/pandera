@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
-    SeriesSchema, Check, Int, DateTime, String, check_input, check_output, \
-    SchemaError
+    SeriesSchema, Check, Float, Int, DateTime, String, check_input, \
+    check_output, SchemaError
 
 
 def test_column():
@@ -127,7 +127,7 @@ def test_index_schema():
         schema.validate(pd.DataFrame(index=range(1, 20)))
 
 
-def test_validate_decorators():
+def test_check_function_decorators():
     in_schema = DataFrameSchema(
         {
             "a": Column(PandasDtype.Int, [
@@ -210,6 +210,51 @@ def test_validate_decorators():
     df = test_func4("foo", df)
     assert x == "foo"
     assert isinstance(df, pd.DataFrame)
+
+
+def test_check_function_decorator_errors():
+
+    @check_input(DataFrameSchema({"column1": Column(Int)}))
+    @check_output(DataFrameSchema({"column2": Column(Float)}))
+    def test_func(df):
+        return df
+
+    with pytest.raises(
+            SchemaError,
+            match=r"^error in check_input decorator of function"):
+        test_func(pd.DataFrame({"column2": ["a", "b", "c"]}))
+
+    with pytest.raises(
+            SchemaError,
+            match=r"^error in check_output decorator of function"):
+        test_func(pd.DataFrame({"column1": [1, 2, 3]}))
+
+
+def test_check_function_decorator_transform():
+    """Test that transformer argument is in effect in check_input decorator."""
+
+    in_schema = DataFrameSchema(
+        {"column1": Column(Int)},
+        transformer=lambda df: df.assign(column2="foo"))
+    out_schema = DataFrameSchema(
+        {"column1": Column(Int),
+         "column2": Column(String)})
+
+    @check_input(in_schema)
+    @check_output(out_schema)
+    def func_input_transform1(df):
+        return df
+
+    result1 = func_input_transform1(pd.DataFrame({"column1": [1, 2, 3]}))
+    assert "column2" in result1
+
+    @check_input(in_schema, 1)
+    @check_output(out_schema, 1)
+    def func_input_transform2(_, df):
+        return _, df
+
+    result2 = func_input_transform2(None, pd.DataFrame({"column1": [1, 2, 3]}))
+    assert "column2" in result2[1]
 
 
 def test_string_dtypes():
