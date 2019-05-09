@@ -2,10 +2,11 @@
 
 import inspect
 import sys
-from collections import OrderedDict
-
+import warnings
 import pandas as pd
 import wrapt
+
+from collections import OrderedDict
 from enum import Enum
 
 
@@ -401,7 +402,12 @@ def check_input(schema, obj_getter=None):
                 args_dict[obj_getter] = schema.validate(args_dict[obj_getter])
                 args = list(args_dict.values())
         elif obj_getter is None:
-            args[0] = schema.validate(args[0])
+            try:
+                args[0] = schema.validate(args[0])
+            except SchemaError as e:
+                raise SchemaError(
+                    "error in check_input decorator of function '%s': %s" %
+                    (fn.__name__, e))
         else:
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
@@ -414,7 +420,9 @@ def check_output(schema, obj_getter=None):
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
-    function.
+    function. Note that the `transformer` function supplied to the
+    DataFrameSchema will not have an effect in the check_output schema
+    validator.
 
     Parameters
     ----------
@@ -433,16 +441,28 @@ def check_output(schema, obj_getter=None):
 
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
+        if schema.transformer is not None:
+            warnings.warn(
+                "The schema transformer function has no effect in a "
+                "check_output decorator. Please perform the necessary "
+                "transformations in the '%s' function instead." % fn.__name__)
         out = fn(*args, **kwargs)
-        if isinstance(obj_getter, int):
-            obj = out[obj_getter]
-        elif isinstance(obj_getter, str):
+        if obj_getter is None:
+            obj = out
+        elif isinstance(obj_getter, (int, str)):
             obj = out[obj_getter]
         elif callable(obj_getter):
             obj = obj_getter(out)
-        elif obj_getter is None:
-            obj = out
-        schema.validate(obj)
+        else:
+            raise ValueError(
+                "obj_getter is unrecognized type: %s" % type(obj_getter))
+        try:
+            schema.validate(obj)
+        except SchemaError as e:
+            raise SchemaError(
+                "error in check_output decorator of function '%s': %s" %
+                (fn.__name__, e))
+
         return out
 
     return _wrapper
