@@ -212,8 +212,7 @@ class SeriesSchemaBase(object):
         if self._nullable:
             series = series.dropna()
             if (_dtype == Int.value):
-                _dtype = Float.value
-                if (series.astype(_dtype) != series).any():
+                if (series.astype(Float.value) != series).any():
                     # in case where dtype is meant to be int, make sure that
                     # casting to int results in the same values.
                     raise SchemaError(
@@ -249,7 +248,7 @@ class SeriesSchemaBase(object):
         if not type_val_result:
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
-                (series.name, self._pandas_dtype.value, series.dtype))
+                (series.name, _dtype, series.dtype))
 
         check_results = []
         for i, check in enumerate(self._checks):
