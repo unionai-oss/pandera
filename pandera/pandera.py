@@ -207,11 +207,12 @@ class SeriesSchemaBase(object):
 
     def __call__(self, series):
         """Validate a series."""
-        _dtype = self._pandas_dtype if isinstance(self._pandas_dtype, str) \
-            else self._pandas_dtype.value
+        expected_dtype = _dtype = self._pandas_dtype if \
+            isinstance(self._pandas_dtype, str) else self._pandas_dtype.value
         if self._nullable:
             series = series.dropna()
-            if (_dtype == Int.value):
+            if _dtype in ["int_", "int8", "int16", "int32", "int64", "uint8",
+                          "uint16", "uint32", "uint64"]:
                 _dtype = Float.value
                 if (series.astype(_dtype) != series).any():
                     # in case where dtype is meant to be int, make sure that
@@ -249,7 +250,7 @@ class SeriesSchemaBase(object):
         if not type_val_result:
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
-                (series.name, self._pandas_dtype.value, series.dtype))
+                (series.name, expected_dtype, series.dtype))
 
         check_results = []
         for i, check in enumerate(self._checks):
