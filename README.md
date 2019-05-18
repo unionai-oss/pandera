@@ -1,10 +1,10 @@
 # pandera
 
 [![Build Status](https://travis-ci.org/cosmicBboy/pandera.svg?branch=master)](https://travis-ci.org/cosmicBboy/pandera)
+[![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
+[![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 
 **Supports:** python 2.7, 3.5, 3.6
-
-Validating pandas data structures for people seeking correct things.
 
 A light-weight and flexible validation package for
 [pandas](http://pandas.pydata.org) data structures.
