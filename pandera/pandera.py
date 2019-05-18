@@ -134,7 +134,7 @@ class Check(object):
 class DataFrameSchema(object):
     """A light-weight pandas DataFrame validator."""
 
-    def __init__(self, columns, index=None, transformer=None, coerce=False):
+    def __init__(self, columns, index=None, transformer=None, coerce=False, strict=False):
         """Initialize pandas dataframe schema.
 
         Parameters
@@ -150,13 +150,27 @@ class DataFrameSchema(object):
             columns and return the transformed dataframe object.
         coerce : bool
             whether or not to coerce all of the columns on validation.
+        strict : bool
+            whether or not to accept columns in the dataframe that aren't in the
+            DataFrame Schema.
         """
         self.index = index
         self.columns = columns
         self.transformer = transformer
         self.coerce = coerce
+        self.strict = strict
 
     def validate(self, dataframe):
+        # Check if all columns in the dataframe have a corresponding column in
+        # the DataFrameSchema
+        if self.strict:
+            for column in dataframe:
+                if column not in self.columns:
+                    raise SchemaError(
+                        "column '%s' not in DataFrameSchema %s" %
+                        (column, self.columns)
+                    )
+
         for c, col in self.columns.items():
             if c not in dataframe and col.required:
                 raise SchemaError(

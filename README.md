@@ -255,11 +255,12 @@ schema_float.validate(df).dtypes
 If you want to coerce all of the columns specified in the `DataFrameSchema`,
 you can specify the `coerce` argument with `DataFrameSchema(..., coerce=True)`.
 
-### Required columns
+### Required Columns
 
-By default all columns specified in the schema are required, meaning that if a column is missing in the input
-dataframe an exception will be thrown. If you want to make a column optional specify `required=False`
-in the column constructor:
+By default all columns specified in the schema are required, meaning that if a
+column is missing in the input dataframe an exception will be thrown. If you
+want to make a column optional specify `required=False` in the column
+constructor:
 
 ```python
 import pandas as pd
@@ -275,6 +276,25 @@ schema = DataFrameSchema({
 validated_df = schema.validate(df)
 # list(validated_df.columns) == ["column2"]
 
+```
+
+### Handling of Dataframe Columns not in the Schema
+
+By default, columns that aren't specified in the schema aren't checked. If you
+want to check that the dataframe *only* contains columns in the schema, specify
+`strict=True`:
+
+```python
+import pandas as pd
+from pandera import Column, DataFrameSchema, Int
+
+schema = DataFrameSchema({"column1": Column(Int, nullable=True)},
+                         strict=True)
+df = pd.DataFrame({"column2": [1, 2, 3]})
+
+schema.validate(df)
+
+# SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int64>}
 ```
 
 ### `SeriesSchema`

@@ -112,6 +112,17 @@ def test_dataframe_schema():
     with pytest.raises(SchemaError):
         schema.validate(df.assign(a=[1.7, 2.3, 3.1]))
 
+
+def test_dataframe_schema_strict():
+    # checks if strict=True whether a schema error is raised because 'a' is not
+    # present in the dataframe.
+    schema = DataFrameSchema({"a": Column(Int, nullable=True)},
+                             strict=True)
+    df = pd.DataFrame({"b": [1, 2, 3]})
+    with pytest.raises(SchemaError):
+        schema.validate(df)
+
+
 def test_index_schema():
     schema = DataFrameSchema(
         columns={},
