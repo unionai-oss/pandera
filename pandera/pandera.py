@@ -39,7 +39,7 @@ N_FAILURE_CASES = 10
 
 class Check(object):
 
-    def __init__(self, fn, element_wise=True, error=None, n_failure_cases=10):
+    def __init__(self, fn, element_wise=False, error=None, n_failure_cases=10):
         """Check object applies function element-wise or series-wise
 
         Parameters
