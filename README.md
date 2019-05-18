@@ -455,16 +455,21 @@ zero_column_1_dict(preprocessed_df)
 zero_column_1_custom(preprocessed_df)
 ```
 
-Tests
------
+## Tests
+
 
 ```
 pip install pytest
 pytest tests
 ```
 
-Issues
-------
+## Contributing to pandera [![GitHub contributors](https://img.shields.io/github/contributors/cosmicBboy/pandera.svg)](https://github.com/cosmicBboy/pandera/graphs/contributors)
+All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
+
+A detailed overview on how to contribute can be found in the [contributing guide](https://github.com/cosmicBboy/pandera/blob/master/.github/CONTRIBUTING.md) on GitHub.
+
+## Issues
+
 
 Go [here](https://github.com/cosmicBboy/pandera/issues) to submit feature
 requests or bugfixes.
