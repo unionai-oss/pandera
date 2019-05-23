@@ -471,12 +471,15 @@ zero_column_1_custom(preprocessed_df)
 
 ### Column Check Groups
 
-Column `Check`s support grouping by a different column into dict where keys
-are the group names and keys are subsets of the `Column` series. Specifying
-`groupby` as a column name, list of column names, or callable changes the
-expected signature of the `Check` function argument to
+`Column` `Check`s support grouping by a different column so that you can make
+assertions about subsets of the `Column` of interest. This changes the function
+signature of the `Check` function so that its input is a dict where keys
+are the group names and keys are subsets of the `Column` series.
+
+Specifying `groupby` as a column name, list of column names, or callable
+changes the expected signature of the `Check` function argument to
 `dict[Any|tuple[Any], Series] -> bool|Series[bool]` where the dict keys are
-the discrete values in the `groupby` columns.
+the discrete keys in the `groupby` columns.
 
 ```python
 import pandas as pd
@@ -486,17 +489,12 @@ from pandera import DataFrameSchema, Column, Check, Bool, Float, Int, String
 
 schema = DataFrameSchema({
     "height_in_feet": Column(Float, [
-        # assert that average height if people in the dataset older than 20
-        # years old is greater than six feet
-        Check(lambda g: g[False].mean() > 6 and g[True].mean() < 6,
-              groupby="age_less_than_20"),
-        # define multiple groupby columns, make an assertion about the total
-        # height of the people below the age of 20 who are female.
-        Check(lambda g: g[(True, "F")].sum() == 9.1,  # 5.1 + 4
+        # groupby as a single column
+        Check(lambda g: g[False].mean() > 6, groupby="age_less_than_20"),
+        # define multiple groupby columns
+        Check(lambda g: g[(True, "F")].sum() == 9.1,
               groupby=["age_less_than_20", "sex"]),
-        # groupby as a more complex function, make an assertion about the
-        # median height of people above the age of 15 who are male.
-        # above the age of 15 in the dataset
+        # groupby as a callable with signature (DataFrame) -> DataFrameGroupBy
         Check(lambda g: g[(False, "M")].median() == 6.75,
               groupby=lambda df: (
                 df
