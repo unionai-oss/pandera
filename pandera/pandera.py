@@ -8,6 +8,11 @@ import wrapt
 
 from collections import OrderedDict
 from enum import Enum
+from functools import partial
+
+
+class SchemaInitError(Exception):
+    pass
 
 
 class SchemaError(Exception):
@@ -39,7 +44,8 @@ N_FAILURE_CASES = 10
 
 class Check(object):
 
-    def __init__(self, fn, element_wise=True, error=None, n_failure_cases=10):
+    def __init__(self, fn, element_wise=False, error=None, n_failure_cases=10,
+                 groupby=None, groups=None):
         """Check object applies function element-wise or series-wise
 
         Parameters
@@ -59,11 +65,47 @@ class Check(object):
         n_failure_cases : int|None
             report the top n failure cases. If None, then report all failure
             cases.
+        groupby : str|list[str]|callable|None
+            Only applies to Column Checks. If a string or list of strings is
+            provided, then these columns are used to group the Column Series by
+            `groupby`. If a callable is passed, the expected signature is
+            DataFrame -> DataFrameGroupby. The function has access to the
+            entire dataframe, but the Column.name is selected from
+            this DataFrameGroupby object so that a SeriesGroupBy object is
+            passed into `fn`.
+
+            Specifying this argument changes the `fn` signature to:
+
+            dict[str|tuple[str], Series] -> bool|pd.Series[bool]
+
+            Where specific groups can be obtained from the input dict.
+
+        groups : str|list[str]|None
+            The dict input to the `fn` callable will be constrained to the
+            groups specified by `groups`.
         """
+        if element_wise and groupby is not None:
+            raise SchemaInitError("Cannot use groupby when element_wise=True.")
         self.fn = fn
         self.element_wise = element_wise
         self.error = error
         self.n_failure_cases = n_failure_cases
+
+        if groupby is None and groups is not None:
+            raise ValueError(
+                "`groupby` argument needs to be provided when `groups` "
+                "argument is defined")
+
+        if isinstance(groupby, str):
+            groupby = [groupby]
+        self.groupby = groupby
+        if isinstance(groups, str):
+            groups = [groups]
+        self.groups = groups
+
+    @staticmethod
+    def _check_groupby(column_name, df):
+        return df.groupby(column_name)
 
     @property
     def error_message(self):
@@ -71,17 +113,18 @@ class Check(object):
             return "%s: %s" % (self.fn.__name__, self.error)
         return "%s" % self.fn.__name__
 
-    def vectorized_error_message(self, parent_schema, index, failure_cases):
+    def vectorized_error_message(
+            self, parent_schema, check_index, failure_cases):
         return (
                 "%s failed element-wise validator %d:\n"
                 "%s\nfailure cases:\n%s" %
-                (parent_schema, index,
+                (parent_schema, check_index,
                  self.error_message,
                  self._format_failure_cases(failure_cases)))
 
-    def generic_error_message(self, parent_schema, index):
+    def generic_error_message(self, parent_schema, check_index):
         return "%s failed series validator %d: %s" % \
-               (parent_schema, index, self.error_message)
+               (parent_schema, check_index, self.error_message)
 
     def _format_failure_cases(self, failure_cases):
         failure_cases = (
@@ -98,43 +141,73 @@ class Check(object):
         else:
             return failure_cases.head(self.n_failure_cases)
 
-    def __call__(self, parent_schema, series, index):
+    def prepare_input(self, series, dataframe):
+        # used by Column.__call__ method to prepare series/SeriesGroupBy input
+        if dataframe is None or self.groupby is None:
+            return series
+        elif isinstance(self.groupby, list):
+            groupby_obj = (
+                pd.concat([series, dataframe[self.groupby]], axis=1)
+                .groupby(self.groupby)[series.name]
+            )
+        elif callable(self.groupby):
+            groupby_obj = self.groupby(
+                pd.concat([series, dataframe], axis=1))[series.name]
+        else:
+            raise TypeError("Type %s not recognized for `groupby` argument.")
+        fn_input = {}
+        for group, series in groupby_obj:
+            if self.groups is None or group in self.groups:
+                fn_input[group] = series
+        return fn_input
+
+    def _vectorized_series_check(self, parent_schema, check_index, check_obj):
+        val_result = self.fn(check_obj)
+        if isinstance(val_result, pd.Series):
+            if not val_result.dtype == PandasDtype.Bool.value:
+                raise TypeError(
+                    "validator %d: %s must return bool or Series of type "
+                    "bool, found %s" %
+                    (check_index, self.fn.__name__, val_result.dtype))
+            if val_result.all():
+                return True
+            elif isinstance(check_obj, dict) or \
+                    check_obj.shape[0] != val_result.shape[0] or \
+                    (check_obj.index != val_result.index).all():
+                raise SchemaError(
+                    self.generic_error_message(parent_schema, check_index))
+            else:
+                raise SchemaError(self.vectorized_error_message(
+                    parent_schema, check_index, check_obj[~val_result]))
+        else:
+            if val_result:
+                return True
+            raise SchemaError(
+                self.generic_error_message(parent_schema, check_index))
+
+    def __call__(self, parent_schema, check_index, check_obj):
+        _vcheck = partial(
+            self._vectorized_series_check, parent_schema, check_index)
+        if self.groupby is not None and not isinstance(parent_schema, Column):
+            raise SchemaError(
+                "Can only use `groupby` with a pandera.Column, found %s" %
+                type(parent_schema))
         if self.element_wise:
-            val_result = series.map(self.fn)
+            val_result = check_obj.map(self.fn)
             if val_result.all():
                 return True
             raise SchemaError(self.vectorized_error_message(
-                parent_schema, index, series[~val_result]))
-        else:
-            # series-wise validator can return either a boolean or a
-            # pd.Series of booleans.
-            val_result = self.fn(series)
-            if isinstance(val_result, pd.Series):
-                if not val_result.dtype == PandasDtype.Bool.value:
-                    raise TypeError(
-                        "validator %d: %s must return bool or Series of type "
-                        "bool, found %s" %
-                        (index, self.fn.__name__, val_result.dtype))
-                if val_result.all():
-                    return True
-                try:
-                    raise SchemaError(self.vectorized_error_message(
-                        parent_schema, index, series[~val_result]))
-                except pd.core.indexing.IndexingError:
-                    raise SchemaError(
-                        self.generic_error_message(parent_schema, index))
-            else:
-                if val_result:
-                    return True
-                else:
-                    raise SchemaError(
-                        self.generic_error_message(parent_schema, index))
+                parent_schema, check_index, check_obj[~val_result]))
+        elif isinstance(check_obj, (pd.Series, dict)):
+            return _vcheck(check_obj)
 
 
 class DataFrameSchema(object):
     """A light-weight pandas DataFrame validator."""
 
-    def __init__(self, columns, index=None, transformer=None, coerce=False, strict=False):
+    def __init__(
+            self, columns, index=None, transformer=None, coerce=False,
+            strict=False):
         """Initialize pandas dataframe schema.
 
         Parameters
@@ -151,14 +224,28 @@ class DataFrameSchema(object):
         coerce : bool
             whether or not to coerce all of the columns on validation.
         strict : bool
-            whether or not to accept columns in the dataframe that aren't in the
-            DataFrame Schema.
+            whether or not to accept columns in the dataframe that aren't in
+            the DataFrame Schema.
         """
         self.index = index
         self.columns = columns
         self.transformer = transformer
         self.coerce = coerce
         self.strict = strict
+        self._validate_schema()
+
+    def _validate_schema(self):
+        for column_name, column in self.columns.items():
+            for check in column._checks:
+                if check.groupby is None or callable(check.groupby):
+                    continue
+                nonexistent_dep_columns = [
+                    c for c in check.groupby if c not in self.columns]
+                if nonexistent_dep_columns:
+                    raise SchemaInitError(
+                        "groupby argument %s in Check for Column %s not "
+                        "specified in the DataFrameSchema." %
+                        (nonexistent_dep_columns, column_name))
 
     def validate(self, dataframe):
         # Check if all columns in the dataframe have a corresponding column in
@@ -209,6 +296,8 @@ class SeriesSchemaBase(object):
         checks : Check|list[Check]
         nullable : bool
             Whether or not column can contain null values.
+        allow_duplicates : bool
+            Whether or not to allow duplicated values in the series.
         """
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
@@ -219,12 +308,14 @@ class SeriesSchemaBase(object):
             checks = [checks]
         self._checks = checks
 
-    def __call__(self, series):
+    def __call__(self, series, dataframe=None):
         """Validate a series."""
         expected_dtype = _dtype = self._pandas_dtype if \
             isinstance(self._pandas_dtype, str) else self._pandas_dtype.value
         if self._nullable:
             series = series.dropna()
+            if dataframe is not None:
+                dataframe = dataframe.loc[series.index]
             if _dtype in ["int_", "int8", "int16", "int32", "int64", "uint8",
                           "uint16", "uint32", "uint64"]:
                 _dtype = Float.value
@@ -238,8 +329,7 @@ class SeriesSchemaBase(object):
         else:
             nulls = series.isnull()
             if nulls.sum() > 0:
-                type_val_result = series.dtype == _dtype
-                if not type_val_result:
+                if series.dtype != _dtype:
                     raise SchemaError(
                         "expected series '%s' to have type %s, got %s and "
                         "non-nullable series contains null values: %s" %
@@ -260,16 +350,14 @@ class SeriesSchemaBase(object):
                     (series.name,
                      series[duplicates].head(N_FAILURE_CASES).to_dict()))
 
-        type_val_result = series.dtype == _dtype
-        if not type_val_result:
+        if series.dtype != _dtype:
             raise SchemaError(
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, expected_dtype, series.dtype))
 
-        check_results = []
-        for i, check in enumerate(self._checks):
-            check_results.append(check(self, series, i))
-        return all([type_val_result] + check_results)
+        return all(
+            check(self, check_index, check.prepare_input(series, dataframe))
+            for check_index, check in enumerate(self._checks))
 
 
 class SeriesSchema(SeriesSchemaBase):
@@ -366,7 +454,8 @@ class Column(SeriesSchemaBase):
         if self._name is None:
             raise RuntimeError(
                 "need to `set_name` of column before calling it.")
-        return super(Column, self).__call__(df[self._name])
+        return super(Column, self).__call__(
+            df[self._name], df.drop(self._name, axis=1))
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
