@@ -155,9 +155,19 @@ class Check(object):
                 pd.concat([series, dataframe], axis=1))[series.name]
         else:
             raise TypeError("Type %s not recognized for `groupby` argument.")
+
+        if self.groups is None:
+            return {g: s for g, s in groupby_obj}
+
+        group_keys = set(g for g, _ in groupby_obj)
+        invalid_groups = [g for g in self.groups if g not in group_keys]
+        if invalid_groups:
+            raise KeyError(
+                "groups %s provided in `groups` argument not a valid group "
+                "key. Valid group keys: %s" % (invalid_groups, group_keys))
         fn_input = {}
         for group, series in groupby_obj:
-            if self.groups is None or group in self.groups:
+            if group in self.groups:
                 fn_input[group] = series
         return fn_input
 

@@ -450,15 +450,26 @@ def test_check_groups():
     with pytest.raises(KeyError, match="^'bar'"):
         schema_fail_key_error.validate(df)
 
-    # raise KeyError when the group does not exist in the groupby column
-    schema_fail_nonexistent_key = DataFrameSchema({
+    # raise KeyError when the group does not exist in the groupby column when
+    # referenced in the Check function
+    schema_fail_nonexistent_key_in_fn = DataFrameSchema({
         "col1": Column(Int, [
             Check(lambda s: s["baz"] > 10, groupby="col2", groups=["foo"]),
         ]),
         "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
     })
     with pytest.raises(KeyError, match="^'baz'"):
-        schema_fail_nonexistent_key.validate(df)
+        schema_fail_nonexistent_key_in_fn.validate(df)
+
+    # raise KeyError when the group does not exist in the groups argument.
+    schema_fail_nonexistent_key_in_groups = DataFrameSchema({
+        "col1": Column(Int, [
+            Check(lambda s: s["foo"] > 10, groupby="col2", groups=["baz"]),
+        ]),
+        "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+    })
+    with pytest.raises(KeyError):
+        schema_fail_nonexistent_key_in_groups.validate(df)
 
 
 def test_groupby_init_exceptions():
