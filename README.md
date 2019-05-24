@@ -519,7 +519,7 @@ schema.validate(df)
 ```
 
 In the above example we define a `DataFrameSchema` with column checks for
-`height_in_feet` using a single column, multiple columns, and an more complex
+`height_in_feet` using a single column, multiple columns, and a more complex
 groupby function that creates a new column `age_less_than_15` on the fly.
 
 

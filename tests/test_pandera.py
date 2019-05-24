@@ -488,3 +488,10 @@ def test_groupby_init_exceptions():
         })
     with pytest.raises(SchemaInitError):
         init_schema_no_groupby_column()
+
+    # can't use groupby argument in SeriesSchema or Index objects
+    for SchemaClass in [SeriesSchema, Index]:
+        with pytest.raises(
+                SchemaInitError,
+                match="^Can only use `groupby` with a pandera.Column, found"):
+            SchemaClass(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))

@@ -188,10 +188,6 @@ class Check(object):
     def __call__(self, parent_schema, check_index, check_obj):
         _vcheck = partial(
             self._vectorized_series_check, parent_schema, check_index)
-        if self.groupby is not None and not isinstance(parent_schema, Column):
-            raise SchemaError(
-                "Can only use `groupby` with a pandera.Column, found %s" %
-                type(parent_schema))
         if self.element_wise:
             val_result = check_obj.map(self.fn)
             if val_result.all():
@@ -307,6 +303,12 @@ class SeriesSchemaBase(object):
         if isinstance(checks, Check):
             checks = [checks]
         self._checks = checks
+
+        for check in self._checks:
+            if check.groupby is not None and not isinstance(self, Column):
+                raise SchemaInitError(
+                    "Can only use `groupby` with a pandera.Column, found %s" %
+                    type(self))
 
     def __call__(self, series, dataframe=None):
         """Validate a series."""
