@@ -9,6 +9,7 @@ import wrapt
 from collections import OrderedDict
 from enum import Enum
 from functools import partial
+from scipy import stats
 
 
 class SchemaInitError(Exception):
@@ -208,6 +209,31 @@ class Check(object):
             return _vcheck(check_obj)
 
 
+class Hypothesis(Check):
+    """ Extends Check to cater for hypotheses validation"""
+    def __init__(self, groupby, groups):
+        super(Hypothesis, self).__init__(fn=None,groupby=groupby,groups=groups)
+
+    def calc_two_sample_one_sided_ttest(self,check_obj):
+        ttest = stats.ttest_ind(check_obj.get(list(check_obj)[0]), check_obj.get(list(check_obj)[1]))
+        is_significant = ttest.pvalue / 2 < self.alpha
+        # `relationship` refers to the relationship of group1 w.r.t. group2
+        if self.relationship == "gt":
+            return ttest.statistic > 0 and is_significant
+        elif self.relationship == "lt":
+            return ttest.statistic < 0 and is_significant
+        else:
+            raise ValueError("relationship %s not recognized" % self.relationship)
+
+    @staticmethod
+    def two_sample_one_sided_ttest(groupby, groups, relationship, alpha):
+        hypothesis = Hypothesis(groupby,groups)
+        hypothesis.fn = hypothesis.calc_two_sample_one_sided_ttest
+        hypothesis.relationship = relationship
+        hypothesis.alpha = alpha
+        return hypothesis
+
+
 class DataFrameSchema(object):
     """A light-weight pandas DataFrame validator."""
 
@@ -368,8 +394,8 @@ class SeriesSchemaBase(object):
                 (series.name, expected_dtype, series.dtype))
 
         return all(
-            check(self, check_index, check.prepare_input(series, dataframe))
-            for check_index, check in enumerate(self._checks))
+            check_or_hypothesis(self, check_index, check_or_hypothesis.prepare_input(series, dataframe))
+            for check_index, check_or_hypothesis in enumerate(self._checks))
 
 
 class SeriesSchema(SeriesSchemaBase):
