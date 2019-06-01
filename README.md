@@ -553,7 +553,7 @@ schema = DataFrameSchema({
                                               alpha = 0.05
                                              ),
     ]),
-    "sex": Column(String, Check(lambda s: s.isin(["M", "F"])))
+    "sex": Column(String)
 })
 
 schema.validate(df)
@@ -574,7 +574,7 @@ schema = DataFrameSchema({
                    relationship_kwargs={"alpha":0.5}
                   ),
     ]),
-    "sex": Column(String, Check(lambda s: s.isin(["M", "F"])))
+    "sex": Column(String)
 })
 ```
 
