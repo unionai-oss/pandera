@@ -210,10 +210,47 @@ class Check(object):
 
 
 class Hypothesis(Check):
-    """ Extends Check to cater for hypotheses validation"""
+    """Extends Check to perform a hypothesis test on a Column, potentially
+    grouped by another column
+
+    Parameters
+    ----------
+    test : callable
+        A function to check a series schema.
+    relationship : str|callable
+        Represents what relationship conditions are imposed on the hypothesis
+        test. A function or lambda function can be supplied. If a string is
+        provided, a lambda function will be returned from
+        Hypothesis.relationships.
+        Available relationships are: "greater_than", "less_than", "not_equal"
+    groupby : str|list[str]|callable|None
+        If a string or list of strings is
+        provided, then these columns are used to group the Column Series by
+        `groupby`. If a callable is passed, the expected signature is
+        DataFrame -> DataFrameGroupby. The function has access to the
+        entire dataframe, but the Column.name is selected from
+        this DataFrameGroupby object so that a SeriesGroupBy object is
+        passed into `fn`.
+
+        Specifying this argument changes the `fn` signature to:
+
+        dict[str|tuple[str], Series] -> bool|pd.Series[bool]
+
+        Where specific groups can be obtained from the input dict.
+
+    groups : str|list[str]|None
+        The dict input to the `fn` callable will be constrained to the
+        groups specified by `groups`.
+    test_kwargs : dict
+        Key Word arguments to be supplied to the test.
+    relationship_kwargs : dict
+        Key Word arguments to be supplied to the relationship function.
+        e.g. `alpha` could be used to specify a threshold in a t-test.
+    """
     def __init__(self, test, relationship, groupby=None, groups=None,
-                 test_kwargs={}, relationship_kwargs={}):
-        self.test = partial(test, **test_kwargs)
+                 test_kwargs=None, relationship_kwargs=None):
+        #self.test = partial(test, **test_kwargs)
+        self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(self.relationships(relationship),
                                     **relationship_kwargs)
         self.groupby = groupby
@@ -224,8 +261,8 @@ class Hypothesis(Check):
 
     @staticmethod
     def relationships(relationship):
+        # Impose a relationship on a supplied Test function.
         if isinstance(relationship, str):
-
             relationship = {
                 "greater_than": (lambda stat, pvalue, alpha:
                                  stat > 0 and pvalue / 2 < alpha),
@@ -239,15 +276,29 @@ class Hypothesis(Check):
         return relationship
 
     def _check_fn(self, check_obj):
+        # Creates a function fn which is checked via the Check parent class.
         if self.groupby is None:
-            # one-sample case where no groupby argument supplied, apply to entire column
+            # one-sample case where no groupby argument supplied, apply to
+            # entire column
             return self.relationship(*self.test(check_obj))
         else:
-            return self.relationship(*self.test(*[check_obj.get(g) for g in self.groups]))
+            return self.relationship(*self.test(*[check_obj.get(g)
+                                                  for g in self.groups]))
 
     @classmethod
-    def two_sample_ttest(cls, groupby, groups, relationship, alpha=None, relationship_kwargs={},
-                         equal_var=True, test_kwargs={}):
+    def two_sample_ttest(cls, groupby, groups, relationship, alpha=None,
+                         relationship_kwargs=None, equal_var=True,
+                         test_kwargs=None):
+        # Calculate a T-test for the means of two Columns..
+        #
+        # This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
+        # the null hypothesis that 2 independent samples have identical average
+        # (expected) values. This test assumes that the populations have
+        # identical variances by default.
+        if relationship_kwargs is None:
+            relationship_kwargs = {}
+        if test_kwargs is None:
+            test_kwargs = {}
         # handle alpha as an argument on it's own or in relationship_kwargs:
         if alpha is not None:
             if "alpha" in relationship_kwargs:
@@ -278,7 +329,6 @@ class Hypothesis(Check):
             test_kwargs=test_kwargs,
             relationship_kwargs=relationship_kwargs
         )
-
 
 
 class DataFrameSchema(object):
@@ -441,7 +491,9 @@ class SeriesSchemaBase(object):
                 (series.name, expected_dtype, series.dtype))
 
         return all(
-            check_or_hypothesis(self, check_index, check_or_hypothesis.prepare_input(series, dataframe))
+            check_or_hypothesis(self, check_index,
+                                check_or_hypothesis.prepare_input(series,
+                                                                  dataframe))
             for check_index, check_or_hypothesis in enumerate(self._checks))
 
 
