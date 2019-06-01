@@ -523,6 +523,62 @@ In the above example we define a `DataFrameSchema` with column checks for
 groupby function that creates a new column `age_less_than_15` on the fly.
 
 
+
+### Hypothesis Testing
+
+`Column` `Hypothesis` tests support testing different column so that assertions
+can be made about the relationships between `Column`s.
+
+`Hypothesis` contains built in methods, which can be called as in this example:
+
+```python
+import pandas as pd
+
+from pandera import Column, DataFrameSchema, Float, Check, String, Hypothesis
+
+from scipy import stats
+
+df = (
+    pd.DataFrame({
+        "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
+        "sex": ["M", "M", "F", "F", "F"]
+    })
+    .assign(age_less_than_20=lambda x: x["age"] < 20)
+)
+
+schema = DataFrameSchema({
+    "height_in_feet": Column(Float, [
+        Hypothesis.two_sample_ttest(groupby="sex",
+                                              groups=["M", "F"],
+                                              relationship="greater_than",
+                                              alpha = 0.05
+                                             ),
+    ]),
+    "sex": Column(String, Check(lambda s: s.isin(["M", "F"])))
+})
+
+schema.validate(df)
+
+# SchemaError: <Schema Column: 'height_in_feet' type=float64> failed series validator 0: _check_fn
+```
+
+`Hypothesis` also supports passing custom `test`s and `relationship`s. This
+enables the user to use non-built in functions as follows: 
+
+```python
+schema = DataFrameSchema({
+    "height_in_feet": Column(Float, [
+        Hypothesis(test=stats.ttest_ind,
+                   groupby="sex",
+                   groups=["M", "F"],
+                   relationship="greater_than",
+                   relationship_kwargs={"alpha":0.5}
+                  ),
+    ]),
+    "sex": Column(String, Check(lambda s: s.isin(["M", "F"])))
+})
+```
+
 ## Tests
 
 
