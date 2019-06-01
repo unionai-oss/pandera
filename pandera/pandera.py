@@ -211,27 +211,52 @@ class Check(object):
 
 class Hypothesis(Check):
     """ Extends Check to cater for hypotheses validation"""
-    def __init__(self, groupby, groups):
-        super(Hypothesis, self).__init__(fn=None,groupby=groupby,groups=groups)
+    def __init__(self, test, relationship, groupby=None, groups=None,
+                 test_kwargs=None, relationship_kwargs=None):
+        self.test = partial(test, **test_kwargs)
+        self.relationship = partial(self.relationships(relationship),
+                                    **relationship_kwargs)
+        self.groupby = groupby
+        self.groups = groups
 
-    def calc_two_sample_one_sided_ttest(self,check_obj):
-        ttest = stats.ttest_ind(check_obj.get(list(check_obj)[0]), check_obj.get(list(check_obj)[1]))
-        is_significant = ttest.pvalue / 2 < self.alpha
-        # `relationship` refers to the relationship of group1 w.r.t. group2
-        if self.relationship == "gt":
-            return ttest.statistic > 0 and is_significant
-        elif self.relationship == "lt":
-            return ttest.statistic < 0 and is_significant
-        else:
-            raise ValueError("relationship %s not recognized" % self.relationship)
+        super(Hypothesis, self).__init__(
+            self._check_fn, element_wise=False, groupby=groupby, groups=groups)
 
     @staticmethod
-    def two_sample_one_sided_ttest(groupby, groups, relationship, alpha):
-        hypothesis = Hypothesis(groupby,groups)
-        hypothesis.fn = hypothesis.calc_two_sample_one_sided_ttest
-        hypothesis.relationship = relationship
-        hypothesis.alpha = alpha
-        return hypothesis
+    def relationships(relationship):
+        if isinstance(relationship, str):
+
+            relationship = {
+                "greater_than": (lambda stat, pvalue, alpha:
+                                 stat > 0 and pvalue / 2 < alpha),
+                "less_than": (lambda stat, pvalue, alpha:
+                              stat < 0 and pvalue / 2 < alpha),
+                "not_equal": (lambda stat, pvalue, alpha:
+                              pvalue < alpha),
+            }[relationship]
+        elif not callable(relationship):
+            raise ValueError
+        return relationship
+
+    def _check_fn(self, check_obj):
+        if self.groupby is None:
+            # one-sample case where no groupby argument supplied, apply to entire column
+            return self.relationship(*self.test(check_obj))
+        else:
+            return self.relationship(*self.test(*[check_obj.get(g) for g in self.groups]))
+
+    @classmethod
+    def two_sample_ttest(cls, groupby, groups, relationship, alpha):
+        # the relationship string arg determines if it's one or two-sided
+        return cls(
+            test=stats.ttest_ind,
+            relationship=relationship,
+            groupby=groupby,
+            groups=groups,
+            test_kwargs={"equal_var": True},
+            relationship_kwargs={"alpha": alpha}
+        )
+
 
 
 class DataFrameSchema(object):
