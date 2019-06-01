@@ -246,15 +246,37 @@ class Hypothesis(Check):
             return self.relationship(*self.test(*[check_obj.get(g) for g in self.groups]))
 
     @classmethod
-    def two_sample_ttest(cls, groupby, groups, relationship, alpha):
-        # the relationship string arg determines if it's one or two-sided
+    def two_sample_ttest(cls, groupby, groups, relationship, alpha=None, relationship_kwargs={},
+                         equal_var=True, test_kwargs={}):
+        # handle alpha as an argument on it's own or in relationship_kwargs:
+        if alpha is not None:
+            if "alpha" in relationship_kwargs:
+                raise SchemaError(
+                    "it is ambiguous to specify alpha in the function signature"
+                    "and relationship_kwargs"
+                )
+            relationship_kwargs["alpha"] = alpha
+        else:
+            relationship_kwargs=relationship_kwargs
+
+        # handle equal_var as an argument on it's own or in test_kwargs:
+        if equal_var is not None:
+            if "equal_var" in test_kwargs:
+                raise SchemaError(
+                    "equal_var has been set in both the function signature and"
+                    "test_kwargs, it should be specified only once"
+                )
+            test_kwargs["equal_var"] = equal_var
+        else:
+            test_kwargs=test_kwargs
+
         return cls(
             test=stats.ttest_ind,
             relationship=relationship,
             groupby=groupby,
             groups=groups,
-            test_kwargs={"equal_var": True},
-            relationship_kwargs={"alpha": alpha}
+            test_kwargs=test_kwargs,
+            relationship_kwargs=relationship_kwargs
         )
 
 
