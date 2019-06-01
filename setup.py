@@ -22,7 +22,7 @@ setup(
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
         "wrapt",
-        "scipy",
+        "scipy ; python_version<'2.7'",
     ],
     python_requires='>=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4',
     platforms='any',

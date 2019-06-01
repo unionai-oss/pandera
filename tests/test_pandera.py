@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import scipy
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
     SeriesSchema, Check, Bool, Float, Int, DateTime, String, check_input, \
