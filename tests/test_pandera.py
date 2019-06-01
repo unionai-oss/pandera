@@ -6,8 +6,8 @@ import pytest
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
     SeriesSchema, Check, Bool, Float, Int, DateTime, String, check_input, \
-    check_output, SchemaError, SchemaInitError
-
+    check_output, SchemaError, SchemaInitError, Hypothesis
+from scipy import stats
 
 def test_column():
     schema = DataFrameSchema({
@@ -506,3 +506,96 @@ def test_groupby_init_exceptions():
                 SchemaInitError,
                 match="^Can only use `groupby` with a pandera.Column, found"):
             SchemaClass(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))
+
+
+def test_hypothesis():
+    # Example df for tests:
+    df = (
+        pd.DataFrame({
+            "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
+            "sex": ["M", "M", "F", "F", "F"]
+        })
+    )
+
+    # Initialise the different ways of calling a test:
+    pass_schema_1 = DataFrameSchema({
+        "height_in_feet": Column(Float, [
+            Hypothesis.two_sample_ttest(groupby="sex",
+                                        groups=["M", "F"],
+                                        relationship="greater_than",
+                                        alpha=0.5
+                                        ),
+        ]),
+        "sex": Column(String)
+    })
+
+    pass_schema_2 = DataFrameSchema({
+        "height_in_feet": Column(Float, [
+            Hypothesis(test=stats.ttest_ind,
+                       groupby="sex",
+                       groups=["M", "F"],
+                       relationship="greater_than",
+                       relationship_kwargs={"alpha": 0.5}
+                       ),
+        ]),
+        "sex": Column(String)
+    })
+
+    pass_schema_3 = DataFrameSchema({
+        "height_in_feet": Column(Float, [
+            Hypothesis.two_sample_ttest(
+                groupby="sex",
+                groups=["M", "F"],
+                relationship="greater_than",
+                relationship_kwargs={"alpha": 0.5}
+            ),
+        ]),
+        "sex": Column(String)
+    })
+
+    # Check the 3 happy paths are successful:
+    pass_schema_1.validate(df)
+    pass_schema_2.validate(df)
+    pass_schema_3.validate(df)
+
+    fail_schema_1 = DataFrameSchema({
+        "height_in_feet": Column(Float, [
+            Hypothesis.two_sample_ttest(groupby="sex",
+                                        groups=["M", "F"],
+                                        relationship="greater_than",
+                                        alpha=0.05
+                                        ),
+        ]),
+        "sex": Column(String)
+    })
+
+    fail_schema_2 = DataFrameSchema({
+        "height_in_feet": Column(Float, [
+            Hypothesis(test=stats.ttest_ind,
+                       groupby="sex",
+                       groups=["M", "F"],
+                       relationship="greater_than",
+                       relationship_kwargs={"alpha": 0.05}
+                       ),
+        ]),
+        "sex": Column(String)
+    })
+
+    fail_schema_3 = DataFrameSchema({
+        "height_in_feet": Column(Float, [
+            Hypothesis.two_sample_ttest(
+                groupby="sex",
+                groups=["M", "F"],
+                relationship="greater_than",
+                relationship_kwargs={"alpha": 0.05}
+            ),
+        ]),
+        "sex": Column(String)
+    })
+
+    with pytest.raises(SchemaError):
+        fail_schema_1.validate(df)
+    with pytest.raises(SchemaError):
+        fail_schema_2.validate(df)
+    with pytest.raises(SchemaError):
+        fail_schema_3.validate(df)
