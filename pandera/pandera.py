@@ -212,7 +212,7 @@ class Check(object):
 class Hypothesis(Check):
     """ Extends Check to cater for hypotheses validation"""
     def __init__(self, test, relationship, groupby=None, groups=None,
-                 test_kwargs=None, relationship_kwargs=None):
+                 test_kwargs={}, relationship_kwargs={}):
         self.test = partial(test, **test_kwargs)
         self.relationship = partial(self.relationships(relationship),
                                     **relationship_kwargs)
