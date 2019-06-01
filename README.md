@@ -543,7 +543,6 @@ df = (
         "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
         "sex": ["M", "M", "F", "F", "F"]
     })
-    .assign(age_less_than_20=lambda x: x["age"] < 20)
 )
 
 schema = DataFrameSchema({
