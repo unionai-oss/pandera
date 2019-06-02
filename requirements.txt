@@ -4,5 +4,4 @@ pandas >= 0.23.0
 scipy >= 1.2.0
 sphinx
 sphinx_rtd_theme
-sphinxcontrib-napoleon
 wrapt
