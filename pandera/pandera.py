@@ -9,6 +9,7 @@ import wrapt
 from collections import OrderedDict
 from enum import Enum
 from functools import partial
+from scipy import stats
 
 
 class SchemaInitError(Exception):
@@ -208,6 +209,139 @@ class Check(object):
             return _vcheck(check_obj)
 
 
+class Hypothesis(Check):
+    """Extends Check to perform a hypothesis test on a Column, potentially
+    grouped by another column
+
+    Parameters
+    ----------
+    test : callable
+        A function to check a series schema.
+    relationship : str|callable
+        Represents what relationship conditions are imposed on the hypothesis
+        test. A function or lambda function can be supplied. If a string is
+        provided, a lambda function will be returned from
+        Hypothesis.relationships.
+        Available relationships are: "greater_than", "less_than", "not_equal"
+    groupby : str|list[str]|callable|None
+        If a string or list of strings is
+        provided, then these columns are used to group the Column Series by
+        `groupby`. If a callable is passed, the expected signature is
+        DataFrame -> DataFrameGroupby. The function has access to the
+        entire dataframe, but the Column.name is selected from
+        this DataFrameGroupby object so that a SeriesGroupBy object is
+        passed into `fn`.
+
+        Specifying this argument changes the `fn` signature to:
+
+        dict[str|tuple[str], Series] -> bool|pd.Series[bool]
+
+        Where specific groups can be obtained from the input dict.
+
+    groups : str|list[str]|None
+        The dict input to the `fn` callable will be constrained to the
+        groups specified by `groups`.
+    test_kwargs : dict
+        Key Word arguments to be supplied to the test.
+    relationship_kwargs : dict
+        Key Word arguments to be supplied to the relationship function.
+        e.g. `alpha` could be used to specify a threshold in a t-test.
+    """
+    def __init__(self, test, relationship, groupby=None, groups=None,
+                 test_kwargs=None, relationship_kwargs=None):
+        self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
+        self.relationship = partial(self.relationships(relationship),
+                                    **relationship_kwargs)
+        super(Hypothesis, self).__init__(
+            self._check_fn, element_wise=False, groupby=groupby, groups=groups)
+
+    @staticmethod
+    def relationships(relationship):
+        """Impose a relationship on a supplied Test function."""
+        if isinstance(relationship, str):
+            try:
+                relationship = {
+                    "greater_than": (lambda stat, pvalue, alpha:
+                                     stat > 0 and pvalue / 2 < alpha),
+                    "less_than": (lambda stat, pvalue, alpha:
+                                  stat < 0 and pvalue / 2 < alpha),
+                    "not_equal": (lambda stat, pvalue, alpha:
+                                  pvalue < alpha),
+                }[relationship]
+            except:
+                raise SchemaError(
+                    "The relationship %s isn't a built in method" % relationship
+                )
+        elif not callable(relationship):
+            raise ValueError(
+                "expected relationship to be str or callable, found %s" % type(
+                    relationship)
+            )
+        return relationship
+
+    def _check_fn(self, check_obj):
+        """Creates a function fn which is checked via the Check parent class."""
+        if self.groupby is None:
+            # one-sample case where no groupby argument supplied, apply to
+            # entire column
+            return self.relationship(*self.test(check_obj))
+        else:
+            return self.relationship(*self.test(*[check_obj.get(g)
+                                                  for g in self.groups]))
+
+    @classmethod
+    def two_sample_ttest(cls, groupby, groups, relationship, alpha=None,
+                         relationship_kwargs=None, equal_var=True,
+                         test_kwargs=None):
+        """ Calculate a T-test for the means of two Columns.
+
+        This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
+        the null hypothesis that 2 independent samples have identical average
+        (expected) values. This test assumes that the populations have
+        identical variances by default.
+        """
+        if len(groups)!=2:
+            raise SchemaError(
+                "The two sample ttest only works when len(groups)=2, but "
+                "len(%s)= %s" % (groups, len(groups))
+            )
+
+        if relationship_kwargs is None:
+            relationship_kwargs = {}
+        if test_kwargs is None:
+            test_kwargs = {}
+        # handle alpha as an argument on it's own or in relationship_kwargs:
+        if alpha is not None:
+            if "alpha" in relationship_kwargs:
+                raise SchemaError(
+                    "it is ambiguous to specify alpha in the function signature"
+                    "and relationship_kwargs"
+                )
+            relationship_kwargs["alpha"] = alpha
+        else:
+            relationship_kwargs=relationship_kwargs
+
+        # handle equal_var as an argument on it's own or in test_kwargs:
+        if equal_var is not None:
+            if "equal_var" in test_kwargs:
+                raise SchemaError(
+                    "equal_var has been set in both the function signature and"
+                    "test_kwargs, it should be specified only once"
+                )
+            test_kwargs["equal_var"] = equal_var
+        else:
+            test_kwargs=test_kwargs
+
+        return cls(
+            test=stats.ttest_ind,
+            relationship=relationship,
+            groupby=groupby,
+            groups=groups,
+            test_kwargs=test_kwargs,
+            relationship_kwargs=relationship_kwargs
+        )
+
+
 class DataFrameSchema(object):
     """A light-weight pandas DataFrame validator."""
 
@@ -368,8 +502,10 @@ class SeriesSchemaBase(object):
                 (series.name, expected_dtype, series.dtype))
 
         return all(
-            check(self, check_index, check.prepare_input(series, dataframe))
-            for check_index, check in enumerate(self._checks))
+            check_or_hypothesis(self, check_index,
+                                check_or_hypothesis.prepare_input(series,
+                                                                  dataframe))
+            for check_index, check_or_hypothesis in enumerate(self._checks))
 
 
 class SeriesSchema(SeriesSchemaBase):
