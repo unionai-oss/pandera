@@ -47,43 +47,38 @@ class Check(object):
 
     def __init__(self, fn, element_wise=False, error=None, n_failure_cases=10,
                  groupby=None, groups=None):
-        """Check object applies function element-wise or series-wise
+        """ Check object applies function element-wise or series-wise
 
-        Parameters
-        ----------
-        fn : callable
-            A function to check series schema. If element_wise is True,
-            then callable signature should be: x -> bool where x is a
+        :param callable fn: A function to check series schema. If element_wise
+            is True, then callable signature should be: x -> bool where x is a
             scalar element in the column. Otherwise, signature is expected
             to be: pd.Series -> bool|pd.Series[bool].
-        element_wise : bool|list[bool]
-            Whether or not to apply validator in an element-wise fashion. If
-            bool, assumes that all checks should be applied to the column
-            element-wise. If list, should be the same number of elements
-            as checks.
-        error : str
-            custom error message if series fails validation check.
-        n_failure_cases : int|None
-            report the top n failure cases. If None, then report all failure
-            cases.
-        groupby : str|list[str]|callable|None
-            Only applies to Column Checks. If a string or list of strings is
-            provided, then these columns are used to group the Column Series by
-            `groupby`. If a callable is passed, the expected signature is
-            DataFrame -> DataFrameGroupby. The function has access to the
-            entire dataframe, but the Column.name is selected from
-            this DataFrameGroupby object so that a SeriesGroupBy object is
-            passed into `fn`.
+        :param element_wise: Whether or not to apply validator in an
+            element-wise fashion. If bool, assumes that all checks should be
+            applied to the column element-wise. If list, should be the same
+            number of elements as checks.
+        :type element_wise: bool|list[bool]
+        :param str error: custom error message if series fails validation check.
+        :type str error:
+        :param n_failure_cases: report the top n failure cases. If None, then
+            report all failure cases.
+        :param groupby: Only applies to Column Checks. If a string or list of
+            strings is provided, then these columns are used to group the Column
+            Series by `groupby`. If a callable is passed, the expected signature
+            is DataFrame -> DataFrameGroupby. The function has access to the
+            entire dataframe, but the Column.name is selected from this
+            DataFrameGroupby object so that a SeriesGroupBy object is passed
+            into `fn`.
 
             Specifying this argument changes the `fn` signature to:
 
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-
-        groups : str|list[str]|None
-            The dict input to the `fn` callable will be constrained to the
-            groups specified by `groups`.
+        :type groupby: str|list[str]|callable|None
+        :param groups: The dict input to the `fn` callable will be constrained
+            to the groups specified by `groups`.
+        :type groups: str|list[str]|None
         """
         if element_wise and groupby is not None:
             raise SchemaInitError("Cannot use groupby when element_wise=True.")
@@ -106,16 +101,30 @@ class Check(object):
 
     @staticmethod
     def _check_groupby(column_name, df):
+        """
+
+        :param column_name: 
+        :param df: 
+
+        """
         return df.groupby(column_name)
 
     @property
     def error_message(self):
+
         if self.error:
             return "%s: %s" % (self.fn.__name__, self.error)
         return "%s" % self.fn.__name__
 
     def vectorized_error_message(
             self, parent_schema, check_index, failure_cases):
+        """
+
+        :param parent_schema: 
+        :param check_index: 
+        :param failure_cases: 
+
+        """
         return (
                 "%s failed element-wise validator %d:\n"
                 "%s\nfailure cases:\n%s" %
@@ -124,10 +133,21 @@ class Check(object):
                  self._format_failure_cases(failure_cases)))
 
     def generic_error_message(self, parent_schema, check_index):
+        """
+
+        :param parent_schema: 
+        :param check_index: 
+
+        """
         return "%s failed series validator %d: %s" % \
                (parent_schema, check_index, self.error_message)
 
     def _format_failure_cases(self, failure_cases):
+        """
+
+        :param failure_cases: 
+
+        """
         failure_cases = (
             failure_cases
             .rename("failure_case")
@@ -143,6 +163,12 @@ class Check(object):
             return failure_cases.head(self.n_failure_cases)
 
     def prepare_input(self, series, dataframe):
+        """
+
+        :param series: 
+        :param dataframe: 
+
+        """
         # used by Column.__call__ method to prepare series/SeriesGroupBy input
         if dataframe is None or self.groupby is None:
             return series
@@ -173,6 +199,13 @@ class Check(object):
         return fn_input
 
     def _vectorized_series_check(self, parent_schema, check_index, check_obj):
+        """
+
+        :param parent_schema: 
+        :param check_index: 
+        :param check_obj: 
+
+        """
         val_result = self.fn(check_obj)
         if isinstance(val_result, pd.Series):
             if not val_result.dtype == PandasDtype.Bool.value:
@@ -212,43 +245,40 @@ class Check(object):
 class Hypothesis(Check):
     """Extends Check to perform a hypothesis test on a Column, potentially
     grouped by another column
-
-    Parameters
-    ----------
-    test : callable
-        A function to check a series schema.
-    relationship : str|callable
-        Represents what relationship conditions are imposed on the hypothesis
-        test. A function or lambda function can be supplied. If a string is
-        provided, a lambda function will be returned from
-        Hypothesis.relationships.
-        Available relationships are: "greater_than", "less_than", "not_equal"
-    groupby : str|list[str]|callable|None
-        If a string or list of strings is
-        provided, then these columns are used to group the Column Series by
-        `groupby`. If a callable is passed, the expected signature is
-        DataFrame -> DataFrameGroupby. The function has access to the
-        entire dataframe, but the Column.name is selected from
-        this DataFrameGroupby object so that a SeriesGroupBy object is
-        passed into `fn`.
-
-        Specifying this argument changes the `fn` signature to:
-
-        dict[str|tuple[str], Series] -> bool|pd.Series[bool]
-
-        Where specific groups can be obtained from the input dict.
-
-    groups : str|list[str]|None
-        The dict input to the `fn` callable will be constrained to the
-        groups specified by `groups`.
-    test_kwargs : dict
-        Key Word arguments to be supplied to the test.
-    relationship_kwargs : dict
-        Key Word arguments to be supplied to the relationship function.
-        e.g. `alpha` could be used to specify a threshold in a t-test.
     """
     def __init__(self, test, relationship, groupby=None, groups=None,
                  test_kwargs=None, relationship_kwargs=None):
+        """ Initialises a hypothesis object to perform a hypothesis test on a
+            Column, potentially grouped by another column
+
+        :param callable test: A function to check a series schema.
+        :param relationship: Represents what relationship conditions are imposed
+            on the hypothesis test. A function or lambda function can be
+            supplied. If a string is provided, a lambda function will be
+            returned from Hypothesis.relationships. Available relationships are:
+            "greater_than", "less_than", "not_equal"
+        :type relationship: str|callable
+        :param groupby: If a string or list of strings is provided, then these
+            columns are used to group the Column Series by `groupby`. If a
+            callable is passed, the expected signature is
+            DataFrame -> DataFrameGroupby. The function has access to the entire
+            dataframe, but the Column.name is selected from this
+            DataFrameGroupby object so that a SeriesGroupBy object is passed
+            into `fn`.
+
+            Specifying this argument changes the `fn` signature to:
+            dict[str|tuple[str], Series] -> bool|pd.Series[bool]
+
+            Where specific groups can be obtained from the input dict.
+        :type groupby: str|list[str]|callable|None
+        :param groups: The dict input to the `fn` callable will be constrained
+            to the groups specified by `groups`.
+        :type groups: str|list[str]|None
+        :param dict test_kwargs: Key Word arguments to be supplied to the test.
+        :param dict relationship_kwargs: Key Word arguments to be supplied to
+            the relationship function. e.g. `alpha` could be used to specify a
+            threshold in a t-test.
+        """
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(self.relationships(relationship),
                                     **relationship_kwargs)
@@ -257,7 +287,11 @@ class Hypothesis(Check):
 
     @staticmethod
     def relationships(relationship):
-        """Impose a relationship on a supplied Test function."""
+        """Impose a relationship on a supplied Test function.
+
+        :param relationship: 
+
+        """
         if isinstance(relationship, str):
             try:
                 relationship = {
@@ -268,7 +302,7 @@ class Hypothesis(Check):
                     "not_equal": (lambda stat, pvalue, alpha:
                                   pvalue < alpha),
                 }[relationship]
-            except:
+            except SchemaError:
                 raise SchemaError(
                     "The relationship %s isn't a built in method" % relationship
                 )
@@ -280,7 +314,11 @@ class Hypothesis(Check):
         return relationship
 
     def _check_fn(self, check_obj):
-        """Creates a function fn which is checked via the Check parent class."""
+        """Creates a function fn which is checked via the Check parent class.
+
+        :param check_obj: 
+
+        """
         if self.groupby is None:
             # one-sample case where no groupby argument supplied, apply to
             # entire column
@@ -293,14 +331,23 @@ class Hypothesis(Check):
     def two_sample_ttest(cls, groupby, groups, relationship, alpha=None,
                          relationship_kwargs=None, equal_var=True,
                          test_kwargs=None):
-        """ Calculate a T-test for the means of two Columns.
-
+        """Calculate a T-test for the means of two Columns.
+        
         This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
         the null hypothesis that 2 independent samples have identical average
         (expected) values. This test assumes that the populations have
         identical variances by default.
+
+        :param groupby: 
+        :param groups: 
+        :param relationship: 
+        :param alpha:  (Default value = None)
+        :param relationship_kwargs:  (Default value = None)
+        :param equal_var:  (Default value = True)
+        :param test_kwargs:  (Default value = None)
+
         """
-        if len(groups)!=2:
+        if len(groups) != 2:
             raise SchemaError(
                 "The two sample ttest only works when len(groups)=2, but "
                 "len(%s)= %s" % (groups, len(groups))
@@ -319,7 +366,7 @@ class Hypothesis(Check):
                 )
             relationship_kwargs["alpha"] = alpha
         else:
-            relationship_kwargs=relationship_kwargs
+            relationship_kwargs = relationship_kwargs
 
         # handle equal_var as an argument on it's own or in test_kwargs:
         if equal_var is not None:
@@ -330,7 +377,7 @@ class Hypothesis(Check):
                 )
             test_kwargs["equal_var"] = equal_var
         else:
-            test_kwargs=test_kwargs
+            test_kwargs = test_kwargs
 
         return cls(
             test=stats.ttest_ind,
@@ -348,24 +395,25 @@ class DataFrameSchema(object):
     def __init__(
             self, columns, index=None, transformer=None, coerce=False,
             strict=False):
-        """Initialize pandas dataframe schema.
+        """ A light-weight pandas DataFrame validator.
 
-        Parameters
-        ----------
-        columns : dict[str -> Column]
-            a dict where keys are column names and values are Column objects
-            specifying the datatypes and properties of a particular column.
-        index : Index
-            specify the datatypes and properties of the index.
-        transformer : callable
-            a callable with signature: pandas.DataFrame -> pandas.DataFrame.
-            If specified, calling `validate` will verify properties of the
-            columns and return the transformed dataframe object.
-        coerce : bool
-            whether or not to coerce all of the columns on validation.
-        strict : bool
-            whether or not to accept columns in the dataframe that aren't in
-            the DataFrame Schema.
+        :param columns: a dict where keys are column names and values are
+            Column objects specifying the datatypes and properties of a
+            particular column.
+        :type columns: dict[str -> Column]
+        :param index: specify the datatypes and properties of the index.
+        :type index: Index
+        :param transformer: a callable with signature:
+            pandas.DataFrame -> pandas.DataFrame. If specified, calling
+            `validate` will verify properties of the columns and return the
+            transformed dataframe object.
+        :type transformer: callable
+        :param coerce: whether or not to coerce all of the columns on
+            validation.
+        :type coerce: bool
+        :param strict: whether or not to accept columns in the dataframe that
+            aren't in the DataFrame Schema.
+        :type strict: bool
         """
         self.index = index
         self.columns = columns
@@ -375,6 +423,7 @@ class DataFrameSchema(object):
         self._validate_schema()
 
     def _validate_schema(self):
+
         for column_name, column in self.columns.items():
             for check in column._checks:
                 if check.groupby is None or callable(check.groupby):
@@ -388,6 +437,11 @@ class DataFrameSchema(object):
                         (nonexistent_dep_columns, column_name))
 
     def validate(self, dataframe):
+        """
+
+        :param dataframe: 
+
+        """
         # Check if all columns in the dataframe have a corresponding column in
         # the DataFrameSchema
         if self.strict:
@@ -425,19 +479,21 @@ class SeriesSchemaBase(object):
 
     def __init__(self, pandas_dtype, checks=None, nullable=False,
                  allow_duplicates=True):
-        """Initialize series schema object.
+        """Initialize series schema base object.
 
-        Parameters
-        ----------
-        pandas_dtype : str|PandasDtype
-            datatype of the column. If a string is specified, then assumes
-            one of the valid pandas string values:
+        :param pandas_dtype: datatype of the column. If a string is specified,
+            then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        checks : Check|list[Check]
-        nullable : bool
-            Whether or not column can contain null values.
-        allow_duplicates : bool
-            Whether or not to allow duplicated values in the series.
+        :type pandas_dtype: str|PandasDtype
+        :param checks: If element_wise is True, then callable signature should
+            be:
+            x -> x where x is a scalar element in the column. Otherwise,
+            x is assumed to be a pandas.Series object.
+        :type checks: callable
+        :param nullable: Whether or not column can contain null values.
+        :type nullable: bool
+        :param allow_duplicates:
+        :type allow_duplicates: bool
         """
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
@@ -514,25 +570,29 @@ class SeriesSchema(SeriesSchemaBase):
                  allow_duplicates=True):
         """Initialize series schema object.
 
-        Parameters
-        ----------
-        column : str
-            column name in the dataframe
-        pandas_dtype : str|PandasDtype
-            datatype of the column. If a string is specified, then assumes
-            one of the valid pandas string values:
+        :param pandas_dtype: datatype of the column. If a string is specified,
+            then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        checks : callable
-            If element_wise is True, then callable signature should be:
+        :type pandas_dtype: str|PandasDtype
+        :param checks: If element_wise is True, then callable signature should
+            be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
-        nullable : bool
-            Whether or not column can contain null values.
+        :type checks: callable
+        :param nullable: Whether or not column can contain null values.
+        :type nullable: bool
+        :param allow_duplicates:
+        :type allow_duplicates: bool
         """
         super(SeriesSchema, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates)
 
     def validate(self, series):
+        """
+
+        :param series: 
+
+        """
         if not isinstance(series, pd.Series):
             raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
         if super(SeriesSchema, self).__call__(series):
@@ -565,23 +625,25 @@ class Column(SeriesSchemaBase):
     ):
         """Initialize column validator object.
 
-        Parameters
-        ----------
-        pandas_dtype : str|PandasDtype
-            datatype of the column. If a string is specified, then assumes
-            one of the valid pandas string values:
+        :param pandas_dtype: datatype of the column. If a string is specified,
+            then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        checks : callable
-            If element_wise is True, then callable signature should be:
+        :type pandas_dtype: str|PandasDtype
+        :param checks: If element_wise is True, then callable signature should
+            be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
-        nullable : bool
-            Whether or not column can contain null values.
-        coerce : bool
-            Whether or not to coerce the column to the specified pandas_dtype
-            before validation
-        required: bool
-            Whether or not column is allowed to be missing
+        :type checks: callable
+        :param nullable: Whether or not column can contain null values.
+        :type nullable: bool
+        :param allow_duplicates: Whether or not to coerce the column to the
+            specified pandas_dtype before validation
+        :type allow_duplicates: bool
+        :param coerce: If True, when schema.validate is called the column will
+            be coerced into the specified dtype.
+        :type coerce:  bool
+        :param required: Whether or not column is allowed to be missing
+        :type required:  bool
         """
         super(Column, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates)
@@ -590,10 +652,20 @@ class Column(SeriesSchemaBase):
         self.required = required
 
     def set_name(self, name):
+        """
+
+        :param name: 
+
+        """
         self._name = name
         return self
 
     def coerce_dtype(self, series):
+        """
+
+        :param series: 
+
+        """
         _dtype = str if self._pandas_dtype is String \
             else self._pandas_dtype.value
         return series.astype(_dtype)
@@ -615,29 +687,35 @@ class Column(SeriesSchemaBase):
 
 def check_input(schema, obj_getter=None):
     """Validate function argument when function is called.
-
+    
     This is a decorator function that validates the schema of a dataframe
     argument in a function. Note that if a transformer is specified by the
     schema, the decorator will return the transformed dataframe, which will be
     passed into the decorated function.
 
-    Parameters
-    ----------
-    schema : DataFrameSchema|SeriesSchema
-        dataframe/series schema object
-    obj_getter : int|str|None
-        if int, obj_getter refers to the the index of the pandas
-        dataframe/series to be validated in the args part of the function
-        signature. If str, obj_getter refers to the argument name of the pandas
-        dataframe/series in the function signature. This works even if the
-        series/dataframe is passed in as a positional argument when the
-        function is called. If None, assumes that thedataframe/series is the
-        first argument of the decorated function
-
+    :param schema: dataframe/series schema object
+    :type schema: DataFrameSchema|SeriesSchema
+    :param obj_getter:  (Default value = None) if int, obj_getter refers to the
+        the index of the pandas dataframe/series to be validated in the args
+        part of the function signature. If str, obj_getter refers to the
+        argument name of the pandas dataframe/series in the function signature.
+        This works even if the series/dataframe is passed in as a positional
+        argument when the function is called. If None, assumes that the
+        dataframe/series is the first argument of the decorated function
+    :type obj_getter: int|str|None
+    
     """
 
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
+        """
+
+        :param fn: 
+        :param instance: 
+        :param args: 
+        :param kwargs: 
+
+        """
         args = list(args)
         if isinstance(obj_getter, int):
             args[obj_getter] = schema.validate(args[obj_getter])
@@ -670,29 +748,36 @@ def check_input(schema, obj_getter=None):
 
 def check_output(schema, obj_getter=None):
     """Validate function output.
-
+    
     Similar to input validator, but validates the output of the decorated
     function. Note that the `transformer` function supplied to the
     DataFrameSchema will not have an effect in the check_output schema
     validator.
 
-    Parameters
-    ----------
-    schema : DataFrameSchema|SeriesSchema
-        dataframe/series schema object
-    obj_getter : int|str|callable|None
-        if int, assumes that the output of the decorated function is a
-        list-like object, where obj_getter is the index of the pandas data
-        dataframe/series to be validated. If str, expects that the output
-        is a dict-like object, and obj_getter is the key pointing to the
-        dataframe/series to be validated. If a callable is supplied, it expects
-        the output of decorated function and should return the dataframe/series
-        to be validated.
+    :param schema: dataframe/series schema object
+    :type schema: DataFrameSchema|SeriesSchema
+    :param obj_getter:  (Default value = None) if int, assumes that the output
+        of the decorated function is a list-like object, where obj_getter is the
+        index of the pandas data dataframe/series to be validated. If str,
+        expects that the output is a dict-like object, and obj_getter is the key
+        pointing to the dataframe/series to be validated. If a callable is
+        supplied, it expects the output of decorated function and should return
+        the dataframe/series to be validated.
+    :type obj_getter: int|str|callable|None
 
+    
     """
 
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
+        """
+
+        :param fn: 
+        :param instance: 
+        :param args: 
+        :param kwargs: 
+
+        """
         if schema.transformer is not None:
             warnings.warn(
                 "The schema transformer function has no effect in a "

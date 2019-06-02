@@ -1,4 +1,6 @@
-.. pandera documentation master file
+.. pandera documentation for Hypothesis Testing
+
+.. _hypothesis:
 
 Hypothesis Testing
 ==================

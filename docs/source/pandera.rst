@@ -1,3 +1,5 @@
+.. pandera package index documentation toctree
+
 pandera package
 ===============
 

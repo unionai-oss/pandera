@@ -1,62 +1,62 @@
-.. pandera documentation master file
+.. pandera documentation for DataFrameSchemas
 
-Datatype and Column-like property tests
-=======================================
+.. _DataFrameSchemas:
 
-A light-weight and flexible validation package for
-`pandas <http://pandas.pydata.org>`__ data structures.
+DataFrame Schemas
+=================
 
-``DataFrameSchema``
-~~~~~~~~~~~~~~~~~~~
+DataFrameSchemas enable the specification of a schema that a dataframe is
+validated against.
+
+The DataFrameSchema object consists of |column|_\s, |index|_\s, whether to
+|coerced|_ the types of all of the columns and |strict|_ which if True will
+error if the DataFrame contains columns that aren’t in the DataFrameSchema.
+
+
+.. |column| replace:: ``Column``
+.. |index| replace:: ``Index``
+.. |coerced| replace:: ``coerce``
+.. |strict| replace:: ``strict``
 
 .. code:: python
 
-   import pandas as pd
-
-   from pandera import Column, DataFrameSchema, Float, Int, String, Check
-
-
-   # validate columns
    schema = DataFrameSchema({
-       # the check function expects a series argument and should output a boolean
-       # or a boolean Series.
-       "column1": Column(Int, Check(lambda s: s <= 10)),
+       "column1": Column(Int),
        "column2": Column(Float, Check(lambda s: s < -1.2)),
        # you can provide a list of validators
        "column3": Column(String, [
            Check(lambda s: s.str.startswith("value_")),
            Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
        ]),
+   },
+      strict = True,
+      coerce = True,
+   )
    })
 
-   # alternatively, you can pass strings representing the legal pandas datatypes:
-   # http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-   schema = DataFrameSchema({
-       "column1": Column("int64", Check(lambda s: s <= 10)),
-       ...
-   })
-
-   df = pd.DataFrame({
-       "column1": [1, 4, 0, 10, 9],
-       "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
-       "column3": ["value_1", "value_2", "value_3", "value_2", "value_1"]
-   })
-
-   validated_df = schema.validate(df)
-   print(validated_df)
-
-   #     column1  column2  column3
-   #  0        1     -1.3  value_1
-   #  1        4     -1.4  value_2
-   #  2        0     -2.9  value_3
-   #  3       10    -10.1  value_2
-   #  4        9    -20.4  value_1
+.. _column:
 
 Column Validation
 -----------------
 
-Nullable Columns
-~~~~~~~~~~~~~~~~
+A ``Column`` must contain a *type* to be validated. It can be optionally
+verified for `null values`_ or duplicate values. The column can be coerced_ into
+the specified type, and the required_ parameter allows control over whether or
+not the column is allowed to be missing.
+
+:ref:`Column Checks<checks>` allow for the DataFrame's values to be
+checked against a user provided function. ``Check``\ s support
+:ref:`grouping<grouping>` by a different column so that the user can make
+assertions about subsets of the ``Column`` of interest.
+
+:ref:`Column Hypothesis test<hypothesis>` support testing different
+column so that assertions can be made about the relationships between
+``Column``\s.
+
+.. _null values:
+
+Null Values in Columns
+~~~~~~~~~~~~~~~~~~~~~~
 
 By default, SeriesSchema/Column objects assume that values are not
 nullable. In order to accept null values, you need to explicitly specify
@@ -79,10 +79,10 @@ nullable. In order to accept null values, you need to explicitly specify
 
    # SchemaError: non-nullable series contains null values: {2: nan}
 
-**NOTE:** Due to a known limitation in
-`pandas <http://pandas.pydata.org/pandas-docs/stable/gotchas.html#support-for-integer-na>`__,
-integer arrays cannot contain ``NaN`` values, so this schema will return
-a dataframe where ``column1`` is of type ``float``.
+.. note:: Due to a known limitation in
+    `pandas <http://pandas.pydata.org/pandas-docs/stable/gotchas.html#support-for-integer-na>`__,
+    integer arrays cannot contain ``NaN`` values, so this schema will return
+    a dataframe where ``column1`` is of type ``float``.
 
 .. code:: python
 
@@ -99,6 +99,8 @@ a dataframe where ``column1`` is of type ``float``.
    # 0      5.0
    # 1      1.0
    # 2      NaN
+
+.. _coerced:
 
 Coercing Types on Columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -155,6 +157,8 @@ If you want to coerce all of the columns specified in the
 ``DataFrameSchema``, you can specify the ``coerce`` argument with
 ``DataFrameSchema(..., coerce=True)``.
 
+.. _required:
+
 Required Columns
 ~~~~~~~~~~~~~~~~
 
@@ -178,6 +182,8 @@ in the column constructor:
    validated_df = schema.validate(df)
    # list(validated_df.columns) == ["column2"]
 
+.. _strict:
+
 Handling of Dataframe Columns not in the Schema
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -198,7 +204,7 @@ schema, specify ``strict=True``:
 
    # SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int64>}
 
-
+.. _index:
 
 Index Validation
 ----------------
@@ -238,25 +244,3 @@ You can also specify an ``Index`` in the ``DataFrameSchema``.
    # foo1           [0]      1
    # foo2           [1]      1
    # foo3           [2]      1
-
-``SeriesSchema``
-~~~~~~~~~~~~~~~~
-
-.. code:: python
-
-   import pandas as pd
-
-   from pandera import Check, SeriesSchema, String
-
-   # specify multiple validators
-   schema = SeriesSchema(String, [
-       Check(lambda x: "foo" in x),
-       Check(lambda x: x.endswith("bar")),
-       Check(lambda x: len(x) > 3)])
-
-   schema.validate(pd.Series(["1_foobar", "2_foobar", "3_foobar"]))
-
-   #  0    1_foobar
-   #  1    2_foobar
-   #  2    3_foobar
-   #  dtype: object

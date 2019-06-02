@@ -1,4 +1,4 @@
-.. pandera documentation to check_input and check_output functions
+.. pandera documentation for check_input and check_output decorators
 
 Decorators for Existing Workflows
 =================================

@@ -135,15 +135,13 @@ Issues
 Submit issues, feature requests or bugfixes on
 `github <https://github.com/cosmicBboy/pandera/issues>`__.
 
-Welcome to pandera's documentation!
-===================================
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    self
-   column_series_index
+   dataframe_schemas
+   series_schemas
    checks
    hypothesis
    decorators
@@ -153,4 +151,3 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`search`
