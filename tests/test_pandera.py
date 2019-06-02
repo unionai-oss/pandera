@@ -3,12 +3,12 @@
 import numpy as np
 import pandas as pd
 import pytest
-import scipy
 
 from pandera import Column, DataFrameSchema, Index, PandasDtype, \
     SeriesSchema, Check, Bool, Float, Int, DateTime, String, check_input, \
     check_output, SchemaError, SchemaInitError, Hypothesis
 from scipy import stats
+
 
 def test_column():
     schema = DataFrameSchema({
@@ -198,12 +198,12 @@ def test_check_function_decorators():
         return dataframe.assign(f=["a", "b", "a"])
 
     df = pd.DataFrame({
-      "a": [1, 2, 3],
-      "b": ["x", "y", "z"],
-      "c": [pd.Timestamp("2018-01-01"),
-            pd.Timestamp("2018-01-03"),
-            pd.Timestamp("2018-01-02")],
-      "d": [np.nan, 1.0, 2.0],
+        "a": [1, 2, 3],
+        "b": ["x", "y", "z"],
+        "c": [pd.Timestamp("2018-01-01"),
+              pd.Timestamp("2018-01-03"),
+              pd.Timestamp("2018-01-02")],
+        "d": [np.nan, 1.0, 2.0],
     })
     df = test_func1(df, "foo")
     assert isinstance(df, pd.DataFrame)
@@ -229,7 +229,6 @@ def test_check_function_decorators():
 
 
 def test_check_function_decorator_errors():
-
     @check_input(DataFrameSchema({"column1": Column(Int)}))
     @check_output(DataFrameSchema({"column2": Column(Float)}))
     def test_func(df):
@@ -498,6 +497,7 @@ def test_groupby_init_exceptions():
                 Check(lambda s: s["foo"] > 10, groupby=["col2"]),
             ]),
         })
+
     with pytest.raises(SchemaInitError):
         init_schema_no_groupby_column()
 
@@ -519,7 +519,7 @@ def test_hypothesis():
     )
 
     # Initialise the different ways of calling a test:
-    pass_schema_1 = DataFrameSchema({
+    schema_pass_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(groupby="sex",
                                         groups=["M", "F"],
@@ -530,7 +530,7 @@ def test_hypothesis():
         "sex": Column(String)
     })
 
-    pass_schema_2 = DataFrameSchema({
+    schema_pass_ttest_on_alpha_val_2 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis(test=stats.ttest_ind,
                        groupby="sex",
@@ -542,7 +542,7 @@ def test_hypothesis():
         "sex": Column(String)
     })
 
-    pass_schema_3 = DataFrameSchema({
+    schema_pass_ttest_on_alpha_val_3 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
                 groupby="sex",
@@ -555,11 +555,11 @@ def test_hypothesis():
     })
 
     # Check the 3 happy paths are successful:
-    pass_schema_1.validate(df)
-    pass_schema_2.validate(df)
-    pass_schema_3.validate(df)
+    schema_pass_ttest_on_alpha_val_1.validate(df)
+    schema_pass_ttest_on_alpha_val_2.validate(df)
+    schema_pass_ttest_on_alpha_val_3.validate(df)
 
-    fail_schema_1 = DataFrameSchema({
+    schema_fail_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(groupby="sex",
                                         groups=["M", "F"],
@@ -570,7 +570,7 @@ def test_hypothesis():
         "sex": Column(String)
     })
 
-    fail_schema_2 = DataFrameSchema({
+    schema_fail_ttest_on_alpha_val_2 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis(test=stats.ttest_ind,
                        groupby="sex",
@@ -582,7 +582,7 @@ def test_hypothesis():
         "sex": Column(String)
     })
 
-    fail_schema_3 = DataFrameSchema({
+    schema_fail_ttest_on_alpha_val_3 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
                 groupby="sex",
@@ -595,8 +595,57 @@ def test_hypothesis():
     })
 
     with pytest.raises(SchemaError):
-        fail_schema_1.validate(df)
+        schema_fail_ttest_on_alpha_val_1.validate(df)
     with pytest.raises(SchemaError):
-        fail_schema_2.validate(df)
+        schema_fail_ttest_on_alpha_val_2.validate(df)
     with pytest.raises(SchemaError):
-        fail_schema_3.validate(df)
+        schema_fail_ttest_on_alpha_val_3.validate(df)
+
+
+def test_hypothesis_group_length():
+    # Example df for tests:
+    df = (
+        pd.DataFrame({
+            "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
+            "sex": ["M", "M", "F", "F", "N"]
+        })
+    )
+
+    # Check that calling two_sample_ttest with len(group)!=2 raises SchemaError
+    with pytest.raises(SchemaError):
+        schema_fail_group_len_short = DataFrameSchema({
+            "height_in_feet": Column(Float, [
+                Hypothesis.two_sample_ttest(groupby="sex",
+                                            groups=["M"],
+                                            relationship="greater_than",
+                                            alpha=0.5
+                                            ),
+            ]),
+            "sex": Column(String)
+        })
+
+    with pytest.raises(SchemaError):
+        schema_fail_group_len_long = DataFrameSchema({
+            "height_in_feet": Column(Float, [
+                Hypothesis.two_sample_ttest(groupby="sex",
+                                            groups=["M","F","N"],
+                                            relationship="greater_than",
+                                            alpha=0.5
+                                            ),
+            ]),
+            "sex": Column(String)
+        })
+
+def test_hypothesis_unavailable_relationship():
+    # Test that supplying a non-built-in string relationship errors:
+    with pytest.raises(SchemaError):
+        schema_fail_unavailable_relationship = DataFrameSchema({
+            "height_in_feet": Column(Float, [
+                Hypothesis.two_sample_ttest(groupby="sex",
+                                            groups=["M"],
+                                            relationship="another_relationship",
+                                            alpha=0.5
+                                            ),
+            ]),
+            "sex": Column(String)
+        })

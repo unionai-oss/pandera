@@ -249,34 +249,38 @@ class Hypothesis(Check):
     """
     def __init__(self, test, relationship, groupby=None, groups=None,
                  test_kwargs=None, relationship_kwargs=None):
-        #self.test = partial(test, **test_kwargs)
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(self.relationships(relationship),
                                     **relationship_kwargs)
-        self.groupby = groupby
-        self.groups = groups
-
         super(Hypothesis, self).__init__(
             self._check_fn, element_wise=False, groupby=groupby, groups=groups)
 
     @staticmethod
     def relationships(relationship):
-        # Impose a relationship on a supplied Test function.
+        """Impose a relationship on a supplied Test function."""
         if isinstance(relationship, str):
-            relationship = {
-                "greater_than": (lambda stat, pvalue, alpha:
-                                 stat > 0 and pvalue / 2 < alpha),
-                "less_than": (lambda stat, pvalue, alpha:
-                              stat < 0 and pvalue / 2 < alpha),
-                "not_equal": (lambda stat, pvalue, alpha:
-                              pvalue < alpha),
-            }[relationship]
+            try:
+                relationship = {
+                    "greater_than": (lambda stat, pvalue, alpha:
+                                     stat > 0 and pvalue / 2 < alpha),
+                    "less_than": (lambda stat, pvalue, alpha:
+                                  stat < 0 and pvalue / 2 < alpha),
+                    "not_equal": (lambda stat, pvalue, alpha:
+                                  pvalue < alpha),
+                }[relationship]
+            except:
+                raise SchemaError(
+                    "The relationship %s isn't a built in method" % relationship
+                )
         elif not callable(relationship):
-            raise ValueError
+            raise ValueError(
+                "expected relationship to be str or callable, found %s" % type(
+                    relationship)
+            )
         return relationship
 
     def _check_fn(self, check_obj):
-        # Creates a function fn which is checked via the Check parent class.
+        """Creates a function fn which is checked via the Check parent class."""
         if self.groupby is None:
             # one-sample case where no groupby argument supplied, apply to
             # entire column
@@ -289,12 +293,19 @@ class Hypothesis(Check):
     def two_sample_ttest(cls, groupby, groups, relationship, alpha=None,
                          relationship_kwargs=None, equal_var=True,
                          test_kwargs=None):
-        # Calculate a T-test for the means of two Columns..
-        #
-        # This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
-        # the null hypothesis that 2 independent samples have identical average
-        # (expected) values. This test assumes that the populations have
-        # identical variances by default.
+        """ Calculate a T-test for the means of two Columns.
+
+        This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
+        the null hypothesis that 2 independent samples have identical average
+        (expected) values. This test assumes that the populations have
+        identical variances by default.
+        """
+        if len(groups)!=2:
+            raise SchemaError(
+                "The two sample ttest only works when len(groups)=2, but "
+                "len(%s)= %s" % (groups, len(groups))
+            )
+
         if relationship_kwargs is None:
             relationship_kwargs = {}
         if test_kwargs is None:

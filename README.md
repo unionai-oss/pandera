@@ -548,10 +548,10 @@ df = (
 schema = DataFrameSchema({
     "height_in_feet": Column(Float, [
         Hypothesis.two_sample_ttest(groupby="sex",
-                                              groups=["M", "F"],
-                                              relationship="greater_than",
-                                              alpha = 0.05
-                                             ),
+                                    groups=["M", "F"],
+                                    relationship="greater_than",
+                                    alpha = 0.05
+                                    ),
     ]),
     "sex": Column(String)
 })
