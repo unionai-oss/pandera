@@ -21,6 +21,6 @@ install:
   - conda info -a
   - conda create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
   - source activate ci-env
-  - pip install pytest
+  - pip install pytest scipy
   - python setup.py install
 script: pytest
