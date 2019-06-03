@@ -58,15 +58,16 @@ class Check(object):
             applied to the column element-wise. If list, should be the same
             number of elements as checks.
         :type element_wise: bool|list[bool]
-        :param str error: custom error message if series fails validation check.
+        :param str error: custom error message if series fails validation
+            check.
         :type str error:
         :param n_failure_cases: report the top n failure cases. If None, then
             report all failure cases.
         :param groupby: Only applies to Column Checks. If a string or list of
-            strings is provided, then these columns are used to group the Column
-            Series by `groupby`. If a callable is passed, the expected signature
-            is DataFrame -> DataFrameGroupby. The function has access to the
-            entire dataframe, but the Column.name is selected from this
+            strings is provided, then these columns are used to group the
+            Column Series by `groupby`. If a callable is passed, the expected
+            signature is DataFrame -> DataFrameGroupby. The function has access
+            to the entire dataframe, but the Column.name is selected from this
             DataFrameGroupby object so that a SeriesGroupBy object is passed
             into `fn`.
 
@@ -252,17 +253,17 @@ class Hypothesis(Check):
             Column, potentially grouped by another column
 
         :param callable test: A function to check a series schema.
-        :param relationship: Represents what relationship conditions are imposed
-            on the hypothesis test. A function or lambda function can be
-            supplied. If a string is provided, a lambda function will be
-            returned from Hypothesis.relationships. Available relationships are:
-            "greater_than", "less_than", "not_equal"
+        :param relationship: Represents what relationship conditions are
+            imposed on the hypothesis test. A function or lambda function can
+            be supplied. If a string is provided, a lambda function will be
+            returned from Hypothesis.relationships. Available relationships
+            are: "greater_than", "less_than", "not_equal"
         :type relationship: str|callable
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
-            DataFrame -> DataFrameGroupby. The function has access to the entire
-            dataframe, but the Column.name is selected from this
+            DataFrame -> DataFrameGroupby. The function has access to the
+            entire dataframe, but the Column.name is selected from this
             DataFrameGroupby object so that a SeriesGroupBy object is passed
             into `fn`.
 
@@ -362,8 +363,8 @@ class Hypothesis(Check):
         if alpha is not None:
             if "alpha" in relationship_kwargs:
                 raise SchemaError(
-                    "it is ambiguous to specify alpha in the function signature"
-                    "and relationship_kwargs"
+                    "it is ambiguous to specify alpha in the function"
+                    "signature and relationship_kwargs"
                 )
             relationship_kwargs["alpha"] = alpha
         else:
@@ -707,6 +708,7 @@ def check_input(schema, obj_getter=None):
     
     """
 
+    # noinspection PyUnusedLocal
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
         """
@@ -758,10 +760,10 @@ def check_output(schema, obj_getter=None):
     :param schema: dataframe/series schema object
     :type schema: DataFrameSchema|SeriesSchema
     :param obj_getter:  (Default value = None) if int, assumes that the output
-        of the decorated function is a list-like object, where obj_getter is the
-        index of the pandas data dataframe/series to be validated. If str,
-        expects that the output is a dict-like object, and obj_getter is the key
-        pointing to the dataframe/series to be validated. If a callable is
+        of the decorated function is a list-like object, where obj_getter is
+        the index of the pandas data dataframe/series to be validated. If str,
+        expects that the output is a dict-like object, and obj_getter is the
+        key pointing to the dataframe/series to be validated. If a callable is
         supplied, it expects the output of decorated function and should return
         the dataframe/series to be validated.
     :type obj_getter: int|str|callable|None
@@ -773,7 +775,7 @@ def check_output(schema, obj_getter=None):
     def _wrapper(fn, instance, args, kwargs):
         """
 
-        :param fn: 
+        :param fn:
         :param instance: 
         :param args: 
         :param kwargs: 
