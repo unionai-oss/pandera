@@ -211,11 +211,11 @@ class Check(object):
         return fn_input
 
     def _vectorized_series_check(self, parent_schema, check_index, check_obj):
-        """
+        """Perform a vectorized check on a series.
 
         :param parent_schema: The schema object that is being checked and that
             was inherited from the parent class.
-        :param check_index: The validator that failed.
+        :param check_index: The validator to check the series for
         :param dict check_obj: a dictionary of pd.Series to be used by
             `_check_fn` and `_vectorized_series_check`
 
