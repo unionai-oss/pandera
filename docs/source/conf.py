@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath('../../pandera'))
 # -- Project information -----------------------------------------------------
 
 project = 'pandera'
-copyright = '2019, Niels Bantilan'
-author = 'Niels Bantilan'
+copyright = '2019, Niels Bantilan, Nigel Markey'
+author = 'Niels Bantilan, Nigel Markey'
 
 
 # -- General configuration ---------------------------------------------------
