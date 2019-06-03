@@ -47,7 +47,7 @@ class Check(object):
 
     def __init__(self, fn, element_wise=False, error=None, n_failure_cases=10,
                  groupby=None, groups=None):
-        """ Check object applies function element-wise or series-wise
+        """Check object applies function element-wise or series-wise
 
         :param callable fn: A function to check series schema. If element_wise
             is True, then callable signature should be: x -> bool where x is a
@@ -151,11 +151,11 @@ class Check(object):
         """
         failure_cases = (
             failure_cases
-            .rename("failure_case")
-            .reset_index()
-            .groupby("failure_case").index.agg([list, len])
-            .rename(columns={"list": "index", "len": "count"})
-            .sort_values("count", ascending=False)
+                .rename("failure_case")
+                .reset_index()
+                .groupby("failure_case").index.agg([list, len])
+                .rename(columns={"list": "index", "len": "count"})
+                .sort_values("count", ascending=False)
         )
         self.failure_cases = failure_cases
         if self.n_failure_cases is None:
@@ -164,19 +164,22 @@ class Check(object):
             return failure_cases.head(self.n_failure_cases)
 
     def prepare_input(self, series, dataframe):
-        """
+        """Used by Column.__call__ method to prepare series/SeriesGroupBy
+            input
 
-        :param series: 
-        :param dataframe: 
+        :param pd.Series series: One-dimensional ndarray with axis labels
+            (including time series).
+        :param pd.DataFrame dataframe: Two-dimensional size-mutable,
+            potentially heterogeneous tabular data structure with labeled axes
+            (rows and columns)
 
         """
-        # used by Column.__call__ method to prepare series/SeriesGroupBy input
         if dataframe is None or self.groupby is None:
             return series
         elif isinstance(self.groupby, list):
             groupby_obj = (
                 pd.concat([series, dataframe[self.groupby]], axis=1)
-                .groupby(self.groupby)[series.name]
+                    .groupby(self.groupby)[series.name]
             )
         elif callable(self.groupby):
             groupby_obj = self.groupby(
@@ -247,9 +250,10 @@ class Hypothesis(Check):
     """Extends Check to perform a hypothesis test on a Column, potentially
     grouped by another column
     """
+
     def __init__(self, test, relationship, groupby=None, groups=None,
                  test_kwargs=None, relationship_kwargs=None):
-        """ Initialises a hypothesis object to perform a hypothesis test on a
+        """Initialises a hypothesis object to perform a hypothesis test on a
             Column, potentially grouped by another column
 
         :param callable test: A function to check a series schema.
@@ -397,7 +401,7 @@ class DataFrameSchema(object):
     def __init__(
             self, columns, index=None, transformer=None, coerce=False,
             strict=False):
-        """ A light-weight pandas DataFrame validator.
+        """A light-weight pandas DataFrame validator.
 
         :param columns: a dict where keys are column names and values are
             Column objects specifying the datatypes and properties of a
@@ -592,7 +596,8 @@ class SeriesSchema(SeriesSchemaBase):
     def validate(self, series):
         """
 
-        :param series: 
+        :param pd.Series series: One-dimensional ndarray with axis labels
+            (including time series).
 
         """
         if not isinstance(series, pd.Series):
@@ -622,8 +627,9 @@ class Index(SeriesSchemaBase):
 class Column(SeriesSchemaBase):
 
     def __init__(
-        self, pandas_dtype, checks=None, nullable=False, allow_duplicates=True,
-        coerce=False, required=True
+            self, pandas_dtype, checks=None, nullable=False,
+            allow_duplicates=True,
+            coerce=False, required=True
     ):
         """Initialize column validator object.
 
@@ -665,7 +671,8 @@ class Column(SeriesSchemaBase):
     def coerce_dtype(self, series):
         """
 
-        :param series: 
+        :param pd.Series series: One-dimensional ndarray with axis labels
+            (including time series).
 
         """
         _dtype = str if self._pandas_dtype is String \
