@@ -1,5 +1,7 @@
 enum34
+flake8
 numpy >= 1.9.0
 pandas >= 0.23.0
-wrapt
+pytest
 scipy >= 1.2.0
+wrapt
