@@ -60,9 +60,7 @@ each pull request:
 
 ### Run the tests
 Before submitting your changes for review, make sure to check that your changes
-do not break any tests by running ``pytest tests/``. You can find more
-information about our test suites in the "[Test-driven development/code writing](https://github.com/pandas-dev/pandas/blob/master/doc/source/development/contributing.rst#test-driven-development-code-writing)"
-section.
+do not break any tests by running: ``pytest tests/``
 
 ### Raising Pull Requests
 
