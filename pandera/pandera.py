@@ -304,7 +304,8 @@ class Hypothesis(Check):
                 }[relationship]
             except SchemaError:
                 raise SchemaError(
-                    "The relationship %s isn't a built in method" % relationship
+                    "The relationship %s isn't a built in method"
+                    % relationship
                 )
         elif not callable(relationship):
             raise ValueError(
