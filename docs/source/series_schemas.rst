@@ -4,7 +4,7 @@ Series Schemas
 ==============
 
 ``SeriesSchema``\s allow for the validation of series against a schema. They are
-very similiar to :ref:`columns<column>` and :ref:`indexes<index>` specified
+very similar to :ref:`columns<column>` and :ref:`indexes<index>` specified
 in :ref:`DataFrameSchemas<DataFrameSchemas>`.
 
 Series Validation

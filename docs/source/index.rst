@@ -40,7 +40,7 @@ Example Usage
        "column2": Column(Float, Check(lambda s: s < -1.2)),
        # you can provide a list of validators
        "column3": Column(String, [
-           Check(lambda s: s.str.startswith("value_")),
+           Check(lambda s: s.str.startswith("value")),
            Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
        ]),
    })
