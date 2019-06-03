@@ -23,7 +23,7 @@ And it also makes it easier to review pandas code :)
 
 ## Documentation
 
-Available on ReadTheDocs
+The official documentation is hosted on ReadTheDocs: https://pandera.readthedocs.io
 
 ## Install
 
