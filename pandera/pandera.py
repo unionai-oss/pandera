@@ -102,8 +102,7 @@ class Check(object):
 
     @staticmethod
     def _check_groupby(column_name, df):
-        """Checks if a groupby can be performed on a specific column in a
-            dataframe.
+        """Checks if a groupby can be performed on a column in a dataframe.
 
         :param str column_name: The column to be checked if it can be used in a
             groupby
@@ -170,8 +169,7 @@ class Check(object):
             return failure_cases.head(self.n_failure_cases)
 
     def prepare_input(self, series, dataframe):
-        """Used by Column.__call__ method to prepare series/SeriesGroupBy
-            input
+        """Used by Column.__call__ to prepare series/SeriesGroupBy input.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
@@ -263,8 +261,9 @@ class Hypothesis(Check):
 
     def __init__(self, test, relationship, groupby=None, groups=None,
                  test_kwargs=None, relationship_kwargs=None):
-        """Initialises a hypothesis object to perform a hypothesis test on a
-            Column, potentially grouped by another column
+        """Initialises hypothesis to perform a hypothesis test on a Column.
+
+            Can function on a single column or be grouped by another column.
 
         :param callable test: A function to check a series schema.
         :param relationship: Represents what relationship conditions are
@@ -488,8 +487,7 @@ class DataFrameSchema(object):
                         (nonexistent_dep_columns, column_name))
 
     def validate(self, dataframe):
-        """Check if all columns in the dataframe have a corresponding column in
-            the DataFrameSchema
+        """Check if all columns in a dataframe have a column in the Schema
         :param pd.DataFrame dataframe: the dataframe to be validated.
 
         """
@@ -760,21 +758,8 @@ def check_input(schema, obj_getter=None):
     
     """
 
-    # noinspection PyUnusedLocal
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
-        """This function wrapper called each time a decorated function is
-        called.
-
-        :param fn: The wrapped function which is called by `check_input`
-        :param instance: The object to which `check_input` was bound when
-            it was called.
-        :param args: The list of positional arguments supplied when
-            `check_input` was called.
-        :param kwargs: The dictionary of keyword arguments supplied when
-            `check_input` was called.
-
-        """
         args = list(args)
         if isinstance(obj_getter, int):
             args[obj_getter] = schema.validate(args[obj_getter])
@@ -829,18 +814,6 @@ def check_output(schema, obj_getter=None):
 
     @wrapt.decorator
     def _wrapper(fn, instance, args, kwargs):
-        """This function wrapper called each time a decorated function is
-        called.
-
-        :param fn: The wrapped function which is called by `check_output`
-        :param instance: The object to which `check_output` was bound when
-            it was called.
-        :param args: The list of positional arguments supplied when
-            `check_output` was called.
-        :param kwargs: The dictionary of keyword arguments supplied when
-            `check_output` was called.
-
-        """
         if schema.transformer is not None:
             warnings.warn(
                 "The schema transformer function has no effect in a "
