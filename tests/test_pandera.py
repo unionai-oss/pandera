@@ -287,6 +287,10 @@ def test_nullable_int():
     })
     assert isinstance(null_schema.validate(df), pd.DataFrame)
 
+    # test case where column is an object
+    df = df.astype({"column1": "object"})
+    assert isinstance(null_schema.validate(df), pd.DataFrame)
+
 
 def test_coerce_dtype():
     df = pd.DataFrame({

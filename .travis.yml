@@ -25,4 +25,4 @@ install:
   - python setup.py install
 script:
   - pytest
-  - flake8 pandera
+  - flake8 pandera/pandera.py
