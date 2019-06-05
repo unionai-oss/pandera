@@ -26,6 +26,6 @@ install:
 script:
   - pytest
   # Check conformity to flake8 style guide
-  - flake8 pandera/pandera.py
+  - flake8 pandera/pandera.py tests
   # Check docs can build, treating warnings as errors
   - python -m sphinx -E -W "docs/source" "docs/_build"
