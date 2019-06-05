@@ -391,7 +391,7 @@ class Hypothesis(Check):
             could be used to specify a threshold in a t-test.
         :param equal_var: (Default value = True) If True (default), perform a
             standard independent 2 sample test that assumes equal population
-            variances. If False, perform Welch’s t-test, which does not
+            variances. If False, perform Welch's t-test, which does not
             assume equal population variance
         :param dict test_kwargs: (Default value = None) Key Word arguments to
             be supplied to the test.
