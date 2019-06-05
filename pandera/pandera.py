@@ -353,7 +353,7 @@ class Hypothesis(Check):
                          relationship_kwargs=None, equal_var=True,
                          test_kwargs=None):
         """Calculate a T-test for the means of two Columns.
-        
+
         This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
         the null hypothesis that 2 independent samples have identical average
         (expected) values. This test assumes that the populations have
@@ -478,16 +478,17 @@ class DataFrameSchema(object):
             for check in column._checks:
                 if check.groupby is None or callable(check.groupby):
                     continue
-                nonexistent_dep_columns = [
+                nonexistent_groupby_columns = [
                     c for c in check.groupby if c not in self.columns]
-                if nonexistent_dep_columns:
+                if nonexistent_groupby_columns:
                     raise SchemaInitError(
                         "groupby argument %s in Check for Column %s not "
                         "specified in the DataFrameSchema." %
-                        (nonexistent_dep_columns, column_name))
+                        (nonexistent_groupby_columns, column_name))
 
     def validate(self, dataframe):
-        """Check if all columns in a dataframe have a column in the Schema
+        """Check if all columns in a dataframe have a column in the Schema.
+
         :param pd.DataFrame dataframe: the dataframe to be validated.
 
         """
@@ -525,7 +526,7 @@ class SeriesSchemaBase(object):
     """Base series validator object."""
 
     def __init__(self, pandas_dtype, checks=None, nullable=False,
-                 allow_duplicates=True):
+                 allow_duplicates=True, name=None):
         """Initialize series schema base object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
@@ -550,6 +551,7 @@ class SeriesSchemaBase(object):
         if isinstance(checks, Check):
             checks = [checks]
         self._checks = checks
+        self._name = name
 
         for check in self._checks:
             if check.groupby is not None and not isinstance(self, Column):
@@ -559,6 +561,10 @@ class SeriesSchemaBase(object):
 
     def __call__(self, series, dataframe=None):
         """Validate a series."""
+        if series.name != self._name:
+            raise SchemaError(
+                "Expected %s to have name '%s', found '%s'" %
+                (type(self), self._name, series.name))
         expected_dtype = _dtype = self._pandas_dtype if \
             isinstance(self._pandas_dtype, str) else self._pandas_dtype.value
         if self._nullable:
@@ -567,14 +573,15 @@ class SeriesSchemaBase(object):
                 dataframe = dataframe.loc[series.index]
             if _dtype in ["int_", "int8", "int16", "int32", "int64", "uint8",
                           "uint16", "uint32", "uint64"]:
-                _dtype = Float.value
-                if (series.astype(_dtype) != series).any():
+                _series = series.astype(_dtype)
+                if (_series != series).any():
                     # in case where dtype is meant to be int, make sure that
                     # casting to int results in the same values.
                     raise SchemaError(
                         "after dropping null values, expected values in "
                         "series '%s' to be int, found: %s" %
                         (series.name, set(series)))
+                series = _series
         else:
             nulls = series.isnull()
             if nulls.sum() > 0:
@@ -614,7 +621,7 @@ class SeriesSchemaBase(object):
 class SeriesSchema(SeriesSchemaBase):
 
     def __init__(self, pandas_dtype, checks=None, nullable=False,
-                 allow_duplicates=True):
+                 allow_duplicates=True, name=None):
         """Initialize series schema object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
@@ -632,7 +639,7 @@ class SeriesSchema(SeriesSchemaBase):
         :type allow_duplicates: bool
         """
         super(SeriesSchema, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates)
+            pandas_dtype, checks, nullable, allow_duplicates, name)
 
     def validate(self, series):
         """Check if all values in a series have a corresponding column in the
@@ -654,8 +661,7 @@ class Index(SeriesSchemaBase):
     def __init__(self, pandas_dtype, checks=None, nullable=False,
                  allow_duplicates=True, name=None):
         super(Index, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates)
-        self._name = name
+            pandas_dtype, checks, nullable, allow_duplicates, name)
 
     def __call__(self, df):
         return super(Index, self).__call__(pd.Series(df.index))
@@ -671,8 +677,7 @@ class Column(SeriesSchemaBase):
     def __init__(
             self, pandas_dtype, checks=None, nullable=False,
             allow_duplicates=True,
-            coerce=False, required=True
-    ):
+            coerce=False, required=True):
         """Initialize column validator object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
@@ -697,7 +702,6 @@ class Column(SeriesSchemaBase):
         """
         super(Column, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates)
-        self._name = None
         self.coerce = coerce
         self.required = required
 
@@ -739,7 +743,7 @@ class Column(SeriesSchemaBase):
 
 def check_input(schema, obj_getter=None):
     """Validate function argument when function is called.
-    
+
     This is a decorator function that validates the schema of a dataframe
     argument in a function. Note that if a transformer is specified by the
     schema, the decorator will return the transformed dataframe, which will be
@@ -755,7 +759,6 @@ def check_input(schema, obj_getter=None):
         argument when the function is called. If None, assumes that the
         dataframe/series is the first argument of the decorated function
     :type obj_getter: int|str|None
-    
     """
 
     @wrapt.decorator
@@ -792,7 +795,7 @@ def check_input(schema, obj_getter=None):
 
 def check_output(schema, obj_getter=None):
     """Validate function output.
-    
+
     Similar to input validator, but validates the output of the decorated
     function. Note that the `transformer` function supplied to the
     DataFrameSchema will not have an effect in the check_output schema
@@ -808,8 +811,6 @@ def check_output(schema, obj_getter=None):
         supplied, it expects the output of decorated function and should return
         the dataframe/series to be validated.
     :type obj_getter: int|str|callable|None
-
-    
     """
 
     @wrapt.decorator
