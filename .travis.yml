@@ -25,4 +25,7 @@ install:
   - python setup.py install
 script:
   - pytest
+  # Check conformity to flake8 style guide
   - flake8 pandera/pandera.py
+  # Check docs can build, treating warnings as errors
+  - python -m sphinx -E -W "docs/source" "docs/_build"
