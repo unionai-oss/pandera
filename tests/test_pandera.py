@@ -607,17 +607,9 @@ def test_hypothesis():
 
 
 def test_hypothesis_group_length():
-    # Example df for tests:
-    df = (
-        pd.DataFrame({
-            "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
-            "sex": ["M", "M", "F", "F", "N"]
-        })
-    )
-
     # Check that calling two_sample_ttest with len(group)!=2 raises SchemaError
     with pytest.raises(SchemaError):
-        schema_fail_group_len_short = DataFrameSchema({
+        DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(groupby="sex",
                                             groups=["M"],
@@ -629,27 +621,29 @@ def test_hypothesis_group_length():
         })
 
     with pytest.raises(SchemaError):
-        schema_fail_group_len_long = DataFrameSchema({
+        DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(groupby="sex",
-                                            groups=["M","F","N"],
+                                            groups=["M", "F", "N"],
                                             relationship="greater_than",
                                             alpha=0.5
                                             ),
             ]),
             "sex": Column(String)
         })
+
 
 def test_hypothesis_unavailable_relationship():
     # Test that supplying a non-built-in string relationship errors:
     with pytest.raises(SchemaError):
-        schema_fail_unavailable_relationship = DataFrameSchema({
+        DataFrameSchema({
             "height_in_feet": Column(Float, [
-                Hypothesis.two_sample_ttest(groupby="sex",
-                                            groups=["M"],
-                                            relationship="another_relationship",
-                                            alpha=0.5
-                                            ),
+                Hypothesis.two_sample_ttest(
+                        groupby="sex",
+                        groups=["M"],
+                        relationship="another_relationship",
+                        alpha=0.5
+                        ),
             ]),
             "sex": Column(String)
         })

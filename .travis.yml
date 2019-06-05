@@ -21,6 +21,11 @@ install:
   - conda info -a
   - conda create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
   - source activate ci-env
-  - pip install pytest scipy
+  - pip install -r requirements.txt
   - python setup.py install
-script: pytest
+script:
+  - pytest
+  # Check conformity to flake8 style guide
+  - flake8 pandera/pandera.py tests
+  # Check docs can build, treating warnings as errors
+  - python -m sphinx -E -W "docs/source" "docs/_build"

@@ -156,11 +156,11 @@ class Check(object):
         """
         failure_cases = (
             failure_cases
-                .rename("failure_case")
-                .reset_index()
-                .groupby("failure_case").index.agg([list, len])
-                .rename(columns={"list": "index", "len": "count"})
-                .sort_values("count", ascending=False)
+            .rename("failure_case")
+            .reset_index()
+            .groupby("failure_case").index.agg([list, len])
+            .rename(columns={"list": "index", "len": "count"})
+            .sort_values("count", ascending=False)
         )
         self.failure_cases = failure_cases
         if self.n_failure_cases is None:
@@ -185,7 +185,7 @@ class Check(object):
         elif isinstance(self.groupby, list):
             groupby_obj = (
                 pd.concat([series, dataframe[self.groupby]], axis=1)
-                    .groupby(self.groupby)[series.name]
+                .groupby(self.groupby)[series.name]
             )
         elif callable(self.groupby):
             groupby_obj = self.groupby(
@@ -391,7 +391,7 @@ class Hypothesis(Check):
             could be used to specify a threshold in a t-test.
         :param equal_var: (Default value = True) If True (default), perform a
             standard independent 2 sample test that assumes equal population
-            variances. If False, perform Welch’s t-test, which does not
+            variances. If False, perform Welch's t-test, which does not
             assume equal population variance
         :param dict test_kwargs: (Default value = None) Key Word arguments to
             be supplied to the test.
