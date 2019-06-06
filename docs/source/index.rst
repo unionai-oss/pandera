@@ -1,10 +1,12 @@
 .. pandera documentation master file
 
-pandera
-=======
+.. image:: _static/pandera-banner.svg
+  :width: 70%
 
-A light-weight and flexible validation package for
-`pandas <http://pandas.pydata.org>`__ data structures.
+
+A flexible `pandas <http://pandas.pydata.org>`_ validation library
+******************************************************************
+
 
 Why?
 ----

@@ -1,4 +1,4 @@
-<div align="center"><img src="docs/source/static/pandera-banner.svg" width="450"></div>
+<div align="center"><img src="docs/source/_static/pandera-banner.svg" width="450"></div>
 
 ---
 
