@@ -2,7 +2,7 @@ a {
   color: #26b079;
 }
 
-a:active {
+.toctree-l1 a:active {
   background-color: #26b079 !important;
 }
 
