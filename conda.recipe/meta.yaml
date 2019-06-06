@@ -1,0 +1,36 @@
+package:
+  name: pandera
+  version: "0.1.2"
+
+source:
+  path: ..
+
+build:
+  noarch: python
+
+python:
+  - 2.7
+  - 3.5
+  - 3.6
+
+requirements:
+  build:
+    - python {{ python }}
+    - numpy
+    - pandas
+    - scipy
+    - wrapt
+  run:
+    - python {{ python }}
+    - numpy
+    - pandas
+    - scipy
+    - wrapt
+
+test:
+  imports:
+    - pandera
+
+about:
+  home: https://github.com/cosmicBboy/pandera
+  license: MIT
