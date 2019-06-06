@@ -34,3 +34,9 @@ test:
 about:
   home: https://github.com/cosmicBboy/pandera
   license: MIT
+  summary: 'Light-weight and flexible validation for pandas data structures.'
+  description: |
+     Pandas data structures hide a lot of information, and explicitly
+     validating them in production-critical or reproducible research
+     settings is a good idea.
+  doc_url: https://pandera.readthedocs.io/
