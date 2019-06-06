@@ -12,6 +12,10 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url="https://github.com/cosmicBboy/pandera",
+    project_urls={
+          'Documentation': 'https://pandera.readthedocs.io',
+          'Issue Tracker': 'https://github.com/cosmicBboy/pandera/issues'
+      },
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
     packages=[
@@ -24,6 +28,18 @@ setup(
         "wrapt",
         "scipy ; python_version<'2.7'",
     ],
-    python_requires='>=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4',
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     platforms='any',
+    classifiers = [
+        'Development Status :: 5 - Production/Stable',
+        'Operating System :: OS Independent',
+        'Intended Audience :: Science/Research',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Topic :: Scientific/Engineering'
+        ],
+
 )
