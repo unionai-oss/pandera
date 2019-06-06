@@ -1,4 +1,10 @@
-# pandera
+<div align="center"><img src="docs/source/_static/pandera-banner.svg" width="450"></div>
+
+---
+
+### A light-weight and flexible validation package for [pandas](http://pandas.pydata.org) data structures.
+
+<br>
 
 [![Build Status](https://travis-ci.org/cosmicBboy/pandera.svg?branch=master)](https://travis-ci.org/cosmicBboy/pandera)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
@@ -7,9 +13,6 @@
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest)](https://pandera.readthedocs.io/en/latest/?badge=latest)
 
 **Supports:** python 2.7, 3.5, 3.6
-
-A light-weight and flexible validation package for
-[pandas](http://pandas.pydata.org) data structures.
 
 
 ## Why?
