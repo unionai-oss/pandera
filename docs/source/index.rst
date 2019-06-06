@@ -1,7 +1,7 @@
 .. pandera documentation master file
 
 .. image:: _static/pandera-banner.svg
-  :width: 70%
+  :width: 60%
 
 
 A flexible `pandas <http://pandas.pydata.org>`_ validation library
