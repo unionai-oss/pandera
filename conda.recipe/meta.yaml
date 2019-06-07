@@ -3,25 +3,23 @@ package:
   version: "0.1.2"
 
 source:
-  path: ..
+  git_rev: 0.1.2
+  git_url: https://github.com/cosmicBboy/pandera.git
 
 build:
   noarch: python
 
-python:
-  - 2.7
-  - 3.5
-  - 3.6
-
 requirements:
   build:
-    - python {{ python }}
+    - python
+    - enum34 # [py==27]
     - numpy
     - pandas
     - scipy
     - wrapt
   run:
-    - python {{ python }}
+    - python
+    - enum34 # [py==27]
     - numpy
     - pandas
     - scipy
