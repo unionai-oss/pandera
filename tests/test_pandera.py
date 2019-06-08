@@ -288,14 +288,17 @@ def test_check_input_method_decorators():
             return _transform_helper(df)
 
         @check_input(in_schema, 0)
+        @check_output(out_schema)
         def transform_first_arg_with_list_getter(self, df):
             return _transform_helper(df)
 
         @check_input(in_schema, 1)
+        @check_output(out_schema)
         def transform_secord_arg_with_list_getter(self, x, df):
             return _transform_helper(df)
 
         @check_input(in_schema, "df")
+        @check_output(out_schema)
         def transform_secord_arg_with_dict_getter(self, x, df):
             return _transform_helper(df)
 
