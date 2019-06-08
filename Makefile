@@ -1,4 +1,4 @@
-.PHONY: tests upload-pypi
+.PHONY: tests upload-pypi conda-build-27 conda-build-35 conda-build-36
 
 tests:
 	pytest
@@ -24,3 +24,12 @@ requirements:
 
 mock-ci-tests:
 	. ./ci_tests.sh
+
+conda-build-27:
+	conda-build --python=2.7 conda.recipe
+
+conda-build-35:
+	conda-build --python=3.5 conda.recipe
+
+conda-build-36:
+	conda-build --python=3.6 conda.recipe
