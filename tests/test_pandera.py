@@ -272,6 +272,47 @@ def test_check_function_decorator_transform():
     assert "column2" in result2[1]
 
 
+def test_check_input_method_decorators():
+    in_schema = DataFrameSchema({"column1": Column(String)})
+    out_schema = DataFrameSchema({"column2": Column(Int)})
+    dataframe = pd.DataFrame({"column1": ["a", "b", "c"]})
+
+    def _transform_helper(df):
+        return df.assign(column2=[1, 2, 3])
+
+    class TransformerClass(object):
+
+        @check_input(in_schema)
+        @check_output(out_schema)
+        def transform_first_arg(self, df):
+            return _transform_helper(df)
+
+        @check_input(in_schema, 0)
+        def transform_first_arg_with_list_getter(self, df):
+            return _transform_helper(df)
+
+        @check_input(in_schema, 1)
+        def transform_secord_arg_with_list_getter(self, x, df):
+            return _transform_helper(df)
+
+        @check_input(in_schema, "df")
+        def transform_secord_arg_with_dict_getter(self, x, df):
+            return _transform_helper(df)
+
+    def _assert_expectation(result_df):
+        assert isinstance(result_df, pd.DataFrame)
+        assert "column2" in result_df.columns
+
+    transformer = TransformerClass()
+    _assert_expectation(transformer.transform_first_arg(dataframe))
+    _assert_expectation(
+        transformer.transform_first_arg_with_list_getter(dataframe))
+    _assert_expectation(
+        transformer.transform_secord_arg_with_list_getter(None, dataframe))
+    _assert_expectation(
+        transformer.transform_secord_arg_with_dict_getter(None, dataframe))
+
+
 def test_string_dtypes():
     # TODO: add tests for all datatypes
     schema = DataFrameSchema(
