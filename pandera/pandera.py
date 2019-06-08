@@ -684,9 +684,8 @@ class Column(SeriesSchemaBase):
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :type pandas_dtype: str|PandasDtype
-        :param checks: If element_wise is True, then callable signature should
-            be:
-            x -> x where x is a scalar element in the column. Otherwise,
+        :param checks: if element_wise is True, then callable signature should
+            be: x -> bool where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
         :type checks: callable
         :param nullable: Whether or not column can contain null values.
@@ -741,6 +740,18 @@ class Column(SeriesSchemaBase):
         return "<Schema Column: '%s' type=%s>" % (self._name, dtype)
 
 
+def _get_fn_argnames(fn):
+    if sys.version_info.major >= 3:
+        arg_spec_args = inspect.getfullargspec(fn).args
+    else:
+        arg_spec_args = inspect.getargspec(fn).args
+
+    if inspect.ismethod(fn) and arg_spec_args[0] == "self":
+        # don't include "self" argument
+        arg_spec_args = arg_spec_args[1:]
+    return arg_spec_args
+
+
 def check_input(schema, obj_getter=None):
     """Validate function argument when function is called.
 
@@ -770,10 +781,7 @@ def check_input(schema, obj_getter=None):
             if obj_getter in kwargs:
                 kwargs[obj_getter] = schema.validate(kwargs[obj_getter])
             else:
-                if sys.version_info.major >= 3:
-                    arg_spec_args = inspect.getfullargspec(fn).args
-                else:
-                    arg_spec_args = inspect.getargspec(fn).args
+                arg_spec_args = _get_fn_argnames(fn)
                 args_dict = OrderedDict(
                     zip(arg_spec_args, args))
                 args_dict[obj_getter] = schema.validate(args_dict[obj_getter])
