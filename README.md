@@ -1,4 +1,4 @@
-<div align="center"><img src="docs/source/_static/pandera-banner.svg" width="450"></div>
+<div align="center"><img src="https://github.com/cosmicBboy/pandera/blob/master/docs/source/_static/pandera-banner.svg" width="450"></div>
 
 ---
 
@@ -17,10 +17,8 @@
 ## Why?
 
 Because pandas data structures hide a lot of information, and explicitly
-validating them in production-critical or reproducible research settings is
-a good idea.
-
-And it also makes it easier to review pandas code :)
+validating them at runtime in production-critical or reproducible research
+settings is a good idea. It also makes it easier to review pandas code :)
 
 
 ## Documentation
@@ -29,8 +27,16 @@ The official documentation is hosted on ReadTheDocs: https://pandera.readthedocs
 
 ## Install
 
+Using pip:
+
 ```
 pip install pandera
+```
+
+Using conda:
+
+```
+conda install -c cosmicbboy pandera
 ```
 
 ## Example Usage

@@ -8,7 +8,8 @@ setup(
     version="0.1.3",
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
-    description='A light-weight and flexible validation package for pandas data structures.',
+    description="A light-weight and flexible validation package for pandas "
+                "data structures.",
     long_description=long_description,
     long_description_content_type='text/markdown',
     url="https://github.com/cosmicBboy/pandera",
