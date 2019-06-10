@@ -259,6 +259,15 @@ class Hypothesis(Check):
     grouped by another column
     """
 
+    RELATIONSHIPS = {
+        "greater_than": (lambda stat, pvalue, alpha:
+                         stat > 0 and pvalue / 2 < alpha),
+        "less_than": (lambda stat, pvalue, alpha:
+                      stat < 0 and pvalue / 2 < alpha),
+        "not_equal": (lambda stat, pvalue, alpha:
+                      pvalue < alpha),
+    }
+
     def __init__(self, test, relationship, groupby=None, groups=None,
                  test_kwargs=None, relationship_kwargs=None):
         """Initialises hypothesis to perform a hypothesis test on a Column.
@@ -299,11 +308,10 @@ class Hypothesis(Check):
         super(Hypothesis, self).__init__(
             self._check_fn, element_wise=False, groupby=groupby, groups=groups)
 
-    @staticmethod
-    def relationships(relationship):
+    def relationships(self, relationship):
         """Impose a relationship on a supplied Test function.
 
-        :param relationship: Represents what relationship conditions are
+        :param relationship: represents what relationship conditions are
             imposed on the hypothesis test. A function or lambda function can
             be supplied. If a string is provided, a lambda function will be
             returned from Hypothesis.relationships. Available relationships
@@ -312,7 +320,11 @@ class Hypothesis(Check):
 
         """
         if isinstance(relationship, str):
-            try:
+            if relationship not in self.RELATIONSHIPS:
+                raise SchemaError(
+                    "The relationship %s isn't a built in method"
+                    % relationship)
+            else:
                 relationship = {
                     "greater_than": (lambda stat, pvalue, alpha:
                                      stat > 0 and pvalue / 2 < alpha),
@@ -321,11 +333,6 @@ class Hypothesis(Check):
                     "not_equal": (lambda stat, pvalue, alpha:
                                   pvalue < alpha),
                 }[relationship]
-            except SchemaError:
-                raise SchemaError(
-                    "The relationship %s isn't a built in method"
-                    % relationship
-                )
         elif not callable(relationship):
             raise ValueError(
                 "expected relationship to be str or callable, found %s" % type(
@@ -334,7 +341,7 @@ class Hypothesis(Check):
         return relationship
 
     def _check_fn(self, check_obj):
-        """Creates a function fn which is checked via the Check parent class.
+        """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
             `_check_fn` and `_vectorized_series_check`
@@ -345,13 +352,13 @@ class Hypothesis(Check):
             # entire column
             return self.relationship(*self.test(check_obj))
         else:
-            return self.relationship(*self.test(*[check_obj.get(g)
-                                                  for g in self.groups]))
+            return self.relationship(
+                *self.test(*[check_obj.get(g) for g in self.groups]))
 
     @classmethod
-    def two_sample_ttest(cls, groupby, groups, relationship, alpha=None,
-                         relationship_kwargs=None, equal_var=True,
-                         test_kwargs=None):
+    def two_sample_ttest(
+            cls, groupby, group1, group2, relationship,
+            alpha=0.01, equal_var=True, nan_policy="propagate"):
         """Calculate a T-test for the means of two Columns.
 
         This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
@@ -372,70 +379,43 @@ class Hypothesis(Check):
 
             Where specific groups can be obtained from the input dict.
         :type groupby: str|list[str]|callable|None
-        :param groups: The dict input to the `fn` callable will be constrained
-            to the groups specified by `groups`.
-        :type groups: str|list[str]|None
+        :param group1: The first sample group in the `groupby` column.
+        :type group1: str
+        :param group2: The second sample group in the `groupby` column.
+        :type group2: str
         :param relationship: Represents what relationship conditions are
-            imposed on the hypothesis test. A function or lambda function can
-            be supplied. If a string is provided, a lambda function will be
-            returned from Hypothesis.relationships. Available relationships
-            are: "greater_than", "less_than", "not_equal"
-        :type relationship: str|callable
-        :param alpha: (Default value = None) The significance level; the
+            imposed on the hypothesis test. Available relationships
+            are: "greater_than", "less_than", "not_equal". For example,
+            `group1 greater_than group2` specifies an alternative hypothesis
+            that the mean of group1 is greater than group 2 relative to a null
+            hypothesis that they are equal.
+        :type relationship: str
+        :param alpha: (Default value = 0.01) The significance level; the
             probability of rejecting the null hypothesis when it is true. For
-            example, a significance level of 0.05 indicates a 5% risk of
+            example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
-        :param dict relationship_kwargs: (Default value = None) Key Word
-            arguments to be supplied to the relationship function. e.g. `alpha`
-            could be used to specify a threshold in a t-test.
         :param equal_var: (Default value = True) If True (default), perform a
             standard independent 2 sample test that assumes equal population
             variances. If False, perform Welch's t-test, which does not
             assume equal population variance
-        :param dict test_kwargs: (Default value = None) Key Word arguments to
-            be supplied to the test.
-
+        :type equal_var: bool
+        :param nan_policy: Defines how to handle when input returns nan, one of
+            {'propagate', 'raise', 'omit'}, (Default value = 'propagate').
+            For more details see:
+            https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html  # noqa E53
+        :type nan_policy: str
         """
-        if len(groups) != 2:
+        if relationship not in cls.RELATIONSHIPS:
             raise SchemaError(
-                "The two sample ttest only works when len(groups)=2, but "
-                "len(%s)= %s" % (groups, len(groups))
-            )
-
-        if relationship_kwargs is None:
-            relationship_kwargs = {}
-        if test_kwargs is None:
-            test_kwargs = {}
-        # handle alpha as an argument on it's own or in relationship_kwargs:
-        if alpha is not None:
-            if "alpha" in relationship_kwargs:
-                raise SchemaError(
-                    "it is ambiguous to specify alpha in the function"
-                    "signature and relationship_kwargs"
-                )
-            relationship_kwargs["alpha"] = alpha
-        else:
-            relationship_kwargs = relationship_kwargs
-
-        # handle equal_var as an argument on it's own or in test_kwargs:
-        if equal_var is not None:
-            if "equal_var" in test_kwargs:
-                raise SchemaError(
-                    "equal_var has been set in both the function signature and"
-                    "test_kwargs, it should be specified only once"
-                )
-            test_kwargs["equal_var"] = equal_var
-        else:
-            test_kwargs = test_kwargs
-
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_ind,
             relationship=relationship,
             groupby=groupby,
-            groups=groups,
-            test_kwargs=test_kwargs,
-            relationship_kwargs=relationship_kwargs
+            groups=[group1, group2],
+            test_kwargs={"equal_var": equal_var, "nan_policy": nan_policy},
+            relationship_kwargs={"alpha": alpha}
         )
 
 
