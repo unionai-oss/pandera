@@ -5,10 +5,10 @@ with open('README.md') as f:
 
 setup(
     name="pandera",
-    version="0.1.2",
+    version="0.1.3",
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
-    description = 'A light-weight and flexible validation package for pandas data structures.',
+    description='A light-weight and flexible validation package for pandas data structures.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url="https://github.com/cosmicBboy/pandera",
@@ -30,7 +30,7 @@ setup(
     ],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     platforms='any',
-    classifiers = [
+    classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
