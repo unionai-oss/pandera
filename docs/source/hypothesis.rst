@@ -27,11 +27,13 @@ can be made about the relationships between ``Column``\s.
 
     schema = DataFrameSchema({
         "height_in_feet": Column(Float, [
-            Hypothesis.two_sample_ttest(groupby="sex",
-                                        groups=["M", "F"],
-                                        relationship="greater_than",
-                                        alpha = 0.05
-                                        ),
+            Hypothesis.two_sample_ttest(
+                groupby="sex",
+                group1="M",
+                group2="F",
+                relationship="greater_than",
+                alpha=0.05,
+                equal_var=True),
         ]),
         "sex": Column(String)
     })
@@ -48,12 +50,12 @@ enables the user to use non-built in functions as follows:
 
     schema = DataFrameSchema({
         "height_in_feet": Column(Float, [
-            Hypothesis(test=stats.ttest_ind,
-                       groupby="sex",
-                       groups=["M", "F"],
-                       relationship="greater_than",
-                       relationship_kwargs={"alpha":0.5}
-                      ),
+            Hypothesis(
+                test=stats.ttest_ind,
+                groupby="sex",
+                groups=["M", "F"],
+                relationship="greater_than",
+                relationship_kwargs={"alpha":0.5, "equal_var": True}),
         ]),
         "sex": Column(String)
     })

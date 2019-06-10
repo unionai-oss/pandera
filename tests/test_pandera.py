@@ -569,11 +569,12 @@ def test_hypothesis():
     # Initialise the different ways of calling a test:
     schema_pass_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
-            Hypothesis.two_sample_ttest(groupby="sex",
-                                        groups=["M", "F"],
-                                        relationship="greater_than",
-                                        alpha=0.5
-                                        ),
+            Hypothesis.two_sample_ttest(
+                groupby="sex",
+                group1="M",
+                group2="F",
+                relationship="greater_than",
+                alpha=0.5),
         ]),
         "sex": Column(String)
     })
@@ -594,10 +595,10 @@ def test_hypothesis():
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
                 groupby="sex",
-                groups=["M", "F"],
+                group1="M",
+                group2="F",
                 relationship="greater_than",
-                relationship_kwargs={"alpha": 0.5}
-            ),
+                alpha=0.5),
         ]),
         "sex": Column(String)
     })
@@ -609,11 +610,12 @@ def test_hypothesis():
 
     schema_fail_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
-            Hypothesis.two_sample_ttest(groupby="sex",
-                                        groups=["M", "F"],
-                                        relationship="greater_than",
-                                        alpha=0.05
-                                        ),
+            Hypothesis.two_sample_ttest(
+                groupby="sex",
+                group1="M",
+                group2="F",
+                relationship="greater_than",
+                alpha=0.05),
         ]),
         "sex": Column(String)
     })
@@ -624,8 +626,7 @@ def test_hypothesis():
                        groupby="sex",
                        groups=["M", "F"],
                        relationship="greater_than",
-                       relationship_kwargs={"alpha": 0.05}
-                       ),
+                       relationship_kwargs={"alpha": 0.05}),
         ]),
         "sex": Column(String)
     })
@@ -634,10 +635,10 @@ def test_hypothesis():
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
                 groupby="sex",
-                groups=["M", "F"],
+                group1="M",
+                group2="F",
                 relationship="greater_than",
-                relationship_kwargs={"alpha": 0.05}
-            ),
+                alpha=0.05),
         ]),
         "sex": Column(String)
     })
@@ -650,44 +651,32 @@ def test_hypothesis():
         schema_fail_ttest_on_alpha_val_3.validate(df)
 
 
-def test_hypothesis_group_length():
-    # Check that calling two_sample_ttest with len(group)!=2 raises SchemaError
-    with pytest.raises(SchemaError):
-        DataFrameSchema({
-            "height_in_feet": Column(Float, [
-                Hypothesis.two_sample_ttest(groupby="sex",
-                                            groups=["M"],
-                                            relationship="greater_than",
-                                            alpha=0.5
-                                            ),
-            ]),
-            "sex": Column(String)
-        })
-
-    with pytest.raises(SchemaError):
-        DataFrameSchema({
-            "height_in_feet": Column(Float, [
-                Hypothesis.two_sample_ttest(groupby="sex",
-                                            groups=["M", "F", "N"],
-                                            relationship="greater_than",
-                                            alpha=0.5
-                                            ),
-            ]),
-            "sex": Column(String)
-        })
-
-
-def test_hypothesis_unavailable_relationship():
-    # Test that supplying a non-built-in string relationship errors:
-    with pytest.raises(SchemaError):
-        DataFrameSchema({
+def test_two_sample_ttest_hypothesis_relationships():
+    """Check allowable relationships in two-sample ttest."""
+    for relationship in Hypothesis.RELATIONSHIPS:
+        schema = DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(
-                        groupby="sex",
-                        groups=["M"],
-                        relationship="another_relationship",
-                        alpha=0.5
-                        ),
+                    groupby="sex",
+                    group1="M",
+                    group2="F",
+                    relationship=relationship,
+                    alpha=0.5),
             ]),
             "sex": Column(String)
         })
+        assert isinstance(schema, DataFrameSchema)
+
+    for relationship in ["foo", "bar", 1, 2, 3, None]:
+        with pytest.raises(SchemaError):
+            DataFrameSchema({
+                "height_in_feet": Column(Float, [
+                    Hypothesis.two_sample_ttest(
+                        groupby="sex",
+                        group1="M",
+                        group2="F",
+                        relationship=relationship,
+                        alpha=0.5),
+                ]),
+                "sex": Column(String)
+            })
