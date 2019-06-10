@@ -12,10 +12,9 @@ Why?
 ----
 
 Because pandas data structures hide a lot of information, and explicitly
-validating them in production-critical or reproducible research settings
-is a good idea.
+validating them at runtime in production-critical or reproducible research
+settings is a good idea. It also makes it easier to review pandas code :)
 
-And it also makes it easier to review pandas code :)
 
 Install
 -------
