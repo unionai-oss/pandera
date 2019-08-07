@@ -244,3 +244,80 @@ You can also specify an ``Index`` in the ``DataFrameSchema``.
    # foo1           [0]      1
    # foo2           [1]      1
    # foo3           [2]      1
+
+MultiIndex Validation
+---------------------
+
+`pandera` also supports multi-index column and index validation.
+
+
+MultiIndex Columns
+~~~~~~~~~~~~~~~~~~
+
+Specifying multi-index columns follows the `pandas` syntax of specifying tuples
+for each level in the index hierarchy:
+
+.. code:: python
+
+  import pandas as pd
+
+  from pandera import Column, DataFrameSchema, Index, Int, String
+
+  schema = DataFrameSchema({
+      ("foo", "bar"): Column(Int),
+      ("foo", "baz"): Column(String)
+  })
+
+  df = pd.DataFrame({
+      ("foo", "bar"): [1, 2, 3],
+      ("foo", "baz"): ["a", "b", "c"],
+  })
+
+  schema.validate(df)
+
+  #   foo
+  #   bar baz
+  # 0   1   a
+  # 1   2   b
+  # 2   3   c
+
+
+MultiIndex Indexes
+~~~~~~~~~~~~~~~~~~
+
+The `pandera.MultiIndex` class allows you to define multi-index indexes by
+composing a list of `pandera.Index` objects.
+
+.. code:: python
+
+  import pandas as pd
+
+  from pandera import Column, DataFrameSchema, Index, MultiIndex, Int, \
+      String, Check
+
+  schema = DataFrameSchema(
+      columns={"column1": Column(Int)},
+      index=MultiIndex([
+          Index(String,
+                Check(lambda s: s.isin(["foo", "bar"])),
+                name="index0"),
+          Index(Int, name="index1"),
+      ])
+  )
+
+  df = pd.DataFrame(
+      data={"column1": [1, 2, 3]},
+      index=pd.MultiIndex(
+          levels=[["foo", "bar"], [0, 1, 2, 3, 4]],
+          labels=[[0, 1, 0], [0, 1, 2]],
+          names=["index0", "index1"],
+      )
+  )
+
+  schema.validate(df)
+
+  #                column1
+  # index0 index1
+  # foo    0             1
+  # bar    1             2
+  # foo    2             3
