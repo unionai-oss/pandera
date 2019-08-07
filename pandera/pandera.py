@@ -45,8 +45,8 @@ N_FAILURE_CASES = 10
 
 class Check(object):
 
-    def __init__(self, fn, element_wise=False, error=None, n_failure_cases=10,
-                 groupby=None, groups=None):
+    def __init__(self, fn, element_wise=False, error=None,
+                 n_failure_cases=N_FAILURE_CASES, groupby=None, groups=None):
         """Check object applies function element-wise or series-wise
 
         :param callable fn: A function to check series schema. If element_wise
@@ -179,10 +179,7 @@ class Check(object):
             )
 
         self.failure_cases = failure_cases
-        if self.n_failure_cases is None:
-            return failure_cases
-        else:
-            return failure_cases.head(self.n_failure_cases)
+        return failure_cases.head(self.n_failure_cases)
 
     def prepare_input(self, series, dataframe):
         """Used by Column.__call__ to prepare series/SeriesGroupBy input.

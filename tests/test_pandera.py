@@ -735,17 +735,28 @@ def test_multi_index_index():
             ]
         )
     )
-    validated_df = schema.validate(
-        pd.DataFrame(
-            data={
-                "column1": [0.1, 0.5, 123.1, 10.6, 22.31],
-                "column2": [0.1, 0.5, 123.1, 10.6, 22.31],
-            },
-            index=pd.MultiIndex(
-                levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
-                labels=[[0, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
-                names=["index0", "index1"],
-            )
+
+    df = pd.DataFrame(
+        data={
+            "column1": [0.1, 0.5, 123.1, 10.6, 22.31],
+            "column2": [0.1, 0.5, 123.1, 10.6, 22.31],
+        },
+        index=pd.MultiIndex(
+            levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
+            labels=[[0, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+            names=["index0", "index1"],
         )
     )
+
+    validated_df = schema.validate(df)
     assert isinstance(validated_df, pd.DataFrame)
+
+    # failure case
+    df_fail = df.copy()
+    df_fail.index = pd.MultiIndex(
+        levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
+        labels=[[-1, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+        names=["index0", "index1"],
+    )
+    with pytest.raises(SchemaError):
+        schema.validate(df_fail)
