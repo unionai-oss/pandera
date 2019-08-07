@@ -444,8 +444,13 @@ class DataFrameSchema(object):
     """A light-weight pandas DataFrame validator."""
 
     def __init__(
-            self, columns, index=None, transformer=None, coerce=False,
-            strict=False):
+            self,
+            columns,
+            index=None,
+            transformer=None,
+            coerce=False,
+            strict=False
+            ):
         """A light-weight pandas DataFrame validator.
 
         :param columns: a dict where keys are column names and values are
@@ -473,8 +478,26 @@ class DataFrameSchema(object):
         self.strict = strict
         self._validate_schema()
 
-    def __call__(self, dataframe):
-        """Delegates to `validate` method."""
+    def __call__(
+            self,
+            dataframe,
+            head=None,
+            tail=None,
+            sample=None,
+            random_state=None
+            ):
+        """Delegate to `validate` method.
+
+        :param pd.DataFrame dataframe: the dataframe to be validated.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :type head: int
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :type tail: int
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        """
         return self.validate(dataframe)
 
     def _validate_schema(self):
@@ -491,11 +514,37 @@ class DataFrameSchema(object):
                         "specified in the DataFrameSchema." %
                         (nonexistent_groupby_columns, column_name))
 
-    def validate(self, dataframe):
+    @staticmethod
+    def _dataframe_to_validate(dataframe, head, tail, sample, random_state):
+        dataframe_subsample = []
+        if head is not None:
+            dataframe_subsample.append(dataframe.head(head))
+        if tail is not None:
+            dataframe_subsample.append(dataframe.tail(tail))
+        if sample is not None:
+            dataframe_subsample.append(
+                dataframe.sample(sample, random_state=random_state))
+        return dataframe if len(dataframe_subsample) == 0 else \
+            pd.concat(dataframe_subsample).drop_duplicates()
+
+    def validate(
+            self,
+            dataframe,
+            head=None,
+            tail=None,
+            sample=None,
+            random_state=None):
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
-
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :type head: int
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :type tail: int
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
         """
         if self.strict:
             for column in dataframe:
@@ -511,7 +560,6 @@ class DataFrameSchema(object):
                     "column '%s' not in dataframe\n%s" %
                     (c, dataframe.head()))
 
-            # coercing logic
             if col.coerce or self.coerce:
                 dataframe[c] = col.coerce_dtype(dataframe[c])
 
@@ -521,7 +569,10 @@ class DataFrameSchema(object):
         ]
         if self.index is not None:
             schema_elements += [self.index]
-        assert all(s(dataframe) for s in schema_elements)
+
+        dataframe_to_validate = self._dataframe_to_validate(
+            dataframe, head, tail, sample, random_state)
+        assert all(s(dataframe_to_validate) for s in schema_elements)
         if self.transformer is not None:
             dataframe = self.transformer(dataframe)
         return dataframe
@@ -784,7 +835,13 @@ def _get_fn_argnames(fn):
     return arg_spec_args
 
 
-def check_input(schema, obj_getter=None):
+def check_input(
+        schema,
+        obj_getter=None,
+        head=None,
+        tail=None,
+        sample=None,
+        random_state=None):
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -802,6 +859,14 @@ def check_input(schema, obj_getter=None):
         argument when the function is called. If None, assumes that the
         dataframe/series is the first argument of the decorated function
     :type obj_getter: int|str|None
+    :param head: validate the first n rows. Rows overlapping with `tail` or
+        `sample` are de-duplicated.
+    :type head: int
+    :param tail: validate the last n rows. Rows overlapping with `head` or
+        `sample` are de-duplicated.
+    :type tail: int
+    :param sample: validate a random sample of n rows. Rows overlapping
+        with `head` or `tail` are de-duplicated.
     """
 
     @wrapt.decorator
@@ -820,7 +885,8 @@ def check_input(schema, obj_getter=None):
                 args = list(args_dict.values())
         elif obj_getter is None:
             try:
-                args[0] = schema.validate(args[0])
+                args[0] = schema.validate(
+                    args[0], head, tail, sample, random_state)
             except SchemaError as e:
                 raise SchemaError(
                     "error in check_input decorator of function '%s': %s" %
@@ -833,7 +899,13 @@ def check_input(schema, obj_getter=None):
     return _wrapper
 
 
-def check_output(schema, obj_getter=None):
+def check_output(
+        schema,
+        obj_getter=None,
+        head=None,
+        tail=None,
+        sample=None,
+        random_state=None):
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
@@ -851,6 +923,14 @@ def check_output(schema, obj_getter=None):
         supplied, it expects the output of decorated function and should return
         the dataframe/series to be validated.
     :type obj_getter: int|str|callable|None
+    :param head: validate the first n rows. Rows overlapping with `tail` or
+        `sample` are de-duplicated.
+    :type head: int
+    :param tail: validate the last n rows. Rows overlapping with `head` or
+        `sample` are de-duplicated.
+    :type tail: int
+    :param sample: validate a random sample of n rows. Rows overlapping
+        with `head` or `tail` are de-duplicated.
     """
 
     @wrapt.decorator
@@ -871,7 +951,7 @@ def check_output(schema, obj_getter=None):
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         try:
-            schema.validate(obj)
+            schema.validate(obj head, tail, sample, random_state)
         except SchemaError as e:
             raise SchemaError(
                 "error in check_output decorator of function '%s': %s" %

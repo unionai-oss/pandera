@@ -760,3 +760,54 @@ def test_multi_index_index():
     )
     with pytest.raises(SchemaError):
         schema.validate(df_fail)
+
+
+def test_head_dataframe_schema():
+    """
+    Test that schema can validate head of dataframe, returns entire dataframe.
+    """
+
+    df = pd.DataFrame({
+        "col1": [i for i in range(100)] + [i for i in range(-1, -1001, -1)]
+    })
+
+    schema = DataFrameSchema(
+        columns={"col1": Column(Int, Check(lambda s: s >= 0))})
+
+    # Validating with head of 100 should pass
+    assert schema.validate(df, head=100).equals(df)
+    with pytest.raises(SchemaError):
+        schema.validate(df)
+
+
+def test_tail_dataframe_schema():
+    df = pd.DataFrame({
+        "col1": [i for i in range(100)] + [i for i in range(-1, -1001, -1)]
+    })
+
+    schema = DataFrameSchema(
+        columns={"col1": Column(Int, Check(lambda s: s < 0))})
+
+    # Validating with tail of 1000 should pass
+    assert schema.validate(df, tail=1000).equals(df)
+    with pytest.raises(SchemaError):
+        schema.validate(df)
+
+
+def test_sample_dataframe_schema():
+    df = pd.DataFrame({
+        "col1": range(1, 1001)
+    })
+
+    # assert all values -1
+    schema = DataFrameSchema(
+        columns={"col1": Column(Int, Check(lambda s: s == -1))})
+
+    for seed in [11, 123456, 9000, 654]:
+        sample_index = df.sample(100, random_state=seed).index
+        df.loc[sample_index] = -1
+        assert schema.validate(df, sample=100, random_state=seed).equals(df)
+
+
+def test_head_tail_sample_check_decorators():
+    pass
