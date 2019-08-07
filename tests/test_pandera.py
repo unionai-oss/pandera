@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera import Column, DataFrameSchema, Index, PandasDtype, \
+from pandera import Column, DataFrameSchema, Index, MultiIndex, PandasDtype, \
     SeriesSchema, Check, Bool, Float, Int, DateTime, String, check_input, \
     check_output, SchemaError, SchemaInitError, Hypothesis
 from scipy import stats
@@ -603,10 +603,26 @@ def test_hypothesis():
         "sex": Column(String)
     })
 
+    schema_pass_ttest_on_custom_relationship = DataFrameSchema({
+        "height_in_feet": Column(Float, [
+            Hypothesis(
+                test=stats.ttest_ind,
+                groupby="sex",
+                groups=["M", "F"],
+                relationship=lambda stat, pvalue, alpha: (
+                    stat > 0 and pvalue / 2 < alpha
+                ),
+                relationship_kwargs={"alpha": 0.5}
+            )
+        ]),
+        "sex": Column(String),
+    })
+
     # Check the 3 happy paths are successful:
     schema_pass_ttest_on_alpha_val_1.validate(df)
     schema_pass_ttest_on_alpha_val_2.validate(df)
     schema_pass_ttest_on_alpha_val_3.validate(df)
+    schema_pass_ttest_on_custom_relationship.validate(df)
 
     schema_fail_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
@@ -680,3 +696,67 @@ def test_two_sample_ttest_hypothesis_relationships():
                 ]),
                 "sex": Column(String)
             })
+
+
+def test_multi_index_columns():
+    schema = DataFrameSchema({
+        ("zero", "foo"): Column(Float, Check(lambda s: (s > 0) & (s < 1))),
+        ("zero", "bar"): Column(
+            String, Check(lambda s: s.isin(["a", "b", "c", "d"]))),
+        ("one", "foo"): Column(Int, Check(lambda s: (s > 0) & (s < 10))),
+        ("one", "bar"): Column(
+            DateTime, Check(lambda s: s == pd.datetime(2019, 1, 1)))
+    })
+    validated_df = schema.validate(
+        pd.DataFrame({
+            ("zero", "foo"): [0.1, 0.2, 0.7, 0.3],
+            ("zero", "bar"): ["a", "b", "c", "d"],
+            ("one", "foo"): [1, 6, 4, 7],
+            ("one", "bar"): pd.to_datetime(["2019/01/01"] * 4)
+        })
+    )
+    assert isinstance(validated_df, pd.DataFrame)
+
+
+def test_multi_index_index():
+    schema = DataFrameSchema(
+        columns={
+            "column1": Column(Float, Check(lambda s: s > 0)),
+            "column2": Column(Float, Check(lambda s: s > 0)),
+        },
+        index=MultiIndex(
+            indexes=[
+                Index(Int,
+                      Check(lambda s: (s < 5) & (s >= 0)),
+                      name="index0"),
+                Index(String,
+                      Check(lambda s: s.isin(["foo", "bar"])),
+                      name="index1"),
+            ]
+        )
+    )
+
+    df = pd.DataFrame(
+        data={
+            "column1": [0.1, 0.5, 123.1, 10.6, 22.31],
+            "column2": [0.1, 0.5, 123.1, 10.6, 22.31],
+        },
+        index=pd.MultiIndex(
+            levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
+            labels=[[0, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+            names=["index0", "index1"],
+        )
+    )
+
+    validated_df = schema.validate(df)
+    assert isinstance(validated_df, pd.DataFrame)
+
+    # failure case
+    df_fail = df.copy()
+    df_fail.index = pd.MultiIndex(
+        levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
+        labels=[[-1, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+        names=["index0", "index1"],
+    )
+    with pytest.raises(SchemaError):
+        schema.validate(df_fail)

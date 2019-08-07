@@ -45,8 +45,8 @@ N_FAILURE_CASES = 10
 
 class Check(object):
 
-    def __init__(self, fn, element_wise=False, error=None, n_failure_cases=10,
-                 groupby=None, groups=None):
+    def __init__(self, fn, element_wise=False, error=None,
+                 n_failure_cases=N_FAILURE_CASES, groupby=None, groups=None):
         """Check object applies function element-wise or series-wise
 
         :param callable fn: A function to check series schema. If element_wise
@@ -154,19 +154,32 @@ class Check(object):
             validator.
 
         """
-        failure_cases = (
-            failure_cases
-            .rename("failure_case")
-            .reset_index()
-            .groupby("failure_case").index.agg([list, len])
-            .rename(columns={"list": "index", "len": "count"})
-            .sort_values("count", ascending=False)
-        )
-        self.failure_cases = failure_cases
-        if self.n_failure_cases is None:
-            return failure_cases
+        if isinstance(failure_cases.index, pd.MultiIndex):
+            failure_cases = (
+                failure_cases
+                .rename("failure_case")
+                .reset_index()
+                .assign(
+                    formatted_index=lambda df: (
+                        df.apply(tuple, axis=1).astype(str)
+                    )
+                )
+                .groupby("failure_case").formatted_index.agg([list, len])
+                .rename(columns={"list": "index", "len": "count"})
+                .sort_values("count", ascending=False)
+            )
         else:
-            return failure_cases.head(self.n_failure_cases)
+            failure_cases = (
+                failure_cases
+                .rename("failure_case")
+                .reset_index()
+                .groupby("failure_case").index.agg([list, len])
+                .rename(columns={"list": "index", "len": "count"})
+                .sort_values("count", ascending=False)
+            )
+
+        self.failure_cases = failure_cases
+        return failure_cases.head(self.n_failure_cases)
 
     def prepare_input(self, series, dataframe):
         """Used by Column.__call__ to prepare series/SeriesGroupBy input.
@@ -254,17 +267,20 @@ class Check(object):
             return _vcheck(check_obj)
 
 
+DEFAULT_ALPHA = 0.01
+
+
 class Hypothesis(Check):
     """Extends Check to perform a hypothesis test on a Column, potentially
     grouped by another column
     """
 
     RELATIONSHIPS = {
-        "greater_than": (lambda stat, pvalue, alpha:
+        "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                          stat > 0 and pvalue / 2 < alpha),
-        "less_than": (lambda stat, pvalue, alpha:
+        "less_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                       stat < 0 and pvalue / 2 < alpha),
-        "not_equal": (lambda stat, pvalue, alpha:
+        "not_equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                       pvalue < alpha),
     }
 
@@ -277,9 +293,18 @@ class Hypothesis(Check):
         :param callable test: A function to check a series schema.
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. A function or lambda function can
-            be supplied. If a string is provided, a lambda function will be
-            returned from Hypothesis.relationships. Available relationships
-            are: "greater_than", "less_than", "not_equal"
+            be supplied.
+
+            If a string is provided, a lambda function will be returned from
+            Hypothesis.relationships. Available relationships are:
+            "greater_than", "less_than", "not_equal".
+
+            If callable, the input function signature should have the signature
+            `(stat: float, pvalue: float, **kwargs)` where `stat` is the
+            hypothesis test statistic, `pvalue` assesses statistical
+            significance, and `**kwargs` are other arguments supplied by the
+            `**relationship_kwargs` argument.
+
         :type relationship: str|callable
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
@@ -306,7 +331,10 @@ class Hypothesis(Check):
         self.relationship = partial(self.relationships(relationship),
                                     **relationship_kwargs)
         super(Hypothesis, self).__init__(
-            self._check_fn, element_wise=False, groupby=groupby, groups=groups)
+            self._check_fn,
+            element_wise=False,
+            groupby=groupby,
+            groups=groups)
 
     def relationships(self, relationship):
         """Impose a relationship on a supplied Test function.
@@ -325,14 +353,7 @@ class Hypothesis(Check):
                     "The relationship %s isn't a built in method"
                     % relationship)
             else:
-                relationship = {
-                    "greater_than": (lambda stat, pvalue, alpha:
-                                     stat > 0 and pvalue / 2 < alpha),
-                    "less_than": (lambda stat, pvalue, alpha:
-                                  stat < 0 and pvalue / 2 < alpha),
-                    "not_equal": (lambda stat, pvalue, alpha:
-                                  pvalue < alpha),
-                }[relationship]
+                relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
             raise ValueError(
                 "expected relationship to be str or callable, found %s" % type(
@@ -358,7 +379,7 @@ class Hypothesis(Check):
     @classmethod
     def two_sample_ttest(
             cls, groupby, group1, group2, relationship,
-            alpha=0.01, equal_var=True, nan_policy="propagate"):
+            alpha=DEFAULT_ALPHA, equal_var=True, nan_policy="propagate"):
         """Calculate a T-test for the means of two Columns.
 
         This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
@@ -451,6 +472,10 @@ class DataFrameSchema(object):
         self.coerce = coerce
         self.strict = strict
         self._validate_schema()
+
+    def __call__(self, dataframe):
+        """Delegates to `validate` method."""
+        return self.validate(dataframe)
 
     def _validate_schema(self):
 
@@ -650,6 +675,33 @@ class Index(SeriesSchemaBase):
         if self._name is None:
             return "<Schema Index>"
         return "<Schema Index: '%s'>" % self._name
+
+
+class MultiIndex(DataFrameSchema):
+
+    def __init__(self, indexes, coerce=False, strict=False):
+        super(MultiIndex, self).__init__(
+            columns={
+                i if index._name is None else index._name: Column(
+                    index._pandas_dtype,
+                    checks=index._checks,
+                    nullable=index._nullable,
+                    allow_duplicates=index._allow_duplicates,
+                )
+                for i, index in enumerate(indexes)
+            },
+            coerce=coerce,
+            strict=strict,
+        )
+
+    def __call__(self, df):
+        return isinstance(
+            super(MultiIndex, self).__call__(df.index.to_frame()),
+            pd.DataFrame
+        )
+
+    def __repr__(self):
+        return "<Schema MultiIndex: '%s'>" % [c for c in self.columns]
 
 
 class Column(SeriesSchemaBase):
