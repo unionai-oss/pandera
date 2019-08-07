@@ -248,13 +248,13 @@ You can also specify an ``Index`` in the ``DataFrameSchema``.
 MultiIndex Validation
 ---------------------
 
-`pandera` also supports multi-index column and index validation.
+``pandera`` also supports multi-index column and index validation.
 
 
 MultiIndex Columns
 ~~~~~~~~~~~~~~~~~~
 
-Specifying multi-index columns follows the `pandas` syntax of specifying tuples
+Specifying multi-index columns follows the ``pandas`` syntax of specifying tuples
 for each level in the index hierarchy:
 
 .. code:: python
@@ -285,8 +285,8 @@ for each level in the index hierarchy:
 MultiIndex Indexes
 ~~~~~~~~~~~~~~~~~~
 
-The `pandera.MultiIndex` class allows you to define multi-index indexes by
-composing a list of `pandera.Index` objects.
+The ``pandera.MultiIndex`` class allows you to define multi-index indexes by
+composing a list of ``pandera.Index`` objects.
 
 .. code:: python
 
