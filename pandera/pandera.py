@@ -951,7 +951,7 @@ def check_output(
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         try:
-            schema.validate(obj head, tail, sample, random_state)
+            schema.validate(obj, head, tail, sample, random_state)
         except SchemaError as e:
             raise SchemaError(
                 "error in check_output decorator of function '%s': %s" %
