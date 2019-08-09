@@ -570,9 +570,9 @@ def test_hypothesis():
     schema_pass_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                groupby="sex",
                 group1="M",
                 group2="F",
+                groupby="sex",
                 relationship="greater_than",
                 alpha=0.5),
         ]),
@@ -582,8 +582,8 @@ def test_hypothesis():
     schema_pass_ttest_on_alpha_val_2 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis(test=stats.ttest_ind,
-                       groupby="sex",
                        groups=["M", "F"],
+                       groupby="sex",
                        relationship="greater_than",
                        relationship_kwargs={"alpha": 0.5}
                        ),
@@ -594,9 +594,9 @@ def test_hypothesis():
     schema_pass_ttest_on_alpha_val_3 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                groupby="sex",
                 group1="M",
                 group2="F",
+                groupby="sex",
                 relationship="greater_than",
                 alpha=0.5),
         ]),
@@ -607,8 +607,8 @@ def test_hypothesis():
         "height_in_feet": Column(Float, [
             Hypothesis(
                 test=stats.ttest_ind,
-                groupby="sex",
                 groups=["M", "F"],
+                groupby="sex",
                 relationship=lambda stat, pvalue, alpha: (
                     stat > 0 and pvalue / 2 < alpha
                 ),
@@ -627,9 +627,9 @@ def test_hypothesis():
     schema_fail_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                groupby="sex",
                 group1="M",
                 group2="F",
+                groupby="sex",
                 relationship="greater_than",
                 alpha=0.05),
         ]),
@@ -639,8 +639,8 @@ def test_hypothesis():
     schema_fail_ttest_on_alpha_val_2 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis(test=stats.ttest_ind,
-                       groupby="sex",
                        groups=["M", "F"],
+                       groupby="sex",
                        relationship="greater_than",
                        relationship_kwargs={"alpha": 0.05}),
         ]),
@@ -650,9 +650,9 @@ def test_hypothesis():
     schema_fail_ttest_on_alpha_val_3 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                groupby="sex",
                 group1="M",
                 group2="F",
+                groupby="sex",
                 relationship="greater_than",
                 alpha=0.05),
         ]),
@@ -673,9 +673,9 @@ def test_two_sample_ttest_hypothesis_relationships():
         schema = DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(
-                    groupby="sex",
                     group1="M",
                     group2="F",
+                    groupby="sex",
                     relationship=relationship,
                     alpha=0.5),
             ]),
@@ -688,9 +688,9 @@ def test_two_sample_ttest_hypothesis_relationships():
             DataFrameSchema({
                 "height_in_feet": Column(Float, [
                     Hypothesis.two_sample_ttest(
-                        groupby="sex",
                         group1="M",
                         group2="F",
+                        groupby="sex",
                         relationship=relationship,
                         alpha=0.5),
                 ]),
@@ -809,5 +809,82 @@ def test_sample_dataframe_schema():
         assert schema.validate(df, sample=100, random_state=seed).equals(df)
 
 
-def test_head_tail_sample_check_decorators():
-    pass
+def test_dataframe_checks():
+    schema = DataFrameSchema(
+        columns={
+            "col1": Column(Int),
+            "col2": Column(Float),
+            "col3": Column(String),
+            "col4": Column(String),
+        },
+        checks=[
+            Check(lambda df: df["col1"] < df["col2"]),
+            Check(lambda df: df["col3"] == df["col4"]),
+        ]
+    )
+    df = pd.DataFrame({
+        "col1": [1, 2, 3],
+        "col2": [2.0, 3.0, 4.0],
+        "col3": ["foo", "bar", "baz"],
+        "col4": ["foo", "bar", "baz"],
+    })
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+    # test invalid schema error raising
+    invalid_df = df.copy()
+    invalid_df["col1"] = invalid_df["col1"] * 3
+
+    with pytest.raises(SchemaError):
+        schema.validate(invalid_df)
+
+    # test groupby checks
+    groupby_check_schema = DataFrameSchema(
+        columns={
+            "col1": Column(Int),
+            "col3": Column(String),
+        },
+        checks=[
+            Check(lambda g: g["foo"]["col1"].item() == 1, groupby="col3"),
+            Check(lambda g: g["foo"]["col2"].item() == 2.0, groupby="col3"),
+            Check(lambda g: g["foo"]["col3"].item() == "foo", groupby="col3"),
+            Check(lambda g: g[("foo", "foo")]["col1"].item() == 1,
+                  groupby=["col3", "col4"]),
+        ]
+    )
+    assert isinstance(groupby_check_schema.validate(df), pd.DataFrame)
+
+
+def test_dataframe_hypothesis_checks():
+
+    df = pd.DataFrame({
+        "col1": range(100, 201),
+        "col2": range(0, 101),
+    })
+
+    hypothesis_check_schema = DataFrameSchema(
+        columns={
+            "col1": Column(Int),
+            "col2": Column(Int),
+        },
+        checks=[
+            Hypothesis(
+                test=stats.ttest_ind,
+                groups=["col1", "col2"],
+                relationship=lambda stat, pvalue, alpha: (
+                    stat > 0 and pvalue / 2 < alpha
+                ),
+                relationship_kwargs={"alpha": 0.5}
+            ),
+            Hypothesis(
+                test=stats.ttest_ind,
+                groups=["col1", "col2"],
+                relationship=lambda stat, pvalue, alpha: (
+                    stat > 0 and pvalue / 2 < alpha
+                ),
+                relationship_kwargs={"alpha": 0.5}
+            ),
+        ]
+    )
+
+    hypothesis_check_schema.validate(df)

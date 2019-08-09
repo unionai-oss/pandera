@@ -100,17 +100,6 @@ class Check(object):
             groups = [groups]
         self.groups = groups
 
-    @staticmethod
-    def _check_groupby(column_name, df):
-        """Checks if a groupby can be performed on a column in a dataframe.
-
-        :param str column_name: The column to be checked if it can be used in a
-            groupby
-        :param pd.DataFrame df: The dataframe to be checked
-
-        """
-        return df.groupby(column_name)
-
     @property
     def error_message(self):
 
@@ -160,29 +149,52 @@ class Check(object):
                 .rename("failure_case")
                 .reset_index()
                 .assign(
-                    formatted_index=lambda df: (
+                    index=lambda df: (
                         df.apply(tuple, axis=1).astype(str)
                     )
                 )
-                .groupby("failure_case").formatted_index.agg([list, len])
-                .rename(columns={"list": "index", "len": "count"})
-                .sort_values("count", ascending=False)
+            )
+        elif isinstance(failure_cases, pd.DataFrame):
+            failure_cases = (
+                failure_cases
+                .pipe(lambda df: pd.Series(
+                    df.itertuples()).map(lambda x: x.__repr__()))
+                .rename("failure_case")
+                .reset_index()
             )
         else:
             failure_cases = (
                 failure_cases
                 .rename("failure_case")
                 .reset_index()
-                .groupby("failure_case").index.agg([list, len])
-                .rename(columns={"list": "index", "len": "count"})
-                .sort_values("count", ascending=False)
             )
+
+        failure_cases = (
+            failure_cases
+            .groupby("failure_case").index.agg([list, len])
+            .rename(columns={"list": "index", "len": "count"})
+            .sort_values("count", ascending=False)
+        )
 
         self.failure_cases = failure_cases
         return failure_cases.head(self.n_failure_cases)
 
-    def prepare_input(self, series, dataframe):
-        """Used by Column.__call__ to prepare series/SeriesGroupBy input.
+    def _format_input(self, groupby_obj):
+        if self.groups is None:
+            return {group_key: group for group_key, group in groupby_obj}
+        group_keys = set(group_key for group_key, _ in groupby_obj)
+        invalid_groups = [g for g in self.groups if g not in group_keys]
+        if invalid_groups:
+            raise KeyError(
+                "groups %s provided in `groups` argument not a valid group "
+                "key. Valid group keys: %s" % (invalid_groups, group_keys))
+        return {
+            group_key: group for group_key, group in groupby_obj
+            if group_key in self.groups
+        }
+
+    def prepare_series_input(self, series, dataframe):
+        """Prepare input for Column check.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
@@ -206,22 +218,20 @@ class Check(object):
         else:
             raise TypeError("Type %s not recognized for `groupby` argument.")
 
-        if self.groups is None:
-            return {g: s for g, s in groupby_obj}
+        return self._format_input(groupby_obj)
 
-        group_keys = set(g for g, _ in groupby_obj)
-        invalid_groups = [g for g in self.groups if g not in group_keys]
-        if invalid_groups:
-            raise KeyError(
-                "groups %s provided in `groups` argument not a valid group "
-                "key. Valid group keys: %s" % (invalid_groups, group_keys))
-        fn_input = {}
-        for group, series in groupby_obj:
-            if group in self.groups:
-                fn_input[group] = series
-        return fn_input
+    def prepare_dataframe_input(self, dataframe):
+        """Prepare input for DataFrameSchema check."""
+        if self.groupby is None:
+            return dataframe
+        elif self.groupby == [Hypothesis._WIDE_GROUP]:
+            groupby_obj = [
+                (group_key, dataframe[group_key]) for group_key in self.groups]
+        else:
+            groupby_obj = dataframe.groupby(self.groupby)
+        return self._format_input(groupby_obj)
 
-    def _vectorized_series_check(self, parent_schema, check_index, check_obj):
+    def _vectorized_check(self, parent_schema, check_index, check_obj):
         """Perform a vectorized check on a series.
 
         :param parent_schema: The schema object that is being checked and that
@@ -256,15 +266,19 @@ class Check(object):
 
     def __call__(self, parent_schema, check_index, check_obj):
         _vcheck = partial(
-            self._vectorized_series_check, parent_schema, check_index)
+            self._vectorized_check, parent_schema, check_index)
         if self.element_wise:
             val_result = check_obj.map(self.fn)
             if val_result.all():
                 return True
             raise SchemaError(self.vectorized_error_message(
                 parent_schema, check_index, check_obj[~val_result]))
-        elif isinstance(check_obj, (pd.Series, dict)):
+        elif isinstance(check_obj, (pd.Series, dict, pd.DataFrame)):
             return _vcheck(check_obj)
+        else:
+            raise ValueError(
+                "check_obj type %s not supported. Must be a "
+                "Series, a dictionary of Series, or DataFrame" % check_obj)
 
 
 DEFAULT_ALPHA = 0.01
@@ -282,10 +296,12 @@ class Hypothesis(Check):
                       stat < 0 and pvalue / 2 < alpha),
         "not_equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                       pvalue < alpha),
+        "equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue >= alpha),
     }
+    _WIDE_GROUP = "WIDE_GROUP"
 
-    def __init__(self, test, relationship, groupby=None, groups=None,
-                 test_kwargs=None, relationship_kwargs=None):
+    def __init__(self, test, groups, groupby=None, relationship="equal",
+                 test_kwargs=None, relationship_kwargs=None, error=None):
         """Initialises hypothesis to perform a hypothesis test on a Column.
 
             Can function on a single column or be grouped by another column.
@@ -305,7 +321,12 @@ class Hypothesis(Check):
             significance, and `**kwargs` are other arguments supplied by the
             `**relationship_kwargs` argument.
 
+            Default is "equal" for the null hypothesis.
+
         :type relationship: str|callable
+        :param groups: The dict input to the `fn` callable will be constrained
+            to the groups specified by `groups`.
+        :type groups: str|list[str]|None
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
@@ -319,22 +340,24 @@ class Hypothesis(Check):
 
             Where specific groups can be obtained from the input dict.
         :type groupby: str|list[str]|callable|None
-        :param groups: The dict input to the `fn` callable will be constrained
-            to the groups specified by `groups`.
-        :type groups: str|list[str]|None
         :param dict test_kwargs: Key Word arguments to be supplied to the test.
         :param dict relationship_kwargs: Key Word arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
+        :param error: error message to show
+        :type str:
         """
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(self.relationships(relationship),
                                     **relationship_kwargs)
+        if groupby is None and groups is not None:
+            groupby = self._WIDE_GROUP
         super(Hypothesis, self).__init__(
-            self._check_fn,
+            self.hypothesis_check,
             element_wise=False,
             groupby=groupby,
-            groups=groups)
+            groups=groups,
+            error=error)
 
     def relationships(self, relationship):
         """Impose a relationship on a supplied Test function.
@@ -361,11 +384,11 @@ class Hypothesis(Check):
             )
         return relationship
 
-    def _check_fn(self, check_obj):
+    def hypothesis_check(self, check_obj):
         """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
-            `_check_fn` and `_vectorized_series_check`
+            `hypothesis_check` and `_vectorized_series_check`
 
         """
         if self.groupby is None:
@@ -378,7 +401,7 @@ class Hypothesis(Check):
 
     @classmethod
     def two_sample_ttest(
-            cls, groupby, group1, group2, relationship,
+            cls, group1, group2, groupby=None, relationship="equal",
             alpha=DEFAULT_ALPHA, equal_var=True, nan_policy="propagate"):
         """Calculate a T-test for the means of two Columns.
 
@@ -436,7 +459,9 @@ class Hypothesis(Check):
             groupby=groupby,
             groups=[group1, group2],
             test_kwargs={"equal_var": equal_var, "nan_policy": nan_policy},
-            relationship_kwargs={"alpha": alpha}
+            relationship_kwargs={"alpha": alpha},
+            error="failed two sample ttest between '%s' and '%s'" % (
+                group1, group2),
         )
 
 
@@ -446,6 +471,7 @@ class DataFrameSchema(object):
     def __init__(
             self,
             columns,
+            checks=None,
             index=None,
             transformer=None,
             coerce=False,
@@ -457,6 +483,8 @@ class DataFrameSchema(object):
             Column objects specifying the datatypes and properties of a
             particular column.
         :type columns: dict[str -> Column]
+        :param checks: dataframe-wide checks.
+        :type checks: list[Check].
         :param index: specify the datatypes and properties of the index.
         :type index: Index
         :param transformer: a callable with signature:
@@ -471,6 +499,11 @@ class DataFrameSchema(object):
             aren't in the DataFrame Schema.
         :type strict: bool
         """
+        if checks is None:
+            checks = []
+        if isinstance(checks, Check):
+            checks = [checks]
+        self._checks = checks
         self.index = index
         self.columns = columns
         self.transformer = transformer
@@ -527,6 +560,11 @@ class DataFrameSchema(object):
         return dataframe if len(dataframe_subsample) == 0 else \
             pd.concat(dataframe_subsample).drop_duplicates()
 
+    def _check_dataframe(self, dataframe):
+        return all(
+            check(self, check_index, check.prepare_dataframe_input(dataframe))
+            for check_index, check in enumerate(self._checks))
+
     def validate(
             self,
             dataframe,
@@ -572,7 +610,9 @@ class DataFrameSchema(object):
 
         dataframe_to_validate = self._dataframe_to_validate(
             dataframe, head, tail, sample, random_state)
-        assert all(s(dataframe_to_validate) for s in schema_elements)
+        assert (
+            all(s(dataframe_to_validate) for s in schema_elements) and
+            self._check_dataframe(dataframe))
         if self.transformer is not None:
             dataframe = self.transformer(dataframe)
         return dataframe
@@ -668,10 +708,11 @@ class SeriesSchemaBase(object):
                 (series.name, expected_dtype, series.dtype))
 
         return all(
-            check_or_hypothesis(self, check_index,
-                                check_or_hypothesis.prepare_input(series,
-                                                                  dataframe))
-            for check_index, check_or_hypothesis in enumerate(self._checks))
+            check(
+                self,
+                check_index,
+                check.prepare_series_input(series, dataframe))
+            for check_index, check in enumerate(self._checks))
 
 
 class SeriesSchema(SeriesSchemaBase):
