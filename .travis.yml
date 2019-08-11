@@ -23,7 +23,7 @@ install:
   - conda info -a
   - conda create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
   - source activate ci-env
-  - conda install -y -c conda-forge numpy scipy pandas
+  - conda install -y -c conda-forge numpy scipy pandas codecov
   - pip install -r requirements.txt
   - python setup.py install
 script:
