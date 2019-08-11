@@ -1,7 +1,7 @@
 .. pandera documentation master file
 
 .. image:: _static/pandera-logo.svg
-  :width: 150px
+  :width: 140px
 
 Pandera
 =======

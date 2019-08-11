@@ -1,4 +1,4 @@
-<div align="left"><img src="https://github.com/cosmicBboy/pandera/blob/master/docs/source/_static/pandera-logo.svg" width="150"></div>
+<div align="left"><img src="https://raw.githubusercontent.com/cosmicBboy/pandera/master/docs/source/_static/pandera-logo.png" width="140"></div>
 
 # Pandera
 
