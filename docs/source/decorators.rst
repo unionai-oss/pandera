@@ -1,5 +1,7 @@
 .. pandera documentation for check_input and check_output decorators
 
+.. _decorators:
+
 Decorators for Existing Workflows
 =================================
 
