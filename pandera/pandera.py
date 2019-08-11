@@ -16,6 +16,10 @@ class SchemaInitError(Exception):
     pass
 
 
+class SchemaDefinitionError(Exception):
+    pass
+
+
 class SchemaError(Exception):
     pass
 
@@ -45,24 +49,23 @@ N_FAILURE_CASES = 10
 
 class Check(object):
 
-    def __init__(self, fn, element_wise=False, error=None,
-                 n_failure_cases=N_FAILURE_CASES, groupby=None, groups=None):
+    def __init__(
+            self,
+            fn,
+            groups=None,
+            groupby=None,
+            element_wise=False,
+            error=None,
+            n_failure_cases=N_FAILURE_CASES):
         """Check object applies function element-wise or series-wise
 
         :param callable fn: A function to check series schema. If element_wise
             is True, then callable signature should be: x -> bool where x is a
             scalar element in the column. Otherwise, signature is expected
             to be: pd.Series -> bool|pd.Series[bool].
-        :param element_wise: Whether or not to apply validator in an
-            element-wise fashion. If bool, assumes that all checks should be
-            applied to the column element-wise. If list, should be the same
-            number of elements as checks.
-        :type element_wise: bool|list[bool]
-        :param str error: custom error message if series fails validation
-            check.
-        :type str error:
-        :param n_failure_cases: report the top n failure cases. If None, then
-            report all failure cases.
+        :param groups: The dict input to the `fn` callable will be constrained
+            to the groups specified by `groups`.
+        :type groups: str|list[str]|None
         :param groupby: Only applies to Column Checks. If a string or list of
             strings is provided, then these columns are used to group the
             Column Series by `groupby`. If a callable is passed, the expected
@@ -77,9 +80,16 @@ class Check(object):
 
             Where specific groups can be obtained from the input dict.
         :type groupby: str|list[str]|callable|None
-        :param groups: The dict input to the `fn` callable will be constrained
-            to the groups specified by `groups`.
-        :type groups: str|list[str]|None
+        :param element_wise: Whether or not to apply validator in an
+            element-wise fashion. If bool, assumes that all checks should be
+            applied to the column element-wise. If list, should be the same
+            number of elements as checks.
+        :type element_wise: bool|list[bool]
+        :param str error: custom error message if series fails validation
+            check.
+        :type str error:
+        :param n_failure_cases: report the top n failure cases. If None, then
+            report all failure cases.
         """
         if element_wise and groupby is not None:
             raise SchemaInitError("Cannot use groupby when element_wise=True.")
@@ -179,18 +189,18 @@ class Check(object):
         self.failure_cases = failure_cases
         return failure_cases.head(self.n_failure_cases)
 
-    def _format_input(self, groupby_obj):
-        if self.groups is None:
+    def _format_input(self, groupby_obj, groups):
+        if groups is None:
             return {group_key: group for group_key, group in groupby_obj}
         group_keys = set(group_key for group_key, _ in groupby_obj)
-        invalid_groups = [g for g in self.groups if g not in group_keys]
+        invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:
             raise KeyError(
                 "groups %s provided in `groups` argument not a valid group "
                 "key. Valid group keys: %s" % (invalid_groups, group_keys))
         return {
             group_key: group for group_key, group in groupby_obj
-            if group_key in self.groups
+            if group_key in groups
         }
 
     def prepare_series_input(self, series, dataframe):
@@ -218,18 +228,15 @@ class Check(object):
         else:
             raise TypeError("Type %s not recognized for `groupby` argument.")
 
-        return self._format_input(groupby_obj)
+        return self._format_input(groupby_obj, self.groups)
 
     def prepare_dataframe_input(self, dataframe):
         """Prepare input for DataFrameSchema check."""
         if self.groupby is None:
             return dataframe
-        elif self.groupby == [Hypothesis._WIDE_GROUP]:
-            groupby_obj = [
-                (group_key, dataframe[group_key]) for group_key in self.groups]
         else:
             groupby_obj = dataframe.groupby(self.groupby)
-        return self._format_input(groupby_obj)
+        return self._format_input(groupby_obj, self.groups)
 
     def _vectorized_check(self, parent_schema, check_index, check_obj):
         """Perform a vectorized check on a series.
@@ -285,9 +292,7 @@ DEFAULT_ALPHA = 0.01
 
 
 class Hypothesis(Check):
-    """Extends Check to perform a hypothesis test on a Column, potentially
-    grouped by another column
-    """
+    """Extends Check to perform a hypothesis test on a Column or DataFrame."""
 
     RELATIONSHIPS = {
         "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
@@ -298,22 +303,45 @@ class Hypothesis(Check):
                       pvalue < alpha),
         "equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue >= alpha),
     }
-    _WIDE_GROUP = "WIDE_GROUP"
 
-    def __init__(self, test, groups, groupby=None, relationship="equal",
-                 test_kwargs=None, relationship_kwargs=None, error=None):
+    def __init__(self, test, samples, groupby=None,
+                 relationship="equal", test_kwargs=None,
+                 relationship_kwargs=None, error=None):
         """Initialises hypothesis to perform a hypothesis test on a Column.
 
             Can function on a single column or be grouped by another column.
 
         :param callable test: A function to check a series schema.
+        :param samples: for `Column` or `SeriesSchema` hypotheses, this refers
+            to the group keys used to group the `Column` into a dict of
+            `Series` via the `groupby` column/columns. The `samples` column(s)
+            are passed into the `test` function as positional arguments.
+
+            For `DataFrame`-level hypotheses, `samples` refers a column or
+            multiple columns to pass into the `test` function. The `samples`
+            column(s) are passed into the `test`  function as positional
+            arguments.
+        :type samples: str|list[str]|None
+        :param groupby: If a string or list of strings is provided, then these
+            columns are used to group the Column Series by `groupby`. If a
+            callable is passed, the expected signature is
+            DataFrame -> DataFrameGroupby. The function has access to the
+            entire dataframe, but the Column.name is selected from this
+            DataFrameGroupby object so that a SeriesGroupBy object is passed
+            into the `hypothesis_check` function.
+
+            Specifying this argument changes the `fn` signature to:
+            dict[str|tuple[str], Series] -> bool|pd.Series[bool]
+
+            Where specific groups can be obtained from the input dict.
+        :type groupby: str|list[str]|callable|None
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. A function or lambda function can
             be supplied.
 
             If a string is provided, a lambda function will be returned from
             Hypothesis.relationships. Available relationships are:
-            "greater_than", "less_than", "not_equal".
+            "greater_than", "less_than", "not_equal" or "equal".
 
             If callable, the input function signature should have the signature
             `(stat: float, pvalue: float, **kwargs)` where `stat` is the
@@ -324,22 +352,6 @@ class Hypothesis(Check):
             Default is "equal" for the null hypothesis.
 
         :type relationship: str|callable
-        :param groups: The dict input to the `fn` callable will be constrained
-            to the groups specified by `groups`.
-        :type groups: str|list[str]|None
-        :param groupby: If a string or list of strings is provided, then these
-            columns are used to group the Column Series by `groupby`. If a
-            callable is passed, the expected signature is
-            DataFrame -> DataFrameGroupby. The function has access to the
-            entire dataframe, but the Column.name is selected from this
-            DataFrameGroupby object so that a SeriesGroupBy object is passed
-            into `fn`.
-
-            Specifying this argument changes the `fn` signature to:
-            dict[str|tuple[str], Series] -> bool|pd.Series[bool]
-
-            Where specific groups can be obtained from the input dict.
-        :type groupby: str|list[str]|callable|None
         :param dict test_kwargs: Key Word arguments to be supplied to the test.
         :param dict relationship_kwargs: Key Word arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
@@ -350,14 +362,44 @@ class Hypothesis(Check):
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(self.relationships(relationship),
                                     **relationship_kwargs)
-        if groupby is None and groups is not None:
-            groupby = self._WIDE_GROUP
+        if isinstance(samples, str):
+            samples = [samples]
+        self.samples = samples
         super(Hypothesis, self).__init__(
             self.hypothesis_check,
-            element_wise=False,
             groupby=groupby,
-            groups=groups,
+            element_wise=False,
             error=error)
+
+    @property
+    def is_one_sample_test(self):
+        return len(self.samples) == 1
+
+    def prepare_series_input(self, series, dataframe):
+        """Prepare input for Hypothesis check.
+
+        :param pd.Series series: One-dimensional ndarray with axis labels
+            (including time series).
+        :param pd.DataFrame dataframe: Two-dimensional size-mutable,
+            potentially heterogeneous tabular data structure with labeled axes
+            (rows and columns)
+        :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
+            and `_vectorized_series_check`
+
+        """
+        self.groups = self.samples
+        return super(Hypothesis, self).prepare_series_input(series, dataframe)
+
+    def prepare_dataframe_input(self, dataframe):
+        """Prepare input for DataFrameSchema Hypothesis check."""
+        if self.groupby is not None:
+            raise SchemaDefinitionError(
+                "`groupby` cannot be used for DataFrameSchema checks, must "
+                "be used in Column checks.")
+        if self.is_one_sample_test:
+            return dataframe[self.samples[0]]
+        check_obj = [(sample, dataframe[sample]) for sample in self.samples]
+        return self._format_input(check_obj, self.samples)
 
     def relationships(self, relationship):
         """Impose a relationship on a supplied Test function.
@@ -391,25 +433,35 @@ class Hypothesis(Check):
             `hypothesis_check` and `_vectorized_series_check`
 
         """
-        if self.groupby is None:
+        if self.is_one_sample_test:
             # one-sample case where no groupby argument supplied, apply to
             # entire column
             return self.relationship(*self.test(check_obj))
         else:
             return self.relationship(
-                *self.test(*[check_obj.get(g) for g in self.groups]))
+                *self.test(*[check_obj.get(s) for s in self.samples]))
 
     @classmethod
     def two_sample_ttest(
-            cls, group1, group2, groupby=None, relationship="equal",
+            cls, sample1, sample2, groupby=None, relationship="equal",
             alpha=DEFAULT_ALPHA, equal_var=True, nan_policy="propagate"):
-        """Calculate a T-test for the means of two Columns.
+        """Calculate a t-test for the means of two columns.
 
         This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
         the null hypothesis that 2 independent samples have identical average
         (expected) values. This test assumes that the populations have
         identical variances by default.
 
+        :param sample1: The first sample group to test. For `Column` and
+            `SeriesSchema` hypotheses, refers to the `groupby` level in the
+            `Column`. For `DataFrameSchema` hypotheses, refers to column in
+            the `DataFrame`.
+        :type sample1: str
+        :param sample2: The second sample group to test. For `Column` and
+            `SeriesSchema` hypotheses, refers to the `groupby` level in the
+            `Column`. For `DataFrameSchema` hypotheses, refers to column in
+            the `DataFrame`.
+        :type sample2: str
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
@@ -423,22 +475,19 @@ class Hypothesis(Check):
 
             Where specific groups can be obtained from the input dict.
         :type groupby: str|list[str]|callable|None
-        :param group1: The first sample group in the `groupby` column.
-        :type group1: str
-        :param group2: The second sample group in the `groupby` column.
-        :type group2: str
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. Available relationships
-            are: "greater_than", "less_than", "not_equal". For example,
-            `group1 greater_than group2` specifies an alternative hypothesis
-            that the mean of group1 is greater than group 2 relative to a null
-            hypothesis that they are equal.
+            are: "greater_than", "less_than", "not_equal", and "equal".
+            For example, `group1 greater_than group2` specifies an alternative
+            hypothesis that the mean of group1 is greater than group 2 relative
+            to a null hypothesis that they are equal.
         :type relationship: str
         :param alpha: (Default value = 0.01) The significance level; the
             probability of rejecting the null hypothesis when it is true. For
             example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
+        :type alpha: float
         :param equal_var: (Default value = True) If True (default), perform a
             standard independent 2 sample test that assumes equal population
             variances. If False, perform Welch's t-test, which does not
@@ -455,13 +504,52 @@ class Hypothesis(Check):
                 "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_ind,
-            relationship=relationship,
+            samples=[sample1, sample2],
             groupby=groupby,
-            groups=[group1, group2],
+            relationship=relationship,
             test_kwargs={"equal_var": equal_var, "nan_policy": nan_policy},
             relationship_kwargs={"alpha": alpha},
             error="failed two sample ttest between '%s' and '%s'" % (
-                group1, group2),
+                sample1, sample2),
+        )
+
+    @classmethod
+    def one_sample_ttest(
+            cls, sample, popmean, relationship, alpha=DEFAULT_ALPHA):
+        """Calculate a t-test for the mean of one column.
+
+        :param sample: The sample group to test. For `Column` and
+            `SeriesSchema` hypotheses, refers to the `groupby` level in the
+            `Column`. For `DataFrameSchema` hypotheses, refers to column in
+            the `DataFrame`.
+        :type sample1: str
+        :param popmean: population mean to compare `sample` to.
+        :type popmean: float
+        :param relationship: Represents what relationship conditions are
+            imposed on the hypothesis test. Available relationships
+            are: "greater_than", "less_than", "not_equal" and "equal". For
+            example, `group1 greater_than group2` specifies an alternative
+            hypothesis that the mean of group1 is greater than group 2 relative
+            to a null hypothesis that they are equal.
+        :type relationship: str
+        :param alpha: (Default value = 0.01) The significance level; the
+            probability of rejecting the null hypothesis when it is true. For
+            example, a significance level of 0.01 indicates a 1% risk of
+            concluding that a difference exists when there is no actual
+            difference.
+        :type alpha: float
+        """
+        if relationship not in cls.RELATIONSHIPS:
+            raise SchemaError(
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
+        return cls(
+            test=stats.ttest_ind,
+            samples=sample,
+            relationship=relationship,
+            test_kwargs={"popmean": popmean},
+            relationship_kwargs={"alpha": alpha},
+            error="failed one sample ttest between for column '%s'" % (
+                sample),
         )
 
 

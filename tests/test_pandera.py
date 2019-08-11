@@ -6,7 +6,8 @@ import pytest
 
 from pandera import Column, DataFrameSchema, Index, MultiIndex, PandasDtype, \
     SeriesSchema, Check, Bool, Float, Int, DateTime, String, check_input, \
-    check_output, SchemaError, SchemaInitError, Hypothesis
+    check_output, SchemaError, SchemaInitError, SchemaDefinitionError, \
+    Hypothesis
 from scipy import stats
 
 
@@ -570,8 +571,8 @@ def test_hypothesis():
     schema_pass_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                group1="M",
-                group2="F",
+                sample1="M",
+                sample2="F",
                 groupby="sex",
                 relationship="greater_than",
                 alpha=0.5),
@@ -582,7 +583,7 @@ def test_hypothesis():
     schema_pass_ttest_on_alpha_val_2 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis(test=stats.ttest_ind,
-                       groups=["M", "F"],
+                       samples=["M", "F"],
                        groupby="sex",
                        relationship="greater_than",
                        relationship_kwargs={"alpha": 0.5}
@@ -594,8 +595,8 @@ def test_hypothesis():
     schema_pass_ttest_on_alpha_val_3 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                group1="M",
-                group2="F",
+                sample1="M",
+                sample2="F",
                 groupby="sex",
                 relationship="greater_than",
                 alpha=0.5),
@@ -607,9 +608,9 @@ def test_hypothesis():
         "height_in_feet": Column(Float, [
             Hypothesis(
                 test=stats.ttest_ind,
-                groups=["M", "F"],
+                samples=["M", "F"],
                 groupby="sex",
-                relationship=lambda stat, pvalue, alpha: (
+                relationship=lambda stat, pvalue, alpha=0.01: (
                     stat > 0 and pvalue / 2 < alpha
                 ),
                 relationship_kwargs={"alpha": 0.5}
@@ -627,8 +628,8 @@ def test_hypothesis():
     schema_fail_ttest_on_alpha_val_1 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                group1="M",
-                group2="F",
+                sample1="M",
+                sample2="F",
                 groupby="sex",
                 relationship="greater_than",
                 alpha=0.05),
@@ -639,7 +640,7 @@ def test_hypothesis():
     schema_fail_ttest_on_alpha_val_2 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis(test=stats.ttest_ind,
-                       groups=["M", "F"],
+                       samples=["M", "F"],
                        groupby="sex",
                        relationship="greater_than",
                        relationship_kwargs={"alpha": 0.05}),
@@ -650,8 +651,8 @@ def test_hypothesis():
     schema_fail_ttest_on_alpha_val_3 = DataFrameSchema({
         "height_in_feet": Column(Float, [
             Hypothesis.two_sample_ttest(
-                group1="M",
-                group2="F",
+                sample1="M",
+                sample2="F",
                 groupby="sex",
                 relationship="greater_than",
                 alpha=0.05),
@@ -673,8 +674,8 @@ def test_two_sample_ttest_hypothesis_relationships():
         schema = DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(
-                    group1="M",
-                    group2="F",
+                    sample1="M",
+                    sample2="F",
                     groupby="sex",
                     relationship=relationship,
                     alpha=0.5),
@@ -688,8 +689,8 @@ def test_two_sample_ttest_hypothesis_relationships():
             DataFrameSchema({
                 "height_in_feet": Column(Float, [
                     Hypothesis.two_sample_ttest(
-                        group1="M",
-                        group2="F",
+                        sample1="M",
+                        sample2="F",
                         groupby="sex",
                         relationship=relationship,
                         alpha=0.5),
@@ -868,23 +869,48 @@ def test_dataframe_hypothesis_checks():
             "col2": Column(Int),
         },
         checks=[
+            # two-sample test
             Hypothesis(
                 test=stats.ttest_ind,
-                groups=["col1", "col2"],
-                relationship=lambda stat, pvalue, alpha: (
+                samples=["col1", "col2"],
+                relationship=lambda stat, pvalue, alpha=0.01: (
                     stat > 0 and pvalue / 2 < alpha
                 ),
                 relationship_kwargs={"alpha": 0.5}
             ),
+            # one-sample test
+            Hypothesis(
+                test=stats.ttest_1samp,
+                test_kwargs={"popmean": 50},
+                samples=["col1"],
+                relationship=lambda stat, pvalue, alpha=0.01: (
+                    stat > 0 and pvalue / 2 < alpha
+                ),
+                relationship_kwargs={"alpha": 0.01}
+            ),
+        ]
+    )
+
+    hypothesis_check_schema.validate(df)
+
+    # raise error when using groupby
+    hypothesis_check_schema_groupby = DataFrameSchema(
+        columns={
+            "col1": Column(Int),
+            "col2": Column(Int),
+        },
+        checks=[
+            # two-sample test
             Hypothesis(
                 test=stats.ttest_ind,
-                groups=["col1", "col2"],
-                relationship=lambda stat, pvalue, alpha: (
+                samples=["col1", "col2"],
+                groupby="col3",
+                relationship=lambda stat, pvalue, alpha=0.01: (
                     stat > 0 and pvalue / 2 < alpha
                 ),
                 relationship_kwargs={"alpha": 0.5}
             ),
         ]
     )
-
-    hypothesis_check_schema.validate(df)
+    with pytest.raises(SchemaDefinitionError):
+        hypothesis_check_schema_groupby.validate(df)

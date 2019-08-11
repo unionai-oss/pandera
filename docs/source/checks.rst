@@ -64,7 +64,7 @@ checks.
 Column Check Groups
 -------------------
 
-``Column`` ``Check``\ s support grouping by a different column so that
+``Column`` ``Check``s support grouping by a different column so that
 you can make assertions about subsets of the ``Column`` of interest.
 This changes the function signature of the ``Check`` function so that
 its input is a dict where keys are the group names and keys are subsets
@@ -111,3 +111,61 @@ In the above example we define a ``DataFrameSchema`` with column checks
 for ``height_in_feet`` using a single column, multiple columns, and a
 more complex groupby function that creates a new column
 ``age_less_than_15`` on the fly.
+
+
+Wide Checks
+-----------
+
+``pandera`` is primarily designed to operate on long-form data (commonly known
+as `tidy data <https://vita.had.co.nz/papers/tidy-data.pdf>`_), where each row
+is an observation and columns are attributes associated with the observation.
+
+However, ``pandera`` also supports checks on wide-form data to operate across
+columns in a ``DataFrame``.
+
+For example, if you want to make assertions about ``height`` across two groups,
+the tidy dataset and schema might look like this:
+
+.. code:: python
+
+    import pandas as pd
+    from pandera import DataFrameSchema, Column, Check, Float, String
+
+    df = pd.DataFrame({
+        "height": [5.6, 6.4, 4.0, 7.1],
+        "group": ["A", "B", "A", "B"],
+    })
+
+    schema = DataFrameSchema({
+        "height": Column(
+            Float,
+            Check(lambda g: g["A"].mean() < g["B"].mean(), groupby="group")
+        ),
+        "group": Column(String)
+    })
+
+    schema.validate(df)
+
+
+The equivalent wide-form schema would look like this:
+
+.. code:: python
+
+    import pandas as pd
+    from pandera import DataFrameSchema, Column, Check, Float
+
+    df = pd.DataFrame({
+        "height_A": [5.6, 4.0],
+        "height_B": [6.4, 7.1],
+    })
+
+    schema = DataFrameSchema(
+        columns={
+            "height_A": Column(Float),
+            "height_B": Column(Float),
+        },
+        # define checks at the DataFrameSchema-level
+        checks=Check(lambda df: df["height_A"].mean() < df["height_B"].mean())
+    )
+
+    schema.validate(df)
