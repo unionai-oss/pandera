@@ -855,6 +855,16 @@ def test_dataframe_checks():
     )
     assert isinstance(groupby_check_schema.validate(df), pd.DataFrame)
 
+    # test element-wise checks
+    element_wise_check_schema = DataFrameSchema(
+        columns={
+            "col1": Column(Int),
+            "col2": Column(Float),
+        },
+        checks=Check(lambda row: row["col1"] < row["col2"], element_wise=True)
+    )
+    assert isinstance(element_wise_check_schema.validate(df), pd.DataFrame)
+
 
 def test_dataframe_hypothesis_checks():
 
@@ -876,17 +886,17 @@ def test_dataframe_hypothesis_checks():
                 relationship=lambda stat, pvalue, alpha=0.01: (
                     stat > 0 and pvalue / 2 < alpha
                 ),
-                relationship_kwargs={"alpha": 0.5}
+                relationship_kwargs={"alpha": 0.5},
             ),
             # one-sample test
             Hypothesis(
                 test=stats.ttest_1samp,
-                test_kwargs={"popmean": 50},
                 samples=["col1"],
                 relationship=lambda stat, pvalue, alpha=0.01: (
                     stat > 0 and pvalue / 2 < alpha
                 ),
-                relationship_kwargs={"alpha": 0.01}
+                test_kwargs={"popmean": 50},
+                relationship_kwargs={"alpha": 0.01},
             ),
         ]
     )
@@ -908,7 +918,7 @@ def test_dataframe_hypothesis_checks():
                 relationship=lambda stat, pvalue, alpha=0.01: (
                     stat > 0 and pvalue / 2 < alpha
                 ),
-                relationship_kwargs={"alpha": 0.5}
+                relationship_kwargs={"alpha": 0.5},
             ),
         ]
     )

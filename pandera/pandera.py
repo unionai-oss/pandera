@@ -275,7 +275,8 @@ class Check(object):
         _vcheck = partial(
             self._vectorized_check, parent_schema, check_index)
         if self.element_wise:
-            val_result = check_obj.map(self.fn)
+            val_result = check_obj.apply(self.fn, axis=1) if \
+                isinstance(check_obj, pd.DataFrame) else check_obj.map(self.fn)
             if val_result.all():
                 return True
             raise SchemaError(self.vectorized_error_message(
