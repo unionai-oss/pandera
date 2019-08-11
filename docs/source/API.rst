@@ -1,7 +1,7 @@
 .. pandera package index documentation toctree
 
-pandera package
-===============
+API
+===
 
 Module contents
 ---------------

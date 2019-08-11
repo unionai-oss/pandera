@@ -1,19 +1,31 @@
 .. pandera documentation master file
 
-.. image:: _static/pandera-banner.svg
-  :width: 60%
+.. image:: _static/pandera-logo.svg
+  :width: 150px
 
+Pandera
+=======
 
-A flexible `pandas <http://pandas.pydata.org>`_ validation library
-******************************************************************
+A flexible and expressive `pandas <http://pandas.pydata.org>`_ validation library.
 
 
 Why?
 ----
 
-Because pandas data structures hide a lot of information, and explicitly
+``pandas`` data structures hide a lot of information, and explicitly
 validating them at runtime in production-critical or reproducible research
-settings is a good idea. It also makes it easier to review pandas code :)
+settings is a good idea. ``pandera`` enables users to:
+
+#. :ref:`Check<checks>` the types and properties of columns in a ``DataFrame``
+   or values in a ``Series``.
+#. Perform more complex statistical validation like
+   :ref:`hypothesis testing<hypothesis>`.
+#. Seamlessly integrate with existing data analysis/processing pipelines
+   via :ref:`function decorators<decorators>`.
+
+``pandera`` provides a flexible and expressive API for performing data
+validation on tidy (long-form) and wide data to make data processing pipelines
+more readable and robust.
 
 
 Install
@@ -146,7 +158,7 @@ Submit issues, feature requests or bugfixes on
    checks
    hypothesis
    decorators
-   pandera
+   API
 
 Indices and tables
 ==================

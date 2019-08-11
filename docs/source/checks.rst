@@ -12,12 +12,11 @@ By default, ``Column`` ``Check``\ s are functions which expect a ``pd.series``
 argument and should output a boolean or a boolean Series.
 
 
-
 .. code:: python
 
    schema = DataFrameSchema({"column1": Column(Int, Check(lambda s: s <= 10))})
 
-Multiple checks can be applied to a column as i n
+Multiple checks can be applied to a column:
 
 .. code:: python
 
@@ -64,7 +63,7 @@ checks.
 Column Check Groups
 -------------------
 
-``Column`` ``Check``s support grouping by a different column so that
+``Column`` checks support grouping by a different column so that
 you can make assertions about subsets of the ``Column`` of interest.
 This changes the function signature of the ``Check`` function so that
 its input is a dict where keys are the group names and keys are subsets

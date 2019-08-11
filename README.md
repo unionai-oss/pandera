@@ -1,8 +1,8 @@
-<div align="center"><img src="https://github.com/cosmicBboy/pandera/blob/master/docs/source/_static/pandera-banner.png" width="450"></div>
+<div align="left"><img src="https://github.com/cosmicBboy/pandera/blob/master/docs/source/_static/pandera-logo.svg" width="150"></div>
 
----
+# Pandera
 
-### A light-weight and flexible validation package for [pandas](http://pandas.pydata.org) data structures.
+A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 
 <br>
 
@@ -16,9 +16,19 @@
 
 ## Why?
 
-Because pandas data structures hide a lot of information, and explicitly
+`pandas` data structures hide a lot of information, and explicitly
 validating them at runtime in production-critical or reproducible research
-settings is a good idea. It also makes it easier to review pandas code :)
+settings is a good idea. `pandera` enables users to:
+
+1. Check the types and properties of columns in a `DataFrame` or values in
+   a `Series`.
+1. Perform more complex statistical validation like hypothesis testing.
+1. Seamlessly integrate with existing data analysis/processing pipelines
+   via function decorators.
+
+`pandera` provides a flexible and expressive API for performing data validation
+on tidy (long-form) and wide data to make data processing pipelines more
+readable and robust.
 
 
 ## Documentation

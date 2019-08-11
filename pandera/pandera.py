@@ -314,11 +314,11 @@ class Hypothesis(Check):
 
         :param callable test: A function to check a series schema.
         :param samples: for `Column` or `SeriesSchema` hypotheses, this refers
-            to the group keys used to group the `Column` into a dict of
-            `Series` via the `groupby` column/columns. The `samples` column(s)
-            are passed into the `test` function as positional arguments.
+            to the group keys in the `groupby` column(s) used to group the
+            `Series` into a dict of `Series`. The `samples` column(s) are
+            passed into the `test` function as positional arguments.
 
-            For `DataFrame`-level hypotheses, `samples` refers a column or
+            For `DataFrame`-level hypotheses, `samples` refers to a column or
             multiple columns to pass into the `test` function. The `samples`
             column(s) are passed into the `test`  function as positional
             arguments.
@@ -454,13 +454,13 @@ class Hypothesis(Check):
         identical variances by default.
 
         :param sample1: The first sample group to test. For `Column` and
-            `SeriesSchema` hypotheses, refers to the `groupby` level in the
-            `Column`. For `DataFrameSchema` hypotheses, refers to column in
+            `SeriesSchema` hypotheses, refers to the level in the `groupby`
+            column. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
         :type sample1: str
         :param sample2: The second sample group to test. For `Column` and
-            `SeriesSchema` hypotheses, refers to the `groupby` level in the
-            `Column`. For `DataFrameSchema` hypotheses, refers to column in
+            `SeriesSchema` hypotheses, refers to the level in the `groupby`
+            column. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
         :type sample2: str
         :param groupby: If a string or list of strings is provided, then these
