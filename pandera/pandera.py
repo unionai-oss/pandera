@@ -1003,7 +1003,20 @@ def check_input(
     def _wrapper(fn, instance, args, kwargs):
         args = list(args)
         if isinstance(obj_getter, int):
-            args[obj_getter] = schema.validate(args[obj_getter])
+            try:
+                args[obj_getter] = schema.validate(args[obj_getter])
+            except IndexError as e:
+                raise SchemaError(
+                        "error in check decorator of function '%s': the index "
+                        "'%s' was supplied to the check but this index is "
+                        "unavailable in the function signature: '%s' the full "
+                        "error is: '%s'" %
+                        (fn.__name__,
+                         obj_getter,
+                         inspect.signature(fn),
+                         e
+                         )
+                        )
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:
                 kwargs[obj_getter] = schema.validate(kwargs[obj_getter])
