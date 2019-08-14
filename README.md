@@ -14,8 +14,6 @@ A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 [![codecov](https://codecov.io/gh/cosmicBboy/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/cosmicBboy/pandera)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 
-## Why?
-
 `pandas` data structures hide a lot of information, and explicitly
 validating them at runtime in production-critical or reproducible research
 settings is a good idea. `pandera` enables users to:
@@ -112,3 +110,31 @@ A detailed overview on how to contribute can be found in the [contributing guide
 
 Go [here](https://github.com/cosmicBboy/pandera/issues) to submit feature
 requests or bugfixes.
+
+## Other Data Validation Libraries
+
+Here are a few other alternatives for validating Python data structures.
+
+**Generic Python object data validation**
+
+- [voloptuous](https://github.com/alecthomas/voluptuous)
+- [schema](https://github.com/keleshev/schema)
+
+**`pandas`-specific data validation**
+
+- [opulent-pandas](https://github.com/danielvdende/opulent-pandas)
+- [PandasSchema](https://github.com/TMiguelT/PandasSchema)
+- [pandas-validator](https://github.com/c-data/pandas-validator)
+- [table_enforcer](https://github.com/xguse/table_enforcer)
+
+## Why `pandera`?
+
+- column data types, nullability, and uniqueness are first-class concepts.
+- `check_input` and `check_output` decorators enable seamless integration with
+  existing code.
+- `Check`s provide flexibility and performance by providing access to `pandas`
+  API by design.
+- `Hypothesis` class provides a tidy-first interface for statistical hypothesis
+  testing.
+- `Check`s and `Hypothesis` objects support both tidy and wide data validation.
+- Comprehensive documentation on key functionality.

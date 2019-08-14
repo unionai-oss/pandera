@@ -14,18 +14,18 @@ argument and should output a boolean or a boolean Series.
 
 .. code:: python
 
-   schema = DataFrameSchema({"column1": Column(Int, Check(lambda s: s <= 10))})
+  schema = DataFrameSchema({"column1": Column(Int, Check(lambda s: s <= 10))})
 
 Multiple checks can be applied to a column:
 
 .. code:: python
 
-   schema = DataFrameSchema({
-       "column2": Column(String, [
-           Check(lambda s: s.str.startswith("value")),
-           Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-       ]),
-   })
+  schema = DataFrameSchema({
+      "column2": Column(String, [
+          Check(lambda s: s.str.startswith("value")),
+          Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
+      ]),
+  })
 
 Vectorized vs. Element-wise Checks
 ----------------------------------
@@ -40,19 +40,19 @@ you can provide the ``element_wise=True`` keyword argument:
 
 .. code:: python
 
-   schema = DataFrameSchema({
-       "a": Column(Int, [
-           # a vectorized check that returns a bool
-           Check(lambda s: s.mean() > 5, element_wise=False),
-           # a vectorized check that returns a boolean series
-           Check(lambda s: s > 0, element_wise=False),
-           # an element-wise check that returns a bool
-           Check(lambda x: x > 0, element_wise=True),
-       ]),
-   })
+  schema = DataFrameSchema({
+      "a": Column(Int, [
+          # a vectorized check that returns a bool
+          Check(lambda s: s.mean() > 5, element_wise=False),
+          # a vectorized check that returns a boolean series
+          Check(lambda s: s > 0, element_wise=False),
+          # an element-wise check that returns a bool
+          Check(lambda x: x > 0, element_wise=True),
+      ]),
+  })
+  df = pd.DataFrame({"a": [4, 4, 5, 6, 6, 7, 8, 9]})
+  schema.validate(df)
 
-   df = pd.DataFrame({"a": [4, 4, 5, 6, 6, 7, 8, 9]})
-   schema.validate(df)
 
 By default ``element_wise=False`` so that you can take advantage of the
 speed gains provided by the ``pandas.Series`` API by writing vectorized
