@@ -1003,7 +1003,7 @@ def check_input(
                 args[obj_getter] = schema.validate(args[obj_getter])
             except IndexError as e:
                 raise SchemaError(
-                        "error in check decorator of function '%s': the "
+                        "error in check_input decorator of function '%s': the "
                         "index '%s' was supplied to the check but this "
                         "function accepts '%s' arguments, so the maximum "
                         "index is '%s'. The full error is: '%s'" %

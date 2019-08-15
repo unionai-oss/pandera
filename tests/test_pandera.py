@@ -256,7 +256,7 @@ def test_check_function_decorator_errors():
 
     with pytest.raises(
             SchemaError,
-            match=r"^error in check decorator of function"
+            match=r"^error in check_input decorator of function"
             ):
         test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]})
                                          )
