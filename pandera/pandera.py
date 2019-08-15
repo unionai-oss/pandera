@@ -584,7 +584,7 @@ class DataFrameSchema(object):
             validation.
         :type coerce: bool
         :param strict: whether or not to accept columns in the dataframe that
-            aren't in the DataFrame Schema.
+            aren't in the DataFrameSchema.
         :type strict: bool
         """
         if checks is None:
@@ -680,14 +680,14 @@ class DataFrameSchema(object):
                         (column, self.columns)
                     )
 
-        for c, col in self.columns.items():
-            if c not in dataframe and col.required:
+        for colname, col in self.columns.items():
+            if colname not in dataframe and col.required:
                 raise SchemaError(
                     "column '%s' not in dataframe\n%s" %
-                    (c, dataframe.head()))
+                    (colname, dataframe.head()))
 
             if col.coerce or self.coerce:
-                dataframe[c] = col.coerce_dtype(dataframe[c])
+                dataframe[colname] = col.coerce_dtype(dataframe[colname])
 
         schema_elements = [
             col.set_name(col_name) for col_name, col in self.columns.items()

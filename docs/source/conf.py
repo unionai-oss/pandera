@@ -29,7 +29,11 @@ author = 'Niels Bantilan, Nigel Markey'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
 ]
+
+doctest_global_setup = """
+"""
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
