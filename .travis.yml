@@ -27,4 +27,4 @@ script:
   # Check conformity to flake8 style guide
   - flake8 pandera/pandera.py tests
   # Check docs can build, treating warnings as errors
-  - make docs
+  - make -C docs doctest && python -m sphinx -E -W "docs/source" "docs/_build"
