@@ -12,22 +12,24 @@ Series Validation
 
 Schemas can be validated by creating
 
-.. code:: python
+.. testcode:: series_validation
 
-   import pandas as pd
+    import pandas as pd
+    import pandera as pa
 
-   from pandera import Check, SeriesSchema, String
+    from pandera import Check, SeriesSchema
 
-   # specify multiple validators
-   schema = SeriesSchema(String, [
-       Check(lambda x: "foo" in x),
-       Check(lambda x: x.endswith("bar")),
-       Check(lambda x: len(x) > 3)])
+    # specify multiple validators
+    schema = SeriesSchema(pa.String, [
+        Check(lambda s: s.str.startswith("foo")),
+        Check(lambda s: s.str.endswith("bar")),
+        Check(lambda x: len(x) > 3, element_wise=True)])
 
-   schema.validate(pd.Series(["1_foobar", "2_foobar", "3_foobar"]))
+    print(schema.validate(pd.Series(["foobar", "foobar", "foobar"])))
 
-   #  0    1_foobar
-   #  1    2_foobar
-   #  2    3_foobar
-   #  dtype: object
+.. testoutput:: series_validation
 
+    0    foobar
+    1    foobar
+    2    foobar
+    dtype: object

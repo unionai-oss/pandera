@@ -22,6 +22,9 @@ upload-pypi:
 requirements:
 	pip install -r requirements.txt
 
+docs:
+	make -C docs doctest && python -m sphinx -E -W "docs/source" "docs/_build"
+
 mock-ci-tests:
 	. ./ci_tests.sh
 

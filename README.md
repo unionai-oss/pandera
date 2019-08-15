@@ -129,7 +129,8 @@ Here are a few other alternatives for validating Python data structures.
 
 ## Why `pandera`?
 
-- column data types, nullability, and uniqueness are first-class concepts.
+- `pandas`-centric data types, column nullability, and uniqueness are
+  first-class concepts.
 - `check_input` and `check_output` decorators enable seamless integration with
   existing code.
 - `Check`s provide flexibility and performance by providing access to `pandas`

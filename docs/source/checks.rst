@@ -12,16 +12,21 @@ By default, ``Column`` ``Check``\ s are functions which expect a ``pd.series``
 argument and should output a boolean or a boolean Series.
 
 
-.. code:: python
+.. testcode:: checks
 
-  schema = DataFrameSchema({"column1": Column(Int, Check(lambda s: s <= 10))})
+    import pandera as pa
+
+    from pandera import Column, Check, DataFrameSchema
+
+    schema = DataFrameSchema({"column1": Column(pa.Int, Check(lambda s: s <= 10))})
+
 
 Multiple checks can be applied to a column:
 
-.. code:: python
+.. testcode:: checks
 
   schema = DataFrameSchema({
-      "column2": Column(String, [
+      "column2": Column(pa.String, [
           Check(lambda s: s.str.startswith("value")),
           Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
       ]),
@@ -38,20 +43,28 @@ evaluate to ``True``.
 If you want to make atomic checks for each element in the Column, then
 you can provide the ``element_wise=True`` keyword argument:
 
-.. code:: python
+.. testcode:: vectorized_element_wise_checks
 
-  schema = DataFrameSchema({
-      "a": Column(Int, [
-          # a vectorized check that returns a bool
-          Check(lambda s: s.mean() > 5, element_wise=False),
-          # a vectorized check that returns a boolean series
-          Check(lambda s: s > 0, element_wise=False),
-          # an element-wise check that returns a bool
-          Check(lambda x: x > 0, element_wise=True),
-      ]),
-  })
-  df = pd.DataFrame({"a": [4, 4, 5, 6, 6, 7, 8, 9]})
-  schema.validate(df)
+    import pandas as pd
+    import pandera as pa
+
+    from pandera import Column, Check, DataFrameSchema
+
+    schema = DataFrameSchema({
+        "a": Column(
+            pa.Int,
+            [
+                # a vectorized check that returns a bool
+                Check(lambda s: s.mean() > 5, element_wise=False),
+                # a vectorized check that returns a boolean series
+                Check(lambda s: s > 0, element_wise=False),
+                # an element-wise check that returns a bool
+                Check(lambda x: x > 0, element_wise=True),
+            ]
+        ),
+    })
+    df = pd.DataFrame({"a": [4, 4, 5, 6, 6, 7, 8, 9]})
+    schema.validate(df)
 
 
 By default ``element_wise=False`` so that you can take advantage of the
@@ -66,7 +79,7 @@ Column Check Groups
 ``Column`` checks support grouping by a different column so that
 you can make assertions about subsets of the ``Column`` of interest.
 This changes the function signature of the ``Check`` function so that
-its input is a dict where keys are the group names and keys are subsets
+its input is a dict where keys are the group names and values are subsets
 of the ``Column`` series.
 
 Specifying ``groupby`` as a column name, list of column names, or
@@ -74,37 +87,45 @@ callable changes the expected signature of the ``Check`` function
 argument to ``dict[Any|tuple[Any], Series] -> bool|Series[bool]`` where
 the dict keys are the discrete keys in the ``groupby`` columns.
 
-.. code:: python
+.. testcode:: column_check_groups
 
-   schema = DataFrameSchema({
-       "height_in_feet": Column(Float, [
-           # groupby as a single column
-           Check(lambda g: g[False].mean() > 6, groupby="age_less_than_20"),
-           # define multiple groupby columns
-           Check(lambda g: g[(True, "F")].sum() == 9.1,
-                 groupby=["age_less_than_20", "sex"]),
-           # groupby as a callable with signature (DataFrame) -> DataFrameGroupBy
-           Check(lambda g: g[(False, "M")].median() == 6.75,
-                 groupby=lambda df: (
-                   df
-                   .assign(age_less_than_15=lambda d: d["age"] < 15)
-                   .groupby(["age_less_than_15", "sex"]))),
-       ]),
-       "age": Column(Int, Check(lambda s: s > 0)),
-       "age_less_than_20": Column(Bool),
-       "sex": Column(String, Check(lambda s: s.isin(["M", "F"])))
-   })
+    import pandas as pd
+    import pandera as pa
 
-   df = (
-       pd.DataFrame({
-           "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
-           "age": [25, 30, 21, 18, 13],
-           "sex": ["M", "M", "F", "F", "F"]
-       })
-       .assign(age_less_than_20=lambda x: x["age"] < 20)
-   )
+    from pandera import Column, Check, DataFrameSchema
 
-   schema.validate(df)
+    schema = DataFrameSchema({
+        "height_in_feet": Column(
+            pa.Float, [
+                # groupby as a single column
+                Check(lambda g: g[False].mean() > 6,
+                      groupby="age_less_than_20"),
+                # define multiple groupby columns
+                Check(lambda g: g[(True, "F")].sum() == 9.1,
+                      groupby=["age_less_than_20", "sex"]),
+                # groupby as a callable with signature:
+                # (DataFrame) -> DataFrameGroupBy
+                Check(lambda g: g[(False, "M")].median() == 6.75,
+                      groupby=lambda df: (
+                        df
+                        .assign(age_less_than_15=lambda d: d["age"] < 15)
+                        .groupby(["age_less_than_15", "sex"]))),
+            ]),
+        "age": Column(pa.Int, Check(lambda s: s > 0)),
+        "age_less_than_20": Column(pa.Bool),
+        "sex": Column(pa.String, Check(lambda s: s.isin(["M", "F"])))
+    })
+
+    df = (
+        pd.DataFrame({
+            "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
+            "age": [25, 30, 21, 18, 13],
+            "sex": ["M", "M", "F", "F", "F"]
+        })
+        .assign(age_less_than_20=lambda x: x["age"] < 20)
+    )
+
+    schema.validate(df)
 
 In the above example we define a ``DataFrameSchema`` with column checks
 for ``height_in_feet`` using a single column, multiple columns, and a
@@ -125,10 +146,12 @@ columns in a ``DataFrame``.
 For example, if you want to make assertions about ``height`` across two groups,
 the tidy dataset and schema might look like this:
 
-.. code:: python
+.. testcode:: wide_checks
 
     import pandas as pd
-    from pandera import DataFrameSchema, Column, Check, Float, String
+    import pandera as pa
+
+    from pandera import DataFrameSchema, Column, Check
 
     df = pd.DataFrame({
         "height": [5.6, 6.4, 4.0, 7.1],
@@ -137,10 +160,10 @@ the tidy dataset and schema might look like this:
 
     schema = DataFrameSchema({
         "height": Column(
-            Float,
+            pa.Float,
             Check(lambda g: g["A"].mean() < g["B"].mean(), groupby="group")
         ),
-        "group": Column(String)
+        "group": Column(pa.String)
     })
 
     schema.validate(df)
@@ -148,10 +171,7 @@ the tidy dataset and schema might look like this:
 
 The equivalent wide-form schema would look like this:
 
-.. code:: python
-
-    import pandas as pd
-    from pandera import DataFrameSchema, Column, Check, Float
+.. testcode:: wide_checks
 
     df = pd.DataFrame({
         "height_A": [5.6, 4.0],
@@ -160,8 +180,8 @@ The equivalent wide-form schema would look like this:
 
     schema = DataFrameSchema(
         columns={
-            "height_A": Column(Float),
-            "height_B": Column(Float),
+            "height_A": Column(pa.Float),
+            "height_B": Column(pa.Float),
         },
         # define checks at the DataFrameSchema-level
         checks=Check(lambda df: df["height_A"].mean() < df["height_B"].mean())

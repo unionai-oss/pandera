@@ -10,11 +10,12 @@ can be made about the relationships between ``Column``\s.
 
 ``Hypothesis`` contains built in methods, which can be called as in this example:
 
-.. code:: python
+.. testcode:: hypothesis_testing
 
     import pandas as pd
+    import pandera as pa
 
-    from pandera import Column, DataFrameSchema, Float, Check, String, Hypothesis
+    from pandera import Column, DataFrameSchema, Check, Hypothesis
 
     from scipy import stats
 
@@ -26,21 +27,26 @@ can be made about the relationships between ``Column``\s.
     )
 
     schema = DataFrameSchema({
-        "height_in_feet": Column(Float, [
-            Hypothesis.two_sample_ttest(
-                sample1="M",
-                sample2="F",
-                groupby="sex",
-                relationship="greater_than",
-                alpha=0.05,
-                equal_var=True),
+        "height_in_feet": Column(
+            pa.Float, [
+                Hypothesis.two_sample_ttest(
+                    sample1="M",
+                    sample2="F",
+                    groupby="sex",
+                    relationship="greater_than",
+                    alpha=0.05,
+                    equal_var=True),
         ]),
-        "sex": Column(String)
+        "sex": Column(pa.String)
     })
 
     schema.validate(df)
 
-    #] SchemaError: <Schema Column: 'height_in_feet' type=float64> failed series validator 0: _check_fn
+.. testoutput:: hypothesis_testing
+
+    Traceback (most recent call last):
+    ...
+    pandera.SchemaError: <Schema Column: 'height_in_feet' type=float64> failed series validator 0: hypothesis_check: failed two sample ttest between 'M' and 'F'
 
 
 ``Hypothesis`` also supports passing custom ``test``'s and ``relationship``'s.
@@ -57,21 +63,22 @@ This enables the user to use non-built in functions. Here is an implementation
 of the two-sample t-test that uses the
 `scipy implementation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html>`_:
 
-.. code:: python
+.. testcode:: hypothesis_testing
 
     schema = DataFrameSchema({
-        "height_in_feet": Column(Float, [
-            Hypothesis(
-                test=stats.ttest_ind,
-                samples=["M", "F"],
-                groupby="sex",
-                relationship=lambda stat, pvalue, alpha=0.01: (
-                    stat > 0 and pvalue / 2 < alpha
-                ),
-                relationship_kwargs={"alpha": 0.5}
-            )
+        "height_in_feet": Column(
+            pa.Float, [
+                Hypothesis(
+                    test=stats.ttest_ind,
+                    samples=["M", "F"],
+                    groupby="sex",
+                    relationship=lambda stat, pvalue, alpha=0.01: (
+                        stat > 0 and pvalue / 2 < alpha
+                    ),
+                    relationship_kwargs={"alpha": 0.5}
+                )
         ]),
-        "sex": Column(String)
+        "sex": Column(pa.String)
     })
 
 
@@ -88,10 +95,12 @@ operate across columns in a ``DataFrame``.
 For example, if you want to make assertions about ``height`` across two groups,
 the tidy dataset and schema might look like this:
 
-.. code:: python
+.. testcode:: wide_hypothesis
 
     import pandas as pd
-    from pandera import DataFrameSchema, Column, Hypothesis, Float, String
+    import pandera as pa
+
+    from pandera import Check, DataFrameSchema, Column, Hypothesis
 
     df = pd.DataFrame({
         "height": [5.6, 6.4, 4.0, 7.1],
@@ -100,14 +109,14 @@ the tidy dataset and schema might look like this:
 
     schema = DataFrameSchema({
         "height": Column(
-            Float, Hypothesis.two_sample_ttest(
+            pa.Float, Hypothesis.two_sample_ttest(
                 "A", "B",
                 groupby="group",
                 relationship="less_than",
                 alpha=0.5
             )
         ),
-        "group": Column(String, Check(lambda s: s.isin(["A", "B"])))
+        "group": Column(pa.String, Check(lambda s: s.isin(["A", "B"])))
     })
 
     schema.validate(df)
@@ -118,7 +127,9 @@ The equivalent wide-form schema would look like this:
 .. code:: python
 
     import pandas as pd
-    from pandera import DataFrameSchema, Column, Hypothesis, Float
+    import pandera as pa
+
+    from pandera import DataFrameSchema, Column, Hypothesis
 
     df = pd.DataFrame({
         "height_A": [5.6, 4.0],
