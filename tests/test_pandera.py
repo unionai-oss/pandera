@@ -230,6 +230,9 @@ def test_check_function_decorators():
 
 
 def test_check_function_decorator_errors():
+    """Test that the check_input and check_output decorators error properly."""
+    # case 1: checks that the input and output decorators error when different
+    # types are passed in and out
     @check_input(DataFrameSchema({"column1": Column(Int)}))
     @check_output(DataFrameSchema({"column2": Column(Float)}))
     def test_func(df):
@@ -244,6 +247,19 @@ def test_check_function_decorator_errors():
             SchemaError,
             match=r"^error in check_output decorator of function"):
         test_func(pd.DataFrame({"column1": [1, 2, 3]}))
+
+    # case 2: check that if the input decorator refers to an index that's not
+    # in the function signature, it will fail in a way that's easy to interpret
+    @check_input(DataFrameSchema({"column1": Column(Int)}), 1)
+    def test_incorrect_check_input_index(df):
+        return df
+
+    with pytest.raises(
+            SchemaError,
+            match=r"^error in check_input decorator of function"
+            ):
+        test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]})
+                                         )
 
 
 def test_check_function_decorator_transform():
