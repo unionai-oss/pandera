@@ -1,7 +1,6 @@
 """Validate Pandas Data Structures."""
 
 import inspect
-import sys
 import warnings
 import pandas as pd
 import wrapt
