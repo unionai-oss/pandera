@@ -1,7 +1,6 @@
 """Validate Pandas Data Structures."""
 
 import inspect
-import sys
 import warnings
 import pandas as pd
 import wrapt
@@ -954,10 +953,7 @@ class Column(SeriesSchemaBase):
 
 
 def _get_fn_argnames(fn):
-    if sys.version_info.major >= 3:
-        arg_spec_args = inspect.getfullargspec(fn).args
-    else:
-        arg_spec_args = inspect.getargspec(fn).args
+    arg_spec_args = inspect.getfullargspec(fn).args
 
     if inspect.ismethod(fn) and arg_spec_args[0] == "self":
         # don't include "self" argument
