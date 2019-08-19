@@ -4,6 +4,7 @@ import inspect
 import warnings
 import pandas as pd
 import wrapt
+from typing import Union, Optional, List, Dict
 
 from collections import OrderedDict
 from enum import Enum
@@ -50,12 +51,12 @@ class Check(object):
 
     def __init__(
             self,
-            fn,
-            groups=None,
-            groupby=None,
-            element_wise=False,
-            error=None,
-            n_failure_cases=N_FAILURE_CASES):
+            fn: callable,
+            groups: Union[str, List[str], None] = None,
+            groupby: Union[str, List[str], callable, None] = None,
+            element_wise: Union[bool, List[bool]] = False,
+            error: Optional[str] = None,
+            n_failure_cases: Optional[int] = N_FAILURE_CASES):
         """Check object applies function element-wise or series-wise
 
         :param callable fn: A function to check series schema. If element_wise
@@ -64,7 +65,7 @@ class Check(object):
             to be: pd.Series -> bool|pd.Series[bool].
         :param groups: The dict input to the `fn` callable will be constrained
             to the groups specified by `groups`.
-        :type groups: str|list[str]|None
+        :type groups: str, List[str], None
         :param groupby: Only applies to Column Checks. If a string or list of
             strings is provided, then these columns are used to group the
             Column Series by `groupby`. If a callable is passed, the expected
@@ -78,12 +79,12 @@ class Check(object):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str|list[str]|callable|None
+        :type groupby: str, List[str], callable, None
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
             number of elements as checks.
-        :type element_wise: bool|list[bool]
+        :type element_wise: bool, List[bool]
         :param str error: custom error message if series fails validation
             check.
         :type str error:
@@ -110,46 +111,53 @@ class Check(object):
         self.groups = groups
 
     @property
-    def error_message(self):
+    def error_message(self) -> str:
 
         if self.error:
             return "%s: %s" % (self.fn.__name__, self.error)
         return "%s" % self.fn.__name__
 
     def vectorized_error_message(
-            self, parent_schema, check_index, failure_cases):
+            self,
+            parent_schema,
+            check_index: int,
+            failure_cases: pd.DataFrame) -> str:
         """Constructs an error message when an element-wise validator fails.
 
-        :param parent_schema: The schema object that is being checked and that
-            was inherited from the parent class.
-        :param check_index: The validator that failed.
-        :param failure_cases: The failure cases encountered by the element-wise
-            validator.
+        :param DataFrameSchema parent_schema: The schema object that is
+            being checked and that was inherited from the parent class.
+        :param int check_index: The validator that failed.
+        :param pd.DataFrame failure_cases: The failure cases encountered by the
+            element-wise validator.
 
         """
         return (
                 "%s failed element-wise validator %d:\n"
                 "%s\nfailure cases:\n%s" %
-                (parent_schema, check_index,
+                (parent_schema,
+                 check_index,
                  self.error_message,
                  self._format_failure_cases(failure_cases)))
 
-    def generic_error_message(self, parent_schema, check_index):
+    def generic_error_message(self,
+                              parent_schema,
+                              check_index: int) -> str:
         """Constructs an error message when a check validator fails.
 
-        :param parent_schema: The schema object that is being checked and that
-            was inherited from the parent class.
-        :param check_index: The validator that failed.
+        :param DataFrameSchema parent_schema: The schema object that is
+            being checked and that was inherited from the parent class.
+        :param int check_index: The validator that failed.
 
         """
         return "%s failed series validator %d: %s" % \
                (parent_schema, check_index, self.error_message)
 
-    def _format_failure_cases(self, failure_cases):
+    def _format_failure_cases(self,
+                              failure_cases: pd.DataFrame) -> pd.DataFrame:
         """Constructs readable error messages for vectorized_error_message.
 
-        :param failure_cases: The failure cases encountered by the element-wise
-            validator.
+        :param pd.DataFrame failure_cases: The failure cases encountered by the
+            element-wise validator.
 
         """
         if isinstance(failure_cases.index, pd.MultiIndex):
@@ -188,7 +196,16 @@ class Check(object):
         self.failure_cases = failure_cases
         return failure_cases.head(self.n_failure_cases)
 
-    def _format_input(self, groupby_obj, groups):
+    def _format_input(self,
+                      groupby_obj,
+                      groups) -> Dict[str, pd.Series]:
+        """
+
+        :param groupby_obj:
+        :param groups:
+        :return: check_obj
+        :rtype: Dict[str, pd.Series]
+        """
         if groups is None:
             return {group_key: group for group_key, group in groupby_obj}
         group_keys = set(group_key for group_key, _ in groupby_obj)
@@ -202,7 +219,9 @@ class Check(object):
             if group_key in groups
         }
 
-    def prepare_series_input(self, series, dataframe):
+    def prepare_series_input(self,
+                             series: pd.Series,
+                             dataframe: pd.DataFrame) -> Dict[str, pd.Series]:
         """Prepare input for Column check.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
@@ -212,6 +231,7 @@ class Check(object):
             (rows and columns)
         :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
             and `_vectorized_series_check`
+        :rtype: dict[str, pd.Series]
 
         """
         if dataframe is None or self.groupby is None:
@@ -229,7 +249,8 @@ class Check(object):
 
         return self._format_input(groupby_obj, self.groups)
 
-    def prepare_dataframe_input(self, dataframe):
+    def prepare_dataframe_input(self,
+                                dataframe: pd.DataFrame):
         """Prepare input for DataFrameSchema check."""
         if self.groupby is None:
             return dataframe
@@ -237,14 +258,18 @@ class Check(object):
             groupby_obj = dataframe.groupby(self.groupby)
         return self._format_input(groupby_obj, self.groups)
 
-    def _vectorized_check(self, parent_schema, check_index, check_obj):
+    def _vectorized_check(self,
+                          parent_schema,
+                          check_index: int,
+                          check_obj: Dict[str, pd.Series]):
         """Perform a vectorized check on a series.
 
-        :param parent_schema: The schema object that is being checked and that
-            was inherited from the parent class.
-        :param check_index: The validator to check the series for
-        :param dict check_obj: a dictionary of pd.Series to be used by
+        :param DataFrameSchema parent_schema: The schema object that is
+            being checked and that was inherited from the parent class.
+        :param int check_index: The validator to check the series for
+        :param check_obj: a dictionary of pd.Series to be used by
             `_check_fn` and `_vectorized_series_check`
+        :type check_obj: dict[str, pd.Series]
 
         """
         val_result = self.fn(check_obj)
@@ -270,7 +295,10 @@ class Check(object):
             raise SchemaError(
                 self.generic_error_message(parent_schema, check_index))
 
-    def __call__(self, parent_schema, check_index, check_obj):
+    def __call__(self,
+                 parent_schema,
+                 check_index: int,
+                 check_obj: Dict[str, pd.Series]):
         _vcheck = partial(
             self._vectorized_check, parent_schema, check_index)
         if self.element_wise:
@@ -304,9 +332,14 @@ class Hypothesis(Check):
         "equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue >= alpha),
     }
 
-    def __init__(self, test, samples, groupby=None,
-                 relationship="equal", test_kwargs=None,
-                 relationship_kwargs=None, error=None):
+    def __init__(self,
+                 test: callable,
+                 samples: Union[str, List[str], None],
+                 groupby: Union[str, List[str], callable, None] = None,
+                 relationship: Union[str, callable] = "equal",
+                 test_kwargs: Dict = None,
+                 relationship_kwargs: Dict = None,
+                 error: Optional[str] = None):
         """Initialises hypothesis to perform a hypothesis test on a Column.
 
             Can function on a single column or be grouped by another column.
@@ -321,7 +354,7 @@ class Hypothesis(Check):
             multiple columns to pass into the `test` function. The `samples`
             column(s) are passed into the `test`  function as positional
             arguments.
-        :type samples: str|list[str]|None
+        :type samples: str, List[str], None
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
@@ -334,7 +367,7 @@ class Hypothesis(Check):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str|list[str]|callable|None
+        :type groupby: str, List[str], callable, None
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. A function or lambda function can
             be supplied.
@@ -351,7 +384,7 @@ class Hypothesis(Check):
 
             Default is "equal" for the null hypothesis.
 
-        :type relationship: str|callable
+        :type relationship: str, callable
         :param dict test_kwargs: Key Word arguments to be supplied to the test.
         :param dict relationship_kwargs: Key Word arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
@@ -375,7 +408,9 @@ class Hypothesis(Check):
     def is_one_sample_test(self):
         return len(self.samples) == 1
 
-    def prepare_series_input(self, series, dataframe):
+    def prepare_series_input(self,
+                             series: pd.Series,
+                             dataframe: pd.DataFrame):
         """Prepare input for Hypothesis check.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
@@ -390,7 +425,8 @@ class Hypothesis(Check):
         self.groups = self.samples
         return super(Hypothesis, self).prepare_series_input(series, dataframe)
 
-    def prepare_dataframe_input(self, dataframe):
+    def prepare_dataframe_input(self,
+                                dataframe: pd.DataFrame):
         """Prepare input for DataFrameSchema Hypothesis check."""
         if self.groupby is not None:
             raise SchemaDefinitionError(
@@ -401,7 +437,8 @@ class Hypothesis(Check):
         check_obj = [(sample, dataframe[sample]) for sample in self.samples]
         return self._format_input(check_obj, self.samples)
 
-    def relationships(self, relationship):
+    def relationships(self,
+                      relationship: Union[str, callable]):
         """Impose a relationship on a supplied Test function.
 
         :param relationship: represents what relationship conditions are
@@ -426,7 +463,8 @@ class Hypothesis(Check):
             )
         return relationship
 
-    def hypothesis_check(self, check_obj):
+    def hypothesis_check(self,
+                         check_obj: Dict[str, pd.Series]):
         """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
@@ -443,8 +481,14 @@ class Hypothesis(Check):
 
     @classmethod
     def two_sample_ttest(
-            cls, sample1, sample2, groupby=None, relationship="equal",
-            alpha=DEFAULT_ALPHA, equal_var=True, nan_policy="propagate"):
+            cls,
+            sample1: str,
+            sample2: str,
+            groupby: Union[str, List[str], callable, None] = None,
+            relationship: str = "equal",
+            alpha=DEFAULT_ALPHA,
+            equal_var=True,
+            nan_policy="propagate"):
         """Calculate a t-test for the means of two columns.
 
         This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
@@ -474,7 +518,7 @@ class Hypothesis(Check):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str|list[str]|callable|None
+        :type groupby: str|List[str]|callable|None
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. Available relationships
             are: "greater_than", "less_than", "not_equal", and "equal".
@@ -515,7 +559,11 @@ class Hypothesis(Check):
 
     @classmethod
     def one_sample_ttest(
-            cls, sample, popmean, relationship, alpha=DEFAULT_ALPHA):
+            cls,
+            sample: str,
+            popmean: float,
+            relationship: str,
+            alpha: float = DEFAULT_ALPHA):
         """Calculate a t-test for the mean of one column.
 
         :param sample: The sample group to test. For `Column` and
@@ -559,10 +607,10 @@ class DataFrameSchema(object):
     def __init__(
             self,
             columns,
-            checks=None,
+            checks: callable = None,
             index=None,
-            transformer=None,
-            coerce=False,
+            transformer: callable = None,
+            coerce: bool = False,
             strict=False
             ):
         """A light-weight pandas DataFrame validator.
@@ -570,9 +618,9 @@ class DataFrameSchema(object):
         :param columns: a dict where keys are column names and values are
             Column objects specifying the datatypes and properties of a
             particular column.
-        :type columns: dict[str -> Column]
+        :type columns: dict[str, pandera.Column]
         :param checks: dataframe-wide checks.
-        :type checks: list[Check].
+        :type checks: List[Check].
         :param index: specify the datatypes and properties of the index.
         :type index: Index
         :param transformer: a callable with signature:
@@ -601,11 +649,11 @@ class DataFrameSchema(object):
 
     def __call__(
             self,
-            dataframe,
-            head=None,
-            tail=None,
-            sample=None,
-            random_state=None
+            dataframe: pd.DataFrame,
+            head: int = None,
+            tail: int = None,
+            sample: int = None,
+            random_state: Optional[int] = None
             ):
         """Delegate to `validate` method.
 
@@ -636,7 +684,11 @@ class DataFrameSchema(object):
                         (nonexistent_groupby_columns, column_name))
 
     @staticmethod
-    def _dataframe_to_validate(dataframe, head, tail, sample, random_state):
+    def _dataframe_to_validate(dataframe: pd.DataFrame,
+                               head: int,
+                               tail: int,
+                               sample: int,
+                               random_state: Optional[int]) -> pd.DataFrame:
         dataframe_subsample = []
         if head is not None:
             dataframe_subsample.append(dataframe.head(head))
@@ -648,18 +700,19 @@ class DataFrameSchema(object):
         return dataframe if len(dataframe_subsample) == 0 else \
             pd.concat(dataframe_subsample).drop_duplicates()
 
-    def _check_dataframe(self, dataframe):
+    def _check_dataframe(self,
+                         dataframe: pd.DataFrame):
         return all(
             check(self, check_index, check.prepare_dataframe_input(dataframe))
             for check_index, check in enumerate(self._checks))
 
     def validate(
             self,
-            dataframe,
-            head=None,
-            tail=None,
-            sample=None,
-            random_state=None):
+            dataframe: pd.DataFrame,
+            head: int = None,
+            tail: int = None,
+            sample: int = None,
+            random_state: Optional[int] = None) -> pd.DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -709,8 +762,12 @@ class DataFrameSchema(object):
 class SeriesSchemaBase(object):
     """Base series validator object."""
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False,
-                 allow_duplicates=True, name=None):
+    def __init__(self,
+                 pandas_dtype,
+                 checks: callable = None,
+                 nullable: bool = False,
+                 allow_duplicates: bool = True,
+                 name: str = None):
         """Initialize series schema base object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
@@ -743,7 +800,9 @@ class SeriesSchemaBase(object):
                     "Can only use `groupby` with a pandera.Column, found %s" %
                     type(self))
 
-    def __call__(self, series, dataframe=None):
+    def __call__(self,
+                 series: pd.Series,
+                 dataframe: pd.DataFrame = None):
         """Validate a series."""
         if series.name != self._name:
             raise SchemaError(
@@ -805,8 +864,12 @@ class SeriesSchemaBase(object):
 
 class SeriesSchema(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False,
-                 allow_duplicates=True, name=None):
+    def __init__(self,
+                 pandas_dtype,
+                 checks: callable = None,
+                 nullable: bool = False,
+                 allow_duplicates: bool = True,
+                 name: str = None):
         """Initialize series schema object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
@@ -826,7 +889,8 @@ class SeriesSchema(SeriesSchemaBase):
         super(SeriesSchema, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, name)
 
-    def validate(self, series):
+    def validate(self,
+                 series: pd.Series) -> pd.Series:
         """Check if all values in a series have a corresponding column in the
             DataFrameSchema
 
@@ -843,8 +907,12 @@ class SeriesSchema(SeriesSchemaBase):
 
 class Index(SeriesSchemaBase):
 
-    def __init__(self, pandas_dtype, checks=None, nullable=False,
-                 allow_duplicates=True, name=None):
+    def __init__(self,
+                 pandas_dtype,
+                 checks: callable = None,
+                 nullable: bool = False,
+                 allow_duplicates: bool = True,
+                 name: str = None):
         super(Index, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, name)
 
@@ -859,7 +927,7 @@ class Index(SeriesSchemaBase):
 
 class MultiIndex(DataFrameSchema):
 
-    def __init__(self, indexes, coerce=False, strict=False):
+    def __init__(self, indexes, coerce: bool = False, strict=False):
         super(MultiIndex, self).__init__(
             columns={
                 i if index._name is None else index._name: Column(
@@ -887,9 +955,13 @@ class MultiIndex(DataFrameSchema):
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, pandas_dtype, checks=None, nullable=False,
-            allow_duplicates=True,
-            coerce=False, required=True):
+            self,
+            pandas_dtype,
+            checks: callable = None,
+            nullable: bool = False,
+            allow_duplicates: bool = True,
+            coerce: bool = False,
+            required: bool = True):
         """Initialize column validator object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
@@ -916,7 +988,8 @@ class Column(SeriesSchemaBase):
         self.coerce = coerce
         self.required = required
 
-    def set_name(self, name):
+    def set_name(self,
+                 name: str):
         """Used to set or modify the name of a column object.
 
         :param str name: the name of the column object
@@ -925,7 +998,8 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
-    def coerce_dtype(self, series):
+    def coerce_dtype(self,
+                     series: pd.Series) -> pd.Series:
         """Coerce the type of a pd.Series by the type specified in the Column
             object's self._pandas_dtype
 
@@ -937,7 +1011,8 @@ class Column(SeriesSchemaBase):
             else self._pandas_dtype.value
         return series.astype(_dtype)
 
-    def __call__(self, df):
+    def __call__(self,
+                 df: pd.DataFrame):
         if self._name is None:
             raise RuntimeError(
                 "need to `set_name` of column before calling it.")
@@ -952,7 +1027,7 @@ class Column(SeriesSchemaBase):
         return "<Schema Column: '%s' type=%s>" % (self._name, dtype)
 
 
-def _get_fn_argnames(fn):
+def _get_fn_argnames(fn: callable):
     arg_spec_args = inspect.getfullargspec(fn).args
 
     if inspect.ismethod(fn) and arg_spec_args[0] == "self":
@@ -962,12 +1037,12 @@ def _get_fn_argnames(fn):
 
 
 def check_input(
-        schema,
-        obj_getter=None,
-        head=None,
-        tail=None,
-        sample=None,
-        random_state=None):
+        schema: DataFrameSchema,
+        obj_getter: Union[int, str, None] = None,
+        head: int = None,
+        tail: int = None,
+        sample: int = None,
+        random_state: Optional[int] = None):
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -993,6 +1068,7 @@ def check_input(
     :type tail: int
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
+    :type sample: int
     """
 
     @wrapt.decorator
@@ -1040,12 +1116,12 @@ def check_input(
 
 
 def check_output(
-        schema,
-        obj_getter=None,
-        head=None,
-        tail=None,
-        sample=None,
-        random_state=None):
+        schema: DataFrameSchema,
+        obj_getter: Union[int, str, callable, None] = None,
+        head: int = None,
+        tail: int = None,
+        sample: int = None,
+        random_state: Optional[int] = None):
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
