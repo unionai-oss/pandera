@@ -126,6 +126,56 @@ def test_dataframe_schema_strict():
         schema.validate(df)
 
 
+def series_greater_than_zero(s: pd.Series):
+    """Return a bool series indicating whether the elements of s are > 0"""
+    return s > 0
+
+
+def series_greater_than_ten(s: pd.Series):
+    """Return a bool series indicating whether the elements of s are > 10"""
+    return s > 10
+
+
+class SeriesGreaterCheck:
+    """Class creating callable objects to check if series elements exceed a
+    lower bound.
+    """
+    def __init__(self, lower_bound):
+        self.lower_bound = lower_bound
+    def __call__(self, s: pd.Series):
+        """Check if the elements of s are > lower_bound.
+
+        :returns Series with bool elements
+        """
+        return s > self.lower_bound
+
+
+@pytest.mark.parametrize("check_function, should_fail", [
+    (lambda s: s > 0, False),
+    (lambda s: s > 10, True),
+    (series_greater_than_zero, False),
+    (series_greater_than_ten, True),
+    (SeriesGreaterCheck(lower_bound=0), False),
+    (SeriesGreaterCheck(lower_bound=10), True)
+])
+def test_dataframe_schema_check_function_types(check_function, should_fail):
+    schema = DataFrameSchema({
+            "a": Column(PandasDtype.Int,
+                        Check(fn=check_function, element_wise=False)),
+            "b": Column(PandasDtype.Float,
+                        Check(fn=check_function, element_wise=False))
+    })
+    df = pd.DataFrame({
+        "a": [1, 2, 3],
+        "b": [1.1, 2.5, 9.9]
+    })
+    if should_fail:
+        with pytest.raises(SchemaError):
+            schema.validate(df)
+    else:
+        schema.validate(df)
+
+
 def test_index_schema():
     schema = DataFrameSchema(
         columns={},
