@@ -142,6 +142,7 @@ class SeriesGreaterCheck:
     """
     def __init__(self, lower_bound):
         self.lower_bound = lower_bound
+
     def __call__(self, s: pd.Series):
         """Check if the elements of s are > lower_bound.
 
