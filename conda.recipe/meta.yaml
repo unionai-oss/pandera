@@ -15,6 +15,7 @@ requirements:
     - enum34 # [py==27]
     - numpy
     - pandas
+    - pyyaml
     - scipy
     - wrapt
   run:
@@ -22,6 +23,7 @@ requirements:
     - enum34 # [py==27]
     - numpy
     - pandas
+    - pyyaml
     - scipy
     - wrapt
 

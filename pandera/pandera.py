@@ -887,7 +887,7 @@ class MultiIndex(DataFrameSchema):
 class Column(SeriesSchemaBase):
 
     def __init__(
-            self, pandas_dtype, checks=None, nullable=False,
+            self, dtype, checks=None, nullable=False,
             allow_duplicates=True,
             coerce=False, required=True):
         """Initialize column validator object.
@@ -912,7 +912,7 @@ class Column(SeriesSchemaBase):
         :type required:  bool
         """
         super(Column, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates)
+            dtype, checks, nullable, allow_duplicates)
         self.coerce = coerce
         self.required = required
 
