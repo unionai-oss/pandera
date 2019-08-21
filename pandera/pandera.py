@@ -78,15 +78,11 @@ class Check(object):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str, List[str], callable, None
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
             number of elements as checks.
-        :type element_wise: bool, List[bool]
-        :param str error: custom error message if series fails validation
-            check.
-        :type str error:
+        :param error: custom error message if series fails validation check.
         :param n_failure_cases: report the top n failure cases. If None, then
             report all failure cases.
         """
@@ -123,11 +119,11 @@ class Check(object):
             failure_cases: Union[pd.DataFrame, pd.Series]) -> str:
         """Constructs an error message when an element-wise validator fails.
 
-        :param DataFrameSchema parent_schema: The schema object that is
-            being checked and that was inherited from the parent class.
-        :param int check_index: The validator that failed.
-        :param pd.DataFrame failure_cases: The failure cases encountered by the
-            element-wise validator.
+        :param DataFrameSchema parent_schema: The schema object that is being
+            checked and that was inherited from the parent class.
+        :param check_index: The validator that failed.
+        :param failure_cases: The failure cases encountered by the element-wise
+            validator.
 
         """
         return (
@@ -143,9 +139,9 @@ class Check(object):
                               check_index: int) -> str:
         """Constructs an error message when a check validator fails.
 
-        :param DataFrameSchema parent_schema: The schema object that is
-            being checked and that was inherited from the parent class.
-        :param int check_index: The validator that failed.
+        :param DataFrameSchema parent_schema: The schema object that is being
+            checked and that was inherited from the parent class.
+        :param check_index: The validator that failed.
 
         """
         return "%s failed series validator %d: %s" % \
@@ -156,7 +152,7 @@ class Check(object):
                               ) -> pd.DataFrame:
         """Constructs readable error messages for vectorized_error_message.
 
-        :param pd.DataFrame failure_cases: The failure cases encountered by the
+        :param failure_cases: The failure cases encountered by the
             element-wise validator.
 
         """
@@ -205,7 +201,6 @@ class Check(object):
         :param groupby_obj:
         :param groups:
         :return: check_obj
-        :rtype: Dict[str, pd.Series]
         """
         if groups is None:
             return {group_key: group for group_key, group in groupby_obj}
@@ -225,14 +220,13 @@ class Check(object):
                              dataframe: pd.DataFrame) -> Dict[str, pd.Series]:
         """Prepare input for Column check.
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
+        :param series: One-dimensional ndarray with axis labels
             (including time series).
-        :param pd.DataFrame dataframe: Two-dimensional size-mutable,
+        :param dataframe: Two-dimensional size-mutable,
             potentially heterogeneous tabular data structure with labeled axes
             (rows and columns)
         :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
             and `_vectorized_series_check`
-        :rtype: dict[str, pd.Series]
 
         """
         if dataframe is None or self.groupby is None:
@@ -260,17 +254,16 @@ class Check(object):
         return self._format_input(groupby_obj, self.groups)
 
     def _vectorized_check(self,
-                          parent_schema: Union[DataFrameSchema, SeriesSchemaBase],
+                          parent_schema,
                           check_index: int,
                           check_obj: Dict[str, pd.Series]):
         """Perform a vectorized check on a series.
 
-        :param parent_schema: The schema object that is
+        :param DataFrameSchema parent_schema: The schema object that is
             being checked and that was inherited from the parent class.
-        :param int check_index: The validator to check the series for
+        :param check_index: The validator to check the series for
         :param check_obj: a dictionary of pd.Series to be used by
             `_check_fn` and `_vectorized_series_check`
-        :type check_obj: dict[str, pd.Series]
 
         """
         val_result = self.fn(check_obj)
@@ -345,7 +338,7 @@ class Hypothesis(Check):
 
             Can function on a single column or be grouped by another column.
 
-        :param callable test: A function to check a series schema.
+        :param test: A function to check a series schema.
         :param samples: for `Column` or `SeriesSchema` hypotheses, this refers
             to the group keys in the `groupby` column(s) used to group the
             `Series` into a dict of `Series`. The `samples` column(s) are
@@ -355,7 +348,6 @@ class Hypothesis(Check):
             multiple columns to pass into the `test` function. The `samples`
             column(s) are passed into the `test`  function as positional
             arguments.
-        :type samples: str, List[str], None
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
@@ -368,7 +360,6 @@ class Hypothesis(Check):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str, List[str], callable, None
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. A function or lambda function can
             be supplied.
@@ -385,13 +376,11 @@ class Hypothesis(Check):
 
             Default is "equal" for the null hypothesis.
 
-        :type relationship: str, callable
-        :param dict test_kwargs: Key Word arguments to be supplied to the test.
-        :param dict relationship_kwargs: Key Word arguments to be supplied to
+        :param test_kwargs: Key Word arguments to be supplied to the test.
+        :param relationship_kwargs: Key Word arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
         :param error: error message to show
-        :type str:
         """
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(self.relationships(relationship),
@@ -414,9 +403,9 @@ class Hypothesis(Check):
                              dataframe: pd.DataFrame):
         """Prepare input for Hypothesis check.
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
+        :param series: One-dimensional ndarray with axis labels
             (including time series).
-        :param pd.DataFrame dataframe: Two-dimensional size-mutable,
+        :param dataframe: Two-dimensional size-mutable,
             potentially heterogeneous tabular data structure with labeled axes
             (rows and columns)
         :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
@@ -447,7 +436,6 @@ class Hypothesis(Check):
             be supplied. If a string is provided, a lambda function will be
             returned from Hypothesis.relationships. Available relationships
             are: "greater_than", "less_than", "not_equal"
-        :type relationship: str|callable
 
         """
         if isinstance(relationship, str):
@@ -468,7 +456,7 @@ class Hypothesis(Check):
                          check_obj: Dict[str, pd.Series]):
         """Create a function fn which is checked via the Check parent class.
 
-        :param dict check_obj: a dictionary of pd.Series to be used by
+        :param check_obj: a dictionary of pd.Series to be used by
             `hypothesis_check` and `_vectorized_series_check`
 
         """
@@ -501,12 +489,10 @@ class Hypothesis(Check):
             `SeriesSchema` hypotheses, refers to the level in the `groupby`
             column. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
-        :type sample1: str
         :param sample2: The second sample group to test. For `Column` and
             `SeriesSchema` hypotheses, refers to the level in the `groupby`
             column. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
-        :type sample2: str
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
@@ -519,30 +505,25 @@ class Hypothesis(Check):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str|List[str]|callable|None
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. Available relationships
             are: "greater_than", "less_than", "not_equal", and "equal".
             For example, `group1 greater_than group2` specifies an alternative
             hypothesis that the mean of group1 is greater than group 2 relative
             to a null hypothesis that they are equal.
-        :type relationship: str
         :param alpha: (Default value = 0.01) The significance level; the
             probability of rejecting the null hypothesis when it is true. For
             example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
-        :type alpha: float
         :param equal_var: (Default value = True) If True (default), perform a
             standard independent 2 sample test that assumes equal population
             variances. If False, perform Welch's t-test, which does not
             assume equal population variance
-        :type equal_var: bool
         :param nan_policy: Defines how to handle when input returns nan, one of
             {'propagate', 'raise', 'omit'}, (Default value = 'propagate').
             For more details see:
             https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html  # noqa E53
-        :type nan_policy: str
         """
         if relationship not in cls.RELATIONSHIPS:
             raise SchemaError(
@@ -571,22 +552,18 @@ class Hypothesis(Check):
             `SeriesSchema` hypotheses, refers to the `groupby` level in the
             `Column`. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
-        :type sample1: str
         :param popmean: population mean to compare `sample` to.
-        :type popmean: float
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. Available relationships
             are: "greater_than", "less_than", "not_equal" and "equal". For
             example, `group1 greater_than group2` specifies an alternative
             hypothesis that the mean of group1 is greater than group 2 relative
             to a null hypothesis that they are equal.
-        :type relationship: str
         :param alpha: (Default value = 0.01) The significance level; the
             probability of rejecting the null hypothesis when it is true. For
             example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
-        :type alpha: float
         """
         if relationship not in cls.RELATIONSHIPS:
             raise SchemaError(
@@ -619,22 +596,16 @@ class DataFrameSchema(object):
         :param columns: a dict where keys are column names and values are
             Column objects specifying the datatypes and properties of a
             particular column.
-        :type columns: dict[str, pandera.Column]
         :param checks: dataframe-wide checks.
-        :type checks: List[Check].
         :param index: specify the datatypes and properties of the index.
-        :type index: Index
         :param transformer: a callable with signature:
             pandas.DataFrame -> pandas.DataFrame. If specified, calling
             `validate` will verify properties of the columns and return the
             transformed dataframe object.
-        :type transformer: callable
         :param coerce: whether or not to coerce all of the columns on
             validation.
-        :type coerce: bool
         :param strict: whether or not to accept columns in the dataframe that
             aren't in the DataFrameSchema.
-        :type strict: bool
         """
         if checks is None:
             checks = []
@@ -658,13 +629,11 @@ class DataFrameSchema(object):
             ):
         """Delegate to `validate` method.
 
-        :param pd.DataFrame dataframe: the dataframe to be validated.
+        :param dataframe: the dataframe to be validated.
         :param head: validate the first n rows. Rows overlapping with `tail` or
             `sample` are de-duplicated.
-        :type head: int
         :param tail: validate the last n rows. Rows overlapping with `head` or
             `sample` are de-duplicated.
-        :type tail: int
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
         """
@@ -716,13 +685,11 @@ class DataFrameSchema(object):
             random_state: Optional[int] = None) -> pd.DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
 
-        :param pd.DataFrame dataframe: the dataframe to be validated.
+        :param dataframe: the dataframe to be validated.
         :param head: validate the first n rows. Rows overlapping with `tail` or
             `sample` are de-duplicated.
-        :type head: int
         :param tail: validate the last n rows. Rows overlapping with `head` or
             `sample` are de-duplicated.
-        :type tail: int
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
         """
@@ -774,16 +741,12 @@ class SeriesSchemaBase(object):
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :type pandas_dtype: str|PandasDtype
         :param checks: If element_wise is True, then callable signature should
             be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
-        :type checks: callable
         :param nullable: Whether or not column can contain null values.
-        :type nullable: bool
         :param allow_duplicates:
-        :type allow_duplicates: bool
         """
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
@@ -876,16 +839,12 @@ class SeriesSchema(SeriesSchemaBase):
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :type pandas_dtype: str|PandasDtype
         :param checks: If element_wise is True, then callable signature should
             be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
-        :type checks: callable
         :param nullable: Whether or not column can contain null values.
-        :type nullable: bool
         :param allow_duplicates:
-        :type allow_duplicates: bool
         """
         super(SeriesSchema, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, name)
@@ -895,7 +854,7 @@ class SeriesSchema(SeriesSchemaBase):
         """Check if all values in a series have a corresponding column in the
             DataFrameSchema
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
+        :param series: One-dimensional ndarray with axis labels
             (including time series).
 
         """
@@ -968,21 +927,15 @@ class Column(SeriesSchemaBase):
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :type pandas_dtype: str|PandasDtype
         :param checks: if element_wise is True, then callable signature should
             be: x -> bool where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
-        :type checks: callable
         :param nullable: Whether or not column can contain null values.
-        :type nullable: bool
         :param allow_duplicates: Whether or not to coerce the column to the
             specified pandas_dtype before validation
-        :type allow_duplicates: bool
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype.
-        :type coerce:  bool
         :param required: Whether or not column is allowed to be missing
-        :type required:  bool
         """
         super(Column, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates)
@@ -1004,7 +957,7 @@ class Column(SeriesSchemaBase):
         """Coerce the type of a pd.Series by the type specified in the Column
             object's self._pandas_dtype
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
+        :param series: One-dimensional ndarray with axis labels
             (including time series).
 
         """
@@ -1052,7 +1005,6 @@ def check_input(
     passed into the decorated function.
 
     :param schema: dataframe/series schema object
-    :type schema: DataFrameSchema|SeriesSchema
     :param obj_getter:  (Default value = None) if int, obj_getter refers to the
         the index of the pandas dataframe/series to be validated in the args
         part of the function signature. If str, obj_getter refers to the
@@ -1060,16 +1012,12 @@ def check_input(
         This works even if the series/dataframe is passed in as a positional
         argument when the function is called. If None, assumes that the
         dataframe/series is the first argument of the decorated function
-    :type obj_getter: int|str|None
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
-    :type head: int
     :param tail: validate the last n rows. Rows overlapping with `head` or
         `sample` are de-duplicated.
-    :type tail: int
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
-    :type sample: int
     """
 
     @wrapt.decorator
@@ -1131,7 +1079,6 @@ def check_output(
     validator.
 
     :param schema: dataframe/series schema object
-    :type schema: DataFrameSchema|SeriesSchema
     :param obj_getter:  (Default value = None) if int, assumes that the output
         of the decorated function is a list-like object, where obj_getter is
         the index of the pandas data dataframe/series to be validated. If str,
@@ -1139,13 +1086,10 @@ def check_output(
         key pointing to the dataframe/series to be validated. If a callable is
         supplied, it expects the output of decorated function and should return
         the dataframe/series to be validated.
-    :type obj_getter: int|str|callable|None
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
-    :type head: int
     :param tail: validate the last n rows. Rows overlapping with `head` or
         `sample` are de-duplicated.
-    :type tail: int
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
     """
