@@ -8,4 +8,5 @@ pytest-cov
 scipy >= 1.2.0
 sphinx
 sphinx_rtd_theme
+sphinx_autodoc_typehints
 wrapt
