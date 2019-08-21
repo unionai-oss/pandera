@@ -30,6 +30,7 @@ author = 'Niels Bantilan, Nigel Markey'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
+    'sphinx_autodoc_typehints'
 ]
 
 doctest_global_setup = """
