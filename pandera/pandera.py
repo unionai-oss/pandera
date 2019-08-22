@@ -111,10 +111,10 @@ class Check(object):
 
     @property
     def error_message(self):
-
+        name = getattr(self.fn, '__name__', self.fn.__class__.__name__)
         if self.error:
-            return "%s: %s" % (self.fn.__name__, self.error)
-        return "%s" % self.fn.__name__
+            return "%s: %s" % (name, self.error)
+        return "%s" % name
 
     def vectorized_error_message(
             self, parent_schema, check_index, failure_cases):
