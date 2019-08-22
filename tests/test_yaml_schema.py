@@ -1,5 +1,6 @@
 """Test the yaml loading capabilities in pandera.yaml_schema"""
 
+from pathlib import Path
 from typing import Dict
 
 import pandas as pd
@@ -11,6 +12,7 @@ import yaml
 
 @pytest.fixture(scope='function')
 def sample_df():
+    """Multi-typed sample dataframe for the tests below"""
     return pd.DataFrame({
         "int_col": [1, 2, 3],
         "float_col": [1.1, 2.5, 9.9],
@@ -27,48 +29,8 @@ def sample_df():
 
 @pytest.fixture
 def sample_df_schema():
-    return """
-      dataframe:
-        checks:
-        columns:
-          int_col:
-            dtype: Int
-            checks: 
-            nullable: False
-            allow_duplicates: True
-            coerce: False
-            required: True
-          float_col:
-            dtype: Float
-            checks: 
-            nullable: False
-            allow_duplicates: True
-            coerce: False
-            required: True
-          str_col:
-            dtype: String
-            checks: 
-            nullable: False
-            allow_duplicates: True
-            coerce: False
-            required: True
-          bool_col:
-            dtype: Bool
-            checks: 
-            nullable: False
-            allow_duplicates: True
-            coerce: False
-            required: True
-          datetime_col:
-            dtype: DateTime
-            checks: 
-            nullable: False
-            allow_duplicates: True
-            coerce: False
-            required: True
-        coerce: True
-        strict: False
-      """
+    """YAML definition of a schema matching the dataframe of sample_df()"""
+    return open(Path(__file__).parent / 'test_yaml_schema-sample_df_schema.yml')
 
 
 def test_valid_yaml(sample_df_schema):
@@ -97,7 +59,7 @@ def update_nested_dict(old_dict: Dict, change_path: str, new_value) -> Dict:
     :param new_value: The new value which should be assigned to the specified
         key.
 
-    :return: A copy of the dictionary with the specified value beeing replaced.
+    :return: A copy of the dictionary with the specified value being replaced.
     """
     keys = change_path.split('.')
     if not keys[0] in old_dict:
@@ -142,7 +104,7 @@ def test_update_nested_dict_key_error(old, keypath, value):
 def test_invalid_schema(invalid_schema, error_match):
     """Pass an invalid yaml file and see if a SchemaDefinitionError is raised.
     """
-    with pytest.raises((pandera.SchemaDefinitionError), match=error_match):
+    with pytest.raises(pandera.SchemaDefinitionError, match=error_match):
         yaml_schema.df_schema_from_yaml(invalid_schema)
 
 

@@ -1,0 +1,42 @@
+# Sample dataframe schema in yaml syntax for the unit test test_yaml_schema.py
+
+dataframe:
+    checks:
+    columns:
+        int_col:
+            dtype: Int
+            checks:
+            nullable: False
+            allow_duplicates: True
+            coerce: False
+            required: True
+        float_col:
+            dtype: Float
+            checks:
+            nullable: False
+            allow_duplicates: True
+            coerce: False
+            required: True
+        str_col:
+            dtype: String
+            checks:
+            nullable: False
+            allow_duplicates: True
+            coerce: False
+            required: True
+        bool_col:
+            dtype: Bool
+            checks:
+            nullable: False
+            allow_duplicates: True
+            coerce: False
+            required: True
+        datetime_col:
+            dtype: DateTime
+            checks:
+            nullable: False
+            allow_duplicates: True
+            coerce: False
+            required: True
+    coerce: True
+    strict: False
