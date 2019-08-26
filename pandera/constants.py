@@ -1,0 +1,1 @@
+N_FAILURE_CASES = 10

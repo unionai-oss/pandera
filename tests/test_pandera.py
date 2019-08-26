@@ -4,16 +4,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera import Column, DataFrameSchema, Index, MultiIndex, PandasDtype, \
-    SeriesSchema, Check, Bool, Float, Int, DateTime, String, check_input, \
-    check_output, SchemaError, SchemaInitError, SchemaDefinitionError, \
-    Hypothesis
+from pandera import errors
+from pandera import Column, DataFrameSchema, Index, MultiIndex, \
+    SeriesSchema, Bool, Category, Check, DateTime, Float, Int, Object, \
+    String, Timedelta, check_input, check_output, Hypothesis
 from scipy import stats
 
 
 def test_column():
     schema = DataFrameSchema({
-        "a": Column(PandasDtype.Int, Check(lambda x: x > 0, element_wise=True))
+        "a": Column(Int, Check(lambda x: x > 0, element_wise=True))
     })
     data = pd.DataFrame({"a": [1, 2, 3]})
     assert isinstance(schema.validate(data), pd.DataFrame)
@@ -21,13 +21,13 @@ def test_column():
 
 def test_series_schema():
     schema = SeriesSchema(
-        PandasDtype.Int, Check(lambda x: 0 <= x <= 100, element_wise=True))
+        Int, Check(lambda x: 0 <= x <= 100, element_wise=True))
     validated_series = schema.validate(pd.Series([0, 30, 50, 100]))
     assert isinstance(validated_series, pd.Series)
 
     # error cases
     for data in [-1, 101, 50.1, "foo"]:
-        with pytest.raises(SchemaError):
+        with pytest.raises(errors.SchemaError):
             schema.validate(pd.Series([data]))
 
     for data in [-1, {"a": 1}, -1.0]:
@@ -35,55 +35,55 @@ def test_series_schema():
             schema.validate(TypeError)
 
     non_duplicate_schema = SeriesSchema(
-        PandasDtype.Int, allow_duplicates=False)
-    with pytest.raises(SchemaError):
+        Int, allow_duplicates=False)
+    with pytest.raises(errors.SchemaError):
         non_duplicate_schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
 
 
 def test_vectorized_checks():
     schema = SeriesSchema(
-        PandasDtype.Int, Check(
+        Int, Check(
             lambda s: s.value_counts() == 2, element_wise=False))
     validated_series = schema.validate(pd.Series([1, 1, 2, 2, 3, 3]))
     assert isinstance(validated_series, pd.Series)
 
     # error case
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(pd.Series([1, 2, 3]))
 
 
 def test_series_schema_multiple_validators():
     schema = SeriesSchema(
-        PandasDtype.Int, [
+        Int, [
             Check(lambda x: 0 <= x <= 50, element_wise=True),
             Check(lambda s: (s == 21).any())])
     validated_series = schema.validate(pd.Series([1, 5, 21, 50]))
     assert isinstance(validated_series, pd.Series)
 
     # raise error if any of the validators fails
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(pd.Series([1, 5, 20, 50]))
 
 
 def test_dataframe_schema():
     schema = DataFrameSchema(
         {
-            "a": Column(PandasDtype.Int,
+            "a": Column(Int,
                         Check(lambda x: x > 0, element_wise=True)),
-            "b": Column(PandasDtype.Float,
+            "b": Column(Float,
                         Check(lambda x: 0 <= x <= 10, element_wise=True)),
-            "c": Column(PandasDtype.String,
+            "c": Column(String,
                         Check(lambda x: set(x) == {"x", "y", "z"})),
-            "d": Column(PandasDtype.Bool,
+            "d": Column(Bool,
                         Check(lambda x: x.mean() > 0.5)),
-            "e": Column(PandasDtype.Category,
+            "e": Column(Category,
                         Check(lambda x: set(x) == {"c1", "c2", "c3"})),
-            "f": Column(PandasDtype.Object,
+            "f": Column(Object,
                         Check(lambda x: x.isin([(1,), (2,), (3,)]))),
-            "g": Column(PandasDtype.DateTime,
+            "g": Column(DateTime,
                         Check(lambda x: x >= pd.Timestamp("2015-01-01"),
                               element_wise=True)),
-            "i": Column(PandasDtype.Timedelta,
+            "i": Column(Timedelta,
                         Check(lambda x: x < pd.Timedelta(10, unit="D"),
                               element_wise=True))
         })
@@ -104,15 +104,15 @@ def test_dataframe_schema():
     assert isinstance(schema.validate(df), pd.DataFrame)
 
     # error case
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df.drop("a", axis=1))
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df.assign(a=[-1, -2, -1]))
 
     # checks if 'a' is converted to float, while schema says int, will a schema
     # error be thrown
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df.assign(a=[1.7, 2.3, 3.1]))
 
 
@@ -122,7 +122,7 @@ def test_dataframe_schema_strict():
     schema = DataFrameSchema({"a": Column(Int, nullable=True)},
                              strict=True)
     df = pd.DataFrame({"b": [1, 2, 3]})
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df)
 
 
@@ -161,9 +161,9 @@ class SeriesGreaterCheck:
 ])
 def test_dataframe_schema_check_function_types(check_function, should_fail):
     schema = DataFrameSchema({
-            "a": Column(PandasDtype.Int,
+            "a": Column(Int,
                         Check(fn=check_function, element_wise=False)),
-            "b": Column(PandasDtype.Float,
+            "b": Column(Float,
                         Check(fn=check_function, element_wise=False))
     })
     df = pd.DataFrame({
@@ -171,7 +171,7 @@ def test_dataframe_schema_check_function_types(check_function, should_fail):
         "b": [1.1, 2.5, 9.9]
     })
     if should_fail:
-        with pytest.raises(SchemaError):
+        with pytest.raises(errors.SchemaError):
             schema.validate(df)
     else:
         schema.validate(df)
@@ -181,30 +181,30 @@ def test_index_schema():
     schema = DataFrameSchema(
         columns={},
         index=Index(
-            PandasDtype.Int, [
+            Int, [
                 Check(lambda x: 1 <= x <= 11, element_wise=True),
                 Check(lambda index: index.mean() > 1)]
         ))
     df = pd.DataFrame(index=range(1, 11), dtype="int64")
     assert isinstance(schema.validate(df), pd.DataFrame)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(pd.DataFrame(index=range(1, 20)))
 
 
 def test_check_function_decorators():
     in_schema = DataFrameSchema(
         {
-            "a": Column(PandasDtype.Int, [
+            "a": Column(Int, [
                 Check(lambda x: x >= 1, element_wise=True),
                 Check(lambda s: s.mean() > 0)]),
-            "b": Column(PandasDtype.String,
+            "b": Column(String,
                         Check(lambda x: x in ["x", "y", "z"],
                               element_wise=True)),
-            "c": Column(PandasDtype.DateTime,
+            "c": Column(DateTime,
                         Check(lambda x: pd.Timestamp("2018-01-01") <= x,
                               element_wise=True)),
-            "d": Column(PandasDtype.Float,
+            "d": Column(Float,
                         Check(lambda x: np.isnan(x) or x < 3,
                               element_wise=True),
                         nullable=True)
@@ -213,9 +213,9 @@ def test_check_function_decorators():
     )
     out_schema = DataFrameSchema(
         {
-            "e": Column(PandasDtype.String,
+            "e": Column(String,
                         Check(lambda s: s == "foo")),
-            "f": Column(PandasDtype.String,
+            "f": Column(String,
                         Check(lambda x: x in ["a", "b"], element_wise=True))
         })
 
@@ -290,12 +290,12 @@ def test_check_function_decorator_errors():
         return df
 
     with pytest.raises(
-            SchemaError,
+            errors.SchemaError,
             match=r"^error in check_input decorator of function"):
         test_func(pd.DataFrame({"column2": ["a", "b", "c"]}))
 
     with pytest.raises(
-            SchemaError,
+            errors.SchemaError,
             match=r"^error in check_output decorator of function"):
         test_func(pd.DataFrame({"column1": [1, 2, 3]}))
 
@@ -306,7 +306,7 @@ def test_check_function_decorator_errors():
         return df
 
     with pytest.raises(
-            SchemaError,
+            errors.SchemaError,
             match=r"^error in check_input decorator of function"
             ):
         test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]})
@@ -496,7 +496,7 @@ def test_check_groupby():
     assert len(df.columns) == 2
     assert set(df.columns) == {"col1", "col2"}
 
-    # raise SchemaError when Check fails
+    # raise errors.SchemaError when Check fails
     df_fail_on_bar = pd.DataFrame({
         "col1": [7, 8, 20, 11, 12, 13],
         "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
@@ -505,13 +505,13 @@ def test_check_groupby():
         "col1": [7, 8, 9, 11, 1, 13],
         "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
     })
-    # raise SchemaError when groupby column doesn't exist
+    # raise errors.SchemaError when groupby column doesn't exist
     df_fail_no_column = pd.DataFrame({
         "col1": [7, 8, 20, 11, 12, 13],
     })
 
     for df in [df_fail_on_bar, df_fail_on_foo, df_fail_no_column]:
-        with pytest.raises(SchemaError):
+        with pytest.raises(errors.SchemaError):
             schema.validate(df)
 
 
@@ -601,12 +601,12 @@ def test_groupby_init_exceptions():
 
     # can't use groupby in Checks where element_wise == True
     with pytest.raises(
-            SchemaInitError,
+            errors.SchemaInitError,
             match=r"^Cannot use groupby when element_wise=True."):
         init_schema_element_wise()
 
-    # raise SchemaInitError even when the schema doesn't specify column key for
-    # groupby column
+    # raise errors.SchemaInitError even when the schema doesn't specify column
+    # key for groupby column
     def init_schema_no_groupby_column():
         DataFrameSchema({
             "col1": Column(Int, [
@@ -614,14 +614,14 @@ def test_groupby_init_exceptions():
             ]),
         })
 
-    with pytest.raises(SchemaInitError):
+    with pytest.raises(errors.SchemaInitError):
         init_schema_no_groupby_column()
 
     # can't use groupby argument in SeriesSchema or Index objects
     for SchemaClass in [SeriesSchema, Index]:
         with pytest.raises(
-                SchemaInitError,
-                match="^Can only use `groupby` with a pandera.Column, found"):
+                errors.SchemaInitError,
+                match="^Cannot use groupby checks with"):
             SchemaClass(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))
 
 
@@ -727,11 +727,11 @@ def test_hypothesis():
         "sex": Column(String)
     })
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema_fail_ttest_on_alpha_val_1.validate(df)
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema_fail_ttest_on_alpha_val_2.validate(df)
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema_fail_ttest_on_alpha_val_3.validate(df)
 
 
@@ -752,7 +752,7 @@ def test_two_sample_ttest_hypothesis_relationships():
         assert isinstance(schema, DataFrameSchema)
 
     for relationship in ["foo", "bar", 1, 2, 3, None]:
-        with pytest.raises(SchemaError):
+        with pytest.raises(errors.SchemaError):
             DataFrameSchema({
                 "height_in_feet": Column(Float, [
                     Hypothesis.two_sample_ttest(
@@ -826,7 +826,7 @@ def test_multi_index_index():
         labels=[[-1, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
         names=["index0", "index1"],
     )
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df_fail)
 
 
@@ -844,7 +844,7 @@ def test_head_dataframe_schema():
 
     # Validating with head of 100 should pass
     assert schema.validate(df, head=100).equals(df)
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df)
 
 
@@ -858,7 +858,7 @@ def test_tail_dataframe_schema():
 
     # Validating with tail of 1000 should pass
     assert schema.validate(df, tail=1000).equals(df)
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df)
 
 
@@ -903,7 +903,7 @@ def test_dataframe_checks():
     invalid_df = df.copy()
     invalid_df["col1"] = invalid_df["col1"] * 3
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(errors.SchemaError):
         schema.validate(invalid_df)
 
     # test groupby checks
@@ -989,5 +989,5 @@ def test_dataframe_hypothesis_checks():
             ),
         ]
     )
-    with pytest.raises(SchemaDefinitionError):
+    with pytest.raises(errors.SchemaDefinitionError):
         hypothesis_check_schema_groupby.validate(df)
