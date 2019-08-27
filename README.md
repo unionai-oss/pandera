@@ -6,12 +6,12 @@ A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 
 <br>
 
-[![Build Status](https://travis-ci.org/cosmicBboy/pandera.svg?branch=master)](https://travis-ci.org/cosmicBboy/pandera)
+[![Build Status](https://travis-ci.org/pandera-dev/pandera.svg?branch=master)](https://travis-ci.org/cosmicBboy/pandera)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
 [![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest)](https://pandera.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/cosmicBboy/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/cosmicBboy/pandera)
+[![codecov](https://codecov.io/gh/pandera-dev/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 
 `pandas` data structures hide a lot of information, and explicitly
