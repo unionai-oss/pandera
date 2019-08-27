@@ -31,17 +31,23 @@ def df_schema_from_yaml(yaml_definition: str):
 
     # Deserialize the Column objects
     for name, params in schema_dict['dataframe']['columns'].items():
-        if 'dtype' not in params:
+        # Also accept dtype instead of pandas_dtype
+        if 'dtype' in params:
+            params['pandas_dtype'] = params.pop('dtype')
+        # If no dtype given the schema is invalid
+        if not 'pandas_dtype' in params:
             raise pandera.SchemaDefinitionError(
                 "Column definition '%s' lacks a data type definition. "
                 "Expected key 'dtype' in the column definition." % name)
+        # Also the given dtype could be unsupported
         try:
-            params['dtype'] = pandera.PandasDtype[params['dtype']]
+            params['pandas_dtype'] = pandera.PandasDtype[params['pandas_dtype']]
         except KeyError:
             raise pandera.SchemaDefinitionError(
                 "Unknown data type '%s' in column "
-                "definition '%s'" % (params['dtype'], name)
+                "definition '%s'" % (params['pandas_dtype'], name)
             )
+        # Now create the column object
         schema_dict['dataframe']['columns'][name] = pandera.Column(**params)
 
     return pandera.DataFrameSchema(**schema_dict['dataframe'])
