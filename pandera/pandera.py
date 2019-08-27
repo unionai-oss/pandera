@@ -902,7 +902,8 @@ class MultiIndex(DataFrameSchema):
             strict=strict,
         )
 
-    def __call__(self, df):
+    def __call__(self,
+                 df: pd.DataFrame):
         return isinstance(
             super(MultiIndex, self).__call__(df.index.to_frame()),
             pd.DataFrame
