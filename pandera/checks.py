@@ -180,35 +180,34 @@ class Check(object):
     def prepare_series_input(
             self,
             series: pd.Series,
-            dataframe: pd.DataFrame) -> Dict[str, pd.Series]:
+            dataframe_context: pd.DataFrame) -> Dict[str, pd.Series]:
         """Prepare input for Column check.
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
+        :param pd.Series series: one-dimensional ndarray with axis labels
             (including time series).
-        :param pd.DataFrame dataframe: Two-dimensional size-mutable,
-            potentially heterogeneous tabular data structure with labeled axes
-            (rows and columns)
+        :param pd.DataFrame dataframe_context: optional dataframe to supply
+            when checking a Column in a DataFrameSchema.
         :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
-            and `_vectorized_series_check`
+            and `_vectorized_check`
 
         """
-        if dataframe is None or self.groupby is None:
+        if dataframe_context is None or self.groupby is None:
             return series
         elif isinstance(self.groupby, list):
             groupby_obj = (
-                pd.concat([series, dataframe[self.groupby]], axis=1)
+                pd.concat([series, dataframe_context[self.groupby]], axis=1)
                 .groupby(self.groupby)[series.name]
             )
         elif callable(self.groupby):
             groupby_obj = self.groupby(
-                pd.concat([series, dataframe], axis=1))[series.name]
+                pd.concat([series, dataframe_context], axis=1))[series.name]
         else:
             raise TypeError("Type %s not recognized for `groupby` argument.")
 
         return self._format_input(groupby_obj, self.groups)
 
     def prepare_dataframe_input(
-            self, dataframe: pd.DataFrame):
+            self, dataframe: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """Prepare input for DataFrameSchema check."""
         if self.groupby is None:
             return dataframe
@@ -220,15 +219,14 @@ class Check(object):
             self,
             parent_schema,
             check_index: int,
-            check_obj: Dict[str, pd.Series]):
+            check_obj: Dict[str, Union[pd.Series, pd.DataFrame]]):
         """Perform a vectorized check on a series.
 
         :param parent_schema: The schema object that is being checked and that
             was inherited from the parent class.
         :param check_index: The validator to check the series for
-        :param dict check_obj: a dictionary of pd.Series to be used by
-            `_check_fn` and `_vectorized_series_check`
-
+        :param check_obj: a dictionary of pd.Series to be used by
+            `_check_fn` and `_vectorized_check`
         """
         val_result = self.fn(check_obj)
         if isinstance(val_result, pd.Series):
@@ -257,7 +255,7 @@ class Check(object):
             self,
             parent_schema,
             check_index: int,
-            check_obj: Dict[str, pd.Series]):
+            check_obj: Dict[str, Union[pd.Series, pd.DataFrame]]):
         _vcheck = partial(
             self._vectorized_check, parent_schema, check_index)
         if self.element_wise:
@@ -268,7 +266,8 @@ class Check(object):
             raise errors.SchemaError(self.vectorized_error_message(
                 parent_schema, check_index, check_obj[~val_result]))
         elif isinstance(check_obj, (pd.Series, dict, pd.DataFrame)):
-            return _vcheck(check_obj)
+            return self._vectorized_check(
+                parent_schema, check_index, check_obj)
         else:
             raise ValueError(
                 "check_obj type %s not supported. Must be a "

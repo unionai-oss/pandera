@@ -75,7 +75,6 @@ class DataFrameSchema(object):
         return self.validate(dataframe)
 
     def _validate_schema(self):
-
         for column_name, column in self.columns.items():
             for check in column._checks:
                 if check.groupby is None or callable(check.groupby):
@@ -106,10 +105,15 @@ class DataFrameSchema(object):
         return dataframe if len(dataframe_subsample) == 0 else \
             pd.concat(dataframe_subsample).drop_duplicates()
 
-    def _check_dataframe(self, dataframe: pd.DataFrame):
-        return all(
-            check(self, check_index, check.prepare_dataframe_input(dataframe))
-            for check_index, check in enumerate(self._checks))
+    def _check_dataframe(self, dataframe):
+        val_results = []
+        for check_index, check in enumerate(self._checks):
+            val_results.append(
+                check(
+                    self,
+                    check_index,
+                    check.prepare_dataframe_input(dataframe)))
+        return all(val_results)
 
     def validate(
             self,
@@ -152,13 +156,14 @@ class DataFrameSchema(object):
             if col.required or col_name in dataframe
         ]
         if self.index is not None:
-            schema_components += [self.index]
+            schema_components.append(self.index)
 
         dataframe_to_validate = self._dataframe_to_validate(
             dataframe, head, tail, sample, random_state)
         assert (
-            all(s(dataframe_to_validate) for s in schema_components) and
-            self._check_dataframe(dataframe))
+            all(schema_component(dataframe_to_validate)
+                for schema_component in schema_components)
+            and self._check_dataframe(dataframe))
         if self.transformer is not None:
             dataframe = self.transformer(dataframe)
         return dataframe
@@ -212,7 +217,7 @@ class SeriesSchemaBase(object):
             "of SeriesSchemaBase")
 
     def __call__(
-            self, series: pd.Series, dataframe: pd.DataFrame = None):
+            self, series: pd.Series, dataframe_context: pd.DataFrame = None):
         """Validate a series."""
         if series.name != self._name:
             raise errors.SchemaError(
@@ -222,8 +227,8 @@ class SeriesSchemaBase(object):
             isinstance(self._pandas_dtype, str) else self._pandas_dtype.value
         if self._nullable:
             series = series.dropna()
-            if dataframe is not None:
-                dataframe = dataframe.loc[series.index]
+            if dataframe_context is not None:
+                dataframe_context = dataframe_context.loc[series.index]
             if _dtype in ["int_", "int8", "int16", "int32", "int64", "uint8",
                           "uint16", "uint32", "uint64"]:
                 _series = series.astype(_dtype)
@@ -267,12 +272,14 @@ class SeriesSchemaBase(object):
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, expected_dtype, series.dtype))
 
-        return all(
-            check(
-                self,
-                check_index,
-                check.prepare_series_input(series, dataframe))
-            for check_index, check in enumerate(self._checks))
+        val_results = []
+        for check_index, check in enumerate(self._checks):
+            val_results.append(
+                check(
+                    self,
+                    check_index,
+                    check.prepare_series_input(series, dataframe_context)))
+        return all(val_results)
 
 
 class SeriesSchema(SeriesSchemaBase):

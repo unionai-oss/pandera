@@ -72,7 +72,7 @@ class Column(SeriesSchemaBase):
             raise RuntimeError(
                 "need to `set_name` of column before calling it.")
         return super(Column, self).__call__(
-            df[self._name], df.drop(self._name, axis=1))
+            df[self._name], dataframe_context=df.drop(self._name, axis=1))
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):

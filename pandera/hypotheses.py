@@ -107,20 +107,20 @@ class Hypothesis(Check):
     def prepare_series_input(
             self,
             series: pd.Series,
-            dataframe: pd.DataFrame):
+            dataframe_context: pd.DataFrame):
         """Prepare input for Hypothesis check.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
-        :param pd.DataFrame dataframe: Two-dimensional size-mutable,
-            potentially heterogeneous tabular data structure with labeled axes
-            (rows and columns)
+        :param pd.DataFrame dataframe_context: optional dataframe to supply
+            when checking a Column in a DataFrameSchema.
         :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
-            and `_vectorized_series_check`
+            and `_vectorized_check`
 
         """
         self.groups = self.samples
-        return super(Hypothesis, self).prepare_series_input(series, dataframe)
+        return super(Hypothesis, self).prepare_series_input(
+            series, dataframe_context)
 
     def prepare_dataframe_input(self, dataframe: pd.DataFrame):
         """Prepare input for DataFrameSchema Hypothesis check."""
@@ -162,7 +162,7 @@ class Hypothesis(Check):
         """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
-            `hypothesis_check` and `_vectorized_series_check`
+            `hypothesis_check` and `_vectorized_check`
 
         """
         if self.is_one_sample_test:
