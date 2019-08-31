@@ -1,4 +1,4 @@
-.PHONY: tests upload-pypi conda-build-35 conda-build-36 conda-build-37
+.PHONY: docs tests upload-pypi conda-build-35 conda-build-36 conda-build-37
 
 tests:
 	pytest

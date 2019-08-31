@@ -1,16 +1,9 @@
-from .pandera import (
-    DataFrameSchema,
-    Column,
-    Index,
-    MultiIndex,
+from . import errors, constants
+from .checks import Check
+from .hypotheses import Hypothesis
+from .decorators import check_input, check_output
+from .dtypes import (
     PandasDtype,
-    SeriesSchema,
-    SchemaError,
-    SchemaInitError,
-    SchemaDefinitionError,
-    Check,
-    check_input,
-    check_output,
     Bool,
     DateTime,
     Category,
@@ -19,8 +12,9 @@ from .pandera import (
     Object,
     String,
     Timedelta,
-    Hypothesis,
-    )
+)
+from .schemas import DataFrameSchema, SeriesSchema
+from .schema_components import Column, Index, MultiIndex
 
 
 __version__ = "0.2.0"
