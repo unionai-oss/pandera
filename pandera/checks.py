@@ -4,36 +4,62 @@ import pandera
 import pandas as pd
 
 
-class ValueRange(pandera.Check):
-    """Check whether values are within a certain range."""
-    def __init__(self, min_value=None, max_value=None):
-        """Create a new ValueRange check object.
+def in_range(min_value, max_value, **check_params):
+    """Compare values of a series to predefined limits.
 
-        :param min_value: Allowed minimum value. Should be a type comparable to
-            the type of the pandas series to be validated (e.g. a numerical type
-            for float or int and a datetime for datetime) .
-        :param max_value: Allowed maximum value. Should be a type comparable to
-            the type of the pandas series to be validated (e.g. a numerical type
-            for float or int and a datetime for datetime).
-        """
-        super().__init__(fn=self.check)
-        self.min_value = min_value
-        self.max_value = max_value
+    :param min_value: Allowed minimum value. Should be a type comparable to
+        the type of the pandas series to be validated (e.g. a numerical type
+        for float or int and a datetime for datetime) .
+    :param max_value: Allowed maximum value. Should be a type comparable to
+        the type of the pandas series to be validated (e.g. a numerical type
+        for float or int and a datetime for datetime).
+    :param check_params: Additional keyword parameters for pandera.Check
 
-    def check(self, series: pd.Series) -> pd.Series:
-        """Compare the values of the series to the predefined limits.
+    :returns pandera.Check object with a comparison function
+    """
+    def _in_range(series: pd.Series) -> pd.Series:
+        """Comparison function for check"""
+        return (series >= min_value) & (series <= max_value)
 
-        :returns pd.Series with the comparison result as True or False
-        """
-        if self.min_value is not None:
-            bool_series = series >= self.min_value
-        else:
-            bool_series = pd.Series(data=True, index=series.index)
+    return pandera.Check(fn=_in_range, **check_params)
 
-        if self.max_value is not None:
-            return bool_series & (series <= self.max_value)
 
-        return bool_series
+def greater_than(min_value, **check_params):
+    """Ensure values of a series are above a certain threshold.
+
+    :param min_value: Allowed minimum value. Should be a type comparable to
+        the type of the pandas series to be validated (e.g. a numerical type
+        for float or int and a datetime for datetime) .
+    :param check_params: Additional keyword parameters for pandera.Check
+
+    :returns pandera.Check object with a comparison function
+    """
+
+    def _greater_than(series: pd.Series) -> pd.Series:
+        """Comparison function for check"""
+        return (series >= min_value)
+
+    return pandera.Check(fn=_greater_than, **check_params)
+
+
+def smaller_than(max_value, **check_params):
+    """Ensure values of a series are above a certain threshold.
+
+    :param max_value: Allowed maximum value. Should be a type comparable to
+        the type of the pandas series to be validated (e.g. a numerical type
+        for float or int and a datetime for datetime).
+    :param check_params: Additional keyword parameters for pandera.Check
+
+    :returns pandera.Check object with a comparison function
+    """
+
+    def _smaller_than(series: pd.Series) -> pd.Series:
+        """Comparison function for check"""
+        return (series <= max_value)
+
+    return pandera.Check(fn=_smaller_than, **check_params)
+
+
 
 
 class StringMatch(pandera.Check):
