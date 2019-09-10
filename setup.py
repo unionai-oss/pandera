@@ -13,10 +13,10 @@ setup(
                 "data structures.",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url="https://github.com/cosmicBboy/pandera",
+    url="https://github.com/pandera-dev/pandera",
     project_urls={
           'Documentation': 'https://pandera.readthedocs.io',
-          'Issue Tracker': 'https://github.com/cosmicBboy/pandera/issues'
+          'Issue Tracker': 'https://github.com/pandera-dev/pandera/issues'
       },
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",

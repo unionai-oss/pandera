@@ -6,13 +6,13 @@ and suggestions are welcome!
 ## Getting Started
 
 If you are looking to contribute to the *pandera* codebase, the best place to
-start is the [GitHub "issues" tab](https://github.com/cosmicBboy/pandera/issues).
+start is the [GitHub "issues" tab](https://github.com/pandera-dev/pandera/issues).
 This is also a great place for filing bug reports and making suggestions for
 ways in which we can improve the code and documentation.
 
 ## Contributing to the Codebase
 
-The code is hosted on [GitHub](https://github.com/cosmicBboy/pandera/issues),
+The code is hosted on [GitHub](https://github.com/pandera-dev/pandera/issues),
 so you will need to use [Git](http://git-scm.com/) to clone the project and make
 changes to the codebase. Once you have obtained a copy of the code, you should
 create a development environment that is separate from your existing Python
@@ -34,8 +34,8 @@ each pull request:
             Check(...),
         ]),
     })
-    
-    
+
+
     DataFrameSchema({
         "col1": Column(...),
         "col2": Column(...),
