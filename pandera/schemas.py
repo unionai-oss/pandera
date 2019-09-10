@@ -197,13 +197,13 @@ class DataFrameSchema(object):
             else "{}columns={}".format(_indent, line)
             for i, line in enumerate(columns.split("\n")))
         return (
-            "<{class_name}(\n"
+            "{class_name}(\n"
             "{columns},\n"
             "{indent}index={index},\n"
             "{indent}transformer={transformer},\n"
             "{indent}coerce={coerce},\n"
             "{indent}strict={strict}\n"
-            ")>"
+            ")"
         ).format(
             class_name=self.__class__.__name__,
             columns=columns,
