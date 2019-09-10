@@ -169,14 +169,14 @@ enhancements and ideas are welcome.
 
 A detailed overview on how to contribute can be found in the
 `contributing
-guide <https://github.com/cosmicBboy/pandera/blob/master/.github/CONTRIBUTING.md>`__
+guide <https://github.com/pandera-dev/pandera/blob/master/.github/CONTRIBUTING.md>`__
 on GitHub.
 
 Issues
 ------
 
 Submit issues, feature requests or bugfixes on
-`github <https://github.com/cosmicBboy/pandera/issues>`__.
+`github <https://github.com/pandera-dev/pandera/issues>`__.
 
 .. toctree::
    :maxdepth: 2

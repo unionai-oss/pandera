@@ -1,4 +1,4 @@
-<div align="left"><img src="https://raw.githubusercontent.com/cosmicBboy/pandera/master/docs/source/_static/pandera-logo.png" width="140"></div>
+<div align="left"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/master/docs/source/_static/pandera-logo.png" width="140"></div>
 
 # Pandera
 
@@ -6,7 +6,7 @@ A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 
 <br>
 
-[![Build Status](https://travis-ci.org/pandera-dev/pandera.svg?branch=master)](https://travis-ci.org/cosmicBboy/pandera)
+[![Build Status](https://travis-ci.org/pandera-dev/pandera.svg?branch=master)](https://travis-ci.org/pandera-dev/pandera)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
 [![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -102,14 +102,15 @@ pip install pytest
 pytest tests
 ```
 
-## Contributing to pandera [![GitHub contributors](https://img.shields.io/github/contributors/cosmicBboy/pandera.svg)](https://github.com/cosmicBboy/pandera/graphs/contributors)
+## Contributing to pandera [![GitHub contributors](https://img.shields.io/github/contributors/pandera-dev/pandera.svg)](https://github.com/pandera-dev/pandera/graphs/contributors)
+
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the [contributing guide](https://github.com/cosmicBboy/pandera/blob/master/.github/CONTRIBUTING.md) on GitHub.
+A detailed overview on how to contribute can be found in the [contributing guide](https://github.com/pandera-dev/pandera/blob/master/.github/CONTRIBUTING.md) on GitHub.
 
 ## Issues
 
-Go [here](https://github.com/cosmicBboy/pandera/issues) to submit feature
+Go [here](https://github.com/pandera-dev/pandera-dev/issues) to submit feature
 requests or bugfixes.
 
 ## Other Data Validation Libraries
