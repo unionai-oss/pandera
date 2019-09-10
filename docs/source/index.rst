@@ -16,8 +16,8 @@ Why?
 validating them at runtime in production-critical or reproducible research
 settings is a good idea. ``pandera`` enables users to:
 
-#. :ref:`Check<checks>` the types and properties of columns in a ``DataFrame``
-   or values in a ``Series``.
+#. :ref:`Check<checks>` the types and properties of columns in a
+   ``pa.DataFrame`` or values in a ``pa.Series``.
 #. Perform more complex statistical validation like
    :ref:`hypothesis testing<hypothesis>`.
 #. Seamlessly integrate with existing data analysis/processing pipelines

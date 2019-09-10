@@ -5,14 +5,10 @@
 DataFrame Schemas
 =================
 
-DataFrameSchemas enable the specification of a schema that a dataframe is
-validated against.
+The ``DataFrameSchema`` class enables the specification of a schema that
+verifies the columns and index of a ``pd.DataFrame`` object.
 
-The DataFrameSchema object consists of |column|_\s, |index|_\s, whether to
-|coerced|_ the types of all of the columns and |strict|_ which if True will
-raise a ``SchemaError`` if the DataFrame contains columns that aren’t in the
-DataFrameSchema.
-
+The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 
 .. |column| replace:: ``Column``
 .. |index| replace:: ``Index``
@@ -23,7 +19,7 @@ DataFrameSchema.
 
     import pandera as pa
 
-    from pandera import Column, DataFrameSchema, Check
+    from pandera import Column, DataFrameSchema, Check, Index
 
     schema = DataFrameSchema(
         {
@@ -35,6 +31,7 @@ DataFrameSchema.
                Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
             ]),
         },
+        index=Index(pa.Int),
         strict=True,
         coerce=True,
     )
@@ -49,14 +46,15 @@ verified for `null values`_ or duplicate values. The column can be coerced_ into
 the specified type, and the required_ parameter allows control over whether or
 not the column is allowed to be missing.
 
-:ref:`Column Checks<checks>` allow for the DataFrame's values to be
-checked against a user provided function. ``Check``\ s support
+:ref:`Column checks<checks>` allow for the DataFrame's values to be
+checked against a user provided function. ``Check`` objects also support
 :ref:`grouping<grouping>` by a different column so that the user can make
 assertions about subsets of the ``Column`` of interest.
 
-:ref:`Column Hypothesis test<hypothesis>` support testing different
-column so that assertions can be made about the relationships between
-``Column``\s.
+Column Hypotheses enable you to perform statistical hypothesis tests on a
+DataFrame in either wide or tidy format. See
+:ref:`Hypothesis Testing<hypothesis>` for more details.
+
 
 .. _null values:
 
@@ -92,7 +90,7 @@ nullable. In order to accept null values, you need to explicitly specify
 .. note:: Due to a known limitation in
     `pandas <http://pandas.pydata.org/pandas-docs/stable/gotchas.html#support-for-integer-na>`__,
     integer arrays cannot contain ``NaN`` values, so this schema will return
-    a dataframe where ``column1`` is of type ``float``.
+    a DataFrame where ``column1`` is of type ``float``.
 
 .. testcode:: null_values_in_columns
 
@@ -184,8 +182,8 @@ Required Columns
 ~~~~~~~~~~~~~~~~
 
 By default all columns specified in the schema are required, meaning
-that if a column is missing in the input dataframe an exception will be
-thrown. If you want to make a column optional specify ``required=False``
+that if a column is missing in the input DataFrame an exception will be
+thrown. If you want to make a column optional, specify ``required=False``
 in the column constructor:
 
 .. testcode:: required_columns
@@ -238,7 +236,7 @@ Handling Dataframe Columns not in the Schema
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, columns that aren’t specified in the schema aren’t checked.
-If you want to check that the dataframe *only* contains columns in the
+If you want to check that the DataFrame *only* contains columns in the
 schema, specify ``strict=True``:
 
 .. testcode:: handling_columns_not_in_schema
@@ -297,7 +295,7 @@ You can also specify an ``Index`` in the ``DataFrameSchema``.
     index_3  3
 
 
-In the case that the dataframe index doesn't pass the ``Check``.
+In the case that the DataFrame index doesn't pass the ``Check``.
 
 .. testcode:: index_validation
 

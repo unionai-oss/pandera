@@ -3,14 +3,10 @@
 Series Schemas
 ==============
 
-``SeriesSchema``\s allow for the validation of series against a schema. They are
-very similar to :ref:`columns<column>` and :ref:`indexes<index>` specified
+``SeriesSchema``\s allow for the validation of ``pd.Series`` objects, and
+are very similar to :ref:`columns<column>` and :ref:`indexes<index>` described
 in :ref:`DataFrameSchemas<DataFrameSchemas>`.
 
-Series Validation
-~~~~~~~~~~~~~~~~~
-
-Schemas can be validated by creating
 
 .. testcode:: series_validation
 
@@ -20,16 +16,24 @@ Schemas can be validated by creating
     from pandera import Check, SeriesSchema
 
     # specify multiple validators
-    schema = SeriesSchema(pa.String, [
-        Check(lambda s: s.str.startswith("foo")),
-        Check(lambda s: s.str.endswith("bar")),
-        Check(lambda x: len(x) > 3, element_wise=True)])
+    schema = SeriesSchema(
+        pa.String,
+        checks=[
+            Check(lambda s: s.str.startswith("foo")),
+            Check(lambda s: s.str.endswith("bar")),
+            Check(lambda x: len(x) > 3, element_wise=True)
+        ],
+        nullable=False,
+        allow_duplicates=True,
+        name="my_series")
 
-    print(schema.validate(pd.Series(["foobar", "foobar", "foobar"])))
+    validated_series = schema.validate(
+        pd.Series(["foobar", "foobar", "foobar"], name="my_series"))
+    print(validated_series)
 
 .. testoutput:: series_validation
 
     0    foobar
     1    foobar
     2    foobar
-    dtype: object
+    Name: my_series, dtype: object

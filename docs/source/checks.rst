@@ -5,11 +5,16 @@
 Checks
 ======
 
-Checking values within a column
--------------------------------
+Checking column properties
+--------------------------
 
-By default, ``Column`` ``Check``\ s are functions which expect a ``pd.series``
-argument and should output a boolean or a boolean Series.
+``Check`` objects accept a function as a required argument, which is expected
+to have the following signature:
+
+``pd.Series -> bool|pd.Series[bool]``.
+
+For the ``Check`` to pass, all of the elements in the boolean series must
+evaluate to ``True``.
 
 
 .. testcode:: checks
@@ -35,13 +40,9 @@ Multiple checks can be applied to a column:
 Vectorized vs. Element-wise Checks
 ----------------------------------
 
-By default, the functions passed into ``Check``\ s are expected to have
-the following signature: ``pd.Series -> bool|pd.Series[bool]``. For the
-``Check`` to pass, all of the elements in the boolean series must
-evaluate to ``True``.
-
-If you want to make atomic checks for each element in the Column, then
-you can provide the ``element_wise=True`` keyword argument:
+By default, ``Check`` objects operate on ``pd.Series`` objects. If you want to
+make atomic checks for each element in the Column, then you can provide the
+``element_wise=True`` keyword argument:
 
 .. testcode:: vectorized_element_wise_checks
 
@@ -67,8 +68,8 @@ you can provide the ``element_wise=True`` keyword argument:
     schema.validate(df)
 
 
-By default ``element_wise=False`` so that you can take advantage of the
-speed gains provided by the ``pandas.Series`` API by writing vectorized
+``element_wise == False`` by default so that you can take advantage of the
+speed gains provided by the ``pd.Series`` API by writing vectorized
 checks.
 
 .. _grouping:
@@ -138,7 +139,8 @@ Wide Checks
 
 ``pandera`` is primarily designed to operate on long-form data (commonly known
 as `tidy data <https://vita.had.co.nz/papers/tidy-data.pdf>`_), where each row
-is an observation and columns are attributes associated with the observation.
+is an observation and each column is an attribute associated with an
+observation.
 
 However, ``pandera`` also supports checks on wide-form data to operate across
 columns in a ``DataFrame``.

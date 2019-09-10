@@ -5,10 +5,10 @@
 Hypothesis Testing
 ==================
 
-``Column`` ``Hypothesis`` tests support testing different column so that assertions
-can be made about the relationships between ``Column``\s.
+``pandera`` enables you to perform statistical hypothesis tests on your data.
 
-``Hypothesis`` contains built in methods, which can be called as in this example:
+The ``Hypothesis`` class defines built in methods, which can be called as in
+this example:
 
 .. testcode:: hypothesis_testing
 
@@ -75,7 +75,7 @@ of the two-sample t-test that uses the
                     relationship=lambda stat, pvalue, alpha=0.01: (
                         stat > 0 and pvalue / 2 < alpha
                     ),
-                    relationship_kwargs={"alpha": 0.5}
+                    relationship_kwargs={"alpha": 0.05}
                 )
         ]),
         "sex": Column(pa.String)
@@ -103,7 +103,7 @@ the tidy dataset and schema might look like this:
     from pandera import Check, DataFrameSchema, Column, Hypothesis
 
     df = pd.DataFrame({
-        "height": [5.6, 6.4, 4.0, 7.1],
+        "height": [5.6, 7.5, 4.0, 7.9],
         "group": ["A", "B", "A", "B"],
     })
 
@@ -113,7 +113,7 @@ the tidy dataset and schema might look like this:
                 "A", "B",
                 groupby="group",
                 relationship="less_than",
-                alpha=0.5
+                alpha=0.05
             )
         ),
         "group": Column(pa.String, Check(lambda s: s.isin(["A", "B"])))
@@ -133,7 +133,7 @@ The equivalent wide-form schema would look like this:
 
     df = pd.DataFrame({
         "height_A": [5.6, 4.0],
-        "height_B": [6.4, 7.1],
+        "height_B": [7.5, 7.9],
     })
 
     schema = DataFrameSchema(
@@ -145,7 +145,7 @@ The equivalent wide-form schema would look like this:
         checks=Hypothesis.two_sample_ttest(
             "height_A", "height_B",
             relationship="less_than",
-            alpha=0.5
+            alpha=0.05
         )
     )
 

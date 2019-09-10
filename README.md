@@ -54,18 +54,19 @@ conda install -c cosmicbboy pandera
 
 ```python
 import pandas as pd
+import pandera as pa
 
-from pandera import Column, DataFrameSchema, Float, Int, String, Check
+from pandera import Column, DataFrameSchema, Check
 
 
 # validate columns
 schema = DataFrameSchema({
     # the check function expects a series argument and should output a boolean
     # or a boolean Series.
-    "column1": Column(Int, Check(lambda s: s <= 10)),
-    "column2": Column(Float, Check(lambda s: s < -1.2)),
+    "column1": Column(pa.Int, Check(lambda s: s <= 10)),
+    "column2": Column(pa.Float, Check(lambda s: s < -1.2)),
     # you can provide a list of validators
-    "column3": Column(String, [
+    "column3": Column(pa.String, [
         Check(lambda s: s.str.startswith("value_")),
         Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
     ]),
