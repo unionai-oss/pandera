@@ -95,6 +95,14 @@ print(validated_df)
 #  4        9    -20.4  value_1
 ```
 
+## Development Installation
+
+```
+git clone https://github.com/pandera-dev/pandera.git
+cd pandera
+pip install -r requirements.txt && python setup.py install
+```
+
 ## Tests
 
 ```
