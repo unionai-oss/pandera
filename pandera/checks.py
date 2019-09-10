@@ -74,13 +74,13 @@ class Check(object):
         self.groups = groups
 
     @property
-    def error_message(self):
+    def _error_message(self):
         name = getattr(self.fn, '__name__', self.fn.__class__.__name__)
         if self.error:
             return "%s: %s" % (name, self.error)
         return "%s" % name
 
-    def vectorized_error_message(
+    def _vectorized_error_message(
             self,
             parent_schema,
             check_index: int,
@@ -98,10 +98,10 @@ class Check(object):
                 "%s failed element-wise validator %d:\n"
                 "%s\nfailure cases:\n%s" %
                 (parent_schema, check_index,
-                 self.error_message,
+                 self._error_message,
                  self._format_failure_cases(failure_cases)))
 
-    def generic_error_message(
+    def _generic_error_message(
             self,
             parent_schema,
             check_index: int) -> str:
@@ -113,7 +113,7 @@ class Check(object):
 
         """
         return "%s failed series validator %d: %s" % \
-               (parent_schema, check_index, self.error_message)
+               (parent_schema, check_index, self._error_message)
 
     def _format_failure_cases(
             self,
@@ -241,15 +241,15 @@ class Check(object):
                     check_obj.shape[0] != val_result.shape[0] or \
                     (check_obj.index != val_result.index).all():
                 raise errors.SchemaError(
-                    self.generic_error_message(parent_schema, check_index))
+                    self._generic_error_message(parent_schema, check_index))
             else:
-                raise errors.SchemaError(self.vectorized_error_message(
+                raise errors.SchemaError(self._vectorized_error_message(
                     parent_schema, check_index, check_obj[~val_result]))
         else:
             if val_result:
                 return True
             raise errors.SchemaError(
-                self.generic_error_message(parent_schema, check_index))
+                self._generic_error_message(parent_schema, check_index))
 
     def __call__(
             self,
@@ -263,7 +263,7 @@ class Check(object):
                 isinstance(check_obj, pd.DataFrame) else check_obj.map(self.fn)
             if val_result.all():
                 return True
-            raise errors.SchemaError(self.vectorized_error_message(
+            raise errors.SchemaError(self._vectorized_error_message(
                 parent_schema, check_index, check_obj[~val_result]))
         elif isinstance(check_obj, (pd.Series, dict, pd.DataFrame)):
             return self._vectorized_check(
