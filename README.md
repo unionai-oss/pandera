@@ -13,6 +13,7 @@ A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest)](https://pandera.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/pandera-dev/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385266.svg)](https://doi.org/10.5281/zenodo.3385266)
 
 `pandas` data structures hide a lot of information, and explicitly
 validating them at runtime in production-critical or reproducible research
@@ -139,3 +140,20 @@ Here are a few other alternatives for validating Python data structures.
   testing.
 - `Check`s and `Hypothesis` objects support both tidy and wide data validation.
 - Comprehensive documentation on key functionality.
+
+
+### Citation Information
+
+```
+@misc{niels_bantilan_2019_3385266,
+  author       = {Niels Bantilan and
+                  Nigel Markey and
+                  Riccardo Albertazzi and
+                  chr1st1ank},
+  title        = {pandera-dev/pandera: 0.2.0 pre-release 1},
+  month        = sep,
+  year         = 2019,
+  doi          = {10.5281/zenodo.3385266},
+  url          = {https://doi.org/10.5281/zenodo.3385266}
+}
+```
