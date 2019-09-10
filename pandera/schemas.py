@@ -1,11 +1,16 @@
 """Core pandera schema class definitions."""
 
+import json
+
 import pandas as pd
 
 from typing import Optional
 
 from . import errors, constants
 from .checks import Check
+
+
+N_INDENT_SPACES = 4
 
 
 class DataFrameSchema(object):
@@ -52,6 +57,7 @@ class DataFrameSchema(object):
         self.coerce = coerce
         self.strict = strict
         self._validate_schema()
+        self._set_column_names()
 
     def __call__(
             self,
@@ -86,6 +92,12 @@ class DataFrameSchema(object):
                         "groupby argument %s in Check for Column %s not "
                         "specified in the DataFrameSchema." %
                         (nonexistent_groupby_columns, column_name))
+
+    def _set_column_names(self):
+        self.columns = {
+            column_name: column.set_name(column_name)
+            for column_name, column in self.columns.items()
+        }
 
     @staticmethod
     def _dataframe_to_validate(
@@ -167,6 +179,40 @@ class DataFrameSchema(object):
         if self.transformer is not None:
             dataframe = self.transformer(dataframe)
         return dataframe
+
+    def __repr__(self):
+        return "%s(columns=%s, index=%s, transformer=%s, coerce=%s)" % \
+              (self.__class__.__name__,
+               self.columns,
+               self.index,
+               self.transformer,
+               self.coerce)
+
+    def __str__(self):
+        columns = {k: str(v) for k, v in self.columns.items()}
+        columns = json.dumps(columns, indent=N_INDENT_SPACES)
+        _indent = " " * N_INDENT_SPACES
+        columns = "\n".join(
+            "{}{}".format(_indent, line) if i != 0
+            else "{}columns={}".format(_indent, line)
+            for i, line in enumerate(columns.split("\n")))
+        return (
+            "<{class_name}(\n"
+            "{columns},\n"
+            "{indent}index={index},\n"
+            "{indent}transformer={transformer},\n"
+            "{indent}coerce={coerce},\n"
+            "{indent}strict={strict}\n"
+            ")>"
+        ).format(
+            class_name=self.__class__.__name__,
+            columns=columns,
+            index=str(self.index),
+            transformer=str(self.transformer),
+            coerce=self.coerce,
+            strict=self.strict,
+            indent=_indent,
+        )
 
 
 class SeriesSchemaBase(object):

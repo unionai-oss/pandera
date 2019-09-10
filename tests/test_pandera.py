@@ -1022,3 +1022,21 @@ def test_dataframe_hypothesis_checks():
     )
     with pytest.raises(errors.SchemaDefinitionError):
         hypothesis_check_schema_groupby.validate(df)
+
+
+def test_dataframe_schema_str_repr():
+    schema = DataFrameSchema(
+        columns={
+            "col1": Column(Int),
+            "col2": Column(String),
+            "col3": Column(DateTime),
+        },
+        index=Index(Int, name="my_index"),
+
+    )
+
+    for x in [schema.__str__(), schema.__repr__()]:
+        assert isinstance(x, str)
+        assert schema.__class__.__name__ in x
+        for name in ["col1", "col2", "col3", "my_index"]:
+            assert name in x
