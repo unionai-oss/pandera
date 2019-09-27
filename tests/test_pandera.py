@@ -487,10 +487,12 @@ def test_no_dtype():
 
 def test_no_dtype_series():
     schema = SeriesSchema(nullable=False)
-    schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
+    validated_series = schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
+    assert isinstance(validated_series, pd.Series)
 
     schema = SeriesSchema(nullable=True)
-    schema.validate(pd.Series([0, 1, 2, None, 4, 1]))
+    validated_series = schema.validate(pd.Series([0, 1, 2, None, 4, 1]))
+    assert isinstance(validated_series, pd.Series)
 
     with pytest.raises(errors.SchemaError):
         schema = SeriesSchema(nullable=False)
