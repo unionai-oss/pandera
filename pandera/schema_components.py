@@ -10,7 +10,7 @@ class Column(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype,
+            pandas_dtype: PandasDtype = None,
             checks: callable = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -63,6 +63,10 @@ class Column(SeriesSchemaBase):
             (including time series).
 
         """
+        # If no dtype is specified, then assume no coercion is wanted
+        if self._pandas_dtype is None:
+            return series
+
         _dtype = str if self._pandas_dtype is PandasDtype.String \
             else self._pandas_dtype.value
         return series.astype(_dtype)
@@ -86,7 +90,7 @@ class Index(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype,
+            pandas_dtype: PandasDtype = None,
             checks: callable = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -113,7 +117,7 @@ class MultiIndex(DataFrameSchema):
         super(MultiIndex, self).__init__(
             columns={
                 i if index._name is None else index._name: Column(
-                    index._pandas_dtype,
+                    pandas_dtype=index._pandas_dtype,
                     checks=index._checks,
                     nullable=index._nullable,
                     allow_duplicates=index._allow_duplicates,
