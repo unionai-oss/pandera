@@ -40,6 +40,37 @@ def test_series_schema():
     with pytest.raises(errors.SchemaError):
         non_duplicate_schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
 
+    # when series name doesn't match schema
+    named_schema = SeriesSchema(Int, name="my_series")
+    with pytest.raises(
+            errors.SchemaError,
+            match=r"^Expected .+ to have name"):
+        named_schema.validate(pd.Series(range(5), name="your_series"))
+
+    # when series floats are declared to be integer
+    with pytest.raises(
+            errors.SchemaError,
+            match=r"^after dropping null values, expected values in series"):
+        SeriesSchema(Int, nullable=True).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan]))
+
+    # when series contains null values when schema is not nullable
+    with pytest.raises(
+            errors.SchemaError,
+            match=r"^non-nullable series .+ contains null values"):
+        SeriesSchema(Float, nullable=False).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan]))
+
+    # when series contains null values when schema is not nullable in addition
+    # to having the wrong data type
+    with pytest.raises(
+            errors.SchemaError,
+            match=(
+                r"^expected series '.+' to have type .+, got .+ and "
+                "non-nullable series contains null values")):
+        SeriesSchema(Int, nullable=False).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan]))
+
 
 def test_vectorized_checks():
     schema = SeriesSchema(

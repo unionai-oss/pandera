@@ -451,6 +451,6 @@ class SeriesSchema(SeriesSchemaBase):
         """
         if not isinstance(series, pd.Series):
             raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
-        if super(SeriesSchema, self).__call__(series):
+        else:
+            assert super(SeriesSchema, self).__call__(series)
             return series
-        raise errors.SchemaError()
