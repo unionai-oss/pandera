@@ -3,8 +3,8 @@
 API
 ===
 
-``pandera.schemas``
--------------------
+pandera.schemas
+---------------
 
 .. automodule:: pandera.schemas
    :members:
@@ -12,8 +12,8 @@ API
    :show-inheritance:
 
 
-``pandera.schema_components``
------------------------------
+pandera.schema_components
+-------------------------
 
 .. automodule:: pandera.schema_components
    :members:
@@ -21,8 +21,8 @@ API
    :show-inheritance:
 
 
-``pandera.checks``
-------------------
+pandera.checks
+--------------
 
 .. automodule:: pandera.checks
    :members:
@@ -30,8 +30,8 @@ API
    :show-inheritance:
 
 
-``pandera.hypotheses``
-----------------------
+pandera.hypotheses
+------------------
 
 .. automodule:: pandera.hypotheses
    :members:
@@ -39,8 +39,8 @@ API
    :show-inheritance:
 
 
-``pandera.decorators``
-----------------------
+pandera.decorators
+------------------
 
 .. automodule:: pandera.decorators
    :members:
@@ -48,8 +48,8 @@ API
    :show-inheritance:
 
 
-``pandera.dtypes``
-------------------
+pandera.dtypes
+--------------
 
 .. automodule:: pandera.dtypes
    :members:
@@ -57,8 +57,8 @@ API
    :show-inheritance:
 
 
-``pandera.errors``
-------------------
+pandera.errors
+--------------
 
 .. automodule:: pandera.errors
    :members:

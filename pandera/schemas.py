@@ -4,9 +4,9 @@ import json
 
 import pandas as pd
 
-from typing import Optional
+from typing import List, Optional, Union
 
-from . import errors, constants
+from . import errors, constants, dtypes
 from .checks import Check
 
 
@@ -19,7 +19,7 @@ class DataFrameSchema(object):
     def __init__(
             self,
             columns,
-            checks: callable = None,
+            checks: Optional[List[Check]] = None,
             index=None,
             transformer: callable = None,
             coerce: bool = False,
@@ -29,22 +29,50 @@ class DataFrameSchema(object):
         :param columns: a dict where keys are column names and values are
             Column objects specifying the datatypes and properties of a
             particular column.
-        :type columns: dict[str -> Column]
+        :type columns: Dict[str, Column]
         :param checks: dataframe-wide checks.
-        :type checks: list[Check].
         :param index: specify the datatypes and properties of the index.
-        :type index: Index
         :param transformer: a callable with signature:
             pandas.DataFrame -> pandas.DataFrame. If specified, calling
             `validate` will verify properties of the columns and return the
             transformed dataframe object.
-        :type transformer: callable
         :param coerce: whether or not to coerce all of the columns on
             validation.
-        :type coerce: bool
         :param strict: whether or not to accept columns in the dataframe that
             aren't in the DataFrameSchema.
-        :type strict: bool
+
+        :examples:
+
+        >>> import pandera as pa
+        >>> from pandera import DataFrameSchema, Column
+        >>>
+        >>> schema = DataFrameSchema({
+        ...     "str_column": Column(pa.String),
+        ...     "float_column": Column(pa.Float),
+        ...     "int_column": Column(pa.Int),
+        ...     "date_column": Column(pa.DateTime),
+        ... })
+
+        Use the pandas API to define checks, which takes a function with
+        the signature: ``pd.Series -> Union[bool, pd.Series[bool]]``
+
+        >>> from pandera import Check
+        >>>
+        >>> schema_with_checks = DataFrameSchema({
+        ...     "probability": Column(
+        ...         pa.Float, Check(lambda s: (s >= 0) & (s <= 1))),
+        ...
+        ...     # check that the "category" column contains a few discrete
+        ...     # values, and the majority of the entries are dogs.
+        ...     "category": Column(
+        ...         pa.String, [
+        ...             Check(lambda s: s.isin(["dog", "cat", "duck"])),
+        ...             Check(lambda s: (s == "dog").mean() > 0.5),
+        ...         ]),
+        ... })
+
+        See :ref:`here<DataFrameSchemas>` for more usage details.
+
         """
         if checks is None:
             checks = []
@@ -62,9 +90,9 @@ class DataFrameSchema(object):
     def __call__(
             self,
             dataframe: pd.DataFrame,
-            head: int = None,
-            tail: int = None,
-            sample: int = None,
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
             random_state: Optional[int] = None):
         """Delegate to `validate` method.
 
@@ -95,7 +123,7 @@ class DataFrameSchema(object):
 
     def _set_column_names(self):
         self.columns = {
-            column_name: column.set_name(column_name)
+            column_name: column._set_name(column_name)
             for column_name, column in self.columns.items()
         }
 
@@ -124,7 +152,7 @@ class DataFrameSchema(object):
                 check(
                     self,
                     check_index,
-                    check.prepare_dataframe_input(dataframe)))
+                    check._prepare_dataframe_input(dataframe)))
         return all(val_results)
 
     def validate(
@@ -145,6 +173,30 @@ class DataFrameSchema(object):
         :type tail: int
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
+        :returns: validated ``DataFrame``
+
+        :raises SchemaError: when ``DataFrame`` violates built-in or custom
+            checks.
+
+        :example:
+
+        Calling ``schema.validate`` returns the dataframe.
+
+        >>> import pandas as pd
+        >>>
+        >>> df = pd.DataFrame({
+        ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
+        ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
+        ... })
+        >>>
+        >>> schema_with_checks.validate(df)[["probability", "category"]]
+           probability category
+        0         0.10      dog
+        1         0.40      dog
+        2         0.52      cat
+        3         0.23     duck
+        4         0.80      dog
+        5         0.76      dog
         """
         if self.strict:
             for column in dataframe:
@@ -161,10 +213,10 @@ class DataFrameSchema(object):
                     (colname, dataframe.head()))
 
             if col.coerce or self.coerce:
-                dataframe[colname] = col.coerce_dtype(dataframe[colname])
+                dataframe[colname] = col._coerce_dtype(dataframe[colname])
 
         schema_components = [
-            col.set_name(col_name) for col_name, col in self.columns.items()
+            col._set_name(col_name) for col_name, col in self.columns.items()
             if col.required or col_name in dataframe
         ]
         if self.index is not None:
@@ -220,7 +272,7 @@ class SeriesSchemaBase(object):
 
     def __init__(
             self,
-            pandas_dtype,
+            pandas_dtype: Union[str, dtypes.PandasDtype],
             checks: callable = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -230,7 +282,6 @@ class SeriesSchemaBase(object):
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :type pandas_dtype: str|PandasDtype
         :param checks: If element_wise is True, then callable signature should
             be:
             x -> x where x is a scalar element in the column. Otherwise,
@@ -324,7 +375,7 @@ class SeriesSchemaBase(object):
                 check(
                     self,
                     check_index,
-                    check.prepare_series_input(series, dataframe_context)))
+                    check._prepare_series_input(series, dataframe_context)))
         return all(val_results)
 
 
@@ -332,8 +383,8 @@ class SeriesSchema(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype,
-            checks: callable = None,
+            pandas_dtype: dtypes.PandasDtype,
+            checks: List[Check] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             name: str = None):
@@ -342,16 +393,31 @@ class SeriesSchema(SeriesSchemaBase):
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :type pandas_dtype: str|PandasDtype
         :param checks: If element_wise is True, then callable signature should
             be:
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
-        :type checks: callable
         :param nullable: Whether or not column can contain null values.
         :type nullable: bool
         :param allow_duplicates:
         :type allow_duplicates: bool
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>> from pandera import SeriesSchema
+        >>>
+        >>>
+        >>> series_schema = SeriesSchema(
+        ...     pa.Float, [
+        ...         Check(lambda s: s > 0),
+        ...         Check(lambda s: s < 1000),
+        ...         Check(lambda s: s.mean() > 300),
+        ...     ])
+
+        See :ref:`here<SeriesSchemas>` for more usage details.
         """
         super(SeriesSchema, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, name)
@@ -367,9 +433,23 @@ class SeriesSchema(SeriesSchemaBase):
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
 
+        :raises SchemaError: when ``DataFrame`` violates built-in or custom
+            checks.
+
+        :example:
+
+        >>> series = pd.Series([1, 100, 800, 900, 999], dtype=float)
+        >>> print(series_schema.validate(series))
+        0      1.0
+        1    100.0
+        2    800.0
+        3    900.0
+        4    999.0
+        dtype: float64
+
         """
         if not isinstance(series, pd.Series):
             raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
-        if super(SeriesSchema, self).__call__(series):
+        else:
+            assert super(SeriesSchema, self).__call__(series)
             return series
-        raise errors.SchemaError()

@@ -358,6 +358,7 @@ for each level in the index hierarchy:
     1   2   b
     2   3   c
 
+.. _multiindex:
 
 MultiIndex Indexes
 ~~~~~~~~~~~~~~~~~~
