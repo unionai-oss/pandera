@@ -114,7 +114,7 @@ class Hypothesis(Check):
         ...         "group": ["A", "A", "B", "B", "B"]
         ...     })
         ... )
-        >>> schema.validate(df)
+        >>> schema.validate(df)[["height_in_feet", "group"]]
            height_in_feet group
         0             8.1     A
         1             7.0     A
@@ -297,7 +297,7 @@ class Hypothesis(Check):
         ...         "group": ["A", "A", "B", "B", "B"]
         ...     })
         ... )
-        >>> schema.validate(df)
+        >>> schema.validate(df)[["height_in_feet", "group"]]
            height_in_feet group
         0             8.1     A
         1             7.0     A

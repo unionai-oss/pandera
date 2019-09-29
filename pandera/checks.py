@@ -104,11 +104,13 @@ class Check(object):
         ...     checks=check_dataframe
         ... )
         >>>
-        >>> schema.validate(pd.DataFrame({
+        >>> df = pd.DataFrame({
         ...     "measure_1": [10, 12, 14, 16],
         ...     "measure_2": [2, 4, 6, 8],
         ...     "group": ["B", "B", "A", "A"]
-        ... }))
+        ... })
+        >>>
+        >>> schema.validate(df)[["measure_1", "measure_2", "group"]]
            measure_1  measure_2 group
         0         10          2     B
         1         12          4     B

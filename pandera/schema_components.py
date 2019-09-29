@@ -43,7 +43,7 @@ class Column(SeriesSchemaBase):
         ...     "column": Column(pa.String)
         ... })
         >>>
-        >>> print(schema.validate(pd.DataFrame({"column": ["foo", "bar"]})))
+        >>> schema.validate(pd.DataFrame({"column": ["foo", "bar"]}))
           column
         0    foo
         1    bar
@@ -125,9 +125,8 @@ class Index(SeriesSchemaBase):
         ...     columns={"column": Column(pa.String)},
         ...     index=Index(pa.Int, allow_duplicates=False))
         >>>
-        >>> print(
-        ...     schema.validate(
-        ...         pd.DataFrame({"column": ["foo"] * 3}, index=range(3)))
+        >>> schema.validate(
+        ...     pd.DataFrame({"column": ["foo"] * 3}, index=range(3))
         ... )
           column
         0    foo

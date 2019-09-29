@@ -189,7 +189,7 @@ class DataFrameSchema(object):
         ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
         ... })
         >>>
-        >>> schema_with_checks.validate(df)
+        >>> schema_with_checks.validate(df)[["probability", "category"]]
            probability category
         0         0.10      dog
         1         0.40      dog
