@@ -282,7 +282,6 @@ class SeriesSchemaBase(object):
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :type pandas_dtype: Unionstr|PandasDtype
         :param checks: If element_wise is True, then callable signature should
             be:
             x -> x where x is a scalar element in the column. Otherwise,
