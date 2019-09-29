@@ -768,7 +768,7 @@ def test_hypothesis():
 
 def test_two_sample_ttest_hypothesis_relationships():
     """Check allowable relationships in two-sample ttest."""
-    for relationship in Hypothesis.RELATIONSHIPS:
+    for relationship in Hypothesis._RELATIONSHIPS:
         schema = DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(
