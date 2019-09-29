@@ -11,6 +11,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import doctest
 import sys
 sys.path.insert(0, os.path.abspath('../../pandera'))
 
@@ -35,6 +36,14 @@ extensions = [
 
 doctest_global_setup = """
 """
+
+doctest_default_flags = (
+    0
+    | doctest.DONT_ACCEPT_TRUE_FOR_1
+    | doctest.ELLIPSIS
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | doctest.NORMALIZE_WHITESPACE
+)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

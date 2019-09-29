@@ -3,55 +3,120 @@
 import pandas as pd
 
 from functools import partial
-from typing import Union, Optional, List, Dict
+from typing import Any, Union, Optional, List, Dict, Callable
 
 from . import errors, constants
 from .dtypes import PandasDtype
+
+
+CheckCallable = Callable[
+    [Union[pd.Series, Any]], Union[pd.Series, bool]
+]
 
 
 class Check(object):
 
     def __init__(
             self,
-            fn: callable,
-            groups: Union[str, List[str], None] = None,
-            groupby: Union[str, List[str], callable, None] = None,
-            element_wise: Union[bool, List[bool]] = False,
+            fn: Callable,
+            groups: Optional[Union[str, List[str]]] = None,
+            groupby: Optional[Union[str, List[str], Callable]] = None,
+            element_wise: bool = False,
             error: Optional[str] = None,
             n_failure_cases: Optional[int] = constants.N_FAILURE_CASES):
-        """Check object applies function element-wise or series-wise
+        """Apply a validation function to each element, Series, or DataFrame.
 
-        :param callable fn: A function to check series schema. If element_wise
-            is True, then callable signature should be: x -> bool where x is a
-            scalar element in the column. Otherwise, signature is expected
-            to be: pd.Series -> bool|pd.Series[bool].
+        :param fn: A function to check pandas data structure. For Column
+            or SeriesSchema checks, if element_wise is True, this function
+            should have the signature: ``Callable[[pd.Series],
+            Union[pd.Series, bool]]``, where the output series is a boolean
+            vector.
+
+            If element_wise is False, this function should have the signature:
+            ``Callable[[Any], bool]``, where ``Any`` is an element in the
+            column.
+
+            For DataFrameSchema checks, if element_wise=True, fn
+            should have the signature: ``Callable[[pd.DataFrame],
+            Union[pd.DataFrame, pd.Series, bool]]``, where the output dataframe
+            or series contains booleans.
+
+            If element_wise is True, fn is applied to each row in
+            the dataframe with the signature ``Callable[[pd.Series], bool]``
+            where the series input is a row in the dataframe.
         :param groups: The dict input to the `fn` callable will be constrained
             to the groups specified by `groups`.
-        :type groups: str|list[str]|None
-        :param groupby: Only applies to Column Checks. If a string or list of
-            strings is provided, then these columns are used to group the
-            Column Series by `groupby`. If a callable is passed, the expected
-            signature is DataFrame -> DataFrameGroupby. The function has access
-            to the entire dataframe, but the Column.name is selected from this
+        :param groupby: If a string or list of strings is provided, these
+            columns are used to group the Column series. If a
+            callable is passed, the expected signature is: ``Callable[
+            [pd.DataFrame], pd.core.groupby.DataFrameGroupBy]``
+
+            The the case of ``Column`` checks, this function has access to the
+            entire dataframe, but ``Column.name`` is selected from this
             DataFrameGroupby object so that a SeriesGroupBy object is passed
-            into `fn`.
+            into ``fn``.
 
-            Specifying this argument changes the `fn` signature to:
-
-            dict[str|tuple[str], Series] -> bool|pd.Series[bool]
-
-            Where specific groups can be obtained from the input dict.
-        :type groupby: str|list[str]|callable|None
+            Specifying the groupby argument changes the ``fn`` signature to: ``
+            Callable[[Dict[Union[str, Tuple[str]], pd.Series]],
+            Union[bool, pd.Series]]``, where the input is a dictionary mapping
+            keys to subsets of the column/dataframe.
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
             number of elements as checks.
-        :type element_wise: bool|list[bool]
-        :param str error: custom error message if series fails validation
+        :param error: custom error message if series fails validation
             check.
-        :type str error:
         :param n_failure_cases: report the top n failure cases. If None, then
             report all failure cases.
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>> from pandera import Column, Check, DataFrameSchema
+        >>>
+        >>> # column checks are vectorized by default
+        >>> check_positive = Check(lambda s: s > 0)
+        >>>
+        >>> # define an element-wise check
+        >>> check_even = Check(lambda x: x % 2 == 0, element_wise=True)
+        >>>
+        >>> # specify assertions across categorical variables using `groupby`,
+        >>> # for example, make sure the mean measure for group "A" is always
+        >>> # larger than the mean measure for group "B"
+        >>> check_by_group = Check(
+        ...     lambda measures: measures["A"].mean() > measures["B"].mean(),
+        ...     groupby=["group"],
+        ... )
+        >>>
+        >>> # define a wide DataFrame-level check
+        >>> check_dataframe = Check(
+        ...     lambda df: df["measure_1"] > df["measure_2"])
+        >>>
+        >>> measure_checks = [check_positive, check_even, check_by_group]
+        >>>
+        >>> schema = DataFrameSchema(
+        ...     columns={
+        ...         "measure_1": Column(pa.Int, checks=measure_checks),
+        ...         "measure_2": Column(pa.Int, checks=measure_checks),
+        ...         "group": Column(pa.String),
+        ...     },
+        ...     checks=check_dataframe
+        ... )
+        >>>
+        >>> schema.validate(pd.DataFrame({
+        ...     "measure_1": [10, 12, 14, 16],
+        ...     "measure_2": [2, 4, 6, 8],
+        ...     "group": ["B", "B", "A", "A"]
+        ... }))
+           measure_1  measure_2 group
+        0         10          2     B
+        1         12          4     B
+        2         14          6     A
+        3         16          8     A
+
+        See :ref:`here<checks>` for more usage details.
+
         """
         if element_wise and groupby is not None:
             raise errors.SchemaInitError(
@@ -177,7 +242,7 @@ class Check(object):
             if group_key in groups
         }
 
-    def prepare_series_input(
+    def _prepare_series_input(
             self,
             series: pd.Series,
             dataframe_context: pd.DataFrame) -> Dict[str, pd.Series]:
@@ -206,7 +271,7 @@ class Check(object):
 
         return self._format_input(groupby_obj, self.groups)
 
-    def prepare_dataframe_input(
+    def _prepare_dataframe_input(
             self, dataframe: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """Prepare input for DataFrameSchema check."""
         if self.groupby is None:

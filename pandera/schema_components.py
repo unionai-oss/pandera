@@ -1,8 +1,11 @@
 """Components used in pandera schemas."""
 
+from typing import Union
+
 import pandas as pd
 
 from .dtypes import PandasDtype
+from .checks import Check, List
 from .schemas import DataFrameSchema, SeriesSchemaBase
 
 
@@ -10,32 +13,42 @@ class Column(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype,
-            checks: callable = None,
+            pandas_dtype: Union[str, PandasDtype],
+            checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
             required: bool = True):
-        """Initialize column validator object.
+        """Create column validator object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :type pandas_dtype: str|PandasDtype
-        :param checks: if element_wise is True, then callable signature should
-            be: x -> bool where x is a scalar element in the column. Otherwise,
-            x is assumed to be a pandas.Series object.
-        :type checks: callable
+        :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
-        :type nullable: bool
         :param allow_duplicates: Whether or not to coerce the column to the
             specified pandas_dtype before validation
-        :type allow_duplicates: bool
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype.
-        :type coerce:  bool
         :param required: Whether or not column is allowed to be missing
-        :type required:  bool
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>> from pandera import DataFrameSchema, Column
+        >>>
+        >>> schema = DataFrameSchema({
+        ...     "column": Column(pa.String)
+        ... })
+        >>>
+        >>> print(schema.validate(pd.DataFrame({"column": ["foo", "bar"]})))
+          column
+        0    foo
+        1    bar
+
+        See :ref:`here<column>` for more usage details.
         """
         super(Column, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates)
@@ -46,7 +59,7 @@ class Column(SeriesSchemaBase):
     def _allow_groupby(self):
         return True
 
-    def set_name(self, name):
+    def _set_name(self, name):
         """Used to set or modify the name of a column object.
 
         :param str name: the name of the column object
@@ -55,7 +68,7 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
-    def coerce_dtype(self, series):
+    def _coerce_dtype(self, series):
         """Coerce the type of a pd.Series by the type specified in the Column
             object's self._pandas_dtype
 
@@ -86,11 +99,44 @@ class Index(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype,
-            checks: callable = None,
+            pandas_dtype: Union[str, PandasDtype],
+            checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             name: str = None):
+        """Create Index validator.
+
+        :param pandas_dtype: datatype of the column. If a string is specified,
+            then assumes one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+        :param checks: checks to verify validity of the index.
+        :param nullable: Whether or not column can contain null values.
+        :param allow_duplicates: Whether or not to coerce the column to the
+            specified pandas_dtype before validation
+        :param name: name of the index
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>> from pandera import DataFrameSchema, Column, Index
+        >>>
+        >>> schema = DataFrameSchema(
+        ...     columns={"column": Column(pa.String)},
+        ...     index=Index(pa.Int, allow_duplicates=False))
+        >>>
+        >>> print(
+        ...     schema.validate(
+        ...         pd.DataFrame({"column": ["foo"] * 3}, index=range(3)))
+        ... )
+          column
+        0    foo
+        1    foo
+        2    foo
+
+        See :ref:`here<index>` for more usage details.
+
+        """
         super(Index, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, name)
 
@@ -109,7 +155,56 @@ class Index(SeriesSchemaBase):
 
 class MultiIndex(DataFrameSchema):
 
-    def __init__(self, indexes, coerce: bool = False, strict=False):
+    def __init__(
+            self,
+            indexes: List[Index],
+            coerce: bool = False,
+            strict=False):
+        """Create MultiIndex validator.
+
+        :param indexes: list of Index validators for each level of the
+            MultiIndex index.
+        :param coerce: Whether or not to coerce the MultiIndex to the
+            specified pandas_dtypes before validation
+        :param strict: whether or not to accept columns in the MultiIndex that
+            aren't defined in the ``indexes`` argument.
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>> from pandera import Column, DataFrameSchema, MultiIndex
+        >>>
+        >>> schema = DataFrameSchema(
+        ...     columns={"column": Column(pa.Int)},
+        ...     index=MultiIndex([
+        ...         Index(pa.String,
+        ...               Check(lambda s: s.isin(["foo", "bar"])),
+        ...               name="index0"),
+        ...         Index(pa.Int, name="index1"),
+        ...     ])
+        ... )
+        >>>
+        >>> df = pd.DataFrame(
+        ...     data={"column": [1, 2, 3]},
+        ...     index=pd.MultiIndex(
+        ...         levels=[["foo", "bar"], [0, 1, 2, 3, 4]],
+        ...         labels=[[0, 1, 0], [0, 1, 2]],
+        ...         names=["index0", "index1"],
+        ...     )
+        ... )
+        >>>
+        >>> schema.validate(df)
+                       column
+        index0 index1
+        foo    0            1
+        bar    1            2
+        foo    2            3
+
+        See :ref:`here<multiindex>` for more usage details.
+
+        """
         super(MultiIndex, self).__init__(
             columns={
                 i if index._name is None else index._name: Column(
