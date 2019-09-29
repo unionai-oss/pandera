@@ -54,7 +54,8 @@ class DataFrameSchema(object):
         ... })
 
         Use the pandas API to define checks, which takes a function with
-        the signature: ``pd.Series -> Union[bool, pd.Series[bool]]``
+        the signature: ``pd.Series -> Union[bool, pd.Series]`` where the
+        output series contains boolean values.
 
         >>> from pandera import Check
         >>>
