@@ -840,9 +840,8 @@ def test_multi_index_index():
             "column1": [0.1, 0.5, 123.1, 10.6, 22.31],
             "column2": [0.1, 0.5, 123.1, 10.6, 22.31],
         },
-        index=pd.MultiIndex(
-            levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
-            labels=[[0, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+        index=pd.MultiIndex.from_arrays(
+            [[0, 1, 2, 3, 4], ["foo", "bar", "foo", "bar", "foo"]],
             names=["index0", "index1"],
         )
     )
@@ -852,9 +851,8 @@ def test_multi_index_index():
 
     # failure case
     df_fail = df.copy()
-    df_fail.index = pd.MultiIndex(
-        levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
-        labels=[[-1, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+    df_fail.index = pd.MultiIndex.from_arrays(
+        [[-1, 1, 2, 3, 4], ["foo", "bar", "foo", "bar", "foo"]],
         names=["index0", "index1"],
     )
     with pytest.raises(errors.SchemaError):
@@ -944,10 +942,10 @@ def test_dataframe_checks():
             "col3": Column(String),
         },
         checks=[
-            Check(lambda g: g["foo"]["col1"].item() == 1, groupby="col3"),
-            Check(lambda g: g["foo"]["col2"].item() == 2.0, groupby="col3"),
-            Check(lambda g: g["foo"]["col3"].item() == "foo", groupby="col3"),
-            Check(lambda g: g[("foo", "foo")]["col1"].item() == 1,
+            Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3"),
+            Check(lambda g: g["foo"]["col2"].iat[0] == 2.0, groupby="col3"),
+            Check(lambda g: g["foo"]["col3"].iat[0] == "foo", groupby="col3"),
+            Check(lambda g: g[("foo", "foo")]["col1"].iat[0] == 1,
                   groupby=["col3", "col4"]),
         ]
     )
