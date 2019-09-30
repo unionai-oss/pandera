@@ -5,7 +5,7 @@ import pandas as pd
 from functools import partial
 
 from scipy import stats
-from typing import Union, Optional, List, Dict
+from typing import Callable, Union, Optional, List, Dict
 
 from . import errors
 from .checks import Check
@@ -15,9 +15,9 @@ DEFAULT_ALPHA = 0.01
 
 
 class Hypothesis(Check):
-    """Extends Check to perform a hypothesis test on a Column or DataFrame."""
+    """Extends Check to perform a hypothesis test on a Column."""
 
-    RELATIONSHIPS = {
+    _RELATIONSHIPS = {
         "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                          stat > 0 and pvalue / 2 < alpha),
         "less_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
@@ -28,16 +28,16 @@ class Hypothesis(Check):
     }
 
     def __init__(self,
-                 test: callable,
-                 samples: Union[str, List[str], None],
-                 groupby: Union[str, List[str], callable, None] = None,
-                 relationship: Union[str, callable] = "equal",
+                 test: Callable,
+                 samples: Optional[Union[str, List[str]]] = None,
+                 groupby: Optional[Union[str, List[str], Callable]] = None,
+                 relationship: Union[str, Callable] = "equal",
                  test_kwargs: Dict = None,
                  relationship_kwargs: Dict = None,
                  error: Optional[str] = None):
-        """Initialises hypothesis to perform a hypothesis test on a Column.
+        """Perform a hypothesis test on a Series or DataFrame.
 
-            Can function on a single column or be grouped by another column.
+        Can function on a single column or be grouped by another column.
 
         :param callable test: A function to check a series schema.
         :param samples: for `Column` or `SeriesSchema` hypotheses, this refers
@@ -49,7 +49,6 @@ class Hypothesis(Check):
             multiple columns to pass into the `test` function. The `samples`
             column(s) are passed into the `test`  function as positional
             arguments.
-        :type samples: str|list[str]|None
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
@@ -62,39 +61,78 @@ class Hypothesis(Check):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str|list[str]|callable|None
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. A function or lambda function can
             be supplied.
 
-            If a string is provided, a lambda function will be returned from
-            Hypothesis.relationships. Available relationships are:
-            "greater_than", "less_than", "not_equal" or "equal".
+            Available built-in relationships are: "greater_than", "less_than",
+            "not_equal" or "equal", where "equal" is the null hypothesis.
 
             If callable, the input function signature should have the signature
-            `(stat: float, pvalue: float, **kwargs)` where `stat` is the
+            ``(stat: float, pvalue: float, **kwargs)`` where `stat` is the
             hypothesis test statistic, `pvalue` assesses statistical
-            significance, and `**kwargs` are other arguments supplied by the
+            significance, and `**kwargs` are other arguments supplied bia the
             `**relationship_kwargs` argument.
 
             Default is "equal" for the null hypothesis.
-
-        :type relationship: str|callable
         :param dict test_kwargs: Key Word arguments to be supplied to the test.
         :param dict relationship_kwargs: Key Word arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
         :param error: error message to show
-        :type str:
+
+        :examples:
+
+        Define a two-sample hypothesis test using scipy.
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>> from pandera import DataFrameSchema, Column, Hypothesis
+        >>> from scipy import stats
+        >>>
+        >>> schema = DataFrameSchema({
+        ...     "height_in_feet": Column(pa.Float, [
+        ...         Hypothesis(
+        ...             test=stats.ttest_ind,
+        ...             samples=["A", "B"],
+        ...             groupby="group",
+        ...             # assert that the mean height of group "A" is greater
+        ...             # than that of group "B"
+        ...             relationship=lambda stat, pvalue, alpha=0.1: (
+        ...                 stat > 0 and pvalue / 2 < alpha
+        ...             ),
+        ...             # set alpha criterion to 5%
+        ...             relationship_kwargs={"alpha": 0.05}
+        ...         )
+        ...     ]),
+        ...     "group": Column(pa.String),
+        ... })
+        >>> df = (
+        ...     pd.DataFrame({
+        ...         "height_in_feet": [8.1, 7, 5.2, 5.1, 4],
+        ...         "group": ["A", "A", "B", "B", "B"]
+        ...     })
+        ... )
+        >>> schema.validate(df)[["height_in_feet", "group"]]
+           height_in_feet group
+        0             8.1     A
+        1             7.0     A
+        2             5.2     B
+        3             5.1     B
+        4             4.0     B
+
+        See :ref:`here<hypothesis>` for more usage details.
+
         """
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
-        self.relationship = partial(self.relationships(relationship),
+        self.relationship = partial(self._relationships(relationship),
                                     **relationship_kwargs)
         if isinstance(samples, str):
             samples = [samples]
         self.samples = samples
         super(Hypothesis, self).__init__(
-            self.hypothesis_check,
+            self._hypothesis_check,
             groupby=groupby,
             element_wise=False,
             error=error)
@@ -104,7 +142,7 @@ class Hypothesis(Check):
         """Returns True if hypothesis is a one-sample test."""
         return len(self.samples) == 1
 
-    def prepare_series_input(
+    def _prepare_series_input(
             self,
             series: pd.Series,
             dataframe_context: pd.DataFrame):
@@ -119,10 +157,10 @@ class Hypothesis(Check):
 
         """
         self.groups = self.samples
-        return super(Hypothesis, self).prepare_series_input(
+        return super(Hypothesis, self)._prepare_series_input(
             series, dataframe_context)
 
-    def prepare_dataframe_input(self, dataframe: pd.DataFrame):
+    def _prepare_dataframe_input(self, dataframe: pd.DataFrame):
         """Prepare input for DataFrameSchema Hypothesis check."""
         if self.groupby is not None:
             raise errors.SchemaDefinitionError(
@@ -133,7 +171,7 @@ class Hypothesis(Check):
         check_obj = [(sample, dataframe[sample]) for sample in self.samples]
         return self._format_input(check_obj, self.samples)
 
-    def relationships(self, relationship: Union[str, callable]):
+    def _relationships(self, relationship: Union[str, Callable]):
         """Impose a relationship on a supplied Test function.
 
         :param relationship: represents what relationship conditions are
@@ -141,16 +179,15 @@ class Hypothesis(Check):
             be supplied. If a string is provided, a lambda function will be
             returned from Hypothesis.relationships. Available relationships
             are: "greater_than", "less_than", "not_equal"
-        :type relationship: str|callable
 
         """
         if isinstance(relationship, str):
-            if relationship not in self.RELATIONSHIPS:
+            if relationship not in self._RELATIONSHIPS:
                 raise errors.SchemaError(
                     "The relationship %s isn't a built in method"
                     % relationship)
             else:
-                relationship = self.RELATIONSHIPS[relationship]
+                relationship = self._RELATIONSHIPS[relationship]
         elif not callable(relationship):
             raise ValueError(
                 "expected relationship to be str or callable, found %s" % type(
@@ -158,11 +195,11 @@ class Hypothesis(Check):
             )
         return relationship
 
-    def hypothesis_check(self, check_obj: Dict[str, pd.Series]):
+    def _hypothesis_check(self, check_obj: Dict[str, pd.Series]):
         """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
-            `hypothesis_check` and `_vectorized_check`
+            `_hypothesis_check` and `_vectorized_check`
 
         """
         if self.is_one_sample_test:
@@ -234,12 +271,44 @@ class Hypothesis(Check):
         :param nan_policy: Defines how to handle when input returns nan, one of
             {'propagate', 'raise', 'omit'}, (Default value = 'propagate').
             For more details see:
-            https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html  # noqa E53
+            https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html
         :type nan_policy: str
+
+        :example:
+
+        The the built-in class method to do a two-sample t-test.
+
+        >>> schema = DataFrameSchema({
+        ...     "height_in_feet": Column(
+        ...         pa.Float, [
+        ...             Hypothesis.two_sample_ttest(
+        ...                 sample1="A",
+        ...                 sample2="B",
+        ...                 groupby="group",
+        ...                 relationship="greater_than",
+        ...                 alpha=0.05,
+        ...                 equal_var=True),
+        ...     ]),
+        ...     "group": Column(pa.String)
+        ... })
+        >>> df = (
+        ...     pd.DataFrame({
+        ...         "height_in_feet": [8.1, 7, 5.2, 5.1, 4],
+        ...         "group": ["A", "A", "B", "B", "B"]
+        ...     })
+        ... )
+        >>> schema.validate(df)[["height_in_feet", "group"]]
+           height_in_feet group
+        0             8.1     A
+        1             7.0     A
+        2             5.2     B
+        3             5.1     B
+        4             4.0     B
+
         """
-        if relationship not in cls.RELATIONSHIPS:
+        if relationship not in cls._RELATIONSHIPS:
             raise errors.SchemaError(
-                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls._RELATIONSHIPS))
         return cls(
             test=stats.ttest_ind,
             samples=[sample1, sample2],
@@ -264,32 +333,56 @@ class Hypothesis(Check):
             `SeriesSchema` hypotheses, refers to the `groupby` level in the
             `Column`. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
-        :type sample1: str
         :param popmean: population mean to compare `sample` to.
-        :type popmean: float
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. Available relationships
             are: "greater_than", "less_than", "not_equal" and "equal". For
             example, `group1 greater_than group2` specifies an alternative
             hypothesis that the mean of group1 is greater than group 2 relative
             to a null hypothesis that they are equal.
-        :type relationship: str
         :param alpha: (Default value = 0.01) The significance level; the
             probability of rejecting the null hypothesis when it is true. For
             example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
-        :type alpha: float
+
+        :example:
+
+        If you want to compare one sample with a pre-defined mean:
+
+        >>> schema = DataFrameSchema({
+        ...     "height_in_feet": Column(
+        ...         pa.Float, [
+        ...             Hypothesis.one_sample_ttest(
+        ...                 sample="height_in_feet",
+        ...                 popmean=5,
+        ...                 relationship="greater_than",
+        ...                 alpha=0.1),
+        ...     ]),
+        ... })
+        >>> df = (
+        ...     pd.DataFrame({
+        ...         "height_in_feet": [8.1, 7, 6.5, 6.7, 5.1],
+        ...     })
+        ... )
+        >>> schema.validate(df)
+           height_in_feet
+        0             8.1
+        1             7.0
+        2             6.5
+        3             6.7
+        4             5.1
+
+
         """
-        if relationship not in cls.RELATIONSHIPS:
+        if relationship not in cls._RELATIONSHIPS:
             raise errors.SchemaError(
-                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls._RELATIONSHIPS))
         return cls(
-            test=stats.ttest_ind,
+            test=stats.ttest_1samp,
             samples=sample,
             relationship=relationship,
             test_kwargs={"popmean": popmean},
             relationship_kwargs={"alpha": alpha},
-            error="failed one sample ttest between for column '%s'" % (
-                sample),
+            error="failed one sample ttest for column '%s'" % (sample),
         )

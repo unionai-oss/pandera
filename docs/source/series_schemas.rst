@@ -1,5 +1,7 @@
 .. pandera documentation for seriesschemas
 
+.. _SeriesSchemas:
+
 Series Schemas
 ==============
 

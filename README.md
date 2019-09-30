@@ -101,7 +101,8 @@ print(validated_df)
 ```
 git clone https://github.com/pandera-dev/pandera.git
 cd pandera
-pip install -r requirements.txt && python setup.py install
+pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Tests

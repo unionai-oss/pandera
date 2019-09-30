@@ -51,6 +51,40 @@ def check_input(
     :type tail: int
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
+
+    :example:
+
+    Check the input of a decorated function.
+
+    >>> import pandas as pd
+    >>> import pandera as pa
+    >>>
+    >>> from pandera import DataFrameSchema, Column
+    >>>
+    >>>
+    >>> schema = DataFrameSchema({
+    ...     "column": Column(pa.Int),
+    ... })
+    >>>
+    >>> @pa.check_input(schema)
+    ... def transform_data(df: pd.DataFrame) -> pd.DataFrame:
+    ...     df["doubled_column"] = df["column"] * 2
+    ...     return df
+    >>>
+    >>> df = pd.DataFrame({
+    ...     "column": range(5),
+    ... })
+    >>>
+    >>> transform_data(df)
+       column  doubled_column
+    0       0               0
+    1       1               2
+    2       2               4
+    3       3               6
+    4       4               8
+
+    See :ref:`here<decorators>` for more usage details.
+
     """
 
     @wrapt.decorator
@@ -129,6 +163,40 @@ def check_output(
     :type tail: int
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
+
+    :example:
+
+    Check the output a decorated function.
+
+    >>> import pandas as pd
+    >>> import pandera as pa
+    >>>
+    >>> from pandera import DataFrameSchema, Column, Check
+    >>>
+    >>>
+    >>> schema = DataFrameSchema(
+    ...     columns={
+    ...         "doubled_column": Column(pa.Int),
+    ...     },
+    ...     checks=Check(lambda df: df["doubled_column"] == df["column"] * 2)
+    ... )
+    >>>
+    >>> @pa.check_output(schema)
+    ... def transform_data(df: pd.DataFrame) -> pd.DataFrame:
+    ...     df["doubled_column"] = df["column"] * 2
+    ...     return df
+    >>>
+    >>> df = pd.DataFrame({"column": range(5)})
+    >>>
+    >>> transform_data(df)
+       column  doubled_column
+    0       0               0
+    1       1               2
+    2       2               4
+    3       3               6
+    4       4               8
+
+    See :ref:`here<decorators>` for more usage details.
     """
 
     @wrapt.decorator

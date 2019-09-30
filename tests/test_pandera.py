@@ -40,6 +40,37 @@ def test_series_schema():
     with pytest.raises(errors.SchemaError):
         non_duplicate_schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
 
+    # when series name doesn't match schema
+    named_schema = SeriesSchema(Int, name="my_series")
+    with pytest.raises(
+            errors.SchemaError,
+            match=r"^Expected .+ to have name"):
+        named_schema.validate(pd.Series(range(5), name="your_series"))
+
+    # when series floats are declared to be integer
+    with pytest.raises(
+            errors.SchemaError,
+            match=r"^after dropping null values, expected values in series"):
+        SeriesSchema(Int, nullable=True).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan]))
+
+    # when series contains null values when schema is not nullable
+    with pytest.raises(
+            errors.SchemaError,
+            match=r"^non-nullable series .+ contains null values"):
+        SeriesSchema(Float, nullable=False).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan]))
+
+    # when series contains null values when schema is not nullable in addition
+    # to having the wrong data type
+    with pytest.raises(
+            errors.SchemaError,
+            match=(
+                r"^expected series '.+' to have type .+, got .+ and "
+                "non-nullable series contains null values")):
+        SeriesSchema(Int, nullable=False).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan]))
+
 
 def test_vectorized_checks():
     schema = SeriesSchema(
@@ -804,7 +835,7 @@ def test_hypothesis():
 
 def test_two_sample_ttest_hypothesis_relationships():
     """Check allowable relationships in two-sample ttest."""
-    for relationship in Hypothesis.RELATIONSHIPS:
+    for relationship in Hypothesis._RELATIONSHIPS:
         schema = DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(
@@ -876,9 +907,8 @@ def test_multi_index_index():
             "column1": [0.1, 0.5, 123.1, 10.6, 22.31],
             "column2": [0.1, 0.5, 123.1, 10.6, 22.31],
         },
-        index=pd.MultiIndex(
-            levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
-            labels=[[0, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+        index=pd.MultiIndex.from_arrays(
+            [[0, 1, 2, 3, 4], ["foo", "bar", "foo", "bar", "foo"]],
             names=["index0", "index1"],
         )
     )
@@ -888,9 +918,8 @@ def test_multi_index_index():
 
     # failure case
     df_fail = df.copy()
-    df_fail.index = pd.MultiIndex(
-        levels=[[0, 1, 2, 3, 4], ["foo", "bar"]],
-        labels=[[-1, 1, 2, 3, 4], [0, 1, 0, 1, 0]],
+    df_fail.index = pd.MultiIndex.from_arrays(
+        [[-1, 1, 2, 3, 4], ["foo", "bar", "foo", "bar", "foo"]],
         names=["index0", "index1"],
     )
     with pytest.raises(errors.SchemaError):
@@ -980,10 +1009,10 @@ def test_dataframe_checks():
             "col3": Column(String),
         },
         checks=[
-            Check(lambda g: g["foo"]["col1"].item() == 1, groupby="col3"),
-            Check(lambda g: g["foo"]["col2"].item() == 2.0, groupby="col3"),
-            Check(lambda g: g["foo"]["col3"].item() == "foo", groupby="col3"),
-            Check(lambda g: g[("foo", "foo")]["col1"].item() == 1,
+            Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3"),
+            Check(lambda g: g["foo"]["col2"].iat[0] == 2.0, groupby="col3"),
+            Check(lambda g: g["foo"]["col3"].iat[0] == "foo", groupby="col3"),
+            Check(lambda g: g[("foo", "foo")]["col1"].iat[0] == 1,
                   groupby=["col3", "col4"]),
         ]
     )
