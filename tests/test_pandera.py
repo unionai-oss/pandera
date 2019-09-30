@@ -500,9 +500,11 @@ def test_no_dtype_series():
 
 
 def test_coerce_without_dtype():
-    schema = DataFrameSchema({"col": Column(coerce=True)})
-    validated_df = schema.validate(pd.DataFrame({"col": [-123.1, -76.3, 1.0]}))
-    assert isinstance(validated_df, pd.DataFrame)
+    with pytest.raises(errors.SchemaInitError):
+        DataFrameSchema({"col": Column(coerce=True)})
+
+    with pytest.raises(errors.SchemaInitError):
+        DataFrameSchema({"col": Column()}, coerce=True)
 
 
 def test_required():

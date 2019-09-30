@@ -46,11 +46,18 @@ class DataFrameSchema(object):
         :param strict: whether or not to accept columns in the dataframe that
             aren't in the DataFrameSchema.
         :type strict: bool
+
+        :raises SchemaInitError: if impossible to build schema from parameters
         """
         if checks is None:
             checks = []
         if isinstance(checks, Check):
             checks = [checks]
+
+        if coerce and None in [c.pandas_dtype for c in columns.values()]:
+            raise errors.SchemaInitError(
+                "Must specify dtype in all Columns if coercing DataFrameSchema")
+
         self._checks = checks
         self.index = index
         self.columns = columns

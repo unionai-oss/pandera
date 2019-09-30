@@ -2,6 +2,7 @@
 
 import pandas as pd
 
+from . import errors
 from .dtypes import PandasDtype
 from .schemas import DataFrameSchema, SeriesSchemaBase
 
@@ -36,11 +37,18 @@ class Column(SeriesSchemaBase):
         :type coerce:  bool
         :param required: Whether or not column is allowed to be missing
         :type required:  bool
+
+        :raises SchemaInitError: if impossible to build schema from parameters
         """
         super(Column, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates)
         self.coerce = coerce
         self.required = required
+        self.pandas_dtype = pandas_dtype
+
+        if coerce and pandas_dtype is None:
+            raise errors.SchemaInitError(
+                "Must specify dtype if coercing a Column's type")
 
     @property
     def _allow_groupby(self):
@@ -63,10 +71,6 @@ class Column(SeriesSchemaBase):
             (including time series).
 
         """
-        # If no dtype is specified, then assume no coercion is wanted
-        if self._pandas_dtype is None:
-            return series
-
         _dtype = str if self._pandas_dtype is PandasDtype.String \
             else self._pandas_dtype.value
         return series.astype(_dtype)
