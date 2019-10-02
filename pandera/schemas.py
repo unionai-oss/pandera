@@ -41,6 +41,8 @@ class DataFrameSchema(object):
         :param strict: whether or not to accept columns in the dataframe that
             aren't in the DataFrameSchema.
 
+        :raises SchemaInitError: if impossible to build schema from parameters
+
         :examples:
 
         >>> import pandera as pa
@@ -79,6 +81,11 @@ class DataFrameSchema(object):
             checks = []
         if isinstance(checks, Check):
             checks = [checks]
+
+        if coerce and None in [c.pandas_dtype for c in columns.values()]:
+            raise errors.SchemaInitError(
+                "Must specify dtype in all Columns if coercing DataFrameSchema")
+
         self._checks = checks
         self.index = index
         self.columns = columns
@@ -273,7 +280,7 @@ class SeriesSchemaBase(object):
 
     def __init__(
             self,
-            pandas_dtype: Union[str, dtypes.PandasDtype],
+            pandas_dtype: Union[str, dtypes.PandasDtype] = None,
             checks: callable = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -321,8 +328,11 @@ class SeriesSchemaBase(object):
             raise errors.SchemaError(
                 "Expected %s to have name '%s', found '%s'" %
                 (type(self), self._name, series.name))
-        expected_dtype = _dtype = self._pandas_dtype if \
-            isinstance(self._pandas_dtype, str) else self._pandas_dtype.value
+
+        expected_dtype = _dtype = self._pandas_dtype if (
+            isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
+        ) else self._pandas_dtype.value
+
         if self._nullable:
             series = series.dropna()
             if dataframe_context is not None:
@@ -365,7 +375,7 @@ class SeriesSchemaBase(object):
                      series[duplicates].head(
                         constants.N_FAILURE_CASES).to_dict()))
 
-        if series.dtype != _dtype:
+        if _dtype is not None and series.dtype != _dtype:
             raise errors.SchemaError(
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, expected_dtype, series.dtype))
@@ -384,7 +394,7 @@ class SeriesSchema(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: dtypes.PandasDtype,
+            pandas_dtype: dtypes.PandasDtype = None,
             checks: List[Check] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,

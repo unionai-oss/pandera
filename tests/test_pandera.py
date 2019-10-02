@@ -502,6 +502,42 @@ def test_coerce_dtype():
             schema.validate(df)
 
 
+def test_no_dtype():
+    schema = DataFrameSchema({"col": Column(nullable=False)})
+    validated_df = schema.validate(pd.DataFrame({"col": [-123.1, -76.3, 1.0]}))
+    assert isinstance(validated_df, pd.DataFrame)
+
+    schema = DataFrameSchema({"col": Column(nullable=True)})
+    validated_df = schema.validate(pd.DataFrame({"col": [-123.1, None, 1.0]}))
+    assert isinstance(validated_df, pd.DataFrame)
+
+    with pytest.raises(errors.SchemaError):
+        schema = DataFrameSchema({"col": Column(nullable=False)})
+        schema.validate(pd.DataFrame({"col": [-123.1, None, 1.0]}))
+
+
+def test_no_dtype_series():
+    schema = SeriesSchema(nullable=False)
+    validated_series = schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
+    assert isinstance(validated_series, pd.Series)
+
+    schema = SeriesSchema(nullable=True)
+    validated_series = schema.validate(pd.Series([0, 1, 2, None, 4, 1]))
+    assert isinstance(validated_series, pd.Series)
+
+    with pytest.raises(errors.SchemaError):
+        schema = SeriesSchema(nullable=False)
+        schema.validate(pd.Series([0, 1, 2, None, 4, 1]))
+
+
+def test_coerce_without_dtype():
+    with pytest.raises(errors.SchemaInitError):
+        DataFrameSchema({"col": Column(coerce=True)})
+
+    with pytest.raises(errors.SchemaInitError):
+        DataFrameSchema({"col": Column()}, coerce=True)
+
+
 def test_required():
     schema = DataFrameSchema({
         "col1": Column(Int, required=False),

@@ -4,6 +4,7 @@ from typing import Union
 
 import pandas as pd
 
+from . import errors
 from .dtypes import PandasDtype
 from .checks import Check, List
 from .schemas import DataFrameSchema, SeriesSchemaBase
@@ -13,7 +14,7 @@ class Column(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: Union[str, PandasDtype],
+            pandas_dtype: Union[str, PandasDtype] = None,
             checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -32,6 +33,8 @@ class Column(SeriesSchemaBase):
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype.
         :param required: Whether or not column is allowed to be missing
+
+        :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:
 
@@ -54,6 +57,11 @@ class Column(SeriesSchemaBase):
             pandas_dtype, checks, nullable, allow_duplicates)
         self.coerce = coerce
         self.required = required
+        self.pandas_dtype = pandas_dtype
+
+        if coerce and pandas_dtype is None:
+            raise errors.SchemaInitError(
+                "Must specify dtype if coercing a Column's type")
 
     @property
     def _allow_groupby(self):
@@ -99,7 +107,7 @@ class Index(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: Union[str, PandasDtype],
+            pandas_dtype: Union[str, PandasDtype] = None,
             checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -207,7 +215,7 @@ class MultiIndex(DataFrameSchema):
         super(MultiIndex, self).__init__(
             columns={
                 i if index._name is None else index._name: Column(
-                    index._pandas_dtype,
+                    pandas_dtype=index._pandas_dtype,
                     checks=index._checks,
                     nullable=index._nullable,
                     allow_duplicates=index._allow_duplicates,
