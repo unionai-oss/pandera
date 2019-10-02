@@ -64,10 +64,11 @@ class Column(SeriesSchemaBase):
                 "Must specify dtype if coercing a Column's type")
 
     @property
-    def _allow_groupby(self):
+    def _allow_groupby(self) -> bool:
+        """Whether the schema or schema component allows groupby operations."""
         return True
 
-    def _set_name(self, name):
+    def _set_name(self, name: str):
         """Used to set or modify the name of a column object.
 
         :param str name: the name of the column object
@@ -76,19 +77,21 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
-    def _coerce_dtype(self, series):
+    def _coerce_dtype(self, series: pd.Series) -> pd.Series:
         """Coerce the type of a pd.Series by the type specified in the Column
             object's self._pandas_dtype
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
+        :returns: ``Series`` with coerced data type
 
         """
         _dtype = str if self._pandas_dtype is PandasDtype.String \
             else self._pandas_dtype.value
         return series.astype(_dtype)
 
-    def __call__(self, df):
+    def __call__(self, df: pd.DataFrame) -> bool:
+        """Validate DataFrameSchema Column."""
         if self._name is None:
             raise RuntimeError(
                 "need to `set_name` of column before calling it.")
@@ -148,10 +151,12 @@ class Index(SeriesSchemaBase):
             pandas_dtype, checks, nullable, allow_duplicates, name)
 
     @property
-    def _allow_groupby(self):
+    def _allow_groupby(self) -> bool:
+        """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def __call__(self, df):
+    def __call__(self, df: pd.DataFrame) -> bool:
+        """Validate DataFrameSchema Index."""
         return super(Index, self).__call__(pd.Series(df.index))
 
     def __repr__(self):
@@ -226,7 +231,8 @@ class MultiIndex(DataFrameSchema):
             strict=strict,
         )
 
-    def __call__(self, df):
+    def __call__(self, df: pd.DataFrame) -> bool:
+        """Validate DataFrameSchema MultiIndex."""
         return isinstance(
             super(MultiIndex, self).__call__(df.index.to_frame()),
             pd.DataFrame

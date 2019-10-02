@@ -3,18 +3,23 @@
 import pandas as pd
 
 from functools import partial
-from typing import Any, Union, Optional, List, Dict, Callable
+from typing import Union, Optional, List, Dict, Callable
 
 from . import errors, constants
 from .dtypes import PandasDtype
 
 
-CheckCallable = Callable[
-    [Union[pd.Series, Any]], Union[pd.Series, bool]
+GroupbyObject = Union[
+    pd.core.groupby.SeriesGroupBy,
+    pd.core.groupby.DataFrameGroupBy
 ]
+
+SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
+DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
 class Check(object):
+    """Check a pandas Series or DataFrame for certain properties."""
 
     def __init__(
             self,
@@ -142,6 +147,7 @@ class Check(object):
 
     @property
     def _error_message(self):
+        """Check error message."""
         name = getattr(self.fn, '__name__', self.fn.__class__.__name__)
         if self.error:
             return "%s: %s" % (name, self.error)
@@ -149,13 +155,12 @@ class Check(object):
 
     def _vectorized_error_message(
             self,
-            parent_schema,
+            parent_schema: type,
             check_index: int,
             failure_cases: Union[pd.DataFrame, pd.Series]) -> str:
-        """Constructs an error message when an element-wise validator fails.
+        """Construct an error message when an element-wise validator fails.
 
-        :param parent_schema: The schema object that is being checked and that
-            was inherited from the parent class.
+        :param parent_schema: class of schema being validated.
         :param check_index: The validator that failed.
         :param failure_cases: The failure cases encountered by the element-wise
             validator.
@@ -170,12 +175,11 @@ class Check(object):
 
     def _generic_error_message(
             self,
-            parent_schema,
+            parent_schema: type,
             check_index: int) -> str:
-        """Constructs an error message when a check validator fails.
+        """Construct an error message when a check validator fails.
 
-        :param parent_schema: The schema object that is being checked and that
-            was inherited from the parent class.
+        :param parent_schema: class of schema being validated.
         :param check_index: The validator that failed.
 
         """
@@ -185,10 +189,14 @@ class Check(object):
     def _format_failure_cases(
             self,
             failure_cases: Union[pd.DataFrame, pd.Series]) -> pd.DataFrame:
-        """Constructs readable error messages for vectorized_error_message.
+        """Construct readable error messages for vectorized_error_message.
 
         :param failure_cases: The failure cases encountered by the element-wise
             validator.
+        :returns: DataFrame where index contains failure cases, the "index"
+            column contains a list of integer indexes in the validation
+            DataFrame that caused the failure, and a "count" column
+            representing how many failures of that case occurred.
 
         """
         if isinstance(failure_cases.index, pd.MultiIndex):
@@ -227,10 +235,17 @@ class Check(object):
         self.failure_cases = failure_cases
         return failure_cases.head(self.n_failure_cases)
 
-    def _format_input(
+    def _format_groupby_input(
             self,
-            groupby_obj,
-            groups) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
+            groupby_obj: GroupbyObject,
+            groups: List[str]
+            ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
+        """Format groupby object into dict of groups to Series or DataFrame.
+
+        :param groupby_obj: a pandas groupby object.
+        :param groups: only include these groups in the output.
+        :returns: dictionary mapping group names to Series or DataFrame.
+        """
         if groups is None:
             return {group_key: group for group_key, group in groupby_obj}
         group_keys = set(group_key for group_key, _ in groupby_obj)
@@ -247,15 +262,15 @@ class Check(object):
     def _prepare_series_input(
             self,
             series: pd.Series,
-            dataframe_context: pd.DataFrame) -> Dict[str, pd.Series]:
+            dataframe_context: pd.DataFrame) -> SeriesCheckObj:
         """Prepare input for Column check.
 
         :param pd.Series series: one-dimensional ndarray with axis labels
             (including time series).
         :param pd.DataFrame dataframe_context: optional dataframe to supply
             when checking a Column in a DataFrameSchema.
-        :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
-            and `_vectorized_check`
+        :returns: a Series, or a dictionary mapping groups to Series
+            to be used by `_check_fn` and `_vectorized_check`
 
         """
         if dataframe_context is None or self.groupby is None:
@@ -271,29 +286,35 @@ class Check(object):
         else:
             raise TypeError("Type %s not recognized for `groupby` argument.")
 
-        return self._format_input(groupby_obj, self.groups)
+        return self._format_groupby_input(groupby_obj, self.groups)
 
     def _prepare_dataframe_input(
-            self, dataframe: pd.DataFrame) -> Dict[str, pd.DataFrame]:
-        """Prepare input for DataFrameSchema check."""
+            self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
+        """Prepare input for DataFrameSchema check.
+
+        :param dataframe: dataframe to validate.
+        :returns: a DataFrame, or a dictionary mapping groups to pd.DataFrame
+            to be used by `_check_fn` and `_vectorized_check`
+        """
         if self.groupby is None:
             return dataframe
         else:
             groupby_obj = dataframe.groupby(self.groupby)
-        return self._format_input(groupby_obj, self.groups)
+        return self._format_groupby_input(groupby_obj, self.groups)
 
     def _vectorized_check(
             self,
-            parent_schema,
+            parent_schema: type,
             check_index: int,
-            check_obj: Dict[str, Union[pd.Series, pd.DataFrame]]):
+            check_obj: Dict[str, Union[pd.Series, pd.DataFrame]]
+            ) -> bool:
         """Perform a vectorized check on a series.
 
-        :param parent_schema: The schema object that is being checked and that
-            was inherited from the parent class.
+        :param parent_schema: class of schema being validated.
         :param check_index: The validator to check the series for
         :param check_obj: a dictionary of pd.Series to be used by
             `_check_fn` and `_vectorized_check`
+        :returns: True if pandas DataFramf or Series is valid.
         """
         val_result = self.fn(check_obj)
         if isinstance(val_result, pd.Series):
@@ -320,11 +341,16 @@ class Check(object):
 
     def __call__(
             self,
-            parent_schema,
+            parent_schema: type,
             check_index: int,
-            check_obj: Dict[str, Union[pd.Series, pd.DataFrame]]):
-        _vcheck = partial(
-            self._vectorized_check, parent_schema, check_index)
+            check_obj: Union[pd.Series, pd.DataFrame]) -> bool:
+        """Validate pandas DataFrame or Series.
+
+        :param parent_schema: class of schema being validated.
+        :check_index: index of check that is being validated.
+        :check_obj: pandas DataFrame of Series to validate.
+        :returns: True if check passes.
+        """
         if self.element_wise:
             val_result = check_obj.apply(self.fn, axis=1) if \
                 isinstance(check_obj, pd.DataFrame) else check_obj.map(self.fn)

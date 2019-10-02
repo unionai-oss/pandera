@@ -4,6 +4,8 @@ from enum import Enum
 
 
 class PandasDtype(Enum):
+    """Enumerate all valid pandas data types."""
+
     Bool = "bool"
     DateTime = "datetime64[ns]"
     Category = "category"

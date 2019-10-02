@@ -15,7 +15,7 @@ DEFAULT_ALPHA = 0.01
 
 
 class Hypothesis(Check):
-    """Extends Check to perform a hypothesis test on a Column."""
+    """Perform a hypothesis test on a Column."""
 
     _RELATIONSHIPS = {
         "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
@@ -139,7 +139,7 @@ class Hypothesis(Check):
 
     @property
     def is_one_sample_test(self):
-        """Returns True if hypothesis is a one-sample test."""
+        """Return True if hypothesis is a one-sample test."""
         return len(self.samples) == 1
 
     def _prepare_series_input(
@@ -169,7 +169,7 @@ class Hypothesis(Check):
         if self.is_one_sample_test:
             return dataframe[self.samples[0]]
         check_obj = [(sample, dataframe[sample]) for sample in self.samples]
-        return self._format_input(check_obj, self.samples)
+        return self._format_groupby_input(check_obj, self.samples)
 
     def _relationships(self, relationship: Union[str, Callable]):
         """Impose a relationship on a supplied Test function.

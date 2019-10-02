@@ -241,14 +241,16 @@ class DataFrameSchema(object):
         return dataframe
 
     def __repr__(self):
+        """Represent string for logging."""
         return "%s(columns=%s, index=%s, transformer=%s, coerce=%s)" % \
-              (self.__class__.__name__,
-               self.columns,
-               self.index,
-               self.transformer,
-               self.coerce)
+            (self.__class__.__name__,
+             self.columns,
+             self.index,
+             self.transformer,
+             self.coerce)
 
     def __str__(self):
+        """Represent string for user inspection."""
         columns = {k: str(v) for k, v in self.columns.items()}
         columns = json.dumps(columns, indent=N_INDENT_SPACES)
         _indent = " " * N_INDENT_SPACES
@@ -317,12 +319,15 @@ class SeriesSchemaBase(object):
 
     @property
     def _allow_groupby(self):
+        """Whether the schema or schema component allows groupby operations."""
         raise NotImplementedError(
             "The _allow_groupby property must be implemented by subclasses "
             "of SeriesSchemaBase")
 
     def __call__(
-            self, series: pd.Series, dataframe_context: pd.DataFrame = None):
+            self,
+            series: pd.Series,
+            dataframe_context: pd.DataFrame = None) -> bool:
         """Validate a series."""
         if series.name != self._name:
             raise errors.SchemaError(
@@ -391,6 +396,7 @@ class SeriesSchemaBase(object):
 
 
 class SeriesSchema(SeriesSchemaBase):
+    """Series validator."""
 
     def __init__(
             self,
@@ -434,15 +440,16 @@ class SeriesSchema(SeriesSchemaBase):
             pandas_dtype, checks, nullable, allow_duplicates, name)
 
     @property
-    def _allow_groupby(self):
+    def _allow_groupby(self) -> bool:
+        """Whether the schema or schema component allows groupby operations."""
         return False
 
     def validate(self, series: pd.Series) -> pd.Series:
-        """Check if all values in a series have a corresponding column in the
-            DataFrameSchema
+        """Check that series values  have corresponding DataFrameSchema column.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
+        :returns: validated Series.
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
             checks.

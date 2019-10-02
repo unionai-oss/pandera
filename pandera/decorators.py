@@ -4,13 +4,20 @@ import inspect
 import warnings
 
 from collections import OrderedDict
+from typing import Any, Callable, List, Union, Tuple, Dict, Optional
 
 import wrapt
 
+from . import schemas
 from . import errors
 
 
-def _get_fn_argnames(fn):
+def _get_fn_argnames(fn: Callable) -> List[str]:
+    """Get argument names of a function.
+
+    :param fn: get argument names for this function.
+    :returns: list of argument names.
+    """
     arg_spec_args = inspect.getfullargspec(fn).args
 
     if inspect.ismethod(fn) and arg_spec_args[0] == "self":
@@ -20,12 +27,12 @@ def _get_fn_argnames(fn):
 
 
 def check_input(
-        schema,
-        obj_getter=None,
-        head=None,
-        tail=None,
-        sample=None,
-        random_state=None):
+        schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+        obj_getter: Optional[Union[str, int]] = None,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None) -> Callable:
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -34,7 +41,6 @@ def check_input(
     passed into the decorated function.
 
     :param schema: dataframe/series schema object
-    :type schema: DataFrameSchema|SeriesSchema
     :param obj_getter:  (Default value = None) if int, obj_getter refers to the
         the index of the pandas dataframe/series to be validated in the args
         part of the function signature. If str, obj_getter refers to the
@@ -42,15 +48,13 @@ def check_input(
         This works even if the series/dataframe is passed in as a positional
         argument when the function is called. If None, assumes that the
         dataframe/series is the first argument of the decorated function
-    :type obj_getter: int|str|None
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
-    :type head: int
     :param tail: validate the last n rows. Rows overlapping with `head` or
         `sample` are de-duplicated.
-    :type tail: int
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
+    :returns: wrapped function
 
     :example:
 
@@ -88,7 +92,21 @@ def check_input(
     """
 
     @wrapt.decorator
-    def _wrapper(fn, instance, args, kwargs):
+    def _wrapper(
+            fn: Callable,
+            instance: Union[None, Any],
+            args: Tuple[Any],
+            kwargs: Dict[str, Any]):
+        """Check pandas DataFrame or Series before calling the function.
+
+        :param fn: check the DataFrame or Series input of this function
+        :param instance: the object to which the wrapped function was bound
+            when it was called. Only applies to methods.
+        :param args: the list of positional arguments supplied when the
+            decorated function was called.
+        :param kwargs: the dictionary of keyword arguments supplied when the
+            decorated function was called.
+        """
         args = list(args)
         if isinstance(obj_getter, int):
             try:
@@ -132,12 +150,12 @@ def check_input(
 
 
 def check_output(
-        schema,
-        obj_getter=None,
-        head=None,
-        tail=None,
-        sample=None,
-        random_state=None):
+        schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+        obj_getter: Optional[Union[int, str, Callable]] = None,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None) -> Callable:
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
@@ -146,7 +164,6 @@ def check_output(
     validator.
 
     :param schema: dataframe/series schema object
-    :type schema: DataFrameSchema|SeriesSchema
     :param obj_getter:  (Default value = None) if int, assumes that the output
         of the decorated function is a list-like object, where obj_getter is
         the index of the pandas data dataframe/series to be validated. If str,
@@ -154,15 +171,13 @@ def check_output(
         key pointing to the dataframe/series to be validated. If a callable is
         supplied, it expects the output of decorated function and should return
         the dataframe/series to be validated.
-    :type obj_getter: int|str|callable|None
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
-    :type head: int
     :param tail: validate the last n rows. Rows overlapping with `head` or
         `sample` are de-duplicated.
-    :type tail: int
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
+    :returns: wrapped function
 
     :example:
 
@@ -200,7 +215,21 @@ def check_output(
     """
 
     @wrapt.decorator
-    def _wrapper(fn, instance, args, kwargs):
+    def _wrapper(
+            fn: Callable,
+            instance: Union[None, Any],
+            args: Tuple[Any],
+            kwargs: Dict[str, Any]):
+        """Check pandas DataFrame or Series before calling the function.
+
+        :param fn: check the DataFrame or Series output of this function
+        :param instance: the object to which the wrapped function was bound
+            when it was called. Only applies to methods.
+        :param args: the list of positional arguments supplied when the
+            decorated function was called.
+        :param kwargs: the dictionary of keyword arguments supplied when the
+            decorated function was called.
+        """
         if schema.transformer is not None:
             warnings.warn(
                 "The schema transformer function has no effect in a "
