@@ -22,10 +22,10 @@ class Column(SeriesSchemaBase):
             required: bool = True):
         """Create column validator object.
 
-        :param pandas_dtype: datatype of the column. If a string is specified,
-            then assumes one of the valid pandas string values:
+        :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
+            type-checking dataframe. If a string is specified, then assumes
+            one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :type pandas_dtype: str|PandasDtype
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param allow_duplicates: Whether or not to coerce the column to the
@@ -54,8 +54,7 @@ class Column(SeriesSchemaBase):
         See :ref:`here<column>` for more usage details.
         """
         super(Column, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates)
-        self.coerce = coerce
+            pandas_dtype, checks, nullable, allow_duplicates, coerce)
         self.required = required
         self.pandas_dtype = pandas_dtype
 
@@ -76,19 +75,6 @@ class Column(SeriesSchemaBase):
         """
         self._name = name
         return self
-
-    def _coerce_dtype(self, series: pd.Series) -> pd.Series:
-        """Coerce the type of a pd.Series by the type specified in the Column
-            object's self._pandas_dtype
-
-        :param pd.Series series: One-dimensional ndarray with axis labels
-            (including time series).
-        :returns: ``Series`` with coerced data type
-
-        """
-        _dtype = str if self._pandas_dtype is PandasDtype.String \
-            else self._pandas_dtype.value
-        return series.astype(_dtype)
 
     def __call__(self, df: pd.DataFrame) -> bool:
         """Validate DataFrameSchema Column."""
@@ -114,16 +100,20 @@ class Index(SeriesSchemaBase):
             checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
+            coerce: bool = False,
             name: str = None):
         """Create Index validator.
 
-        :param pandas_dtype: datatype of the column. If a string is specified,
-            then assumes one of the valid pandas string values:
+        :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
+            type-checking dataframe. If a string is specified, then assumes
+            one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the index.
         :param nullable: Whether or not column can contain null values.
         :param allow_duplicates: Whether or not to coerce the column to the
             specified pandas_dtype before validation
+        :param coerce: If True, when schema.validate is called the index will
+            be coerced into the specified dtype.
         :param name: name of the index
 
         :example:
@@ -148,7 +138,7 @@ class Index(SeriesSchemaBase):
 
         """
         super(Index, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, name)
+            pandas_dtype, checks, nullable, allow_duplicates, coerce, name)
 
     @property
     def _allow_groupby(self) -> bool:
