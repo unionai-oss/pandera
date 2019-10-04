@@ -84,7 +84,8 @@ class DataFrameSchema(object):
 
         if coerce and None in [c.pandas_dtype for c in columns.values()]:
             raise errors.SchemaInitError(
-                "Must specify dtype in all Columns if coercing DataFrameSchema")
+                "Must specify dtype in all Columns if coercing "
+                "DataFrameSchema")
 
         self._checks = checks
         self.index = index
@@ -238,6 +239,7 @@ class DataFrameSchema(object):
             and self._check_dataframe(dataframe))
         if self.transformer is not None:
             dataframe = self.transformer(dataframe)
+
         return dataframe
 
     def __repr__(self):
@@ -286,6 +288,7 @@ class SeriesSchemaBase(object):
             checks: callable = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
+            coerce: bool = False,
             name: str = None):
         """Initialize series schema base object.
 
@@ -305,6 +308,7 @@ class SeriesSchemaBase(object):
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
         self._allow_duplicates = allow_duplicates
+        self._coerce = coerce
         if checks is None:
             checks = []
         if isinstance(checks, Check):
@@ -316,6 +320,26 @@ class SeriesSchemaBase(object):
             if check.groupby is not None and not self._allow_groupby:
                 raise errors.SchemaInitError(
                     "Cannot use groupby checks with type %s" % type(self))
+
+    @property
+    def coerce(self) -> bool:
+        """Whether to coerce series to specified type."""
+        return self._coerce
+
+    def _coerce_dtype(self, series: pd.Series) -> pd.Series:
+        """Coerce the type of a pd.Series by the type specified in the Column
+            object's self._pandas_dtype
+
+        :param pd.Series series: One-dimensional ndarray with axis labels
+            (including time series).
+        :returns: ``Series`` with coerced data type
+
+        """
+        _dtype = str if self._pandas_dtype is dtypes.PandasDtype.String \
+            else self._pandas_dtype.value
+        if self._nullable and _dtype is str:
+            return series.astype(object)
+        return series.astype(_dtype)
 
     @property
     def _allow_groupby(self):
@@ -404,6 +428,7 @@ class SeriesSchema(SeriesSchemaBase):
             checks: List[Check] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
+            coerce: bool = False,
             name: str = None):
         """Initialize series schema object.
 
@@ -415,9 +440,9 @@ class SeriesSchema(SeriesSchemaBase):
             x -> x where x is a scalar element in the column. Otherwise,
             x is assumed to be a pandas.Series object.
         :param nullable: Whether or not column can contain null values.
-        :type nullable: bool
         :param allow_duplicates:
-        :type allow_duplicates: bool
+        :param coerce: whether or not to coerce all of the columns on
+            validation.
 
         :example:
 
@@ -437,7 +462,7 @@ class SeriesSchema(SeriesSchemaBase):
         See :ref:`here<SeriesSchemas>` for more usage details.
         """
         super(SeriesSchema, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, name)
+            pandas_dtype, checks, nullable, allow_duplicates, coerce, name)
 
     @property
     def _allow_groupby(self) -> bool:
@@ -468,6 +493,9 @@ class SeriesSchema(SeriesSchemaBase):
         """
         if not isinstance(series, pd.Series):
             raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
-        else:
-            assert super(SeriesSchema, self).__call__(series)
-            return series
+
+        if self.coerce:
+            series = self._coerce_dtype(series)
+
+        assert super(SeriesSchema, self).__call__(series)
+        return series
