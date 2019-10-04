@@ -198,4 +198,3 @@ def test_check_input_method_decorators():
         transformer.transform_secord_arg_with_list_getter(None, dataframe))
     _assert_expectation(
         transformer.transform_secord_arg_with_dict_getter(None, dataframe))
-

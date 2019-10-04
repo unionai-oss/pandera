@@ -90,4 +90,3 @@ def test_multi_index_index():
     )
     with pytest.raises(errors.SchemaError):
         schema.validate(df_fail)
-

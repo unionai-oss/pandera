@@ -2,7 +2,6 @@
 
 import pandas as pd
 
-from functools import partial
 from typing import Union, Optional, List, Dict, Callable
 
 from . import errors, constants
