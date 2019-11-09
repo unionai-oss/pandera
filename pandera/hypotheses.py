@@ -71,12 +71,12 @@ class Hypothesis(Check):
             If callable, the input function signature should have the signature
             ``(stat: float, pvalue: float, **kwargs)`` where `stat` is the
             hypothesis test statistic, `pvalue` assesses statistical
-            significance, and `**kwargs` are other arguments supplied bia the
+            significance, and `**kwargs` are other arguments supplied via the
             `**relationship_kwargs` argument.
 
             Default is "equal" for the null hypothesis.
         :param dict test_kwargs: Key Word arguments to be supplied to the test.
-        :param dict relationship_kwargs: Key Word arguments to be supplied to
+        :param dict relationship_kwargs: Keyword arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
         :param error: error message to show
