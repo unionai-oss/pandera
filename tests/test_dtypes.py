@@ -51,7 +51,8 @@ def test_category_dtype():
                 dtypes.Category,
                 checks=[
                     Check(lambda s: set(s) == {"A", "B", "C"}),
-                    Check(lambda s: s.cat.categories.tolist() == ["A", "B", "C"]),
+                    Check(lambda s:
+                          s.cat.categories.tolist() == ["A", "B", "C"]),
                     Check(lambda s: s.isin(["A", "B", "C"]))
                 ],
                 nullable=False
