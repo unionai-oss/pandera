@@ -6,7 +6,7 @@ with open('README.md') as f:
 
 setup(
     name="pandera",
-    version="0.2.3",
+    version="0.2.4",
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
     description="A light-weight and flexible validation package for pandas "
