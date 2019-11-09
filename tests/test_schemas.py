@@ -209,20 +209,20 @@ def test_coerce_dtype_in_dataframe():
     df = pd.DataFrame({
         "column1": [10.0, 20.0, 30.0],
         "column2": ["2018-01-01", "2018-02-01", "2018-03-01"],
-        "column3": [1, 2, 3],
+        "column3": [1, 2, None],
         "column4": [1., 1., np.nan],
     })
     # specify `coerce` at the Column level
     schema1 = DataFrameSchema({
         "column1": Column(Int, Check(lambda x: x > 0), coerce=True),
         "column2": Column(DateTime, coerce=True),
-        "column3": Column(String, coerce=True),
+        "column3": Column(String, coerce=True, nullable=True),
     })
     # specify `coerce` at the DataFrameSchema level
     schema2 = DataFrameSchema({
         "column1": Column(Int, Check(lambda x: x > 0)),
         "column2": Column(DateTime),
-        "column3": Column(String),
+        "column3": Column(String, nullable=True),
     }, coerce=True)
 
     for schema in [schema1, schema2]:
@@ -230,15 +230,35 @@ def test_coerce_dtype_in_dataframe():
         assert result.column1.dtype == Int.value
         assert result.column2.dtype == DateTime.value
         for _, x in result.column3.iteritems():
-            assert isinstance(x, str)
+            assert pd.isna(x) or isinstance(x, str)
 
         # make sure that correct error is raised when null values are present
         # in a float column that's coerced to an int
-        schema = DataFrameSchema({
-            "column4": Column(Int, coerce=True)
-        })
+        schema = DataFrameSchema({"column4": Column(Int, coerce=True)})
         with pytest.raises(ValueError):
             schema.validate(df)
+
+
+def test_coerce_dtype_nullable_str():
+    df_nans = pd.DataFrame({
+        "col": ["foobar", "foo", "bar", "baz", np.nan, np.nan],
+    })
+    df_nones = pd.DataFrame({
+        "col": ["foobar", "foo", "bar", "baz", None, None],
+    })
+
+    with pytest.raises(errors.SchemaError):
+        for df in [df_nans, df_nones]:
+            DataFrameSchema({
+                "col": Column(String, coerce=True, nullable=False)
+            }).validate(df)
+
+    schema = DataFrameSchema({
+        "col": Column(String, coerce=True, nullable=True)
+    })
+
+    for df in [df_nans, df_nones]:
+        assert isinstance(schema.validate(df), pd.DataFrame)
 
 
 def test_no_dtype_dataframe():

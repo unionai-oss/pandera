@@ -337,8 +337,11 @@ class SeriesSchemaBase(object):
         """
         _dtype = str if self._pandas_dtype is dtypes.PandasDtype.String \
             else self._pandas_dtype.value
-        if self._nullable and _dtype is str:
-            return series.astype(object)
+        if _dtype is str:
+            # only coerce non-null elements to string
+            _series = series.copy()
+            _series[series.notna()] = _series[series.notna()].astype(str)
+            return _series
         return series.astype(_dtype)
 
     @property
@@ -358,7 +361,7 @@ class SeriesSchemaBase(object):
                 "Expected %s to have name '%s', found '%s'" %
                 (type(self), self._name, series.name))
 
-        expected_dtype = _dtype = self._pandas_dtype if (
+        _dtype = self._pandas_dtype if (
             isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
         ) else self._pandas_dtype.value
 
@@ -404,10 +407,21 @@ class SeriesSchemaBase(object):
                      series[duplicates].head(
                         constants.N_FAILURE_CASES).to_dict()))
 
-        if _dtype is not None and series.dtype != _dtype:
+        try:
+            series.dtype == _dtype
+            types_comparable = True
+        except TypeError:
+            types_comparable = False
+
+        if types_comparable:
+            types_not_matching = series.dtype != _dtype
+        else:
+            types_not_matching = True
+
+        if _dtype is not None and types_not_matching:
             raise errors.SchemaError(
                 "expected series '%s' to have type %s, got %s" %
-                (series.name, expected_dtype, series.dtype))
+                (series.name, _dtype, series.dtype))
 
         val_results = []
         for check_index, check in enumerate(self._checks):
