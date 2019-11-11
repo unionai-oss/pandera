@@ -6,7 +6,7 @@ with open('README.md') as f:
 
 setup(
     name="pandera",
-    version="0.2.4",
+    version="0.2.5",
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
     description="A light-weight and flexible validation package for pandas "
@@ -20,6 +20,7 @@ setup(
       },
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
+    data_files=[("", ["LICENSE.txt"])],
     packages=[
         "pandera",
     ],
@@ -34,6 +35,7 @@ setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Operating System :: OS Independent',
+        'License :: OSI Approved :: MIT License',
         'Intended Audience :: Science/Research',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
