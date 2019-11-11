@@ -20,22 +20,28 @@ def test_vectorized_checks():
 
 
 def test_check_groupby():
-    schema = DataFrameSchema({
-        "col1": Column(Int, [
-            Check(lambda s: s["foo"] > 10, groupby="col2"),
-            Check(lambda s: s["bar"] < 10, groupby=["col2"]),
-            Check(lambda s: s["foo"] > 10,
-                  groupby=lambda df: df.groupby("col2")),
-            Check(lambda s: s["bar"] < 10,
-                  groupby=lambda df: df.groupby("col2"))
-        ]),
-        "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
-    })
+    schema = DataFrameSchema(
+        columns={
+            "col1": Column(Int, [
+                Check(lambda s: s["foo"] > 10, groupby="col2"),
+                Check(lambda s: s["bar"] < 10, groupby=["col2"]),
+                Check(lambda s: s["foo"] > 10,
+                      groupby=lambda df: df.groupby("col2")),
+                Check(lambda s: s["bar"] < 10,
+                      groupby=lambda df: df.groupby("col2"))
+            ]),
+            "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+        },
+        index=Index(Int, name="data_id"),
+    )
 
-    df_pass = pd.DataFrame({
-        "col1": [7, 8, 9, 11, 12, 13],
-        "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
-    })
+    df_pass = pd.DataFrame(
+        data={
+            "col1": [7, 8, 9, 11, 12, 13],
+            "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
+        },
+        index=pd.Series([1, 2, 3, 4, 5, 6], name="data_id"),
+    )
 
     df = schema.validate(df_pass)
     assert isinstance(df, pd.DataFrame)
@@ -43,18 +49,27 @@ def test_check_groupby():
     assert set(df.columns) == {"col1", "col2"}
 
     # raise errors.SchemaError when Check fails
-    df_fail_on_bar = pd.DataFrame({
-        "col1": [7, 8, 20, 11, 12, 13],
-        "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
-    })
-    df_fail_on_foo = pd.DataFrame({
-        "col1": [7, 8, 9, 11, 1, 13],
-        "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
-    })
+    df_fail_on_bar = pd.DataFrame(
+        data={
+            "col1": [7, 8, 20, 11, 12, 13],
+            "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
+        },
+        index=pd.Series([1, 2, 3, 4, 5, 6], name="data_id"),
+    )
+    df_fail_on_foo = pd.DataFrame(
+        data={
+            "col1": [7, 8, 9, 11, 1, 13],
+            "col2": ["bar", "bar", "bar", "foo", "foo", "foo"],
+        },
+        index=pd.Series([1, 2, 3, 4, 5, 6], name="data_id"),
+    )
     # raise errors.SchemaError when groupby column doesn't exist
-    df_fail_no_column = pd.DataFrame({
-        "col1": [7, 8, 20, 11, 12, 13],
-    })
+    df_fail_no_column = pd.DataFrame(
+        data={
+            "col1": [7, 8, 20, 11, 12, 13],
+        },
+        index=pd.Series([1, 2, 3, 4, 5, 6], name="data_id"),
+    )
 
     for df in [df_fail_on_bar, df_fail_on_foo, df_fail_no_column]:
         with pytest.raises(errors.SchemaError):
@@ -225,3 +240,10 @@ def test_dataframe_checks():
         checks=Check(lambda row: row["col1"] < row["col2"], element_wise=True)
     )
     assert isinstance(element_wise_check_schema.validate(df), pd.DataFrame)
+
+
+def test_format_failure_case_exceptions():
+    check = Check(lambda x: x.isna().sum() == 0)
+    for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
+        with pytest.raises(TypeError):
+            check._format_failure_cases(data)
