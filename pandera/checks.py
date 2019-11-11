@@ -199,10 +199,11 @@ class Check(object):
 
         """
         # reset index so that index is just 0-indexed integers
-        failure_cases = failure_cases.reset_index(drop=True)
-        if isinstance(failure_cases.index, pd.MultiIndex):
+        if hasattr(failure_cases, "index") and \
+                isinstance(failure_cases.index, pd.MultiIndex):
             failure_cases = (
                 failure_cases
+                .reset_index(drop=True)
                 .rename("failure_case")
                 .reset_index()
                 .assign(
@@ -214,6 +215,7 @@ class Check(object):
         elif isinstance(failure_cases, pd.DataFrame):
             failure_cases = (
                 failure_cases
+                .reset_index(drop=True)
                 .pipe(lambda df: pd.Series(
                     df.itertuples()).map(lambda x: x.__repr__()))
                 .rename("failure_case")
@@ -222,6 +224,7 @@ class Check(object):
         elif isinstance(failure_cases, pd.Series):
             failure_cases = (
                 failure_cases
+                .reset_index(drop=True)
                 .rename("failure_case")
                 .reset_index()
             )

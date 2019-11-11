@@ -240,3 +240,10 @@ def test_dataframe_checks():
         checks=Check(lambda row: row["col1"] < row["col2"], element_wise=True)
     )
     assert isinstance(element_wise_check_schema.validate(df), pd.DataFrame)
+
+
+def test_format_failure_case_exceptions():
+    check = Check(lambda x: x.isna().sum() == 0)
+    for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
+        with pytest.raises(TypeError):
+            check._format_failure_cases(data)
