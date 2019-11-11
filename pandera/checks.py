@@ -191,13 +191,15 @@ class Check(object):
         """Construct readable error messages for vectorized_error_message.
 
         :param failure_cases: The failure cases encountered by the element-wise
-            validator.
+            or vectorized validator.
         :returns: DataFrame where index contains failure cases, the "index"
             column contains a list of integer indexes in the validation
             DataFrame that caused the failure, and a "count" column
             representing how many failures of that case occurred.
 
         """
+        # reset index so that index is just 0-indexed integers
+        failure_cases = failure_cases.reset_index(drop=True)
         if isinstance(failure_cases.index, pd.MultiIndex):
             failure_cases = (
                 failure_cases
@@ -217,12 +219,16 @@ class Check(object):
                 .rename("failure_case")
                 .reset_index()
             )
-        else:
+        elif isinstance(failure_cases, pd.Series):
             failure_cases = (
                 failure_cases
                 .rename("failure_case")
                 .reset_index()
             )
+        else:
+            raise TypeError(
+                "type of failure_cases argument not understood: %s" %
+                type(failure_cases))
 
         failure_cases = (
             failure_cases
