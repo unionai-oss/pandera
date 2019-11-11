@@ -157,12 +157,12 @@ class Check(object):
             parent_schema: type,
             check_index: int,
             failure_cases: Union[pd.DataFrame, pd.Series]) -> str:
-        """Construct an error message when an element-wise validator fails.
+        """Construct an error message when a validator fails.
 
         :param parent_schema: class of schema being validated.
         :param check_index: The validator that failed.
         :param failure_cases: The failure cases encountered by the element-wise
-            validator.
+            or vectorized validator.
 
         """
         return (
@@ -198,12 +198,11 @@ class Check(object):
             representing how many failures of that case occurred.
 
         """
-        # reset index so that index is just 0-indexed integers
         if hasattr(failure_cases, "index") and \
                 isinstance(failure_cases.index, pd.MultiIndex):
+            index_name = failure_cases.index.name
             failure_cases = (
                 failure_cases
-                .reset_index(drop=True)
                 .rename("failure_case")
                 .reset_index()
                 .assign(
@@ -213,18 +212,18 @@ class Check(object):
                 )
             )
         elif isinstance(failure_cases, pd.DataFrame):
+            index_name = failure_cases.index.name
             failure_cases = (
                 failure_cases
-                .reset_index(drop=True)
                 .pipe(lambda df: pd.Series(
                     df.itertuples()).map(lambda x: x.__repr__()))
                 .rename("failure_case")
                 .reset_index()
             )
         elif isinstance(failure_cases, pd.Series):
+            index_name = failure_cases.index.name
             failure_cases = (
                 failure_cases
-                .reset_index(drop=True)
                 .rename("failure_case")
                 .reset_index()
             )
@@ -233,10 +232,11 @@ class Check(object):
                 "type of failure_cases argument not understood: %s" %
                 type(failure_cases))
 
+        index_name = "index" if index_name is None else index_name
         failure_cases = (
             failure_cases
-            .groupby("failure_case").index.agg([list, len])
-            .rename(columns={"list": "index", "len": "count"})
+            .groupby("failure_case")[index_name].agg([list, len])
+            .rename(columns={"list": index_name, "len": "count"})
             .sort_values("count", ascending=False)
         )
 

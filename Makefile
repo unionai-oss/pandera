@@ -28,6 +28,8 @@ docs:
 mock-ci-tests:
 	. ./ci_tests.sh
 
+conda-build: conda-build-35 conda-build-36 conda-build-37
+
 conda-build-35:
 	conda-build --python=3.5 conda.recipe
 
