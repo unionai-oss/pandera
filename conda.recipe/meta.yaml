@@ -1,9 +1,9 @@
 package:
   name: pandera
-  version: "0.2.4"
+  version: "0.2.6"
 
 source:
-  git_rev: 0.2.4
+  git_rev: 0.2.6
   git_url: https://github.com/pandera-dev/pandera.git
 
 build:
@@ -11,15 +11,13 @@ build:
 
 requirements:
   build:
-    - python
-    - enum34 # [py==27]
+    - python >=3.5
     - numpy
     - pandas
     - scipy
     - wrapt
   run:
-    - python
-    - enum34 # [py==27]
+    - python >=3.5
     - numpy
     - pandas
     - scipy
