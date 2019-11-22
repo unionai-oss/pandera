@@ -1,27 +1,35 @@
-language: python
-dist: xenial
-python:
-  - "3.5"
-  - "3.6"
-  - "3.7"
+language: minimal
+
+cache:
+  directories:
+    - $HOME/miniconda3
+
+before_cache:
+  - rm -rf $HOME/miniconda3/pkgs/cache
+  - rm -rf $HOME/miniconda3/envs/hosts
+  - rm -rf $HOME/miniconda3/conda-meta/history
+  - touch $HOME/miniconda3/conda-meta/history
+
+os:
+  - linux
+  - osx
+  - windows
+
+env:
+  - PYTHON_VERSION="3.5"
+  - PYTHON_VERSION="3.6"
+  - PYTHON_VERSION="3.7"
+
+before_install:
+  - export PATH="$HOME/miniconda3/bin:$PATH"
+  - chmod +x ci/install_conda.sh ci/setup_conda_env.sh
+
 install:
-  - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q --yes conda
-  # Useful for debugging any issues with conda
-  - conda info -a
-  - conda create -q -n ci-env python=$TRAVIS_PYTHON_VERSION
-  - source activate ci-env
-  - conda install -y -c conda-forge numpy scipy pandas codecov
-  - pip install -r requirements.txt
-  - python setup.py install
+  - ci/install_conda.sh
+  - ci/setup_conda_env.sh
+
 script:
+  - source activate hosts
   - pytest --cov=pandera tests/
   - codecov
   # Check conformity to flake8 style guide
