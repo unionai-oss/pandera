@@ -22,7 +22,6 @@ env:
 
 before_install:
   - export PATH="$HOME/miniconda3/bin:$PATH"
-  - chmod +x ci/install_conda.sh ci/setup_conda_env.sh
 
 install:
   # Install Conda
