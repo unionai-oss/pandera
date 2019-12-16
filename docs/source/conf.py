@@ -35,6 +35,9 @@ extensions = [
 ]
 
 doctest_global_setup = """
+import pandas as pd
+pd.options.display.max_columns = None # For Travis on macOS
+pd.options.display.max_rows = None # For Travis on macOS
 """
 
 doctest_default_flags = (
