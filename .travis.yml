@@ -85,11 +85,4 @@ script:
   # Check conformity to flake8 style guide
   - flake8 pandera/pandera.py tests
   # Check docs can build, treating warnings as errors
-  - |
-    cd docs
-    if [ "${TRAVIS_OS_NAME}" == "windows" ]; then
-        MAKE=".\make.bat"
-    else
-        MAKE=make
-    fi
-    $MAKE doctest && python -m sphinx -E -W "source" "_build"
+  - python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"
