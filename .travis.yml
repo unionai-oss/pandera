@@ -5,10 +5,10 @@ cache:
     - $HOME/miniconda3
 
 before_cache:
-  - rm -rf $HOME/miniconda3/pkgs/cache
-  - rm -rf $HOME/miniconda3/envs/hosts
-  - rm -rf $HOME/miniconda3/conda-meta/history
-  - touch $HOME/miniconda3/conda-meta/history
+  - rm -rf $CONDA_DIR/pkgs/cache
+  - rm -rf $CONDA_DIR/envs/hosts
+  - rm -rf $CONDA_DIR/conda-meta/history
+  - touch $CONDA_DIR/conda-meta/history
 
 os:
   - linux
@@ -21,38 +21,54 @@ env:
   - PYTHON_VERSION="3.7"
 
 before_install:
-  - export PATH="$HOME/miniconda3/bin:$PATH"
+  - |
+    export CONDA_DIR="$HOME/miniconda3"
+    if [ "${TRAVIS_OS_NAME}" == "windows" ]; then
+        export CONDA_DIR=`cygpath -w $CONDA_DIR`
+        export CONDA_BIN_DIR="$CONDA_DIR\scripts"
+    else
+        export CONDA_BIN_DIR="$CONDA_DIR/bin"
+    fi
+    export PATH="$CONDA_BIN_DIR:$PATH"
 
 install:
   # Install Conda
   - |
-    if [ -d "$HOME/miniconda3" ] && [ -e "$HOME/miniconda3/bin/conda" ]; then
-        echo "Miniconda install already present from cache: $HOME/miniconda3"
-        rm -rf $HOME/miniconda3/envs/hosts  # Just in case...
+    if [ "${TRAVIS_OS_NAME}" == "windows" ]; then
+        choco install openssl.light
+    fi
+
+    if [ -d "$CONDA_DIR" ] && [ -e "$CONDA_BIN_DIR/conda" ]; then
+        echo "Miniconda install already present from cache: $CONDA_DIR"
+        rm -rf $CONDA_DIR/envs/hosts  # Just in case...
     else
         echo "Installing Miniconda..."
-        rm -rf $HOME/miniconda3  # Just in case...
+        rm -rf $CONDA_DIR  # Just in case...
 
-        if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-            wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+        if [ "${TRAVIS_OS_NAME}" == "windows" ]; then
+            wget https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe -O miniconda.exe || exit 1
+            cmd //c "start /wait "" miniconda.exe /S /D=$CONDA_DIR"
         else
-            wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+            if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+                wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+            elif [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+                wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+            fi
+            bash miniconda.sh -b -p "$CONDA_DIR" || exit 1
         fi
-
-        bash miniconda.sh -b -p "$HOME/miniconda3" || exit 1
     fi
 
     echo "Configuring Miniconda..."
     conda config --set ssl_verify false || exit 1
     conda config --set always_yes true --set changeps1 false || exit 1
 
-    echo "Updating Miniconda"
+    echo "Updating Miniconda..."
     conda update conda
     conda update --all
     conda info -a || exit 1
   # Setup Conda Env
   - |
-    echo "Creating a Python $PYTHON_VERSION environment"
+    echo "Creating a Python $PYTHON_VERSION environment..."
     conda create -n hosts python=$PYTHON_VERSION || exit 1
     source activate hosts
 
@@ -60,6 +76,7 @@ install:
     conda install numpy scipy pandas codecov
     pip install -r requirements.txt
     python setup.py install
+    conda list
 
 script:
   - source activate hosts
@@ -68,4 +85,11 @@ script:
   # Check conformity to flake8 style guide
   - flake8 pandera/pandera.py tests
   # Check docs can build, treating warnings as errors
-  - make -C docs doctest && python -m sphinx -E -W "docs/source" "docs/_build"
+  - |
+    cd docs
+    if [ "${TRAVIS_OS_NAME}" == "windows" ]; then
+        MAKE=".\make.bat"
+    else
+        MAKE=make
+    fi
+    $MAKE doctest && python -m sphinx -E -W "source" "_build"
