@@ -1,3 +1,5 @@
+"""A flexible and expressive pandas validation library."""
+
 from . import errors, constants
 from .checks import Check
 from .hypotheses import Hypothesis

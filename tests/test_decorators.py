@@ -123,8 +123,7 @@ def test_check_function_decorator_errors():
 
     with pytest.raises(
             errors.SchemaError,
-            match=r"^error in check_input decorator of function"
-            ):
+            match=r"^error in check_input decorator of function"):
         test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]})
                                          )
 
@@ -165,6 +164,7 @@ def test_check_input_method_decorators():
         return df.assign(column2=[1, 2, 3])
 
     class TransformerClass(object):
+        """A repeatable set of decorator input styles for testing"""
 
         @check_input(in_schema)
         @check_output(out_schema)

@@ -1,10 +1,9 @@
 """Core pandera schema class definitions."""
 
 import json
+from typing import List, Optional, Union
 
 import pandas as pd
-
-from typing import List, Optional, Union
 
 from . import errors, constants, dtypes
 from .checks import Check
@@ -13,7 +12,7 @@ from .checks import Check
 N_INDENT_SPACES = 4
 
 
-class DataFrameSchema(object):
+class DataFrameSchema():
     """A light-weight pandas DataFrame validator."""
 
     def __init__(
@@ -61,7 +60,7 @@ class DataFrameSchema(object):
 
         >>> from pandera import Check
         >>>
-        >>> schema_with_checks = DataFrameSchema({
+        >>> schema_withchecks = DataFrameSchema({
         ...     "probability": Column(
         ...         pa.Float, Check(lambda s: (s >= 0) & (s <= 1))),
         ...
@@ -87,7 +86,7 @@ class DataFrameSchema(object):
                 "Must specify dtype in all Columns if coercing "
                 "DataFrameSchema")
 
-        self._checks = checks
+        self.checks = checks
         self.index = index
         self.columns = columns
         self.transformer = transformer
@@ -119,7 +118,7 @@ class DataFrameSchema(object):
 
     def _validate_schema(self):
         for column_name, column in self.columns.items():
-            for check in column._checks:
+            for check in column.checks:
                 if check.groupby is None or callable(check.groupby):
                     continue
                 nonexistent_groupby_columns = [
@@ -132,7 +131,7 @@ class DataFrameSchema(object):
 
     def _set_column_names(self):
         self.columns = {
-            column_name: column._set_name(column_name)
+            column_name: column.set_name(column_name)
             for column_name, column in self.columns.items()
         }
 
@@ -156,12 +155,12 @@ class DataFrameSchema(object):
 
     def _check_dataframe(self, dataframe):
         val_results = []
-        for check_index, check in enumerate(self._checks):
+        for check_index, check in enumerate(self.checks):
             val_results.append(
                 check(
                     self,
                     check_index,
-                    check._prepare_dataframe_input(dataframe)))
+                    check.prepare_dataframe_input(dataframe)))
         return all(val_results)
 
     def validate(
@@ -198,7 +197,7 @@ class DataFrameSchema(object):
         ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
         ... })
         >>>
-        >>> schema_with_checks.validate(df)[["probability", "category"]]
+        >>> schema_withchecks.validate(df)[["probability", "category"]]
            probability category
         0         0.10      dog
         1         0.40      dog
@@ -222,10 +221,10 @@ class DataFrameSchema(object):
                     (colname, dataframe.head()))
 
             if col.coerce or self.coerce:
-                dataframe[colname] = col._coerce_dtype(dataframe[colname])
+                dataframe[colname] = col.coerce_dtype(dataframe[colname])
 
         schema_components = [
-            col._set_name(col_name) for col_name, col in self.columns.items()
+            col.set_name(col_name) for col_name, col in self.columns.items()
             if col.required or col_name in dataframe
         ]
         if self.index is not None:
@@ -279,7 +278,7 @@ class DataFrameSchema(object):
         )
 
 
-class SeriesSchemaBase(object):
+class SeriesSchemaBase():
     """Base series validator object."""
 
     def __init__(
@@ -313,10 +312,10 @@ class SeriesSchemaBase(object):
             checks = []
         if isinstance(checks, Check):
             checks = [checks]
-        self._checks = checks
+        self.checks = checks
         self._name = name
 
-        for check in self._checks:
+        for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
                 raise errors.SchemaInitError(
                     "Cannot use groupby checks with type %s" % type(self))
@@ -326,7 +325,7 @@ class SeriesSchemaBase(object):
         """Whether to coerce series to specified type."""
         return self._coerce
 
-    def _coerce_dtype(self, series: pd.Series) -> pd.Series:
+    def coerce_dtype(self, series: pd.Series) -> pd.Series:
         """Coerce the type of a pd.Series by the type specified in the Column
             object's self._pandas_dtype
 
@@ -355,6 +354,7 @@ class SeriesSchemaBase(object):
             self,
             series: pd.Series,
             dataframe_context: pd.DataFrame = None) -> bool:
+        # pylint: disable=too-many-branches
         """Validate a series."""
         if series.name != self._name:
             raise errors.SchemaError(
@@ -389,13 +389,13 @@ class SeriesSchemaBase(object):
                         "non-nullable series contains null values: %s" %
                         (series.name, self._pandas_dtype.value, series.dtype,
                          series[nulls].head(
-                            constants.N_FAILURE_CASES).to_dict()))
+                             constants.N_FAILURE_CASES).to_dict()))
                 else:
                     raise errors.SchemaError(
                         "non-nullable series '%s' contains null values: %s" %
                         (series.name,
                          series[nulls].head(
-                            constants.N_FAILURE_CASES).to_dict()))
+                             constants.N_FAILURE_CASES).to_dict()))
 
         # Check if the series contains duplicate values
         if not self._allow_duplicates:
@@ -405,18 +405,14 @@ class SeriesSchemaBase(object):
                     "series '%s' contains duplicate values: %s" %
                     (series.name,
                      series[duplicates].head(
-                        constants.N_FAILURE_CASES).to_dict()))
+                         constants.N_FAILURE_CASES).to_dict()))
 
         try:
             series.dtype == _dtype
-            types_comparable = True
         except TypeError:
-            types_comparable = False
-
-        if types_comparable:
-            types_not_matching = series.dtype != _dtype
-        else:
             types_not_matching = True
+        else:
+            types_not_matching = series.dtype != _dtype
 
         if _dtype is not None and types_not_matching:
             raise errors.SchemaError(
@@ -424,7 +420,7 @@ class SeriesSchemaBase(object):
                 (series.name, _dtype, series.dtype))
 
         val_results = []
-        for check_index, check in enumerate(self._checks):
+        for check_index, check in enumerate(self.checks):
             val_results.append(
                 check(
                     self,
@@ -509,7 +505,7 @@ class SeriesSchema(SeriesSchemaBase):
             raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
 
         if self.coerce:
-            series = self._coerce_dtype(series)
+            series = self.coerce_dtype(series)
 
         assert super(SeriesSchema, self).__call__(series)
         return series

@@ -1,10 +1,11 @@
 import pandas as pd
 import pytest
+from scipy import stats
 
 from pandera import errors
 from pandera import (
     Column, DataFrameSchema, Float, Int, String, Hypothesis)
-from scipy import stats
+
 
 
 def test_dataframe_hypothesis_checks():

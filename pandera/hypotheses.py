@@ -1,11 +1,10 @@
 """Data validation checks for hypothesis testing."""
 
-import pandas as pd
-
 from functools import partial
-
-from scipy import stats
 from typing import Callable, Union, Optional, List, Dict
+
+import pandas as pd
+from scipy import stats
 
 from . import errors
 from .checks import Check
@@ -160,7 +159,7 @@ class Hypothesis(Check):
         return super(Hypothesis, self)._prepare_series_input(
             series, dataframe_context)
 
-    def _prepare_dataframe_input(self, dataframe: pd.DataFrame):
+    def prepare_dataframe_input(self, dataframe: pd.DataFrame):
         """Prepare input for DataFrameSchema Hypothesis check."""
         if self.groupby is not None:
             raise errors.SchemaDefinitionError(

@@ -1,8 +1,8 @@
 """Data validation checks."""
 
-import pandas as pd
-
 from typing import Union, Optional, List, Dict, Callable
+
+import pandas as pd
 
 from . import errors, constants
 from .dtypes import PandasDtype
@@ -17,7 +17,7 @@ SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
-class Check(object):
+class Check():
     """Check a pandas Series or DataFrame for certain properties."""
 
     def __init__(
@@ -143,6 +143,7 @@ class Check(object):
         if isinstance(groups, str):
             groups = [groups]
         self.groups = groups
+        self.failure_cases = None
 
     @property
     def _error_message(self):
@@ -166,11 +167,11 @@ class Check(object):
 
         """
         return (
-                "%s failed element-wise validator %d:\n"
-                "%s\nfailure cases:\n%s" %
-                (parent_schema, check_index,
-                 self._error_message,
-                 self._format_failure_cases(failure_cases)))
+            "%s failed element-wise validator %d:\n"
+            "%s\nfailure cases:\n%s" %
+            (parent_schema, check_index,
+             self._error_message,
+             self._format_failure_cases(failure_cases)))
 
     def _generic_error_message(
             self,
@@ -247,7 +248,8 @@ class Check(object):
             self,
             groupby_obj: GroupbyObject,
             groups: List[str]
-            ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
+        ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
+        # pylint: disable=no-self-use
         """Format groupby object into dict of groups to Series or DataFrame.
 
         :param groupby_obj: a pandas groupby object.
@@ -296,7 +298,7 @@ class Check(object):
 
         return self._format_groupby_input(groupby_obj, self.groups)
 
-    def _prepare_dataframe_input(
+    def prepare_dataframe_input(
             self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema check.
 
@@ -315,7 +317,7 @@ class Check(object):
             parent_schema: type,
             check_index: int,
             check_obj: Dict[str, Union[pd.Series, pd.DataFrame]]
-            ) -> bool:
+        ) -> bool:
         """Perform a vectorized check on a series.
 
         :param parent_schema: class of schema being validated.
