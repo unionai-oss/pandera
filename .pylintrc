@@ -1,0 +1,9 @@
+[BASIC]
+good-names=
+    fn,
+    i,
+    e,
+    logger,
+
+[MESSAGES CONTROL]
+disable=R0913,C0103,R1705,R1720,W0222,R1721,C0116,W0613,C0114,R0205,R0201,C0115,W0122,W0212

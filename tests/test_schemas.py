@@ -2,10 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandera import errors
 from pandera import (
-    Column, DataFrameSchema, Index,  SeriesSchema, Bool, Category, Check,
-    DateTime, Float, Int, Object, String, Timedelta)
+    Column, DataFrameSchema, Index, SeriesSchema, Bool, Category, Check,
+    DateTime, Float, Int, Object, String, Timedelta, errors)
 
 
 def test_dataframe_schema():
@@ -30,20 +29,21 @@ def test_dataframe_schema():
                         Check(lambda x: x < pd.Timedelta(10, unit="D"),
                               element_wise=True))
         })
-    df = pd.DataFrame({
-        "a": [1, 2, 3],
-        "b": [1.1, 2.5, 9.9],
-        "c": ["z", "y", "x"],
-        "d": [True, True, False],
-        "e": pd.Series(["c2", "c1", "c3"], dtype="category"),
-        "f": [(3,), (2,), (1,)],
-        "g": [pd.Timestamp("2015-02-01"),
-              pd.Timestamp("2015-02-02"),
-              pd.Timestamp("2015-02-03")],
-        "i": [pd.Timedelta(1, unit="D"),
-              pd.Timedelta(5, unit="D"),
-              pd.Timedelta(9, unit="D")]
-    })
+    df = pd.DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b": [1.1, 2.5, 9.9],
+            "c": ["z", "y", "x"],
+            "d": [True, True, False],
+            "e": pd.Series(["c2", "c1", "c3"], dtype="category"),
+            "f": [(3,), (2,), (1,)],
+            "g": [pd.Timestamp("2015-02-01"),
+                  pd.Timestamp("2015-02-02"),
+                  pd.Timestamp("2015-02-03")],
+            "i": [pd.Timedelta(1, unit="D"),
+                  pd.Timedelta(5, unit="D"),
+                  pd.Timedelta(9, unit="D")]
+        })
     assert isinstance(schema.validate(df), pd.DataFrame)
 
     # error case
@@ -143,6 +143,7 @@ def test_series_schema_multiple_validators():
 
 
 class SeriesGreaterCheck:
+    # pylint: disable=too-few-public-methods
     """Class creating callable objects to check if series elements exceed a
     lower bound.
     """
@@ -176,12 +177,13 @@ def series_greater_than_ten(s: pd.Series):
     (SeriesGreaterCheck(lower_bound=10), True)
 ])
 def test_dataframe_schema_check_function_types(check_function, should_fail):
-    schema = DataFrameSchema({
+    schema = DataFrameSchema(
+        {
             "a": Column(Int,
                         Check(fn=check_function, element_wise=False)),
             "b": Column(Float,
                         Check(fn=check_function, element_wise=False))
-    })
+        })
     df = pd.DataFrame({
         "a": [1, 2, 3],
         "b": [1.1, 2.5, 9.9]

@@ -11,6 +11,7 @@ from .schemas import DataFrameSchema, SeriesSchemaBase
 
 
 class Column(SeriesSchemaBase):
+    """Extends SeriesSchemaBase with Column-specific options"""
 
     def __init__(
             self,
@@ -67,7 +68,7 @@ class Column(SeriesSchemaBase):
         """Whether the schema or schema component allows groupby operations."""
         return True
 
-    def _set_name(self, name: str):
+    def set_name(self, name: str):
         """Used to set or modify the name of a column object.
 
         :param str name: the name of the column object
@@ -93,6 +94,7 @@ class Column(SeriesSchemaBase):
 
 
 class Index(SeriesSchemaBase):
+    """Extends SeriesSchemaBase with Index-specific options"""
 
     def __init__(
             self,
@@ -156,6 +158,7 @@ class Index(SeriesSchemaBase):
 
 
 class MultiIndex(DataFrameSchema):
+    """Extends SeriesSchemaBase with Multi-index-specific options"""
 
     def __init__(
             self,
@@ -211,7 +214,7 @@ class MultiIndex(DataFrameSchema):
             columns={
                 i if index._name is None else index._name: Column(
                     pandas_dtype=index._pandas_dtype,
-                    checks=index._checks,
+                    checks=index.checks,
                     nullable=index._nullable,
                     allow_duplicates=index._allow_duplicates,
                 )

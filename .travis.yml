@@ -83,6 +83,6 @@ script:
   - pytest --cov=pandera tests/
   - codecov
   # Check conformity to flake8 style guide
-  - flake8 pandera/pandera.py tests
+  - pylint pandera tests
   # Check docs can build, treating warnings as errors
   - python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"
