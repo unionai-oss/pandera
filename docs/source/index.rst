@@ -31,9 +31,18 @@ more readable and robust.
 Install
 -------
 
+Install with `pip`:
+
 .. code:: bash
 
-   pip install pandera
+    pip install pandera
+
+
+Or conda:
+
+.. code:: bash
+
+    conda install -c conda-forge pandera
 
 
 Quick Start

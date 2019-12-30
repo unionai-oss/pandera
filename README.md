@@ -46,7 +46,7 @@ pip install pandera
 Using conda:
 
 ```
-conda install -c cosmicbboy pandera
+conda install -c conda-forge pandera
 ```
 
 ## Example Usage
