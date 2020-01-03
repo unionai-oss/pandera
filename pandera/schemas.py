@@ -1,7 +1,7 @@
 """Core pandera schema class definitions."""
 
 import json
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 
 import pandas as pd
 
@@ -162,6 +162,12 @@ class DataFrameSchema():
                     check_index,
                     check.prepare_dataframe_input(dataframe)))
         return all(val_results)
+
+
+    @property
+    def dtype(self) -> Dict[str, str]:
+        return {k: v.dtype for k, v in self.columns.items()}
+
 
     def validate(
             self,
@@ -325,6 +331,14 @@ class SeriesSchemaBase():
         """Whether to coerce series to specified type."""
         return self._coerce
 
+
+    @property
+    def dtype(self) -> str:
+        return self._pandas_dtype if (
+            isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
+        ) else self._pandas_dtype.value
+
+
     def coerce_dtype(self, series: pd.Series) -> pd.Series:
         """Coerce the type of a pd.Series by the type specified in the Column
             object's self._pandas_dtype
@@ -361,9 +375,7 @@ class SeriesSchemaBase():
                 "Expected %s to have name '%s', found '%s'" %
                 (type(self), self._name, series.name))
 
-        _dtype = self._pandas_dtype if (
-            isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
-        ) else self._pandas_dtype.value
+        _dtype = self.dtype
 
         if self._nullable:
             series = series.dropna()

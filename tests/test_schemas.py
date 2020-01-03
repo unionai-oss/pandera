@@ -395,3 +395,38 @@ def test_dataframe_schema_str_repr():
         assert schema.__class__.__name__ in x
         for name in ["col1", "col2", "col3", "my_index"]:
             assert name in x
+
+
+def test_dataframe_schema_dtype_property():
+    schema = DataFrameSchema(
+        columns={
+            "col1": Column(Int),
+            "col2": Column(String),
+            "col3": Column(DateTime),
+            "col4": Column("uint16"),
+        }
+    )
+    assert schema.dtype == {
+        "col1": "int64",
+        "col2": "object",
+        "col3": "datetime64[ns]",
+        "col4": "uint16"
+    }
+
+@pytest.mark.parametrize("pandas_dtype, expected", [
+    (Bool, "bool"),
+    (DateTime, "datetime64[ns]"),
+    (Category, "category"),
+    (Float, "float64"),
+    (Int, "int64"),
+    (Object, "object"),
+    (String, "object"),
+    (Timedelta, "timedelta64[ns]"),
+    ("bool", "bool"),
+    ("datetime64[ns]", "datetime64[ns]"),
+    ("category", "category"),
+    ("float64", "float64"),
+    ("float64", "float64"),
+])
+def test_series_schema_dtype_property(pandas_dtype, expected):
+    assert SeriesSchema(pandas_dtype).dtype == expected
