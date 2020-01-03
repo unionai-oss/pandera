@@ -405,7 +405,7 @@ composing a list of ``pandera.Index`` objects.
 
 
 Pandas DType
-~~~~~~~~~~~~~~~~~~
+---------------------
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
 schema. DataFrameSchema provides a `dtype` property which returns a pandas style
