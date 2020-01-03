@@ -436,7 +436,7 @@ Some examples of where this can be provided to pandas are:
     "b": {"column1": 1, "column2": "valueB", "column3": True},
     },
     orient="index"
-  ).astype(schema.dtype)
+  ).astype(schema.dtype).sort_index(axis=1)
 
   print(schema.validate(df))
 
