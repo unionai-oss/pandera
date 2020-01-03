@@ -402,3 +402,47 @@ composing a list of ``pandera.Index`` objects.
     foo    0             1
     bar    1             2
     foo    2             3
+
+
+Pandas DType
+~~~~~~~~~~~~~~~~~~
+
+Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
+schema. DataFrameSchema provides a `dtype` property which returns a pandas style
+dict. The keys of the dict are column names and values are the dtype.
+
+Some examples of where this can be provided to pandas are:
+
+- https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
+- https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.astype.html
+
+.. testcode:: dataframe_dtype
+
+  import pandas as pd
+  import pandera as pa
+
+  from pandera import Column, DataFrameSchema, Index, MultiIndex, Check
+
+  schema = DataFrameSchema(
+      columns={
+        "column1": Column(pa.Int),
+        "column2": Column(pa.Category),
+        "column3": Column(pa.Bool)
+      },
+  )
+
+  df = pd.DataFrame.from_dict({
+    "a": {"column1": 1, "column2": "valueA", "column3": True},
+    "b": {"column1": 1, "column2": "valueA", "column3": True},
+    },
+    orient="index"
+  ).astype(schema.dtype)
+
+  print(schema.validate(df))
+
+.. testoutput:: dataframe_dtype
+    :options: +NORMALIZE_WHITESPACE
+
+      column1 column2  column3
+   a        1  valueA     True
+   b        1  valueB     True

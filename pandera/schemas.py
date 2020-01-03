@@ -166,6 +166,9 @@ class DataFrameSchema():
 
     @property
     def dtype(self) -> Dict[str, str]:
+        """A pandas style dtype dict where the keys are column names and values
+        are pandas dtype for the column
+        """
         return {k: v.dtype for k, v in self.columns.items()}
 
 
@@ -334,6 +337,8 @@ class SeriesSchemaBase():
 
     @property
     def dtype(self) -> str:
+        """String representation of the dtype
+        """
         return self._pandas_dtype if (
             isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
         ) else self._pandas_dtype.value
