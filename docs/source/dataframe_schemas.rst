@@ -443,6 +443,6 @@ Some examples of where this can be provided to pandas are:
 .. testoutput:: dataframe_dtype
     :options: +NORMALIZE_WHITESPACE
 
-      column1 column2  column3
-   a        1  valueA     True
-   b        1  valueB     True
+       column1 column2  column3
+    a        1  valueA     True
+    b        1  valueB     True
