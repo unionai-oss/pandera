@@ -433,7 +433,7 @@ Some examples of where this can be provided to pandas are:
 
   df = pd.DataFrame.from_dict({
     "a": {"column1": 1, "column2": "valueA", "column3": True},
-    "b": {"column1": 1, "column2": "valueA", "column3": True},
+    "b": {"column1": 1, "column2": "valueB", "column3": True},
     },
     orient="index"
   ).astype(schema.dtype)
