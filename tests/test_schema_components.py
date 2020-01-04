@@ -4,7 +4,7 @@ import pytest
 from pandera import errors
 from pandera import (
     Column, DataFrameSchema, Index, MultiIndex, Check, DateTime, Float, Int,
-    String)
+    String, Bool, Category, Object, Timedelta)
 
 
 def test_column():
@@ -90,3 +90,21 @@ def test_multi_index_index():
     )
     with pytest.raises(errors.SchemaError):
         schema.validate(df_fail)
+
+
+@pytest.mark.parametrize("pandas_dtype, expected", [
+    (Bool, "bool"),
+    (DateTime, "datetime64[ns]"),
+    (Category, "category"),
+    (Float, "float64"),
+    (Int, "int64"),
+    (Object, "object"),
+    (String, "object"),
+    (Timedelta, "timedelta64[ns]"),
+    ("bool", "bool"),
+    ("datetime64[ns]", "datetime64[ns]"),
+    ("category", "category"),
+    ("float64", "float64"),
+])
+def test_column_dtype_property(pandas_dtype, expected):
+    assert Column(pandas_dtype).dtype == expected
