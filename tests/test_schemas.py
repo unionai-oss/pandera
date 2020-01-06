@@ -1,3 +1,5 @@
+"""Testing creation and manipulation of DataFrameSchema objects."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -8,6 +10,10 @@ from pandera import (
 
 
 def test_dataframe_schema():
+    """Tests the Checking of a DataFrame that has a wide variety of types and
+    conditions. Tests include: when the Schema works, when a column is dropped,
+    and when a columns values change its type.
+    """
     schema = DataFrameSchema(
         {
             "a": Column(Int,
@@ -60,8 +66,8 @@ def test_dataframe_schema():
 
 
 def test_dataframe_schema_strict():
-    # checks if strict=True whether a schema error is raised because 'a' is not
-    # present in the dataframe.
+    """checks if strict=True whether a schema error is raised because 'a' is
+    not present in the dataframe."""
     schema = DataFrameSchema({"a": Column(Int, nullable=True)},
                              strict=True)
     df = pd.DataFrame({"b": [1, 2, 3]})
@@ -70,6 +76,9 @@ def test_dataframe_schema_strict():
 
 
 def test_series_schema():
+    """Tests that a SeriesSchema Check behaves as expected for integers and
+    strings. Tests error cases for types, duplicates, name errors, and issues
+    around float and integer handling of nulls"""
     int_schema = SeriesSchema(
         Int, Check(lambda x: 0 <= x <= 100, element_wise=True))
     assert isinstance(int_schema.validate(
@@ -130,6 +139,8 @@ def test_series_schema():
 
 
 def test_series_schema_multiple_validators():
+    """Tests how multiple Checks on a Series Schema are handled both
+    successfully and when errors are expected."""
     schema = SeriesSchema(
         Int, [
             Check(lambda x: 0 <= x <= 50, element_wise=True),
@@ -177,6 +188,7 @@ def series_greater_than_ten(s: pd.Series):
     (SeriesGreaterCheck(lower_bound=10), True)
 ])
 def test_dataframe_schema_check_function_types(check_function, should_fail):
+    """Tests a DataFrameSchema against a variety of Check conditions."""
     schema = DataFrameSchema(
         {
             "a": Column(Int,
@@ -196,6 +208,7 @@ def test_dataframe_schema_check_function_types(check_function, should_fail):
 
 
 def test_nullable_int_in_dataframe():
+    """Tests handling of nullability when datatype is integers."""
     df = pd.DataFrame({"column1": [5, 1, np.nan]})
     null_schema = DataFrameSchema({
         "column1": Column(Int, Check(lambda x: x > 0), nullable=True)
@@ -208,6 +221,7 @@ def test_nullable_int_in_dataframe():
 
 
 def test_coerce_dtype_in_dataframe():
+    """Tests coercions of datatypes, especially regarding nullable integers."""
     df = pd.DataFrame({
         "column1": [10.0, 20.0, 30.0],
         "column2": ["2018-01-01", "2018-02-01", "2018-03-01"],
@@ -242,6 +256,7 @@ def test_coerce_dtype_in_dataframe():
 
 
 def test_coerce_dtype_nullable_str():
+    """Tests how null values are handled in string dtypes."""
     df_nans = pd.DataFrame({
         "col": ["foobar", "foo", "bar", "baz", np.nan, np.nan],
     })
@@ -264,6 +279,8 @@ def test_coerce_dtype_nullable_str():
 
 
 def test_no_dtype_dataframe():
+    """Test how nullability is handled in DataFrameSchemas where no type is
+    specified."""
     schema = DataFrameSchema({"col": Column(nullable=False)})
     validated_df = schema.validate(pd.DataFrame({"col": [-123.1, -76.3, 1.0]}))
     assert isinstance(validated_df, pd.DataFrame)
@@ -278,6 +295,8 @@ def test_no_dtype_dataframe():
 
 
 def test_no_dtype_series():
+    """Test how nullability is handled in SeriesSchemas where no type is
+    specified."""
     schema = SeriesSchema(nullable=False)
     validated_series = schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
     assert isinstance(validated_series, pd.Series)
@@ -292,6 +311,8 @@ def test_no_dtype_series():
 
 
 def test_coerce_without_dtype():
+    """Test that an error is thrown when a dtype isn't specified and coerce
+    is True."""
     with pytest.raises(errors.SchemaInitError):
         DataFrameSchema({"col": Column(coerce=True)})
 
@@ -300,6 +321,9 @@ def test_coerce_without_dtype():
 
 
 def test_required():
+    """Tests how a Required Column is handled when it's not included, included
+    and then not specified and a second column which is implicitly required
+    isn't available."""
     schema = DataFrameSchema({
         "col1": Column(Int, required=False),
         "col2": Column(String)
@@ -333,9 +357,8 @@ def test_required():
 
 
 def test_head_dataframe_schema():
-    """
-    Test that schema can validate head of dataframe, returns entire dataframe.
-    """
+    """Test that schema can validate head of dataframe, returns entire
+    dataframe."""
 
     df = pd.DataFrame({
         "col1": [i for i in range(100)] + [i for i in range(-1, -1001, -1)]
@@ -351,6 +374,7 @@ def test_head_dataframe_schema():
 
 
 def test_tail_dataframe_schema():
+    """Checks that validating the tail of a dataframe validates correctly."""
     df = pd.DataFrame({
         "col1": [i for i in range(100)] + [i for i in range(-1, -1001, -1)]
     })
@@ -365,6 +389,7 @@ def test_tail_dataframe_schema():
 
 
 def test_sample_dataframe_schema():
+    """Test the sample argument of schema.validate."""
     df = pd.DataFrame({
         "col1": range(1, 1001)
     })
@@ -380,6 +405,8 @@ def test_sample_dataframe_schema():
 
 
 def test_dataframe_schema_str_repr():
+    """Test the __str__ and __repr__ methods which are used for cleanly
+    printing/logging of a DataFrameSchema."""
     schema = DataFrameSchema(
         columns={
             "col1": Column(Int),
@@ -398,6 +425,7 @@ def test_dataframe_schema_str_repr():
 
 
 def test_dataframe_schema_dtype_property():
+    """Test that schema.dtype returns the matching Column types."""
     schema = DataFrameSchema(
         columns={
             "col1": Column(Int),
@@ -428,4 +456,5 @@ def test_dataframe_schema_dtype_property():
     ("float64", "float64"),
 ])
 def test_series_schema_dtype_property(pandas_dtype, expected):
+    """Tests every type of allowed dtype."""
     assert SeriesSchema(pandas_dtype).dtype == expected

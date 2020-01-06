@@ -1,3 +1,5 @@
+"""Testing the Decorators that check a functions input or output."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -9,6 +11,9 @@ from pandera import (
 
 
 def test_check_function_decorators():
+    """Tests 5 different methods that are common across the @check_input and
+    @check_output decorators.
+    """
     in_schema = DataFrameSchema(
         {
             "a": Column(Int, [
@@ -84,7 +89,7 @@ def test_check_function_decorators():
     assert result["x"] == "foo"
     assert isinstance(df, pd.DataFrame)
 
-    # case: even if the pandas object to validate is called as a positional
+    # case 5: even if the pandas object to validate is called as a positional
     # argument, the check_input decorator should still be able to handle
     # it.
     result = test_func3("foo", df)
@@ -156,6 +161,8 @@ def test_check_function_decorator_transform():
 
 
 def test_check_input_method_decorators():
+    """Test the check_input and check_output decorator behaviours when the
+    dataframe is changed within the function being checked"""
     in_schema = DataFrameSchema({"column1": Column(String)})
     out_schema = DataFrameSchema({"column2": Column(Int)})
     dataframe = pd.DataFrame({"column1": ["a", "b", "c"]})
@@ -164,7 +171,7 @@ def test_check_input_method_decorators():
         return df.assign(column2=[1, 2, 3])
 
     class TransformerClass(object):
-        """A repeatable set of decorator input styles for testing"""
+        # pylint: disable=C0116
 
         @check_input(in_schema)
         @check_output(out_schema)
