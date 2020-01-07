@@ -185,8 +185,7 @@ class Hypothesis(Check):
                 raise errors.SchemaError(
                     "The relationship %s isn't a built in method"
                     % relationship)
-            else:
-                relationship = self.RELATIONSHIPS[relationship]
+            relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
             raise ValueError(
                 "expected relationship to be str or callable, found %s" % type(

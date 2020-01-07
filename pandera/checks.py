@@ -339,14 +339,12 @@ class Check():
                     (check_obj.index != val_result.index).all():
                 raise errors.SchemaError(
                     self._generic_error_message(parent_schema, check_index))
-            else:
-                raise errors.SchemaError(self._vectorized_error_message(
-                    parent_schema, check_index, check_obj[~val_result]))
-        else:
-            if val_result:
-                return True
-            raise errors.SchemaError(
-                self._generic_error_message(parent_schema, check_index))
+            raise errors.SchemaError(self._vectorized_error_message(
+                parent_schema, check_index, check_obj[~val_result]))
+        if val_result:
+            return True
+        raise errors.SchemaError(
+            self._generic_error_message(parent_schema, check_index))
 
     def __call__(
             self,
@@ -367,10 +365,9 @@ class Check():
                 return True
             raise errors.SchemaError(self._vectorized_error_message(
                 parent_schema, check_index, check_obj[~val_result]))
-        elif isinstance(check_obj, (pd.Series, dict, pd.DataFrame)):
+        if isinstance(check_obj, (pd.Series, dict, pd.DataFrame)):
             return self._vectorized_check(
                 parent_schema, check_index, check_obj)
-        else:
-            raise ValueError(
-                "check_obj type %s not supported. Must be a "
-                "Series, a dictionary of Series, or DataFrame" % check_obj)
+        raise ValueError(
+            "check_obj type %s not supported. Must be a "
+            "Series, a dictionary of Series, or DataFrame" % check_obj)
