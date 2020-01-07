@@ -189,11 +189,11 @@ def test_groupby_init_exceptions():
         init_schema_no_groupby_column()
 
     # can't use groupby argument in SeriesSchema or Index objects
-    for SchemaClass in [SeriesSchema, Index]:
+    for schema_class in [SeriesSchema, Index]:
         with pytest.raises(
                 errors.SchemaInitError,
                 match="^Cannot use groupby checks with"):
-            SchemaClass(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))
+            schema_class(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))
 
 
 def test_dataframe_checks():

@@ -1,4 +1,5 @@
 """Schema datatypes."""
+# pylint: disable=C0103
 
 from enum import Enum
 

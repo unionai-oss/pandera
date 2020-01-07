@@ -161,22 +161,22 @@ class SeriesGreaterCheck:
     def __init__(self, lower_bound):
         self.lower_bound = lower_bound
 
-    def __call__(self, s: pd.Series):
+    def __call__(self, series: pd.Series):
         """Check if the elements of s are > lower_bound.
 
         :returns Series with bool elements
         """
-        return s > self.lower_bound
+        return series > self.lower_bound
 
 
-def series_greater_than_zero(s: pd.Series):
+def series_greater_than_zero(series: pd.Series):
     """Return a bool series indicating whether the elements of s are > 0"""
-    return s > 0
+    return series > 0
 
 
-def series_greater_than_ten(s: pd.Series):
+def series_greater_than_ten(series: pd.Series):
     """Return a bool series indicating whether the elements of s are > 10"""
-    return s > 10
+    return series > 10
 
 
 @pytest.mark.parametrize("check_function, should_fail", [
