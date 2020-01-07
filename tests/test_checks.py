@@ -258,6 +258,9 @@ def test_dataframe_checks():
 def test_format_failure_case_exceptions():
     """Tests that the format_failure_cases method correctly produces a
     TypeError."""
+    # pylint: disable=W0212
+    # disabling pylint because this function should be private to the class and
+    # it's ok to access it because the function needs to be tested.
     check = Check(lambda x: x.isna().sum() == 0)
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):

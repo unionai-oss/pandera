@@ -16,7 +16,7 @@ DEFAULT_ALPHA = 0.01
 class Hypothesis(Check):
     """Perform a hypothesis test on a Column."""
 
-    _RELATIONSHIPS = {
+    RELATIONSHIPS = {
         "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                          stat > 0 and pvalue / 2 < alpha),
         "less_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
@@ -181,12 +181,12 @@ class Hypothesis(Check):
 
         """
         if isinstance(relationship, str):
-            if relationship not in self._RELATIONSHIPS:
+            if relationship not in self.RELATIONSHIPS:
                 raise errors.SchemaError(
                     "The relationship %s isn't a built in method"
                     % relationship)
             else:
-                relationship = self._RELATIONSHIPS[relationship]
+                relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
             raise ValueError(
                 "expected relationship to be str or callable, found %s" % type(
@@ -305,9 +305,9 @@ class Hypothesis(Check):
         4             4.0     B
 
         """
-        if relationship not in cls._RELATIONSHIPS:
+        if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaError(
-                "relationship must be one of %s" % set(cls._RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_ind,
             samples=[sample1, sample2],
@@ -374,9 +374,9 @@ class Hypothesis(Check):
 
 
         """
-        if relationship not in cls._RELATIONSHIPS:
+        if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaError(
-                "relationship must be one of %s" % set(cls._RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_1samp,
             samples=sample,
