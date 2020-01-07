@@ -6,8 +6,8 @@ import pytest
 from pandera import errors
 from pandera import (
     Column, DataFrameSchema, Index, MultiIndex, Check, DateTime, Float, Int,
-    String, Bool, Category, Object, Timedelta)
-
+    String)
+from tests.test_dtypes import TESTABLE_DTYPES
 
 def test_column():
     """Test that a Column check returns a dataframe."""
@@ -99,20 +99,7 @@ def test_multi_index_index():
         schema.validate(df_fail)
 
 
-@pytest.mark.parametrize("pandas_dtype, expected", [
-    (Bool, "bool"),
-    (DateTime, "datetime64[ns]"),
-    (Category, "category"),
-    (Float, "float64"),
-    (Int, "int64"),
-    (Object, "object"),
-    (String, "object"),
-    (Timedelta, "timedelta64[ns]"),
-    ("bool", "bool"),
-    ("datetime64[ns]", "datetime64[ns]"),
-    ("category", "category"),
-    ("float64", "float64"),
-])
+@pytest.mark.parametrize("pandas_dtype, expected", TESTABLE_DTYPES)
 def test_column_dtype_property(pandas_dtype, expected):
     """Tests that the dtypes provided by Column match pandas dtypes"""
     assert Column(pandas_dtype).dtype == expected
