@@ -205,9 +205,8 @@ class Hypothesis(Check):
             # one-sample case where no groupby argument supplied, apply to
             # entire column
             return self.relationship(*self.test(check_obj))
-        else:
-            return self.relationship(
-                *self.test(*[check_obj.get(s) for s in self.samples]))
+        return self.relationship(
+            *self.test(*[check_obj.get(s) for s in self.samples]))
 
     @classmethod
     def two_sample_ttest(
