@@ -171,6 +171,8 @@ def test_check_input_method_decorators():
         return df.assign(column2=[1, 2, 3])
 
     class TransformerClass(object):
+        """Contains functions with different signatures representing the way
+        that the decorators can be called."""
         # pylint: disable=C0116
 
         @check_input(in_schema)
