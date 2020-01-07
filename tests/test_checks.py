@@ -1,3 +1,5 @@
+"""Tests the way Columns are Checked"""
+
 import pandas as pd
 import pytest
 
@@ -8,6 +10,7 @@ from pandera import (
 
 
 def test_vectorized_checks():
+    """Test that using element-wise checking returns and errors as expected."""
     schema = SeriesSchema(
         Int, Check(
             lambda s: s.value_counts() == 2, element_wise=False))
@@ -20,6 +23,8 @@ def test_vectorized_checks():
 
 
 def test_check_groupby():
+    """Tests uses of groupby to specify dependencies between one column and a
+    single other column, including error handling."""
     schema = DataFrameSchema(
         columns={
             "col1": Column(Int, [
@@ -77,6 +82,8 @@ def test_check_groupby():
 
 
 def test_check_groupby_multiple_columns():
+    """Tests uses of groupby to specify dependencies between one column and a
+    number of other columns, including error handling."""
     schema = DataFrameSchema({
         "col1": Column(Int, [
             Check(lambda s: s[("bar", True)].sum() == 16,  # 7 + 9
@@ -99,6 +106,7 @@ def test_check_groupby_multiple_columns():
 
 
 def test_check_groups():
+    """Tests uses of groupby and groups (for values within columns)."""
     schema = DataFrameSchema({
         "col1": Column(Int, [
             Check(lambda s: s["foo"] > 10, groupby="col2", groups=["foo"]),
@@ -150,6 +158,8 @@ def test_check_groups():
 
 
 def test_groupby_init_exceptions():
+    """Test that when using a groupby it errors properly across a variety of
+    API-specific differences."""
     def init_schema_element_wise():
         DataFrameSchema({
             "col1": Column(Int, [
@@ -179,14 +189,17 @@ def test_groupby_init_exceptions():
         init_schema_no_groupby_column()
 
     # can't use groupby argument in SeriesSchema or Index objects
-    for SchemaClass in [SeriesSchema, Index]:
+    for schema_class in [SeriesSchema, Index]:
         with pytest.raises(
                 errors.SchemaInitError,
                 match="^Cannot use groupby checks with"):
-            SchemaClass(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))
+            schema_class(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))
 
 
 def test_dataframe_checks():
+    """Tests that dataframe checks validate, error when a DataFrame doesn't
+    comply with the schema, simple tests of the groupby checks which are
+    covered in more detail above."""
     schema = DataFrameSchema(
         columns={
             "col1": Column(Int),
@@ -243,6 +256,11 @@ def test_dataframe_checks():
 
 
 def test_format_failure_case_exceptions():
+    """Tests that the format_failure_cases method correctly produces a
+    TypeError."""
+    # pylint: disable=W0212
+    # disabling pylint because this function should be private to the class and
+    # it's ok to access it because the function needs to be tested.
     check = Check(lambda x: x.isna().sum() == 0)
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):

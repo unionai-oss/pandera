@@ -1,3 +1,5 @@
+"""Tests the way Columns are checked against a Hypothesis."""
+
 import pandas as pd
 import pytest
 from scipy import stats
@@ -9,7 +11,8 @@ from pandera import (
 
 
 def test_dataframe_hypothesis_checks():
-
+    """Test that two specific implementations of a Hypothesis work as expected
+    and that using a Column that wasn't defined will error."""
     df = pd.DataFrame({
         "col1": range(100, 201),
         "col2": range(0, 101),
@@ -69,6 +72,7 @@ def test_dataframe_hypothesis_checks():
 
 
 def test_hypothesis():
+    """Tests the different API calls of Hypothesis."""
     # Example df for tests:
     df = (
         pd.DataFrame({
@@ -180,7 +184,7 @@ def test_hypothesis():
 
 def test_two_sample_ttest_hypothesis_relationships():
     """Check allowable relationships in two-sample ttest."""
-    for relationship in Hypothesis._RELATIONSHIPS:
+    for relationship in Hypothesis.RELATIONSHIPS:
         schema = DataFrameSchema({
             "height_in_feet": Column(Float, [
                 Hypothesis.two_sample_ttest(

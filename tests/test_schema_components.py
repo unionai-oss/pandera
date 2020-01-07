@@ -1,3 +1,5 @@
+"""Testing the components of the Schema objects."""
+
 import pandas as pd
 import pytest
 
@@ -8,6 +10,7 @@ from pandera import (
 
 
 def test_column():
+    """Test that a Column check returns a dataframe."""
     schema = DataFrameSchema({
         "a": Column(Int, Check(lambda x: x > 0, element_wise=True))
     })
@@ -16,6 +19,8 @@ def test_column():
 
 
 def test_index_schema():
+    """Tests that when specifying a DataFrameSchema Index pandera validates
+    and errors appropriately."""
     schema = DataFrameSchema(
         columns={},
         index=Index(
@@ -31,6 +36,7 @@ def test_index_schema():
 
 
 def test_multi_index_columns():
+    """Tests that multi-index Columns within DataFrames validate correctly."""
     schema = DataFrameSchema({
         ("zero", "foo"): Column(Float, Check(lambda s: (s > 0) & (s < 1))),
         ("zero", "bar"): Column(
@@ -51,6 +57,7 @@ def test_multi_index_columns():
 
 
 def test_multi_index_index():
+    """Tests that multi-index Indexes within DataFrames validate correctly."""
     schema = DataFrameSchema(
         columns={
             "column1": Column(Float, Check(lambda s: s > 0)),
@@ -107,4 +114,5 @@ def test_multi_index_index():
     ("float64", "float64"),
 ])
 def test_column_dtype_property(pandas_dtype, expected):
+    """Tests that the dtypes provided by Column match pandas dtypes"""
     assert Column(pandas_dtype).dtype == expected

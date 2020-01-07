@@ -285,18 +285,18 @@ class Check():
         """
         if dataframe_context is None or self.groupby is None:
             return series
-        elif isinstance(self.groupby, list):
+        if isinstance(self.groupby, list):
             groupby_obj = (
                 pd.concat([series, dataframe_context[self.groupby]], axis=1)
                 .groupby(self.groupby)[series.name]
             )
-        elif callable(self.groupby):
+            return self._format_groupby_input(groupby_obj, self.groups)
+        if callable(self.groupby):
             groupby_obj = self.groupby(
                 pd.concat([series, dataframe_context], axis=1))[series.name]
-        else:
-            raise TypeError("Type %s not recognized for `groupby` argument.")
+            return self._format_groupby_input(groupby_obj, self.groups)
+        raise TypeError("Type %s not recognized for `groupby` argument.")
 
-        return self._format_groupby_input(groupby_obj, self.groups)
 
     def prepare_dataframe_input(
             self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
@@ -308,8 +308,7 @@ class Check():
         """
         if self.groupby is None:
             return dataframe
-        else:
-            groupby_obj = dataframe.groupby(self.groupby)
+        groupby_obj = dataframe.groupby(self.groupby)
         return self._format_groupby_input(groupby_obj, self.groups)
 
     def _vectorized_check(
@@ -335,19 +334,17 @@ class Check():
                     (check_index, self.fn.__name__, val_result.dtype))
             if val_result.all():
                 return True
-            elif isinstance(check_obj, dict) or \
+            if isinstance(check_obj, dict) or \
                     check_obj.shape[0] != val_result.shape[0] or \
                     (check_obj.index != val_result.index).all():
                 raise errors.SchemaError(
                     self._generic_error_message(parent_schema, check_index))
-            else:
-                raise errors.SchemaError(self._vectorized_error_message(
-                    parent_schema, check_index, check_obj[~val_result]))
-        else:
-            if val_result:
-                return True
-            raise errors.SchemaError(
-                self._generic_error_message(parent_schema, check_index))
+            raise errors.SchemaError(self._vectorized_error_message(
+                parent_schema, check_index, check_obj[~val_result]))
+        if val_result:
+            return True
+        raise errors.SchemaError(
+            self._generic_error_message(parent_schema, check_index))
 
     def __call__(
             self,
@@ -368,10 +365,9 @@ class Check():
                 return True
             raise errors.SchemaError(self._vectorized_error_message(
                 parent_schema, check_index, check_obj[~val_result]))
-        elif isinstance(check_obj, (pd.Series, dict, pd.DataFrame)):
+        if isinstance(check_obj, (pd.Series, dict, pd.DataFrame)):
             return self._vectorized_check(
                 parent_schema, check_index, check_obj)
-        else:
-            raise ValueError(
-                "check_obj type %s not supported. Must be a "
-                "Series, a dictionary of Series, or DataFrame" % check_obj)
+        raise ValueError(
+            "check_obj type %s not supported. Must be a "
+            "Series, a dictionary of Series, or DataFrame" % check_obj)

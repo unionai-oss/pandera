@@ -1,3 +1,6 @@
+"""Tests a variety of python and pandas dtypes, and tests some specific
+coercion examples."""
+
 import pandas as pd
 import pytest
 
@@ -7,6 +10,7 @@ from pandera.errors import SchemaError
 
 
 def test_numeric_dtypes():
+    """Test every numeric type can be validated properly by schema.validate"""
     for dtype in [
             dtypes.Float,
             dtypes.Float16,
@@ -45,6 +49,7 @@ def test_numeric_dtypes():
 
 
 def test_category_dtype():
+    """Test the category type can be validated properly by schema.validate"""
     schema = DataFrameSchema(
         columns={
             "col": Column(
@@ -69,7 +74,8 @@ def test_category_dtype():
 
 
 def test_category_dtype_coerce():
-
+    """Test coercion of the category type is validated properly by
+    schema.validate and fails safely."""
     columns = {
         "col": Column(
             dtypes.Category,
@@ -94,6 +100,7 @@ def test_category_dtype_coerce():
 
 
 def test_datetime():
+    """Test datetime types can be validated properly by schema.validate"""
     schema = DataFrameSchema(
         columns={
             "col": Column(
