@@ -45,6 +45,9 @@ def test_check_function_decorators():
     @check_input(in_schema)
     @check_output(out_schema)
     def test_func1(dataframe, x):
+        # pylint: disable=W0613
+        # disables unused-arguments because handling the second argument is
+        # what is being tested.
         return dataframe.assign(f=["a", "b", "a"])
 
     # case 2: input and output validation using positional arguments
@@ -68,6 +71,9 @@ def test_check_function_decorators():
     @check_input(in_schema, "dataframe")
     @check_output(out_schema)
     def test_func4(x, dataframe):
+        # pylint: disable=W0613
+        # disables unused-arguments because handling the second argument is
+        # what is being tested.
         return dataframe.assign(f=["a", "b", "a"])
 
     df = pd.DataFrame({
@@ -170,10 +176,15 @@ def test_check_input_method_decorators():
     def _transform_helper(df):
         return df.assign(column2=[1, 2, 3])
 
-    class TransformerClass(object):
+    class TransformerClass():
         """Contains functions with different signatures representing the way
         that the decorators can be called."""
-        # pylint: disable=C0116
+        # pylint: disable=E0012,C0111,C0116,W0613, R0201
+        # disables missing-function-docstring as this is a factory method
+        # disables unused-arguments because handling the second argument is
+        # what is being tested and this is intentional.
+        # disables no-self-use because having TransformerClass with functions
+        # is cleaner.
 
         @check_input(in_schema)
         @check_output(out_schema)

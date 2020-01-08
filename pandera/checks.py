@@ -257,7 +257,7 @@ class Check():
         :returns: dictionary mapping group names to Series or DataFrame.
         """
         if groups is None:
-            return {group_key: group for group_key, group in groupby_obj}
+            return dict(list(groupby_obj))
         group_keys = set(group_key for group_key, _ in groupby_obj)
         invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:

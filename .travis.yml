@@ -16,9 +16,11 @@ os:
   - windows
 
 env:
-  - PYTHON_VERSION="3.5"
-  - PYTHON_VERSION="3.6"
-  - PYTHON_VERSION="3.7"
+  - JOB="3.5" ENV_FILE="ci/deps/env_35.yml"
+  - JOB="3.6" ENV_FILE="ci/deps/env_36.yml"
+  - JOB="3.7" ENV_FILE="ci/deps/env_37.yml"
+  - JOB="3.8" ENV_FILE="ci/deps/env_38.yml"
+  - JOB="latest" ENV_FILE="ci/deps/env_latest.yml"
 
 before_install:
   - |
@@ -68,13 +70,9 @@ install:
     conda info -a || exit 1
   # Setup Conda Env
   - |
-    echo "Creating a Python $PYTHON_VERSION environment..."
-    conda create -n hosts python=$PYTHON_VERSION || exit 1
+    conda env create -n hosts -f $ENV_FILE || exit 1
     source activate hosts
 
-    echo "Installing packages..."
-    conda install numpy scipy pandas codecov
-    pip install -r requirements.txt
     python setup.py install
     conda list
 

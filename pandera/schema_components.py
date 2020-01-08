@@ -210,6 +210,7 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
+        # pylint: disable=W0212
         super(MultiIndex, self).__init__(
             columns={
                 i if index._name is None else index._name: Column(
@@ -232,4 +233,4 @@ class MultiIndex(DataFrameSchema):
         )
 
     def __repr__(self):
-        return "<Schema MultiIndex: '%s'>" % [c for c in self.columns]
+        return "<Schema MultiIndex: '%s'>" % list(self.columns)

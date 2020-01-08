@@ -150,7 +150,7 @@ class DataFrameSchema():
         if sample is not None:
             dataframe_subsample.append(
                 dataframe.sample(sample, random_state=random_state))
-        return dataframe if len(dataframe_subsample) == 0 else \
+        return dataframe if not dataframe_subsample else \
             pd.concat(dataframe_subsample).drop_duplicates()
 
     def _check_dataframe(self, dataframe):
@@ -373,7 +373,7 @@ class SeriesSchemaBase():
             self,
             series: pd.Series,
             dataframe_context: pd.DataFrame = None) -> bool:
-        # pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches,W0212
         """Validate a series."""
         if series.name != self._name:
             raise errors.SchemaError(
