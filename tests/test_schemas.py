@@ -7,7 +7,7 @@ import pytest
 from pandera import (
     Column, DataFrameSchema, Index, SeriesSchema, Bool, Category, Check,
     DateTime, Float, Int, Object, String, Timedelta, errors)
-
+from tests.test_dtypes import TESTABLE_DTYPES
 
 def test_dataframe_schema():
     """Tests the Checking of a DataFrame that has a wide variety of types and
@@ -361,7 +361,7 @@ def test_head_dataframe_schema():
     dataframe."""
 
     df = pd.DataFrame({
-        "col1": [i for i in range(100)] + [i for i in range(-1, -1001, -1)]
+        "col1": list(range(0, 100)) + list(range(-1, -1001, -1))
     })
 
     schema = DataFrameSchema(
@@ -376,7 +376,7 @@ def test_head_dataframe_schema():
 def test_tail_dataframe_schema():
     """Checks that validating the tail of a dataframe validates correctly."""
     df = pd.DataFrame({
-        "col1": [i for i in range(100)] + [i for i in range(-1, -1001, -1)]
+        "col1": list(range(0, 100)) + list(range(-1, -1001, -1))
     })
 
     schema = DataFrameSchema(
@@ -441,20 +441,8 @@ def test_dataframe_schema_dtype_property():
         "col4": "uint16"
     }
 
-@pytest.mark.parametrize("pandas_dtype, expected", [
-    (Bool, "bool"),
-    (DateTime, "datetime64[ns]"),
-    (Category, "category"),
-    (Float, "float64"),
-    (Int, "int64"),
-    (Object, "object"),
-    (String, "object"),
-    (Timedelta, "timedelta64[ns]"),
-    ("bool", "bool"),
-    ("datetime64[ns]", "datetime64[ns]"),
-    ("category", "category"),
-    ("float64", "float64"),
-])
+
+@pytest.mark.parametrize("pandas_dtype, expected", TESTABLE_DTYPES)
 def test_series_schema_dtype_property(pandas_dtype, expected):
     """Tests every type of allowed dtype."""
     assert SeriesSchema(pandas_dtype).dtype == expected

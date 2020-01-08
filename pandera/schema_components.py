@@ -232,4 +232,4 @@ class MultiIndex(DataFrameSchema):
         )
 
     def __repr__(self):
-        return "<Schema MultiIndex: '%s'>" % [c for c in self.columns]
+        return "<Schema MultiIndex: '%s'>" % list(self.columns)

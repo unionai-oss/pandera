@@ -4,9 +4,27 @@ coercion examples."""
 import pandas as pd
 import pytest
 
-from pandera import Column, DataFrameSchema, Check
+from pandera import (
+    Column, DataFrameSchema, Check, DateTime, Float, Int,
+    String, Bool, Category, Object, Timedelta)
 from pandera import dtypes
 from pandera.errors import SchemaError
+
+
+TESTABLE_DTYPES = [
+    (Bool, "bool"),
+    (DateTime, "datetime64[ns]"),
+    (Category, "category"),
+    (Float, "float64"),
+    (Int, "int64"),
+    (Object, "object"),
+    (String, "object"),
+    (Timedelta, "timedelta64[ns]"),
+    ("bool", "bool"),
+    ("datetime64[ns]", "datetime64[ns]"),
+    ("category", "category"),
+    ("float64", "float64"),
+]
 
 
 def test_numeric_dtypes():
