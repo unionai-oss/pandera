@@ -6,7 +6,7 @@ pip
 sphinx
 sphinx_rtd_theme
 codecov
-pylint
+pylint>=2.4.4
 pytest
 pytest-cov
 pre_commit

@@ -9,7 +9,7 @@ dependencies:
   - codecov
   - pip
   - pre_commit
-  - pylint
+  - pylint>=2.4.4
   - pytest
   - pytest-cov
   - sphinx
