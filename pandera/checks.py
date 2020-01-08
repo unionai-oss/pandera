@@ -1,7 +1,6 @@
 """Data validation checks."""
 
 from typing import Union, Optional, List, Dict, Callable
-
 import pandas as pd
 
 from . import errors, constants
@@ -371,3 +370,13 @@ class Check():
         raise ValueError(
             "check_obj type %s not supported. Must be a "
             "Series, a dictionary of Series, or DataFrame" % check_obj)
+
+    def __eq__(self, other):
+        are_fn_objects_equal = self.__dict__["fn"].__code__.co_code == \
+                               other.__dict__["fn"].__code__.co_code
+
+        are_all_other_check_attributes_equal = \
+            {i: self.__dict__[i] for i in self.__dict__ if i != 'fn'} == \
+            {i: other.__dict__[i] for i in other.__dict__ if i != 'fn'}
+
+        return are_fn_objects_equal and are_all_other_check_attributes_equal

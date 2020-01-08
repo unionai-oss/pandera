@@ -1,13 +1,17 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
 
+import copy
 import numpy as np
 import pandas as pd
 import pytest
 
+
 from pandera import (
     Column, DataFrameSchema, Index, SeriesSchema, Bool, Category, Check,
     DateTime, Float, Int, Object, String, Timedelta, errors)
+from pandera.schemas import SeriesSchemaBase
 from tests.test_dtypes import TESTABLE_DTYPES
+
 
 def test_dataframe_schema():
     """Tests the Checking of a DataFrame that has a wide variety of types and
@@ -446,3 +450,39 @@ def test_dataframe_schema_dtype_property():
 def test_series_schema_dtype_property(pandas_dtype, expected):
     """Tests every type of allowed dtype."""
     assert SeriesSchema(pandas_dtype).dtype == expected
+
+
+def test_schema_equality_operators():
+    """Test the usage of == for DataFrameSchema, SeriesSchema and
+    SeriesSchemaBase."""
+    df_schema = DataFrameSchema({
+        "col1": Column(Int, Check(lambda s: s >= 0)),
+        "col2": Column(String, Check(lambda s: s >= 2)),
+        }, strict=True)
+    df_schema_columns_in_different_order = DataFrameSchema({
+        "col2": Column(String, Check(lambda s: s >= 2)),
+        "col1": Column(Int, Check(lambda s: s >= 0)),
+        }, strict=True)
+    series_schema = SeriesSchema(
+        String,
+        checks=[Check(lambda s: s.str.startswith("foo"))],
+        nullable=False,
+        allow_duplicates=True,
+        name="my_series")
+    series_schema_base = SeriesSchemaBase(
+        String,
+        checks=[Check(lambda s: s.str.startswith("foo"))],
+        nullable=False,
+        allow_duplicates=True,
+        name="my_series")
+    not_equal_schema = DataFrameSchema({
+        "col1": Column(String)
+        }, strict=False)
+
+    assert df_schema == copy.deepcopy(df_schema)
+    assert df_schema != not_equal_schema
+    assert df_schema == df_schema_columns_in_different_order
+    assert series_schema == copy.deepcopy(series_schema)
+    assert series_schema != not_equal_schema
+    assert series_schema_base == copy.deepcopy(series_schema_base)
+    assert series_schema_base != not_equal_schema
