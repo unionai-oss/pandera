@@ -210,6 +210,7 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
+        # pylint: disable=W0212
         super(MultiIndex, self).__init__(
             columns={
                 i if index._name is None else index._name: Column(
