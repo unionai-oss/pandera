@@ -70,7 +70,7 @@ install:
     conda info -a || exit 1
   # Setup Conda Env
   - |
-    conda env create -n hosts -f ENV_FILE || exit 1
+    conda env create -n hosts -f $ENV_FILE || exit 1
     source activate hosts
 
     python setup.py install
