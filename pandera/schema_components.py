@@ -92,6 +92,9 @@ class Column(SeriesSchemaBase):
             dtype = self._pandas_dtype
         return "<Schema Column: '%s' type=%s>" % (self._name, dtype)
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 
 class Index(SeriesSchemaBase):
     """Extends SeriesSchemaBase with Index-specific options"""
@@ -155,6 +158,9 @@ class Index(SeriesSchemaBase):
         if self._name is None:
             return "<Schema Index>"
         return "<Schema Index: '%s'>" % self._name
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class MultiIndex(DataFrameSchema):
@@ -234,3 +240,6 @@ class MultiIndex(DataFrameSchema):
 
     def __repr__(self):
         return "<Schema MultiIndex: '%s'>" % list(self.columns)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
