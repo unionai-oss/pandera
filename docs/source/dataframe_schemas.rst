@@ -446,3 +446,72 @@ Some examples of where this can be provided to pandas are:
        column1 column2  column3
     a        1  valueA     True
     b        1  valueB     True
+
+
+DataFrameSchema Transformations
+-------------------------------
+
+Pandera supports transforming a schema using ``.add_columns`` and ``.remove_columns``.
+
+``.add_columns`` expects a ``Dict[str, Any]``, i.e. the same as when defining ``Columns`` in a ``DataFrameSchema``:
+
+.. testcode:: add_columns
+  :pyversion: > 3.5
+
+  from pandera import DataFrameSchema, Column, Int, Check, String, Object
+
+  schema = DataFrameSchema({
+    "col1": Column(Int, Check(lambda s: s >= 0)),
+    }, strict=True)
+
+  new_schema = schema.add_columns({
+    "col2": Column(String, Check(lambda x: x <= 0)),
+    "col3": Column(Object, Check(lambda x: x == 0))
+    })
+
+  print(new_schema)
+
+.. testoutput:: add_columns
+    :pyversion: > 3.5
+    :options: +NORMALIZE_WHITESPACE
+
+    DataFrameSchema(
+        columns={
+            "col1": "<Schema Column: 'col1' type=int64>",
+            "col2": "<Schema Column: 'col2' type=object>",
+            "col3": "<Schema Column: 'col3' type=object>"
+        },
+    index=None,
+    transformer=None,
+    coerce=False,
+    strict=True
+    )
+
+``.remove_columns`` expects a list of one or more Column names:
+
+.. testcode:: remove_columns
+
+  from pandera import DataFrameSchema, Column, Int, Check, String, Object
+
+  schema = DataFrameSchema({
+    "col1": Column(Int, Check(lambda s: s >= 0)),
+    "col2": Column(String, Check(lambda x: x <= 0)),
+    "col3": Column(Object, Check(lambda x: x == 0))
+    }, strict=True)
+
+  new_schema = schema.remove_columns(["col2", "col3"])
+
+  print(new_schema)
+
+.. testoutput:: remove_columns
+    :options: +NORMALIZE_WHITESPACE
+
+    DataFrameSchema(
+        columns={
+            "col1": "<Schema Column: 'col1' type=int64>"
+        },
+    index=None,
+    transformer=None,
+    coerce=False,
+    strict=True
+    )
