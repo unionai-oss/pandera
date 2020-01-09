@@ -1,7 +1,9 @@
 """Core pandera schema class definitions."""
 
 import json
-from typing import List, Optional, Union, Dict
+import copy
+from typing import List, Optional, Union, Dict, Any
+
 
 import pandas as pd
 
@@ -288,6 +290,37 @@ class DataFrameSchema():
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+    def add_columns(self,
+                    extra_schema_cols: Dict[str, Any]) -> 'DataFrameSchema':
+        """Create a new DataFrameSchema with extra Columns
+
+        :param extra_schema_cols: Additional columns of the format
+        :type extra_schema_cols: DataFrameSchema
+        :returns: a new DataFrameSchema with the extra_schema_cols added
+
+        """
+        schema_copy = copy.deepcopy(self)
+        schema_copy.columns = {**schema_copy.columns,
+                               **DataFrameSchema(extra_schema_cols).columns}
+        return schema_copy
+
+    def remove_columns(self,
+                       cols_to_remove: List) -> 'DataFrameSchema':
+        """Removes a column from a DataFrameSchema and returns a new
+        DataFrameSchema.
+
+        :param cols_to_remove: Columns to be removed from the DataFrameSchema
+        :type cols_to_remove: List
+        :returns: a new DataFrameSchema without the cols_to_remove
+
+        """
+        schema_copy = copy.deepcopy(self)
+        for col in cols_to_remove:
+            schema_copy.columns.pop(col)
+
+        return schema_copy
+
 
 
 
