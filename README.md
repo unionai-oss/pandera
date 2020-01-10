@@ -15,6 +15,7 @@ A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 [![codecov](https://codecov.io/gh/pandera-dev/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385266.svg)](https://doi.org/10.5281/zenodo.3385266)
+[![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
 
 `pandas` data structures contain information that `pandera` explicitly
 validates at runtime. This is useful in production-critical or reproducible research

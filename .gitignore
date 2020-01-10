@@ -107,3 +107,7 @@ venv.bak/
 
 # Pycharm settings
 .idea
+
+# Airspeed Velocity Benchmarks
+/asv_bench/html/
+/asv_bench/results/

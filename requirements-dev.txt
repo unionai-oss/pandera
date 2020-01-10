@@ -8,6 +8,7 @@ codecov
 pylint>=2.4.4
 pytest
 pytest-cov
+asv
 pre_commit
 numpy
 pandas
