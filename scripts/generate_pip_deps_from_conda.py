@@ -51,6 +51,9 @@ def conda_package_to_pip(package):
 
         break
 
+    if package in EXCLUDE:
+        return
+
     if package in RENAME:
         return RENAME[package]
 
