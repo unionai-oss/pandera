@@ -3,6 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  # required
   - python
 
   # environment management
