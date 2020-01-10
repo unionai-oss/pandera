@@ -93,12 +93,13 @@ def main(conda_fname, pip_fname, compare=False):
         elif isinstance(dep, dict) and len(dep) == 1 and "pip" in dep:
             pip_deps += dep["pip"]
         else:
-            raise ValueError(f"Unexpected dependency {dep}")
+            raise ValueError("Unexpected dependency %s" % dep)
 
     fname = os.path.split(conda_fname)[1]
     header = (
-        f"# This file is auto-generated from {fname}, do not modify.\n"
-        "# See that file for comments about the need/usage of each dependency.\n\n"
+        "# This file is auto-generated from %s, do not modify.\n"
+        "# See that file for comments about the need/usage of "
+        "each dependency.\n\n" % fname
     )
     pip_content = header + "\n".join(pip_deps)
 
@@ -133,13 +134,13 @@ if __name__ == "__main__":
     )
     if res:
         msg = (
-            f"`requirements-dev.txt` has to be generated with `{sys.argv[0]}` after "
-            "`environment.yml` is modified.\n"
+            "`requirements-dev.txt` has to be generated with `%s` after "
+            "`environment.yml` is modified.\n" % sys.argv[0]
         )
         if args.azure:
             msg = (
                 "##vso[task.logissue type=error;"
-                f"sourcepath=requirements-dev.txt]{msg}"
+                "sourcepath=requirements-dev.txt]%s" % msg
             )
         sys.stderr.write(msg)
     sys.exit(res)
