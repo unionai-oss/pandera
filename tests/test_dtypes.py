@@ -33,8 +33,7 @@ def test_numeric_dtypes():
             dtypes.Float,
             dtypes.Float16,
             dtypes.Float32,
-            dtypes.Float64
-            ]:
+            dtypes.Float64]:
         assert all(
             isinstance(
                 schema.validate(
