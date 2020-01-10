@@ -9,6 +9,7 @@ from pandera import (
     DateTime, Float, Int, Object, String, Timedelta, errors)
 from tests.test_dtypes import TESTABLE_DTYPES
 
+
 def test_dataframe_schema():
     """Tests the Checking of a DataFrame that has a wide variety of types and
     conditions. Tests include: when the Schema works, when a column is dropped,
