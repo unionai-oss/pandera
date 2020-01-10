@@ -163,14 +163,12 @@ class DataFrameSchema():
                     check.prepare_dataframe_input(dataframe)))
         return all(val_results)
 
-
     @property
     def dtype(self) -> Dict[str, str]:
         """A pandas style dtype dict where the keys are column names and values
         are pandas dtype for the column
         """
         return {k: v.dtype for k, v in self.columns.items()}
-
 
     def validate(
             self,
@@ -334,33 +332,24 @@ class SeriesSchemaBase():
         """Whether to coerce series to specified type."""
         return self._coerce
 
-
     @property
     def dtype(self) -> str:
-        """String representation of the dtype
-        """
+        """String representation of the dtype."""
         return self._pandas_dtype if (
             isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
         ) else self._pandas_dtype.value
 
-
     def coerce_dtype(self, series: pd.Series) -> pd.Series:
-        """Coerce the type of a pd.Series by the type specified in the Column
-            object's self._pandas_dtype
+        """Coerce type of a pd.Series by type specified in pandas_dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
         :returns: ``Series`` with coerced data type
-
         """
-        _dtype = str if self._pandas_dtype is dtypes.PandasDtype.String \
-            else self._pandas_dtype.value
-        if _dtype is str:
+        if self._pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
-            _series = series.copy()
-            _series[series.notna()] = _series[series.notna()].astype(str)
-            return _series
-        return series.astype(_dtype)
+            return series.where(series.isna(), series.astype(str))
+        return series.astype(self.dtype)
 
     @property
     def _allow_groupby(self):
