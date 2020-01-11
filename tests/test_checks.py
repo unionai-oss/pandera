@@ -4,7 +4,7 @@ import copy
 import pandas as pd
 import pytest
 
-from pandera import errors
+from pandera import errors, error_formatters
 from pandera import (
     Column, DataFrameSchema, Index, SeriesSchema, Bool,
     Check, Float, Int, String)
@@ -265,7 +265,7 @@ def test_format_failure_case_exceptions():
     check = Check(lambda x: x.isna().sum() == 0)
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):
-            check._format_failure_cases(data)
+            error_formatters.format_failure_cases(data, check.n_failure_cases)
 
 
 def test_check_equality_operators():

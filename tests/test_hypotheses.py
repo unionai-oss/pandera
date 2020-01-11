@@ -9,7 +9,6 @@ from pandera import (
     Column, DataFrameSchema, Float, Int, String, Hypothesis)
 
 
-
 def test_dataframe_hypothesis_checks():
     """Test that two specific implementations of a Hypothesis work as expected
     and that using a Column that wasn't defined will error."""
