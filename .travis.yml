@@ -77,10 +77,16 @@ install:
     conda list
 
 script:
+  # Use the conda environment
   - source activate hosts
+  # Tests
   - pytest --cov=pandera tests/
+  # Coverage
   - codecov
-  # Check conformity to flake8 style guide
-  - pylint pandera tests
   # Check docs can build, treating warnings as errors
   - python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"
+  # Dependencies
+  # Check that requirements-dev.text is generated exclusively by environment.yml
+  - python ./scripts/generate_pip_deps_from_conda.py --compare
+  # Linting
+  - pylint pandera tests
