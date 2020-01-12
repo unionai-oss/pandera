@@ -7,7 +7,7 @@ import pandas as pd
 from scipy import stats
 
 from . import errors
-from .checks import Check
+from .checks import Check, SeriesCheckObj, DataFrameCheckObj
 
 
 DEFAULT_ALPHA = 0.01
@@ -144,22 +144,15 @@ class Hypothesis(Check):
     def _prepare_series_input(
             self,
             series: pd.Series,
-            dataframe_context: pd.DataFrame):
-        """Prepare input for Hypothesis check.
-
-        :param pd.Series series: One-dimensional ndarray with axis labels
-            (including time series).
-        :param pd.DataFrame dataframe_context: optional dataframe to supply
-            when checking a Column in a DataFrameSchema.
-        :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
-            and `_vectorized_check`
-
-        """
+            dataframe_context: pd.DataFrame = None
+    ) -> SeriesCheckObj:
+        """Prepare Series input for Hypothesis check."""
         self.groups = self.samples
         return super(Hypothesis, self)._prepare_series_input(
             series, dataframe_context)
 
-    def prepare_dataframe_input(self, dataframe: pd.DataFrame):
+    def _prepare_dataframe_input(
+            self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema Hypothesis check."""
         if self.groupby is not None:
             raise errors.SchemaDefinitionError(
