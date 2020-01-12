@@ -1,7 +1,9 @@
 """Testing the components of the Schema objects."""
 
+import copy
 import pandas as pd
 import pytest
+
 
 from pandera import errors
 from pandera import (
@@ -103,3 +105,28 @@ def test_multi_index_index():
 def test_column_dtype_property(pandas_dtype, expected):
     """Tests that the dtypes provided by Column match pandas dtypes"""
     assert Column(pandas_dtype).dtype == expected
+
+def test_schema_component_equality_operators():
+    """Test the usage of == for Column, Index and MultiIndex."""
+    column = Column(Int, Check(lambda s: s >= 0))
+    index = Index(Int, [Check(lambda x: 1 <= x <= 11, element_wise=True)])
+    multi_index = MultiIndex(
+        indexes=[
+            Index(Int,
+                  Check(lambda s: (s < 5) & (s >= 0)),
+                  name="index0"),
+            Index(String,
+                  Check(lambda s: s.isin(["foo", "bar"])),
+                  name="index1"),
+            ]
+        )
+    not_equal_schema = DataFrameSchema({
+        "col1": Column(Int, Check(lambda s: s >= 0))
+        })
+
+    assert column == copy.deepcopy(column)
+    assert column != not_equal_schema
+    assert index == copy.deepcopy(index)
+    assert index != not_equal_schema
+    assert multi_index == copy.deepcopy(multi_index)
+    assert multi_index != not_equal_schema

@@ -284,6 +284,10 @@ class DataFrameSchema():
             indent=_indent,
         )
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+
 
 class SeriesSchemaBase():
     """Base series validator object."""
@@ -432,6 +436,9 @@ class SeriesSchemaBase():
                     check._prepare_series_input(series, dataframe_context)))
         return all(val_results)
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 
 class SeriesSchema(SeriesSchemaBase):
     """Series validator."""
@@ -513,3 +520,6 @@ class SeriesSchema(SeriesSchemaBase):
 
         assert super(SeriesSchema, self).__call__(series)
         return series
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
