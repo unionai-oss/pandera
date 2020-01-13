@@ -77,13 +77,12 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
-    def __call__(self, df: pd.DataFrame) -> bool:
+    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
         """Validate DataFrameSchema Column."""
         if self._name is None:
             raise RuntimeError(
                 "need to `set_name` of column before calling it.")
-        return super(Column, self).__call__(
-            df[self._name], dataframe_context=df.drop(self._name, axis=1))
+        return super(Column, self).__call__(df_or_series)
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
@@ -91,6 +90,9 @@ class Column(SeriesSchemaBase):
         else:
             dtype = self._pandas_dtype
         return "<Schema Column: '%s' type=%s>" % (self._name, dtype)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class Index(SeriesSchemaBase):
@@ -147,14 +149,17 @@ class Index(SeriesSchemaBase):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def __call__(self, df: pd.DataFrame) -> bool:
+    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
         """Validate DataFrameSchema Index."""
-        return super(Index, self).__call__(pd.Series(df.index))
+        return super(Index, self).__call__(pd.Series(df_or_series.index))
 
     def __repr__(self):
         if self._name is None:
             return "<Schema Index>"
         return "<Schema Index: '%s'>" % self._name
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class MultiIndex(DataFrameSchema):
@@ -225,12 +230,19 @@ class MultiIndex(DataFrameSchema):
             strict=strict,
         )
 
-    def __call__(self, df: pd.DataFrame) -> bool:
+    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
+        # pylint: disable=signature-differs,W0222
+        # false positive warning is raised here, even though method signature
+        # is exactly the same. Will need to investigate why this is being
+        # raised.
         """Validate DataFrameSchema MultiIndex."""
         return isinstance(
-            super(MultiIndex, self).__call__(df.index.to_frame()),
+            super(MultiIndex, self).__call__(df_or_series.index.to_frame()),
             pd.DataFrame
         )
 
     def __repr__(self):
         return "<Schema MultiIndex: '%s'>" % list(self.columns)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__

@@ -1,9 +1,10 @@
 """Tests the way Columns are Checked"""
 
+import copy
 import pandas as pd
 import pytest
 
-from pandera import errors
+from pandera import errors, error_formatters
 from pandera import (
     Column, DataFrameSchema, Index, SeriesSchema, Bool,
     Check, Float, Int, String)
@@ -264,4 +265,22 @@ def test_format_failure_case_exceptions():
     check = Check(lambda x: x.isna().sum() == 0)
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):
-            check._format_failure_cases(data)
+            error_formatters.format_failure_cases(data, check.n_failure_cases)
+
+
+def test_check_equality_operators():
+    """Test the usage of == between a Check and an entirely different Check."""
+    check = Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3")
+
+    not_equal_check = Check(lambda x: x.isna().sum() == 0)
+    assert check == copy.deepcopy(check)
+    assert check != not_equal_check
+
+
+def test_equality_operators_functional_equivalence():
+    """Test the usage of == for Checks where the Check callable object has
+    the same implementation."""
+    main_check = Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3")
+    same_check = Check(lambda h: h["foo"]["col1"].iat[0] == 1, groupby="col3")
+
+    assert main_check == same_check

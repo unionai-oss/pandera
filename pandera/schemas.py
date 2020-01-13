@@ -1,11 +1,13 @@
 """Core pandera schema class definitions."""
 
 import json
-from typing import List, Optional, Union, Dict
+import copy
+from typing import List, Optional, Union, Dict, Any
+
 
 import pandas as pd
 
-from . import errors, constants, dtypes
+from . import errors, constants, dtypes, error_formatters
 from .checks import Check
 
 
@@ -154,14 +156,12 @@ class DataFrameSchema():
             pd.concat(dataframe_subsample).drop_duplicates()
 
     def _check_dataframe(self, dataframe):
-        val_results = []
+        check_results = []
         for check_index, check in enumerate(self.checks):
-            val_results.append(
-                check(
-                    self,
-                    check_index,
-                    check.prepare_dataframe_input(dataframe)))
-        return all(val_results)
+            check_results.append(
+                _handle_check_results(self, check_index, check, dataframe)
+            )
+        return all(check_results)
 
     @property
     def dtype(self) -> Dict[str, str]:
@@ -239,10 +239,12 @@ class DataFrameSchema():
 
         dataframe_to_validate = self._dataframe_to_validate(
             dataframe, head, tail, sample, random_state)
+
         assert (
             all(schema_component(dataframe_to_validate)
                 for schema_component in schema_components)
-            and self._check_dataframe(dataframe))
+            and self._check_dataframe(dataframe_to_validate))
+
         if self.transformer is not None:
             dataframe = self.transformer(dataframe)
 
@@ -283,6 +285,39 @@ class DataFrameSchema():
             strict=self.strict,
             indent=_indent,
         )
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+    def add_columns(self,
+                    extra_schema_cols: Dict[str, Any]) -> 'DataFrameSchema':
+        """Create a new DataFrameSchema with extra Columns
+
+        :param extra_schema_cols: Additional columns of the format
+        :type extra_schema_cols: DataFrameSchema
+        :returns: a new DataFrameSchema with the extra_schema_cols added
+
+        """
+        schema_copy = copy.deepcopy(self)
+        schema_copy.columns = {**schema_copy.columns,
+                               **DataFrameSchema(extra_schema_cols).columns}
+        return schema_copy
+
+    def remove_columns(self,
+                       cols_to_remove: List) -> 'DataFrameSchema':
+        """Removes a column from a DataFrameSchema and returns a new
+        DataFrameSchema.
+
+        :param cols_to_remove: Columns to be removed from the DataFrameSchema
+        :type cols_to_remove: List
+        :returns: a new DataFrameSchema without the cols_to_remove
+
+        """
+        schema_copy = copy.deepcopy(self)
+        for col in cols_to_remove:
+            schema_copy.columns.pop(col)
+
+        return schema_copy
 
 
 class SeriesSchemaBase():
@@ -333,6 +368,11 @@ class SeriesSchemaBase():
         return self._coerce
 
     @property
+    def name(self) -> str:
+        """Get SeriesSchema name."""
+        return self._name
+
+    @property
     def dtype(self) -> str:
         """String representation of the dtype."""
         return self._pandas_dtype if (
@@ -358,12 +398,17 @@ class SeriesSchemaBase():
             "The _allow_groupby property must be implemented by subclasses "
             "of SeriesSchemaBase")
 
-    def __call__(
-            self,
-            series: pd.Series,
-            dataframe_context: pd.DataFrame = None) -> bool:
+    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
         # pylint: disable=too-many-branches,W0212
-        """Validate a series."""
+        """Validate a series.
+
+        :df_or_series: pandas DataFrame of Series to validate.
+        :returns: True if validation checks pass.
+
+        """
+        series = df_or_series if isinstance(df_or_series, pd.Series) \
+            else df_or_series[self.name]
+
         if series.name != self._name:
             raise errors.SchemaError(
                 "Expected %s to have name '%s', found '%s'" %
@@ -373,8 +418,6 @@ class SeriesSchemaBase():
 
         if self._nullable:
             series = series.dropna()
-            if dataframe_context is not None:
-                dataframe_context = dataframe_context.loc[series.index]
             if _dtype in ["int_", "int8", "int16", "int32", "int64", "uint8",
                           "uint16", "uint32", "uint64"]:
                 _series = series.astype(_dtype)
@@ -423,14 +466,23 @@ class SeriesSchemaBase():
                 "expected series '%s' to have type %s, got %s" %
                 (series.name, _dtype, series.dtype))
 
-        val_results = []
+        check_results = []
+
+        if isinstance(df_or_series, pd.Series):
+            check_args = (series, )
+        else:
+            df_or_series = df_or_series.loc[series.index]
+            df_or_series[self.name] = series
+            check_args = (df_or_series, self.name)
+
         for check_index, check in enumerate(self.checks):
-            val_results.append(
-                check(
-                    self,
-                    check_index,
-                    check._prepare_series_input(series, dataframe_context)))
-        return all(val_results)
+            check_results.append(
+                _handle_check_results(self, check_index, check, *check_args)
+            )
+        return all(check_results)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class SeriesSchema(SeriesSchemaBase):
@@ -513,3 +565,30 @@ class SeriesSchema(SeriesSchemaBase):
 
         assert super(SeriesSchema, self).__call__(series)
         return series
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+
+def _handle_check_results(
+        schema: Union[DataFrameSchema, SeriesSchemaBase],
+        check_index: int,
+        check: Check,
+        *check_args) -> bool:
+    """Handle check results, raising SchemaError on check failure.
+
+    :param check_index: index of check in the schema component check list.
+    :param check: Check object used to validate pandas object.
+    :param check_args: arguments to pass into check object.
+    """
+    check_result = check(*check_args)
+    if not check_result.check_passed:
+        if check_result.failure_cases is None:
+            raise errors.SchemaError(
+                error_formatters.format_generic_error_message(
+                    schema, check, check_index))
+        raise errors.SchemaError(
+            error_formatters.format_vectorized_error_message(
+                schema, check, check_index, check_result.failure_cases)
+        )
+    return check_result.check_passed
