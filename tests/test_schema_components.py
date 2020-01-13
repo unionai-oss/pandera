@@ -1,6 +1,7 @@
 """Testing the components of the Schema objects."""
 
 import copy
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -11,7 +12,19 @@ from pandera import (
     String)
 from tests.test_dtypes import TESTABLE_DTYPES
 
+
 def test_column():
+    """Test that the Column object can be used to check dataframe."""
+    data = pd.DataFrame({
+        "a": [1, 2, 3],
+        "b": [2.0, 3.0, 4.0],
+        "c": ["foo", "bar", "baz"],
+    })
+
+
+
+
+def test_column_in_dataframe_schema():
     """Test that a Column check returns a dataframe."""
     schema = DataFrameSchema({
         "a": Column(Int, Check(lambda x: x > 0, element_wise=True))
@@ -35,6 +48,17 @@ def test_index_schema():
 
     with pytest.raises(errors.SchemaError):
         schema.validate(pd.DataFrame(index=range(1, 20)))
+
+
+def test_index_schema_coerce():
+    """Test that index can be type-coerced."""
+    schema = DataFrameSchema(
+        columns={},
+        index=Index(Float, coerce=True)
+    )
+    df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
+    validated_df = schema(df)
+    assert validated_df.index.dtype == Float.value
 
 
 def test_multi_index_columns():
@@ -99,6 +123,30 @@ def test_multi_index_index():
     )
     with pytest.raises(errors.SchemaError):
         schema.validate(df_fail)
+
+
+def test_multi_index_schema_coerce():
+    """Test that multi index can be type-coerced."""
+    indexes = [
+        Index(Float),
+        Index(Int),
+        Index(String),
+    ]
+    schema = DataFrameSchema(
+        columns={},
+        index=MultiIndex(indexes=indexes)
+    )
+    df = pd.DataFrame(
+        index=pd.MultiIndex.from_arrays([
+            [1.0, 2.1, 3.5, 4.8],
+            [5, 6, 7, 8],
+            ["9", "10", "11", "12"],
+        ])
+    )
+    validated_df = schema(df)
+    for level_i in range(validated_df.index.nlevels):
+        assert validated_df.index.get_level_values(level_i).dtype == \
+            indexes[level_i].dtype
 
 
 @pytest.mark.parametrize("pandas_dtype, expected", TESTABLE_DTYPES)
