@@ -2,7 +2,7 @@
 
 import json
 import copy
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict
 
 
 import pandas as pd
@@ -290,7 +290,7 @@ class DataFrameSchema():
         return self.__dict__ == other.__dict__
 
     def add_columns(self,
-                    extra_schema_cols: Dict[str, Any]) -> 'DataFrameSchema':
+                    extra_schema_cols: Dict[str, 'Column']) -> 'DataFrameSchema':
         """Create a new DataFrameSchema with extra Columns
 
         :param extra_schema_cols: Additional columns of the format
