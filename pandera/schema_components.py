@@ -163,7 +163,12 @@ class Index(SeriesSchemaBase):
 
 
 class MultiIndex(DataFrameSchema):
-    """Extends SeriesSchemaBase with Multi-index-specific options"""
+    """Extends DataFrameSchema with Multi-index-specific options.
+
+    Because MultiIndex.__call__ converts the index to a dataframe via
+    to_frame(), each index is treated as a series and it makes sense to inherit
+    the `__call__` and `validate` methods from DataFrameSchema.
+    """
 
     def __init__(
             self,
