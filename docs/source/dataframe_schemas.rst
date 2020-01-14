@@ -41,7 +41,7 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 Column Validation
 -----------------
 
-A ``Column`` must specifies the properties of a column in a dataframe object.
+A ``Column`` must specify the properties of a column in a dataframe object.
 It can be optionally verified for its data type, `null values`_ or duplicate
 values. The column can be coerced_ into the specified type, and the
 required_ parameter allows control over whether or not the column is allowed to
