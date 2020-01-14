@@ -1,7 +1,6 @@
 """Testing the components of the Schema objects."""
 
 import copy
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -21,7 +20,17 @@ def test_column():
         "c": ["foo", "bar", "baz"],
     })
 
+    column_a = Column(Int, name="a")
+    column_b = Column(Float, name="b")
+    column_c = Column(String, name="c")
 
+    assert isinstance(
+        data.pipe(column_a).pipe(column_b).pipe(column_c),
+        pd.DataFrame
+    )
+
+    with pytest.raises(errors.SchemaError):
+        Column(Int)(data)
 
 
 def test_column_in_dataframe_schema():
@@ -37,7 +46,6 @@ def test_index_schema():
     """Tests that when specifying a DataFrameSchema Index pandera validates
     and errors appropriately."""
     schema = DataFrameSchema(
-        columns={},
         index=Index(
             Int, [
                 Check(lambda x: 1 <= x <= 11, element_wise=True),
@@ -52,10 +60,7 @@ def test_index_schema():
 
 def test_index_schema_coerce():
     """Test that index can be type-coerced."""
-    schema = DataFrameSchema(
-        columns={},
-        index=Index(Float, coerce=True)
-    )
+    schema = DataFrameSchema(index=Index(Float, coerce=True))
     df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
     validated_df = schema(df)
     assert validated_df.index.dtype == Float.value
@@ -133,7 +138,6 @@ def test_multi_index_schema_coerce():
         Index(String),
     ]
     schema = DataFrameSchema(
-        columns={},
         index=MultiIndex(indexes=indexes)
     )
     df = pd.DataFrame(
@@ -146,6 +150,35 @@ def test_multi_index_schema_coerce():
     validated_df = schema(df)
     for level_i in range(validated_df.index.nlevels):
         assert validated_df.index.get_level_values(level_i).dtype == \
+            indexes[level_i].dtype
+
+
+def tests_multi_index_subindex_coerce():
+    """MultIndex component should override sub indexes."""
+    indexes = [
+        Index(String, coerce=True),
+        Index(String, coerce=False),
+        Index(String, coerce=True),
+        Index(String, coerce=False),
+    ]
+
+    data = pd.DataFrame(index=pd.MultiIndex.from_arrays([[1, 2, 3, 4]] * 4))
+
+    schema = DataFrameSchema(index=MultiIndex(indexes), coerce=False)
+    validated_df = schema(data)
+    for level_i in range(validated_df.index.nlevels):
+        if indexes[level_i].coerce:
+            assert validated_df.index.get_level_values(level_i).dtype == \
+                indexes[level_i].dtype
+        else:
+            assert validated_df.index.get_level_values(level_i).dtype == \
+                String.value
+
+    # coerce=True in MultiIndex should override subindex coerce setting
+    schema_override = DataFrameSchema(index=MultiIndex(indexes), coerce=True)
+    validated_df_override = schema_override(data)
+    for level_i in range(validated_df.index.nlevels):
+        assert validated_df_override.index.get_level_values(level_i).dtype == \
             indexes[level_i].dtype
 
 

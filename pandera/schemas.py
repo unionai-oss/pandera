@@ -2,7 +2,7 @@
 
 import json
 import warnings
-from typing import List, Optional, Union, Dict
+from typing import Any, List, Optional, Union, Dict
 
 import pandas as pd
 
@@ -18,7 +18,7 @@ class DataFrameSchema():
 
     def __init__(
             self,
-            columns,
+            columns: Dict[str, Any] = None,
             checks: Optional[List[Check]] = None,
             index=None,
             transformer: callable = None,
@@ -29,7 +29,7 @@ class DataFrameSchema():
         :param columns: a dict where keys are column names and values are
             Column objects specifying the datatypes and properties of a
             particular column.
-        :type columns: Dict[str, Column]
+        :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
         :param index: specify the datatypes and properties of the index.
         :param transformer: a callable with signature:
@@ -82,19 +82,25 @@ class DataFrameSchema():
         if isinstance(checks, Check):
             checks = [checks]
 
-        if coerce and None in [c.pandas_dtype for c in columns.values()]:
+        self.columns = {} if columns is None else columns
+
+        if coerce and None in [c.pandas_dtype for c in self.columns.values()]:
             raise errors.SchemaInitError(
                 "Must specify dtype in all Columns if coercing "
                 "DataFrameSchema")
 
         self.checks = checks
         self.index = index
-        self.columns = columns
         self.transformer = transformer
-        self.coerce = coerce
         self.strict = strict
+        self._coerce = coerce
         self._validate_schema()
         self._set_column_names()
+
+    @property
+    def coerce(self):
+        """Whether to coerce series to specified type."""
+        return self._coerce
 
     def _validate_schema(self):
         for column_name, column in self.columns.items():
@@ -118,7 +124,7 @@ class DataFrameSchema():
             elif column.name == column_name:
                 return column
             return column.set_name(column_name)
-        
+
         self.columns = {
             column_name: _set_column_handler(column, column_name)
             for column_name, column in self.columns.items()
@@ -362,7 +368,8 @@ class SeriesSchemaBase():
             isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
         ) else self._pandas_dtype.value
 
-    def coerce_dtype(self, series: pd.Series) -> pd.Series:
+    def coerce_dtype(
+            self, series_or_index: Union[pd.Series, pd.Index]) -> pd.Series:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
@@ -371,8 +378,9 @@ class SeriesSchemaBase():
         """
         if self._pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
-            return series.where(series.isna(), series.astype(str))
-        return series.astype(self.dtype)
+            return series_or_index.where(
+                series_or_index.isna(), series_or_index.astype(str))
+        return series_or_index.astype(self.dtype)
 
     @property
     def _allow_groupby(self):

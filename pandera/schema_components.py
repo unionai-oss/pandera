@@ -85,8 +85,16 @@ class Column(SeriesSchemaBase):
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema Column."""
         if self._name is None:
-            raise RuntimeError(
+            raise errors.SchemaError(
                 "need to `set_name` of column before calling it.")
+
+        if self.coerce:
+            if isinstance(df_or_series, pd.DataFrame):
+                df_or_series[self.name] = self.coerce_dtype(
+                    df_or_series[self.name])
+            elif isinstance(df_or_series, pd.Series):
+                df_or_series = self.coerce_dtype(df_or_series)
+
         return super(Column, self).__call__(df_or_series)
 
     def __repr__(self):
@@ -149,8 +157,7 @@ class Index(SeriesSchemaBase):
         super(Index, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, coerce, name)
 
-    def coerce_dtype(
-            self, index: pd.Index) -> pd.Index:
+    def coerce_dtype(self, series_or_index: pd.Index) -> pd.Index:
         """Coerce type of a pd.Index by type specified in pandas_dtype.
 
         :param pd.Index series: One-dimensional ndarray with axis labels
@@ -158,9 +165,10 @@ class Index(SeriesSchemaBase):
         :returns: ``Index`` with coerced data type
         """
         if self._pandas_dtype is PandasDtype.String:
-            return index.where(index.isna(), index.astype(str))
+            return series_or_index.where(
+                series_or_index.isna(), series_or_index.astype(str))
             # only coerce non-null elements to string
-        return index.astype(self.dtype)
+        return series_or_index.astype(self.dtype)
 
     @property
     def _allow_groupby(self) -> bool:
@@ -172,6 +180,10 @@ class Index(SeriesSchemaBase):
             df_or_series: Union[pd.DataFrame, pd.Series]
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema Index."""
+
+        if self.coerce:
+            df_or_series.index = self.coerce_dtype(df_or_series.index)
+
         assert isinstance(
             super(Index, self).__call__(pd.Series(df_or_series.index)),
             pd.Series
@@ -256,6 +268,10 @@ class MultiIndex(DataFrameSchema):
             strict=strict,
         )
 
+    @property
+    def coerce(self):
+        return self._coerce or any(index.coerce for index in self.indexes)
+
     def coerce_dtype(self, multi_index: pd.MultiIndex) -> pd.MultiIndex:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
@@ -271,9 +287,11 @@ class MultiIndex(DataFrameSchema):
             )
 
         for level_i, index in enumerate(self.indexes):
-            _coerced_multi_index.append(
-                index.coerce_dtype(multi_index.get_level_values(level_i)))
-        
+            index_array = multi_index.get_level_values(level_i)
+            if index.coerce or self.coerce:
+                index_array = index.coerce_dtype(index_array)
+            _coerced_multi_index.append(index_array)
+
         return pd.MultiIndex.from_arrays(
             _coerced_multi_index, names=multi_index.names)
 
@@ -286,6 +304,10 @@ class MultiIndex(DataFrameSchema):
         # is exactly the same. Will need to investigate why this is being
         # raised.
         """Validate DataFrameSchema MultiIndex."""
+
+        if self.coerce:
+            df_or_series.index = self.coerce_dtype(df_or_series.index)
+
         assert isinstance(
             super(MultiIndex, self).__call__(df_or_series.index.to_frame()),
             pd.DataFrame

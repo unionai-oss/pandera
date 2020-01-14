@@ -41,10 +41,11 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 Column Validation
 -----------------
 
-A ``Column`` must specify a *type* to be validated. It can be optionally
-verified for `null values`_ or duplicate values. The column can be coerced_ into
-the specified type, and the required_ parameter allows control over whether or
-not the column is allowed to be missing.
+A ``Column`` must specifies the properties of a column in a dataframe object.
+It can be optionally verified for its data type, `null values`_ or duplicate
+values. The column can be coerced_ into the specified type, and the
+required_ parameter allows control over whether or not the column is allowed to
+be missing.
 
 :ref:`Column checks<checks>` allow for the DataFrame's values to be
 checked against a user provided function. ``Check`` objects also support
@@ -230,6 +231,42 @@ Since ``required=True`` by default, missing columns would raise an error:
     1  pandera
 
 
+.. _column validation:
+
+Stand-alone Column Validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to being used in the context of a ``DataFrameSchema``, ``Column``
+objects can also be used to validate columns in a dataframe on its own:
+
+.. testcode:: dataframe_schemas
+
+    import pandas as pd
+    import pandera as pa
+
+    from pandera import Column, Check
+
+    df = pd.DataFrame({
+        "column1": [1, 2, 3],
+        "column2": ["a", "b", "c"],
+    })
+
+    column1 = Column(pa.Int, name="column1")
+    column2 = Column(pa.String, name="column2")
+
+    # pass the dataframe as an argument to the Column object callable
+    df = column1(df)
+    validated_df = column2(df)
+
+    # use the DataFrame.pipe the method to validate two columns
+    validated_df = df.pipe(column1).pipe(column2)
+
+
+For multi-column use cases, the ``DataFrameSchema`` is still recommended, but
+if you have one or a small number of columns to verify, using ``Column``
+objects by themselves is appropriate.
+
+
 .. _strict:
 
 Handling Dataframe Columns not in the Schema
@@ -327,8 +364,8 @@ MultiIndex Validation
 MultiIndex Columns
 ~~~~~~~~~~~~~~~~~~
 
-Specifying multi-index columns follows the ``pandas`` syntax of specifying tuples
-for each level in the index hierarchy:
+Specifying multi-index columns follows the ``pandas`` syntax of specifying
+tuples for each level in the index hierarchy:
 
 .. testcode:: multiindex_columns
 
@@ -408,8 +445,8 @@ Pandas DType
 ---------------------
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
-schema. DataFrameSchema provides a `dtype` property which returns a pandas style
-dict. The keys of the dict are column names and values are the dtype.
+schema. DataFrameSchema provides a `dtype` property which returns a pandas
+style dict. The keys of the dict are column names and values are the dtype.
 
 Some examples of where this can be provided to pandas are:
 
