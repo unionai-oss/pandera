@@ -2,8 +2,8 @@
 
 import json
 import copy
+import warnings
 from typing import List, Optional, Union, Dict, Any
-
 
 import pandas as pd
 
@@ -19,7 +19,7 @@ class DataFrameSchema():
 
     def __init__(
             self,
-            columns,
+            columns: Dict[str, Any] = None,
             checks: Optional[List[Check]] = None,
             index=None,
             transformer: callable = None,
@@ -30,7 +30,7 @@ class DataFrameSchema():
         :param columns: a dict where keys are column names and values are
             Column objects specifying the datatypes and properties of a
             particular column.
-        :type columns: Dict[str, Column]
+        :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
         :param index: specify the datatypes and properties of the index.
         :param transformer: a callable with signature:
@@ -83,40 +83,25 @@ class DataFrameSchema():
         if isinstance(checks, Check):
             checks = [checks]
 
-        if coerce and None in [c.pandas_dtype for c in columns.values()]:
+        self.columns = {} if columns is None else columns
+
+        if coerce and None in [c.pandas_dtype for c in self.columns.values()]:
             raise errors.SchemaInitError(
                 "Must specify dtype in all Columns if coercing "
                 "DataFrameSchema")
 
         self.checks = checks
         self.index = index
-        self.columns = columns
         self.transformer = transformer
-        self.coerce = coerce
         self.strict = strict
+        self._coerce = coerce
         self._validate_schema()
         self._set_column_names()
 
-    def __call__(
-            self,
-            dataframe: pd.DataFrame,
-            head: Optional[int] = None,
-            tail: Optional[int] = None,
-            sample: Optional[int] = None,
-            random_state: Optional[int] = None):
-        """Delegate to `validate` method.
-
-        :param pd.DataFrame dataframe: the dataframe to be validated.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :type head: int
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :type tail: int
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        """
-        return self.validate(dataframe)
+    @property
+    def coerce(self):
+        """Whether to coerce series to specified type."""
+        return self._coerce
 
     def _validate_schema(self):
         for column_name, column in self.columns.items():
@@ -132,8 +117,17 @@ class DataFrameSchema():
                         (nonexistent_groupby_columns, column_name))
 
     def _set_column_names(self):
+
+        def _set_column_handler(column, column_name):
+            if column.name is not None and column.name != column_name:
+                warnings.warn(
+                    "resetting column for %s to '%s'." % (column, column_name))
+            elif column.name == column_name:
+                return column
+            return column.set_name(column_name)
+
         self.columns = {
-            column_name: column.set_name(column_name)
+            column_name: _set_column_handler(column, column_name)
             for column_name, column in self.columns.items()
         }
 
@@ -213,6 +207,8 @@ class DataFrameSchema():
         4         0.80      dog
         5         0.76      dog
         """
+        dataframe = dataframe.copy()
+
         if self.strict:
             for column in dataframe:
                 if column not in self.columns:
@@ -231,24 +227,47 @@ class DataFrameSchema():
                 dataframe[colname] = col.coerce_dtype(dataframe[colname])
 
         schema_components = [
-            col.set_name(col_name) for col_name, col in self.columns.items()
+            col for col_name, col in self.columns.items()
             if col.required or col_name in dataframe
         ]
         if self.index is not None:
+            if self.index.coerce or self.coerce:
+                dataframe.index = self.index.coerce_dtype(dataframe.index)
             schema_components.append(self.index)
 
         dataframe_to_validate = self._dataframe_to_validate(
             dataframe, head, tail, sample, random_state)
 
         assert (
-            all(schema_component(dataframe_to_validate)
-                for schema_component in schema_components)
+            all(isinstance(component(dataframe_to_validate), pd.DataFrame)
+                for component in schema_components)
             and self._check_dataframe(dataframe_to_validate))
 
         if self.transformer is not None:
             dataframe = self.transformer(dataframe)
 
         return dataframe
+
+    def __call__(
+            self,
+            dataframe: pd.DataFrame,
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None):
+        """Delegate to `validate` method.
+
+        :param pd.DataFrame dataframe: the dataframe to be validated.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :type head: int
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :type tail: int
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        """
+        return self.validate(dataframe)
 
     def __repr__(self):
         """Represent string for logging."""
@@ -379,7 +398,8 @@ class SeriesSchemaBase():
             isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
         ) else self._pandas_dtype.value
 
-    def coerce_dtype(self, series: pd.Series) -> pd.Series:
+    def coerce_dtype(
+            self, series_or_index: Union[pd.Series, pd.Index]) -> pd.Series:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
@@ -388,8 +408,9 @@ class SeriesSchemaBase():
         """
         if self._pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
-            return series.where(series.isna(), series.astype(str))
-        return series.astype(self.dtype)
+            return series_or_index.where(
+                series_or_index.isna(), series_or_index.astype(str))
+        return series_or_index.astype(self.dtype)
 
     @property
     def _allow_groupby(self):
@@ -398,16 +419,19 @@ class SeriesSchemaBase():
             "The _allow_groupby property must be implemented by subclasses "
             "of SeriesSchemaBase")
 
-    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
+    def validate(
+            self,
+            check_obj: Union[pd.DataFrame, pd.Series]
+    ) -> Union[pd.DataFrame, pd.Series]:
         # pylint: disable=too-many-branches,W0212
-        """Validate a series.
+        """Validate a series or specific column in dataframe.
 
-        :df_or_series: pandas DataFrame of Series to validate.
-        :returns: True if validation checks pass.
+        :check_obj: pandas DataFrame or Series to validate.
+        :returns: validated DataFrame or Series.
 
         """
-        series = df_or_series if isinstance(df_or_series, pd.Series) \
-            else df_or_series[self.name]
+        series = check_obj.copy() if isinstance(check_obj, pd.Series) \
+            else check_obj[self.name].copy()
 
         if series.name != self._name:
             raise errors.SchemaError(
@@ -468,18 +492,27 @@ class SeriesSchemaBase():
 
         check_results = []
 
-        if isinstance(df_or_series, pd.Series):
+        if isinstance(check_obj, pd.Series):
             check_args = (series, )
         else:
-            df_or_series = df_or_series.loc[series.index]
-            df_or_series[self.name] = series
-            check_args = (df_or_series, self.name)
+            _check_obj = check_obj.loc[series.index].copy()
+            _check_obj[self.name] = series
+            check_args = (_check_obj, self.name)
 
         for check_index, check in enumerate(self.checks):
             check_results.append(
                 _handle_check_results(self, check_index, check, *check_args)
             )
-        return all(check_results)
+
+        assert all(check_results)
+        return check_obj
+
+    def __call__(
+            self,
+            check_obj: Union[pd.DataFrame, pd.Series]
+    ) -> Union[pd.DataFrame, pd.Series]:
+        """Validate a series or column in a dataframe."""
+        return self.validate(check_obj)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -535,10 +568,10 @@ class SeriesSchema(SeriesSchemaBase):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def validate(self, series: pd.Series) -> pd.Series:
-        """Check that series values  have corresponding DataFrameSchema column.
+    def validate(self, check_obj: pd.Series) -> pd.Series:
+        """Validate a Series object.
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
+        :param check_obj: One-dimensional ndarray with axis labels
             (including time series).
         :returns: validated Series.
 
@@ -557,14 +590,14 @@ class SeriesSchema(SeriesSchemaBase):
         dtype: float64
 
         """
-        if not isinstance(series, pd.Series):
-            raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
+        if not isinstance(check_obj, pd.Series):
+            raise TypeError(
+                "expected %s, got %s" % (pd.Series, type(check_obj)))
 
         if self.coerce:
-            series = self.coerce_dtype(series)
+            check_obj = self.coerce_dtype(check_obj)
 
-        assert super(SeriesSchema, self).__call__(series)
-        return series
+        return super(SeriesSchema, self).validate(check_obj)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

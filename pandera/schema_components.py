@@ -20,7 +20,8 @@ class Column(SeriesSchemaBase):
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
-            required: bool = True):
+            required: bool = True,
+            name: str = None):
         """Create column validator object.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
@@ -58,6 +59,7 @@ class Column(SeriesSchemaBase):
             pandas_dtype, checks, nullable, allow_duplicates, coerce)
         self.required = required
         self.pandas_dtype = pandas_dtype
+        self._name = name
 
         if coerce and pandas_dtype is None:
             raise errors.SchemaInitError(
@@ -77,12 +79,23 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
-    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
-        """Validate DataFrameSchema Column."""
+    def validate(self, check_obj: pd.DataFrame) -> pd.DataFrame:
+        """Validate a Column in a DataFrame object.
+
+        :param check_obj: pandas DataFrame to validate.
+        :returns: validated DataFrame.
+        """
         if self._name is None:
-            raise RuntimeError(
-                "need to `set_name` of column before calling it.")
-        return super(Column, self).__call__(df_or_series)
+            raise errors.SchemaError(
+                "column name is set to None. Pass the ``name` argument when "
+                "initializing a Column object, or use the ``set_name`` "
+                "method.")
+
+        if self.coerce:
+            check_obj[self.name] = self.coerce_dtype(
+                check_obj[self.name])
+
+        return super(Column, self).validate(check_obj)
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
@@ -144,14 +157,42 @@ class Index(SeriesSchemaBase):
         super(Index, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, coerce, name)
 
+    def coerce_dtype(self, series_or_index: pd.Index) -> pd.Index:
+        """Coerce type of a pd.Index by type specified in pandas_dtype.
+
+        :param pd.Index series: One-dimensional ndarray with axis labels
+            (including time series).
+        :returns: ``Index`` with coerced data type
+        """
+        if self._pandas_dtype is PandasDtype.String:
+            return series_or_index.where(
+                series_or_index.isna(), series_or_index.astype(str))
+            # only coerce non-null elements to string
+        return series_or_index.astype(self.dtype)
+
     @property
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
-        """Validate DataFrameSchema Index."""
-        return super(Index, self).__call__(pd.Series(df_or_series.index))
+    def validate(
+            self,
+            check_obj: Union[pd.DataFrame, pd.Series]
+    ) -> Union[pd.DataFrame, pd.Series]:
+        """Validate DataFrameSchema or SeriesSchema Index.
+
+        :check_obj: pandas DataFrame of Series containing index to validate.
+        :returns: validated DataFrame or Series.
+        """
+
+        if self.coerce:
+            check_obj.index = self.coerce_dtype(check_obj.index)
+
+        assert isinstance(
+            super(Index, self).validate(pd.Series(check_obj.index)),
+            pd.Series
+        )
+        return check_obj
 
     def __repr__(self):
         if self._name is None:
@@ -221,6 +262,7 @@ class MultiIndex(DataFrameSchema):
 
         """
         # pylint: disable=W0212
+        self.indexes = indexes
         super(MultiIndex, self).__init__(
             columns={
                 i if index._name is None else index._name: Column(
@@ -235,16 +277,55 @@ class MultiIndex(DataFrameSchema):
             strict=strict,
         )
 
-    def __call__(self, df_or_series: Union[pd.DataFrame, pd.Series]) -> bool:
-        # pylint: disable=signature-differs,W0222
-        # false positive warning is raised here, even though method signature
-        # is exactly the same. Will need to investigate why this is being
-        # raised.
-        """Validate DataFrameSchema MultiIndex."""
-        return isinstance(
-            super(MultiIndex, self).__call__(df_or_series.index.to_frame()),
+    @property
+    def coerce(self):
+        return self._coerce or any(index.coerce for index in self.indexes)
+
+    def coerce_dtype(self, multi_index: pd.MultiIndex) -> pd.MultiIndex:
+        """Coerce type of a pd.Series by type specified in pandas_dtype.
+
+        :param multi_index: multi-index to coerce.
+        :returns: ``MultiIndex`` with coerced data type
+        """
+        _coerced_multi_index = []
+        if multi_index.nlevels != len(self.indexes):
+            raise errors.SchemaError(
+                "multi_index does not have equal number of levels as "
+                "MultiIndex schema %d != %d." % (
+                    multi_index.nlevels, len(self.indexes))
+            )
+
+        for level_i, index in enumerate(self.indexes):
+            index_array = multi_index.get_level_values(level_i)
+            if index.coerce or self.coerce:
+                index_array = index.coerce_dtype(index_array)
+            _coerced_multi_index.append(index_array)
+
+        return pd.MultiIndex.from_arrays(
+            _coerced_multi_index, names=multi_index.names)
+
+    def validate(
+            self,
+            check_obj: Union[pd.DataFrame, pd.Series]
+    ) -> Union[pd.DataFrame, pd.Series]:
+        # pylint: disable=signature-differs,arguments-differ
+        # will need to clean up the class structure of this module since
+        # this MultiIndex subclasses DataFrameSchema, which has a different
+        # signature
+        """Validate DataFrame or Series MultiIndex.
+
+        :check_obj: pandas DataFrame of Series to validate.
+        :returns: validated DataFrame or Series.
+        """
+
+        if self.coerce:
+            check_obj.index = self.coerce_dtype(check_obj.index)
+
+        assert isinstance(
+            super(MultiIndex, self).validate(check_obj.index.to_frame()),
             pd.DataFrame
         )
+        return check_obj
 
     def __repr__(self):
         return "<Schema MultiIndex: '%s'>" % list(self.columns)
