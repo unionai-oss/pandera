@@ -262,7 +262,7 @@ objects can also be used to validate columns in a dataframe on its own:
     df = column1_schema.validate(df)
     validated_df = column2_schema.validate(df)
 
-    # use the DataFrame.pipe the method to validate two columns
+    # use the DataFrame.pipe method to validate two columns
     validated_df = df.pipe(column1).pipe(column2)
 
 
