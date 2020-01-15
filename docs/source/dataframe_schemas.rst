@@ -251,12 +251,16 @@ objects can also be used to validate columns in a dataframe on its own:
         "column2": ["a", "b", "c"],
     })
 
-    column1 = Column(pa.Int, name="column1")
-    column2 = Column(pa.String, name="column2")
+    column1_schema = Column(pa.Int, name="column1")
+    column2_schema = Column(pa.String, name="column2")
 
     # pass the dataframe as an argument to the Column object callable
-    df = column1(df)
-    validated_df = column2(df)
+    df = column1_schema(df)
+    validated_df = column2_schema(df)
+
+    # or explicitly use the validate method
+    df = column1_schema.validate(df)
+    validated_df = column2_schema.validate(df)
 
     # use the DataFrame.pipe the method to validate two columns
     validated_df = df.pipe(column1).pipe(column2)
@@ -445,7 +449,7 @@ Pandas DType
 ---------------------
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
-schema. DataFrameSchema provides a `dtype` property which returns a pandas
+schema. ``DataFrameSchema`` provides a `dtype` property which returns a pandas
 style dict. The keys of the dict are column names and values are the dtype.
 
 Some examples of where this can be provided to pandas are:

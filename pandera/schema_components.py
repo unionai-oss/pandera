@@ -79,23 +79,23 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
-    def __call__(
-            self,
-            df_or_series: Union[pd.DataFrame, pd.Series]
-    ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate DataFrameSchema Column."""
+    def validate(self, check_obj: pd.DataFrame) -> pd.DataFrame:
+        """Validate a Column in a DataFrame object.
+
+        :param check_obj: pandas DataFrame to validate.
+        :returns: validated DataFrame.
+        """
         if self._name is None:
             raise errors.SchemaError(
-                "need to `set_name` of column before calling it.")
+                "column name is set to None. Pass the ``name` argument when "
+                "initializing a Column object, or use the ``set_name`` "
+                "method.")
 
         if self.coerce:
-            if isinstance(df_or_series, pd.DataFrame):
-                df_or_series[self.name] = self.coerce_dtype(
-                    df_or_series[self.name])
-            elif isinstance(df_or_series, pd.Series):
-                df_or_series = self.coerce_dtype(df_or_series)
+            check_obj[self.name] = self.coerce_dtype(
+                check_obj[self.name])
 
-        return super(Column, self).__call__(df_or_series)
+        return super(Column, self).validate(check_obj)
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
@@ -175,20 +175,24 @@ class Index(SeriesSchemaBase):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def __call__(
+    def validate(
             self,
-            df_or_series: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series]
     ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate DataFrameSchema Index."""
+        """Validate DataFrameSchema or SeriesSchema Index.
+
+        :check_obj: pandas DataFrame of Series containing index to validate.
+        :returns: validated DataFrame or Series.
+        """
 
         if self.coerce:
-            df_or_series.index = self.coerce_dtype(df_or_series.index)
+            check_obj.index = self.coerce_dtype(check_obj.index)
 
         assert isinstance(
-            super(Index, self).__call__(pd.Series(df_or_series.index)),
+            super(Index, self).validate(pd.Series(check_obj.index)),
             pd.Series
         )
-        return df_or_series
+        return check_obj
 
     def __repr__(self):
         if self._name is None:
@@ -300,24 +304,28 @@ class MultiIndex(DataFrameSchema):
         return pd.MultiIndex.from_arrays(
             _coerced_multi_index, names=multi_index.names)
 
-    def __call__(
+    def validate(
             self,
-            df_or_series: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series]
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=signature-differs,W0222
-        # false positive warning is raised here, even though method signature
-        # is exactly the same. Will need to investigate why this is being
-        # raised.
-        """Validate DataFrameSchema MultiIndex."""
+        # pylint: disable=signature-differs,arguments-differ
+        # will need to clean up the class structure of this module since
+        # this MultiIndex subclasses DataFrameSchema, which has a different
+        # signature
+        """Validate DataFrame or Series MultiIndex.
+
+        :check_obj: pandas DataFrame of Series to validate.
+        :returns: validated DataFrame or Series.
+        """
 
         if self.coerce:
-            df_or_series.index = self.coerce_dtype(df_or_series.index)
+            check_obj.index = self.coerce_dtype(check_obj.index)
 
         assert isinstance(
-            super(MultiIndex, self).__call__(df_or_series.index.to_frame()),
+            super(MultiIndex, self).validate(check_obj.index.to_frame()),
             pd.DataFrame
         )
-        return df_or_series
+        return check_obj
 
     def __repr__(self):
         return "<Schema MultiIndex: '%s'>" % list(self.columns)

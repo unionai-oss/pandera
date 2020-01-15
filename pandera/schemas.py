@@ -421,17 +421,17 @@ class SeriesSchemaBase():
 
     def validate(
             self,
-            df_or_series: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series]
     ) -> Union[pd.DataFrame, pd.Series]:
         # pylint: disable=too-many-branches,W0212
         """Validate a series or specific column in dataframe.
 
-        :df_or_series: pandas DataFrame of Series to validate.
-        :returns: True if validation checks pass.
+        :check_obj: pandas DataFrame or Series to validate.
+        :returns: validated DataFrame or Series.
 
         """
-        series = df_or_series.copy() if isinstance(df_or_series, pd.Series) \
-            else df_or_series[self.name].copy()
+        series = check_obj.copy() if isinstance(check_obj, pd.Series) \
+            else check_obj[self.name].copy()
 
         if series.name != self._name:
             raise errors.SchemaError(
@@ -492,12 +492,12 @@ class SeriesSchemaBase():
 
         check_results = []
 
-        if isinstance(df_or_series, pd.Series):
+        if isinstance(check_obj, pd.Series):
             check_args = (series, )
         else:
-            df_or_series_to_check = df_or_series.loc[series.index].copy()
-            df_or_series_to_check[self.name] = series
-            check_args = (df_or_series_to_check, self.name)
+            _check_obj = check_obj.loc[series.index].copy()
+            _check_obj[self.name] = series
+            check_args = (_check_obj, self.name)
 
         for check_index, check in enumerate(self.checks):
             check_results.append(
@@ -505,18 +505,14 @@ class SeriesSchemaBase():
             )
 
         assert all(check_results)
-        return df_or_series
+        return check_obj
 
     def __call__(
             self,
-            df_or_series: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series]
     ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate a series or specific column in dataframe
-
-        :df_or_series: pandas DataFrame of Series to validate.
-        :returns: True if validation checks pass.
-        """
-        return self.validate(df_or_series)
+        """Validate a series or column in a dataframe."""
+        return self.validate(check_obj)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -572,10 +568,10 @@ class SeriesSchema(SeriesSchemaBase):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def __call__(self, series: pd.Series) -> pd.Series:
-        """Check that series values  have corresponding DataFrameSchema column.
+    def validate(self, check_obj: pd.Series) -> pd.Series:
+        """Validate a Series object.
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
+        :param check_obj: One-dimensional ndarray with axis labels
             (including time series).
         :returns: validated Series.
 
@@ -594,13 +590,14 @@ class SeriesSchema(SeriesSchemaBase):
         dtype: float64
 
         """
-        if not isinstance(series, pd.Series):
-            raise TypeError("expected %s, got %s" % (pd.Series, type(series)))
+        if not isinstance(check_obj, pd.Series):
+            raise TypeError(
+                "expected %s, got %s" % (pd.Series, type(check_obj)))
 
         if self.coerce:
-            series = self.coerce_dtype(series)
+            check_obj = self.coerce_dtype(check_obj)
 
-        return super(SeriesSchema, self).__call__(series)
+        return super(SeriesSchema, self).validate(check_obj)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
