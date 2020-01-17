@@ -19,6 +19,9 @@ dependencies:
   - pytest
   - pytest-cov
 
+  # performance testing
+  - asv
+
   # optional
   - pre_commit
 
