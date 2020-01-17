@@ -1,3 +1,5 @@
+.vscode
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -105,3 +107,7 @@ venv.bak/
 
 # Pycharm settings
 .idea
+
+# Airspeed Velocity Benchmarks
+/asv_bench/html/
+/asv_bench/results/

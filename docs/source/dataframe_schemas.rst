@@ -41,10 +41,11 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 Column Validation
 -----------------
 
-A ``Column`` must specify a *type* to be validated. It can be optionally
-verified for `null values`_ or duplicate values. The column can be coerced_ into
-the specified type, and the required_ parameter allows control over whether or
-not the column is allowed to be missing.
+A ``Column`` must specify the properties of a column in a dataframe object.
+It can be optionally verified for its data type, `null values`_ or duplicate
+values. The column can be coerced_ into the specified type, and the
+required_ parameter allows control over whether or not the column is allowed to
+be missing.
 
 :ref:`Column checks<checks>` allow for the DataFrame's values to be
 checked against a user provided function. ``Check`` objects also support
@@ -230,6 +231,46 @@ Since ``required=True`` by default, missing columns would raise an error:
     1  pandera
 
 
+.. _column validation:
+
+Stand-alone Column Validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to being used in the context of a ``DataFrameSchema``, ``Column``
+objects can also be used to validate columns in a dataframe on its own:
+
+.. testcode:: dataframe_schemas
+
+    import pandas as pd
+    import pandera as pa
+
+    from pandera import Column, Check
+
+    df = pd.DataFrame({
+        "column1": [1, 2, 3],
+        "column2": ["a", "b", "c"],
+    })
+
+    column1_schema = Column(pa.Int, name="column1")
+    column2_schema = Column(pa.String, name="column2")
+
+    # pass the dataframe as an argument to the Column object callable
+    df = column1_schema(df)
+    validated_df = column2_schema(df)
+
+    # or explicitly use the validate method
+    df = column1_schema.validate(df)
+    validated_df = column2_schema.validate(df)
+
+    # use the DataFrame.pipe method to validate two columns
+    validated_df = df.pipe(column1_schema).pipe(column2_schema)
+
+
+For multi-column use cases, the ``DataFrameSchema`` is still recommended, but
+if you have one or a small number of columns to verify, using ``Column``
+objects by themselves is appropriate.
+
+
 .. _strict:
 
 Handling Dataframe Columns not in the Schema
@@ -327,8 +368,8 @@ MultiIndex Validation
 MultiIndex Columns
 ~~~~~~~~~~~~~~~~~~
 
-Specifying multi-index columns follows the ``pandas`` syntax of specifying tuples
-for each level in the index hierarchy:
+Specifying multi-index columns follows the ``pandas`` syntax of specifying
+tuples for each level in the index hierarchy:
 
 .. testcode:: multiindex_columns
 
@@ -402,3 +443,111 @@ composing a list of ``pandera.Index`` objects.
     foo    0             1
     bar    1             2
     foo    2             3
+
+
+Pandas DType
+---------------------
+
+Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
+schema. ``DataFrameSchema`` provides a `dtype` property which returns a pandas
+style dict. The keys of the dict are column names and values are the dtype.
+
+Some examples of where this can be provided to pandas are:
+
+- https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
+- https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.astype.html
+
+.. testcode:: dataframe_dtype
+
+  import pandas as pd
+  import pandera as pa
+
+  from pandera import Column, DataFrameSchema, Index, MultiIndex, Check
+
+  schema = DataFrameSchema(
+      columns={
+        "column1": Column(pa.Int),
+        "column2": Column(pa.Category),
+        "column3": Column(pa.Bool)
+      },
+  )
+
+  df = pd.DataFrame.from_dict({
+    "a": {"column1": 1, "column2": "valueA", "column3": True},
+    "b": {"column1": 1, "column2": "valueB", "column3": True},
+    },
+    orient="index"
+  ).astype(schema.dtype).sort_index(axis=1)
+
+  print(schema.validate(df))
+
+.. testoutput:: dataframe_dtype
+    :options: +NORMALIZE_WHITESPACE
+
+       column1 column2  column3
+    a        1  valueA     True
+    b        1  valueB     True
+
+
+
+DataFrameSchema Transformations
+-------------------------------
+
+Pandera supports transforming a schema using ``.add_columns`` and ``.remove_columns``.
+
+``.add_columns`` expects a ``Dict[str, Any]``, i.e. the same as when defining ``Columns`` in a ``DataFrameSchema``:
+
+.. testcode:: add_columns
+
+  from pandera import DataFrameSchema, Column, Int, Check, String, Object
+
+  schema = DataFrameSchema({
+    "col1": Column(Int, Check(lambda s: s >= 0)),
+    }, strict=True)
+
+  new_schema = schema.add_columns({
+    "col2": Column(String, Check(lambda x: x <= 0)),
+    "col3": Column(Object, Check(lambda x: x == 0))
+    })
+
+  expected_schema = schema.add_columns({
+    "col1": Column(Int, Check(lambda s: s >= 0)),
+    "col2": Column(String, Check(lambda x: x <= 0)),
+    "col3": Column(Object, Check(lambda x: x == 0))
+    })
+
+  print(new_schema == expected_schema)
+
+.. testoutput:: add_columns
+    :options: +NORMALIZE_WHITESPACE
+
+    True
+
+``.remove_columns`` expects a list of one or more Column names:
+
+.. testcode:: remove_columns
+
+  from pandera import DataFrameSchema, Column, Int, Check, String, Object
+
+  schema = DataFrameSchema({
+    "col1": Column(Int, Check(lambda s: s >= 0)),
+    "col2": Column(String, Check(lambda x: x <= 0)),
+    "col3": Column(Object, Check(lambda x: x == 0))
+    }, strict=True)
+
+  new_schema = schema.remove_columns(["col2", "col3"])
+
+  print(new_schema)
+
+.. testoutput:: remove_columns
+    :options: +NORMALIZE_WHITESPACE
+
+    DataFrameSchema(
+        columns={
+            "col1": "<Schema Column: 'col1' type=int64>"
+        },
+    index=None,
+    transformer=None,
+    coerce=False,
+    strict=True
+    )

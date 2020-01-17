@@ -1,3 +1,5 @@
+"""A flexible and expressive pandas validation library."""
+
 from . import errors, constants
 from .checks import Check
 from .hypotheses import Hypothesis
@@ -17,4 +19,4 @@ from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
 
 
-__version__ = "0.2.2"
+__version__ = "0.2.7"

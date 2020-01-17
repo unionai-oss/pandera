@@ -1,14 +1,13 @@
 """Data validation checks for hypothesis testing."""
 
-import pandas as pd
-
 from functools import partial
-
-from scipy import stats
 from typing import Callable, Union, Optional, List, Dict
 
+import pandas as pd
+from scipy import stats
+
 from . import errors
-from .checks import Check
+from .checks import Check, SeriesCheckObj, DataFrameCheckObj
 
 
 DEFAULT_ALPHA = 0.01
@@ -17,7 +16,7 @@ DEFAULT_ALPHA = 0.01
 class Hypothesis(Check):
     """Perform a hypothesis test on a Column."""
 
-    _RELATIONSHIPS = {
+    RELATIONSHIPS = {
         "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                          stat > 0 and pvalue / 2 < alpha),
         "less_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
@@ -71,12 +70,12 @@ class Hypothesis(Check):
             If callable, the input function signature should have the signature
             ``(stat: float, pvalue: float, **kwargs)`` where `stat` is the
             hypothesis test statistic, `pvalue` assesses statistical
-            significance, and `**kwargs` are other arguments supplied bia the
+            significance, and `**kwargs` are other arguments supplied via the
             `**relationship_kwargs` argument.
 
             Default is "equal" for the null hypothesis.
         :param dict test_kwargs: Key Word arguments to be supplied to the test.
-        :param dict relationship_kwargs: Key Word arguments to be supplied to
+        :param dict relationship_kwargs: Keyword arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
         :param error: error message to show
@@ -145,22 +144,15 @@ class Hypothesis(Check):
     def _prepare_series_input(
             self,
             series: pd.Series,
-            dataframe_context: pd.DataFrame):
-        """Prepare input for Hypothesis check.
-
-        :param pd.Series series: One-dimensional ndarray with axis labels
-            (including time series).
-        :param pd.DataFrame dataframe_context: optional dataframe to supply
-            when checking a Column in a DataFrameSchema.
-        :return: a check_obj dictionary of pd.Series to be used by `_check_fn`
-            and `_vectorized_check`
-
-        """
+            dataframe_context: pd.DataFrame = None
+    ) -> SeriesCheckObj:
+        """Prepare Series input for Hypothesis check."""
         self.groups = self.samples
         return super(Hypothesis, self)._prepare_series_input(
             series, dataframe_context)
 
-    def _prepare_dataframe_input(self, dataframe: pd.DataFrame):
+    def _prepare_dataframe_input(
+            self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema Hypothesis check."""
         if self.groupby is not None:
             raise errors.SchemaDefinitionError(
@@ -182,12 +174,11 @@ class Hypothesis(Check):
 
         """
         if isinstance(relationship, str):
-            if relationship not in self._RELATIONSHIPS:
+            if relationship not in self.RELATIONSHIPS:
                 raise errors.SchemaError(
                     "The relationship %s isn't a built in method"
                     % relationship)
-            else:
-                relationship = self._RELATIONSHIPS[relationship]
+            relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
             raise ValueError(
                 "expected relationship to be str or callable, found %s" % type(
@@ -206,9 +197,8 @@ class Hypothesis(Check):
             # one-sample case where no groupby argument supplied, apply to
             # entire column
             return self.relationship(*self.test(check_obj))
-        else:
-            return self.relationship(
-                *self.test(*[check_obj.get(s) for s in self.samples]))
+        return self.relationship(
+            *self.test(*[check_obj.get(s) for s in self.samples]))
 
     @classmethod
     def two_sample_ttest(
@@ -306,9 +296,9 @@ class Hypothesis(Check):
         4             4.0     B
 
         """
-        if relationship not in cls._RELATIONSHIPS:
+        if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaError(
-                "relationship must be one of %s" % set(cls._RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_ind,
             samples=[sample1, sample2],
@@ -375,9 +365,9 @@ class Hypothesis(Check):
 
 
         """
-        if relationship not in cls._RELATIONSHIPS:
+        if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaError(
-                "relationship must be one of %s" % set(cls._RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_1samp,
             samples=sample,

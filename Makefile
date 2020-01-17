@@ -20,13 +20,15 @@ upload-pypi:
 		rm -rf dist
 
 requirements:
-	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 
 docs:
 	make -C docs doctest && python -m sphinx -E -W "docs/source" "docs/_build"
 
 mock-ci-tests:
 	. ./ci_tests.sh
+
+conda-build: conda-build-35 conda-build-36 conda-build-37
 
 conda-build-35:
 	conda-build --python=3.5 conda.recipe

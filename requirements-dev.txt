@@ -1,0 +1,17 @@
+# This file is auto-generated from environment.yml, do not modify.
+# See that file for comments about the need/usage of each dependency.
+
+pip
+sphinx
+sphinx_rtd_theme
+codecov
+pylint>=2.4.4
+pytest
+pytest-cov
+asv
+pre_commit
+numpy
+pandas
+scipy
+wrapt
+sphinx_autodoc_typehints

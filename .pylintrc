@@ -1,0 +1,11 @@
+[BASIC]
+good-names=
+    logger,
+    df,
+    fn,
+    i,
+    e,
+    x,
+
+[MESSAGES CONTROL]
+disable=R0913

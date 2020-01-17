@@ -97,6 +97,7 @@ def check_input(
             instance: Union[None, Any],
             args: Tuple[Any],
             kwargs: Dict[str, Any]):
+        # pylint: disable=unused-argument
         """Check pandas DataFrame or Series before calling the function.
 
         :param fn: check the DataFrame or Series input of this function
@@ -113,17 +114,17 @@ def check_input(
                 args[obj_getter] = schema.validate(args[obj_getter])
             except IndexError as e:
                 raise errors.SchemaError(
-                        "error in check_input decorator of function '%s': the "
-                        "index '%s' was supplied to the check but this "
-                        "function accepts '%s' arguments, so the maximum "
-                        "index is '%s'. The full error is: '%s'" %
-                        (fn.__name__,
-                         obj_getter,
-                         len(_get_fn_argnames(fn)),
-                         max(0, len(_get_fn_argnames(fn))-1),
-                         e
-                         )
-                        )
+                    "error in check_input decorator of function '%s': the "
+                    "index '%s' was supplied to the check but this "
+                    "function accepts '%s' arguments, so the maximum "
+                    "index is '%s'. The full error is: '%s'" %
+                    (fn.__name__,
+                     obj_getter,
+                     len(_get_fn_argnames(fn)),
+                     max(0, len(_get_fn_argnames(fn))-1),
+                     e
+                     )
+                    )
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:
                 kwargs[obj_getter] = schema.validate(kwargs[obj_getter])
@@ -220,6 +221,7 @@ def check_output(
             instance: Union[None, Any],
             args: Tuple[Any],
             kwargs: Dict[str, Any]):
+        # pylint: disable=unused-argument
         """Check pandas DataFrame or Series before calling the function.
 
         :param fn: check the DataFrame or Series output of this function

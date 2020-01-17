@@ -17,7 +17,7 @@ validating them at runtime in production-critical or reproducible research
 settings is a good idea. ``pandera`` enables users to:
 
 #. :ref:`Check<checks>` the types and properties of columns in a
-   ``pa.DataFrame`` or values in a ``pa.Series``.
+   ``pd.DataFrame`` or values in a ``pd.Series``.
 #. Perform more complex statistical validation like
    :ref:`hypothesis testing<hypothesis>`.
 #. Seamlessly integrate with existing data analysis/processing pipelines
@@ -31,9 +31,18 @@ more readable and robust.
 Install
 -------
 
+Install with `pip`:
+
 .. code:: bash
 
-   pip install pandera
+    pip install pandera
+
+
+Or conda:
+
+.. code:: bash
+
+    conda install -c conda-forge pandera
 
 
 Quick Start

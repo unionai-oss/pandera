@@ -8,16 +8,18 @@ A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 
 [![Build Status](https://travis-ci.org/pandera-dev/pandera.svg?branch=master)](https://travis-ci.org/pandera-dev/pandera)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
-[![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/pandera/)
+[![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/)
+[![pyOpenSci](https://tinyurl.com/y22nb8up)](https://github.com/pyOpenSci/software-review/issues/12)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest)](https://pandera.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/pandera-dev/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385266.svg)](https://doi.org/10.5281/zenodo.3385266)
+[![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
 
-`pandas` data structures hide a lot of information, and explicitly
-validating them at runtime in production-critical or reproducible research
-settings is a good idea. `pandera` enables users to:
+`pandas` data structures contain information that `pandera` explicitly
+validates at runtime. This is useful in production-critical or reproducible research
+settings. `pandera` enables users to:
 
 1. Check the types and properties of columns in a `DataFrame` or values in
    a `Series`.
@@ -45,7 +47,7 @@ pip install pandera
 Using conda:
 
 ```
-conda install -c cosmicbboy pandera
+conda install -c conda-forge pandera
 ```
 
 ## Example Usage
@@ -56,7 +58,7 @@ conda install -c cosmicbboy pandera
 import pandas as pd
 import pandera as pa
 
-from pandera import Column, DataFrameSchema, Check
+from pandera import Column, DataFrameSchema, Check, check_output
 
 
 # validate columns
@@ -70,13 +72,6 @@ schema = DataFrameSchema({
         Check(lambda s: s.str.startswith("value_")),
         Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
     ]),
-})
-
-# alternatively, you can pass strings representing the legal pandas datatypes:
-# http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-schema = DataFrameSchema({
-    "column1": Column("int64", Check(lambda s: s <= 10)),
-    ...
 })
 
 df = pd.DataFrame({
@@ -94,6 +89,12 @@ print(validated_df)
 #  2        0     -2.9  value_3
 #  3       10    -10.1  value_2
 #  4        9    -20.4  value_1
+
+# If you have an existing data pipeline that uses pandas data structures, you can use the check_input and check_output decorators to check function arguments or returned variables from existing functions.
+
+@check_output(schema)
+def custom_function(df):
+    return df
 ```
 
 ## Development Installation
@@ -101,7 +102,7 @@ print(validated_df)
 ```
 git clone https://github.com/pandera-dev/pandera.git
 cd pandera
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 pip install -e .
 ```
 
@@ -138,6 +139,10 @@ Here are a few other alternatives for validating Python data structures.
 - [PandasSchema](https://github.com/TMiguelT/PandasSchema)
 - [pandas-validator](https://github.com/c-data/pandas-validator)
 - [table_enforcer](https://github.com/xguse/table_enforcer)
+
+**Other tools that include data validation**
+
+- [great_expectations](https://github.com/great-expectations/great_expectations)
 
 ## Why `pandera`?
 

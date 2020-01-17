@@ -1,0 +1,25 @@
+name: pandera-dev-latest
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python
+
+  # tools
+  - codecov
+  - pip
+  - pre_commit
+  - pylint>=2.4.4
+  - pytest
+  - pytest-cov
+  - sphinx
+  - sphinx_rtd_theme
+
+  # pandera dependencies
+  - numpy
+  - pandas
+  - scipy
+  - wrapt
+
+  - pip:
+    - sphinx_autodoc_typehints
