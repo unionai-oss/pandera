@@ -1,6 +1,7 @@
 """Testing the components of the Schema objects."""
 
 import copy
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -8,7 +9,7 @@ import pytest
 from pandera import errors
 from pandera import (
     Column, DataFrameSchema, Index, MultiIndex, Check, DateTime, Float, Int,
-    String)
+    Object, String)
 from tests.test_dtypes import TESTABLE_DTYPES
 
 
@@ -31,6 +32,25 @@ def test_column():
 
     with pytest.raises(errors.SchemaError):
         Column(Int)(data)
+
+
+def test_coerce_nullable_object_column():
+    """Test that Object dtype coercing preserves object types."""
+    df_objects_with_na = pd.DataFrame({
+        "col": [1, 2.0, [1, 2, 3], {"a": 1}, np.nan, None]
+    })
+
+    column_schema = Column(Object, name="col", coerce=True, nullable=True)
+
+    validated_df = column_schema.validate(df_objects_with_na)
+    assert isinstance(validated_df, pd.DataFrame)
+    assert pd.isna(validated_df["col"].iloc[-1])
+    assert pd.isna(validated_df["col"].iloc[-2])
+    for i in range(4):
+        isinstance(
+            validated_df["col"].iloc[i],
+            type(df_objects_with_na["col"].iloc[i])
+        )
 
 
 def test_column_in_dataframe_schema():
@@ -171,8 +191,9 @@ def tests_multi_index_subindex_coerce():
             assert validated_df.index.get_level_values(level_i).dtype == \
                 indexes[level_i].dtype
         else:
+            # dtype should be string representation of pandas strings
             assert validated_df.index.get_level_values(level_i).dtype == \
-                String.value
+                "object"
 
     # coerce=True in MultiIndex should override subindex coerce setting
     schema_override = DataFrameSchema(index=MultiIndex(indexes), coerce=True)
@@ -186,6 +207,7 @@ def tests_multi_index_subindex_coerce():
 def test_column_dtype_property(pandas_dtype, expected):
     """Tests that the dtypes provided by Column match pandas dtypes"""
     assert Column(pandas_dtype).dtype == expected
+
 
 def test_schema_component_equality_operators():
     """Test the usage of == for Column, Index and MultiIndex."""

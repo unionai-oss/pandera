@@ -394,9 +394,14 @@ class SeriesSchemaBase():
     @property
     def dtype(self) -> str:
         """String representation of the dtype."""
-        return self._pandas_dtype if (
-            isinstance(self._pandas_dtype, str) or self._pandas_dtype is None
-        ) else self._pandas_dtype.value
+        if isinstance(self._pandas_dtype, str) or self._pandas_dtype is None:
+            dtype = self._pandas_dtype
+        elif self._pandas_dtype is dtypes.PandasDtype.String:
+            # handle special case of string.
+            dtype = dtypes.PandasDtype.Object.value
+        else:
+            dtype = self._pandas_dtype.value
+        return dtype
 
     def coerce_dtype(
             self, series_or_index: Union[pd.Series, pd.Index]) -> pd.Series:
@@ -453,6 +458,7 @@ class SeriesSchemaBase():
                         "series '%s' to be int, found: %s" %
                         (series.name, set(series)))
                 series = _series
+
         nulls = series.isnull()
         if nulls.sum() > 0:
             if series.dtype != _dtype:

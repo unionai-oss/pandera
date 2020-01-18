@@ -261,6 +261,7 @@ def test_coerce_dtype_in_dataframe():
 
 def test_coerce_dtype_nullable_str():
     """Tests how null values are handled in string dtypes."""
+    # dataframes with columns where the last two values are null
     df_nans = pd.DataFrame({
         "col": ["foobar", "foo", "bar", "baz", np.nan, np.nan],
     })
@@ -279,7 +280,12 @@ def test_coerce_dtype_nullable_str():
     })
 
     for df in [df_nans, df_nones]:
-        assert isinstance(schema.validate(df), pd.DataFrame)
+        validated_df = schema.validate(df)
+        assert isinstance(validated_df, pd.DataFrame)
+        assert pd.isna(validated_df["col"].iloc[-1])
+        assert pd.isna(validated_df["col"].iloc[-2])
+        for i in range(4):
+            assert isinstance(validated_df["col"].iloc[i], str)
 
 
 def test_no_dtype_dataframe():

@@ -24,7 +24,10 @@ class PandasDtype(Enum):
     UInt32 = "uint32"
     UInt64 = "uint64"
     Object = "object"
-    String = "object"
+    # the string datatype doesn't map to a unique string representation and is
+    # representated as a numpy object array. This will change after pandas 1.0,
+    # but for now will need to handle this as a special case.
+    String = "string"
     Timedelta = "timedelta64[ns]"
 
 
