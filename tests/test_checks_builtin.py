@@ -2,10 +2,10 @@
 """
 
 import pandas as pd
-import pandera
-from pandera import checks
 import pytest
 
+import pandera
+from pandera import checks
 
 def check_values(values, check):
     """Creates a pd.Series from the given values and validated it with the check"""

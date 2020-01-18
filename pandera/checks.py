@@ -296,6 +296,7 @@ def greater_than(min_value, **check_params) -> Check:
         for float or int and a datetime for datetime).
     :param check_params: Additional keyword parameters for pandera.Check
     :returns pandera.Check object
+
     """
     if min_value is None:
         raise ValueError("min_value must not be None")
@@ -304,4 +305,8 @@ def greater_than(min_value, **check_params) -> Check:
         """Comparison function for check"""
         return series > min_value
 
-    return Check(fn=_greater_than, **check_params)
+    return Check(
+        fn=_greater_than,
+        error="greater_than(%s) check" % min_value,
+        **check_params
+    )
