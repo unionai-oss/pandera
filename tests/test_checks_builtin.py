@@ -15,8 +15,8 @@ def check_values(values, check, expected_failure_cases):
 
     # Assert that the check only fails if we expect it to
     assert check_result.check_passed == (n_failure_cases == 0), (
-        "Check returned check_passed = %s although %s failure cases were expected" %
-        (check_result.check_passed, n_failure_cases)
+        "Check %s returned result %s although %s failure cases were expected" %
+        (check, check_result, n_failure_cases)
     )
 
     # Assert that the returned check object is what was passed in
@@ -235,3 +235,70 @@ class TestLessOrEqual:
     def test_failing_with_none(values, max_value):
         """Validate the check works also on dataframes with None values"""
         check_none_failures(values, Check.less_or_equal(max_value))
+
+
+class TestInRange:
+    """Tests for Check.in_range"""
+    @staticmethod
+    @pytest.mark.parametrize("args", [
+        (None, 1),
+        (1, None),
+        (2, 1),
+        (1, 1, False),
+        (1, 1, True, False)
+    ])
+    def test_argument_check(args):
+        """Test if None is accepted as boundary"""
+        with pytest.raises(ValueError):
+            Check.in_range(*args)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, check_args', [
+        ((1, 2, 3), (0, 4)),
+        ((1, 2, 3), (0, 4, False, False)),
+        ((1, 2, 3), (1, 3)),
+        ((-1, 2, 3), (-1, 3)),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         (pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-03"))),
+        (("b", "c"), ("b", "c")),
+        (("b", "c"), ("a", "d", False, False))
+    ])
+    def test_succeeding(values, check_args):
+        """Run checks which should succeed"""
+        check_values(values, Check.in_range(*check_args), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('values, check_args, failure_cases', [
+        ((1, 2, 3), (0, 2), {3}),
+        ((1, 2, 3), (2, 3), {1}),
+        ((1, 2, 3), (1, 3, True, False), {3}),
+        ((1, 2, 3), (1, 3, False, True), {1}),
+        ((-1, 2, 3), (-1, 3, False), {-1}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         (pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02")),
+         {pd.Timestamp("2015-02-03")}),
+        (("a", "c"), ("b", "c"), {"a"}),
+        (("b", "c"), ("b", "c", False, True), {"b"}),
+        (("b", "c"), ("b", "c", True, False), {"c"})
+    ])
+    def test_failing(values, check_args, failure_cases):
+        """Run checks which should fail"""
+        check_values(values, Check.in_range(*check_args), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, check_args', [
+        ((2, None), (0, 4)),
+        ((pd.Timestamp("2015-02-02"), None),
+         (pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-03"))),
+        (("b", None), ("a", "c"))
+    ])
+    def test_failing_with_none(values, check_args):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(values, Check.in_range(*check_args))

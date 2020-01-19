@@ -1,6 +1,7 @@
 """Data validation checks."""
 
 from collections import namedtuple
+import operator
 from typing import Dict, Union, Optional, List, Callable
 
 import pandas as pd
@@ -305,7 +306,7 @@ class Check():
             """Comparison function for check"""
             return series > min_value
 
-        return Check(fn=_greater_than, error="greater_than(%s) check" % min_value)
+        return Check(fn=_greater_than, error="greater_than(%s)" % min_value)
 
     @staticmethod
     def greater_or_equal(min_value) -> 'Check':
@@ -324,7 +325,7 @@ class Check():
             return series >= min_value
 
         return Check(fn=_greater_or_equal,
-                     error="greater_or_equal(%s) check" % min_value)
+                     error="greater_or_equal(%s)" % min_value)
 
     @staticmethod
     def less_than(max_value) -> 'Check':
@@ -343,7 +344,7 @@ class Check():
             """Comparison function for check"""
             return series < max_value
 
-        return Check(fn=_less_than, error="less_than(%s) check" % max_value)
+        return Check(fn=_less_than, error="less_than(%s)" % max_value)
 
     @staticmethod
     def less_or_equal(max_value) -> 'Check':
@@ -361,4 +362,40 @@ class Check():
             """Comparison function for check"""
             return series <= max_value
 
-        return Check(fn=_less_or_equal, error="less_or_equal(%s) check" % max_value)
+        return Check(fn=_less_or_equal, error="less_or_equal(%s)" % max_value)
+
+    @staticmethod
+    def in_range(min_value, max_value, min_included=True, max_included=True) -> 'Check':
+        """Get a :class:`Check` ensuring all values of a series are within an interval.
+
+        :param min_value: Left / lower endpoint of the interval.
+        :param max_value: Right / upper endpoint of the interval. Must not be smaller
+            than min_value.
+        :param min_included: Defines whether min_value is also an allowed value
+            (the default) or whether all values must be strictly greater than min_value.
+        :param max_included: Defines whether min_value is also an allowed value
+            (the default) or whether all values must be strictly smaller than max_value.
+
+        Both endpoints must be a type comparable to the dtype of the
+        :class:`pandas.Series` to be validated.
+
+        :returns :class:`Check` object
+        """
+        if min_value is None:
+            raise ValueError("min_value must not be None")
+        if max_value is None:
+            raise ValueError("max_value must not be None")
+        if max_value < min_value or (min_value == max_value
+                                     and (not min_included or not max_included)):
+            raise ValueError("The combination of min_value = %s and max_value = %s "
+                             "defines an empty interval!" % (min_value, max_value))
+        # Using functions from operator module to keep conditions out of the closure
+        left_op = operator.le if min_included else operator.lt
+        right_op = operator.ge if max_included else operator.gt
+
+        def _in_range(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return left_op(min_value, series) & right_op(max_value, series)
+
+        return Check(fn=_in_range,
+                     error="in_range(%s, %s)" % (min_value, max_value))
