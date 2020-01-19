@@ -287,26 +287,21 @@ class Check():
         return "<Check %s: %s>" % (name, self.error) \
             if self.error is not None else "<Check %s>" % name
 
+    @staticmethod
+    def greater_than(min_value) -> 'Check':
+        """Ensure values of a series are above a certain threshold.
 
-def greater_than(min_value, **check_params) -> Check:
-    """Ensure values of a series are above a certain threshold.
+        :param min_value: Lower bound to be exceeded. Must be a type comparable to
+            the type of the pandas series to be validated (e.g. a numerical type
+            for float or int and a datetime for datetime).
+        :returns pandera.Check object
 
-    :param min_value: Lower bound to be exceeded. Must be a type comparable to
-        the type of the pandas series to be validated (e.g. a numerical type
-        for float or int and a datetime for datetime).
-    :param check_params: Additional keyword parameters for pandera.Check
-    :returns pandera.Check object
+        """
+        if min_value is None:
+            raise ValueError("min_value must not be None")
 
-    """
-    if min_value is None:
-        raise ValueError("min_value must not be None")
+        def _greater_than(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series > min_value
 
-    def _greater_than(series: pd.Series) -> pd.Series:
-        """Comparison function for check"""
-        return series > min_value
-
-    return Check(
-        fn=_greater_than,
-        error="greater_than(%s) check" % min_value,
-        **check_params
-    )
+        return Check(fn=_greater_than, error="greater_than(%s) check" % min_value)

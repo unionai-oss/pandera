@@ -1,22 +1,22 @@
-"""Tests for builtin checks in pandera.checks
+"""Tests for builtin checks in pandera.checks.Check
 """
 
 import pandas as pd
 import pytest
 
-from pandera import checks
+from pandera.checks import Check
 
 
 def check_values(values, check, expected_failure_cases):
     """Creates a pd.Series from the given values and validates it with the check"""
     series = pd.Series(values)
     check_result = check(series)
-    no_failure_cases = len(expected_failure_cases)
+    n_failure_cases = len(expected_failure_cases)
 
     # Assert that the check only fails if we expect it to
-    assert check_result.check_passed == (no_failure_cases == 0), (
+    assert check_result.check_passed == (n_failure_cases == 0), (
         "Check returned check_passed = %s although %s failure cases were expected" %
-        (check_result.check_passed, no_failure_cases)
+        (check_result.check_passed, n_failure_cases)
     )
 
     # Assert that the returned check object is what was passed in
@@ -42,12 +42,12 @@ def check_none_failures(values, check):
 
 
 class TestGreaterThan:
-    """Tests for checks.greater_than"""
+    """Tests for Check.greater_than"""
     @staticmethod
     def test_argument_check():
         """Test if None is accepted as boundary"""
         with pytest.raises(ValueError):
-            checks.greater_than(min_value=None)
+            Check.greater_than(min_value=None)
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
@@ -61,7 +61,7 @@ class TestGreaterThan:
     ])
     def test_succeeding(values, min_val):
         """Run checks which should succeed"""
-        check_values(values, checks.greater_than(min_val), {})
+        check_values(values, Check.greater_than(min_val), {})
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val, failure_cases', [
@@ -76,7 +76,7 @@ class TestGreaterThan:
     ])
     def test_failing(values, min_val, failure_cases):
         """Run checks which should fail"""
-        check_values(values, checks.greater_than(min_val), failure_cases)
+        check_values(values, Check.greater_than(min_val), failure_cases)
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
@@ -85,5 +85,5 @@ class TestGreaterThan:
         (("b", None), "a")
     ])
     def test_failing_with_none(values, min_val):
-        """Run checks which should fail"""
-        check_none_failures(values, checks.greater_than(min_val))
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(values, Check.greater_than(min_val))
