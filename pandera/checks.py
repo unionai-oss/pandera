@@ -289,13 +289,14 @@ class Check():
 
     @staticmethod
     def greater_than(min_value) -> 'Check':
-        """Ensure values of a series are above a certain threshold.
+        """Get a :class:`Check` ensuring all values of a series are strictly greater
+            than a certain value.
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable to
-            the type of the pandas series to be validated (e.g. a numerical type
-            for float or int and a datetime for datetime).
-        :returns pandera.Check object
+            the dtype of the :class:`pandas.Series` to be validated (e.g. a numerical
+            type for float or int and a datetime for datetime).
 
+        :returns :class:`Check` object
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
@@ -308,13 +309,12 @@ class Check():
 
     @staticmethod
     def greater_or_equal(min_value) -> 'Check':
-        """Ensure values of a series are not below a certain threshold.
+        """Get a :class:`Check` ensuring all values are greater or equal a certain value.
 
         :param min_value: Allowed minimum value for values of a series. Must be a type
-            comparable to the type of the pandas series to be validated (e.g. a
-            numerical type for float or int and a datetime for datetime).
-        :returns pandera.Check object
+            comparable to the dtype of the :class:`pandas.Series` to be validated.
 
+        :returns :class:`Check` object
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
@@ -328,13 +328,13 @@ class Check():
 
     @staticmethod
     def less_than(max_value) -> 'Check':
-        """Ensure values of a series are below a certain threshold.
+        """Get a :class:`Check` ensuring all values are strictly below a certain value.
 
-        :param max_value: Scalar value all elements of a series must stay below.
-            Must be a type comparable to the type of the pandas series to be validated
-            (e.g. a numerical type for float or int and a datetime for datetime).
-        :returns pandera.Check object
+        :param min_value: All elements of a series must be strictly smaller than this.
+            Must be a type comparable to the dtype of the :class:`pandas.Series` to be
+            validated.
 
+        :returns :class:`Check` object
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
@@ -347,13 +347,12 @@ class Check():
 
     @staticmethod
     def less_or_equal(max_value) -> 'Check':
-        """Ensure values of a series don't exceed a certain threshold.
+        """Get a :class:`Check` ensuring no value of a series exceeds a certain value.
 
         :param max_value: Upper bound not to be exceeded. Must be a type comparable to
-            the type of the pandas series to be validated (e.g. a numerical type
-            for float or int and a datetime for datetime).
-        :returns pandera.Check object
+            the dtype of the :class:`pandas.Series` to be validated.
 
+        :returns :class:`Check` object
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
