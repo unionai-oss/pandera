@@ -305,3 +305,61 @@ class Check():
             return series > min_value
 
         return Check(fn=_greater_than, error="greater_than(%s) check" % min_value)
+
+    @staticmethod
+    def greater_or_equal(min_value) -> 'Check':
+        """Ensure values of a series are not below a certain threshold.
+
+        :param min_value: Allowed minimum value for values of a series. Must be a type
+            comparable to the type of the pandas series to be validated (e.g. a
+            numerical type for float or int and a datetime for datetime).
+        :returns pandera.Check object
+
+        """
+        if min_value is None:
+            raise ValueError("min_value must not be None")
+
+        def _greater_or_equal(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series >= min_value
+
+        return Check(fn=_greater_or_equal,
+                     error="greater_or_equal(%s) check" % min_value)
+
+    @staticmethod
+    def less_than(max_value) -> 'Check':
+        """Ensure values of a series are below a certain threshold.
+
+        :param max_value: Scalar value all elements of a series must stay below.
+            Must be a type comparable to the type of the pandas series to be validated
+            (e.g. a numerical type for float or int and a datetime for datetime).
+        :returns pandera.Check object
+
+        """
+        if max_value is None:
+            raise ValueError("max_value must not be None")
+
+        def _less_than(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series < max_value
+
+        return Check(fn=_less_than, error="less_than(%s) check" % max_value)
+
+    @staticmethod
+    def less_or_equal(max_value) -> 'Check':
+        """Ensure values of a series don't exceed a certain threshold.
+
+        :param max_value: Upper bound not to be exceeded. Must be a type comparable to
+            the type of the pandas series to be validated (e.g. a numerical type
+            for float or int and a datetime for datetime).
+        :returns pandera.Check object
+
+        """
+        if max_value is None:
+            raise ValueError("max_value must not be None")
+
+        def _less_or_equal(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series <= max_value
+
+        return Check(fn=_less_or_equal, error="less_or_equal(%s) check" % max_value)

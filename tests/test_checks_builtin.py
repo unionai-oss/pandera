@@ -71,7 +71,8 @@ class TestGreaterThan:
         ((pd.Timestamp("2015-02-01"),
           pd.Timestamp("2015-02-02"),
           pd.Timestamp("2015-02-03")),
-         pd.Timestamp("2015-02-02"), {pd.Timestamp("2015-02-01"), pd.Timestamp("2015-02-02")}),
+         pd.Timestamp("2015-02-02"),
+         {pd.Timestamp("2015-02-01"), pd.Timestamp("2015-02-02")}),
         (("b", "c"), "b", {"b"})
     ])
     def test_failing(values, min_val, failure_cases):
@@ -87,3 +88,150 @@ class TestGreaterThan:
     def test_failing_with_none(values, min_val):
         """Validate the check works also on dataframes with None values"""
         check_none_failures(values, Check.greater_than(min_val))
+
+
+class TestGreaterOrEqual:
+    """Tests for Check.greater_or_equal"""
+    @staticmethod
+    def test_argument_check():
+        """Test if None is accepted as boundary"""
+        with pytest.raises(ValueError):
+            Check.greater_or_equal(min_value=None)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, min_val', [
+        ((1, 2, 3), 1),
+        ((1, 2, 3), -1),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         pd.Timestamp("2015-02-01")),
+        (("b", "a"), "a")
+    ])
+    def test_succeeding(values, min_val):
+        """Run checks which should succeed"""
+        check_values(values, Check.greater_or_equal(min_val), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('values, min_val, failure_cases', [
+        ((1, 2, 3), 2, {1}),
+        ((3, 2, 1), 2, {1}),
+        ((1, 2, 3), 3, {1, 2}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         pd.Timestamp("2015-02-02"),
+         {pd.Timestamp("2015-02-01")}),
+        (("b", "c"), "c", {"b"})
+    ])
+    def test_failing(values, min_val, failure_cases):
+        """Run checks which should fail"""
+        check_values(values, Check.greater_or_equal(min_val), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, min_val', [
+        ((2, None), 1),
+        ((pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-01")),
+        (("b", None), "a")
+    ])
+    def test_failing_with_none(values, min_val):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(values, Check.greater_or_equal(min_val))
+
+
+class TestLessThan:
+    """Tests for Check.less_than"""
+    @staticmethod
+    def test_argument_check():
+        """Test if None is accepted as boundary"""
+        with pytest.raises(ValueError):
+            Check.less_than(max_value=None)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, max_value', [
+        ((1, 2, 3), 4),
+        ((-1, 2, 3), 4),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         pd.Timestamp("2015-02-04")),
+        (("b", "c"), "d")
+    ])
+    def test_succeeding(values, max_value):
+        """Run checks which should succeed"""
+        check_values(values, Check.less_than(max_value), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('values, max_value, failure_cases', [
+        ((1, 2, 3), 3, {3}),
+        ((3, 2, 1), 3, {3}),
+        ((1, 2, 3), 2, {3, 2}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         pd.Timestamp("2015-02-02"),
+         {pd.Timestamp("2015-02-02"), pd.Timestamp("2015-02-03")}),
+        (("b", "c"), "c", {"c"})
+    ])
+    def test_failing(values, max_value, failure_cases):
+        """Run checks which should fail"""
+        check_values(values, Check.less_than(max_value), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, max_value', [
+        ((2, None), 3),
+        ((pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-03")),
+        (("b", None), "c")
+    ])
+    def test_failing_with_none(values, max_value):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(values, Check.less_than(max_value))
+
+
+class TestLessOrEqual:
+    """Tests for Check.less_or_equal"""
+    @staticmethod
+    def test_argument_check():
+        """Test if None is accepted as boundary"""
+        with pytest.raises(ValueError):
+            Check.less_or_equal(max_value=None)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, max_value', [
+        ((1, 2, 3), 3),
+        ((-1, 2, 3), 3),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         pd.Timestamp("2015-02-03")),
+        (("b", "a"), "b")
+    ])
+    def test_succeeding(values, max_value):
+        """Run checks which should succeed"""
+        check_values(values, Check.less_or_equal(max_value), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('values, max_value, failure_cases', [
+        ((1, 2, 3), 2, {3}),
+        ((3, 2, 1), 2, {3}),
+        ((1, 2, 3), 1, {2, 3}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02"),
+          pd.Timestamp("2015-02-03")),
+         pd.Timestamp("2015-02-02"),
+         {pd.Timestamp("2015-02-03")}),
+        (("b", "c"), "b", {"c"})
+    ])
+    def test_failing(values, max_value, failure_cases):
+        """Run checks which should fail"""
+        check_values(values, Check.less_or_equal(max_value), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, max_value', [
+        ((2, None), 2),
+        ((pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-02")),
+        (("b", None), "b")
+    ])
+    def test_failing_with_none(values, max_value):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(values, Check.less_or_equal(max_value))
