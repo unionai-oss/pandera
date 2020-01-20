@@ -302,3 +302,76 @@ class TestInRange:
     def test_failing_with_none(values, check_args):
         """Validate the check works also on dataframes with None values"""
         check_none_failures(values, Check.in_range(*check_args))
+
+
+class TestEqualTo:
+    """Tests for Check.equal_to"""
+    @staticmethod
+    @pytest.mark.parametrize('series_values, value', [
+        ((1, 1), 1),
+        ((-1, -1, -1), -1),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-01")),
+         pd.Timestamp("2015-02-01")),
+        (("foo", "foo"), "foo")
+    ])
+    def test_succeeding(series_values, value):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.equal_to(value), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, value, failure_cases', [
+        ((1, 2), 1, {2}),
+        ((-1, -2, 3), -1, {-2, 3}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02")),
+         pd.Timestamp("2015-02-01"),
+         {pd.Timestamp("2015-02-02")}),
+        (("foo", "bar"), "foo", {"bar"})
+    ])
+    def test_failing(series_values, value, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.equal_to(value), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, value', [
+        ((1, None), 1),
+        ((-1, None, -1), -1),
+        ((pd.Timestamp("2015-02-01"),
+          None),
+         pd.Timestamp("2015-02-01")),
+        (("foo", None), "foo")
+    ])
+    def test_failing_with_none(series_values, value):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(series_values, Check.equal_to(value))
+
+
+class TestNotEqualTo:
+    """Tests for Check.not_equal_to"""
+    @staticmethod
+    @pytest.mark.parametrize('series_values, value', [
+        ((1, 1), 2),
+        ((-1, -1, -1), -2),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-01")),
+         pd.Timestamp("2015-02-02")),
+        (("foo", "foo"), "bar")
+    ])
+    def test_succeeding(series_values, value):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.not_equal_to(value), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, value, failure_cases', [
+        ((1, 2), 1, {1}),
+        ((-1, -2, 3), -1, {-1}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02")),
+         pd.Timestamp("2015-02-01"),
+         {pd.Timestamp("2015-02-01")}),
+        (("foo", "bar"), "foo", {"foo"})
+    ])
+    def test_failing(series_values, value, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.not_equal_to(value), failure_cases)

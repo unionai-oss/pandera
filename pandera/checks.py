@@ -399,3 +399,31 @@ class Check():
 
         return Check(fn=_in_range,
                      error="in_range(%s, %s)" % (min_value, max_value))
+
+    @staticmethod
+    def equal_to(value) -> 'Check':
+        """Get a :class:`Check` ensuring all elements of a series equal a certain value.
+
+        :param value: This value all elements of a given :class:`pandas.Series` must have.
+
+        :returns :class:`Check` object
+        """
+        def _equal(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series == value
+
+        return Check(fn=_equal, error="equal_to(%s)" % value)
+
+    @staticmethod
+    def not_equal_to(value) -> 'Check':
+        """Get a :class:`Check` ensuring no elements of a series equals a certain value.
+
+        :param value: This value no element of a given :class:`pandas.Series` must have.
+
+        :returns :class:`Check` object
+        """
+        def _not_equal(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series != value
+
+        return Check(fn=_not_equal, error="not_equal_to(%s)" % value)
