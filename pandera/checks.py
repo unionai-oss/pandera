@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 import operator
-from typing import Dict, Union, Optional, List, Callable
+from typing import Dict, Union, Optional, List, Callable, Iterable
 
 import pandas as pd
 
@@ -418,7 +418,7 @@ class Check():
     def not_equal_to(value) -> 'Check':
         """Get a :class:`Check` ensuring no elements of a series equals a certain value.
 
-        :param value: This value no element of a given :class:`pandas.Series` must have.
+        :param value: This value must not occur in a :class:`pandas.Series` to check.
 
         :returns :class:`Check` object
         """
@@ -427,3 +427,58 @@ class Check():
             return series != value
 
         return Check(fn=_not_equal, error="not_equal_to(%s)" % value)
+
+    @staticmethod
+    def isin(allowed_values: Iterable) -> 'Check':
+        """Get a :class:`Check` to ensure only allowed values occur within a series.
+
+        :param allowed_values: The set of allowed values. May be any iterable.
+
+        :returns :class:`Check` object
+
+        Note: It is checked whether all elements of a :class:`pandas.Series` are part
+        of the set of elements of allowed values. If allowed values is a string, the
+        set of elements consists of all distinct charcters of the string. Thus only
+        single characters which occur in allowed_values at least once can meet this
+        condition. If you want to check for substrings use :func:`Check.str_is_substring`.
+        """
+        # Turn arg into a set. Not only for performance but also avoid issues with a
+        # mutable argument passed by reference which may be changed from outside.
+        try:
+            allowed_values = frozenset(allowed_values)
+        except TypeError:
+            raise ValueError("Argument allowed_values must be iterable. Got %s" %
+                             allowed_values)
+
+        def _isin(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series.isin(allowed_values)
+
+        return Check(fn=_isin, error="isin(%s)" % allowed_values)
+
+    @staticmethod
+    def notin(forbidden_values: Iterable) -> 'Check':
+        """Get a :class:`Check` to ensure some defined values don't occur within a series.
+
+        :param forbidden_values: The set of values which should not occur. May be any iterable.
+
+        :returns :class:`Check` object
+
+        Note: Like :func:`Check.isin` this check operates on single characters if it is
+        applied on strings. A string as paraforbidden_valuesmeter forbidden_values is understood as
+        set of prohibited characters. Any string of length > 1 can't be in it by
+        design.
+        """
+        # Turn arg into a set. Not only for performance but also avoid issues with a
+        # mutable argument passed by reference which may be changed from outside.
+        try:
+            forbidden_values = frozenset(forbidden_values)
+        except TypeError:
+            raise ValueError("Argument forbidden_values must be iterable. Got %s" %
+                             forbidden_values)
+
+        def _notin(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return ~series.isin(forbidden_values)
+
+        return Check(fn=_notin, error="notin(%s)" % forbidden_values)

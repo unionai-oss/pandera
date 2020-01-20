@@ -375,3 +375,125 @@ class TestNotEqualTo:
     def test_failing(series_values, value, failure_cases):
         """Run checks which should fail"""
         check_values(series_values, Check.not_equal_to(value), failure_cases)
+
+
+class TestIsin:
+    """Tests for Check.isin"""
+    @staticmethod
+    @pytest.mark.parametrize('args', [
+        (1, ),  # Not Iterable
+        (None, ),  # None should also not be accepted
+    ])
+    def test_argument_check(args):
+        """Test if None is accepted as boundary"""
+        with pytest.raises(ValueError):
+            Check.isin(*args)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, allowed', [
+        ((1, 1), (1, 2, 3)),
+        ((-1, -1, -1), {-2, -1}),
+        ((-1, -1, -1), pd.Series((-2, -1))),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-01")),
+         [pd.Timestamp("2015-02-01")]),
+        (("foo", "foo"), {"foo", "bar"}),
+        (("f", "o"), "foobar")
+    ])
+    def test_succeeding(series_values, allowed):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.isin(allowed), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, allowed, failure_cases', [
+        ((1, 2), [2], {1}),
+        ((-1, -2, 3), (-2, -3), {-1, 3}),
+        ((-1, -2, 3), pd.Series((-2, 3)), {-1}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02")),
+         {pd.Timestamp("2015-02-01")},
+         {pd.Timestamp("2015-02-02")}),
+        (("foo", "bar"), {"foo"}, {"bar"}),
+        (("foo", "f"), "foobar", {"foo"})
+    ])
+    def test_failing(series_values, allowed, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.isin(allowed), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('values, allowed', [
+        ((2, None), {2}),
+        ((pd.Timestamp("2015-02-02"), None), {pd.Timestamp("2015-02-02")}),
+        (("b", None), {"b"}),
+        (("f", None), "foo")
+    ])
+    def test_failing_with_none(values, allowed):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(values, Check.isin(allowed))
+
+    @staticmethod
+    def test_ignore_mutable_arg():
+        """Check if a mutable argument passed by reference can be changed from outside"""
+        series_values = (1, 1)
+        df = pd.DataFrame({'allowed': (1, 2)})
+        check = Check.isin(df['allowed'])
+        # Up to here the test should succeed
+        check_values(series_values, check, {})
+        # When the Series with the allowed values is changed it should still succeed
+        df['allowed'] = 2
+        check_values(series_values, check, {})
+
+class TestNotin:
+    """Tests for Check.notin"""
+    @staticmethod
+    @pytest.mark.parametrize('args', [
+        (1, ),  # Not Iterable
+        (None, ),  # None should also not be accepted
+    ])
+    def test_argument_check(args):
+        """Test if None is accepted as boundary"""
+        with pytest.raises(ValueError):
+            Check.notin(*args)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, forbidden', [
+        ((1, 1), (2, 3)),
+        ((-1, -1, -1), {-2, 1}),
+        ((-1, -1, -1), pd.Series((-2, 1))),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-01")),
+         [pd.Timestamp("2015-02-02")]),
+        (("foo", "foo"), {"foobar", "bar"}),
+        (("f", "o"), "bar")
+    ])
+    def test_succeeding(series_values, forbidden):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.notin(forbidden), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, forbidden, failure_cases', [
+        ((1, 2), [2], {2}),
+        ((-1, -2, 3), (-2, -3), {-2}),
+        ((-1, -2, 3), pd.Series((-2, 3)), {-2, 3}),
+        ((pd.Timestamp("2015-02-01"),
+          pd.Timestamp("2015-02-02")),
+         {pd.Timestamp("2015-02-01")},
+         {pd.Timestamp("2015-02-01")}),
+        (("foo", "bar"), {"foo"}, {"foo"}),
+        (("foo", "f"), "foobar", {"f"})
+    ])
+    def test_failing(series_values, forbidden, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.notin(forbidden), failure_cases)
+
+    @staticmethod
+    def test_ignore_mutable_arg():
+        """Check if a mutable argument passed by reference can be changed from outside"""
+        series_values = (1, 1)
+        df = pd.DataFrame({'forbidden': (0, 2)})
+        check = Check.notin(df['forbidden'])
+        # Up to here the test should succeed
+        check_values(series_values, check, {})
+        # When the Series with the allowed values is changed it should still succeed
+        df['forbidden'] = 1
+        check_values(series_values, check, {})
