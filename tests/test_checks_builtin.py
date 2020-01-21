@@ -248,7 +248,7 @@ class TestInRange:
         (1, 1, True, False)
     ])
     def test_argument_check(args):
-        """Test if None is accepted as boundary"""
+        """Test invalid arguments"""
         with pytest.raises(ValueError):
             Check.in_range(*args)
 
@@ -385,7 +385,7 @@ class TestIsin:
         (None, ),  # None should also not be accepted
     ])
     def test_argument_check(args):
-        """Test if None is accepted as boundary"""
+        """Test invalid arguments"""
         with pytest.raises(ValueError):
             Check.isin(*args)
 
@@ -443,6 +443,7 @@ class TestIsin:
         df['allowed'] = 2
         check_values(series_values, check, {})
 
+
 class TestNotin:
     """Tests for Check.notin"""
     @staticmethod
@@ -451,7 +452,7 @@ class TestNotin:
         (None, ),  # None should also not be accepted
     ])
     def test_argument_check(args):
-        """Test if None is accepted as boundary"""
+        """Test invalid arguments"""
         with pytest.raises(ValueError):
             Check.notin(*args)
 
@@ -497,3 +498,69 @@ class TestNotin:
         # When the Series with the allowed values is changed it should still succeed
         df['forbidden'] = 1
         check_values(series_values, check, {})
+
+
+class TestStrMatches:
+    """Tests for Check.str_matches"""
+    @staticmethod
+    @pytest.mark.parametrize('pattern', [
+        (1, ), (None, )
+    ])
+    def test_argument_check(pattern):
+        """Test invalid arguments"""
+        with pytest.raises(ValueError):
+            Check.str_matches(pattern)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        (('foo', 'fooo'), r'fo'),  # Plain string as pattern
+        (('foo', 'bar'), r'[a-z]+'),  # Character sets
+        (('24.55', '24'), r'(\d+)\.?(\d+)?'),  # Groups and quantifiers
+        (("abcdef", "abcccdef"), r'abc+(?=def)')  # Lookahead
+    ])
+    def test_succeeding(series_values, pattern):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.str_matches(pattern), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern, failure_cases', [
+        (('foo', '_foo'), r'fo', ('_foo',)),
+        (('foo', 'bar', 'lamp'), r'[a-k]+', ('lamp',)),
+        (('24.55', '24.5.6'), r'(\d+)\.?(\d+)?$', ('24.5.6',)),
+    ])
+    def test_failing(series_values, pattern, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.str_matches(pattern), failure_cases)
+
+
+class TestStrContains:
+    """Tests for Check.str_contains"""
+    @staticmethod
+    @pytest.mark.parametrize('pattern', [
+        (1, ), (None, )
+    ])
+    def test_argument_check(pattern):
+        """Test invalid arguments"""
+        with pytest.raises(ValueError):
+            Check.str_contains(pattern)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        (('foo', 'fooo', 'barfoo'), r'fo'),  # Plain string as pattern
+        (('foo', 'bar', '5abc'), r'[a-z]+'),  # Character sets
+        (('24.55', '24', '-24.55-'), r'(\d+)\.?(\d+)?'),  # Groups and quantifiers
+        (("abcdef", "abcccdef", '-abcdef-'), r'abc+(?=def)')  # Lookahead
+    ])
+    def test_succeeding(series_values, pattern):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.str_contains(pattern), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern, failure_cases', [
+        (('foo', '_foo', 'f-o'), r'fo', ('f-o',)),
+        (('foo', 'xyz', 'lamp'), r'[a-k]+', ('xyz',)),
+        (('24.55', '24.5.6'), r'^(\d+)\.?(\d+)?$', ('24.5.6',)),
+    ])
+    def test_failing(series_values, pattern, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.str_contains(pattern), failure_cases)

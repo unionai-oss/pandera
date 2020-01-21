@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 import operator
+import re
 from typing import Dict, Union, Optional, List, Callable, Iterable
 
 import pandas as pd
@@ -438,12 +439,12 @@ class Check():
 
         Note: It is checked whether all elements of a :class:`pandas.Series` are part
         of the set of elements of allowed values. If allowed values is a string, the
-        set of elements consists of all distinct charcters of the string. Thus only
+        set of elements consists of all distinct characters of the string. Thus only
         single characters which occur in allowed_values at least once can meet this
         condition. If you want to check for substrings use :func:`Check.str_is_substring`.
         """
-        # Turn arg into a set. Not only for performance but also avoid issues with a
-        # mutable argument passed by reference which may be changed from outside.
+        # Turn allowed_values into a set. Not only for performance but also avoid issues
+        # with a mutable argument passed by reference which may be changed from outside.
         try:
             allowed_values = frozenset(allowed_values)
         except TypeError:
@@ -469,8 +470,8 @@ class Check():
         set of prohibited characters. Any string of length > 1 can't be in it by
         design.
         """
-        # Turn arg into a set. Not only for performance but also avoid issues with a
-        # mutable argument passed by reference which may be changed from outside.
+        # Turn forbidden_values into a set. Not only for performance but also avoid issues
+        # with a mutable argument passed by reference which may be changed from outside.
         try:
             forbidden_values = frozenset(forbidden_values)
         except TypeError:
@@ -482,3 +483,49 @@ class Check():
             return ~series.isin(forbidden_values)
 
         return Check(fn=_notin, error="notin(%s)" % forbidden_values)
+
+    @staticmethod
+    def str_matches(pattern: str) -> 'Check':
+        """Get a :class:`Check` to validate if strings values match a regular expression.
+
+        :param pattern: Regular expression pattern to use for matching
+
+        :returns :class:`Check` object
+
+        The behaviour is as of :func:`pandas.Series.str.match`.
+        """
+        # By compiling the regex we get the benefit of an early argument check
+        try:
+            regex = re.compile(pattern)
+        except TypeError:
+            raise ValueError('pattern="%s" cannot be compiled as regular expression' %
+                             pattern)
+
+        def _match(series: pd.Series) -> pd.Series:
+            """Check if all strings in the series match the regular expression."""
+            return series.str.match(regex)
+
+        return Check(fn=_match, error="str_matches(%s)" % regex)
+
+    @staticmethod
+    def str_contains(pattern: str) -> 'Check':
+        """Get a :class:`Check` to validate if the pattern can be found within each row
+
+        :param regex: Regular expression pattern to use for searching
+
+        :returns :class:`Check` object
+
+        The behaviour is as of :func:`pandas.Series.str.contains`.
+        """
+        # By compiling the regex we get the benefit of an early argument check
+        try:
+            regex = re.compile(pattern)
+        except TypeError:
+            raise ValueError('pattern="%s" cannot be compiled as regular expression' %
+                             pattern)
+
+        def _contains(series: pd.Series) -> pd.Series:
+            """Check if a regex search is successful within each value,"""
+            return series.str.contains(regex)
+
+        return Check(fn=_contains, error="str_contains(%s)" % regex)
