@@ -291,7 +291,7 @@ class Check():
 
     @staticmethod
     def greater_than(min_value) -> 'Check':
-        """Get a :class:`Check` ensuring all values of a series are strictly greater
+        """Create a :class:`Check` ensuring all values of a series are strictly greater
             than a certain value.
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable to
@@ -311,7 +311,7 @@ class Check():
 
     @staticmethod
     def greater_or_equal(min_value) -> 'Check':
-        """Get a :class:`Check` ensuring all values are greater or equal a certain value.
+        """Create a :class:`Check` ensuring all values are greater or equal a certain value.
 
         :param min_value: Allowed minimum value for values of a series. Must be a type
             comparable to the dtype of the :class:`pandas.Series` to be validated.
@@ -330,9 +330,9 @@ class Check():
 
     @staticmethod
     def less_than(max_value) -> 'Check':
-        """Get a :class:`Check` ensuring all values are strictly below a certain value.
+        """Create a :class:`Check` ensuring all values are strictly below a certain value.
 
-        :param min_value: All elements of a series must be strictly smaller than this.
+        :param max_value: All elements of a series must be strictly smaller than this.
             Must be a type comparable to the dtype of the :class:`pandas.Series` to be
             validated.
 
@@ -349,7 +349,7 @@ class Check():
 
     @staticmethod
     def less_or_equal(max_value) -> 'Check':
-        """Get a :class:`Check` ensuring no value of a series exceeds a certain value.
+        """Create a :class:`Check` ensuring no value of a series exceeds a certain value.
 
         :param max_value: Upper bound not to be exceeded. Must be a type comparable to
             the dtype of the :class:`pandas.Series` to be validated.
@@ -367,7 +367,7 @@ class Check():
 
     @staticmethod
     def in_range(min_value, max_value, min_included=True, max_included=True) -> 'Check':
-        """Get a :class:`Check` ensuring all values of a series are within an interval.
+        """Create a :class:`Check` ensuring all values of a series are within an interval.
 
         :param min_value: Left / lower endpoint of the interval.
         :param max_value: Right / upper endpoint of the interval. Must not be smaller
@@ -403,7 +403,7 @@ class Check():
 
     @staticmethod
     def equal_to(value) -> 'Check':
-        """Get a :class:`Check` ensuring all elements of a series equal a certain value.
+        """Create a :class:`Check` ensuring all elements of a series equal a certain value.
 
         :param value: This value all elements of a given :class:`pandas.Series` must have.
 
@@ -417,7 +417,7 @@ class Check():
 
     @staticmethod
     def not_equal_to(value) -> 'Check':
-        """Get a :class:`Check` ensuring no elements of a series equals a certain value.
+        """Create a :class:`Check` ensuring no elements of a series equals a certain value.
 
         :param value: This value must not occur in a :class:`pandas.Series` to check.
 
@@ -431,7 +431,7 @@ class Check():
 
     @staticmethod
     def isin(allowed_values: Iterable) -> 'Check':
-        """Get a :class:`Check` to ensure only allowed values occur within a series.
+        """Create a :class:`Check` to ensure only allowed values occur within a series.
 
         :param allowed_values: The set of allowed values. May be any iterable.
 
@@ -459,7 +459,7 @@ class Check():
 
     @staticmethod
     def notin(forbidden_values: Iterable) -> 'Check':
-        """Get a :class:`Check` to ensure some defined values don't occur within a series.
+        """Create a :class:`Check` to ensure some defined values don't occur within a series.
 
         :param forbidden_values: The set of values which should not occur. May be any iterable.
 
@@ -486,7 +486,7 @@ class Check():
 
     @staticmethod
     def str_matches(pattern: str) -> 'Check':
-        """Get a :class:`Check` to validate if strings values match a regular expression.
+        """Create a :class:`Check` to validate if strings values match a regular expression.
 
         :param pattern: Regular expression pattern to use for matching
 
@@ -509,9 +509,9 @@ class Check():
 
     @staticmethod
     def str_contains(pattern: str) -> 'Check':
-        """Get a :class:`Check` to validate if the pattern can be found within each row
+        """Create a :class:`Check` to validate if the pattern can be found within each row
 
-        :param regex: Regular expression pattern to use for searching
+        :param pattern: Regular expression pattern to use for searching
 
         :returns :class:`Check` object
 
@@ -530,10 +530,9 @@ class Check():
 
         return Check(fn=_contains, error="str_contains(%s)" % regex)
 
-
     @staticmethod
     def str_startswith(string: str) -> 'Check':
-        """Get a :class:`Check` to validate if all values start with a certain string
+        """Create a :class:`Check` to validate if all values start with a certain string
 
         :param string: String all values should start with
 
@@ -545,10 +544,9 @@ class Check():
 
         return Check(fn=_startswith, error="str_startswith(%s)" % string)
 
-
     @staticmethod
     def str_endswith(string: str) -> 'Check':
-        """Get a :class:`Check` to validate if all values ends with a certain string
+        """Create a :class:`Check` to validate if all values ends with a certain string
 
         :param string: String all values should end with
 
@@ -559,3 +557,29 @@ class Check():
             return series.str.endswith(string, na=False)
 
         return Check(fn=_endswith, error="str_endswith(%s)" % string)
+
+    @staticmethod
+    def str_length(min_len: int = None, max_len: int = None) -> 'Check':
+        """Create a :class:`Check` to validate  if the length of strings is within a specified range
+
+        :param min_len: Minimum length of strings (default: no minimum)
+        :param max_len: Maximu length of strings (default: no maximum)
+
+        :returns :class:`Check` object
+        """
+        if min_len is None and max_len is None:
+            raise ValueError("At least a minimum or a maximum need to be specified. Got None.")
+        elif max_len is None:
+            def check_fn(series: pd.Series) -> pd.Series:
+                """Check for the minimum string length"""
+                return series.str.len() >= min_len
+        elif min_len is None:
+            def check_fn(series: pd.Series) -> pd.Series:
+                """Check for the maximum string length"""
+                return series.str.len() <= max_len
+        else:
+            def check_fn(series: pd.Series) -> pd.Series:
+                """Check for both, minimum and maximum string length"""
+                return (series.str.len() <= max_len) & (series.str.len() >= min_len)
+
+        return Check(fn=check_fn, error="str_length(%s, %s)" % (min_len, max_len))

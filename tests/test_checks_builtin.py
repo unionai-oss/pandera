@@ -557,7 +557,7 @@ class TestStrContains:
     @pytest.mark.parametrize('series_values, pattern', [
         (('foo', 'fooo', 'barfoo'), r'fo'),  # Plain string as pattern
         (('foo', 'bar', '5abc'), r'[a-z]+'),  # Character sets
-        (('24.55', '24', '-24.55-'), r'(\d+)\.?(\d+)?'),  # Groups and quantifiers
+        (('24.55', '24', '-24.55-'), r'\d+\.?\d+?'),  # Quantifiers
         (("abcdef", "abcccdef", '-abcdef-'), r'abc+(?=def)')  # Lookahead
     ])
     def test_succeeding(series_values, pattern):
@@ -568,7 +568,7 @@ class TestStrContains:
     @pytest.mark.parametrize('series_values, pattern, failure_cases', [
         (('foo', '_foo', 'f-o'), r'fo', ('f-o',)),
         (('foo', 'xyz', 'lamp'), r'[a-k]+', ('xyz',)),
-        (('24.55', '24.5.6'), r'^(\d+)\.?(\d+)?$', ('24.5.6',)),
+        (('24.55', '24.5.6'), r'^\d+\.?\d+?$', ('24.5.6',)),
     ])
     def test_failing(series_values, pattern, failure_cases):
         """Run checks which should fail"""
@@ -641,3 +641,42 @@ class TestStrEndsWith:
     def test_failing_with_none(series_values, pattern):
         """Run checks which should succeed"""
         check_none_failures(series_values, Check.str_endswith(pattern))
+
+
+class TestStrLength:
+    """Tests for Check.str_length"""
+    @staticmethod
+    def test_argument_check():
+        """Test if at least one argument is enforced"""
+        with pytest.raises(ValueError):
+            Check.str_length()
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, min_len, max_len', [
+        (("abc", "defabc"), 1, 6),
+        (("abc", "defabc"), None, 6),
+        (("abc", "defabc"), 1, None),
+    ])
+    def test_succeeding(series_values, min_len, max_len):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.str_length(min_len, max_len), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, min_len, max_len, failure_cases', [
+        (("abc", "defabc"), 1, 5, {"defabc"}),
+        (("abc", "defabc"), None, 5, {"defabc"}),
+        (("abc", "defabc"), 4, None, {"abc"}),
+    ])
+    def test_failing(series_values, min_len, max_len, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.str_length(min_len, max_len), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, min_len, max_len', [
+        ((None, "defabc"), 1, 6),
+        ((None, "defabc"), None, 6),
+        ((None, "defabc"), 1, None),
+    ])
+    def test_failing_with_none(series_values, min_len, max_len):
+        """Run checks which should succeed"""
+        check_none_failures(series_values, Check.str_length(min_len, max_len))
