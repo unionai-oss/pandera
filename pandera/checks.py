@@ -503,7 +503,7 @@ class Check():
 
         def _match(series: pd.Series) -> pd.Series:
             """Check if all strings in the series match the regular expression."""
-            return series.str.match(regex)
+            return series.str.match(regex, na=False)
 
         return Check(fn=_match, error="str_matches(%s)" % regex)
 
@@ -525,7 +525,37 @@ class Check():
                              pattern)
 
         def _contains(series: pd.Series) -> pd.Series:
-            """Check if a regex search is successful within each value,"""
-            return series.str.contains(regex)
+            """Check if a regex search is successful within each value"""
+            return series.str.contains(regex, na=False)
 
         return Check(fn=_contains, error="str_contains(%s)" % regex)
+
+
+    @staticmethod
+    def str_startswith(string: str) -> 'Check':
+        """Get a :class:`Check` to validate if all values start with a certain string
+
+        :param string: String all values should start with
+
+        :returns :class:`Check` object
+        """
+        def _startswith(series: pd.Series) -> pd.Series:
+            """Returns true only for strings starting with string"""
+            return series.str.startswith(string, na=False)
+
+        return Check(fn=_startswith, error="str_startswith(%s)" % string)
+
+
+    @staticmethod
+    def str_endswith(string: str) -> 'Check':
+        """Get a :class:`Check` to validate if all values ends with a certain string
+
+        :param string: String all values should end with
+
+        :returns :class:`Check` object
+        """
+        def _endswith(series: pd.Series) -> pd.Series:
+            """Returns true only for strings ending with string"""
+            return series.str.endswith(string, na=False)
+
+        return Check(fn=_endswith, error="str_endswith(%s)" % string)

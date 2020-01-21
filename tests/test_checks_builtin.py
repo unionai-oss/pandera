@@ -532,6 +532,15 @@ class TestStrMatches:
         """Run checks which should fail"""
         check_values(series_values, Check.str_matches(pattern), failure_cases)
 
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        (('foo', None, 'fooo'), r'fo'),
+        (('foo', 'bar', None), r'[a-z]+'),
+    ])
+    def test_failing_with_none(series_values, pattern):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(series_values, Check.str_matches(pattern))
+
 
 class TestStrContains:
     """Tests for Check.str_contains"""
@@ -564,3 +573,71 @@ class TestStrContains:
     def test_failing(series_values, pattern, failure_cases):
         """Run checks which should fail"""
         check_values(series_values, Check.str_contains(pattern), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        ((None, 'fooo'), r'fo'),
+        (('foo', None, '5abc'), r'[a-z]+')
+    ])
+    def test_failing_with_none(series_values, pattern):
+        """Validate the check works also on dataframes with None values"""
+        check_none_failures(series_values, Check.str_contains(pattern))
+
+
+class TestStrStartsWith:
+    """Tests for Check.str_startswith"""
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        (("abc", "abcdef"), "ab"),
+        ((r"$a\dbc", r"$a\dbcdef"), r"$a\d"),  # Ensure regex patterns are ignored
+    ])
+    def test_succeeding(series_values, pattern):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.str_startswith(pattern), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern, failure_cases', [
+        (("abc", "abcdef", " abc"), "ab", {" abc"}),
+        ((r"abc def", r"def abc"), "def", {"abc def"})
+    ])
+    def test_failing(series_values, pattern, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.str_startswith(pattern), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        ((None, "abc", "abcdef"), "ab"),
+    ])
+    def test_failing_with_none(series_values, pattern):
+        """Run checks which should succeed"""
+        check_none_failures(series_values, Check.str_startswith(pattern))
+
+
+class TestStrEndsWith:
+    """Tests for Check.str_endswith"""
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        (("abc", "defabc"), "bc"),
+        ((r"bc^a\d", r"abc^a\d"), r"^a\d"),  # Ensure regex patterns are ignored
+    ])
+    def test_succeeding(series_values, pattern):
+        """Run checks which should succeed"""
+        check_values(series_values, Check.str_endswith(pattern), {})
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern, failure_cases', [
+        (("abc", "abcdef", " abc"), "bc", {"abcdef"}),
+        (("abc", "abc "), "bc", {"abc "}),
+        ((r"abc def", r"def abc"), "def", {"def abc"})
+    ])
+    def test_failing(series_values, pattern, failure_cases):
+        """Run checks which should fail"""
+        check_values(series_values, Check.str_endswith(pattern), failure_cases)
+
+    @staticmethod
+    @pytest.mark.parametrize('series_values, pattern', [
+        ((None, "abc", "defabc"), "bc"),
+    ])
+    def test_failing_with_none(series_values, pattern):
+        """Run checks which should succeed"""
+        check_none_failures(series_values, Check.str_endswith(pattern))
