@@ -569,7 +569,7 @@ class Check():
         """
         if min_len is None and max_len is None:
             raise ValueError("At least a minimum or a maximum need to be specified. Got None.")
-        elif max_len is None:
+        if max_len is None:
             def check_fn(series: pd.Series) -> pd.Series:
                 """Check for the minimum string length"""
                 return series.str.len() >= min_len
