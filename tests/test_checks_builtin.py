@@ -90,13 +90,13 @@ class TestGreaterThan:
         check_none_failures(values, Check.greater_than(min_val))
 
 
-class TestGreaterOrEqual:
-    """Tests for Check.greater_or_equal"""
+class TestGreaterThanOrEqualTo:
+    """Tests for Check.greater_than_or_equal_to"""
     @staticmethod
     def test_argument_check():
         """Test if None is accepted as boundary"""
         with pytest.raises(ValueError):
-            Check.greater_or_equal(min_value=None)
+            Check.greater_than_or_equal_to(min_value=None)
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
@@ -110,7 +110,7 @@ class TestGreaterOrEqual:
     ])
     def test_succeeding(values, min_val):
         """Run checks which should succeed"""
-        check_values(values, Check.greater_or_equal(min_val), {})
+        check_values(values, Check.greater_than_or_equal_to(min_val), {})
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val, failure_cases', [
@@ -126,7 +126,7 @@ class TestGreaterOrEqual:
     ])
     def test_failing(values, min_val, failure_cases):
         """Run checks which should fail"""
-        check_values(values, Check.greater_or_equal(min_val), failure_cases)
+        check_values(values, Check.greater_than_or_equal_to(min_val), failure_cases)
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
@@ -136,7 +136,7 @@ class TestGreaterOrEqual:
     ])
     def test_failing_with_none(values, min_val):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.greater_or_equal(min_val))
+        check_none_failures(values, Check.greater_than_or_equal_to(min_val))
 
 
 class TestLessThan:
@@ -188,13 +188,13 @@ class TestLessThan:
         check_none_failures(values, Check.less_than(max_value))
 
 
-class TestLessOrEqual:
-    """Tests for Check.less_or_equal"""
+class TestLessThanOrEqualTo:
+    """Tests for Check.less_than_or_equal_to"""
     @staticmethod
     def test_argument_check():
         """Test if None is accepted as boundary"""
         with pytest.raises(ValueError):
-            Check.less_or_equal(max_value=None)
+            Check.less_than_or_equal_to(max_value=None)
 
     @staticmethod
     @pytest.mark.parametrize('values, max_value', [
@@ -208,7 +208,7 @@ class TestLessOrEqual:
     ])
     def test_succeeding(values, max_value):
         """Run checks which should succeed"""
-        check_values(values, Check.less_or_equal(max_value), {})
+        check_values(values, Check.less_than_or_equal_to(max_value), {})
 
     @staticmethod
     @pytest.mark.parametrize('values, max_value, failure_cases', [
@@ -224,7 +224,7 @@ class TestLessOrEqual:
     ])
     def test_failing(values, max_value, failure_cases):
         """Run checks which should fail"""
-        check_values(values, Check.less_or_equal(max_value), failure_cases)
+        check_values(values, Check.less_than_or_equal_to(max_value), failure_cases)
 
     @staticmethod
     @pytest.mark.parametrize('values, max_value', [
@@ -234,7 +234,7 @@ class TestLessOrEqual:
     ])
     def test_failing_with_none(values, max_value):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.less_or_equal(max_value))
+        check_none_failures(values, Check.less_than_or_equal_to(max_value))
 
 
 class TestInRange:
