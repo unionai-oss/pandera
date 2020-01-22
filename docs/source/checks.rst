@@ -8,13 +8,13 @@ Checks
 Checking column properties
 --------------------------
 
-``Check`` objects accept a function as a required argument, which is expected
-to have the following signature:
+:class:`~pandera.checks.Check` objects accept a function as a required argument, which
+is expected to have the following signature:
 
 ``pd.Series -> bool|pd.Series[bool]``.
 
-For the ``Check`` to pass, all of the elements in the boolean series must
-evaluate to ``True``.
+For the :class:`~pandera.checks.Check` to pass, all of the elements in the boolean
+series must evaluate to ``True``.
 
 
 .. testcode:: checks
@@ -37,12 +37,32 @@ Multiple checks can be applied to a column:
       ]),
   })
 
+Built-in Checks
+---------------
+
+For common validation tasks built-in checks are available in ``pandera``.
+They are provided as factory methods in the :class:`~pandera.checks.Check` class.
+
+This way comparison operations, string validations and whitelisting or blacklisting
+of allowed values can be done more easily:
+
+.. testcode:: builtin_checks
+
+  import pandera as pa
+  from pandera import Column, Check, DataFrameSchema
+
+  schema = DataFrameSchema({
+      "small_values": Column(pa.Float, [Check.less_than(100)]),
+      "one_to_three": Column(pa.Int, [Check.isin([1, 2, 3])]),
+      "phone_number": Column(pa.String, [Check.str_matches(r'^[a-z0-9-]+$')]),
+  })
+
 Vectorized vs. Element-wise Checks
 ----------------------------------
 
-By default, ``Check`` objects operate on ``pd.Series`` objects. If you want to
-make atomic checks for each element in the Column, then you can provide the
-``element_wise=True`` keyword argument:
+By default, :class:`~pandera.checks.Check` objects operate on ``pd.Series`` objects.
+If you want to make atomic checks for each element in the Column, then you can provide
+the ``element_wise=True`` keyword argument:
 
 .. testcode:: vectorized_element_wise_checks
 
@@ -77,14 +97,14 @@ checks.
 Column Check Groups
 -------------------
 
-``Column`` checks support grouping by a different column so that
-you can make assertions about subsets of the ``Column`` of interest.
-This changes the function signature of the ``Check`` function so that
+:class:`~pandera.schema_components.Column` checks support grouping by a different column so that
+you can make assertions about subsets of the :class:`~pandera.schema_components.Column` of interest.
+This changes the function signature of the :class:`~pandera.checks.Check` function so that
 its input is a dict where keys are the group names and values are subsets
-of the ``Column`` series.
+of the :class:`~pandera.schema_components.Column` series.
 
 Specifying ``groupby`` as a column name, list of column names, or
-callable changes the expected signature of the ``Check`` function
+callable changes the expected signature of the :class:`~pandera.checks.Check` function
 argument to ``dict[Any|tuple[Any], Series] -> bool|Series[bool]`` where
 the dict keys are the discrete keys in the ``groupby`` columns.
 
@@ -128,8 +148,8 @@ the dict keys are the discrete keys in the ``groupby`` columns.
 
     schema.validate(df)
 
-In the above example we define a ``DataFrameSchema`` with column checks
-for ``height_in_feet`` using a single column, multiple columns, and a
+In the above example we define a :class:`~pandera.schemas.DataFrameSchema` with column
+checks for ``height_in_feet`` using a single column, multiple columns, and a
 more complex groupby function that creates a new column
 ``age_less_than_15`` on the fly.
 
