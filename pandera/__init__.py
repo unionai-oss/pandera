@@ -19,4 +19,4 @@ from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
 
 
-__version__ = "0.2.7"
+__version__ = "0.3.0"
