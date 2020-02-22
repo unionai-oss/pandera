@@ -9,3 +9,4 @@ repos:
     hooks:
     -   id: mypy
         exclude: (^docs/|^scripts)
+        args: ["pandera", "tests"]
