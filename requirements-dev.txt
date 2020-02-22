@@ -5,11 +5,12 @@ pip
 sphinx
 sphinx_rtd_theme
 codecov
+mypy
 pylint>=2.4.4
 pytest
 pytest-cov
 asv
-pre_commit
+pre-commit
 numpy
 pandas
 scipy
