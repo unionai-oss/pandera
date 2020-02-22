@@ -24,7 +24,7 @@ dependencies:
   - asv
 
   # optional
-  - pre_commit
+  - pre-commit
 
   # pandera dependencies
   - numpy

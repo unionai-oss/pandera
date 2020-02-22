@@ -125,10 +125,13 @@ class Hypothesis(Check):
 
         """
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
-        self.relationship = partial(self._relationships(relationship),
-                                    **relationship_kwargs)
+        self.relationship = partial(
+            self._relationships(relationship),
+            **{} if relationship_kwargs is None else relationship_kwargs)
         if isinstance(samples, str):
             samples = [samples]
+        elif samples is None:
+            samples = []
         self.samples = samples
         super(Hypothesis, self).__init__(
             self._hypothesis_check,
@@ -205,7 +208,7 @@ class Hypothesis(Check):
             cls,
             sample1: str,
             sample2: str,
-            groupby: Union[str, List[str], callable, None] = None,
+            groupby: Union[str, List[str], Callable, None] = None,
             relationship: str = "equal",
             alpha=DEFAULT_ALPHA,
             equal_var=True,

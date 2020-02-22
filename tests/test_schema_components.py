@@ -94,7 +94,7 @@ def test_multi_index_columns():
             String, Check(lambda s: s.isin(["a", "b", "c", "d"]))),
         ("one", "foo"): Column(Int, Check(lambda s: (s > 0) & (s < 10))),
         ("one", "bar"): Column(
-            DateTime, Check(lambda s: s == pd.datetime(2019, 1, 1)))
+            DateTime, Check(lambda s: s == pd.Timestamp(2019, 1, 1)))
     })
     validated_df = schema.validate(
         pd.DataFrame({

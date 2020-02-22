@@ -8,4 +8,4 @@ good-names=
     x,
 
 [MESSAGES CONTROL]
-disable=R0913
+disable=R0913,duplicate-code

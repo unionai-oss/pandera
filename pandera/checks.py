@@ -154,7 +154,7 @@ class Check():
     def _format_groupby_input(
             self,
             groupby_obj: GroupbyObject,
-            groups: List[str]
+            groups: Optional[List[str]],
     ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
         # pylint: disable=no-self-use
         """Format groupby object into dict of groups to Series or DataFrame.
@@ -221,7 +221,7 @@ class Check():
     def __call__(
             self,
             df_or_series: Union[pd.DataFrame, pd.Series],
-            column: str = None,
+            column: Optional[str] = None,
     ) -> CheckResult:
         """Validate pandas DataFrame or Series.
 
@@ -253,7 +253,9 @@ class Check():
         # apply check function to check object
         if self.element_wise:
             check_result = check_obj.apply(self.fn, axis=1) if \
-                isinstance(check_obj, pd.DataFrame) else check_obj.map(self.fn)
+                isinstance(check_obj, pd.DataFrame) else \
+                check_obj.map(self.fn) if isinstance(check_obj, pd.Series) \
+                else self.fn(check_obj)
         else:
             # vectorized check function case
             check_result = self.fn(check_obj)

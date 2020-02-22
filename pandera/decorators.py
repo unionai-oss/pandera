@@ -33,6 +33,7 @@ def check_input(
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None) -> Callable:
+    # pylint: disable=duplicate-code
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
@@ -95,7 +96,7 @@ def check_input(
     def _wrapper(
             fn: Callable,
             instance: Union[None, Any],
-            args: Tuple[Any],
+            args: Union[List[Any], Tuple[Any]],
             kwargs: Dict[str, Any]):
         # pylint: disable=unused-argument
         """Check pandas DataFrame or Series before calling the function.
@@ -157,6 +158,7 @@ def check_output(
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None) -> Callable:
+    # pylint: disable=duplicate-code
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
@@ -219,7 +221,7 @@ def check_output(
     def _wrapper(
             fn: Callable,
             instance: Union[None, Any],
-            args: Tuple[Any],
+            args: Union[List[Any], Tuple[Any]],
             kwargs: Dict[str, Any]):
         # pylint: disable=unused-argument
         """Check pandas DataFrame or Series before calling the function.
@@ -232,7 +234,8 @@ def check_output(
         :param kwargs: the dictionary of keyword arguments supplied when the
             decorated function was called.
         """
-        if schema.transformer is not None:
+        if hasattr(schema, "transformer") and \
+                getattr(schema, "transformer") is not None:
             warnings.warn(
                 "The schema transformer function has no effect in a "
                 "check_output decorator. Please perform the necessary "

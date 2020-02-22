@@ -1,9 +1,11 @@
 repos:
-  - repo: https://github.com/pre-commit/mirrors-pylint
-    rev: v2.4.4
+  - repo: https://github.com/pycqa/pylint
+    rev: pylint-2.4.4
     hooks:
     -   id: pylint
+        args: [--disable=import-error]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.761
     hooks:
     -   id: mypy
+        exclude: (^docs/|^scripts)

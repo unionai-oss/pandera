@@ -3,12 +3,12 @@
 import json
 import copy
 import warnings
-from typing import List, Optional, Union, Dict, Any
+from typing import Callable, List, Optional, Union, Dict, Any
 
 import pandas as pd
 
 from . import errors, constants, dtypes, error_formatters
-from .checks import Check
+from .checks import Check, CheckResult
 
 
 N_INDENT_SPACES = 4
@@ -19,10 +19,10 @@ class DataFrameSchema():
 
     def __init__(
             self,
-            columns: Dict[str, Any] = None,
+            columns: Dict[Any, Any] = None,
             checks: Optional[List[Check]] = None,
             index=None,
-            transformer: callable = None,
+            transformer: Callable = None,
             coerce: bool = False,
             strict=False):
         """Initialize DataFrameSchema validator.
@@ -134,9 +134,9 @@ class DataFrameSchema():
     @staticmethod
     def _dataframe_to_validate(
             dataframe: pd.DataFrame,
-            head: int,
-            tail: int,
-            sample: int,
+            head: Optional[int],
+            tail: Optional[int],
+            sample: Optional[int],
             random_state: Optional[int]) -> pd.DataFrame:
         dataframe_subsample = []
         if head is not None:
@@ -153,7 +153,8 @@ class DataFrameSchema():
         check_results = []
         for check_index, check in enumerate(self.checks):
             check_results.append(
-                _handle_check_results(self, check_index, check, dataframe)
+                _handle_check_results(
+                    self, check_index, check, check(dataframe))
             )
         return all(check_results)
 
@@ -167,21 +168,22 @@ class DataFrameSchema():
     def validate(
             self,
             dataframe: pd.DataFrame,
-            head: int = None,
-            tail: int = None,
-            sample: int = None,
-            random_state: Optional[int] = None) -> pd.DataFrame:
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None
+    ) -> pd.DataFrame:
+        # pylint: disable=duplicate-code
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
         :param head: validate the first n rows. Rows overlapping with `tail` or
             `sample` are de-duplicated.
-        :type head: int
         :param tail: validate the last n rows. Rows overlapping with `head` or
             `sample` are de-duplicated.
-        :type tail: int
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
         :returns: validated ``DataFrame``
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -345,7 +347,7 @@ class SeriesSchemaBase():
     def __init__(
             self,
             pandas_dtype: Union[str, dtypes.PandasDtype] = None,
-            checks: callable = None,
+            checks: Optional[Union[Check, List[Check]]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
@@ -387,12 +389,12 @@ class SeriesSchemaBase():
         return self._coerce
 
     @property
-    def name(self) -> str:
+    def name(self) -> Union[str, None]:
         """Get SeriesSchema name."""
         return self._name
 
     @property
-    def dtype(self) -> str:
+    def dtype(self) -> Union[str, None]:
         """String representation of the dtype."""
         if isinstance(self._pandas_dtype, str) or self._pandas_dtype is None:
             dtype = self._pandas_dtype
@@ -426,15 +428,30 @@ class SeriesSchemaBase():
 
     def validate(
             self,
-            check_obj: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series],
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=too-many-branches,W0212
+        # pylint: disable=too-many-branches,W0212,too-many-locals,duplicate-code
         """Validate a series or specific column in dataframe.
 
         :check_obj: pandas DataFrame or Series to validate.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
         :returns: validated DataFrame or Series.
 
         """
+
+        check_obj = _pandas_obj_to_validate(
+            check_obj, head, tail, sample, random_state)
+
         series = check_obj.copy() if isinstance(check_obj, pd.Series) \
             else check_obj[self.name].copy()
 
@@ -465,9 +482,9 @@ class SeriesSchemaBase():
                 raise errors.SchemaError(
                     "expected series '%s' to have type %s, got %s and "
                     "non-nullable series contains null values: %s" %
-                    (series.name, self._pandas_dtype.value, series.dtype,
-                     series[nulls].head(
-                         constants.N_FAILURE_CASES).to_dict()))
+                    (series.name, self.dtype, series.dtype,
+                     series[nulls].head(constants.N_FAILURE_CASES).to_dict())
+                )
             raise errors.SchemaError(
                 "non-nullable series '%s' contains null values: %s" %
                 (series.name,
@@ -499,15 +516,16 @@ class SeriesSchemaBase():
         check_results = []
 
         if isinstance(check_obj, pd.Series):
-            check_args = (series, )
+            check_args = [series, None]
         else:
             _check_obj = check_obj.loc[series.index].copy()
             _check_obj[self.name] = series
-            check_args = (_check_obj, self.name)
+            check_args = [_check_obj, self.name]
 
         for check_index, check in enumerate(self.checks):
             check_results.append(
-                _handle_check_results(self, check_index, check, *check_args)
+                _handle_check_results(
+                    self, check_index, check, check(*check_args))
             )
 
         assert all(check_results)
@@ -515,10 +533,14 @@ class SeriesSchemaBase():
 
     def __call__(
             self,
-            check_obj: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series],
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate a series or column in a dataframe."""
-        return self.validate(check_obj)
+        return self.validate(check_obj, head, tail, sample, random_state)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -574,11 +596,26 @@ class SeriesSchema(SeriesSchemaBase):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def validate(self, check_obj: pd.Series) -> pd.Series:
+    def validate(
+            self,
+            check_obj: pd.Series,
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
+    ) -> pd.Series:
+        # pylint: disable=duplicate-code
         """Validate a Series object.
 
         :param check_obj: One-dimensional ndarray with axis labels
             (including time series).
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
         :returns: validated Series.
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -603,24 +640,53 @@ class SeriesSchema(SeriesSchemaBase):
         if self.coerce:
             check_obj = self.coerce_dtype(check_obj)
 
-        return super(SeriesSchema, self).validate(check_obj)
+        return super(SeriesSchema, self).validate(
+            check_obj, head, tail, sample, random_state)
+
+    def __call__(
+            self,
+            check_obj: pd.Series,
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
+    ) -> pd.Series:
+        """Validate a series or column in a dataframe."""
+        return self.validate(check_obj)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+
+def _pandas_obj_to_validate(
+        dataframe_or_series: Union[pd.DataFrame, pd.Series],
+        head: Optional[int],
+        tail: Optional[int],
+        sample: Optional[int],
+        random_state: Optional[int]) -> Union[pd.DataFrame, pd.Series]:
+    pandas_obj_subsample = []
+    if head is not None:
+        pandas_obj_subsample.append(dataframe_or_series.head(head))
+    if tail is not None:
+        pandas_obj_subsample.append(dataframe_or_series.tail(tail))
+    if sample is not None:
+        pandas_obj_subsample.append(
+            dataframe_or_series.sample(sample, random_state=random_state))
+    return dataframe_or_series if not pandas_obj_subsample else \
+        pd.concat(pandas_obj_subsample).drop_duplicates()
 
 
 def _handle_check_results(
         schema: Union[DataFrameSchema, SeriesSchemaBase],
         check_index: int,
         check: Check,
-        *check_args) -> bool:
+        check_result: CheckResult) -> bool:
     """Handle check results, raising SchemaError on check failure.
 
     :param check_index: index of check in the schema component check list.
     :param check: Check object used to validate pandas object.
     :param check_args: arguments to pass into check object.
     """
-    check_result = check(*check_args)
     if not check_result.check_passed:
         if check_result.failure_cases is None:
             raise errors.SchemaError(
