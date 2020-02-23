@@ -1,6 +1,6 @@
 """Make schema error messages human-friendly."""
 
-from typing import Union
+from typing import Union, Optional
 
 import pandas as pd
 
@@ -49,7 +49,7 @@ def format_vectorized_error_message(
 
 def format_failure_cases(
         failure_cases: Union[pd.DataFrame, pd.Series],
-        n_cases: int) -> pd.DataFrame:
+        n_cases: Optional[int] = 5) -> pd.DataFrame:
     """Construct readable error messages for vectorized_error_message.
 
     :param failure_cases: The failure cases encountered by the element-wise

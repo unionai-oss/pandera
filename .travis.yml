@@ -90,3 +90,5 @@ script:
   - python ./scripts/generate_pip_deps_from_conda.py --compare
   # Linting
   - pylint pandera tests
+  # Type checking
+  - mypy pandera tests

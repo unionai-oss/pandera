@@ -1,6 +1,6 @@
 """Components used in pandera schemas."""
 
-from typing import Union
+from typing import Union, Optional
 
 import pandas as pd
 
@@ -21,7 +21,7 @@ class Column(SeriesSchemaBase):
             allow_duplicates: bool = True,
             coerce: bool = False,
             required: bool = True,
-            name: str = None):
+            name: str = None) -> None:
         """Create column validator object.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
@@ -79,10 +79,25 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
-    def validate(self, check_obj: pd.DataFrame) -> pd.DataFrame:
+    def validate(
+            self,
+            check_obj: pd.DataFrame,
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
+    ) -> pd.DataFrame:
+        # pylint: disable=duplicate-code
         """Validate a Column in a DataFrame object.
 
         :param check_obj: pandas DataFrame to validate.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
         :returns: validated DataFrame.
         """
         if self._name is None:
@@ -118,7 +133,7 @@ class Index(SeriesSchemaBase):
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
-            name: str = None):
+            name: str = None) -> None:
         """Create Index validator.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
@@ -177,11 +192,23 @@ class Index(SeriesSchemaBase):
 
     def validate(
             self,
-            check_obj: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series],
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
     ) -> Union[pd.DataFrame, pd.Series]:
+        # pylint: disable=duplicate-code
         """Validate DataFrameSchema or SeriesSchema Index.
 
         :check_obj: pandas DataFrame of Series containing index to validate.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
         :returns: validated DataFrame or Series.
         """
 
@@ -215,7 +242,7 @@ class MultiIndex(DataFrameSchema):
             self,
             indexes: List[Index],
             coerce: bool = False,
-            strict=False):
+            strict=False) -> None:
         """Create MultiIndex validator.
 
         :param indexes: list of Index validators for each level of the
@@ -244,9 +271,8 @@ class MultiIndex(DataFrameSchema):
         >>>
         >>> df = pd.DataFrame(
         ...     data={"column": [1, 2, 3]},
-        ...     index=pd.MultiIndex(
-        ...         levels=[["foo", "bar"], [0, 1, 2, 3, 4]],
-        ...         labels=[[0, 1, 0], [0, 1, 2]],
+        ...     index=pd.MultiIndex.from_arrays(
+        ...         [["foo", "bar", "foo"], [0, 1, 2]],
         ...         names=["index0", "index1"],
         ...     )
         ... )
@@ -306,15 +332,26 @@ class MultiIndex(DataFrameSchema):
 
     def validate(
             self,
-            check_obj: Union[pd.DataFrame, pd.Series]
+            check_obj: Union[pd.DataFrame, pd.Series],
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=signature-differs,arguments-differ
+        # pylint: disable=signature-differs,arguments-differ,duplicate-code
         # will need to clean up the class structure of this module since
         # this MultiIndex subclasses DataFrameSchema, which has a different
         # signature
         """Validate DataFrame or Series MultiIndex.
 
-        :check_obj: pandas DataFrame of Series to validate.
+        :param check_obj: pandas DataFrame of Series to validate.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
         :returns: validated DataFrame or Series.
         """
 
@@ -322,7 +359,10 @@ class MultiIndex(DataFrameSchema):
             check_obj.index = self.coerce_dtype(check_obj.index)
 
         assert isinstance(
-            super(MultiIndex, self).validate(check_obj.index.to_frame()),
+            super(MultiIndex, self).validate(
+                check_obj.index.to_frame(),
+                head, tail, sample, random_state,
+            ),
             pd.DataFrame
         )
         return check_obj

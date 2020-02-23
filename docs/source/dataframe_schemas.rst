@@ -426,10 +426,9 @@ composing a list of ``pandera.Index`` objects.
 
   df = pd.DataFrame(
       data={"column1": [1, 2, 3]},
-      index=pd.MultiIndex(
-          levels=[["foo", "bar"], [0, 1, 2, 3, 4]],
-          labels=[[0, 1, 0], [0, 1, 2]],
-          names=["index0", "index1"],
+      index=pd.MultiIndex.from_arrays(
+          [["foo", "bar", "foo"], [0, 1,2 ]],
+          names=["index0", "index1"]
       )
   )
 
