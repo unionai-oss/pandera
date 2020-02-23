@@ -33,7 +33,8 @@ class Check():
             groupby: Optional[Union[str, List[str], Callable]] = None,
             element_wise: bool = False,
             error: Optional[str] = None,
-            n_failure_cases: Optional[int] = constants.N_FAILURE_CASES):
+            n_failure_cases: Optional[int] = constants.N_FAILURE_CASES
+    ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
         :param fn: A function to check pandas data structure. For Column

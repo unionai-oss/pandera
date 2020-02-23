@@ -81,9 +81,9 @@ class TestGreaterThan:
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
-        ((2, None), 1),
-        ((pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-01")),
-        (("b", None), "a")
+        [(2, None), 1],
+        [(pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-01")],
+        [("b", None), "a"]
     ])
     def test_failing_with_none(values, min_val):
         """Validate the check works also on dataframes with None values"""
@@ -130,9 +130,9 @@ class TestGreaterThanOrEqualTo:
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
-        ((2, None), 1),
-        ((pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-01")),
-        (("b", None), "a")
+        [(2, None), 1],
+        [(pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-01")],
+        [("b", None), "a"]
     ])
     def test_failing_with_none(values, min_val):
         """Validate the check works also on dataframes with None values"""
@@ -179,9 +179,9 @@ class TestLessThan:
 
     @staticmethod
     @pytest.mark.parametrize('values, max_value', [
-        ((2, None), 3),
-        ((pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-03")),
-        (("b", None), "c")
+        [(2, None), 3],
+        [(pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-03")],
+        [("b", None), "c"],
     ])
     def test_failing_with_none(values, max_value):
         """Validate the check works also on dataframes with None values"""
@@ -228,9 +228,9 @@ class TestLessThanOrEqualTo:
 
     @staticmethod
     @pytest.mark.parametrize('values, max_value', [
-        ((2, None), 2),
-        ((pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-02")),
-        (("b", None), "b")
+        [(2, None), 2],
+        [(pd.Timestamp("2015-02-02"), None), pd.Timestamp("2015-02-02")],
+        [("b", None), "b"],
     ])
     def test_failing_with_none(values, max_value):
         """Validate the check works also on dataframes with None values"""
@@ -293,11 +293,11 @@ class TestInRange:
 
     @staticmethod
     @pytest.mark.parametrize('values, check_args', [
-        ((2, None), (0, 4)),
-        ((pd.Timestamp("2015-02-02"), None),
+        [(2, None), (0, 4)],
+        [(pd.Timestamp("2015-02-02"), None),
          (pd.Timestamp("2015-02-01"),
-          pd.Timestamp("2015-02-03"))),
-        (("b", None), ("a", "c"))
+          pd.Timestamp("2015-02-03"))],
+        [("b", None), ("a", "c")],
     ])
     def test_failing_with_none(values, check_args):
         """Validate the check works also on dataframes with None values"""
@@ -422,10 +422,10 @@ class TestIsin:
 
     @staticmethod
     @pytest.mark.parametrize('values, allowed', [
-        ((2, None), {2}),
-        ((pd.Timestamp("2015-02-02"), None), {pd.Timestamp("2015-02-02")}),
-        (("b", None), {"b"}),
-        (("f", None), "foo")
+        [(2, None), {2}],
+        [(pd.Timestamp("2015-02-02"), None), {pd.Timestamp("2015-02-02")}],
+        [("b", None), {"b"}],
+        [("f", None), "foo"],
     ])
     def test_failing_with_none(values, allowed):
         """Validate the check works also on dataframes with None values"""

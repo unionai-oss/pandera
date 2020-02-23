@@ -24,7 +24,7 @@ class DataFrameSchema():
             index=None,
             transformer: Callable = None,
             coerce: bool = False,
-            strict=False):
+            strict=False) -> None:
         """Initialize DataFrameSchema validator.
 
         :param columns: a dict where keys are column names and values are
@@ -351,7 +351,7 @@ class SeriesSchemaBase():
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
-            name: str = None):
+            name: str = None) -> None:
         """Initialize series schema base object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,
@@ -556,7 +556,7 @@ class SeriesSchema(SeriesSchemaBase):
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
-            name: str = None):
+            name: str = None) -> None:
         """Initialize series schema object.
 
         :param pandas_dtype: datatype of the column. If a string is specified,

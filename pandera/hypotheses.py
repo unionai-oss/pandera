@@ -26,14 +26,16 @@ class Hypothesis(Check):
         "equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue >= alpha),
     }
 
-    def __init__(self,
-                 test: Callable,
-                 samples: Optional[Union[str, List[str]]] = None,
-                 groupby: Optional[Union[str, List[str], Callable]] = None,
-                 relationship: Union[str, Callable] = "equal",
-                 test_kwargs: Dict = None,
-                 relationship_kwargs: Dict = None,
-                 error: Optional[str] = None):
+    def __init__(
+            self,
+            test: Callable,
+            samples: Optional[Union[str, List[str]]] = None,
+            groupby: Optional[Union[str, List[str], Callable]] = None,
+            relationship: Union[str, Callable] = "equal",
+            test_kwargs: Dict = None,
+            relationship_kwargs: Dict = None,
+            error: Optional[str] = None
+    ) -> None:
         """Perform a hypothesis test on a Series or DataFrame.
 
         Can function on a single column or be grouped by another column.

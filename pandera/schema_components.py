@@ -21,7 +21,7 @@ class Column(SeriesSchemaBase):
             allow_duplicates: bool = True,
             coerce: bool = False,
             required: bool = True,
-            name: str = None):
+            name: str = None) -> None:
         """Create column validator object.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
@@ -133,7 +133,7 @@ class Index(SeriesSchemaBase):
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
-            name: str = None):
+            name: str = None) -> None:
         """Create Index validator.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
@@ -242,7 +242,7 @@ class MultiIndex(DataFrameSchema):
             self,
             indexes: List[Index],
             coerce: bool = False,
-            strict=False):
+            strict=False) -> None:
         """Create MultiIndex validator.
 
         :param indexes: list of Index validators for each level of the
@@ -271,9 +271,8 @@ class MultiIndex(DataFrameSchema):
         >>>
         >>> df = pd.DataFrame(
         ...     data={"column": [1, 2, 3]},
-        ...     index=pd.MultiIndex(
-        ...         levels=[["foo", "bar"], [0, 1, 2, 3, 4]],
-        ...         labels=[[0, 1, 0], [0, 1, 2]],
+        ...     index=pd.MultiIndex.from_arrays(
+        ...         [["foo", "bar", "foo"], [0, 1, 2]]
         ...         names=["index0", "index1"],
         ...     )
         ... )
