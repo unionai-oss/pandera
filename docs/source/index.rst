@@ -12,9 +12,13 @@ A flexible and expressive `pandas <http://pandas.pydata.org>`_ validation librar
 Why?
 ----
 
-``pandas`` data structures hide a lot of information, and explicitly
-validating them at runtime in production-critical or reproducible research
-settings is a good idea. ``pandera`` enables users to:
+`pandera` provides a flexible and expressive API for performing data validation
+on tidy (long-form) and wide data to make data processing pipelines more
+readable and robust.
+
+``pandas`` data structures contain information that ``pandera`` explicitly
+validates at runtime. This is useful in production-critical or reproducible
+research settings. ``pandera`` enables users to:
 
 #. :ref:`Check<checks>` the types and properties of columns in a
    ``pd.DataFrame`` or values in a ``pd.Series``.

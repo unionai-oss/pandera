@@ -32,7 +32,7 @@ about:
   license: MIT
   summary: 'Light-weight and flexible validation for pandas data structures.'
   description: |
-     Pandas data structures hide a lot of information, and explicitly
-     validating them in production-critical or reproducible research
-     settings is a good idea.
+    Pandas data structures contain information that pandera explicitly
+    validates at runtime, useful in production-critical or reproducible
+    research settings.
   doc_url: https://pandera.readthedocs.io/
