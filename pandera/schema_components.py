@@ -272,7 +272,7 @@ class MultiIndex(DataFrameSchema):
         >>> df = pd.DataFrame(
         ...     data={"column": [1, 2, 3]},
         ...     index=pd.MultiIndex.from_arrays(
-        ...         [["foo", "bar", "foo"], [0, 1, 2]]
+        ...         [["foo", "bar", "foo"], [0, 1, 2]],
         ...         names=["index0", "index1"],
         ...     )
         ... )
