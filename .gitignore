@@ -111,3 +111,6 @@ venv.bak/
 # Airspeed Velocity Benchmarks
 /asv_bench/html/
 /asv_bench/results/
+
+# Docs
+docs/source/generated

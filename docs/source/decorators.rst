@@ -2,8 +2,8 @@
 
 .. _decorators:
 
-Decorators for Existing Workflows
-=================================
+Decorators for Pipeline Integration
+===================================
 
 If you have an existing data pipeline that uses pandas data structures,
 you can use the ``check_input`` and ``check_output`` decorators to

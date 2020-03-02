@@ -11,7 +11,7 @@ from .schemas import DataFrameSchema, SeriesSchemaBase
 
 
 class Column(SeriesSchemaBase):
-    """Extends SeriesSchemaBase with Column-specific options"""
+    """Validate types and properties of DataFrame columns."""
 
     def __init__(
             self,
@@ -42,10 +42,10 @@ class Column(SeriesSchemaBase):
 
         >>> import pandas as pd
         >>> import pandera as pa
-        >>> from pandera import DataFrameSchema, Column
         >>>
-        >>> schema = DataFrameSchema({
-        ...     "column": Column(pa.String)
+        >>>
+        >>> schema = pa.DataFrameSchema({
+        ...     "column": pa.Column(pa.String)
         ... })
         >>>
         >>> schema.validate(pd.DataFrame({"column": ["foo", "bar"]}))
@@ -124,7 +124,7 @@ class Column(SeriesSchemaBase):
 
 
 class Index(SeriesSchemaBase):
-    """Extends SeriesSchemaBase with Index-specific options"""
+    """Validate types and properties of a DataFrame Index."""
 
     def __init__(
             self,
@@ -152,11 +152,11 @@ class Index(SeriesSchemaBase):
 
         >>> import pandas as pd
         >>> import pandera as pa
-        >>> from pandera import DataFrameSchema, Column, Index
         >>>
-        >>> schema = DataFrameSchema(
-        ...     columns={"column": Column(pa.String)},
-        ...     index=Index(pa.Int, allow_duplicates=False))
+        >>>
+        >>> schema = pa.DataFrameSchema(
+        ...     columns={"column": pa.Column(pa.String)},
+        ...     index=pa.Index(pa.Int, allow_duplicates=False))
         >>>
         >>> schema.validate(
         ...     pd.DataFrame({"column": ["foo"] * 3}, index=range(3))
@@ -231,7 +231,7 @@ class Index(SeriesSchemaBase):
 
 
 class MultiIndex(DataFrameSchema):
-    """Extends DataFrameSchema with Multi-index-specific options.
+    """Validate types and properties of a DataFrame MultiIndex.
 
     Because `MultiIndex.__call__` converts the index to a dataframe via
     `to_frame()`, each index is treated as a series and it makes sense to
@@ -257,15 +257,14 @@ class MultiIndex(DataFrameSchema):
         >>> import pandas as pd
         >>> import pandera as pa
         >>>
-        >>> from pandera import Column, DataFrameSchema, MultiIndex
         >>>
-        >>> schema = DataFrameSchema(
-        ...     columns={"column": Column(pa.Int)},
-        ...     index=MultiIndex([
-        ...         Index(pa.String,
-        ...               Check(lambda s: s.isin(["foo", "bar"])),
+        >>> schema = pa.DataFrameSchema(
+        ...     columns={"column": pa.Column(pa.Int)},
+        ...     index=pa.MultiIndex([
+        ...         pa.Index(pa.String,
+        ...               pa.Check(lambda s: s.isin(["foo", "bar"])),
         ...               name="index0"),
-        ...         Index(pa.Int, name="index1"),
+        ...         pa.Index(pa.Int, name="index1"),
         ...     ])
         ... )
         >>>

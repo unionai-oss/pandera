@@ -30,12 +30,14 @@ author = 'Niels Bantilan, Nigel Markey'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx_autodoc_typehints'
 ]
 
 doctest_global_setup = """
 import pandas as pd
+import numpy as np
 pd.options.display.max_columns = None # For Travis on macOS
 pd.options.display.max_rows = None # For Travis on macOS
 """
@@ -60,6 +62,7 @@ master_doc = 'index'
 exclude_patterns = []
 
 autoclass_content = 'both'
+pygments_style = None
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -80,6 +83,8 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+autosummary_generate = ["API.rst"]
 
 
 def setup(app):

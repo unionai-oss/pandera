@@ -16,3 +16,4 @@ pandas
 scipy
 wrapt
 sphinx_autodoc_typehints
+sphinx-press-theme
