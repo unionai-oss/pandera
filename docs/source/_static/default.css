@@ -10,6 +10,11 @@ a {
   background-color: #2ac185;
 }
 
+.wy-menu-vertical li.toctree-l1.current>a {
+  border-bottom: none;
+  border-top: none;
+}
+
 .wy-nav-side {
   background-color: #414552;
 }

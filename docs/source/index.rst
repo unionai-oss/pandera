@@ -3,7 +3,8 @@
 Introduction
 ============
 
-A flexible and expressive `pandas <http://pandas.pydata.org>`_ validation library.
+A flexible and expressive `pandas <http://pandas.pydata.org>`_ data validation
+library.
 
 
 Why?
