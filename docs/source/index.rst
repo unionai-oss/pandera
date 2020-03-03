@@ -1,20 +1,18 @@
 .. pandera documentation master file
 
-.. image:: _static/pandera-logo.svg
-  :width: 140px
+Introduction
+============
 
-Pandera
-=======
-
-A flexible and expressive `pandas <http://pandas.pydata.org>`_ validation library.
+A flexible and expressive `pandas <http://pandas.pydata.org>`_ data validation
+library.
 
 
 Why?
 ----
 
-`pandera` provides a flexible and expressive API for performing data validation
-on tidy (long-form) and wide data to make data processing pipelines more
-readable and robust.
+``pandera`` provides a flexible and expressive API for performing data
+validation on tidy (long-form) and wide data to make data processing pipelines
+more readable and robust.
 
 ``pandas`` data structures contain information that ``pandera`` explicitly
 validates at runtime. This is useful in production-critical or reproducible
@@ -192,8 +190,9 @@ Submit issues, feature requests or bugfixes on
 `github <https://github.com/pandera-dev/pandera/issues>`__.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 6
+   :caption: Table of Contents
+   :hidden:
 
    self
    dataframe_schemas

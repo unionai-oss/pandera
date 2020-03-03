@@ -2,12 +2,21 @@ a {
   color: #26b079;
 }
 
-.toctree-l1 a:active {
-  background-color: #26b079 !important;
+.toctree-l1 a:active, .toctree-l1 a:hover {
+  background-color: #858585 !important;
 }
 
 .wy-nav-top {
   background-color: #2ac185;
+}
+
+.wy-menu-vertical li.toctree-l1.current>a {
+  border-bottom: none;
+  border-top: none;
+}
+
+.wy-nav-side {
+  background-color: #414552;
 }
 
 .wy-side-nav-search {

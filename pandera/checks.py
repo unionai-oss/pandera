@@ -84,33 +84,33 @@ class Check():
 
         >>> import pandas as pd
         >>> import pandera as pa
-        >>> from pandera import Column, Check, DataFrameSchema
+        >>>
         >>>
         >>> # column checks are vectorized by default
-        >>> check_positive = Check(lambda s: s > 0)
+        >>> check_positive = pa.Check(lambda s: s > 0)
         >>>
         >>> # define an element-wise check
-        >>> check_even = Check(lambda x: x % 2 == 0, element_wise=True)
+        >>> check_even = pa.Check(lambda x: x % 2 == 0, element_wise=True)
         >>>
         >>> # specify assertions across categorical variables using `groupby`,
         >>> # for example, make sure the mean measure for group "A" is always
         >>> # larger than the mean measure for group "B"
-        >>> check_by_group = Check(
+        >>> check_by_group = pa.Check(
         ...     lambda measures: measures["A"].mean() > measures["B"].mean(),
         ...     groupby=["group"],
         ... )
         >>>
         >>> # define a wide DataFrame-level check
-        >>> check_dataframe = Check(
+        >>> check_dataframe = pa.Check(
         ...     lambda df: df["measure_1"] > df["measure_2"])
         >>>
         >>> measure_checks = [check_positive, check_even, check_by_group]
         >>>
-        >>> schema = DataFrameSchema(
+        >>> schema = pa.DataFrameSchema(
         ...     columns={
-        ...         "measure_1": Column(pa.Int, checks=measure_checks),
-        ...         "measure_2": Column(pa.Int, checks=measure_checks),
-        ...         "group": Column(pa.String),
+        ...         "measure_1": pa.Column(pa.Int, checks=measure_checks),
+        ...         "measure_2": pa.Column(pa.Int, checks=measure_checks),
+        ...         "group": pa.Column(pa.String),
         ...     },
         ...     checks=check_dataframe
         ... )
@@ -301,7 +301,7 @@ class Check():
             the dtype of the :class:`pandas.Series` to be validated (e.g. a numerical
             type for float or int and a datetime for datetime).
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
@@ -319,7 +319,7 @@ class Check():
         :param min_value: Allowed minimum value for values of a series. Must be a type
             comparable to the dtype of the :class:`pandas.Series` to be validated.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
@@ -339,7 +339,7 @@ class Check():
             Must be a type comparable to the dtype of the :class:`pandas.Series` to be
             validated.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
@@ -357,7 +357,7 @@ class Check():
         :param max_value: Upper bound not to be exceeded. Must be a type comparable to
             the dtype of the :class:`pandas.Series` to be validated.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
@@ -383,7 +383,7 @@ class Check():
         Both endpoints must be a type comparable to the dtype of the
         :class:`pandas.Series` to be validated.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         if min_value is None:
             raise ValueError("min_value must not be None")
@@ -410,7 +410,7 @@ class Check():
 
         :param value: This value all elements of a given :class:`pandas.Series` must have.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         def _equal(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
@@ -424,7 +424,7 @@ class Check():
 
         :param value: This value must not occur in a :class:`pandas.Series` to check.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         def _not_equal(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
@@ -438,7 +438,7 @@ class Check():
 
         :param allowed_values: The set of allowed values. May be any iterable.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
 
         Note: It is checked whether all elements of a :class:`pandas.Series` are part
         of the set of elements of allowed values. If allowed values is a string, the
@@ -466,7 +466,7 @@ class Check():
 
         :param forbidden_values: The set of values which should not occur. May be any iterable.
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
 
         Note: Like :func:`Check.isin` this check operates on single characters if it is
         applied on strings. A string as paraforbidden_valuesmeter forbidden_values is understood as
@@ -493,7 +493,7 @@ class Check():
 
         :param pattern: Regular expression pattern to use for matching
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
 
         The behaviour is as of :func:`pandas.Series.str.match`.
         """
@@ -516,7 +516,7 @@ class Check():
 
         :param pattern: Regular expression pattern to use for searching
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
 
         The behaviour is as of :func:`pandas.Series.str.contains`.
         """
@@ -539,7 +539,7 @@ class Check():
 
         :param string: String all values should start with
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         def _startswith(series: pd.Series) -> pd.Series:
             """Returns true only for strings starting with string"""
@@ -553,7 +553,7 @@ class Check():
 
         :param string: String all values should end with
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         def _endswith(series: pd.Series) -> pd.Series:
             """Returns true only for strings ending with string"""
@@ -566,9 +566,9 @@ class Check():
         """Create a :class:`Check` to validate  if the length of strings is within a specified range
 
         :param min_len: Minimum length of strings (default: no minimum)
-        :param max_len: Maximu length of strings (default: no maximum)
+        :param max_len: Maximum length of strings (default: no maximum)
 
-        :returns :class:`Check` object
+        :returns: :class:`Check` object
         """
         if min_len is None and max_len is None:
             raise ValueError("At least a minimum or a maximum need to be specified. Got None.")

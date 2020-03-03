@@ -136,7 +136,7 @@ coerce the column into the specified ``dtype``.
 
 .. testcode:: coercing_types_on_columns
 
-    df = pd.DataFrame({"column1": [1., 2., 3, pd.np.nan]})
+    df = pd.DataFrame({"column1": [1., 2., 3, np.nan]})
     schema = DataFrameSchema({
         "column1": Column(pa.Int, coerce=True, nullable=True)
     })

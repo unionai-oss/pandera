@@ -47,13 +47,12 @@ class DataFrameSchema():
         :examples:
 
         >>> import pandera as pa
-        >>> from pandera import DataFrameSchema, Column
         >>>
-        >>> schema = DataFrameSchema({
-        ...     "str_column": Column(pa.String),
-        ...     "float_column": Column(pa.Float),
-        ...     "int_column": Column(pa.Int),
-        ...     "date_column": Column(pa.DateTime),
+        >>> schema = pa.DataFrameSchema({
+        ...     "str_column": pa.Column(pa.String),
+        ...     "float_column": pa.Column(pa.Float),
+        ...     "int_column": pa.Column(pa.Int),
+        ...     "date_column": pa.Column(pa.DateTime),
         ... })
 
         Use the pandas API to define checks, which takes a function with
@@ -62,16 +61,16 @@ class DataFrameSchema():
 
         >>> from pandera import Check
         >>>
-        >>> schema_withchecks = DataFrameSchema({
-        ...     "probability": Column(
-        ...         pa.Float, Check(lambda s: (s >= 0) & (s <= 1))),
+        >>> schema_withchecks = pa.DataFrameSchema({
+        ...     "probability": pa.Column(
+        ...         pa.Float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
-        ...     "category": Column(
+        ...     "category": pa.Column(
         ...         pa.String, [
-        ...             Check(lambda s: s.isin(["dog", "cat", "duck"])),
-        ...             Check(lambda s: (s == "dog").mean() > 0.5),
+        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
+        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
         ... })
 
@@ -194,10 +193,24 @@ class DataFrameSchema():
         Calling ``schema.validate`` returns the dataframe.
 
         >>> import pandas as pd
+        >>> import pandera as pa
         >>>
         >>> df = pd.DataFrame({
         ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
         ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
+        ... })
+        >>>
+        >>> schema_withchecks = pa.DataFrameSchema({
+        ...     "probability": pa.Column(
+        ...         pa.Float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
+        ...
+        ...     # check that the "category" column contains a few discrete
+        ...     # values, and the majority of the entries are dogs.
+        ...     "category": pa.Column(
+        ...         pa.String, [
+        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
+        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
+        ...         ]),
         ... })
         >>>
         >>> schema_withchecks.validate(df)[["probability", "category"]]
@@ -576,14 +589,12 @@ class SeriesSchema(SeriesSchemaBase):
         >>> import pandas as pd
         >>> import pandera as pa
         >>>
-        >>> from pandera import SeriesSchema
         >>>
-        >>>
-        >>> series_schema = SeriesSchema(
+        >>> series_schema = pa.SeriesSchema(
         ...     pa.Float, [
-        ...         Check(lambda s: s > 0),
-        ...         Check(lambda s: s < 1000),
-        ...         Check(lambda s: s.mean() > 300),
+        ...         pa.Check(lambda s: s > 0),
+        ...         pa.Check(lambda s: s < 1000),
+        ...         pa.Check(lambda s: s.mean() > 300),
         ...     ])
 
         See :ref:`here<SeriesSchemas>` for more usage details.
@@ -623,6 +634,15 @@ class SeriesSchema(SeriesSchemaBase):
 
         :example:
 
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>> series_schema = pa.SeriesSchema(
+        ...     pa.Float, [
+        ...         pa.Check(lambda s: s > 0),
+        ...         pa.Check(lambda s: s < 1000),
+        ...         pa.Check(lambda s: s.mean() > 300),
+        ...     ])
         >>> series = pd.Series([1, 100, 800, 900, 999], dtype=float)
         >>> print(series_schema.validate(series))
         0      1.0

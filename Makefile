@@ -23,7 +23,9 @@ requirements:
 	pip install -r requirements-dev.txt
 
 docs:
-	make -C docs doctest && python -m sphinx -E -W "docs/source" "docs/_build"
+	rm -rf docs/source/generated && \
+		python -m sphinx -E -W "docs/source" "docs/_build" && \
+		make -C docs doctest
 
 mock-ci-tests:
 	. ./ci_tests.sh

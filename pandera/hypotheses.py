@@ -89,12 +89,11 @@ class Hypothesis(Check):
         >>> import pandas as pd
         >>> import pandera as pa
         >>>
-        >>> from pandera import DataFrameSchema, Column, Hypothesis
         >>> from scipy import stats
         >>>
-        >>> schema = DataFrameSchema({
-        ...     "height_in_feet": Column(pa.Float, [
-        ...         Hypothesis(
+        >>> schema = pa.DataFrameSchema({
+        ...     "height_in_feet": pa.Column(pa.Float, [
+        ...         pa.Hypothesis(
         ...             test=stats.ttest_ind,
         ...             samples=["A", "B"],
         ...             groupby="group",
@@ -107,7 +106,7 @@ class Hypothesis(Check):
         ...             relationship_kwargs={"alpha": 0.05}
         ...         )
         ...     ]),
-        ...     "group": Column(pa.String),
+        ...     "group": pa.Column(pa.String),
         ... })
         >>> df = (
         ...     pd.DataFrame({
@@ -273,10 +272,13 @@ class Hypothesis(Check):
 
         The the built-in class method to do a two-sample t-test.
 
-        >>> schema = DataFrameSchema({
-        ...     "height_in_feet": Column(
+        >>> import pandera as pa
+        >>>
+        >>>
+        >>> schema = pa.DataFrameSchema({
+        ...     "height_in_feet": pa.Column(
         ...         pa.Float, [
-        ...             Hypothesis.two_sample_ttest(
+        ...             pa.Hypothesis.two_sample_ttest(
         ...                 sample1="A",
         ...                 sample2="B",
         ...                 groupby="group",
@@ -284,7 +286,7 @@ class Hypothesis(Check):
         ...                 alpha=0.05,
         ...                 equal_var=True),
         ...     ]),
-        ...     "group": Column(pa.String)
+        ...     "group": pa.Column(pa.String)
         ... })
         >>> df = (
         ...     pd.DataFrame({
@@ -345,10 +347,14 @@ class Hypothesis(Check):
 
         If you want to compare one sample with a pre-defined mean:
 
-        >>> schema = DataFrameSchema({
-        ...     "height_in_feet": Column(
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>>
+        >>> schema = pa.DataFrameSchema({
+        ...     "height_in_feet": pa.Column(
         ...         pa.Float, [
-        ...             Hypothesis.one_sample_ttest(
+        ...             pa.Hypothesis.one_sample_ttest(
         ...                 sample="height_in_feet",
         ...                 popmean=5,
         ...                 relationship="greater_than",

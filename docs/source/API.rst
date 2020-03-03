@@ -1,66 +1,66 @@
 .. pandera package index documentation toctree
 
+.. currentmodule:: pandera
+
 API
 ===
 
-pandera.schemas
----------------
+Schemas
+-------
 
-.. automodule:: pandera.schemas
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
 
-
-pandera.schema_components
--------------------------
-
-.. automodule:: pandera.schema_components
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   DataFrameSchema
+   SeriesSchema
 
 
-pandera.checks
---------------
+Schema Components
+-----------------
 
-.. automodule:: pandera.checks
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
 
-
-pandera.hypotheses
-------------------
-
-.. automodule:: pandera.hypotheses
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   Column
+   Index
+   MultiIndex
 
 
-pandera.decorators
-------------------
+Checks
+------
 
-.. automodule:: pandera.decorators
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
 
-
-pandera.dtypes
---------------
-
-.. automodule:: pandera.dtypes
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   Check
+   Hypothesis
 
 
-pandera.errors
---------------
+Decorators
+----------
 
-.. automodule:: pandera.errors
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   check_input
+   check_output
+
+
+Errors
+------
+
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
+
+   errors.SchemaError
+   errors.SchemaInitError
+   errors.SchemaDefinitionError

@@ -105,7 +105,7 @@ of the :class:`~pandera.schema_components.Column` series.
 
 Specifying ``groupby`` as a column name, list of column names, or
 callable changes the expected signature of the :class:`~pandera.checks.Check` function
-argument to ``dict[Any|tuple[Any], Series] -> bool|Series[bool]`` where
+argument to ``Dict[Union[Any, Tuple[Any]], pd.Series] -> Union[bool, pd.Series]`` where
 the dict keys are the discrete keys in the ``groupby`` columns.
 
 .. testcode:: column_check_groups
