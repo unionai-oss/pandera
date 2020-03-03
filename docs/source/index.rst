@@ -1,10 +1,7 @@
 .. pandera documentation master file
 
-.. image:: _static/pandera-logo.svg
-  :width: 140px
-
-Pandera
-=======
+Introduction
+============
 
 A flexible and expressive `pandas <http://pandas.pydata.org>`_ validation library.
 
@@ -193,7 +190,8 @@ Submit issues, feature requests or bugfixes on
 
 .. toctree::
    :maxdepth: 6
-   :caption: Table of Contents:
+   :caption: Table of Contents
+   :hidden:
 
    self
    dataframe_schemas

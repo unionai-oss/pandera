@@ -24,7 +24,7 @@ requirements:
 
 docs:
 	rm -rf docs/source/generated && \
-		python -m sphinx -E -W -b=doctest "docs/source" "docs/_build" && \
+		python -m sphinx -E -W "docs/source" "docs/_build" && \
 		make -C docs doctest
 
 mock-ci-tests:
