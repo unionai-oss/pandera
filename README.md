@@ -1,6 +1,4 @@
-<div align="left"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/master/docs/source/_static/pandera-logo.png" width="140"></div>
-
-# Pandera
+<div align="left"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/master/docs/source/_static/pandera-banner.png" width="140"></div>
 
 A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 

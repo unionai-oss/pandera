@@ -85,7 +85,6 @@ script:
   - codecov
   # Check docs can build, treating warnings as errors
   - python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"
-  - make -C docs doctest
   # Dependencies
   # Check that requirements-dev.text is generated exclusively by environment.yml
   - python ./scripts/generate_pip_deps_from_conda.py --compare
