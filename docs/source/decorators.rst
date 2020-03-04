@@ -10,8 +10,8 @@ you can use the ``check_input`` and ``check_output`` decorators to
 easily check function arguments or returned variables from existing
 functions.
 
-``check_input``
-~~~~~~~~~~~~~~~
+Check Input
+~~~~~~~~~~~
 
 Validates input pandas DataFrame/Series before entering the wrapped
 function.
@@ -72,8 +72,8 @@ Or an integer representing the index in the positional arguments.
         ...
 
 
-``check_output``
-~~~~~~~~~~~~~~~~
+Check Output
+~~~~~~~~~~~~
 
 The same as ``check_input``, but this decorator checks the output
 DataFrame/Series of the decorated function.

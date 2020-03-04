@@ -2,8 +2,8 @@
 
 .. currentmodule:: pandera
 
-API
-===
+API Reference
+=============
 
 Schemas
 -------

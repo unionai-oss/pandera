@@ -1,6 +1,10 @@
-<div align="left"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/master/docs/source/_static/pandera-banner.png" width="350"></div>
+<br>
+<div align="center"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/master/docs/source/_static/pandera-banner.png" width="400"></div>
 
-A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
+<hr>
+
+*A data validation library for scientists, engineers, and analysts seeking
+correctness.*
 
 <br>
 
@@ -16,8 +20,8 @@ A flexible and expressive [pandas](http://pandas.pydata.org) validation library.
 [![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
 
 `pandas` data structures contain information that `pandera` explicitly
-validates at runtime. This is useful in production-critical or reproducible research
-settings. `pandera` enables users to:
+validates at runtime. This is useful in production-critical or reproducible
+research settings. With `pandera`, you can:
 
 1. Check the types and properties of columns in a `DataFrame` or values in
    a `Series`.
@@ -48,34 +52,30 @@ Using conda:
 conda install -c conda-forge pandera
 ```
 
-## Example Usage
-
-### `DataFrameSchema`
+## Quick Start
 
 ```python
 import pandas as pd
 import pandera as pa
 
-from pandera import Column, DataFrameSchema, Check, check_output
 
-
-# validate columns
-schema = DataFrameSchema({
-    # the check function expects a series argument and should output a boolean
-    # or a boolean Series.
-    "column1": Column(pa.Int, Check(lambda s: s <= 10)),
-    "column2": Column(pa.Float, Check(lambda s: s < -1.2)),
-    # you can provide a list of validators
-    "column3": Column(pa.String, [
-        Check(lambda s: s.str.startswith("value_")),
-        Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-    ]),
-})
-
+# data to validate
 df = pd.DataFrame({
     "column1": [1, 4, 0, 10, 9],
     "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
     "column3": ["value_1", "value_2", "value_3", "value_2", "value_1"]
+})
+
+# define schema
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(pa.Int, checks=pa.Check.less_than_or_equal_to(10)),
+    "column2": pa.Column(pa.Float, checks=pa.Check.less_than(-1.2)),
+    "column3": pa.Column(pa.String, checks=[
+        pa.Check.startswith("value_")),
+        # define custom checks as functions that take a series as input and
+        # outputs a boolean or boolean Series
+        pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
+    ]),
 })
 
 validated_df = schema.validate(df)
@@ -87,12 +87,6 @@ print(validated_df)
 #  2        0     -2.9  value_3
 #  3       10    -10.1  value_2
 #  4        9    -20.4  value_1
-
-# If you have an existing data pipeline that uses pandas data structures, you can use the check_input and check_output decorators to check function arguments or returned variables from existing functions.
-
-@check_output(schema)
-def custom_function(df):
-    return df
 ```
 
 ## Development Installation

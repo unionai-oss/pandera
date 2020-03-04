@@ -79,6 +79,7 @@ html_logo = "_static/pandera-banner-white.png"
 html_theme_options = {
     "collapse_navigation": False,
     "logo_only": True,
+    "analytics_id": "UA-71018060-2",
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -86,7 +87,7 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-autosummary_generate = ["API.rst"]
+autosummary_generate = ["API_reference.rst"]
 
 
 def setup(app):

@@ -30,3 +30,15 @@ a {
 .wy-menu-vertical header, .wy-menu-vertical p.caption {
   color: #26b079;
 }
+
+.wy-menu-vertical li span.toctree-expand {
+  color: #dedede;
+}
+
+.wy-menu-vertical li.current > a span.toctree-expand {
+  color: #848484;
+}
+
+.wy-menu-vertical li:hover > a span.toctree-expand {
+  color: #dedede;
+}
