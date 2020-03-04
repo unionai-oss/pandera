@@ -71,7 +71,7 @@ schema = pa.DataFrameSchema({
     "column1": pa.Column(pa.Int, checks=pa.Check.less_than_or_equal_to(10)),
     "column2": pa.Column(pa.Float, checks=pa.Check.less_than(-1.2)),
     "column3": pa.Column(pa.String, checks=[
-        pa.Check.startswith("value_")),
+        pa.Check.str_startswith("value_"),
         # define custom checks as functions that take a series as input and
         # outputs a boolean or boolean Series
         pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
