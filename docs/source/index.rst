@@ -1,22 +1,19 @@
 .. pandera documentation master file
 
-Introduction
-============
+Statistical Data Validation for Pandas
+======================================
 
-A flexible and expressive `pandas <http://pandas.pydata.org>`_ data validation
-library.
-
-
-Why?
-----
+*A data validation library for scientists, engineers, and analysts seeking
+correctness.*
 
 ``pandera`` provides a flexible and expressive API for performing data
 validation on tidy (long-form) and wide data to make data processing pipelines
 more readable and robust.
 
-``pandas`` data structures contain information that ``pandera`` explicitly
-validates at runtime. This is useful in production-critical or reproducible
-research settings. ``pandera`` enables users to:
+`pandas <http://pandas.pydata.org>`_ data structures contain information that
+``pandera`` explicitly validates at runtime. This is useful in
+production-critical data pipelines or reproducible research settings. With
+``pandera``, you can:
 
 #. :ref:`Check<checks>` the types and properties of columns in a
    ``pd.DataFrame`` or values in a ``pd.Series``.
@@ -24,10 +21,6 @@ research settings. ``pandera`` enables users to:
    :ref:`hypothesis testing<hypothesis>`.
 #. Seamlessly integrate with existing data analysis/processing pipelines
    via :ref:`function decorators<decorators>`.
-
-``pandera`` provides a flexible and expressive API for performing data
-validation on tidy (long-form) and wide data to make data processing pipelines
-more readable and robust.
 
 
 Install
@@ -55,26 +48,23 @@ Quick Start
     import pandas as pd
     import pandera as pa
 
-    from pandera import Column, DataFrameSchema, Check
-
-
-    # validate columns
-    schema = DataFrameSchema({
-        # the check function expects a series argument and should output a boolean
-        # or a boolean Series.
-        "column1": Column(pa.Int, Check(lambda s: s <= 10)),
-        "column2": Column(pa.Float, Check(lambda s: s < -1.2)),
-        # you can provide a list of validators
-        "column3": Column(pa.String, [
-            Check(lambda s: s.str.startswith("value")),
-            Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-        ]),
-    })
-
+    # data to validate
     df = pd.DataFrame({
         "column1": [1, 4, 0, 10, 9],
         "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
         "column3": ["value_1", "value_2", "value_3", "value_2", "value_1"],
+    })
+
+    # define schema
+    schema = pa.DataFrameSchema({
+        "column1": pa.Column(pa.Int, checks=pa.Check.less_than_or_equal_to(10)),
+        "column2": pa.Column(pa.Float, checks=pa.Check.less_than(-1.2)),
+        "column3": pa.Column(pa.String, checks=[
+            pa.Check.str_startswith("value_"),
+            # define custom checks as functions that take a series as input and
+            # outputs a boolean or boolean Series
+            pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
+        ]),
     })
 
     validated_df = schema.validate(df)
@@ -95,14 +85,17 @@ Alternatively, you can pass strings representing the
 
 .. testcode:: quick_start
 
-   schema = DataFrameSchema({
-       "column1": Column("int64", Check(lambda s: s <= 10)),
-       "column2": Column("float64", Check(lambda s: s < -1.2)),
-       "column3": Column("object", [
-           Check(lambda s: s.str.startswith("value")),
-           Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-       ]),
-   })
+    schema = pa.DataFrameSchema({
+        "column1": pa.Column("int64", checks=pa.Check.less_than_or_equal_to(10)),
+        "column2": pa.Column("float64", checks=pa.Check.less_than(-1.2)),
+        # use "string" as of pandas >= 1.0
+        "column3": pa.Column("object", checks=[
+            pa.Check.str_startswith("value_"),
+            # define custom checks as functions that take a series as input and
+            # outputs a boolean or boolean Series
+            pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
+        ]),
+    })
 
 
 Informative Errors
@@ -200,7 +193,7 @@ Submit issues, feature requests or bugfixes on
    checks
    hypothesis
    decorators
-   API
+   API_reference
 
 Indices and tables
 ==================
