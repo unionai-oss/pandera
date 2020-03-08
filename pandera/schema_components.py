@@ -1,7 +1,11 @@
 """Components used in pandera schemas."""
 
+from copy import copy
+from functools import reduce
+
 from typing import Union, Optional
 
+import numpy as np
 import pandas as pd
 
 from . import errors
@@ -21,7 +25,9 @@ class Column(SeriesSchemaBase):
             allow_duplicates: bool = True,
             coerce: bool = False,
             required: bool = True,
-            name: str = None) -> None:
+            name: str = None,
+            regex: bool = False,
+        ) -> None:
         """Create column validator object.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
@@ -35,7 +41,9 @@ class Column(SeriesSchemaBase):
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype.
         :param required: Whether or not column is allowed to be missing
-
+        :param name: column name in dataframe to validate.
+        :param regex: whether the ``name`` attribute should be treated as a
+            regex pattern to apply to multiple columns in a dataframe.
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:
@@ -60,6 +68,7 @@ class Column(SeriesSchemaBase):
         self.required = required
         self.pandas_dtype = pandas_dtype
         self._name = name
+        self._regex = regex
 
         if coerce and pandas_dtype is None:
             raise errors.SchemaInitError(
@@ -106,11 +115,59 @@ class Column(SeriesSchemaBase):
                 "initializing a Column object, or use the ``set_name`` "
                 "method.")
 
-        if self.coerce:
-            check_obj[self.name] = self.coerce_dtype(
-                check_obj[self.name])
+        column_keys_to_check = self._get_regex_columns(check_obj.columns) if \
+            self._regex else [self._name]
 
-        return super(Column, self).validate(check_obj)
+        check_results = []
+        for column_name in column_keys_to_check:
+            if self.coerce:
+                check_obj[column_name] = self.coerce_dtype(
+                    check_obj[column_name])
+            check_results.append(
+                isinstance(
+                    super(
+                        Column, copy(self).set_name(column_name)
+                    ).validate(check_obj),
+                    pd.DataFrame)
+            )
+
+        assert all(check_results)
+        return check_obj
+
+    def _get_regex_columns(self, columns):
+        """Get matching column names based on regex column name pattern."""
+        if isinstance(self.name, tuple):
+            # handle MultiIndex case
+            if len(self.name) != columns.nlevels:
+                raise IndexError(
+                    "Column regex name='%s' is a tuple, expected a MultiIndex "
+                    "columns with %d number of levels, found %d levels" %
+                    (self.name, len(self.name), columns.nlevels)
+                )
+            matches = reduce(
+                lambda x, y: x & y,
+                (
+                    columns.get_level_values(i).str.match(name)
+                    for i, name in enumerate(self.name)
+                ),
+                np.ones(len(columns)).astype(bool),
+            )
+            column_keys_to_check = columns[matches].get_values()
+        else:
+            if isinstance(columns, pd.MultiIndex):
+                raise IndexError(
+                    "Column regex name %s is a string, expected a dataframe "
+                    "where the index is a pd.Index object, not a "
+                    "pd.MultiIndex object" % (self.name)
+                )
+            column_keys_to_check = columns[columns.str.match(self.name)]
+        if len(column_keys_to_check) == 0:
+            raise errors.SchemaError(
+                "Column regex name='%s' did not match any columns in the "
+                "dataframe. Update the regex pattern so that it matches at "
+                "least one column:\n%s" % (self.name, columns.tolist())
+            )
+        return column_keys_to_check
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
