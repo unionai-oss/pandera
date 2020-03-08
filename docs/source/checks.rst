@@ -250,8 +250,8 @@ want the resulting table for further analysis.
 
 
     df = pd.DataFrame({
-        "var1": np.random.normal(loc=5, scale=2, size=100),
-        "var2": np.random.uniform(low=0, high=10, size=100),
+        "var1": np.random.normal(loc=5, scale=2, size=1000),
+        "var2": np.random.uniform(low=0, high=10, size=1000),
     })
 
     normal_check = Hypothesis(
