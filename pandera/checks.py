@@ -33,7 +33,8 @@ class Check():
             groupby: Optional[Union[str, List[str], Callable]] = None,
             element_wise: bool = False,
             error: Optional[str] = None,
-            n_failure_cases: Optional[int] = constants.N_FAILURE_CASES
+            raise_warning: bool = False,
+            n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
@@ -77,6 +78,10 @@ class Check():
             number of elements as checks.
         :param error: custom error message if series fails validation
             check.
+        :param raise_warning: if True, raise a UserWarning and do not throw
+            exception instead of raising a SchemaError for a specific check.
+            This option should be used carefully in cases where a failing
+            check is informational and shouldn't stop execution of the program.
         :param n_failure_cases: report the top n failure cases. If None, then
             report all failure cases.
 
@@ -137,6 +142,7 @@ class Check():
         self.fn = fn
         self.element_wise = element_wise
         self.error = error
+        self.raise_warning = raise_warning
         self.n_failure_cases = n_failure_cases
 
         if groupby is None and groups is not None:
@@ -293,13 +299,15 @@ class Check():
             if self.error is not None else "<Check %s>" % name
 
     @staticmethod
-    def greater_than(min_value) -> 'Check':
+    def greater_than(min_value, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` ensuring all values of a series are strictly greater
             than a certain value.
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable to
             the dtype of the :class:`pandas.Series` to be validated (e.g. a numerical
             type for float or int and a datetime for datetime).
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -310,14 +318,21 @@ class Check():
             """Comparison function for check"""
             return series > min_value
 
-        return Check(fn=_greater_than, error="greater_than(%s)" % min_value)
+        return Check(
+            fn=_greater_than,
+            error="greater_than(%s)" % min_value,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def greater_than_or_equal_to(min_value) -> 'Check':
+    def greater_than_or_equal_to(
+            min_value, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` ensuring all values are greater or equal a certain value.
 
         :param min_value: Allowed minimum value for values of a series. Must be a type
             comparable to the dtype of the :class:`pandas.Series` to be validated.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -328,16 +343,21 @@ class Check():
             """Comparison function for check"""
             return series >= min_value
 
-        return Check(fn=_greater_or_equal,
-                     error="greater_than_or_equal_to(%s)" % min_value)
+        return Check(
+            fn=_greater_or_equal,
+            error="greater_than_or_equal_to(%s)" % min_value,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def less_than(max_value) -> 'Check':
+    def less_than(max_value, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` ensuring all values are strictly below a certain value.
 
         :param max_value: All elements of a series must be strictly smaller than this.
             Must be a type comparable to the dtype of the :class:`pandas.Series` to be
             validated.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -348,14 +368,21 @@ class Check():
             """Comparison function for check"""
             return series < max_value
 
-        return Check(fn=_less_than, error="less_than(%s)" % max_value)
+        return Check(
+            fn=_less_than,
+            error="less_than(%s)" % max_value,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def less_than_or_equal_to(max_value) -> 'Check':
+    def less_than_or_equal_to(
+            max_value, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` ensuring no value of a series exceeds a certain value.
 
         :param max_value: Upper bound not to be exceeded. Must be a type comparable to
             the dtype of the :class:`pandas.Series` to be validated.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -366,10 +393,16 @@ class Check():
             """Comparison function for check"""
             return series <= max_value
 
-        return Check(fn=_less_or_equal, error="less_than_or_equal_to(%s)" % max_value)
+        return Check(
+            fn=_less_or_equal,
+            error="less_than_or_equal_to(%s)" % max_value,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def in_range(min_value, max_value, include_min=True, include_max=True) -> 'Check':
+    def in_range(
+            min_value, max_value, include_min=True, include_max=True,
+            raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` ensuring all values of a series are within an interval.
 
         :param min_value: Left / lower endpoint of the interval.
@@ -379,6 +412,8 @@ class Check():
             (the default) or whether all values must be strictly greater than min_value.
         :param include_max: Defines whether min_value is also an allowed value
             (the default) or whether all values must be strictly smaller than max_value.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         Both endpoints must be a type comparable to the dtype of the
         :class:`pandas.Series` to be validated.
@@ -401,14 +436,19 @@ class Check():
             """Comparison function for check"""
             return left_op(min_value, series) & right_op(max_value, series)
 
-        return Check(fn=_in_range,
-                     error="in_range(%s, %s)" % (min_value, max_value))
+        return Check(
+            fn=_in_range,
+            error="in_range(%s, %s)" % (min_value, max_value),
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def equal_to(value) -> 'Check':
+    def equal_to(value, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` ensuring all elements of a series equal a certain value.
 
         :param value: This value all elements of a given :class:`pandas.Series` must have.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -416,13 +456,18 @@ class Check():
             """Comparison function for check"""
             return series == value
 
-        return Check(fn=_equal, error="equal_to(%s)" % value)
+        return Check(
+            fn=_equal, error="equal_to(%s)" % value,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def not_equal_to(value) -> 'Check':
+    def not_equal_to(value, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` ensuring no elements of a series equals a certain value.
 
         :param value: This value must not occur in a :class:`pandas.Series` to check.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -430,13 +475,19 @@ class Check():
             """Comparison function for check"""
             return series != value
 
-        return Check(fn=_not_equal, error="not_equal_to(%s)" % value)
+        return Check(
+            fn=_not_equal,
+            error="not_equal_to(%s)" % value,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def isin(allowed_values: Iterable) -> 'Check':
+    def isin(allowed_values: Iterable, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` to ensure only allowed values occur within a series.
 
         :param allowed_values: The set of allowed values. May be any iterable.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
 
@@ -458,13 +509,21 @@ class Check():
             """Comparison function for check"""
             return series.isin(allowed_values)
 
-        return Check(fn=_isin, error="isin(%s)" % allowed_values)
+        return Check(
+            fn=_isin,
+            error="isin(%s)" % allowed_values,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def notin(forbidden_values: Iterable) -> 'Check':
+    def notin(
+            forbidden_values: Iterable,
+            raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` to ensure some defined values don't occur within a series.
 
         :param forbidden_values: The set of values which should not occur. May be any iterable.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
 
@@ -485,13 +544,19 @@ class Check():
             """Comparison function for check"""
             return ~series.isin(forbidden_values)
 
-        return Check(fn=_notin, error="notin(%s)" % forbidden_values)
+        return Check(
+            fn=_notin,
+            error="notin(%s)" % forbidden_values,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def str_matches(pattern: str) -> 'Check':
+    def str_matches(pattern: str, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` to validate if strings values match a regular expression.
 
         :param pattern: Regular expression pattern to use for matching
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
 
@@ -508,13 +573,19 @@ class Check():
             """Check if all strings in the series match the regular expression."""
             return series.str.match(regex, na=False)
 
-        return Check(fn=_match, error="str_matches(%s)" % regex)
+        return Check(
+            fn=_match,
+            error="str_matches(%s)" % regex,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def str_contains(pattern: str) -> 'Check':
+    def str_contains(pattern: str, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` to validate if the pattern can be found within each row
 
         :param pattern: Regular expression pattern to use for searching
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
 
@@ -531,13 +602,19 @@ class Check():
             """Check if a regex search is successful within each value"""
             return series.str.contains(regex, na=False)
 
-        return Check(fn=_contains, error="str_contains(%s)" % regex)
+        return Check(
+            fn=_contains,
+            error="str_contains(%s)" % regex,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def str_startswith(string: str) -> 'Check':
+    def str_startswith(string: str, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` to validate if all values start with a certain string
 
         :param string: String all values should start with
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -545,13 +622,19 @@ class Check():
             """Returns true only for strings starting with string"""
             return series.str.startswith(string, na=False)
 
-        return Check(fn=_startswith, error="str_startswith(%s)" % string)
+        return Check(
+            fn=_startswith,
+            error="str_startswith(%s)" % string,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def str_endswith(string: str) -> 'Check':
+    def str_endswith(string: str, raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` to validate if all values ends with a certain string
 
         :param string: String all values should end with
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -559,14 +642,23 @@ class Check():
             """Returns true only for strings ending with string"""
             return series.str.endswith(string, na=False)
 
-        return Check(fn=_endswith, error="str_endswith(%s)" % string)
+        return Check(
+            fn=_endswith,
+            error="str_endswith(%s)" % string,
+            raise_warning=raise_warning,
+        )
 
     @staticmethod
-    def str_length(min_len: int = None, max_len: int = None) -> 'Check':
+    def str_length(
+            min_len: int = None,
+            max_len: int = None,
+            raise_warning: bool = False) -> 'Check':
         """Create a :class:`Check` to validate  if the length of strings is within a specified range
 
         :param min_len: Minimum length of strings (default: no minimum)
         :param max_len: Maximum length of strings (default: no maximum)
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :returns: :class:`Check` object
         """
@@ -585,4 +677,8 @@ class Check():
                 """Check for both, minimum and maximum string length"""
                 return (series.str.len() <= max_len) & (series.str.len() >= min_len)
 
-        return Check(fn=check_fn, error="str_length(%s, %s)" % (min_len, max_len))
+        return Check(
+            fn=check_fn,
+            error="str_length(%s, %s)" % (min_len, max_len),
+            raise_warning=raise_warning,
+        )

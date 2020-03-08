@@ -284,3 +284,37 @@ def test_equality_operators_functional_equivalence():
     same_check = Check(lambda h: h["foo"]["col1"].iat[0] == 1, groupby="col3")
 
     assert main_check == same_check
+
+
+def test_raise_warning_series():
+    """Test that checks with raise_warning=True raise a warning."""
+    data = pd.Series([-1, -2, -3])
+    error_schema = SeriesSchema(checks=Check(lambda s: s > 0))
+    warning_schema = SeriesSchema(
+        checks=Check(lambda s: s > 0, raise_warning=True)
+    )
+
+    with pytest.raises(errors.SchemaError):
+        error_schema(data)
+
+    with pytest.warns(UserWarning):
+        warning_schema(data)
+
+
+def test_raise_warning_dataframe():
+    """Test that checks with raise_warning=True raise a warning."""
+    data = pd.DataFrame({"positive_numbers": [-1, -2, -3]})
+    error_schema = DataFrameSchema({
+        "positive_numbers": Column(checks=Check(lambda s: s > 0)),
+    })
+    warning_schema = DataFrameSchema({
+        "positive_numbers": Column(
+            checks=Check(lambda s: s > 0, raise_warning=True)
+        ),
+    })
+
+    with pytest.raises(errors.SchemaError):
+        error_schema(data)
+
+    with pytest.warns(UserWarning):
+        warning_schema(data)

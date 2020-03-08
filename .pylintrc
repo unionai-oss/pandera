@@ -8,4 +8,4 @@ good-names=
     x,
 
 [MESSAGES CONTROL]
-disable=R0913,duplicate-code
+disable=R0913,duplicate-code,too-many-instance-attributes

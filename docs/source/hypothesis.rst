@@ -150,4 +150,3 @@ The equivalent wide-form schema would look like this:
     )
 
     schema.validate(df)
-
