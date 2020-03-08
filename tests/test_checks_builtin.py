@@ -5,6 +5,9 @@ import pandas as pd
 import pytest
 
 from pandera.checks import Check
+from pandera.schemas import DataFrameSchema, SeriesSchema
+from pandera.schema_components import Column
+from pandera.errors import SchemaError
 
 
 def check_values(values, check, expected_failure_cases):
@@ -39,6 +42,28 @@ def check_none_failures(values, check):
     assert not check_result.check_passed, "Check should fail due to None value"
     assert check_result.checked_object is series, "Wrong checked_object returned"
     assert check_result.failure_cases.isnull().all(), "Only null values should be failure cases"
+
+
+def check_raise_error_or_warning(failure_values, check):
+    """
+    Check that Series and DataFrameSchemas raise warnings instead of exceptions
+
+    NOTE: it's not ideal that we have to import schema and schemaa_components
+    modules into this test module to test this functionality, this doesn't
+    separate the units under test very well.
+    """
+    failure_series = pd.Series(failure_values)
+    failure_df = pd.DataFrame({"failure_column": failure_values})
+    check.raise_warning = False
+
+    with pytest.raises(SchemaError):
+        SeriesSchema(checks=check)(failure_series)
+        DataFrameSchema({"failure_column": Column(checks=check)})(failure_df)
+
+    check.raise_warning = True
+    with pytest.warns(UserWarning):
+        SeriesSchema(checks=check)(failure_series)
+        DataFrameSchema({"failure_column": Column(checks=check)})(failure_df)
 
 
 class TestGreaterThan:
@@ -78,6 +103,7 @@ class TestGreaterThan:
     def test_failing(values, min_val, failure_cases):
         """Run checks which should fail"""
         check_values(values, Check.greater_than(min_val), failure_cases)
+        check_raise_error_or_warning(values, Check.greater_than(min_val))
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
@@ -127,6 +153,8 @@ class TestGreaterThanOrEqualTo:
     def test_failing(values, min_val, failure_cases):
         """Run checks which should fail"""
         check_values(values, Check.greater_than_or_equal_to(min_val), failure_cases)
+        check_raise_error_or_warning(
+            values, Check.greater_than_or_equal_to(min_val))
 
     @staticmethod
     @pytest.mark.parametrize('values, min_val', [
@@ -176,6 +204,7 @@ class TestLessThan:
     def test_failing(values, max_value, failure_cases):
         """Run checks which should fail"""
         check_values(values, Check.less_than(max_value), failure_cases)
+        check_raise_error_or_warning(values, Check.less_than(max_value))
 
     @staticmethod
     @pytest.mark.parametrize('values, max_value', [
@@ -224,7 +253,10 @@ class TestLessThanOrEqualTo:
     ])
     def test_failing(values, max_value, failure_cases):
         """Run checks which should fail"""
-        check_values(values, Check.less_than_or_equal_to(max_value), failure_cases)
+        check_values(
+            values, Check.less_than_or_equal_to(max_value), failure_cases)
+        check_raise_error_or_warning(
+            values, Check.less_than_or_equal_to(max_value))
 
     @staticmethod
     @pytest.mark.parametrize('values, max_value', [
@@ -290,6 +322,7 @@ class TestInRange:
     def test_failing(values, check_args, failure_cases):
         """Run checks which should fail"""
         check_values(values, Check.in_range(*check_args), failure_cases)
+        check_raise_error_or_warning(values, Check.in_range(*check_args))
 
     @staticmethod
     @pytest.mark.parametrize('values, check_args', [
@@ -320,7 +353,7 @@ class TestEqualTo:
         check_values(series_values, Check.equal_to(value), {})
 
     @staticmethod
-    @pytest.mark.parametrize('series_values, value, failure_cases', [
+    @pytest.mark.parametrize('values, value, failure_cases', [
         ((1, 2), 1, {2}),
         ((-1, -2, 3), -1, {-2, 3}),
         ((pd.Timestamp("2015-02-01"),
@@ -329,9 +362,10 @@ class TestEqualTo:
          {pd.Timestamp("2015-02-02")}),
         (("foo", "bar"), "foo", {"bar"})
     ])
-    def test_failing(series_values, value, failure_cases):
+    def test_failing(values, value, failure_cases):
         """Run checks which should fail"""
-        check_values(series_values, Check.equal_to(value), failure_cases)
+        check_values(values, Check.equal_to(value), failure_cases)
+        check_raise_error_or_warning(values, Check.equal_to(value))
 
     @staticmethod
     @pytest.mark.parametrize('series_values, value', [
@@ -363,7 +397,7 @@ class TestNotEqualTo:
         check_values(series_values, Check.not_equal_to(value), {})
 
     @staticmethod
-    @pytest.mark.parametrize('series_values, value, failure_cases', [
+    @pytest.mark.parametrize('values, value, failure_cases', [
         ((1, 2), 1, {1}),
         ((-1, -2, 3), -1, {-1}),
         ((pd.Timestamp("2015-02-01"),
@@ -372,9 +406,10 @@ class TestNotEqualTo:
          {pd.Timestamp("2015-02-01")}),
         (("foo", "bar"), "foo", {"foo"})
     ])
-    def test_failing(series_values, value, failure_cases):
+    def test_failing(values, value, failure_cases):
         """Run checks which should fail"""
-        check_values(series_values, Check.not_equal_to(value), failure_cases)
+        check_values(values, Check.not_equal_to(value), failure_cases)
+        check_raise_error_or_warning(values, Check.not_equal_to(value))
 
 
 class TestIsin:
@@ -405,7 +440,7 @@ class TestIsin:
         check_values(series_values, Check.isin(allowed), {})
 
     @staticmethod
-    @pytest.mark.parametrize('series_values, allowed, failure_cases', [
+    @pytest.mark.parametrize('values, allowed, failure_cases', [
         ((1, 2), [2], {1}),
         ((-1, -2, 3), (-2, -3), {-1, 3}),
         ((-1, -2, 3), pd.Series((-2, 3)), {-1}),
@@ -416,9 +451,10 @@ class TestIsin:
         (("foo", "bar"), {"foo"}, {"bar"}),
         (("foo", "f"), "foobar", {"foo"})
     ])
-    def test_failing(series_values, allowed, failure_cases):
+    def test_failing(values, allowed, failure_cases):
         """Run checks which should fail"""
-        check_values(series_values, Check.isin(allowed), failure_cases)
+        check_values(values, Check.isin(allowed), failure_cases)
+        check_raise_error_or_warning(values, Check.isin(allowed))
 
     @staticmethod
     @pytest.mark.parametrize('values, allowed', [
@@ -486,6 +522,7 @@ class TestNotin:
     def test_failing(series_values, forbidden, failure_cases):
         """Run checks which should fail"""
         check_values(series_values, Check.notin(forbidden), failure_cases)
+        check_raise_error_or_warning(series_values, Check.notin(forbidden))
 
     @staticmethod
     def test_ignore_mutable_arg():
@@ -531,6 +568,7 @@ class TestStrMatches:
     def test_failing(series_values, pattern, failure_cases):
         """Run checks which should fail"""
         check_values(series_values, Check.str_matches(pattern), failure_cases)
+        check_raise_error_or_warning(series_values, Check.str_matches(pattern))
 
     @staticmethod
     @pytest.mark.parametrize('series_values, pattern', [
@@ -573,6 +611,8 @@ class TestStrContains:
     def test_failing(series_values, pattern, failure_cases):
         """Run checks which should fail"""
         check_values(series_values, Check.str_contains(pattern), failure_cases)
+        check_raise_error_or_warning(
+            series_values, Check.str_contains(pattern))
 
     @staticmethod
     @pytest.mark.parametrize('series_values, pattern', [
@@ -602,7 +642,10 @@ class TestStrStartsWith:
     ])
     def test_failing(series_values, pattern, failure_cases):
         """Run checks which should fail"""
-        check_values(series_values, Check.str_startswith(pattern), failure_cases)
+        check_values(
+            series_values, Check.str_startswith(pattern), failure_cases)
+        check_raise_error_or_warning(
+            series_values, Check.str_startswith(pattern))
 
     @staticmethod
     @pytest.mark.parametrize('series_values, pattern', [
@@ -633,6 +676,8 @@ class TestStrEndsWith:
     def test_failing(series_values, pattern, failure_cases):
         """Run checks which should fail"""
         check_values(series_values, Check.str_endswith(pattern), failure_cases)
+        check_raise_error_or_warning(
+            series_values, Check.str_endswith(pattern))
 
     @staticmethod
     @pytest.mark.parametrize('series_values, pattern', [
@@ -669,7 +714,10 @@ class TestStrLength:
     ])
     def test_failing(series_values, min_len, max_len, failure_cases):
         """Run checks which should fail"""
-        check_values(series_values, Check.str_length(min_len, max_len), failure_cases)
+        check_values(
+            series_values, Check.str_length(min_len, max_len), failure_cases)
+        check_raise_error_or_warning(
+            series_values, Check.str_length(min_len, max_len))
 
     @staticmethod
     @pytest.mark.parametrize('series_values, min_len, max_len', [

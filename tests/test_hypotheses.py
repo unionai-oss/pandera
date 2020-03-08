@@ -10,8 +10,10 @@ from pandera import (
 
 
 def test_dataframe_hypothesis_checks():
-    """Test that two specific implementations of a Hypothesis work as expected
-    and that using a Column that wasn't defined will error."""
+    """
+    Test that two specific implementations of a Hypothesis work as expected
+    and that using a Column that wasn't defined will error.
+    """
     df = pd.DataFrame({
         "col1": range(100, 201),
         "col2": range(0, 101),
@@ -47,7 +49,7 @@ def test_dataframe_hypothesis_checks():
 
     hypothesis_check_schema.validate(df)
 
-    # raise error when using groupby
+    # raise error when using groupby for a column that doesn't exist
     hypothesis_check_schema_groupby = DataFrameSchema(
         columns={
             "col1": Column(Int),

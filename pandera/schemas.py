@@ -706,14 +706,20 @@ def _handle_check_results(
     :param check_index: index of check in the schema component check list.
     :param check: Check object used to validate pandas object.
     :param check_args: arguments to pass into check object.
+    :returns: True if check results pass or check.raise_warning=True, otherwise
+        False.
     """
     if not check_result.check_passed:
         if check_result.failure_cases is None:
-            raise errors.SchemaError(
-                error_formatters.format_generic_error_message(
-                    schema, check, check_index))
-        raise errors.SchemaError(
-            error_formatters.format_vectorized_error_message(
+            error_msg = error_formatters.format_generic_error_message(
+                schema, check, check_index)
+        else:
+            error_msg = error_formatters.format_vectorized_error_message(
                 schema, check, check_index, check_result.failure_cases)
-        )
+
+        # raise a warning without exiting if the check is specified to do so
+        if check.raise_warning:
+            warnings.warn(error_msg, UserWarning)
+            return True
+        raise errors.SchemaError(error_msg)
     return check_result.check_passed

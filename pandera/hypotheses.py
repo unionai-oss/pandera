@@ -34,7 +34,8 @@ class Hypothesis(Check):
             relationship: Union[str, Callable] = "equal",
             test_kwargs: Dict = None,
             relationship_kwargs: Dict = None,
-            error: Optional[str] = None
+            error: Optional[str] = None,
+            raise_warning: bool = False,
     ) -> None:
         """Perform a hypothesis test on a Series or DataFrame.
 
@@ -81,6 +82,10 @@ class Hypothesis(Check):
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
         :param error: error message to show
+        :param raise_warning: if True, raise a UserWarning and do not throw
+            exception instead of raising a SchemaError for a specific check.
+            This option should be used carefully in cases where a failing
+            check is informational and shouldn't stop execution of the program.
 
         :examples:
 
@@ -138,7 +143,9 @@ class Hypothesis(Check):
             self._hypothesis_check,
             groupby=groupby,
             element_wise=False,
-            error=error)
+            error=error,
+            raise_warning=raise_warning,
+        )
 
     @property
     def is_one_sample_test(self):
@@ -213,7 +220,9 @@ class Hypothesis(Check):
             relationship: str = "equal",
             alpha=DEFAULT_ALPHA,
             equal_var=True,
-            nan_policy="propagate"):
+            nan_policy="propagate",
+            raise_warning=False,
+        ):
         """Calculate a t-test for the means of two columns.
 
         This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
@@ -225,12 +234,10 @@ class Hypothesis(Check):
             `SeriesSchema` hypotheses, refers to the level in the `groupby`
             column. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
-        :type sample1: str
         :param sample2: The second sample group to test. For `Column` and
             `SeriesSchema` hypotheses, refers to the level in the `groupby`
             column. For `DataFrameSchema` hypotheses, refers to column in
             the `DataFrame`.
-        :type sample2: str
         :param groupby: If a string or list of strings is provided, then these
             columns are used to group the Column Series by `groupby`. If a
             callable is passed, the expected signature is
@@ -243,30 +250,27 @@ class Hypothesis(Check):
             dict[str|tuple[str], Series] -> bool|pd.Series[bool]
 
             Where specific groups can be obtained from the input dict.
-        :type groupby: str|list[str]|callable|None
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. Available relationships
             are: "greater_than", "less_than", "not_equal", and "equal".
             For example, `group1 greater_than group2` specifies an alternative
             hypothesis that the mean of group1 is greater than group 2 relative
             to a null hypothesis that they are equal.
-        :type relationship: str
         :param alpha: (Default value = 0.01) The significance level; the
             probability of rejecting the null hypothesis when it is true. For
             example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
-        :type alpha: float
         :param equal_var: (Default value = True) If True (default), perform a
             standard independent 2 sample test that assumes equal population
             variances. If False, perform Welch's t-test, which does not
             assume equal population variance
-        :type equal_var: bool
         :param nan_policy: Defines how to handle when input returns nan, one of
             {'propagate', 'raise', 'omit'}, (Default value = 'propagate').
             For more details see:
             https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html
-        :type nan_policy: str
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :example:
 
@@ -315,6 +319,7 @@ class Hypothesis(Check):
             relationship_kwargs={"alpha": alpha},
             error="failed two sample ttest between '%s' and '%s'" % (
                 sample1, sample2),
+            raise_warning=raise_warning,
         )
 
     @classmethod
@@ -323,7 +328,9 @@ class Hypothesis(Check):
             sample: str,
             popmean: float,
             relationship: str,
-            alpha: float = DEFAULT_ALPHA):
+            alpha: float = DEFAULT_ALPHA,
+            raise_warning=False,
+    ):
         """Calculate a t-test for the mean of one column.
 
         :param sample: The sample group to test. For `Column` and
@@ -342,6 +349,8 @@ class Hypothesis(Check):
             example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
+        :param raise_warning: if True, check raises UserWarning instead of
+            SchemaError on validation.
 
         :example:
 
@@ -386,4 +395,5 @@ class Hypothesis(Check):
             test_kwargs={"popmean": popmean},
             relationship_kwargs={"alpha": alpha},
             error="failed one sample ttest for column '%s'" % (sample),
+            raise_warning=raise_warning,
         )

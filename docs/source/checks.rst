@@ -60,7 +60,7 @@ blacklisting of allowed values can be done more easily:
 
 
 Vectorized vs. Element-wise Checks
-----------------------------------
+------------------------------------
 
 By default, :class:`~pandera.checks.Check` objects operate on ``pd.Series``
 objects. If you want to make atomic checks for each element in the Column, then
@@ -214,3 +214,80 @@ The equivalent wide-form schema would look like this:
     )
 
     schema.validate(df)
+
+
+Raise UserWarning on Check Failure
+----------------------------------
+
+In some cases, you might want to raise a ``UserWarning`` and continue execution
+of your program. The ``Check`` and ``Hypothesis`` classes and their built-in
+methods all support the keyword argument ``raise_warning``, which is ``False``
+by default. If set to ``True``, the check will raise a warning instead of
+throwing a ``SchemaError``.
+
+.. warning::
+    Use this feature carefully! If the check is for informational purposes and
+    not critical for data integrity then use ``raise_warning=True``. However,
+    if the assumptions expressed in a ``Check`` is a necessary condition to
+    considering your data as valid, do not set this option to true.
+
+One scenario where you'd want to do this would be in a data pipeline that
+does some preprocessing, checks for normality in certain columns, and writes
+the resulting dataset to a table. In this case, you want to see if your
+normality assumptions are not fulfilled by certain columns, but you still
+want the resulting table for further analysis.
+
+.. testcode:: check_raise_warning
+
+    import warnings
+
+    import numpy as np
+    import pandas as pd
+    import pandera as pa
+
+    from scipy.stats import normaltest
+    from pandera import DataFrameSchema, Column, Hypothesis
+
+
+    df = pd.DataFrame({
+        "var1": np.random.normal(loc=5, scale=2, size=100),
+        "var2": np.random.uniform(low=0, high=10, size=100),
+        "var3": np.random.uniform(low=10, high=20, size=100),
+        "var4": np.random.uniform(low=0, high=50, size=100),
+    })
+
+    normal_check = Hypothesis(
+        test=normaltest,
+        samples="normal_variable",
+        # null hypotheses: sample comes from a normal distribution. The
+        # relationship function checks if we cannot reject the null hypothesis,
+        # i.e. the p-value is greater or equal to alpha.
+        relationship=lambda stat, pvalue, alpha=0.05: (
+            pvalue >= alpha
+        ),
+        error="normality test",
+        raise_warning=True,
+    )
+
+    schema = DataFrameSchema(
+        columns={
+            "var1": Column(checks=normal_check),
+            "var2": Column(checks=normal_check),
+            "var3": Column(checks=normal_check),
+            "var4": Column(checks=normal_check),
+        }
+    )
+
+    # catch and print warnings
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        validated_df = schema(df)
+        for warning in caught_warnings:
+            print(warning.message)
+
+
+.. testoutput:: check_raise_warning
+
+    <Schema Column: 'var2' type=None> failed series validator 0: <Check _hypothesis_check: normality test>
+    <Schema Column: 'var3' type=None> failed series validator 0: <Check _hypothesis_check: normality test>
+    <Schema Column: 'var4' type=None> failed series validator 0: <Check _hypothesis_check: normality test>
