@@ -288,6 +288,9 @@ want the resulting table for further analysis.
 
 .. testoutput:: check_raise_warning
 
-    <Schema Column: 'var2' type=None> failed series validator 0: <Check _hypothesis_check: normality test>
-    <Schema Column: 'var3' type=None> failed series validator 0: <Check _hypothesis_check: normality test>
-    <Schema Column: 'var4' type=None> failed series validator 0: <Check _hypothesis_check: normality test>
+    <Schema Column: 'var2' type=None> failed series validator 0:
+    <Check _hypothesis_check: normality test>
+    <Schema Column: 'var3' type=None> failed series validator 0:
+    <Check _hypothesis_check: normality test>
+    <Schema Column: 'var4' type=None> failed series validator 0:
+    <Check _hypothesis_check: normality test>
