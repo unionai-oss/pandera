@@ -252,8 +252,6 @@ want the resulting table for further analysis.
     df = pd.DataFrame({
         "var1": np.random.normal(loc=5, scale=2, size=100),
         "var2": np.random.uniform(low=0, high=10, size=100),
-        "var3": np.random.uniform(low=10, high=20, size=100),
-        "var4": np.random.uniform(low=0, high=50, size=100),
     })
 
     normal_check = Hypothesis(
@@ -273,8 +271,6 @@ want the resulting table for further analysis.
         columns={
             "var1": Column(checks=normal_check),
             "var2": Column(checks=normal_check),
-            "var3": Column(checks=normal_check),
-            "var4": Column(checks=normal_check),
         }
     )
 
@@ -289,8 +285,4 @@ want the resulting table for further analysis.
 .. testoutput:: check_raise_warning
 
     <Schema Column: 'var2' type=None> failed series validator 0:
-    <Check _hypothesis_check: normality test>
-    <Schema Column: 'var3' type=None> failed series validator 0:
-    <Check _hypothesis_check: normality test>
-    <Schema Column: 'var4' type=None> failed series validator 0:
     <Check _hypothesis_check: normality test>
