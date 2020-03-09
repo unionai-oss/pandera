@@ -287,22 +287,22 @@ a set of meaningfully grouped columns that have ``str`` names.
 
     categories = ["A", "B", "C"]
 
+    np.random.seed(100)
+
     dataframe = pd.DataFrame({
-        "numerical_variable_1": np.random.uniform(0, 10, size=100),
-        "numerical_variable_2": np.random.uniform(20, 30, size=100),
-        "numerical_variable_3": np.random.uniform(30, 40, size=100),
-        "categorical_variable_1": np.random.choice(categories, size=100),
-        "categorical_variable_2": np.random.choice(categories, size=100),
-        "categorical_variable_3": np.random.choice(categories, size=100),
+        "num_var_1": np.random.uniform(0, 10, size=100),
+        "num_var_2": np.random.uniform(20, 30, size=100),
+        "cat_var_1": np.random.choice(categories, size=100),
+        "cat_var_2": np.random.choice(categories, size=100),
     })
 
     schema = pa.DataFrameSchema({
-        "numerical_variable_*": pa.Column(
+        "num_var_*": pa.Column(
             pa.Float,
             checks=pa.Check.greater_than_or_equal_to(0),
             regex=True,
         ),
-        "categorical_variable_*": pa.Column(
+        "cat_var_*": pa.Column(
             pa.Category,
             checks=pa.Check.isin(categories),
             coerce=True,
@@ -310,7 +310,55 @@ a set of meaningfully grouped columns that have ``str`` names.
         ),
     })
 
-    schema.validate(dataframe)
+    print(schema.validate(dataframe).head())
+
+.. testoutput:: column_regex
+
+       num_var_1  num_var_2 cat_var_1 cat_var_2
+    0   5.434049  27.782892         A         C
+    1   2.783694  27.795984         C         C
+    2   4.245176  26.103282         A         B
+    3   8.447761  23.090003         A         C
+    4   0.047189  26.977349         A         A
+
+You can also regex pattern match on ``pd.MultiIndex`` columns:
+
+.. testcode:: column_regex
+
+    np.random.seed(100)
+
+    dataframe = pd.DataFrame({
+        ("num_var_1", "x1"): np.random.uniform(0, 10, size=100),
+        ("num_var_2", "x2"): np.random.uniform(0, 10, size=100),
+        ("cat_var_1", "y1"): np.random.choice(categories, size=100),
+        ("cat_var_2", "y2"): np.random.choice(categories, size=100),
+    })
+
+    schema = pa.DataFrameSchema({
+        ("num_var_*", "x*"): pa.Column(
+            pa.Float,
+            checks=pa.Check.greater_than_or_equal_to(0),
+            regex=True,
+        ),
+        ("cat_var_*", "y*"): pa.Column(
+            pa.Category,
+            checks=pa.Check.isin(categories),
+            coerce=True,
+            regex=True,
+        ),
+    })
+
+    print(schema.validate(dataframe).head())
+
+.. testoutput:: column_regex
+
+      num_var_1 num_var_2 cat_var_1 cat_var_2
+             x1        x2        y1        y2
+    0  5.434049  7.782892         A         C
+    1  2.783694  7.795984         C         C
+    2  4.245176  6.103282         A         B
+    3  8.447761  3.090003         A         C
+    4  0.047189  6.977349         A         A
 
 
 .. _strict:
