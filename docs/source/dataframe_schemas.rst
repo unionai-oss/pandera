@@ -115,7 +115,8 @@ Coercing Types on Columns
 
 If you specify ``Column(dtype, ..., coerce=True)`` as part of the
 DataFrameSchema definition, calling ``schema.validate`` will first
-coerce the column into the specified ``dtype``.
+coerce the column into the specified ``dtype`` before applying validation
+checks.
 
 .. testcode:: coercing_types_on_columns
 
@@ -244,15 +245,13 @@ objects can also be used to validate columns in a dataframe on its own:
     import pandas as pd
     import pandera as pa
 
-    from pandera import Column, Check
-
     df = pd.DataFrame({
         "column1": [1, 2, 3],
         "column2": ["a", "b", "c"],
     })
 
-    column1_schema = Column(pa.Int, name="column1")
-    column2_schema = Column(pa.String, name="column2")
+    column1_schema = pa.Column(pa.Int, name="column1")
+    column2_schema = pa.Column(pa.String, name="column2")
 
     # pass the dataframe as an argument to the Column object callable
     df = column1_schema(df)
@@ -269,6 +268,49 @@ objects can also be used to validate columns in a dataframe on its own:
 For multi-column use cases, the ``DataFrameSchema`` is still recommended, but
 if you have one or a small number of columns to verify, using ``Column``
 objects by themselves is appropriate.
+
+
+.. _column name regex:
+
+Column Regex Pattern Matching
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the case that your dataframe has multiple columns that share common
+statistical properties, you might want to specify a regex pattern that matches
+a set of meaningfully grouped columns that have ``str`` names.
+
+.. testcode:: column_regex
+
+    import numpy as np
+    import pandas as pd
+    import pandera as pa
+
+    categories = ["A", "B", "C"]
+
+    dataframe = pd.DataFrame({
+        "numerical_variable_1": np.random.uniform(0, 10, size=100),
+        "numerical_variable_2": np.random.uniform(20, 30, size=100),
+        "numerical_variable_3": np.random.uniform(30, 40, size=100),
+        "categorical_variable_1": np.random.choice(categories, size=100),
+        "categorical_variable_2": np.random.choice(categories, size=100),
+        "categorical_variable_3": np.random.choice(categories, size=100),
+    })
+
+    schema = pa.DataFrameSchema({
+        "numerical_variable_*": pa.Column(
+            pa.Float,
+            checks=pa.Check.greater_than_or_equal_to(0),
+            regex=True,
+        ),
+        "categorical_variable_*": pa.Column(
+            pa.Category,
+            checks=pa.Check.isin(categories),
+            coerce=True,
+            regex=True,
+        ),
+    })
+
+    schema.validate(dataframe)
 
 
 .. _strict:
@@ -492,9 +534,11 @@ Some examples of where this can be provided to pandas are:
 DataFrameSchema Transformations
 -------------------------------
 
-Pandera supports transforming a schema using ``.add_columns`` and ``.remove_columns``.
+Pandera supports transforming a schema using ``.add_columns`` and
+``.remove_columns``.
 
-``.add_columns`` expects a ``Dict[str, Any]``, i.e. the same as when defining ``Columns`` in a ``DataFrameSchema``:
+``.add_columns`` expects a ``Dict[str, Any]``, i.e. the same as when defining
+``Columns`` in a ``DataFrameSchema``:
 
 .. testcode:: add_columns
 

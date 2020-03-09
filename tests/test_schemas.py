@@ -70,10 +70,14 @@ def test_dataframe_schema():
 
 
 def test_dataframe_schema_strict():
-    """checks if strict=True whether a schema error is raised because 'a' is
-    not present in the dataframe."""
-    schema = DataFrameSchema({"a": Column(Int, nullable=True)},
-                             strict=True)
+    """
+    Checks if strict=True whether a schema error is raised because 'a' is
+    not present in the dataframe.
+    """
+    schema = DataFrameSchema(
+        {"a": Column(Int, nullable=True)},
+        strict=True
+    )
     df = pd.DataFrame({"b": [1, 2, 3]})
     with pytest.raises(errors.SchemaError):
         schema.validate(df)

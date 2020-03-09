@@ -1,9 +1,8 @@
 """Components used in pandera schemas."""
 
 from copy import copy
-from functools import reduce
 
-from typing import Union, Optional
+from typing import Union, Optional, Tuple, Any
 
 import numpy as np
 import pandas as pd
@@ -12,6 +11,11 @@ from . import errors
 from .dtypes import PandasDtype
 from .checks import Check, List
 from .schemas import DataFrameSchema, SeriesSchemaBase
+
+
+def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
+    """Check that a multi-index tuple key has all string elements"""
+    return isinstance(x, tuple) and all(isinstance(i, str) for i in x)
 
 
 class Column(SeriesSchemaBase):
@@ -65,6 +69,12 @@ class Column(SeriesSchemaBase):
         """
         super(Column, self).__init__(
             pandas_dtype, checks, nullable, allow_duplicates, coerce)
+        if name is not None \
+                and not isinstance(name, str) \
+                and not _is_valid_multiindex_tuple_str(name) \
+                and regex:
+            raise ValueError(
+                "You cannot specify a non-string name when setting regex=True")
         self.required = required
         self.pandas_dtype = pandas_dtype
         self._name = name
@@ -73,6 +83,11 @@ class Column(SeriesSchemaBase):
         if coerce and pandas_dtype is None:
             raise errors.SchemaInitError(
                 "Must specify dtype if coercing a Column's type")
+
+    @property
+    def regex(self) -> bool:
+        """True if ``name`` attribute should be treated as a regex pattern."""
+        return self._regex
 
     @property
     def _allow_groupby(self) -> bool:
@@ -85,6 +100,11 @@ class Column(SeriesSchemaBase):
         :param str name: the name of the column object
 
         """
+        if not isinstance(name, str) and \
+                not _is_valid_multiindex_tuple_str(name) \
+                and self.regex:
+            raise ValueError(
+                "You cannot specify a non-string name when setting regex=True")
         self._name = name
         return self
 
@@ -109,13 +129,15 @@ class Column(SeriesSchemaBase):
         :param random_state: random seed for the ``sample`` argument.
         :returns: validated DataFrame.
         """
+        check_obj = check_obj.copy()
+
         if self._name is None:
             raise errors.SchemaError(
                 "column name is set to None. Pass the ``name` argument when "
                 "initializing a Column object, or use the ``set_name`` "
                 "method.")
 
-        column_keys_to_check = self._get_regex_columns(check_obj.columns) if \
+        column_keys_to_check = self.get_regex_columns(check_obj.columns) if \
             self._regex else [self._name]
 
         check_results = []
@@ -134,25 +156,30 @@ class Column(SeriesSchemaBase):
         assert all(check_results)
         return check_obj
 
-    def _get_regex_columns(self, columns):
-        """Get matching column names based on regex column name pattern."""
+    def get_regex_columns(
+            self,
+            columns: Union[pd.Index, pd.MultiIndex]
+    ) -> Union[pd.Index, pd.MultiIndex]:
+        """Get matching column names based on regex column name pattern.
+
+        :param columns: columns to regex pattern match
+        :returns: matchin columns
+        """
         if isinstance(self.name, tuple):
             # handle MultiIndex case
             if len(self.name) != columns.nlevels:
                 raise IndexError(
                     "Column regex name='%s' is a tuple, expected a MultiIndex "
-                    "columns with %d number of levels, found %d levels" %
+                    "columns with %d number of levels, found %d level(s)" %
                     (self.name, len(self.name), columns.nlevels)
                 )
-            matches = reduce(
-                lambda x, y: x & y,
-                (
+            matches = np.ones(len(columns)).astype(bool)
+            for i, name in enumerate(self.name):
+                matched = pd.Index(
                     columns.get_level_values(i).str.match(name)
-                    for i, name in enumerate(self.name)
-                ),
-                np.ones(len(columns)).astype(bool),
-            )
-            column_keys_to_check = columns[matches].get_values()
+                ).fillna(False)
+                matches = matches & np.array(matched.tolist())
+            column_keys_to_check = columns[matches]
         else:
             if isinstance(columns, pd.MultiIndex):
                 raise IndexError(
@@ -160,7 +187,11 @@ class Column(SeriesSchemaBase):
                     "where the index is a pd.Index object, not a "
                     "pd.MultiIndex object" % (self.name)
                 )
-            column_keys_to_check = columns[columns.str.match(self.name)]
+            column_keys_to_check = columns[
+                # str.match will return nan values when the index value is
+                # not a string.
+                pd.Index(columns.str.match(self.name)).fillna(False).tolist()
+            ]
         if len(column_keys_to_check) == 0:
             raise errors.SchemaError(
                 "Column regex name='%s' did not match any columns in the "
