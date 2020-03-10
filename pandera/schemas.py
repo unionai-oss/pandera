@@ -172,7 +172,7 @@ class DataFrameSchema():
             sample: Optional[int] = None,
             random_state: Optional[int] = None
     ) -> pd.DataFrame:
-        # pylint: disable=duplicate-code
+        # pylint: disable=duplicate-code,too-many-locals
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.

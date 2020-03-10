@@ -192,7 +192,7 @@ class Column(SeriesSchemaBase):
                 # not a string.
                 pd.Index(columns.str.match(self.name)).fillna(False).tolist()
             ]
-        if len(column_keys_to_check) == 0:
+        if column_keys_to_check.shape[0] == 0:
             raise errors.SchemaError(
                 "Column regex name='%s' did not match any columns in the "
                 "dataframe. Update the regex pattern so that it matches at "
