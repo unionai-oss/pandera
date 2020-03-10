@@ -290,10 +290,10 @@ a set of meaningfully grouped columns that have ``str`` names.
     np.random.seed(100)
 
     dataframe = pd.DataFrame({
-        "num_var_1": np.random.uniform(0, 10, size=100),
-        "num_var_2": np.random.uniform(20, 30, size=100),
         "cat_var_1": np.random.choice(categories, size=100),
         "cat_var_2": np.random.choice(categories, size=100),
+        "num_var_1": np.random.uniform(0, 10, size=100),
+        "num_var_2": np.random.uniform(20, 30, size=100),
     })
 
     schema = pa.DataFrameSchema({
@@ -314,12 +314,12 @@ a set of meaningfully grouped columns that have ``str`` names.
 
 .. testoutput:: column_regex
 
-       num_var_1  num_var_2 cat_var_1 cat_var_2
-    0   5.434049  27.782892         A         C
-    1   2.783694  27.795984         C         C
-    2   4.245176  26.103282         A         B
-    3   8.447761  23.090003         A         C
-    4   0.047189  26.977349         A         A
+      cat_var_1 cat_var_2  num_var_1  num_var_2
+    0         A         A   6.804147  24.743304
+    1         A         C   3.684308  22.774633
+    2         A         C   5.911288  28.416588
+    3         C         A   4.790627  21.951250
+    4         C         B   4.504166  28.563142
 
 You can also regex pattern match on ``pd.MultiIndex`` columns:
 
@@ -328,10 +328,10 @@ You can also regex pattern match on ``pd.MultiIndex`` columns:
     np.random.seed(100)
 
     dataframe = pd.DataFrame({
-        ("num_var_1", "x1"): np.random.uniform(0, 10, size=100),
-        ("num_var_2", "x2"): np.random.uniform(0, 10, size=100),
         ("cat_var_1", "y1"): np.random.choice(categories, size=100),
         ("cat_var_2", "y2"): np.random.choice(categories, size=100),
+        ("num_var_1", "x1"): np.random.uniform(0, 10, size=100),
+        ("num_var_2", "x2"): np.random.uniform(0, 10, size=100),
     })
 
     schema = pa.DataFrameSchema({
@@ -352,13 +352,13 @@ You can also regex pattern match on ``pd.MultiIndex`` columns:
 
 .. testoutput:: column_regex
 
-      num_var_1 num_var_2 cat_var_1 cat_var_2
-             x1        x2        y1        y2
-    0  5.434049  7.782892         A         C
-    1  2.783694  7.795984         C         C
-    2  4.245176  6.103282         A         B
-    3  8.447761  3.090003         A         C
-    4  0.047189  6.977349         A         A
+      cat_var_1 cat_var_2 num_var_1 num_var_2
+             y1        y2        x1        x2
+    0         A         A  6.804147  4.743304
+    1         A         C  3.684308  2.774633
+    2         A         C  5.911288  8.416588
+    3         C         A  4.790627  1.951250
+    4         C         B  4.504166  8.563142
 
 
 .. _strict:
