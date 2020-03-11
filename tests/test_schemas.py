@@ -83,6 +83,26 @@ def test_dataframe_schema_strict():
         schema.validate(df)
 
 
+def test_dataframe_schema_strict_regex():
+    """Test that strict dataframe schema checks for regex matches."""
+    schema = DataFrameSchema(
+        {"foo_*": Column(Int, regex=True)},
+        strict=True,
+    )
+    df = pd.DataFrame({
+        "foo_%d" % i: range(10) for i in range(5)
+    })
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+    # Raise a SchemaError if schema is strict and a regex pattern yields
+    # no matches
+    with pytest.raises(errors.SchemaError):
+        schema.validate(
+            pd.DataFrame({"bar_%d" % i: range(10) for i in range(5)})
+        )
+
+
 def test_series_schema():
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues
