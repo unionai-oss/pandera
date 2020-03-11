@@ -20,6 +20,9 @@ dependencies:
   - pytest
   - pytest-cov
 
+  # packaging
+  - twine
+
   # performance testing
   - asv
 
