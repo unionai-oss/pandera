@@ -249,8 +249,10 @@ want the resulting table for further analysis.
     from pandera import DataFrameSchema, Column, Hypothesis
 
 
+    np.random.seed(1000)
+
     df = pd.DataFrame({
-        "var1": np.random.normal(loc=5, scale=2, size=1000),
+        "var1": np.random.normal(loc=0, scale=1, size=1000),
         "var2": np.random.uniform(low=0, high=10, size=1000),
     })
 

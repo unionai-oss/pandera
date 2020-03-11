@@ -233,3 +233,207 @@ def test_schema_component_equality_operators():
     assert index != not_equal_schema
     assert multi_index == copy.deepcopy(multi_index)
     assert multi_index != not_equal_schema
+
+
+def test_column_regex():
+    """Test that column regex work on single-level column index."""
+    column_schema = Column(
+        Int, Check(lambda s: s >= 0), name="foo_*", regex=True)
+
+    dataframe_schema = DataFrameSchema({
+        "foo_*": Column(Int, Check(lambda s: s >= 0), regex=True),
+    })
+
+    data = pd.DataFrame({
+        "foo_1": range(10),
+        "foo_2": range(10, 20),
+        "foo_3": range(20, 30),
+        "bar_1": range(10),
+        "bar_2": range(10, 20),
+        "bar_3": range(20, 30),
+    })
+    assert isinstance(column_schema.validate(data), pd.DataFrame)
+    assert isinstance(dataframe_schema.validate(data), pd.DataFrame)
+
+    # Raise an error on multi-index column case
+    data.columns = pd.MultiIndex.from_tuples(
+        (
+            ("foo_1", "biz_1"),
+            ("foo_2", "baz_1"),
+            ("foo_3", "baz_2"),
+            ("bar_1", "biz_2"),
+            ("bar_2", "biz_3"),
+            ("bar_3", "biz_3"),
+        )
+    )
+    with pytest.raises(IndexError):
+        column_schema.validate(data)
+    with pytest.raises(IndexError):
+        dataframe_schema.validate(data)
+
+
+
+def test_column_regex_multiindex():
+    """Text that column regex works on multi-index column."""
+    column_schema = Column(
+        Int, Check(lambda s: s >= 0), name=("foo_*", "baz_*"), regex=True,
+    )
+    dataframe_schema = DataFrameSchema({
+        ("foo_*", "baz_*"): Column(Int, Check(lambda s: s >= 0), regex=True),
+    })
+
+    data = pd.DataFrame({
+        ("foo_1", "biz_1"): range(10),
+        ("foo_2", "baz_1"): range(10, 20),
+        ("foo_3", "baz_2"): range(20, 30),
+        ("bar_1", "biz_2"): range(10),
+        ("bar_2", "biz_3"): range(10, 20),
+        ("bar_3", "biz_3"): range(20, 30),
+    })
+    assert isinstance(column_schema.validate(data), pd.DataFrame)
+    assert isinstance(dataframe_schema.validate(data), pd.DataFrame)
+
+    # Raise an error if tuple column name is applied to a dataframe with a
+    # flat pd.Index object.
+    failure_column_cases = (
+        ["foo_%s" % i for i in range(6)],
+        pd.MultiIndex.from_tuples([
+            ("foo_%s" % i, "bar_%s" % i, "baz_%s" % i) for i in range(6)
+        ])
+    )
+    for columns in failure_column_cases:
+        data.columns = columns
+        with pytest.raises(IndexError):
+            column_schema.validate(data)
+        with pytest.raises(IndexError):
+            dataframe_schema.validate(data)
+
+
+@pytest.mark.parametrize("column_name_regex, expected_matches, error", (
+    # match all values in first level, only baz_* for second level
+    ((".", "baz_*"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
+
+    # match bar_* in first level, all values in second level
+    (("bar_*", "."),
+     [("bar_1", "biz_2"), ("bar_2", "biz_3"), ("bar_3", "biz_3")],
+     None),
+
+    # match specific columns in both levels
+    (("foo_*", "baz_*"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
+    (("foo_*", "^biz_1$"), [("foo_1", "biz_1")], None),
+    (("^foo_3$", "^baz_2$"), [("foo_3", "baz_2")], None),
+
+    # no matches should raise a SchemaError
+    (("fiz", "."), None, errors.SchemaError),
+
+    # using a string name for a multi-index column raises IndexError
+    ("foo_1", None, IndexError),
+
+    # mis-matching number of elements in a tuple column name raises IndexError
+    (("foo_*", ), None, IndexError),
+    (("foo_*", ".", "."), None, IndexError),
+    (("foo_*", ".", ".", "."), None, IndexError),
+))
+def test_column_regex_matching(
+        column_name_regex, expected_matches, error):
+    """
+    Column regex pattern matching should yield correct matches and raise
+    expected errors.
+    """
+    columns = pd.MultiIndex.from_tuples(
+        (
+            ("foo_1", "biz_1"),
+            ("foo_2", "baz_1"),
+            ("foo_3", "baz_2"),
+            ("bar_1", "biz_2"),
+            ("bar_2", "biz_3"),
+            ("bar_3", "biz_3"),
+        )
+    )
+
+    column_schema = Column(
+        Int, Check(lambda s: s >= 0), name=column_name_regex, regex=True,
+    )
+    if error is not None:
+        with pytest.raises(error):
+            column_schema.get_regex_columns(columns)
+    else:
+        matched_columns = column_schema.get_regex_columns(columns)
+        assert expected_matches == matched_columns.tolist()
+
+
+def test_column_regex_strict():
+    """Test that Column regex patterns correctly parsed in DataFrameSchema."""
+    data = pd.DataFrame({
+        "foo_1": [1, 2, 3],
+        "foo_2": [1, 2, 3],
+        "foo_3": [1, 2, 3],
+    })
+    schema = DataFrameSchema(
+        columns={
+            "foo_*": Column(Int, regex=True)
+        },
+        strict=True
+    )
+    assert isinstance(schema.validate(data), pd.DataFrame)
+
+    # adding an extra column in the dataframe should cause error
+    data = data.assign(bar=[1, 2, 3])
+    with pytest.raises(errors.SchemaError):
+        schema.validate(data)
+
+    # adding an extra regex column to the schema should pass the strictness
+    # test
+    validated_data = (
+        schema.add_columns({"bar_*": Column(Int, regex=True)})
+        .validate(data.assign(bar_1=[1, 2, 3]))
+    )
+    assert isinstance(validated_data, pd.DataFrame)
+
+
+def test_column_regex_non_str_types():
+    """Check that column name regex matching excludes non-string types."""
+    # pylint: disable=protected-access
+    data = pd.DataFrame({
+        1: [1, 2, 3],
+        2.2: [1, 2, 3],
+        pd.Timestamp("2018/01/01"): [1, 2, 3],
+        "foo": [1, 2, 3],
+    })
+    schema = DataFrameSchema(
+        columns={"foo_*": Column(Int, regex=True)},
+    )
+    assert isinstance(schema.validate(data), pd.DataFrame)
+
+    # test MultiIndex column case
+    data = pd.DataFrame({
+        (1, 1): [1, 2, 3],
+        (2.2, 4.5): [1, 2, 3],
+        ("foo", "bar"): [1, 2, 3],
+    })
+    schema = DataFrameSchema(
+        columns={("foo_*", "bar_*"): Column(Int, regex=True)},
+    )
+    schema.validate(data)
+
+
+@pytest.mark.parametrize("column_key", [1, 100, 0.543])
+def test_non_str_column_name_regex(column_key):
+    """Check that Columns with non-str names cannot have regex=True."""
+
+    with pytest.raises(ValueError):
+        DataFrameSchema({
+            column_key: Column(
+                Float,
+                checks=Check.greater_than_or_equal_to(0),
+                regex=True,
+            ),
+        })
+
+    with pytest.raises(ValueError):
+        Column(
+            Float,
+            checks=Check.greater_than_or_equal_to(0),
+            name=column_key,
+            regex=True,
+        )

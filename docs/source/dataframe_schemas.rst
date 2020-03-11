@@ -115,7 +115,8 @@ Coercing Types on Columns
 
 If you specify ``Column(dtype, ..., coerce=True)`` as part of the
 DataFrameSchema definition, calling ``schema.validate`` will first
-coerce the column into the specified ``dtype``.
+coerce the column into the specified ``dtype`` before applying validation
+checks.
 
 .. testcode:: coercing_types_on_columns
 
@@ -244,15 +245,13 @@ objects can also be used to validate columns in a dataframe on its own:
     import pandas as pd
     import pandera as pa
 
-    from pandera import Column, Check
-
     df = pd.DataFrame({
         "column1": [1, 2, 3],
         "column2": ["a", "b", "c"],
     })
 
-    column1_schema = Column(pa.Int, name="column1")
-    column2_schema = Column(pa.String, name="column2")
+    column1_schema = pa.Column(pa.Int, name="column1")
+    column2_schema = pa.Column(pa.String, name="column2")
 
     # pass the dataframe as an argument to the Column object callable
     df = column1_schema(df)
@@ -269,6 +268,97 @@ objects can also be used to validate columns in a dataframe on its own:
 For multi-column use cases, the ``DataFrameSchema`` is still recommended, but
 if you have one or a small number of columns to verify, using ``Column``
 objects by themselves is appropriate.
+
+
+.. _column name regex:
+
+Column Regex Pattern Matching
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the case that your dataframe has multiple columns that share common
+statistical properties, you might want to specify a regex pattern that matches
+a set of meaningfully grouped columns that have ``str`` names.
+
+.. testcode:: column_regex
+
+    import numpy as np
+    import pandas as pd
+    import pandera as pa
+
+    categories = ["A", "B", "C"]
+
+    np.random.seed(100)
+
+    dataframe = pd.DataFrame({
+        "cat_var_1": np.random.choice(categories, size=100),
+        "cat_var_2": np.random.choice(categories, size=100),
+        "num_var_1": np.random.uniform(0, 10, size=100),
+        "num_var_2": np.random.uniform(20, 30, size=100),
+    })
+
+    schema = pa.DataFrameSchema({
+        "num_var_*": pa.Column(
+            pa.Float,
+            checks=pa.Check.greater_than_or_equal_to(0),
+            regex=True,
+        ),
+        "cat_var_*": pa.Column(
+            pa.Category,
+            checks=pa.Check.isin(categories),
+            coerce=True,
+            regex=True,
+        ),
+    })
+
+    print(schema.validate(dataframe).head())
+
+.. testoutput:: column_regex
+
+      cat_var_1 cat_var_2  num_var_1  num_var_2
+    0         A         A   6.804147  24.743304
+    1         A         C   3.684308  22.774633
+    2         A         C   5.911288  28.416588
+    3         C         A   4.790627  21.951250
+    4         C         B   4.504166  28.563142
+
+You can also regex pattern match on ``pd.MultiIndex`` columns:
+
+.. testcode:: column_regex
+
+    np.random.seed(100)
+
+    dataframe = pd.DataFrame({
+        ("cat_var_1", "y1"): np.random.choice(categories, size=100),
+        ("cat_var_2", "y2"): np.random.choice(categories, size=100),
+        ("num_var_1", "x1"): np.random.uniform(0, 10, size=100),
+        ("num_var_2", "x2"): np.random.uniform(0, 10, size=100),
+    })
+
+    schema = pa.DataFrameSchema({
+        ("num_var_*", "x*"): pa.Column(
+            pa.Float,
+            checks=pa.Check.greater_than_or_equal_to(0),
+            regex=True,
+        ),
+        ("cat_var_*", "y*"): pa.Column(
+            pa.Category,
+            checks=pa.Check.isin(categories),
+            coerce=True,
+            regex=True,
+        ),
+    })
+
+    print(schema.validate(dataframe).head())
+
+.. testoutput:: column_regex
+
+      cat_var_1 cat_var_2 num_var_1 num_var_2
+             y1        y2        x1        x2
+    0         A         A  6.804147  4.743304
+    1         A         C  3.684308  2.774633
+    2         A         C  5.911288  8.416588
+    3         C         A  4.790627  1.951250
+    4         C         B  4.504166  8.563142
 
 
 .. _strict:
@@ -492,9 +582,11 @@ Some examples of where this can be provided to pandas are:
 DataFrameSchema Transformations
 -------------------------------
 
-Pandera supports transforming a schema using ``.add_columns`` and ``.remove_columns``.
+Pandera supports transforming a schema using ``.add_columns`` and
+``.remove_columns``.
 
-``.add_columns`` expects a ``Dict[str, Any]``, i.e. the same as when defining ``Columns`` in a ``DataFrameSchema``:
+``.add_columns`` expects a ``Dict[str, Any]``, i.e. the same as when defining
+``Columns`` in a ``DataFrameSchema``:
 
 .. testcode:: add_columns
 

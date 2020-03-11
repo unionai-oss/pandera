@@ -172,7 +172,7 @@ class DataFrameSchema():
             sample: Optional[int] = None,
             random_state: Optional[int] = None
     ) -> pd.DataFrame:
-        # pylint: disable=duplicate-code
+        # pylint: disable=duplicate-code,too-many-locals
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -222,24 +222,56 @@ class DataFrameSchema():
         4         0.80      dog
         5         0.76      dog
         """
+        # pylint: disable=too-many-branches
         dataframe = dataframe.copy()
 
+        # dataframe strictness check makes sure all columns in the dataframe
+        # are specified in the dataframe schema
         if self.strict:
+
+            # expand regex columns
+            col_regex_matches = []  # type: ignore
+            for colname, col_schema in self.columns.items():
+                if col_schema.regex:
+                    try:
+                        col_regex_matches.extend(
+                            col_schema.get_regex_columns(dataframe.columns))
+                    except errors.SchemaError:
+                        pass
+
+            expanded_column_names = frozenset(
+                [n for n, c in self.columns.items() if not c.regex] +
+                col_regex_matches
+            )
+
             for column in dataframe:
-                if column not in self.columns:
+                if column not in expanded_column_names:
                     raise errors.SchemaError(
                         "column '%s' not in DataFrameSchema %s" %
                         (column, self.columns)
                     )
 
-        for colname, col in self.columns.items():
-            if colname not in dataframe and col.required:
+        # column data-type coercion logic
+        for colname, col_schema in self.columns.items():
+            if col_schema.regex:
+                try:
+                    matched_columns = col_schema.get_regex_columns(
+                        dataframe.columns)
+                except errors.SchemaError:
+                    matched_columns = pd.Index([])
+
+                for matched_colname in matched_columns:
+                    dataframe[matched_colname] = col_schema.coerce_dtype(
+                        dataframe[matched_colname])
+
+            elif colname not in dataframe and col_schema.required:
                 raise errors.SchemaError(
                     "column '%s' not in dataframe\n%s" %
                     (colname, dataframe.head()))
 
-            if col.coerce or self.coerce:
-                dataframe[colname] = col.coerce_dtype(dataframe[colname])
+            elif col_schema.coerce or self.coerce:
+                dataframe[colname] = col_schema.coerce_dtype(
+                    dataframe[colname])
 
         schema_components = [
             col for col_name, col in self.columns.items()
