@@ -469,7 +469,7 @@ def test_dataframe_schema_dtype_property():
         }
     )
     assert schema.dtype == {
-        "col1": "int64",
+        "col1": "int",
         "col2": "object",
         "col3": "datetime64[ns]",
         "col4": "uint16"

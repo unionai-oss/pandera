@@ -509,8 +509,7 @@ class SeriesSchemaBase():
 
         if self._nullable:
             series = series.dropna()
-            if _dtype in ["int_", "int8", "int16", "int32", "int64", "uint8",
-                          "uint16", "uint32", "uint64"]:
+            if _dtype in dtypes.NUMPY_INT_DTYPES:
                 _series = series.astype(_dtype)
                 if (_series != series).any():
                     # in case where dtype is meant to be int, make sure that

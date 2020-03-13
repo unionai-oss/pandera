@@ -4,10 +4,10 @@ coercion examples."""
 import pandas as pd
 import pytest
 
+import pandera as pa
 from pandera import (
     Column, DataFrameSchema, Check, DateTime, Float, Int,
     String, Bool, Category, Object, Timedelta)
-from pandera import dtypes
 from pandera.errors import SchemaError
 
 
@@ -15,8 +15,8 @@ TESTABLE_DTYPES = [
     (Bool, "bool"),
     (DateTime, "datetime64[ns]"),
     (Category, "category"),
-    (Float, "float64"),
-    (Int, "int64"),
+    (Float, "float"),
+    (Int, "int"),
     (Object, "object"),
     (String, "object"),
     (Timedelta, "timedelta64[ns]"),
@@ -30,10 +30,10 @@ TESTABLE_DTYPES = [
 def test_numeric_dtypes():
     """Test every numeric type can be validated properly by schema.validate"""
     for dtype in [
-            dtypes.Float,
-            dtypes.Float16,
-            dtypes.Float32,
-            dtypes.Float64]:
+            pa.Float,
+            pa.Float16,
+            pa.Float32,
+            pa.Float64]:
         assert all(
             isinstance(
                 schema.validate(
@@ -49,11 +49,11 @@ def test_numeric_dtypes():
         )
 
     for dtype in [
-            dtypes.Int,
-            dtypes.Int8,
-            dtypes.Int16,
-            dtypes.Int32,
-            dtypes.Int64]:
+            pa.Int,
+            pa.Int8,
+            pa.Int16,
+            pa.Int32,
+            pa.Int64]:
         assert all(
             isinstance(
                 schema.validate(
@@ -69,10 +69,10 @@ def test_numeric_dtypes():
         )
 
     for dtype in [
-            dtypes.UInt8,
-            dtypes.UInt16,
-            dtypes.UInt32,
-            dtypes.UInt64]:
+            pa.UInt8,
+            pa.UInt16,
+            pa.UInt32,
+            pa.UInt64]:
         assert all(
             isinstance(
                 schema.validate(
@@ -93,7 +93,7 @@ def test_category_dtype():
     schema = DataFrameSchema(
         columns={
             "col": Column(
-                dtypes.Category,
+                pa.Category,
                 checks=[
                     Check(lambda s: set(s) == {"A", "B", "C"}),
                     Check(lambda s:
@@ -118,7 +118,7 @@ def test_category_dtype_coerce():
     schema.validate and fails safely."""
     columns = {
         "col": Column(
-            dtypes.Category,
+            pa.Category,
             checks=Check(lambda s: set(s) == {"A", "B", "C"}),
             nullable=False
         ),
@@ -144,7 +144,7 @@ def test_datetime():
     schema = DataFrameSchema(
         columns={
             "col": Column(
-                dtypes.DateTime,
+                pa.DateTime,
                 checks=Check(lambda s: s.min() > pd.Timestamp("2015")),
             )
         }

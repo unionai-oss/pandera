@@ -389,7 +389,7 @@ schema, specify ``strict=True``:
 
     Traceback (most recent call last):
     ...
-    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int64>}
+    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int>}
 
 
 .. _index:
@@ -534,8 +534,8 @@ composing a list of ``pandera.Index`` objects.
     foo    2             3
 
 
-Pandas DType
----------------------
+Get Pandas Datatypes
+--------------------
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
 schema. ``DataFrameSchema`` provides a `dtype` property which returns a pandas
@@ -635,7 +635,7 @@ Pandera supports transforming a schema using ``.add_columns`` and
 
     DataFrameSchema(
         columns={
-            "col1": "<Schema Column: 'col1' type=int64>"
+            "col1": "<Schema Column: 'col1' type=int>"
         },
     index=None,
     transformer=None,
