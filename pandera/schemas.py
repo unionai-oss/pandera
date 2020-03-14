@@ -159,10 +159,26 @@ class DataFrameSchema():
 
     @property
     def dtype(self) -> Dict[str, str]:
-        """A pandas style dtype dict where the keys are column names and values
-        are pandas dtype for the column
         """
-        return {k: v.dtype for k, v in self.columns.items()}
+        A pandas style dtype dict where the keys are column names and values
+        are pandas dtype for the column. Excludes columns where regex=True.
+
+        :returns: dictionary of columns and their associated dtypes.
+        """
+        return {
+            colname: column.dtype
+            for colname, column in self.columns.items()
+            if not column.regex
+        }
+
+    def get_dtype(self, dataframe: pd.DataFrame) -> Dict[str, str]:
+        """
+        Same as the the ``dtype`` property, but takes a dataframe as input
+        to expand columns where regex=True.
+
+        :returns: dictionary of columns and their associated dtypes.
+        """
+        raise NotImplementedError
 
     def validate(
             self,

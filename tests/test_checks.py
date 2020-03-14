@@ -318,3 +318,20 @@ def test_raise_warning_dataframe():
 
     with pytest.warns(UserWarning):
         warning_schema(data)
+
+
+def test_dataframe_schema_check():
+    """Test that DataFrameSchema-level Checks work properly."""
+    data = pd.DataFrame([range(10) for _ in range(10)])
+
+    schema_check_return_bool = DataFrameSchema(
+        checks=Check(lambda df: (df < 10).all()))
+    assert isinstance(schema_check_return_bool.validate(data), pd.DataFrame)
+
+    schema_check_return_series = DataFrameSchema(
+        checks=Check(lambda df: df[0] < 10))
+    assert isinstance(schema_check_return_series.validate(data), pd.DataFrame)
+
+    schema_check_return_df = DataFrameSchema(
+        checks=Check(lambda df: df < 10))
+    assert isinstance(schema_check_return_df.validate(data), pd.DataFrame)

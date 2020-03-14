@@ -16,7 +16,38 @@ class PandasDtype(Enum):
     For convenience ``PandasDtype`` enums can all be accessed in the top-level
     ``pandera`` name space via the same enum name.
 
-    .. warning::
+    :examples:
+
+    >>> import pandas as pd
+    >>> import pandera as pa
+    >>>
+    >>>
+    >>> pa.SeriesSchema(pa.Int).validate(pd.Series([1, 2, 3]))
+    0    1
+    1    2
+    2    3
+    dtype: int64
+    >>> pa.SeriesSchema(pa.Float).validate(pd.Series([1.1, 2.3, 3.4]))
+    0    1.1
+    1    2.3
+    2    3.4
+    dtype: float64
+    >>> pa.SeriesSchema(pa.String).validate(pd.Series(["a", "b", "c"]))
+        0    a
+    1    b
+    2    c
+    dtype: object
+
+    You can also directly use the string alias for each data-type in the
+    schema definition:
+
+    >>> pa.SeriesSchema("int").validate(pd.Series([1, 2, 3]))
+    0    1
+    1    2
+    2    3
+    dtype: int64
+
+    .. note::
         ``pandera`` also offers limited support for
         `pandas extension types <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_,
         however since the release of pandas 1.0.0 there are backwards
@@ -25,28 +56,6 @@ class PandasDtype(Enum):
         extension types should work when supplied to the ``pandas_dtype``
         argument when initializing ``pa.SeriesSchemaBase`` objects, but this
         is not currently tested.
-
-    :examples:
-
-    >>> import pandera as pa
-    >>>
-    >>> pa.Int
-    <PandasDtype.Int: 'int'>
-    >>> pa.Float
-    <PandasDtype.Float: 'float'>
-    >>> pa.String
-    <PandasDtype.String: 'string'>
-    >>> # etc...
-
-    You can also directly use the string alias for each data-type in the
-    schema definition:
-
-    >>> series_schema = pa.SeriesSchema("int")
-    >>> series_schema.validate(pd.Series([1, 2, 3]))
-    0    1
-    1    2
-    2    3
-    dtype: int64
     """
 
     Bool = "bool"  #: ``"bool"`` numpy dtype

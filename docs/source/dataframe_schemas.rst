@@ -1,12 +1,14 @@
 .. pandera documentation for DataFrameSchemas
 
+.. currentmodule:: pandera
+
 .. _DataFrameSchemas:
 
 DataFrame Schemas
 =================
 
-The ``DataFrameSchema`` class enables the specification of a schema that
-verifies the columns and index of a ``pd.DataFrame`` object.
+The :py:class:`DataFrameSchema` class enables the specification of a schema
+that verifies the columns and index of a pandas ``DataFrame`` object.
 
 The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 
@@ -41,16 +43,16 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 Column Validation
 -----------------
 
-A ``Column`` must specify the properties of a column in a dataframe object.
-It can be optionally verified for its data type, `null values`_ or duplicate
-values. The column can be coerced_ into the specified type, and the
+A :py:class:`Column` must specify the properties of a column in a dataframe
+object. It can be optionally verified for its data type, `null values`_ or
+duplicate values. The column can be coerced_ into the specified type, and the
 required_ parameter allows control over whether or not the column is allowed to
 be missing.
 
 :ref:`Column checks<checks>` allow for the DataFrame's values to be
 checked against a user provided function. ``Check`` objects also support
 :ref:`grouping<grouping>` by a different column so that the user can make
-assertions about subsets of the ``Column`` of interest.
+assertions about subsets of the column of interest.
 
 Column Hypotheses enable you to perform statistical hypothesis tests on a
 DataFrame in either wide or tidy format. See
@@ -89,9 +91,12 @@ nullable. In order to accept null values, you need to explicitly specify
     SchemaError: non-nullable series contains null values: {2: nan}
 
 .. note:: Due to a known limitation in
-    `pandas <http://pandas.pydata.org/pandas-docs/stable/gotchas.html#support-for-integer-na>`__,
+    `pandas prior to version 0.24.0 <https://pandas.pydata.org/pandas-docs/stable/user_guide/integer_na.html>`_,
     integer arrays cannot contain ``NaN`` values, so this schema will return
     a DataFrame where ``column1`` is of type ``float``.
+    :py:class:`PandasDtype` does not currently support the nullable integer
+    array type, but you can still use the "Int64" string alias for nullable
+    integer arrays
 
 .. testcode:: null_values_in_columns
 
@@ -397,7 +402,7 @@ schema, specify ``strict=True``:
 Index Validation
 ----------------
 
-You can also specify an ``Index`` in the ``DataFrameSchema``.
+You can also specify an :py:class:`Index` in the :py:class:`DataFrameSchema`.
 
 .. testcode:: index_validation
 
@@ -494,8 +499,8 @@ tuples for each level in the index hierarchy:
 MultiIndex Indexes
 ~~~~~~~~~~~~~~~~~~
 
-The ``pandera.MultiIndex`` class allows you to define multi-index indexes by
-composing a list of ``pandera.Index`` objects.
+The :py:class:`pandera.MultiIndex` class allows you to define multi-index
+indexes by composing a list of ``pandera.Index`` objects.
 
 .. testcode:: multiindex_indexes
 
@@ -551,19 +556,18 @@ Some examples of where this can be provided to pandas are:
   import pandas as pd
   import pandera as pa
 
-  from pandera import Column, DataFrameSchema, Index, MultiIndex, Check
-
-  schema = DataFrameSchema(
+  schema = pa.DataFrameSchema(
       columns={
-        "column1": Column(pa.Int),
-        "column2": Column(pa.Category),
-        "column3": Column(pa.Bool)
+        "column1": pa.Column(pa.Int),
+        "column2": pa.Column(pa.Category),
+        "column3": pa.Column(pa.Bool)
       },
   )
 
-  df = pd.DataFrame.from_dict({
-    "a": {"column1": 1, "column2": "valueA", "column3": True},
-    "b": {"column1": 1, "column2": "valueB", "column3": True},
+  df = pd.DataFrame.from_dict(
+    {
+        "a": {"column1": 1, "column2": "valueA", "column3": True},
+        "b": {"column1": 1, "column2": "valueB", "column3": True},
     },
     orient="index"
   ).astype(schema.dtype).sort_index(axis=1)
@@ -582,53 +586,70 @@ Some examples of where this can be provided to pandas are:
 DataFrameSchema Transformations
 -------------------------------
 
-Pandera supports transforming a schema using ``.add_columns`` and
-``.remove_columns``.
+Pandera supports transforming a schema using
+:py:meth:`DataFrameSchema.add_columns` and
+:py:meth:`DataFrameSchema.remove_columns`.
 
-``.add_columns`` expects a ``Dict[str, Any]``, i.e. the same as when defining
-``Columns`` in a ``DataFrameSchema``:
+Once you've defined a schema, you can add columns to the schema and to create
+a new schema object with the additional columns. This is useful for re-using
+schema objects in a data pipeline when additional computation has been done
+on a dataframe, therefore requiring additional checks.
 
 .. testcode:: add_columns
 
-  from pandera import DataFrameSchema, Column, Int, Check, String, Object
+    import pandas as pd
+    import pandera as pa
 
-  schema = DataFrameSchema({
-    "col1": Column(Int, Check(lambda s: s >= 0)),
-    }, strict=True)
+    data = pd.DataFrame({"col1": range(1, 6)})
 
-  new_schema = schema.add_columns({
-    "col2": Column(String, Check(lambda x: x <= 0)),
-    "col3": Column(Object, Check(lambda x: x == 0))
+    schema = pa.DataFrameSchema(
+        columns={"col1": pa.Column(pa.Int, pa.Check(lambda s: s >= 0))},
+        strict=True)
+
+    transformed_schema = schema.add_columns({
+        "col2": pa.Column(pa.String, pa.Check(lambda s: s == "value")),
+        "col3": pa.Column(pa.Float, pa.Check(lambda x: x == 0.0)),
     })
 
-  expected_schema = schema.add_columns({
-    "col1": Column(Int, Check(lambda s: s >= 0)),
-    "col2": Column(String, Check(lambda x: x <= 0)),
-    "col3": Column(Object, Check(lambda x: x == 0))
-    })
+    # validate original data
+    data = schema.validate(data)
 
-  print(new_schema == expected_schema)
+    # transformation
+    transformed_data = data.assign(col2="value", col3=0.0)
+
+    # validate transformed data
+    print(transformed_schema.validate(transformed_data))
+
 
 .. testoutput:: add_columns
     :options: +NORMALIZE_WHITESPACE
 
-    True
+       col1   col2  col3
+    0     1  value   0.0
+    1     2  value   0.0
+    2     3  value   0.0
+    3     4  value   0.0
+    4     5  value   0.0
 
-``.remove_columns`` expects a list of one or more Column names:
+
+Similarly, if you want dropped columns to be explicitly validated in a
+data pipeline:
 
 .. testcode:: remove_columns
 
-  from pandera import DataFrameSchema, Column, Int, Check, String, Object
+    import pandera as pa
 
-  schema = DataFrameSchema({
-    "col1": Column(Int, Check(lambda s: s >= 0)),
-    "col2": Column(String, Check(lambda x: x <= 0)),
-    "col3": Column(Object, Check(lambda x: x == 0))
-    }, strict=True)
+    schema = pa.DataFrameSchema(
+        columns={
+            "col1": pa.Column(pa.Int, pa.Check(lambda s: s >= 0)),
+            "col2": pa.Column(pa.String, pa.Check(lambda x: x <= 0)),
+            "col3": pa.Column(pa.Object, pa.Check(lambda x: x == 0)),
+        },
+        strict=True,
+    )
 
-  new_schema = schema.remove_columns(["col2", "col3"])
-
-  print(new_schema)
+    new_schema = schema.remove_columns(["col2", "col3"])
+    print(new_schema)
 
 .. testoutput:: remove_columns
     :options: +NORMALIZE_WHITESPACE
@@ -637,8 +658,8 @@ Pandera supports transforming a schema using ``.add_columns`` and
         columns={
             "col1": "<Schema Column: 'col1' type=int>"
         },
-    index=None,
-    transformer=None,
-    coerce=False,
-    strict=True
+        index=None,
+        transformer=None,
+        coerce=False,
+        strict=True
     )
