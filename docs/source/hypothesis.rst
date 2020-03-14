@@ -1,5 +1,7 @@
 .. pandera documentation for Hypothesis Testing
 
+.. currentmodule:: pandera
+
 .. _hypothesis:
 
 Hypothesis Testing
@@ -7,8 +9,8 @@ Hypothesis Testing
 
 ``pandera`` enables you to perform statistical hypothesis tests on your data.
 
-The ``Hypothesis`` class defines built in methods, which can be called as in
-this example:
+The :py:class:`Hypothesis` class defines built in methods, which can be called
+as in this example of a two-sample t-test:
 
 .. testcode:: hypothesis_testing
 
@@ -49,8 +51,10 @@ this example:
     pandera.SchemaError: <Schema Column: 'height_in_feet' type=float64> failed series validator 0: hypothesis_check: failed two sample ttest between 'M' and 'F'
 
 
-``Hypothesis`` also supports passing custom ``test``'s and ``relationship``'s.
-The ``test`` function takes as input an one or multiple array-like objects
+You can also define custom hypotheses by passing in functions to the
+``test`` and ``relationship`` arguments.
+
+The ``test`` function takes as input one or multiple array-like objects
 and should return a ``stat``, which is the test statistic, and ``pvalue`` for
 assessing statistical significance. It also takes key-word arguments supplied
 by the ``test_kwargs`` dict when initializing a ``Hypothesis`` object.
@@ -59,26 +63,34 @@ The ``relationship`` function should take all of the outputs of ``test`` as
 positional arguments, in addition to key-word arguments supplied by the
 ``relationship_kwargs`` dict.
 
-This enables the user to use non-built in functions. Here is an implementation
-of the two-sample t-test that uses the
+Here's an implementation of the two-sample t-test that uses the
 `scipy implementation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html>`_:
 
 .. testcode:: hypothesis_testing
+
+    def custom_test(array1, array2):
+        # the "height_in_feet" series is first grouped by "sex" and then
+        # passed into the custom `test` function as two separate arrays in the
+        # order specified in the `samples` argument.
+        stats.ttest_ind(array1, array2)
+
+
+    def custom_relationship(stat, pvalue, alpha=0.01):
+        return stat > 0 and pvalue / 2 < alpha
+
 
     schema = DataFrameSchema({
         "height_in_feet": Column(
             pa.Float, [
                 Hypothesis(
-                    test=stats.ttest_ind,
+                    test=custom_test,
                     samples=["M", "F"],
                     groupby="sex",
-                    relationship=lambda stat, pvalue, alpha=0.01: (
-                        stat > 0 and pvalue / 2 < alpha
-                    ),
+                    relationship=custom_relationship,
                     relationship_kwargs={"alpha": 0.05}
                 )
         ]),
-        "sex": Column(pa.String)
+        "sex": Column(pa.String, checks=Check.isin(["M", "F"]))
     })
 
 

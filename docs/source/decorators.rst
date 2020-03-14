@@ -1,13 +1,15 @@
 .. pandera documentation for check_input and check_output decorators
 
+.. currentmodule:: pandera
+
 .. _decorators:
 
 Decorators for Pipeline Integration
 ===================================
 
 If you have an existing data pipeline that uses pandas data structures,
-you can use the ``check_input`` and ``check_output`` decorators to
-easily check function arguments or returned variables from existing
+you can use the :py:func:`check_input` and :py:func:`check_output` decorators
+to easily check function arguments or returned variables from existing
 functions.
 
 Check Input
