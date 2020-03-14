@@ -1,3 +1,4 @@
+# pylint: disable=line-too-long
 """Schema datatypes."""
 
 from enum import Enum
@@ -7,7 +8,7 @@ class PandasDtype(Enum):
     """Enumerate all valid pandas data types.
 
     ``pandera`` follows the
-    `numpy data types <https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html#arrays-dtypes>`_  # pylint: disable=line-too-long
+    `numpy data types <https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html#arrays-dtypes>`_
     subscribed to by ``pandas`` and by default supports using the numpy data
     type string aliases to validate DataFrame or Series dtypes.
 
@@ -17,7 +18,7 @@ class PandasDtype(Enum):
 
     .. warning::
         ``pandera`` also offers limited support for
-        `pandas extension types <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_,  # pylint: disable=line-too-long
+        `pandas extension types <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_,
         however since the release of pandas 1.0.0 there are backwards
         incompatible extension types like the nullable ``Integer`` array and
         the dedicated ``String`` array. In theory the string aliases for these

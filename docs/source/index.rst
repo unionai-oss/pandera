@@ -97,7 +97,7 @@ Alternatively, you can pass strings representing the
         ]),
     })
 
-For more details on data types see :py:class:`pandera.PandasDtype`.
+For more details on data types, see :py:class:`pandera.PandasDtype`
 
 
 Informative Errors
