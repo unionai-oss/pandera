@@ -5,6 +5,7 @@ import copy
 import warnings
 from typing import Callable, List, Optional, Union, Dict, Any
 
+import numpy as np
 import pandas as pd
 
 from . import errors, constants, dtypes, error_formatters
@@ -577,11 +578,19 @@ class SeriesSchemaBase():
                          constants.N_FAILURE_CASES).to_dict()))
 
         try:
+            numpy_dtype = np.dtype(_dtype)
+        except TypeError:
+            numpy_dtype = None
+
+        try:
             series.dtype == _dtype
         except TypeError:
             types_not_matching = True
         else:
             types_not_matching = series.dtype != _dtype
+            if numpy_dtype is not None:
+                types_not_matching = types_not_matching or \
+                    series.dtype != numpy_dtype
 
         if _dtype is not None and types_not_matching:
             raise errors.SchemaError(

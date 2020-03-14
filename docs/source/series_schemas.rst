@@ -1,13 +1,15 @@
 .. pandera documentation for seriesschemas
 
+.. currentmodule:: pandera
+
 .. _SeriesSchemas:
 
 Series Schemas
 ==============
 
-``SeriesSchema``\s allow for the validation of ``pd.Series`` objects, and
-are very similar to :ref:`columns<column>` and :ref:`indexes<index>` described
-in :ref:`DataFrameSchemas<DataFrameSchemas>`.
+The :py:class`SeriesSchema` class allows for the validation of pandas
+``Series`` objects, and are very similar to :ref:`columns<column>` and
+:ref:`indexes<index>` described in :ref:`DataFrameSchemas<DataFrameSchemas>`.
 
 
 .. testcode:: series_validation
@@ -15,15 +17,14 @@ in :ref:`DataFrameSchemas<DataFrameSchemas>`.
     import pandas as pd
     import pandera as pa
 
-    from pandera import Check, SeriesSchema
 
     # specify multiple validators
-    schema = SeriesSchema(
+    schema = pa.SeriesSchema(
         pa.String,
         checks=[
-            Check(lambda s: s.str.startswith("foo")),
-            Check(lambda s: s.str.endswith("bar")),
-            Check(lambda x: len(x) > 3, element_wise=True)
+            pa.Check(lambda s: s.str.startswith("foo")),
+            pa.Check(lambda s: s.str.endswith("bar")),
+            pa.Check(lambda x: len(x) > 3, element_wise=True)
         ],
         nullable=False,
         allow_duplicates=True,
