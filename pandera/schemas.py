@@ -165,20 +165,35 @@ class DataFrameSchema():
 
         :returns: dictionary of columns and their associated dtypes.
         """
-        return {
-            colname: column.dtype
-            for colname, column in self.columns.items()
-            if not column.regex
-        }
+        regex_columns = [
+            name for name, col in self.columns.items() if col.regex]
+        if regex_columns:
+            warnings.warn(
+                "Schema has columns specified as regex column names: %s "
+                "Use the `get_dtype` to get the datatypes for these "
+                "columns." % regex_columns,
+                UserWarning
+            )
+        return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
     def get_dtype(self, dataframe: pd.DataFrame) -> Dict[str, str]:
         """
-        Same as the the ``dtype`` property, but takes a dataframe as input
-        to expand columns where regex=True.
+        Same as the ``dtype`` property, but expands columns where regex == True
+        based on the supplied dataframe.
 
         :returns: dictionary of columns and their associated dtypes.
         """
-        raise NotImplementedError
+        regex_dtype = {}
+        for _, column in self.columns.items():
+            if column.regex:
+                regex_dtype.update({
+                    c: column.dtype for c in
+                    column.get_regex_columns(dataframe.columns)
+                })
+        return {
+            **{n: c.dtype for n, c in self.columns.items() if not c.regex},
+            **regex_dtype,
+        }
 
     def validate(
             self,

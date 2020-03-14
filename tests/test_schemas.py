@@ -567,3 +567,32 @@ def test_add_and_remove_columns():
         }, strict=True)
 
     assert schema4 == expected_schema_4 == schema1
+
+
+def test_schema_get_dtype():
+    """Test that schema dtype and get_dtype methods handle regex columns."""
+    schema = DataFrameSchema({
+        "col1": Column(Int),
+        "var*": Column(Float, regex=True),
+    })
+
+    data = pd.DataFrame({
+        "col1": [1, 2, 3],
+        "var1": [1.0, 1.1, 1.2],
+        "var2": [1.0, 1.1, 1.2],
+        "var3": [1.0, 1.1, 1.2],
+    })
+
+    with pytest.warns(UserWarning) as record:
+        assert schema.dtype == {"col1": "int"}
+    assert len(record) == 1
+    assert record[0].message.args[0].startswith(
+        "Schema has columns specified as regex column names:"
+    )
+
+    assert schema.get_dtype(data) == {
+        "col1": "int",
+        "var1": "float",
+        "var2": "float",
+        "var3": "float",
+    }
