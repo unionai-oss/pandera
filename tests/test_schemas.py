@@ -271,8 +271,8 @@ def test_coerce_dtype_in_dataframe():
 
     for schema in [schema1, schema2]:
         result = schema.validate(df)
-        assert result.column1.dtype == Int.value
-        assert result.column2.dtype == DateTime.value
+        assert result.column1.dtype == Int.numpy_str
+        assert result.column2.dtype == DateTime.numpy_str
         for _, x in result.column3.iteritems():
             assert pd.isna(x) or isinstance(x, str)
 
