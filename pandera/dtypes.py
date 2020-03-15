@@ -83,8 +83,17 @@ class PandasDtype(Enum):
     String = "string"
     Timedelta = "timedelta64[ns]"  #: ``"timedelta64[ns]"`` numpy dtype
 
+    @property
+    def numpy_str(self):
+        """Get numpy datatype string alias."""
+        return {
+            "int": "int64",
+            "float": "float64",
+            "string": "object",
+        }.get(self.value, self.value)
 
-NUMPY_INT_DTYPES = [
+
+NUMPY_NONNULLABLE_INT_DTYPES = [
     "int", "int_", "int8", "int16", "int32", "int64",
     "uint8", "uint16", "uint32", "uint64",
 ]

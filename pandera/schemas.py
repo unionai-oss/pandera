@@ -475,11 +475,8 @@ class SeriesSchemaBase():
         """String representation of the dtype."""
         if isinstance(self._pandas_dtype, str) or self._pandas_dtype is None:
             dtype = self._pandas_dtype
-        elif self._pandas_dtype is dtypes.PandasDtype.String:
-            # handle special case of string.
-            dtype = dtypes.PandasDtype.Object.value
         else:
-            dtype = self._pandas_dtype.value
+            dtype = self._pandas_dtype.numpy_str
         return dtype
 
     def coerce_dtype(
@@ -541,7 +538,7 @@ class SeriesSchemaBase():
 
         if self._nullable:
             series = series.dropna()
-            if _dtype in dtypes.NUMPY_INT_DTYPES:
+            if _dtype in dtypes.NUMPY_NONNULLABLE_INT_DTYPES:
                 _series = series.astype(_dtype)
                 if (_series != series).any():
                     # in case where dtype is meant to be int, make sure that
