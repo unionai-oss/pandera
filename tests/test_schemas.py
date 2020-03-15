@@ -584,15 +584,15 @@ def test_schema_get_dtype():
     })
 
     with pytest.warns(UserWarning) as record:
-        assert schema.dtype == {"col1": "int64"}
+        assert schema.dtype == {"col1": Int.str_alias}
     assert len(record) == 1
     assert record[0].message.args[0].startswith(
         "Schema has columns specified as regex column names:"
     )
 
     assert schema.get_dtype(data) == {
-        "col1": "int64",
-        "var1": "float64",
-        "var2": "float64",
-        "var3": "float64",
+        "col1": Int.str_alias,
+        "var1": Float.str_alias,
+        "var2": Float.str_alias,
+        "var3": Float.str_alias,
     }
