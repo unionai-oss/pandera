@@ -589,7 +589,7 @@ class SeriesSchemaBase():
         else:
             types_not_matching = series.dtype != _dtype
             if numpy_dtype is not None:
-                types_not_matching = types_not_matching or \
+                types_not_matching = types_not_matching and \
                     series.dtype != numpy_dtype
 
         if _dtype is not None and types_not_matching:
