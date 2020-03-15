@@ -1,10 +1,12 @@
-# pylint: disable=line-too-long
 """Schema datatypes."""
 
 from enum import Enum
 
+import numpy as np
+
 
 class PandasDtype(Enum):
+    # pylint: disable=line-too-long
     """Enumerate all valid pandas data types.
 
     ``pandera`` follows the
@@ -87,8 +89,10 @@ class PandasDtype(Enum):
     def numpy_str(self):
         """Get numpy datatype string alias."""
         return {
-            "int": "int64",
-            "float": "float64",
+            # for int and float dtype, delegate string representation to the
+            # default based on OS.
+            "int": str(np.dtype("int")),
+            "float": str(np.dtype("float")),
             "string": "object",
         }.get(self.value, self.value)
 
