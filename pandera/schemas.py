@@ -476,7 +476,7 @@ class SeriesSchemaBase():
         if isinstance(self._pandas_dtype, str) or self._pandas_dtype is None:
             dtype = self._pandas_dtype
         else:
-            dtype = self._pandas_dtype.numpy_str
+            dtype = self._pandas_dtype.str_alias
         return dtype
 
     def coerce_dtype(
