@@ -2,7 +2,19 @@
 
 from enum import Enum
 
-import numpy as np
+import pandas as pd
+
+
+NUMPY_NONNULLABLE_INT_DTYPES = [
+    "int", "int_", "int8", "int16", "int32", "int64",
+    "uint8", "uint16", "uint32", "uint64",
+]
+
+# for int and float dtype, delegate string representation to the
+# default based on OS. In Windows, pandas defaults to int64 while numpy
+# defaults to int32.
+_DEFAULT_INT_TYPE = pd.Series(dtype="int").dtype
+_DEFAULT_FLOAT_TYPE = pd.Series(dtype="float").dtype
 
 
 class PandasDtype(Enum):
@@ -89,15 +101,7 @@ class PandasDtype(Enum):
     def numpy_str(self):
         """Get numpy datatype string alias."""
         return {
-            # for int and float dtype, delegate string representation to the
-            # default based on OS.
-            "int": str(np.dtype("int")),
-            "float": str(np.dtype("float")),
+            "int": str(_DEFAULT_INT_TYPE),
+            "float": str(_DEFAULT_FLOAT_TYPE),
             "string": "object",
         }.get(self.value, self.value)
-
-
-NUMPY_NONNULLABLE_INT_DTYPES = [
-    "int", "int_", "int8", "int16", "int32", "int64",
-    "uint8", "uint16", "uint32", "uint64",
-]
