@@ -39,12 +39,14 @@ def test_numeric_dtypes():
                 schema.validate(
                     pd.DataFrame(
                         {"col": [-123.1, -7654.321, 1.0, 1.1, 1199.51, 5.1]},
-                        dtype=dtype.value)),
+                        dtype=dtype.str_alias)),
                 pd.DataFrame
             )
             for schema in [
                 DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema({"col": Column(dtype.value, nullable=False)})
+                DataFrameSchema(
+                    {"col": Column(dtype.str_alias, nullable=False)}
+                )
             ]
         )
 
@@ -59,12 +61,14 @@ def test_numeric_dtypes():
                 schema.validate(
                     pd.DataFrame(
                         {"col": [-712, -4, -321, 0, 1, 777, 5, 123, 9000]},
-                        dtype=dtype.value)),
+                        dtype=dtype.str_alias)),
                 pd.DataFrame
             )
             for schema in [
                 DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema({"col": Column(dtype.value, nullable=False)})
+                DataFrameSchema(
+                    {"col": Column(dtype.str_alias, nullable=False)}
+                )
             ]
         )
 
@@ -78,12 +82,14 @@ def test_numeric_dtypes():
                 schema.validate(
                     pd.DataFrame(
                         {"col": [1, 777, 5, 123, 9000]},
-                        dtype=dtype.value)),
+                        dtype=dtype.str_alias)),
                 pd.DataFrame
             )
             for schema in [
                 DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema({"col": Column(dtype.value, nullable=False)})
+                DataFrameSchema(
+                    {"col": Column(dtype.str_alias, nullable=False)}
+                )
             ]
         )
 
