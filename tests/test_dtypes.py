@@ -177,49 +177,52 @@ def test_datetime():
         )
 
 
+
+
 @pytest.mark.skipif(
     PANDAS_VERSION.release < (1, 0, 0), reason="pandas >= 1.0.0 required",
 )
-@pytest.mark.parametrize("dtype, data, series_kwargs", [
-    (
-        pd.CategoricalDtype(),
-        pd.Series(["a", "a", "b", "b", "c", "c"], dtype="category"),
-        None
-    ),
-    (
-        pd.DatetimeTZDtype(tz='UTC'),
-        pd.Series(
-            pd.date_range(start="20200101", end="20200301"),
-            dtype="datetime64[ns, utc]"
-        ),
-        None
-    ),
-    (pd.Int64Dtype(), pd.Series(range(10), dtype="Int64"), None),
-    (pd.StringDtype(), pd.Series(["foo", "bar", "baz"], dtype="string"), None),
-    (
-        pd.PeriodDtype(freq='D'),
-        pd.Series(pd.period_range('1/1/2019', '1/1/2020', freq='D')),
-        None
-    ),
-    (
-        pd.SparseDtype("float"),
-        pd.Series(range(100)).where(
-            lambda s: s < 5, other=np.nan).astype("Sparse[float]"),
-        {"nullable": True},
-    ),
-    (
-        pd.BooleanDtype(),
-        pd.Series([1, 0, 0, 1, 1], dtype="boolean"),
-        None
-    ),
-    (
-        pd.IntervalDtype(subtype="int64"),
-        pd.Series(pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])),
-        None,
-    )
-])
-def test_pandas_extension_types(dtype, data, series_kwargs):
+def test_pandas_extension_types():
     """Test pandas extension data type happy path."""
-    series_kwargs = {} if series_kwargs is None else series_kwargs
-    series_schema = SeriesSchema(pandas_dtype=dtype, **series_kwargs)
-    assert isinstance(series_schema.validate(data), pd.Series)
+    test_params = [
+        (
+            pd.CategoricalDtype(),
+            pd.Series(["a", "a", "b", "b", "c", "c"], dtype="category"),
+            None
+        ),
+        (
+            pd.DatetimeTZDtype(tz='UTC'),
+            pd.Series(
+                pd.date_range(start="20200101", end="20200301"),
+                dtype="datetime64[ns, utc]"
+            ),
+            None
+        ),
+        (pd.Int64Dtype(), pd.Series(range(10), dtype="Int64"), None),
+        (pd.StringDtype(), pd.Series(["foo", "bar", "baz"], dtype="string"), None),
+        (
+            pd.PeriodDtype(freq='D'),
+            pd.Series(pd.period_range('1/1/2019', '1/1/2020', freq='D')),
+            None
+        ),
+        (
+            pd.SparseDtype("float"),
+            pd.Series(range(100)).where(
+                lambda s: s < 5, other=np.nan).astype("Sparse[float]"),
+            {"nullable": True},
+        ),
+        (
+            pd.BooleanDtype(),
+            pd.Series([1, 0, 0, 1, 1], dtype="boolean"),
+            None
+        ),
+        (
+            pd.IntervalDtype(subtype="int64"),
+            pd.Series(pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])),
+            None,
+        )
+    ]
+    for dtype, data, series_kwargs in test_params:
+        series_kwargs = {} if series_kwargs is None else series_kwargs
+        series_schema = SeriesSchema(pandas_dtype=dtype, **series_kwargs)
+        assert isinstance(series_schema.validate(data), pd.Series)
