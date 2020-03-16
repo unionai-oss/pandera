@@ -159,10 +159,41 @@ class DataFrameSchema():
 
     @property
     def dtype(self) -> Dict[str, str]:
-        """A pandas style dtype dict where the keys are column names and values
-        are pandas dtype for the column
         """
-        return {k: v.dtype for k, v in self.columns.items()}
+        A pandas style dtype dict where the keys are column names and values
+        are pandas dtype for the column. Excludes columns where regex=True.
+
+        :returns: dictionary of columns and their associated dtypes.
+        """
+        regex_columns = [
+            name for name, col in self.columns.items() if col.regex]
+        if regex_columns:
+            warnings.warn(
+                "Schema has columns specified as regex column names: %s "
+                "Use the `get_dtype` to get the datatypes for these "
+                "columns." % regex_columns,
+                UserWarning
+            )
+        return {n: c.dtype for n, c in self.columns.items() if not c.regex}
+
+    def get_dtype(self, dataframe: pd.DataFrame) -> Dict[str, str]:
+        """
+        Same as the ``dtype`` property, but expands columns where regex == True
+        based on the supplied dataframe.
+
+        :returns: dictionary of columns and their associated dtypes.
+        """
+        regex_dtype = {}
+        for _, column in self.columns.items():
+            if column.regex:
+                regex_dtype.update({
+                    c: column.dtype for c in
+                    column.get_regex_columns(dataframe.columns)
+                })
+        return {
+            **{n: c.dtype for n, c in self.columns.items() if not c.regex},
+            **regex_dtype,
+        }
 
     def validate(
             self,
@@ -391,7 +422,9 @@ class SeriesSchemaBase():
 
     def __init__(
             self,
-            pandas_dtype: Union[str, dtypes.PandasDtype] = None,
+            pandas_dtype: Union[
+                str, dtypes.PandasDtype, dtypes.PandasExtensionType
+            ] = None,
             checks: Optional[Union[Check, List[Check]]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -441,13 +474,25 @@ class SeriesSchemaBase():
     @property
     def dtype(self) -> Union[str, None]:
         """String representation of the dtype."""
-        if isinstance(self._pandas_dtype, str) or self._pandas_dtype is None:
-            dtype = self._pandas_dtype
-        elif self._pandas_dtype is dtypes.PandasDtype.String:
-            # handle special case of string.
-            dtype = dtypes.PandasDtype.Object.value
+        try:
+            is_extension_type = isinstance(
+                self._pandas_dtype,
+                pd.core.dtypes.base.ExtensionDtype)
+        except (AttributeError, TypeError):
+            is_extension_type = False
+
+        if is_extension_type:
+            dtype = str(self._pandas_dtype)
+        elif isinstance(self._pandas_dtype, str) or \
+                self._pandas_dtype is None:
+            dtype = self._pandas_dtype   # type: ignore
+        elif isinstance(self._pandas_dtype, dtypes.PandasDtype):
+            dtype = self._pandas_dtype.str_alias
         else:
-            dtype = self._pandas_dtype.value
+            raise TypeError(
+                "type of `pandas_dtype` argument not recognized: %s" %
+                type(self._pandas_dtype)
+            )
         return dtype
 
     def coerce_dtype(
@@ -509,8 +554,7 @@ class SeriesSchemaBase():
 
         if self._nullable:
             series = series.dropna()
-            if _dtype in ["int_", "int8", "int16", "int32", "int64", "uint8",
-                          "uint16", "uint32", "uint64"]:
+            if _dtype in dtypes.NUMPY_NONNULLABLE_INT_DTYPES:
                 _series = series.astype(_dtype)
                 if (_series != series).any():
                     # in case where dtype is meant to be int, make sure that
@@ -522,7 +566,7 @@ class SeriesSchemaBase():
                 series = _series
 
         nulls = series.isnull()
-        if nulls.sum() > 0:
+        if sum(nulls) > 0:
             if series.dtype != _dtype:
                 raise errors.SchemaError(
                     "expected series '%s' to have type %s, got %s and "
@@ -596,7 +640,9 @@ class SeriesSchema(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: dtypes.PandasDtype = None,
+            pandas_dtype: Union[
+                str, dtypes.PandasDtype, dtypes.PandasExtensionType
+            ] = None,
             checks: List[Check] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -606,7 +652,7 @@ class SeriesSchema(SeriesSchemaBase):
 
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
-            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+            https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes
         :param checks: If element_wise is True, then callable signature should
             be:
             x -> x where x is a scalar element in the column. Otherwise,

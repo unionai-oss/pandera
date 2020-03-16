@@ -278,8 +278,13 @@ class Check():
         else:
             failure_cases = check_obj[~check_result]
 
-        check_passed = check_result.all() if \
-            isinstance(check_result, pd.Series) else check_result
+        # handle check_result return types
+        if isinstance(check_result, pd.Series):
+            check_passed = check_result.all()
+        elif isinstance(check_result, pd.DataFrame):
+            check_passed = check_result.all().all()
+        else:
+            check_passed = check_result
 
         return CheckResult(check_passed, check_obj, failure_cases)
 

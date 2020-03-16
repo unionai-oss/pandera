@@ -42,6 +42,16 @@ Checks
    Hypothesis
 
 
+Pandas Data Types
+-----------------
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   PandasDtype
+
+
 Decorators
 ----------
 

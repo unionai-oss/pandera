@@ -1,52 +1,117 @@
 """Schema datatypes."""
-# pylint: disable=C0103
 
 from enum import Enum
 
+import pandas as pd
+
+
+# pylint: disable=invalid-name
+try:
+    PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
+except AttributeError:
+    PandasExtensionType = "pd.core.dtypes.base.ExtensionDtype"
+
+
+NUMPY_NONNULLABLE_INT_DTYPES = [
+    "int", "int_", "int8", "int16", "int32", "int64",
+    "uint8", "uint16", "uint32", "uint64",
+]
+
+# for int and float dtype, delegate string representation to the
+# default based on OS. In Windows, pandas defaults to int64 while numpy
+# defaults to int32.
+_DEFAULT_INT_TYPE = pd.Series([1]).dtype
+_DEFAULT_FLOAT_TYPE = pd.Series([1.0]).dtype
+
 
 class PandasDtype(Enum):
-    """Enumerate all valid pandas data types."""
+    # pylint: disable=line-too-long
+    """Enumerate all valid pandas data types.
 
-    Bool = "bool"
-    DateTime = "datetime64[ns]"
-    Category = "category"
-    Float = "float64"
-    Float16 = "float16"
-    Float32 = "float32"
-    Float64 = "float64"
-    Int = "int64"
-    Int8 = "int8"
-    Int16 = "int16"
-    Int32 = "int32"
-    Int64 = "int64"
-    UInt8 = "uint8"
-    UInt16 = "uint16"
-    UInt32 = "uint32"
-    UInt64 = "uint64"
-    Object = "object"
-    # the string datatype doesn't map to a unique string representation and is
-    # representated as a numpy object array. This will change after pandas 1.0,
-    # but for now will need to handle this as a special case.
+    ``pandera`` follows the
+    `numpy data types <https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html#arrays-dtypes>`_
+    subscribed to by ``pandas`` and by default supports using the numpy data
+    type string aliases to validate DataFrame or Series dtypes.
+
+    This class simply enumerates the valid numpy dtypes for pandas arrays.
+    For convenience ``PandasDtype`` enums can all be accessed in the top-level
+    ``pandera`` name space via the same enum name.
+
+    :examples:
+
+    >>> import pandas as pd
+    >>> import pandera as pa
+    >>>
+    >>>
+    >>> pa.SeriesSchema(pa.Int).validate(pd.Series([1, 2, 3]))
+    0    1
+    1    2
+    2    3
+    dtype: int64
+    >>> pa.SeriesSchema(pa.Float).validate(pd.Series([1.1, 2.3, 3.4]))
+    0    1.1
+    1    2.3
+    2    3.4
+    dtype: float64
+    >>> pa.SeriesSchema(pa.String).validate(pd.Series(["a", "b", "c"]))
+        0    a
+    1    b
+    2    c
+    dtype: object
+
+    You can also directly use the string alias for each data-type in the
+    schema definition:
+
+    >>> pa.SeriesSchema("int").validate(pd.Series([1, 2, 3]))
+    0    1
+    1    2
+    2    3
+    dtype: int64
+
+    .. note::
+        ``pandera`` also offers limited support for
+        `pandas extension types <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_,
+        however since the release of pandas 1.0.0 there are backwards
+        incompatible extension types like the ``String`` array. The extension
+        types, e.g. ``pd.StringDtype()`` and their string aliases should work
+        when supplied to the ``pandas_dtype`` argument when initializing
+        ``pa.SeriesSchemaBase`` objects, but this functionality is only
+        testing for pandas >= 1.0.0. Extension types in earlier versions are
+        not guaranteed to work as the ``pandas_dtype`` argument in schemas
+        or schema components.
+
+    """
+
+    Bool = "bool"  #: ``"bool"`` numpy dtype
+    DateTime = "datetime64[ns]" #: ``"datetime64[ns]"`` numpy dtype
+    Category = "category" #: pandas ``"categorical"`` datatype
+    Float = "float"  #: ``"float"`` numpy dtype
+    Float16 = "float16"  #: ``"float16"`` numpy dtype
+    Float32 = "float32"  #: ``"float32"`` numpy dtype
+    Float64 = "float64"  #: ``"float64"`` numpy dtype
+    Int = "int"  #: ``"int"`` numpy dtype
+    Int8 = "int8"  #: ``"int8"`` numpy dtype
+    Int16 = "int16"  #: ``"int16"`` numpy dtype
+    Int32 = "int32"  #: ``"int32"`` numpy dtype
+    Int64 = "int64"  #: ``"int64"`` numpy dtype
+    UInt8 = "uint8"  #: ``"uint8"`` numpy dtype
+    UInt16 = "uint16"  #: ``"uint16"`` numpy dtype
+    UInt32 = "uint32"  #: ``"uint32"`` numpy dtype
+    UInt64 = "uint64"  #: ``"uint64"`` numpy dtype
+    Object = "object"  #: ``"object"`` numpy dtype
+
+    #: The string datatype doesn't map to a first-class pandas datatype and is
+    #: representated as a numpy ``"object"`` array. This will change after
+    #: pandera explicitly supports pandas 1.0+ and is currently handled
+    #: internally by pandera as a special case.
     String = "string"
-    Timedelta = "timedelta64[ns]"
+    Timedelta = "timedelta64[ns]"  #: ``"timedelta64[ns]"`` numpy dtype
 
-
-Bool = PandasDtype.Bool
-DateTime = PandasDtype.DateTime
-Category = PandasDtype.Category
-Float = PandasDtype.Float
-Float16 = PandasDtype.Float16
-Float32 = PandasDtype.Float32
-Float64 = PandasDtype.Float64
-Int = PandasDtype.Int
-Int8 = PandasDtype.Int8
-Int16 = PandasDtype.Int16
-Int32 = PandasDtype.Int32
-Int64 = PandasDtype.Int64
-UInt8 = PandasDtype.UInt8
-UInt16 = PandasDtype.UInt16
-UInt32 = PandasDtype.UInt32
-UInt64 = PandasDtype.UInt64
-Object = PandasDtype.Object
-String = PandasDtype.String
-Timedelta = PandasDtype.Timedelta
+    @property
+    def str_alias(self):
+        """Get datatype string alias."""
+        return {
+            "int": str(_DEFAULT_INT_TYPE),
+            "float": str(_DEFAULT_FLOAT_TYPE),
+            "string": "object",
+        }.get(self.value, self.value)

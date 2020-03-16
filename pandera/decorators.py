@@ -65,9 +65,7 @@ def check_input(
     >>> import pandera as pa
     >>>
     >>>
-    >>> schema = pa.DataFrameSchema({
-    ...     "column": pa.Column(pa.Int),
-    ... })
+    >>> schema = pa.DataFrameSchema({"column": pa.Column(pa.Int)})
     >>>
     >>> @pa.check_input(schema)
     ... def transform_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -189,11 +187,10 @@ def check_output(
     >>>
     >>>
     >>> schema = pa.DataFrameSchema(
-    ...     columns={
-    ...         "doubled_column": pa.Column(pa.Int),
-    ...     },
+    ...     columns={"doubled_column": pa.Column(pa.Int)},
     ...     checks=pa.Check(
-    ...         lambda df: df["doubled_column"] == df["column"] * 2)
+    ...         lambda df: df["doubled_column"] == df["column"] * 2
+    ...     )
     ... )
     >>>
     >>> @pa.check_output(schema)

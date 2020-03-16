@@ -81,7 +81,7 @@ Quick Start
 
 
 Alternatively, you can pass strings representing the
-`legal pandas datatypes <http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes>`_:
+`legal pandas datatypes <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_:
 
 .. testcode:: quick_start
 
@@ -96,6 +96,8 @@ Alternatively, you can pass strings representing the
             pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
         ]),
     })
+
+For more details on data types, see :py:class:`pandera.PandasDtype`
 
 
 Informative Errors
