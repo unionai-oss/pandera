@@ -67,12 +67,12 @@ class PandasDtype(Enum):
     2    3
     dtype: int64
 
-    .. warning::
+    .. note::
         ``pandera`` also offers limited support for
         `pandas extension types <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_,
         however since the release of pandas 1.0.0 there are backwards
         incompatible extension types like the ``String`` array. The extension
-        types, e.g. `pd.StringDtype()` and their string aliases should work
+        types, e.g. ``pd.StringDtype()`` and their string aliases should work
         when supplied to the ``pandas_dtype`` argument when initializing
         ``pa.SeriesSchemaBase`` objects, but this functionality is only
         testing for pandas >= 1.0.0. Extension types in earlier versions are
