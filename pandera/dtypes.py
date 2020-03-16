@@ -5,10 +5,11 @@ from enum import Enum
 import pandas as pd
 
 
+# pylint: disable=invalid-name
 try:
-    PANDAS_EXTENSION_TYPE = pd.core.dtypes.base.ExtensionDtype
+    PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
 except AttributeError:
-    PANDAS_EXTENSION_TYPE = "pd.core.dtypes.base.ExtensionDtype"
+    PandasExtensionType = "pd.core.dtypes.base.ExtensionDtype"
 
 
 NUMPY_NONNULLABLE_INT_DTYPES = [

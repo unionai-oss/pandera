@@ -423,7 +423,7 @@ class SeriesSchemaBase():
     def __init__(
             self,
             pandas_dtype: Union[
-                str, dtypes.PandasDtype, dtypes.PANDAS_EXTENSION_TYPE
+                str, dtypes.PandasDtype, dtypes.PandasExtensionType
             ] = None,
             checks: Optional[Union[Check, List[Check]]] = None,
             nullable: bool = False,
@@ -641,7 +641,7 @@ class SeriesSchema(SeriesSchemaBase):
     def __init__(
             self,
             pandas_dtype: Union[
-                str, dtypes.PandasDtype, dtypes.PANDAS_EXTENSION_TYPE
+                str, dtypes.PandasDtype, dtypes.PandasExtensionType
             ] = None,
             checks: List[Check] = None,
             nullable: bool = False,

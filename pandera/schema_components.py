@@ -24,7 +24,7 @@ class Column(SeriesSchemaBase):
     def __init__(
             self,
             pandas_dtype: Union[
-                str, PandasDtype, dtypes.PANDAS_EXTENSION_TYPE] = None,
+                str, PandasDtype, dtypes.PandasExtensionType] = None,
             checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -218,7 +218,7 @@ class Index(SeriesSchemaBase):
     def __init__(
             self,
             pandas_dtype: Union[
-                str, PandasDtype, dtypes.PANDAS_EXTENSION_TYPE] = None,
+                str, PandasDtype, dtypes.PandasExtensionType] = None,
             checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,

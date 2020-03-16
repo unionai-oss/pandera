@@ -180,10 +180,12 @@ def test_datetime():
 
 
 @pytest.mark.skipif(
-    PANDAS_VERSION.release < (1, 0, 0), reason="pandas >= 1.0.0 required",
+    PANDAS_VERSION.release < (1, 0, 0),  # type: ignore
+    reason="pandas >= 1.0.0 required",
 )
 def test_pandas_extension_types():
     """Test pandas extension data type happy path."""
+    # pylint: disable=no-member
     test_params = [
         (
             pd.CategoricalDtype(),
