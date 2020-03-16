@@ -5,6 +5,12 @@ from enum import Enum
 import pandas as pd
 
 
+try:
+    PANDAS_EXTENSION_TYPE = pd.core.dtypes.base.ExtensionDtype
+except AttributeError:
+    PANDAS_EXTENSION_TYPE = "pd.core.dtypes.base.ExtensionDtype"
+
+
 NUMPY_NONNULLABLE_INT_DTYPES = [
     "int", "int_", "int8", "int16", "int32", "int64",
     "uint8", "uint16", "uint32", "uint64",
@@ -61,15 +67,18 @@ class PandasDtype(Enum):
     2    3
     dtype: int64
 
-    .. note::
+    .. warning::
         ``pandera`` also offers limited support for
         `pandas extension types <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_,
         however since the release of pandas 1.0.0 there are backwards
-        incompatible extension types like the nullable ``Integer`` array and
-        the dedicated ``String`` array. In theory the string aliases for these
-        extension types should work when supplied to the ``pandas_dtype``
-        argument when initializing ``pa.SeriesSchemaBase`` objects, but this
-        is not currently tested.
+        incompatible extension types like the ``String`` array. The extension
+        types, e.g. `pd.StringDtype()` and their string aliases should work
+        when supplied to the ``pandas_dtype`` argument when initializing
+        ``pa.SeriesSchemaBase`` objects, but this functionality is only
+        testing for pandas >= 1.0.0. Extension types in earlier versions are
+        not guaranteed to work as the ``pandas_dtype`` argument in schemas
+        or schema components.
+
     """
 
     Bool = "bool"  #: ``"bool"`` numpy dtype

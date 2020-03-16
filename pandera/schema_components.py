@@ -7,7 +7,7 @@ from typing import Union, Optional, Tuple, Any
 import numpy as np
 import pandas as pd
 
-from . import errors
+from . import errors, dtypes
 from .dtypes import PandasDtype
 from .checks import Check, List
 from .schemas import DataFrameSchema, SeriesSchemaBase
@@ -23,7 +23,8 @@ class Column(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: Union[str, PandasDtype] = None,
+            pandas_dtype: Union[
+                str, PandasDtype, dtypes.PANDAS_EXTENSION_TYPE] = None,
             checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -216,7 +217,8 @@ class Index(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: Union[str, PandasDtype] = None,
+            pandas_dtype: Union[
+                str, PandasDtype, dtypes.PANDAS_EXTENSION_TYPE] = None,
             checks: Union[Check, List[Check]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,

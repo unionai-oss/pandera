@@ -5,7 +5,6 @@ import copy
 import warnings
 from typing import Callable, List, Optional, Union, Dict, Any
 
-import numpy as np
 import pandas as pd
 
 from . import errors, constants, dtypes, error_formatters
@@ -423,7 +422,9 @@ class SeriesSchemaBase():
 
     def __init__(
             self,
-            pandas_dtype: Union[str, dtypes.PandasDtype] = None,
+            pandas_dtype: Union[
+                str, dtypes.PandasDtype, dtypes.PANDAS_EXTENSION_TYPE
+            ] = None,
             checks: Optional[Union[Check, List[Check]]] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -473,10 +474,25 @@ class SeriesSchemaBase():
     @property
     def dtype(self) -> Union[str, None]:
         """String representation of the dtype."""
-        if isinstance(self._pandas_dtype, str) or self._pandas_dtype is None:
-            dtype = self._pandas_dtype
-        else:
+        try:
+            is_extension_type = isinstance(
+                self._pandas_dtype,
+                pd.core.dtypes.base.ExtensionDtype)
+        except (AttributeError, TypeError):
+            is_extension_type = False
+
+        if is_extension_type:
+            dtype = str(self._pandas_dtype)
+        elif isinstance(self._pandas_dtype, str) or \
+                self._pandas_dtype is None:
+            dtype = self._pandas_dtype   # type: ignore
+        elif isinstance(self._pandas_dtype, dtypes.PandasDtype):
             dtype = self._pandas_dtype.str_alias
+        else:
+            raise TypeError(
+                "type of `pandas_dtype` argument not recognized: %s" %
+                type(self._pandas_dtype)
+            )
         return dtype
 
     def coerce_dtype(
@@ -550,7 +566,7 @@ class SeriesSchemaBase():
                 series = _series
 
         nulls = series.isnull()
-        if nulls.sum() > 0:
+        if sum(nulls) > 0:
             if series.dtype != _dtype:
                 raise errors.SchemaError(
                     "expected series '%s' to have type %s, got %s and "
@@ -575,19 +591,11 @@ class SeriesSchemaBase():
                          constants.N_FAILURE_CASES).to_dict()))
 
         try:
-            numpy_dtype = np.dtype(_dtype)
-        except TypeError:
-            numpy_dtype = None
-
-        try:
             series.dtype == _dtype
         except TypeError:
             types_not_matching = True
         else:
             types_not_matching = series.dtype != _dtype
-            if numpy_dtype is not None:
-                types_not_matching = types_not_matching and \
-                    series.dtype != numpy_dtype
 
         if _dtype is not None and types_not_matching:
             raise errors.SchemaError(
@@ -632,7 +640,9 @@ class SeriesSchema(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: dtypes.PandasDtype = None,
+            pandas_dtype: Union[
+                str, dtypes.PandasDtype, dtypes.PANDAS_EXTENSION_TYPE
+            ] = None,
             checks: List[Check] = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -642,7 +652,7 @@ class SeriesSchema(SeriesSchemaBase):
 
         :param pandas_dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
-            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+            https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes
         :param checks: If element_wise is True, then callable signature should
             be:
             x -> x where x is a scalar element in the column. Otherwise,
