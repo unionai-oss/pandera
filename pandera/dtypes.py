@@ -76,7 +76,7 @@ class PandasDtype(Enum):
         types, e.g. ``pd.StringDtype()`` and their string aliases should work
         when supplied to the ``pandas_dtype`` argument when initializing
         ``pa.SeriesSchemaBase`` objects, but this functionality is only
-        testing for pandas >= 1.0.0. Extension types in earlier versions are
+        tested for pandas >= 1.0.0. Extension types in earlier versions are
         not guaranteed to work as the ``pandas_dtype`` argument in schemas
         or schema components.
 
