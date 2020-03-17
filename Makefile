@@ -1,4 +1,5 @@
-.PHONY: docs tests upload-pypi conda-build-35 conda-build-36 conda-build-37
+.PHONY: tests clean clean-pyc upload-pypi-test upload-pypi requirements docs \
+	code-cov
 
 tests:
 	pytest
@@ -29,17 +30,3 @@ docs:
 
 code-cov:
 	pytest --cov-report=html --cov=pandera tests/
-
-mock-ci-tests:
-	. ./ci_tests.sh
-
-conda-build: conda-build-35 conda-build-36 conda-build-37
-
-conda-build-35:
-	conda-build --python=3.5 conda.recipe
-
-conda-build-36:
-	conda-build --python=3.6 conda.recipe
-
-conda-build-37:
-	conda-build --python=3.7 conda.recipe
