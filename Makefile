@@ -27,6 +27,9 @@ docs:
 		python -m sphinx -E -W "docs/source" "docs/_build" && \
 		make -C docs doctest
 
+code-cov:
+	pytest --cov-report=html --cov=pandera tests/
+
 mock-ci-tests:
 	. ./ci_tests.sh
 
