@@ -68,30 +68,32 @@ Here's an implementation of the two-sample t-test that uses the
 
 .. testcode:: hypothesis_testing
 
-    def custom_test(array1, array2):
+    def two_sample_ttest(array1, array2):
         # the "height_in_feet" series is first grouped by "sex" and then
         # passed into the custom `test` function as two separate arrays in the
         # order specified in the `samples` argument.
-        stats.ttest_ind(array1, array2)
+        return stats.ttest_ind(array1, array2)
 
 
-    def custom_relationship(stat, pvalue, alpha=0.01):
-        return stat > 0 and pvalue / 2 < alpha
+    def null_relationship(stat, pvalue, alpha=0.01):
+        return pvalue / 2 >= alpha
 
 
     schema = DataFrameSchema({
         "height_in_feet": Column(
             pa.Float, [
                 Hypothesis(
-                    test=custom_test,
+                    test=two_sample_ttest,
                     samples=["M", "F"],
                     groupby="sex",
-                    relationship=custom_relationship,
+                    relationship=null_relationship,
                     relationship_kwargs={"alpha": 0.05}
                 )
         ]),
         "sex": Column(pa.String, checks=Check.isin(["M", "F"]))
     })
+
+    schema.validate(df)
 
 
 Wide Hypotheses
