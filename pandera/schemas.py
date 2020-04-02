@@ -607,7 +607,7 @@ class SeriesSchemaBase():
         if isinstance(check_obj, pd.Series):
             check_args = [series, None]
         else:
-            _check_obj = check_obj.loc[series.index].copy()
+            _check_obj = check_obj.loc[series.index.unique()].copy()
             _check_obj[self.name] = series
             check_args = [_check_obj, self.name]
 
