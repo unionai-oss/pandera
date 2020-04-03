@@ -512,7 +512,13 @@ class SeriesSchemaBase():
             # only coerce non-null elements to string
             return series_or_index.where(
                 series_or_index.isna(), series_or_index.astype(str))
-        return series_or_index.astype(self.dtype)
+
+        try:
+            return series_or_index.astype(self.dtype)
+        except TypeError as exn:
+            (msg,) = exn.args
+            exn.args = (f"{msg}, while processing {self.name or 'None'}",)
+            raise exn
 
     @property
     def _allow_groupby(self):
