@@ -108,9 +108,12 @@ pytest tests
 
 ## Contributing to pandera [![GitHub contributors](https://img.shields.io/github/contributors/pandera-dev/pandera.svg)](https://github.com/pandera-dev/pandera/graphs/contributors)
 
-All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
+All contributions, bug reports, bug fixes, documentation improvements,
+enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the [contributing guide](https://github.com/pandera-dev/pandera/blob/master/.github/CONTRIBUTING.md) on GitHub.
+A detailed overview on how to contribute can be found in the
+[contributing guide](https://github.com/pandera-dev/pandera/blob/master/.github/CONTRIBUTING.md)
+on GitHub.
 
 ## Issues
 
