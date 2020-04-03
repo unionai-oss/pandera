@@ -34,6 +34,19 @@ def test_column():
         Column(Int)(data)
 
 
+def test_column_type_can_be_set():
+    """Test that the Column dtype can be edited during schema construction."""
+
+    column_a = Column(Int, name="a")
+    changed_type = Float
+
+    column_a.pandas_dtype = Float
+
+    assert column_a.pandas_dtype == changed_type
+    assert column_a.dtype == changed_type
+
+
+
 def test_coerce_nullable_object_column():
     """Test that Object dtype coercing preserves object types."""
     df_objects_with_na = pd.DataFrame({
