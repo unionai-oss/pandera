@@ -43,7 +43,7 @@ def test_column_type_can_be_set():
     column_a.pandas_dtype = Float
 
     assert column_a.pandas_dtype == changed_type
-    assert column_a.dtype == changed_type
+    assert column_a.dtype == changed_type.str_alias
 
 
 

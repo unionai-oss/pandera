@@ -479,6 +479,15 @@ class SeriesSchemaBase():
         """Get the pandas dtype"""
         return self._pandas_dtype
 
+    @pandas_dtype.setter
+    def pandas_dtype(self, value: Union[
+            str,
+            dtypes.PandasDtype,
+            dtypes.PandasExtensionType]) -> None:
+        """Set the pandas dtype"""
+        #TODO do we need specfifi checks or actions for consistency here?
+        self._pandas_dtype = value
+
     @property
     def dtype(self) -> Union[str, None]:
         """String representation of the dtype."""
