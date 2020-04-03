@@ -84,10 +84,15 @@ class DataFrameSchema():
 
         self.columns = {} if columns is None else columns
 
-        if coerce and None in [c.pandas_dtype for c in self.columns.values()]:
-            raise errors.SchemaInitError(
-                "Must specify dtype in all Columns if coercing "
-                "DataFrameSchema")
+        if coerce:
+            missing_pandas_type = [name
+                for name, col in self.columns.items()
+                if col.pandas_dtype is None]
+            if missing_pandas_type:
+                raise errors.SchemaInitError(
+                    "Must specify dtype in all Columns if coercing "
+                    "DataFrameSchema ; columns with missing pandas_type:" +
+                    ", ".join(missing_pandas_type))
 
         self.checks = checks
         self.index = index
