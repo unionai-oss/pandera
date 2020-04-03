@@ -77,7 +77,6 @@ class Column(SeriesSchemaBase):
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True")
         self.required = required
-        self.pandas_dtype = pandas_dtype
         self._name = name
         self._regex = regex
 

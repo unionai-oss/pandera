@@ -472,6 +472,14 @@ class SeriesSchemaBase():
         return self._name
 
     @property
+    def pandas_dtype(self) -> Union[
+            str,
+            dtypes.PandasDtype,
+            dtypes.PandasExtensionType]:
+        """Get the pandas dtype"""
+        return self._pandas_dtype
+
+    @property
     def dtype(self) -> Union[str, None]:
         """String representation of the dtype."""
         try:
