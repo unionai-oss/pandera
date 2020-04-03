@@ -369,12 +369,10 @@ class TestEqualTo:
 
     @staticmethod
     @pytest.mark.parametrize('series_values, value', [
-        ((1, None), 1),
-        ((-1, None, -1), -1),
-        ((pd.Timestamp("2015-02-01"),
-          None),
-         pd.Timestamp("2015-02-01")),
-        (("foo", None), "foo")
+        [(1, None), 1],
+        [(-1, None, -1), -1],
+        [(pd.Timestamp("2015-02-01"), None), pd.Timestamp("2015-02-01")],
+        [("foo", None), "foo"],
     ])
     def test_failing_with_none(series_values, value):
         """Validate the check works also on dataframes with None values"""
