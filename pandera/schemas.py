@@ -603,19 +603,19 @@ class SeriesSchemaBase():
                 (series.name, _dtype, series.dtype))
 
         check_results = []
+        if len(self.checks) != 0:
+            if isinstance(check_obj, pd.Series):
+                check_args = [series, None]
+            else:
+                _check_obj = check_obj.loc[series.index.unique()].copy()
+                _check_obj[self.name] = series
+                check_args = [_check_obj, self.name]
 
-        if isinstance(check_obj, pd.Series):
-            check_args = [series, None]
-        else:
-            _check_obj = check_obj.loc[series.index.unique()].copy()
-            _check_obj[self.name] = series
-            check_args = [_check_obj, self.name]
-
-        for check_index, check in enumerate(self.checks):
-            check_results.append(
-                _handle_check_results(
-                    self, check_index, check, check(*check_args))
-            )
+            for check_index, check in enumerate(self.checks):
+                check_results.append(
+                    _handle_check_results(
+                        self, check_index, check, check(*check_args))
+                )
 
         assert all(check_results)
         return check_obj
