@@ -7,15 +7,16 @@ import pandas as pd
 from scipy import stats
 
 from . import errors
-from .checks import Check, SeriesCheckObj, DataFrameCheckObj
+from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
 
 
 DEFAULT_ALPHA = 0.01
 
 
-class Hypothesis(Check):
-    """Perform a hypothesis test on a Column."""
+class Hypothesis(_CheckBase):
+    """Special type of :class:`Check` that defines hypothesis tests on data."""
 
+    #: Relationships available for built-in hypothesis tests.
     RELATIONSHIPS = {
         "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
                          stat > 0 and pvalue / 2 < alpha),
@@ -39,9 +40,10 @@ class Hypothesis(Check):
     ) -> None:
         """Perform a hypothesis test on a Series or DataFrame.
 
-        Can function on a single column or be grouped by another column.
-
-        :param callable test: A function to check a series schema.
+        :param test: The hypothesis test function. It should take one or more
+            arrays as positional arguments and return a test statistic and a
+            p-value. The arrays passed into the test function are determined
+            by the ``samples`` argument.
         :param samples: for `Column` or `SeriesSchema` hypotheses, this refers
             to the group keys in the `groupby` column(s) used to group the
             `Series` into a dict of `Series`. The `samples` column(s) are
@@ -77,7 +79,7 @@ class Hypothesis(Check):
             `**relationship_kwargs` argument.
 
             Default is "equal" for the null hypothesis.
-        :param dict test_kwargs: Key Word arguments to be supplied to the test.
+        :param dict test_kwargs: Keyword arguments to be supplied to the test.
         :param dict relationship_kwargs: Keyword arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
@@ -222,13 +224,12 @@ class Hypothesis(Check):
             equal_var=True,
             nan_policy="propagate",
             raise_warning=False,
-        ):
-        """Calculate a t-test for the means of two columns.
+    ):
+        """Calculate a t-test for the means of two samples.
 
-        This reuses the scipy.stats.ttest_ind to perfom a two-sided test for
-        the null hypothesis that 2 independent samples have identical average
-        (expected) values. This test assumes that the populations have
-        identical variances by default.
+        Perform a two-sided test for the null hypothesis that 2 independent
+        samples have identical average (expected) values. This test assumes
+        that the populations have identical variances by default.
 
         :param sample1: The first sample group to test. For `Column` and
             `SeriesSchema` hypotheses, refers to the level in the `groupby`
@@ -331,7 +332,7 @@ class Hypothesis(Check):
             alpha: float = DEFAULT_ALPHA,
             raise_warning=False,
     ):
-        """Calculate a t-test for the mean of one column.
+        """Calculate a t-test for the mean of one sample.
 
         :param sample: The sample group to test. For `Column` and
             `SeriesSchema` hypotheses, refers to the `groupby` level in the
