@@ -50,7 +50,7 @@ required_ parameter allows control over whether or not the column is allowed to
 be missing.
 
 :ref:`Column checks<checks>` allow for the DataFrame's values to be
-checked against a user provided function. ``Check`` objects also support
+checked against a user-provided function. ``Check`` objects also support
 :ref:`grouping<grouping>` by a different column so that the user can make
 assertions about subsets of the column of interest.
 
