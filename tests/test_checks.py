@@ -256,6 +256,46 @@ def test_dataframe_checks():
     assert isinstance(element_wise_check_schema.validate(df), pd.DataFrame)
 
 
+def test_missing_checks():
+    """Tests that one can check for missing values.
+
+    The primamry issue this code adresses is that missing values are remove form the series
+    before applying the checks. This is counter intuitive and prevents quite a few useful checks.
+    """
+
+    from numpy import nan
+
+    def missing_rate(s : pd.Series) -> float:
+        return s.isnull().sum() / s.shape[0]
+
+    threshold = 0.25 # By setting this threshold negative you can check that the test passes
+
+    schema = DataFrameSchema(
+        columns={
+            "c_i": Column(Int, nullable=True,
+                        checks = Check(lambda s: missing_rate(s) < threshold, raise_warning=True)),
+            "c_f": Column(Float, nullable=True,
+                        checks = Check(lambda s: missing_rate(s) < threshold, raise_warning=True)),
+            "c_s": Column(String, nullable=True,
+                        checks = Check(lambda s: missing_rate(s) < threshold, raise_warning=True)),
+        }
+    )
+
+    df = pd.DataFrame({
+        "c_i": [1, pd.NA, 3],
+        "c_f": [2.0, 3.0, nan],
+        "c_s": [None, "bar", "baz"],
+    })
+
+    for s in df.columns:
+        assert missing_rate(df[s]) > threshold, "precondition of the test failed, check test data set-up"
+
+    with pytest.warns(UserWarning) as warnings:
+        schema(df)
+
+        assert len(warnings) == 3
+
+
 def test_format_failure_case_exceptions():
     """Tests that the format_failure_cases method correctly produces a
     TypeError."""
