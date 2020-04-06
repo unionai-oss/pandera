@@ -64,6 +64,12 @@ exclude_patterns = []
 autoclass_content = 'both'
 pygments_style = None
 
+autodoc_default_options = {
+    # 'special-members': '__call__',
+    'undoc-members': False,
+    # 'exclude-members': '__weakref__'
+}
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for

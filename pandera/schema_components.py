@@ -2,15 +2,14 @@
 
 from copy import copy
 
-from typing import Union, Optional, Tuple, Any
+from typing import Union, Optional, Tuple, Any, List
 
 import numpy as np
 import pandas as pd
 
 from . import errors, dtypes
 from .dtypes import PandasDtype
-from .checks import Check, List
-from .schemas import DataFrameSchema, SeriesSchemaBase
+from .schemas import DataFrameSchema, SeriesSchemaBase, CheckList
 
 
 def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
@@ -25,7 +24,7 @@ class Column(SeriesSchemaBase):
             self,
             pandas_dtype: Union[
                 str, PandasDtype, dtypes.PandasExtensionType] = None,
-            checks: Union[Check, List[Check]] = None,
+            checks: CheckList = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
@@ -219,7 +218,7 @@ class Index(SeriesSchemaBase):
             self,
             pandas_dtype: Union[
                 str, PandasDtype, dtypes.PandasExtensionType] = None,
-            checks: Union[Check, List[Check]] = None,
+            checks: CheckList = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,

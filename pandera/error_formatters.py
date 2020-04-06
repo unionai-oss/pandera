@@ -5,11 +5,12 @@ from typing import Union, Optional
 import pandas as pd
 
 from .checks import Check
+from .hypotheses import Hypothesis
 
 
 def format_generic_error_message(
         parent_schema,
-        check: Check,
+        check: Union[Check, Hypothesis],
         check_index: int,
 ) -> str:
     """Construct an error message when a check validator fails.
@@ -24,7 +25,7 @@ def format_generic_error_message(
 
 def format_vectorized_error_message(
         parent_schema,
-        check: Check,
+        check: Union[Check, Hypothesis],
         check_index: int,
         failure_cases: pd.Series) -> str:
     """Construct an error message when a validator fails.

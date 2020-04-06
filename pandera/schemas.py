@@ -9,9 +9,17 @@ import pandas as pd
 
 from . import errors, constants, dtypes, error_formatters
 from .checks import Check, CheckResult
+from .hypotheses import Hypothesis
 
 
 N_INDENT_SPACES = 4
+
+CheckList = Optional[
+    Union[
+        Union[Check, Hypothesis],
+        List[Union[Check, Hypothesis]]
+    ]
+]
 
 
 class DataFrameSchema():
@@ -20,7 +28,7 @@ class DataFrameSchema():
     def __init__(
             self,
             columns: Dict[Any, Any] = None,
-            checks: Optional[List[Check]] = None,
+            checks: CheckList = None,
             index=None,
             transformer: Callable = None,
             coerce: bool = False,
@@ -79,7 +87,7 @@ class DataFrameSchema():
         """
         if checks is None:
             checks = []
-        if isinstance(checks, Check):
+        if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
         self.columns = {} if columns is None else columns
@@ -178,8 +186,8 @@ class DataFrameSchema():
 
     def get_dtype(self, dataframe: pd.DataFrame) -> Dict[str, str]:
         """
-        Same as the ``dtype`` property, but expands columns where regex == True
-        based on the supplied dataframe.
+        Same as the ``dtype`` property, but expands columns where
+        ``regex == True`` based on the supplied dataframe.
 
         :returns: dictionary of columns and their associated dtypes.
         """
@@ -333,7 +341,7 @@ class DataFrameSchema():
             tail: Optional[int] = None,
             sample: Optional[int] = None,
             random_state: Optional[int] = None):
-        """Delegate to `validate` method.
+        """Alias for :func:`DataFrameSchema.validate` method.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
         :param head: validate the first n rows. Rows overlapping with `tail` or
@@ -425,7 +433,7 @@ class SeriesSchemaBase():
             pandas_dtype: Union[
                 str, dtypes.PandasDtype, dtypes.PandasExtensionType
             ] = None,
-            checks: Optional[Union[Check, List[Check]]] = None,
+            checks: CheckList = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
@@ -437,8 +445,10 @@ class SeriesSchemaBase():
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: If element_wise is True, then callable signature should
             be:
-            x -> x where x is a scalar element in the column. Otherwise,
-            x is assumed to be a pandas.Series object.
+
+            ``Callable[Any, bool]`` where the ``Any`` input is a scalar element
+            in the column. Otherwise, the input is assumed to be a
+            pandas.Series object.
         :type checks: callable
         :param nullable: Whether or not column can contain null values.
         :type nullable: bool
@@ -451,7 +461,7 @@ class SeriesSchemaBase():
         self._coerce = coerce
         if checks is None:
             checks = []
-        if isinstance(checks, Check):
+        if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
         self.checks = checks
         self._name = name
@@ -621,7 +631,7 @@ class SeriesSchemaBase():
             sample: Optional[int] = None,
             random_state: Optional[int] = None,
     ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate a series or column in a dataframe."""
+        """Alias for ``validate`` method."""
         return self.validate(check_obj, head, tail, sample, random_state)
 
     def __eq__(self, other):
@@ -630,48 +640,6 @@ class SeriesSchemaBase():
 
 class SeriesSchema(SeriesSchemaBase):
     """Series validator."""
-
-    def __init__(
-            self,
-            pandas_dtype: Union[
-                str, dtypes.PandasDtype, dtypes.PandasExtensionType
-            ] = None,
-            checks: List[Check] = None,
-            nullable: bool = False,
-            allow_duplicates: bool = True,
-            coerce: bool = False,
-            name: str = None) -> None:
-        """Initialize series schema object.
-
-        :param pandas_dtype: datatype of the column. If a string is specified,
-            then assumes one of the valid pandas string values:
-            https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes
-        :param checks: If element_wise is True, then callable signature should
-            be:
-            x -> x where x is a scalar element in the column. Otherwise,
-            x is assumed to be a pandas.Series object.
-        :param nullable: Whether or not column can contain null values.
-        :param allow_duplicates:
-        :param coerce: whether or not to coerce all of the columns on
-            validation.
-
-        :example:
-
-        >>> import pandas as pd
-        >>> import pandera as pa
-        >>>
-        >>>
-        >>> series_schema = pa.SeriesSchema(
-        ...     pa.Float, [
-        ...         pa.Check(lambda s: s > 0),
-        ...         pa.Check(lambda s: s < 1000),
-        ...         pa.Check(lambda s: s.mean() > 300),
-        ...     ])
-
-        See :ref:`here<SeriesSchemas>` for more usage details.
-        """
-        super(SeriesSchema, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce, name)
 
     @property
     def _allow_groupby(self) -> bool:
@@ -742,7 +710,7 @@ class SeriesSchema(SeriesSchemaBase):
             sample: Optional[int] = None,
             random_state: Optional[int] = None,
     ) -> pd.Series:
-        """Validate a series or column in a dataframe."""
+        """Alias for :func:`SeriesSchema.validate` method."""
         return self.validate(check_obj)
 
     def __eq__(self, other):
@@ -770,7 +738,7 @@ def _pandas_obj_to_validate(
 def _handle_check_results(
         schema: Union[DataFrameSchema, SeriesSchemaBase],
         check_index: int,
-        check: Check,
+        check: Union[Check, Hypothesis],
         check_result: CheckResult) -> bool:
     """Handle check results, raising SchemaError on check failure.
 
