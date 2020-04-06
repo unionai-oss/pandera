@@ -590,17 +590,11 @@ class SeriesSchemaBase():
                      series[duplicates].head(
                          constants.N_FAILURE_CASES).to_dict()))
 
-        try:
-            series.dtype == _dtype
-        except TypeError:
-            types_not_matching = True
-        else:
-            types_not_matching = series.dtype != _dtype
-
-        if _dtype is not None and types_not_matching:
+        if _dtype is not None and str(series.dtype) != _dtype:
             raise errors.SchemaError(
                 "expected series '%s' to have type %s, got %s" %
-                (series.name, _dtype, series.dtype))
+                (series.name, _dtype, str(series.dtype))
+            )
 
         check_results = []
         if self.checks:
