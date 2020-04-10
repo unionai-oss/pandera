@@ -1,6 +1,7 @@
 """Schema datatypes."""
 
 from enum import Enum
+from typing import Union
 
 import pandas as pd
 
@@ -20,8 +21,8 @@ NUMPY_NONNULLABLE_INT_DTYPES = [
 # for int and float dtype, delegate string representation to the
 # default based on OS. In Windows, pandas defaults to int64 while numpy
 # defaults to int32.
-_DEFAULT_INT_TYPE = pd.Series([1]).dtype
-_DEFAULT_FLOAT_TYPE = pd.Series([1.0]).dtype
+_DEFAULT_INT_TYPE = str(pd.Series([1]).dtype)
+_DEFAULT_FLOAT_TYPE = str(pd.Series([1.0]).dtype)
 
 
 class PandasDtype(Enum):
@@ -83,8 +84,9 @@ class PandasDtype(Enum):
     """
 
     Bool = "bool"  #: ``"bool"`` numpy dtype
-    DateTime = "datetime64[ns]" #: ``"datetime64[ns]"`` numpy dtype
-    Category = "category" #: pandas ``"categorical"`` datatype
+    DateTime = "datetime64[ns]"  #: ``"datetime64[ns]"`` numpy dtype
+    Timedelta = "timedelta64[ns]"  #: ``"timedelta64[ns]"`` numpy dtype
+    Category = "category"  #: pandas ``"categorical"`` datatype
     Float = "float"  #: ``"float"`` numpy dtype
     Float16 = "float16"  #: ``"float16"`` numpy dtype
     Float32 = "float32"  #: ``"float32"`` numpy dtype
@@ -105,13 +107,83 @@ class PandasDtype(Enum):
     #: pandera explicitly supports pandas 1.0+ and is currently handled
     #: internally by pandera as a special case.
     String = "string"
-    Timedelta = "timedelta64[ns]"  #: ``"timedelta64[ns]"`` numpy dtype
 
     @property
     def str_alias(self):
         """Get datatype string alias."""
         return {
-            "int": str(_DEFAULT_INT_TYPE),
-            "float": str(_DEFAULT_FLOAT_TYPE),
+            "int": _DEFAULT_INT_TYPE,
+            "float": _DEFAULT_FLOAT_TYPE,
             "string": "object",
         }.get(self.value, self.value)
+
+    @classmethod
+    def from_str_alias(cls, str_alias: str) -> Union["PandasDtype", None]:
+        """Get PandasDtype from string alias.
+
+        :param: pandas dtype string alias from
+            https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#basics-dtypes
+        :returns: pandas dtype
+        """
+        return {
+            "bool": cls.Bool,
+            "datetime64[ns]": cls.DateTime,
+            "timedelta64[ns]": cls.Timedelta,
+            "category": cls.Category,
+            "float": cls.Float,
+            "float16": cls.Float16,
+            "float32": cls.Float32,
+            "float64": cls.Float64,
+            "int": cls.Int,
+            "int8": cls.Int8,
+            "int16": cls.Int16,
+            "int32": cls.Int32,
+            "int64": cls.Int64,
+            "uint8": cls.UInt8,
+            "uint16": cls.UInt16,
+            "uint32": cls.UInt32,
+            "uint64": cls.UInt64,
+            "object": cls.Object,
+        }.get(str_alias)
+
+    @classmethod
+    def from_pandas_api_type(
+            cls, pandas_api_type: str) -> Union["PandasDtype", None]:
+        """Get PandasDtype enum from pandas api type.
+
+        :param pandas_api_type: string output from
+            https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.api.types.infer_dtype.html
+        :returns: pandas dtype
+        """
+        if pandas_api_type.startswith("mixed"):
+            return cls.Object
+
+        return {
+            "string": cls.String,
+            "floating": cls.Float,
+            "integer": cls.Int,
+            "categorical": cls.Category,
+            "boolean": cls.Bool,
+            "datetime64": cls.DateTime,
+            "datetime": cls.DateTime,
+            "timedelta64": cls.Timedelta,
+            "timedelta": cls.Timedelta,
+        }.get(pandas_api_type)
+
+    def __eq__(self, other):
+        # pylint: disable=comparison-with-callable
+        # see https://github.com/PyCQA/pylint/issues/2306
+        if other is None:
+            return False
+        elif self.value == "string":
+            return self.value == other.value
+        return self.str_alias == other.str_alias
+
+    def __hash__(self):
+        if self is PandasDtype.Int:
+            hash_obj = _DEFAULT_INT_TYPE
+        elif self is PandasDtype.Float:
+            hash_obj = _DEFAULT_FLOAT_TYPE
+        else:
+            hash_obj = self.str_alias
+        return id(hash_obj)

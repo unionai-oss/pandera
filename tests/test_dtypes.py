@@ -177,8 +177,6 @@ def test_datetime():
         )
 
 
-
-
 @pytest.mark.skipif(
     PANDAS_VERSION.release < (1, 0, 0),  # type: ignore
     reason="pandas >= 1.0.0 required",
