@@ -3,6 +3,7 @@
 from enum import Enum
 from typing import Union
 
+import numpy as np
 import pandas as pd
 
 
@@ -21,8 +22,11 @@ NUMPY_NONNULLABLE_INT_DTYPES = [
 # for int and float dtype, delegate string representation to the
 # default based on OS. In Windows, pandas defaults to int64 while numpy
 # defaults to int32.
-_DEFAULT_INT_TYPE = str(pd.Series([1]).dtype)
-_DEFAULT_FLOAT_TYPE = str(pd.Series([1.0]).dtype)
+_DEFAULT_PANDAS_INT_TYPE = str(pd.Series([1]).dtype)
+_DEFAULT_PANDAS_FLOAT_TYPE = str(pd.Series([1.0]).dtype)
+
+_DEFAULT_NUMPY_INT_TYPE = str(np.dtype(int))
+_DEFAULT_NUMPY_FLOAT_TYPE = str(np.dtype(float))
 
 
 class PandasDtype(Enum):
@@ -112,8 +116,8 @@ class PandasDtype(Enum):
     def str_alias(self):
         """Get datatype string alias."""
         return {
-            "int": _DEFAULT_INT_TYPE,
-            "float": _DEFAULT_FLOAT_TYPE,
+            "int": _DEFAULT_NUMPY_INT_TYPE,
+            "float": _DEFAULT_NUMPY_FLOAT_TYPE,
             "string": "object",
         }.get(self.value, self.value)
 
@@ -177,21 +181,13 @@ class PandasDtype(Enum):
             return False
         elif self.value == "string":
             return self.value == other.value
-        elif self.value == "int":
-            return other.str_alias in {"int", _DEFAULT_INT_TYPE}
-        elif other.value == "int":
-            return self.str_alias in {"int", _DEFAULT_INT_TYPE}
-        elif self.value == "float":
-            return self.str_alias in {"float", _DEFAULT_FLOAT_TYPE}
-        elif other.value == "float":
-            return self.str_alias in {"float", _DEFAULT_FLOAT_TYPE}
         return self.str_alias == other.str_alias
 
     def __hash__(self):
         if self is PandasDtype.Int:
-            hash_obj = _DEFAULT_INT_TYPE
+            hash_obj = _DEFAULT_PANDAS_INT_TYPE
         elif self is PandasDtype.Float:
-            hash_obj = _DEFAULT_FLOAT_TYPE
+            hash_obj = _DEFAULT_PANDAS_FLOAT_TYPE
         else:
             hash_obj = self.str_alias
         return id(hash_obj)

@@ -9,8 +9,8 @@ from pandera import schema_inference
 from pandera import dtypes, PandasDtype
 
 
-DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_INT_TYPE)
-DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_FLOAT_TYPE)
+DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_INT_TYPE)
+DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)
 
 
 def _create_dataframe(multi_index=False, nullable=False):
