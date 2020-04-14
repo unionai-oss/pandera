@@ -35,12 +35,14 @@ TESTABLE_DTYPES = [
 
 def test_default_numeric_dtypes():
     """Test that default numeric dtypes int and float are consistent."""
-    assert str(pd.Series([1], dtype=int).dtype) == _DEFAULT_INT_TYPE
+    assert str(pd.Series([1]).dtype) == _DEFAULT_INT_TYPE
+    # assert str(pd.Series([1], dtype=int).dtype) == _DEFAULT_INT_TYPE
     assert str(pd.Series([1], dtype="int").dtype) == _DEFAULT_INT_TYPE
     assert pa.Int.str_alias == _DEFAULT_INT_TYPE
 
-    assert str(pd.Series([1], dtype=float).dtype) == _DEFAULT_FLOAT_TYPE
-    assert str(pd.Series([1], dtype="float").dtype) == _DEFAULT_FLOAT_TYPE
+    assert str(pd.Series([1.]).dtype) == _DEFAULT_FLOAT_TYPE
+    # assert str(pd.Series([1.], dtype=float).dtype) == _DEFAULT_FLOAT_TYPE
+    assert str(pd.Series([1.], dtype="float").dtype) == _DEFAULT_FLOAT_TYPE
     assert pa.Float.str_alias == _DEFAULT_FLOAT_TYPE
 
 
