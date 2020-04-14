@@ -171,12 +171,20 @@ class PandasDtype(Enum):
         }.get(pandas_api_type)
 
     def __eq__(self, other):
-        # pylint: disable=comparison-with-callable
+        # pylint: disable=comparison-with-callable,too-many-return-statements
         # see https://github.com/PyCQA/pylint/issues/2306
         if other is None:
             return False
         elif self.value == "string":
             return self.value == other.value
+        elif self.value == "int":
+            return other.str_alias in {"int", _DEFAULT_INT_TYPE}
+        elif other.value == "int":
+            return self.str_alias in {"int", _DEFAULT_INT_TYPE}
+        elif self.value == "float":
+            return self.str_alias in {"float", _DEFAULT_FLOAT_TYPE}
+        elif other.value == "float":
+            return self.str_alias in {"float", _DEFAULT_FLOAT_TYPE}
         return self.str_alias == other.str_alias
 
     def __hash__(self):
