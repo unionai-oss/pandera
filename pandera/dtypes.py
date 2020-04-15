@@ -22,8 +22,8 @@ NUMPY_NONNULLABLE_INT_DTYPES = [
 # for int and float dtype, delegate string representation to the
 # default based on OS. In Windows, pandas defaults to int64 while numpy
 # defaults to int32.
-_DEFAULT_PANDAS_INT_TYPE = str(pd.api.types.pandas_dtype(int))
-_DEFAULT_PANDAS_FLOAT_TYPE = str(pd.api.types.pandas_dtype(float))
+_DEFAULT_PANDAS_INT_TYPE = str(pd.Series([1]).dtype)
+_DEFAULT_PANDAS_FLOAT_TYPE = str(pd.Series([1.]).dtype)
 _DEFAULT_NUMPY_INT_TYPE = str(np.dtype(int))
 _DEFAULT_NUMPY_FLOAT_TYPE = str(np.dtype(float))
 
