@@ -155,7 +155,7 @@ def test_infer_dataframe_schema():
 @pytest.mark.parametrize("series, expectation", [
     *[
         [
-            pd.Series([1, 2, 3], dtype=dtype.value), {
+            pd.Series([1, 2, 3], dtype=dtype.str_alias), {
                 "pandas_dtype": dtype, "nullable": False,
                 "checks": {"min": 1, "max": 3},
                 "name": None,
