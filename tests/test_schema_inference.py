@@ -121,7 +121,12 @@ def test_infer_dataframe_statistics(multi_index, nullable):
 ])
 def test_parse_check_statistics(check_stats, expectation):
     """Test that Checks are correctly parsed from check statistics."""
-    assert schema_inference._parse_check_statistics(check_stats) == expectation
+    if expectation is None:
+        expectation = []
+    checks = schema_inference._parse_check_statistics(check_stats)
+    if checks is None:
+        checks = []
+    assert set(checks) == set(expectation)
 
 
 def test_infer_dataframe_schema():

@@ -80,7 +80,7 @@ script:
   # Use the conda environment
   - source activate hosts
   # Tests
-  - pytest --cov=pandera tests/
+  - pytest -v --cov=pandera tests/
   # Coverage
   - codecov
   # Check docs can build, treating warnings as errors
