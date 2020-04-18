@@ -195,6 +195,7 @@ Submit issues, feature requests or bugfixes on
    checks
    hypothesis
    decorators
+   schema_inference
    API_reference
 
 Indices and tables

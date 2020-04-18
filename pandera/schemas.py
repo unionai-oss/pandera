@@ -10,6 +10,7 @@ import pandas as pd
 
 from . import errors, constants, dtypes, error_formatters
 from .checks import Check, CheckResult
+from .dtypes import PandasDtype
 from .hypotheses import Hypothesis
 
 
@@ -442,7 +443,7 @@ class DataFrameSchema():
     @_inferred_schema_guard
     def add_columns(self,
                     extra_schema_cols: Dict[str, Any]) -> 'DataFrameSchema':
-        """Create a new DataFrameSchema with extra Columns
+        """Create a copy of the DataFrameSchema with extra columns.
 
         :param extra_schema_cols: Additional columns of the format
         :type extra_schema_cols: DataFrameSchema
@@ -450,15 +451,16 @@ class DataFrameSchema():
 
         """
         schema_copy = copy.deepcopy(self)
-        schema_copy.columns = {**schema_copy.columns,
-                               **DataFrameSchema(extra_schema_cols).columns}
+        schema_copy.columns = {
+            **schema_copy.columns,
+            **DataFrameSchema(extra_schema_cols).columns
+        }
         return schema_copy
 
     @_inferred_schema_guard
     def remove_columns(self,
                        cols_to_remove: List) -> 'DataFrameSchema':
-        """Removes a column from a DataFrameSchema and returns a new
-        DataFrameSchema.
+        """Removes columns from a DataFrameSchema and returns a new copy.
 
         :param cols_to_remove: Columns to be removed from the DataFrameSchema
         :type cols_to_remove: List
@@ -469,6 +471,26 @@ class DataFrameSchema():
         for col in cols_to_remove:
             schema_copy.columns.pop(col)
 
+        return schema_copy
+
+    @_inferred_schema_guard
+    def update_column(self, column_name: str, **kwargs) -> "DataFrameSchema":
+        """Create copy of a DataFrameSchema with updated column properties.
+
+        :param column_name:
+        :param kwargs: key-word arguments supplied to :py:class:`Column`
+        :returns: a new DataFrameSchema with updated column
+        """
+        if "name" in kwargs:
+            raise ValueError("cannot update 'name' of the column.")
+        if column_name not in self.columns:
+            raise ValueError("column '%s' not in %s" % (column_name, self))
+        schema_copy = copy.deepcopy(self)
+        column_copy = copy.deepcopy(self.columns[column_name])
+        new_column = column_copy.__class__(**{
+            **column_copy.properties, **kwargs
+        })
+        schema_copy.columns.update({column_name: new_column})
         return schema_copy
 
 
@@ -552,6 +574,16 @@ class SeriesSchemaBase():
         return schema_copy
 
     @property
+    def nullable(self) -> bool:
+        """Whether the series is nullable."""
+        return self._nullable
+
+    @property
+    def allow_duplicates(self) -> bool:
+        """Whether to allow duplicate values."""
+        return self._allow_duplicates
+
+    @property
     def coerce(self) -> bool:
         """Whether to coerce series to specified type."""
         return self._coerce
@@ -573,9 +605,11 @@ class SeriesSchemaBase():
 
         if is_extension_type:
             dtype = str(self._pandas_dtype)
-        elif isinstance(self._pandas_dtype, str) or \
-                self._pandas_dtype is None:
-            dtype = self._pandas_dtype   # type: ignore
+        elif self._pandas_dtype is None:
+            dtype = self._pandas_dtype  # type: ignore
+        elif isinstance(self._pandas_dtype, str):
+            dtype = PandasDtype.from_str_alias(  # type: ignore
+                self._pandas_dtype).str_alias
         elif isinstance(self._pandas_dtype, dtypes.PandasDtype):
             dtype = self._pandas_dtype.str_alias
         else:

@@ -47,6 +47,7 @@ Pandas Data Types
 
 .. autosummary::
    :toctree: generated
+   :template: pandas_dtype_class.rst
    :nosignatures:
 
    PandasDtype
@@ -61,6 +62,16 @@ Decorators
 
    check_input
    check_output
+
+
+Schema Inference
+----------------
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   infer_schema
 
 
 Errors

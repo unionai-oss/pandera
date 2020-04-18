@@ -107,6 +107,9 @@ def test_series_schema():
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues
     around float and integer handling of nulls"""
+
+    SeriesSchema("int").validate(pd.Series([1, 2, 3]))
+
     int_schema = SeriesSchema(
         Int, Check(lambda x: 0 <= x <= 100, element_wise=True))
     assert isinstance(int_schema.validate(
@@ -596,3 +599,53 @@ def test_schema_get_dtype():
         "var2": Float.str_alias,
         "var3": Float.str_alias,
     }
+
+
+def _boolean_update_column_case(bool_kwarg):
+
+    def _assert_bool_case(old_schema, new_schema):
+        assert not getattr(old_schema.columns["col"], bool_kwarg)
+        assert getattr(new_schema.columns["col"], bool_kwarg)
+
+    return [
+        Column(Int, **{bool_kwarg: False}), "col",
+        {bool_kwarg: True},
+        _assert_bool_case
+    ]
+
+
+@pytest.mark.parametrize("column, column_to_update, update, assertion_fn", [
+    [
+        Column(Int), "col", {"pandas_dtype": String},
+        lambda old, new: [
+            old.columns["col"].pandas_dtype is Int,
+            new.columns["col"].pandas_dtype is String,
+        ]
+    ],
+    *[
+        _boolean_update_column_case(bool_kwarg) for bool_kwarg in [
+            "nullable", "allow_duplicates", "coerce", "required", "regex"]
+    ],
+    [
+        Column(Int, checks=Check.greater_than(0)), "col",
+        {"checks": Check.less_than(10)},
+        lambda old, new: [
+            old.columns["col"].checks == [Check.greater_than(0)],
+            new.columns["col"].checks == [Check.less_than(10)],
+        ]
+    ],
+    # error cases
+    [Column(Int), "col", {"name": "renamed_col"}, ValueError],
+    [Column(Int), "foobar", {}, ValueError],
+])
+def test_dataframe_schema_update_column(
+        column, column_to_update, update, assertion_fn):
+    """Test that DataFrameSchema columns create updated copies."""
+    schema = DataFrameSchema({"col": column})
+    if assertion_fn is ValueError:
+        with pytest.raises(ValueError):
+            schema.update_column(column_to_update, **update)
+        return
+
+    new_schema = schema.update_column(column_to_update, **update)
+    assertion_fn(schema, new_schema)

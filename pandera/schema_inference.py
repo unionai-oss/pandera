@@ -27,8 +27,17 @@ NUMERIC_DTYPES = frozenset([
     PandasDtype.UInt64,
 ])
 
+# pylint: disable=unnecessary-lambda
+STATISTICS_TO_CHECKS = {
+    "min": lambda x: Check.greater_than_or_equal_to(x),
+    "max": lambda x: Check.less_than_or_equal_to(x),
+    "levels": lambda x: Check.isin(x),
+}
 
-def infer_schema(pandas_obj: Union[pd.DataFrame, pd.Series]):
+
+def infer_schema(
+        pandas_obj: Union[pd.DataFrame, pd.Series]
+) -> Union[DataFrameSchema, SeriesSchema]:
     """Infer schema for pandas DataFrame or Series object.
 
     :param pandas_obj: DataFrame or Series object to infer.
@@ -183,10 +192,8 @@ def _parse_check_statistics(check_stats: Union[Dict[str, Any], None]):
     if check_stats is None:
         return None
     checks = []
-    if "min" in check_stats:
-        checks.append(Check.greater_than_or_equal_to(check_stats["min"]))
-    if "max" in check_stats:
-        checks.append(Check.less_than_or_equal_to(check_stats["max"]))
-    if "levels" in check_stats:
-        checks.append(Check.isin(check_stats["levels"]))
+    for stat, create_check_fn in STATISTICS_TO_CHECKS.items():
+        if stat not in check_stats:
+            continue
+        checks.append(create_check_fn(check_stats[stat]))
     return checks if checks else None
