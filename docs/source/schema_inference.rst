@@ -28,22 +28,6 @@ a pandas dataframe or series.
    })
    schema = pa.infer_schema(df)
 
-   print(schema)
-
-.. testoutput:: infer_dataframe_schema
-
-   DataFrameSchema(
-       columns={
-           "column1": "<Schema Column: 'column1' type=int64>",
-           "column2": "<Schema Column: 'column2' type=float64>",
-           "column3": "<Schema Column: 'column3' type=string>"
-       },
-       index=None,
-       transformer=None,
-       coerce=True,
-       strict=False
-   )
-
 
 You can then be modify the inferred schema with to obtain the schema definition
 that you're satisfied with.
