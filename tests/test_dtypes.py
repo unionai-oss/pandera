@@ -11,6 +11,10 @@ from pandera import (
     Column, DataFrameSchema, SeriesSchema, Check, DateTime, Float, Int,
     String, Bool, Category, Object, Timedelta
 )
+from pandera.dtypes import (
+    _DEFAULT_PANDAS_INT_TYPE, _DEFAULT_PANDAS_FLOAT_TYPE,
+    _DEFAULT_NUMPY_INT_TYPE, _DEFAULT_NUMPY_FLOAT_TYPE,
+)
 from pandera.errors import SchemaError
 
 
@@ -30,6 +34,20 @@ TESTABLE_DTYPES = [
     ("category", "category"),
     ("float64", "float64"),
 ]
+
+
+def test_default_numeric_dtypes():
+    """Test that default numeric dtypes int and float are consistent."""
+    assert str(pd.Series([1]).dtype) == _DEFAULT_PANDAS_INT_TYPE
+    assert pa.Int.str_alias == _DEFAULT_PANDAS_INT_TYPE
+    assert str(pd.Series([1], dtype=int).dtype) == _DEFAULT_NUMPY_INT_TYPE
+    assert str(pd.Series([1], dtype="int").dtype) == _DEFAULT_NUMPY_INT_TYPE
+
+    assert str(pd.Series([1.]).dtype) == _DEFAULT_PANDAS_FLOAT_TYPE
+    assert pa.Float.str_alias == _DEFAULT_PANDAS_FLOAT_TYPE
+    assert str(pd.Series([1.], dtype=float).dtype) == _DEFAULT_NUMPY_FLOAT_TYPE
+    assert str(pd.Series([1.], dtype="float").dtype) == \
+        _DEFAULT_NUMPY_FLOAT_TYPE
 
 
 def test_numeric_dtypes():
@@ -175,8 +193,6 @@ def test_datetime():
                 {"col": pd.to_datetime(["2010/01/01"])}
             )
         )
-
-
 
 
 @pytest.mark.skipif(

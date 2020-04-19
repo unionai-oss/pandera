@@ -3,12 +3,14 @@
 import json
 import copy
 import warnings
+from functools import wraps
 from typing import Callable, List, Optional, Union, Dict, Any
 
 import pandas as pd
 
 from . import errors, constants, dtypes, error_formatters
 from .checks import Check, CheckResult
+from .dtypes import PandasDtype
 from .hypotheses import Hypothesis
 
 
@@ -20,6 +22,27 @@ CheckList = Optional[
         List[Union[Check, Hypothesis]]
     ]
 ]
+
+
+def _inferred_schema_guard(method):
+    """
+    Invoking a method wrapped with this decorator will set _is_inferred to
+    False.
+    """
+
+    # pylint: disable=inconsistent-return-statements
+    @wraps(method)
+    def _wrapper(schema, *args, **kwargs):
+        new_schema = method(schema, *args, **kwargs)
+        if new_schema is not None and id(new_schema) != id(schema):
+            # if method returns a copy of the schema object,
+            # the original schema instance and the copy should be set to
+            # not inferred.
+            new_schema._is_inferred = False  # pylint: disable=protected-access
+            return new_schema
+        schema._is_inferred = False  # pylint: disable=protected-access
+
+    return _wrapper
 
 
 class DataFrameSchema():
@@ -105,10 +128,23 @@ class DataFrameSchema():
         self._validate_schema()
         self._set_column_names()
 
+        # this attribute is not meant to be accessed by users and is explicitly
+        # set to True in the case that a schema is created by infer_schema.
+        self._IS_INFERRED = False
+
     @property
     def coerce(self):
         """Whether to coerce series to specified type."""
         return self._coerce
+
+    # the _is_inferred getter and setter methods are not public
+    @property
+    def _is_inferred(self):
+        return self._IS_INFERRED
+
+    @_is_inferred.setter
+    def _is_inferred(self, value: bool):
+        self._IS_INFERRED = value
 
     def _validate_schema(self):
         for column_name, column in self.columns.items():
@@ -261,7 +297,17 @@ class DataFrameSchema():
         4         0.80      dog
         5         0.76      dog
         """
+
         # pylint: disable=too-many-branches
+        if self._is_inferred:
+            warnings.warn(
+                "This %s is an inferred schema that hasn't been "
+                "modified. It's recommended that you refine the schema "
+                "by calling `add_columns` or `remove_columns` before using it "
+                "to validate data." % type(self),
+                UserWarning
+            )
+
         dataframe = dataframe.copy()
 
         # dataframe strictness check makes sure all columns in the dataframe
@@ -394,9 +440,10 @@ class DataFrameSchema():
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    @_inferred_schema_guard
     def add_columns(self,
                     extra_schema_cols: Dict[str, Any]) -> 'DataFrameSchema':
-        """Create a new DataFrameSchema with extra Columns
+        """Create a copy of the DataFrameSchema with extra columns.
 
         :param extra_schema_cols: Additional columns of the format
         :type extra_schema_cols: DataFrameSchema
@@ -404,14 +451,16 @@ class DataFrameSchema():
 
         """
         schema_copy = copy.deepcopy(self)
-        schema_copy.columns = {**schema_copy.columns,
-                               **DataFrameSchema(extra_schema_cols).columns}
+        schema_copy.columns = {
+            **schema_copy.columns,
+            **DataFrameSchema(extra_schema_cols).columns
+        }
         return schema_copy
 
+    @_inferred_schema_guard
     def remove_columns(self,
                        cols_to_remove: List) -> 'DataFrameSchema':
-        """Removes a column from a DataFrameSchema and returns a new
-        DataFrameSchema.
+        """Removes columns from a DataFrameSchema and returns a new copy.
 
         :param cols_to_remove: Columns to be removed from the DataFrameSchema
         :type cols_to_remove: List
@@ -422,6 +471,26 @@ class DataFrameSchema():
         for col in cols_to_remove:
             schema_copy.columns.pop(col)
 
+        return schema_copy
+
+    @_inferred_schema_guard
+    def update_column(self, column_name: str, **kwargs) -> "DataFrameSchema":
+        """Create copy of a DataFrameSchema with updated column properties.
+
+        :param column_name:
+        :param kwargs: key-word arguments supplied to :py:class:`Column`
+        :returns: a new DataFrameSchema with updated column
+        """
+        if "name" in kwargs:
+            raise ValueError("cannot update 'name' of the column.")
+        if column_name not in self.columns:
+            raise ValueError("column '%s' not in %s" % (column_name, self))
+        schema_copy = copy.deepcopy(self)
+        column_copy = copy.deepcopy(self.columns[column_name])
+        new_column = column_copy.__class__(**{
+            **column_copy.properties, **kwargs
+        })
+        schema_copy.columns.update({column_name: new_column})
         return schema_copy
 
 
@@ -459,17 +528,60 @@ class SeriesSchemaBase():
         self._nullable = nullable
         self._allow_duplicates = allow_duplicates
         self._coerce = coerce
-        if checks is None:
-            checks = []
-        if isinstance(checks, (Check, Hypothesis)):
-            checks = [checks]
-        self.checks = checks
+        self._checks = checks
         self._name = name
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
                 raise errors.SchemaInitError(
                     "Cannot use groupby checks with type %s" % type(self))
+
+        # this attribute is not meant to be accessed by users and is explicitly
+        # set to True in the case that a schema is created by infer_schema.
+        self._IS_INFERRED = False
+
+    # the _is_inferred getter and setter methods are not public
+    @property
+    def _is_inferred(self):
+        return self._IS_INFERRED
+
+    @_is_inferred.setter
+    def _is_inferred(self, value: bool):
+        self._IS_INFERRED = value
+
+    @property
+    def checks(self):
+        """Return list of checks or hypotheses."""
+        if self._checks is None:
+            return []
+        if isinstance(self._checks, (Check, Hypothesis)):
+            return [self._checks]
+        return self._checks
+
+    @checks.setter
+    def checks(self, checks):
+        self._checks = checks
+
+    @_inferred_schema_guard
+    def set_checks(self, checks: CheckList):
+        """Create a new SeriesSchema with a new set of Checks
+
+        :param checks: checks to set on the new schema
+        :returns: a new SeriesSchema with a new set of checks
+        """
+        schema_copy = copy.deepcopy(self)
+        schema_copy.checks = checks
+        return schema_copy
+
+    @property
+    def nullable(self) -> bool:
+        """Whether the series is nullable."""
+        return self._nullable
+
+    @property
+    def allow_duplicates(self) -> bool:
+        """Whether to allow duplicate values."""
+        return self._allow_duplicates
 
     @property
     def coerce(self) -> bool:
@@ -493,9 +605,11 @@ class SeriesSchemaBase():
 
         if is_extension_type:
             dtype = str(self._pandas_dtype)
-        elif isinstance(self._pandas_dtype, str) or \
-                self._pandas_dtype is None:
-            dtype = self._pandas_dtype   # type: ignore
+        elif self._pandas_dtype is None:
+            dtype = self._pandas_dtype  # type: ignore
+        elif isinstance(self._pandas_dtype, str):
+            dtype = PandasDtype.from_str_alias(  # type: ignore
+                self._pandas_dtype).str_alias
         elif isinstance(self._pandas_dtype, dtypes.PandasDtype):
             dtype = self._pandas_dtype.str_alias
         else:
@@ -548,6 +662,15 @@ class SeriesSchemaBase():
         :returns: validated DataFrame or Series.
 
         """
+
+        if self._is_inferred:
+            warnings.warn(
+                "This %s is an inferred schema that hasn't been "
+                "modified. It's recommended that you refine the schema "
+                "by calling `set_checks` before using it to validate data." %
+                type(self),
+                UserWarning
+            )
 
         check_obj = _pandas_obj_to_validate(
             check_obj, head, tail, sample, random_state)

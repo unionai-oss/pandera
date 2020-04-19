@@ -6,6 +6,7 @@ good-names=
     i,
     e,
     x,
+    _IS_INFERRED,
 
 [MESSAGES CONTROL]
-disable=R0913,duplicate-code,too-many-instance-attributes
+disable=R0913,duplicate-code,too-many-instance-attributes,no-else-return

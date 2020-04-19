@@ -2,7 +2,7 @@
 
 from copy import copy
 
-from typing import Union, Optional, Tuple, Any, List
+from typing import Union, Optional, Tuple, Any, List, Dict
 
 import numpy as np
 import pandas as pd
@@ -93,6 +93,20 @@ class Column(SeriesSchemaBase):
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
         return True
+
+    @property
+    def properties(self) -> Dict[str, Any]:
+        """Get column properties."""
+        return {
+            "pandas_dtype": self.pandas_dtype,
+            "checks": self._checks,
+            "nullable": self._nullable,
+            "allow_duplicates": self._allow_duplicates,
+            "coerce": self._coerce,
+            "required": self.required,
+            "name": self._name,
+            "regex": self._regex,
+        }
 
     def set_name(self, name: str):
         """Used to set or modify the name of a column object.

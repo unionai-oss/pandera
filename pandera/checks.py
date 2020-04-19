@@ -299,6 +299,9 @@ class _CheckBase():
 
         return are_fn_objects_equal and are_all_other_check_attributes_equal
 
+    def __hash__(self):
+        return hash(self.__dict__["fn"].__code__.co_code)
+
     def __repr__(self):
         name = getattr(self.fn, '__name__', self.fn.__class__.__name__)
         return "<Check %s: %s>" % (name, self.error) \

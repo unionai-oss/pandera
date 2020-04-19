@@ -7,6 +7,8 @@ from .decorators import check_input, check_output
 from .dtypes import PandasDtype
 from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
+from .schema_inference import infer_schema
+
 
 # pylint: disable=invalid-name
 Bool = PandasDtype.Bool
