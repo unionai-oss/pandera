@@ -1,3 +1,4 @@
+# pylint: disable=W0212
 """Unit tests for inferring statistics of pandas objects."""
 
 import pandas as pd
@@ -263,6 +264,7 @@ def test_infer_index_statistics(index, expectation):
 
 
 def test_get_dataframe_schema_statistics():
+    """Test that dataframe schema statistics logic is correct."""
     schema = pa.DataFrameSchema(
         columns={
             "int": pa.Column(
@@ -321,6 +323,7 @@ def test_get_dataframe_schema_statistics():
 
 
 def test_get_series_schema_statistics():
+    """Test that series schema statistics logic is correct."""
     schema = pa.SeriesSchema(
         pa.Int, nullable=False, checks=[
             pa.Check.greater_than_or_equal_to(0),
@@ -358,6 +361,7 @@ def test_get_series_schema_statistics():
     ]
 ])
 def test_get_index_schema_statistics(index_schema_component, expectation):
+    """Test that index schema statistics logic is correct."""
     statistics = schema_statistics.get_index_schema_statistics(
         index_schema_component)
     assert statistics == expectation
@@ -408,6 +412,7 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
     ]
 ])
 def test_parse_checks(checks, expectation):
+    """Test that parse checks correctly obtain statistics from checks."""
     if expectation is ValueError:
         with pytest.raises(ValueError):
             schema_statistics.parse_checks(checks)

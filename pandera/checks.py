@@ -5,7 +5,7 @@ import operator
 import re
 from collections import namedtuple
 from functools import partial, wraps
-from typing import Dict, Union, Optional, List, Callable, Iterable
+from typing import Any, Dict, Union, Optional, List, Callable, Iterable
 
 import pandas as pd
 
@@ -23,6 +23,28 @@ GroupbyObject = Union[
 
 SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+
+
+def set_check_statistics(statistics):
+    """Decorator to get statistics from Check method."""
+
+    def set_check_statistics_decorator(class_method):
+
+        @wraps(class_method)
+        def _wrapper(cls, *args, **kwargs):
+            args = list(args)
+            arg_spec_args = inspect.getfullargspec(class_method).args[1:]
+            args_dict = {**dict(zip(arg_spec_args, args)), **kwargs}
+            stats = {
+                stat: args_dict.get(stat) for stat in statistics
+            }
+            check = class_method(cls, *args, **kwargs)
+            check.statistics = stats
+            return check
+
+        return _wrapper
+
+    return set_check_statistics_decorator
 
 
 class _CheckBase():
@@ -74,9 +96,9 @@ class _CheckBase():
 
             Specifying the groupby argument changes the ``check_fn`` signature
             to:
-            
+
             ``Callable[[Dict[Union[str, Tuple[str]], pd.Series]], Union[bool, pd.Series]]``  # noqa
-            
+
             where the input is a dictionary mapping
             keys to subsets of the column/dataframe.
         :param element_wise: Whether or not to apply validator in an
@@ -170,8 +192,21 @@ class _CheckBase():
         self.groups = groups
         self.failure_cases = None
 
+        self._statistics = None
+
+    @property
+    def statistics(self) -> Dict[str, Any]:
+        """Get check statistics."""
+        return getattr(self, "_statistics")
+
+    @statistics.setter
+    def statistics(self, statistics):
+        """Set check statistics."""
+        self._statistics = statistics
+
     @property
     def check_fn(self):
+        """Get check function with partial arguments."""
         return partial(self._check_fn, **self._check_kwargs)
 
     def _format_groupby_input(
@@ -327,41 +362,8 @@ class _CheckBase():
             if self.error is not None else "<Check %s>" % name
 
 
-def set_check_statistics(statistics):
-
-    def set_check_statistics_decorator(class_method):
-
-        # pylint: disable=inconsistent-return-statements
-        @wraps(class_method)
-        def _wrapper(cls, *args, **kwargs):
-            args = [i for i in args]
-            arg_spec_args = inspect.getfullargspec(class_method).args[1:]
-            args_dict = {**dict(zip(arg_spec_args, args)), **kwargs}
-            stats = {
-                stat: args_dict.get(stat) for stat in statistics
-            }
-            check = class_method(cls, *args, **kwargs).set_statistics(**stats)
-            return check
-
-        return _wrapper
-
-    return set_check_statistics_decorator
-
-
 class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
-
-    @property
-    def statistics(self):
-        return getattr(self, "_statistics")
-
-    @statistics.setter
-    def statistics(self, statistics):
-        self._statistics = statistics
-
-    def set_statistics(self, **statistics):
-        self.statistics = statistics
-        return self
 
     @classmethod
     @set_check_statistics(["min_value"])

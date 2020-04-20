@@ -19,7 +19,7 @@ def _create_schema():
     )
 
 
-yaml_schema = """
+YAML_SCHEMA = """
 schema_type: dataframe
 version: 0.3.2
 columns:
@@ -48,22 +48,25 @@ index:
 
 
 def test_to_yaml():
+    """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
     yaml_str = io.to_yaml(schema)
-    assert yaml_str.strip() == yaml_schema.strip()
+    assert yaml_str.strip() == YAML_SCHEMA.strip()
 
     yaml_str_schema_method = schema.to_yaml()
-    assert yaml_str_schema_method.strip() == yaml_schema.strip()
+    assert yaml_str_schema_method.strip() == YAML_SCHEMA.strip()
 
 
 def test_from_yaml():
-    schema_from_yaml = io.from_yaml(yaml_schema)
+    """Test that from_yaml reads yaml string."""
+    schema_from_yaml = io.from_yaml(YAML_SCHEMA)
     expected_schema = _create_schema()
     assert schema_from_yaml == expected_schema
     assert expected_schema == schema_from_yaml
 
 
 def test_io_yaml():
+    """Test read and write operation."""
     schema = _create_schema()
     with tempfile.NamedTemporaryFile("w") as f:
         output = io.to_yaml(schema, f)
@@ -85,4 +88,4 @@ def test_io_yaml():
 
     with tempfile.NamedTemporaryFile("w") as f:
         yaml_str = schema.to_yaml(None)
-        assert yaml_str.strip() == yaml_schema.strip()
+        assert yaml_str.strip() == YAML_SCHEMA.strip()

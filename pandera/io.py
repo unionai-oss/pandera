@@ -11,6 +11,7 @@ SCHEMA_TYPES = {"dataframe"}
 
 
 def _serialize_schema(statistics):
+    # pylint: disable=import-outside-toplevel
     from pandera import __version__
 
     columns, index = None, None
@@ -39,6 +40,7 @@ def _serialize_schema(statistics):
 
 
 def _deserialize_schema(serialized_schema):
+    # pylint: disable=import-outside-toplevel
     from pandera import DataFrameSchema, Column, Index, MultiIndex
 
     columns, index = None, None
@@ -100,5 +102,5 @@ def to_yaml(dataframe_schema, stream=None):
     try:
         with Path(stream).open("w") as f:
             yaml.safe_dump(statistics, stream=f, sort_keys=False)
-    except Exception:
+    except (TypeError, OSError):
         return yaml.safe_dump(statistics, stream=stream, sort_keys=False)
