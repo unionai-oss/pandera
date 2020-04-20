@@ -5,22 +5,29 @@ channels:
 dependencies:
   - python
 
-  # tools
-  - codecov
+  # environment management
   - pip
-  - pre_commit
+
+  # documentation
+  - sphinx
+  - sphinx_rtd_theme
+
+  # testing
+  - codecov
   - mypy
   - pylint>=2.4.4
   - pytest
   - pytest-cov
-  - sphinx
-  - sphinx_rtd_theme
+
+  # optional
+  - pre_commit
 
   # pandera dependencies
   - numpy
   - pandas
   - scipy
   - wrapt
+  - pyyaml>=5.1
 
   - pip:
     - sphinx_autodoc_typehints
