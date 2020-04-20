@@ -16,5 +16,5 @@ numpy
 pandas
 scipy
 wrapt
-pyyaml>=5.1
+pyyaml
 sphinx_autodoc_typehints
