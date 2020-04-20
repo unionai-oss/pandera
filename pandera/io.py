@@ -11,8 +11,7 @@ SCHEMA_TYPES = {"dataframe"}
 
 
 def _serialize_schema(statistics):
-    # pylint: disable=import-outside-toplevel
-    from pandera import __version__
+    from pandera import __version__  # pylint: disable-all
 
     columns, index = None, None
     if statistics["columns"] is not None:
@@ -40,7 +39,7 @@ def _serialize_schema(statistics):
 
 
 def _deserialize_schema(serialized_schema):
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable-all
     from pandera import DataFrameSchema, Column, Index, MultiIndex
 
     columns, index = None, None
