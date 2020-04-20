@@ -27,7 +27,7 @@ dependencies:
   - pandas
   - scipy
   - wrapt
-  - pyyaml>=5.1
+  - pyyaml
 
   - pip:
     - sphinx_autodoc_typehints

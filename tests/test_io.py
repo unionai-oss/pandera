@@ -2,9 +2,15 @@
 
 import tempfile
 from pathlib import Path
+from packaging import version
 
+import pytest
+import yaml
 import pandera as pa
 from pandera import io
+
+
+PYYAML_VERSION = version.parse(yaml.__version__)
 
 
 def _create_schema():
@@ -21,7 +27,7 @@ def _create_schema():
 
 YAML_SCHEMA = """
 schema_type: dataframe
-version: 0.3.2
+version: {version}
 columns:
   int_column:
     pandas_dtype: int
@@ -44,9 +50,13 @@ index:
   nullable: false
   checks: null
   name: int_index
-"""
+""".format(version=pa.__version__)
 
 
+@pytest.mark.skipif(
+    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
@@ -57,6 +67,10 @@ def test_to_yaml():
     assert yaml_str_schema_method.strip() == YAML_SCHEMA.strip()
 
 
+@pytest.mark.skipif(
+    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_from_yaml():
     """Test that from_yaml reads yaml string."""
     schema_from_yaml = io.from_yaml(YAML_SCHEMA)
@@ -85,7 +99,3 @@ def test_io_yaml():
         assert output is None
         schema_from_yaml = pa.DataFrameSchema.from_yaml(f.name)
         assert schema_from_yaml == schema
-
-    with tempfile.NamedTemporaryFile("w") as f:
-        yaml_str = schema.to_yaml(None)
-        assert yaml_str.strip() == YAML_SCHEMA.strip()
