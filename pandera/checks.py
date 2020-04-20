@@ -1,8 +1,10 @@
 """Data validation checks."""
 
-from collections import namedtuple
+import inspect
 import operator
 import re
+from collections import namedtuple
+from functools import partial, wraps
 from typing import Dict, Union, Optional, List, Callable, Iterable
 
 import pandas as pd
@@ -28,13 +30,15 @@ class _CheckBase():
 
     def __init__(
             self,
-            fn: Callable,
+            check_fn: Callable,
             groups: Optional[Union[str, List[str]]] = None,
             groupby: Optional[Union[str, List[str], Callable]] = None,
             element_wise: bool = False,
+            name: str = None,
             error: Optional[str] = None,
             raise_warning: bool = False,
             n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
+            **check_kwargs
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
@@ -66,16 +70,20 @@ class _CheckBase():
             The the case of ``Column`` checks, this function has access to the
             entire dataframe, but ``Column.name`` is selected from this
             DataFrameGroupby object so that a SeriesGroupBy object is passed
-            into ``fn``.
+            into ``check_fn``.
 
-            Specifying the groupby argument changes the ``fn`` signature to: ``
-            Callable[[Dict[Union[str, Tuple[str]], pd.Series]],
-            Union[bool, pd.Series]]``, where the input is a dictionary mapping
+            Specifying the groupby argument changes the ``check_fn`` signature
+            to:
+            
+            ``Callable[[Dict[Union[str, Tuple[str]], pd.Series]], Union[bool, pd.Series]]``  # noqa
+            
+            where the input is a dictionary mapping
             keys to subsets of the column/dataframe.
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
             number of elements as checks.
+        :param name: optional name for the check.
         :param error: custom error message if series fails validation
             check.
         :param raise_warning: if True, raise a UserWarning and do not throw
@@ -84,6 +92,7 @@ class _CheckBase():
             check is informational and shouldn't stop execution of the program.
         :param n_failure_cases: report the top n failure cases. If None, then
             report all failure cases.
+        :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
 
@@ -140,9 +149,11 @@ class _CheckBase():
         if element_wise and groupby is not None:
             raise errors.SchemaInitError(
                 "Cannot use groupby when element_wise=True.")
-        self.fn = fn
+        self._check_fn = check_fn
+        self._check_kwargs = check_kwargs
         self.element_wise = element_wise
         self.error = error
+        self.name = name
         self.raise_warning = raise_warning
         self.n_failure_cases = n_failure_cases
 
@@ -158,6 +169,10 @@ class _CheckBase():
             groups = [groups]
         self.groups = groups
         self.failure_cases = None
+
+    @property
+    def check_fn(self):
+        return partial(self._check_fn, **self._check_kwargs)
 
     def _format_groupby_input(
             self,
@@ -260,13 +275,13 @@ class _CheckBase():
 
         # apply check function to check object
         if self.element_wise:
-            check_result = check_obj.apply(self.fn, axis=1) if \
+            check_result = check_obj.apply(self.check_fn, axis=1) if \
                 isinstance(check_obj, pd.DataFrame) else \
-                check_obj.map(self.fn) if isinstance(check_obj, pd.Series) \
-                else self.fn(check_obj)
+                check_obj.map(self.check_fn) if \
+                isinstance(check_obj, pd.Series) else self.check_fn(check_obj)
         else:
             # vectorized check function case
-            check_result = self.fn(check_obj)
+            check_result = self.check_fn(check_obj)
 
         # failure cases only apply when the check function returns a boolean
         # series that matches the shape and index of the check_obj
@@ -290,29 +305,67 @@ class _CheckBase():
         return CheckResult(check_passed, check_obj, failure_cases)
 
     def __eq__(self, other):
-        are_fn_objects_equal = self.__dict__["fn"].__code__.co_code == \
-                               other.__dict__["fn"].__code__.co_code
+        are_fn_objects_equal = \
+            self.__dict__["_check_fn"].__code__.co_code == \
+            other.__dict__["_check_fn"].__code__.co_code
 
-        are_all_other_check_attributes_equal = \
-            {i: self.__dict__[i] for i in self.__dict__ if i != 'fn'} == \
-            {i: other.__dict__[i] for i in other.__dict__ if i != 'fn'}
+        are_all_other_check_attributes_equal = (
+            {i: self.__dict__[i] for i in self.__dict__ if i != '_check_fn'} ==
+            {i: other.__dict__[i] for i in other.__dict__ if i != '_check_fn'}
+        )
 
         return are_fn_objects_equal and are_all_other_check_attributes_equal
 
     def __hash__(self):
-        return hash(self.__dict__["fn"].__code__.co_code)
+        return hash(self.__dict__["_check_fn"].__code__.co_code)
 
     def __repr__(self):
-        name = getattr(self.fn, '__name__', self.fn.__class__.__name__)
+        name = getattr(
+            self._check_fn, '__name__',
+            self._check_fn.__class__.__name__)
         return "<Check %s: %s>" % (name, self.error) \
             if self.error is not None else "<Check %s>" % name
+
+
+def set_check_statistics(statistics):
+
+    def set_check_statistics_decorator(class_method):
+
+        # pylint: disable=inconsistent-return-statements
+        @wraps(class_method)
+        def _wrapper(cls, *args, **kwargs):
+            args = [i for i in args]
+            arg_spec_args = inspect.getfullargspec(class_method).args[1:]
+            args_dict = {**dict(zip(arg_spec_args, args)), **kwargs}
+            stats = {
+                stat: args_dict.get(stat) for stat in statistics
+            }
+            check = class_method(cls, *args, **kwargs).set_statistics(**stats)
+            return check
+
+        return _wrapper
+
+    return set_check_statistics_decorator
 
 
 class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
 
-    @staticmethod
-    def greater_than(min_value, raise_warning: bool = False) -> 'Check':
+    @property
+    def statistics(self):
+        return getattr(self, "_statistics")
+
+    @statistics.setter
+    def statistics(self, statistics):
+        self._statistics = statistics
+
+    def set_statistics(self, **statistics):
+        self.statistics = statistics
+        return self
+
+    @classmethod
+    @set_check_statistics(["min_value"])
+    def greater_than(cls, min_value, raise_warning: bool = False) -> 'Check':
         """Ensure values of a series are strictly greater than a minimum value.
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable
@@ -330,15 +383,17 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return series > min_value
 
-        return Check(
-            fn=_greater_than,
+        return cls(
+            _greater_than,
+            name=cls.greater_than.__name__,
             error="greater_than(%s)" % min_value,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
+    @classmethod
+    @set_check_statistics(["min_value"])
     def greater_than_or_equal_to(
-            min_value, raise_warning: bool = False) -> 'Check':
+            cls, min_value, raise_warning: bool = False) -> 'Check':
         """Ensure all values are greater or equal a certain value.
 
         :param min_value: Allowed minimum value for values of a series. Must be
@@ -356,14 +411,16 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return series >= min_value
 
-        return Check(
-            fn=_greater_or_equal,
+        return cls(
+            _greater_or_equal,
+            name=cls.greater_than_or_equal_to.__name__,
             error="greater_than_or_equal_to(%s)" % min_value,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def less_than(max_value, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["max_value"])
+    def less_than(cls, max_value, raise_warning: bool = False) -> 'Check':
         """Ensure values of a series are strictly below a maximum value.
 
         :param max_value: All elements of a series must be strictly smaller
@@ -381,15 +438,17 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return series < max_value
 
-        return Check(
-            fn=_less_than,
+        return cls(
+            _less_than,
+            name=cls.less_than.__name__,
             error="less_than(%s)" % max_value,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
+    @classmethod
+    @set_check_statistics(["max_value"])
     def less_than_or_equal_to(
-            max_value, raise_warning: bool = False) -> 'Check':
+            cls, max_value, raise_warning: bool = False) -> 'Check':
         """Ensure no value of a series exceeds a certain value.
 
         :param max_value: Upper bound not to be exceeded. Must be a type
@@ -407,15 +466,18 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return series <= max_value
 
-        return Check(
-            fn=_less_or_equal,
+        return cls(
+            _less_or_equal,
+            name=cls.less_than_or_equal_to.__name__,
             error="less_than_or_equal_to(%s)" % max_value,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
+    @classmethod
+    @set_check_statistics([
+        "min_value", "max_value", "include_min", "include_max"])
     def in_range(
-            min_value, max_value, include_min=True, include_max=True,
+            cls, min_value, max_value, include_min=True, include_max=True,
             raise_warning: bool = False) -> 'Check':
         """Ensure all values of a series are within an interval.
 
@@ -454,14 +516,16 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return left_op(min_value, series) & right_op(max_value, series)
 
-        return Check(
-            fn=_in_range,
+        return cls(
+            _in_range,
+            name=cls.in_range.__name__,
             error="in_range(%s, %s)" % (min_value, max_value),
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def equal_to(value, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["value"])
+    def equal_to(cls, value, raise_warning: bool = False) -> 'Check':
         """Ensure all elements of a series equal a certain value.
 
         :param value: All elements of a given :class:`pandas.Series` must have
@@ -475,13 +539,16 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return series == value
 
-        return Check(
-            fn=_equal, error="equal_to(%s)" % value,
+        return cls(
+            _equal,
+            name=cls.equal_to.__name__,
+            error="equal_to(%s)" % value,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def not_equal_to(value, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["value"])
+    def not_equal_to(cls, value, raise_warning: bool = False) -> 'Check':
         """Ensure no elements of a series equals a certain value.
 
         :param value: This value must not occur in the checked
@@ -495,14 +562,18 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return series != value
 
-        return Check(
-            fn=_not_equal,
+        return cls(
+            _not_equal,
+            name=cls.not_equal_to.__name__,
             error="not_equal_to(%s)" % value,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def isin(allowed_values: Iterable, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["allowed_values"])
+    def isin(
+            cls, allowed_values: Iterable,
+            raise_warning: bool = False) -> 'Check':
         """Ensure only allowed values occur within a series.
 
         :param allowed_values: The set of allowed values. May be any iterable.
@@ -533,15 +604,17 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return series.isin(allowed_values)
 
-        return Check(
-            fn=_isin,
+        return cls(
+            _isin,
+            name=cls.isin.__name__,
             error="isin(%s)" % allowed_values,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
+    @classmethod
+    @set_check_statistics(["forbidden_values"])
     def notin(
-            forbidden_values: Iterable,
+            cls, forbidden_values: Iterable,
             raise_warning: bool = False) -> 'Check':
         """Ensure some defined values don't occur within a series.
 
@@ -572,14 +645,16 @@ class Check(_CheckBase):
             """Comparison function for check"""
             return ~series.isin(forbidden_values)
 
-        return Check(
-            fn=_notin,
+        return cls(
+            _notin,
+            name=cls.notin.__name__,
             error="notin(%s)" % forbidden_values,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def str_matches(pattern: str, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["pattern"])
+    def str_matches(cls, pattern: str, raise_warning: bool = False) -> 'Check':
         """Ensure that string values match a regular expression.
 
         :param pattern: Regular expression pattern to use for matching
@@ -604,14 +679,17 @@ class Check(_CheckBase):
             """
             return series.str.match(regex, na=False)
 
-        return Check(
-            fn=_match,
+        return cls(
+            _match,
+            name=cls.str_matches.__name__,
             error="str_matches(%s)" % regex,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def str_contains(pattern: str, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["pattern"])
+    def str_contains(
+            cls, pattern: str, raise_warning: bool = False) -> 'Check':
         """Ensure that a pattern can be found within each row.
 
         :param pattern: Regular expression pattern to use for searching
@@ -634,14 +712,17 @@ class Check(_CheckBase):
             """Check if a regex search is successful within each value"""
             return series.str.contains(regex, na=False)
 
-        return Check(
-            fn=_contains,
+        return cls(
+            _contains,
+            name=cls.str_contains.__name__,
             error="str_contains(%s)" % regex,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def str_startswith(string: str, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["string"])
+    def str_startswith(
+            cls, string: str, raise_warning: bool = False) -> 'Check':
         """Ensure that all values start with a certain string.
 
         :param string: String all values should start with
@@ -654,14 +735,16 @@ class Check(_CheckBase):
             """Returns true only for strings starting with string"""
             return series.str.startswith(string, na=False)
 
-        return Check(
-            fn=_startswith,
+        return cls(
+            _startswith,
+            name=cls.str_startswith.__name__,
             error="str_startswith(%s)" % string,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
-    def str_endswith(string: str, raise_warning: bool = False) -> 'Check':
+    @classmethod
+    @set_check_statistics(["string"])
+    def str_endswith(cls, string: str, raise_warning: bool = False) -> 'Check':
         """Ensure that all values end with a certain string.
 
         :param string: String all values should end with
@@ -674,14 +757,17 @@ class Check(_CheckBase):
             """Returns true only for strings ending with string"""
             return series.str.endswith(string, na=False)
 
-        return Check(
-            fn=_endswith,
+        return cls(
+            _endswith,
+            name=cls.str_endswith.__name__,
             error="str_endswith(%s)" % string,
             raise_warning=raise_warning,
         )
 
-    @staticmethod
+    @classmethod
+    @set_check_statistics(["min_len", "max_len"])
     def str_length(
+            cls,
             min_len: int = None,
             max_len: int = None,
             raise_warning: bool = False) -> 'Check':
@@ -712,8 +798,9 @@ class Check(_CheckBase):
                 return (series.str.len() <= max_len) & \
                     (series.str.len() >= min_len)
 
-        return Check(
-            fn=check_fn,
+        return cls(
+            check_fn,
+            name=cls.str_length.__name__,
             error="str_length(%s, %s)" % (min_len, max_len),
             raise_warning=raise_warning,
         )

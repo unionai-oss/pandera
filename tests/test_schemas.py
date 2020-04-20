@@ -223,9 +223,9 @@ def test_dataframe_schema_check_function_types(check_function, should_fail):
     schema = DataFrameSchema(
         {
             "a": Column(Int,
-                        Check(fn=check_function, element_wise=False)),
+                        Check(check_function, element_wise=False)),
             "b": Column(Float,
-                        Check(fn=check_function, element_wise=False))
+                        Check(check_function, element_wise=False))
         })
     df = pd.DataFrame({
         "a": [1, 2, 3],

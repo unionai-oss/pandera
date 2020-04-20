@@ -4,6 +4,7 @@ import json
 import copy
 import warnings
 from functools import wraps
+from pathlib import Path
 from typing import Callable, List, Optional, Union, Dict, Any
 
 import pandas as pd
@@ -492,6 +493,27 @@ class DataFrameSchema():
         })
         schema_copy.columns.update({column_name: new_column})
         return schema_copy
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
+        """Create DataFrameSchema from yaml file.
+
+        :param yaml_schema: str, Path to yaml schema, or serialized yaml
+            string.
+        :returns: dataframe schema.
+        """
+        import pandera.io
+        return pandera.io.from_yaml(yaml_schema)
+
+    def to_yaml(self, fp: Union[str, Path] = None):
+        """Write DataFrameSchema to yaml file.
+
+        :param dataframe_schema: schema to write to file or dump to string.
+        :param stream: file stream to write to. If None, dumps to string.
+        :returns: yaml string if stream is None, otherwise returns None.
+        """
+        import pandera.io
+        return pandera.io.to_yaml(self, fp)
 
 
 class SeriesSchemaBase():
