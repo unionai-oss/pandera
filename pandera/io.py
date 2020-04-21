@@ -89,7 +89,7 @@ def from_yaml(yaml_schema):
     :returns: dataframe schema.
     """
     try:
-        with open(yaml_schema, "r") as f:
+        with open(yaml_schema, "r", encoding='utf8') as f:
             serialized_schema = yaml.safe_load(f)
     except OSError:
         serialized_schema = yaml.safe_load(yaml_schema)
