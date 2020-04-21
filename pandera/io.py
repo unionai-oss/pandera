@@ -42,6 +42,9 @@ def _deserialize_schema(serialized_schema):
     # pylint: disable-all
     from pandera import DataFrameSchema, Column, Index, MultiIndex
 
+    if isinstance(serialized_schema, list) and len(serialized_schema) == 1:
+        serialized_schema = serialized_schema[0]
+
     columns, index = None, None
     if serialized_schema["columns"] is not None:
         columns = {

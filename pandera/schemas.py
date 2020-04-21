@@ -502,7 +502,7 @@ class DataFrameSchema():
             string.
         :returns: dataframe schema.
         """
-        import pandera.io  # pylint: disable=import-outside-toplevel
+        import pandera.io  # pylint: disable-all
         return pandera.io.from_yaml(yaml_schema)
 
     def to_yaml(self, fp: Union[str, Path] = None):
@@ -512,7 +512,7 @@ class DataFrameSchema():
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
-        import pandera.io  # pylint: disable=import-outside-toplevel
+        import pandera.io  # pylint: disable-all
         return pandera.io.to_yaml(self, fp)
 
 
