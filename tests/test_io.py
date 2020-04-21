@@ -10,10 +10,7 @@ import pandera as pa
 from pandera import io
 
 
-try:
-    PYYAML_VERSION = version.parse(yaml.__version__)
-except AttributeError:
-    PYYAML_VERSION = None  # type: ignore
+PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
 
 
 def _create_schema():
@@ -57,8 +54,7 @@ index:
 
 
 @pytest.mark.skipif(
-    (PYYAML_VERSION is None or
-     PYYAML_VERSION.release < (5, 1, 0)),  # type: ignore
+    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
     reason="pyyaml >= 5.1.0 required",
 )
 def test_to_yaml():
@@ -72,8 +68,7 @@ def test_to_yaml():
 
 
 @pytest.mark.skipif(
-    (PYYAML_VERSION is None or
-     PYYAML_VERSION.release < (5, 1, 0)),  # type: ignore
+    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
     reason="pyyaml >= 5.1.0 required",
 )
 def test_from_yaml():
