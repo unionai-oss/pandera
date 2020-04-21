@@ -204,11 +204,6 @@ class _CheckBase():
         """Set check statistics."""
         self._statistics = statistics
 
-    @property
-    def check_fn(self):
-        """Get check function with partial arguments."""
-        return partial(self._check_fn, **self._check_kwargs)
-
     def _format_groupby_input(
             self,
             groupby_obj: GroupbyObject,
@@ -309,16 +304,15 @@ class _CheckBase():
                 df_or_series)
 
         # apply check function to check object
+        check_fn = partial(self._check_fn, **self._check_kwargs)
         if self.element_wise:
-            # pylint: disable=not-callable
-            check_result = check_obj.apply(self.check_fn, axis=1) if \
+            check_result = check_obj.apply(check_fn, axis=1) if \
                 isinstance(check_obj, pd.DataFrame) else \
-                check_obj.map(self.check_fn) if \
-                isinstance(check_obj, pd.Series) else self.check_fn(check_obj)
+                check_obj.map(check_fn) if \
+                isinstance(check_obj, pd.Series) else check_fn(check_obj)
         else:
             # vectorized check function case
-            # pylint: disable=not-callable
-            check_result = self.check_fn(check_obj)
+            check_result = check_fn(check_obj)
 
         # failure cases only apply when the check function returns a boolean
         # series that matches the shape and index of the check_obj
