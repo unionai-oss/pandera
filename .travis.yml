@@ -87,7 +87,7 @@ script:
   # Type checking
   - mypy pandera tests
   # Tests
-  - pytest --cov=pandera tests/
+  - pytest -s --cov=pandera tests/
   # Coverage
   - codecov
   # Check docs can build, treating warnings as errors
