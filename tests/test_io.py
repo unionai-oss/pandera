@@ -82,19 +82,23 @@ def test_from_yaml():
 def test_io_yaml():
     """Test read and write operation."""
     schema = _create_schema()
-    with tempfile.NamedTemporaryFile("w") as f:
+
+    # pass in a file name
+    with tempfile.NamedTemporaryFile("w", dir=".") as f:
         output = io.to_yaml(schema, f)
         assert output is None
         schema_from_yaml = io.from_yaml(f.name)
         assert schema_from_yaml == schema
 
-    with tempfile.NamedTemporaryFile("w") as f:
+    # pass in a file object
+    with tempfile.NamedTemporaryFile("w", dir=".") as f:
         output = schema.to_yaml(f)
         assert output is None
         schema_from_yaml = pa.DataFrameSchema.from_yaml(f.name)
         assert schema_from_yaml == schema
 
-    with tempfile.NamedTemporaryFile("w") as f:
+    # pass in a Path object
+    with tempfile.NamedTemporaryFile("w", dir=".") as f:
         output = schema.to_yaml(Path(f.name))
         assert output is None
         schema_from_yaml = pa.DataFrameSchema.from_yaml(f.name)

@@ -47,7 +47,7 @@ def _deserialize_schema(serialized_schema):
     except TypeError:
         # TODO: in windows, the file string name is being passed into this
         # function: https://travis-ci.org/github/pandera-dev/pandera/jobs/677523664#L449
-        print("SCHEMA IS A STRING")
+        print("ERROR")
         print(serialized_schema)
         serialized_schema = serialized_schema[0]
 
@@ -91,10 +91,9 @@ def from_yaml(yaml_schema):
     :returns: dataframe schema.
     """
     try:
-        with open(yaml_schema, "r", encoding='utf8') as f:
+        with Path(yaml_schema).open("r") as f:
             serialized_schema = yaml.safe_load(f)
-    except OSError as e:
-        print("OS ERROR, %s" % e)
+    except OSError:
         serialized_schema = yaml.safe_load(yaml_schema)
     return _deserialize_schema(serialized_schema)
 
