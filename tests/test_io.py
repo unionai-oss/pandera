@@ -1,5 +1,6 @@
 """Unit tests for io module"""
 
+import platform
 import tempfile
 from pathlib import Path
 from packaging import version
@@ -79,8 +80,8 @@ def test_from_yaml():
     assert expected_schema == schema_from_yaml
 
 
-def test_io_yaml():
-    """Test read and write operation."""
+def test_io_yaml_file_obj():
+    """Test read and write operation on file object."""
     schema = _create_schema()
 
     # pass in a file object
@@ -90,6 +91,15 @@ def test_io_yaml():
         f.seek(0)
         schema_from_yaml = pa.DataFrameSchema.from_yaml(f)
         assert schema_from_yaml == schema
+
+
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="skipping due to issues with opening file names for temp files."
+)
+def test_io_yaml():
+    """Test read and write operation on file names."""
+    schema = _create_schema()
 
     # pass in a file name
     with tempfile.NamedTemporaryFile("w+") as f:
