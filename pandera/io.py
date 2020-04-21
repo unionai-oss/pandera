@@ -45,8 +45,9 @@ def _deserialize_schema(serialized_schema):
     try:
         serialized_schema["columns"]
     except TypeError:
+        print("SCHEMA IS A LIST")
         print(serialized_schema)
-        raise
+        serialized_schema = serialized_schema[0]
 
     columns, index = None, None
     if serialized_schema["columns"] is not None:
