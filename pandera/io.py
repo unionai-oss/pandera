@@ -93,7 +93,8 @@ def from_yaml(yaml_schema):
     try:
         with Path(yaml_schema).open("r") as f:
             serialized_schema = yaml.safe_load(f)
-    except OSError:
+    except OSError as e:
+        print(e)
         serialized_schema = yaml.safe_load(yaml_schema)
     return _deserialize_schema(serialized_schema)
 
