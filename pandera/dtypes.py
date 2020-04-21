@@ -147,6 +147,7 @@ class PandasDtype(Enum):
             "uint32": cls.UInt32,
             "uint64": cls.UInt64,
             "object": cls.Object,
+            "string": cls.String,
         }.get(str_alias)
 
     @classmethod

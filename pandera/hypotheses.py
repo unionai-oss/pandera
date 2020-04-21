@@ -35,6 +35,7 @@ class Hypothesis(_CheckBase):
             relationship: Union[str, Callable] = "equal",
             test_kwargs: Dict = None,
             relationship_kwargs: Dict = None,
+            name: Optional[str] = None,
             error: Optional[str] = None,
             raise_warning: bool = False,
     ) -> None:
@@ -83,6 +84,7 @@ class Hypothesis(_CheckBase):
         :param dict relationship_kwargs: Keyword arguments to be supplied to
             the relationship function. e.g. `alpha` could be used to specify a
             threshold in a t-test.
+        :param name: optional name of hypothesis test
         :param error: error message to show
         :param raise_warning: if True, raise a UserWarning and do not throw
             exception instead of raising a SchemaError for a specific check.
@@ -145,6 +147,7 @@ class Hypothesis(_CheckBase):
             self._hypothesis_check,
             groupby=groupby,
             element_wise=False,
+            name=name,
             error=error,
             raise_warning=raise_warning,
         )
@@ -318,6 +321,7 @@ class Hypothesis(_CheckBase):
             relationship=relationship,
             test_kwargs={"equal_var": equal_var, "nan_policy": nan_policy},
             relationship_kwargs={"alpha": alpha},
+            name="two_sample_ttest",
             error="failed two sample ttest between '%s' and '%s'" % (
                 sample1, sample2),
             raise_warning=raise_warning,
@@ -395,6 +399,7 @@ class Hypothesis(_CheckBase):
             relationship=relationship,
             test_kwargs={"popmean": popmean},
             relationship_kwargs={"alpha": alpha},
+            name="one_sample_ttest",
             error="failed one sample ttest for column '%s'" % (sample),
             raise_warning=raise_warning,
         )

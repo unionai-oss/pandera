@@ -74,6 +74,17 @@ Schema Inference
    infer_schema
 
 
+IO Utils
+--------
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   io.from_yaml
+   io.to_yaml
+
+
 Errors
 ------
 

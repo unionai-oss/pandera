@@ -79,12 +79,6 @@ install:
 script:
   # Use the conda environment
   - source activate hosts
-  # Tests
-  - pytest -v --cov=pandera tests/
-  # Coverage
-  - codecov
-  # Check docs can build, treating warnings as errors
-  - python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"
   # Dependencies
   # Check that requirements-dev.text is generated exclusively by environment.yml
   - python ./scripts/generate_pip_deps_from_conda.py --compare
@@ -92,3 +86,9 @@ script:
   - pylint pandera tests
   # Type checking
   - mypy pandera tests
+  # Tests
+  - pytest -s --cov=pandera tests/
+  # Coverage
+  - codecov
+  # Check docs can build, treating warnings as errors
+  - python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"
