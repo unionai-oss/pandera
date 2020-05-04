@@ -200,7 +200,7 @@ def test_two_sample_ttest_hypothesis_relationships():
         assert isinstance(schema, DataFrameSchema)
 
     for relationship in ["foo", "bar", 1, 2, 3, None]:
-        with pytest.raises(errors.SchemaError):
+        with pytest.raises(errors.SchemaInitError):
             DataFrameSchema({
                 "height_in_feet": Column(Float, [
                     Hypothesis.two_sample_ttest(

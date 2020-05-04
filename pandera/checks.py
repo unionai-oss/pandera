@@ -13,7 +13,11 @@ from . import errors, constants
 
 
 CheckResult = namedtuple(
-    "CheckResult", ["check_passed", "checked_object", "failure_cases"])
+    "CheckResult", [
+        "check_passed",
+        "checked_object",
+        "failure_cases",
+    ])
 
 
 GroupbyObject = Union[
@@ -279,12 +283,12 @@ class _CheckBase():
         """Validate pandas DataFrame or Series.
 
         :param df_or_series: pandas DataFrame of Series to validate.
-        :param column: apply the check function to this column.
+        :param column: for dataframe checks, apply the check function to this
+            column.
         :returns: CheckResult tuple containing checked object,
             check validation result, and failure cases from the checked object.
         """
-        if column is not None \
-                and isinstance(df_or_series, pd.DataFrame):
+        if column is not None and isinstance(df_or_series, pd.DataFrame):
             column_dataframe_context = df_or_series.drop(
                 column, axis="columns")
             df_or_series = df_or_series[column].copy()
@@ -305,6 +309,7 @@ class _CheckBase():
 
         # apply check function to check object
         check_fn = partial(self._check_fn, **self._check_kwargs)
+
         if self.element_wise:
             check_result = check_obj.apply(check_fn, axis=1) if \
                 isinstance(check_obj, pd.DataFrame) else \
@@ -318,7 +323,7 @@ class _CheckBase():
         # series that matches the shape and index of the check_obj
         if isinstance(check_obj, dict) or \
                 isinstance(check_result, bool) or \
-                not isinstance(check_result, pd.Series) or \
+                not isinstance(check_result, (pd.Series, pd.DataFrame)) or \
                 check_obj.shape[0] != check_result.shape[0] or \
                 (check_obj.index != check_result.index).all():
             failure_cases = None
@@ -605,7 +610,7 @@ class Check(_CheckBase):
         return cls(
             _isin,
             name=cls.isin.__name__,
-            error="isin(%s)" % allowed_values,
+            error="isin(%s)" % set(allowed_values),
             raise_warning=raise_warning,
         )
 
@@ -646,7 +651,7 @@ class Check(_CheckBase):
         return cls(
             _notin,
             name=cls.notin.__name__,
-            error="notin(%s)" % forbidden_values,
+            error="notin(%s)" % set(forbidden_values),
             raise_warning=raise_warning,
         )
 

@@ -1,6 +1,6 @@
 """Make schema error messages human-friendly."""
 
-from typing import Union, Optional
+from typing import Union
 
 import pandas as pd
 
@@ -27,30 +27,48 @@ def format_vectorized_error_message(
         parent_schema,
         check: Union[Check, Hypothesis],
         check_index: int,
-        failure_cases: pd.Series) -> str:
+        reshaped_failure_cases: pd.DataFrame) -> str:
     """Construct an error message when a validator fails.
 
     :param parent_schema: class of schema being validated.
     :param check: check that generated error.
     :param check_index: The validator that failed.
-    :param failure_cases: The failure cases encountered by the element-wise
-        or vectorized validator.
+    :param reshaped_failure_cases: The failure cases encountered by the
+        element-wise or vectorized validator.
 
     """
+    agg_failure_cases = (
+        reshaped_failure_cases
+        .groupby("failure_case")["index"].agg([list, len])
+        .rename(columns={"list": "index", "len": "count"})
+        .sort_values("count", ascending=False)
+        .head(check.n_failure_cases)
+    )
     return (
         "%s failed element-wise validator %d:\n"
         "%s\nfailure cases:\n%s" % (
             parent_schema,
             check_index,
             check,
-            format_failure_cases(failure_cases, check.n_failure_cases)
+            agg_failure_cases,
         )
     )
 
 
-def format_failure_cases(
-        failure_cases: Union[pd.DataFrame, pd.Series],
-        n_cases: Optional[int] = 5) -> pd.DataFrame:
+def scalar_failure_case(x) -> pd.DataFrame:
+    """Construct failure case from a scalar value.
+
+    :param x: a scalar value representing failure case.
+    :returns: DataFrame used for error reporting with ``SchemaErrors``.
+    """
+    return pd.DataFrame({
+        "index": [None],
+        "failure_case": [x],
+    })
+
+
+def reshape_failure_cases(
+        failure_cases: Union[pd.DataFrame, pd.Series]) -> pd.DataFrame:
     """Construct readable error messages for vectorized_error_message.
 
     :param failure_cases: The failure cases encountered by the element-wise
@@ -63,7 +81,6 @@ def format_failure_cases(
     """
     if hasattr(failure_cases, "index") and \
             isinstance(failure_cases.index, pd.MultiIndex):
-        index_name = failure_cases.index.name
         failure_cases = (
             failure_cases
             .rename("failure_case")
@@ -72,22 +89,22 @@ def format_failure_cases(
                 index=lambda df: (
                     df.apply(tuple, axis=1).astype(str)
                 )
-            )
+            )[["failure_case", "index"]]
         )
     elif isinstance(failure_cases, pd.DataFrame):
-        index_name = failure_cases.index.name
         failure_cases = (
             failure_cases
-            .pipe(lambda df: pd.Series(
-                df.itertuples()).map(lambda x: x.__repr__()))
+            .rename_axis("column", axis=1)
+            .rename_axis("index", axis=0)
+            .unstack()
             .rename("failure_case")
             .reset_index()
         )
     elif isinstance(failure_cases, pd.Series):
-        index_name = failure_cases.index.name
         failure_cases = (
             failure_cases
             .rename("failure_case")
+            .rename_axis("index")
             .reset_index()
         )
     else:
@@ -95,12 +112,4 @@ def format_failure_cases(
             "type of failure_cases argument not understood: %s" %
             type(failure_cases))
 
-    index_name = "index" if index_name is None else index_name
-    failure_cases = (
-        failure_cases
-        .groupby("failure_case")[index_name].agg([list, len])
-        .rename(columns={"list": index_name, "len": "count"})
-        .sort_values("count", ascending=False)
-    )
-
-    return failure_cases.head(n_cases)
+    return failure_cases.dropna()

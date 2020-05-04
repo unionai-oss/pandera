@@ -133,7 +133,9 @@ def test_check_groups():
         ]),
         "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
     })
-    with pytest.raises(KeyError, match="^'bar'"):
+    with pytest.raises(
+            errors.SchemaError,
+            match=r'Error while executing check function: KeyError\("bar"\)'):
         schema_fail_key_error.validate(df)
 
     # raise KeyError when the group does not exist in the groupby column when
@@ -144,7 +146,9 @@ def test_check_groups():
         ]),
         "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
     })
-    with pytest.raises(KeyError, match="^'baz'"):
+    with pytest.raises(
+            errors.SchemaError,
+            match=r'Error while executing check function: KeyError\("baz"\)'):
         schema_fail_nonexistent_key_in_fn.validate(df)
 
     # raise KeyError when the group does not exist in the groups argument.
@@ -154,7 +158,7 @@ def test_check_groups():
         ]),
         "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
     })
-    with pytest.raises(KeyError):
+    with pytest.raises(errors.SchemaError):
         schema_fail_nonexistent_key_in_groups.validate(df)
 
 
@@ -256,16 +260,16 @@ def test_dataframe_checks():
     assert isinstance(element_wise_check_schema.validate(df), pd.DataFrame)
 
 
-def test_format_failure_case_exceptions():
-    """Tests that the format_failure_cases method correctly produces a
+def test_reshape_failure_cases_exceptions():
+    """Tests that the reshape_failure_cases method correctly produces a
     TypeError."""
-    # pylint: disable=W0212
+    # pylint: disable=W0212, E1121
     # disabling pylint because this function should be private to the class and
     # it's ok to access it because the function needs to be tested.
     check = Check(lambda x: x.isna().sum() == 0)
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):
-            error_formatters.format_failure_cases(data, check.n_failure_cases)
+            error_formatters.reshape_failure_cases(data, check.n_failure_cases)
 
 
 def test_check_equality_operators():

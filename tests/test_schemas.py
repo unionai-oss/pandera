@@ -7,8 +7,8 @@ import pytest
 
 
 from pandera import (
-    Column, DataFrameSchema, Index, SeriesSchema, Bool, Category, Check,
-    DateTime, Float, Int, Object, String, Timedelta, errors)
+    Column, DataFrameSchema, Index, MultiIndex, SeriesSchema, Bool, Category,
+    Check, DateTime, Float, Int, Object, String, Timedelta, errors)
 from pandera.schemas import SeriesSchemaBase
 from tests.test_dtypes import TESTABLE_DTYPES
 
@@ -163,8 +163,7 @@ def test_series_schema():
     with pytest.raises(
             errors.SchemaError,
             match=(
-                r"^expected series '.+' to have type .+, got .+ and "
-                "non-nullable series contains null values")):
+                r"^expected series '.+' to have type .+, got .+")):
         SeriesSchema(Int, nullable=False).validate(
             pd.Series([1.1, 2.3, 5.5, np.nan]))
 
@@ -649,3 +648,174 @@ def test_dataframe_schema_update_column(
 
     new_schema = schema.update_column(column_to_update, **update)
     assertion_fn(schema, new_schema)
+
+
+def test_lazy_dataframe_validation_error():
+    """Test exceptions on lazy dataframe validation."""
+    schema = DataFrameSchema(
+        columns={
+            "int_col": Column(Int, Check.greater_than(5)),
+            "int_col2": Column(Int),
+            "float_col": Column(Float, Check.less_than(0)),
+            "str_col": Column(String, Check.isin(["foo", "bar"])),
+            "not_in_dataframe": Column(Int),
+        },
+        checks=Check(lambda df: df != 1, error="dataframe_not_equal_1"),
+        index=Index(String, name="str_index"),
+        strict=True,
+    )
+
+    dataframe = pd.DataFrame(
+        data={
+            "int_col": [1, 2, 6],
+            "int_col2": ["a", "b", "c"],
+            "float_col": [1., -2., 3.],
+            "str_col": ["foo", "b", "c"],
+            "unknown_col": [None, None, None],
+        },
+        index=pd.Index(
+            ["index0", "index1", "index2"],
+            name="str_index"
+        ),
+    )
+
+    expectation = {
+        # schema object context -> check failure cases
+        "DataFrameSchema": {
+            # check name -> failure cases
+            "column_in_schema": ["unknown_col"],
+            "dataframe_not_equal_1": [1],
+            "column_in_dataframe": ["not_in_dataframe"],
+        },
+        "Column": {
+            "greater_than(5)": [1, 2],
+            "pandas_dtype('int64')": ["object"],
+            "less_than(0)": [1, 3],
+        },
+    }
+
+    with pytest.raises(
+            errors.SchemaErrors,
+            match="^A total of .+ schema errors were found"):
+        schema.validate(dataframe, lazy=True)
+
+    try:
+        schema.validate(dataframe, lazy=True)
+    except errors.SchemaErrors as err:
+
+        # data in the caught exception should be equal to the dataframe
+        # passed into validate
+        assert err.data.equals(dataframe)
+
+        # make sure all expected check errors are in schema errors
+        for schema_context, check_failure_cases in expectation.items():
+            err_df = err.schema_errors.loc[
+                err.schema_errors.schema_context == schema_context]
+            for check, failure_cases in check_failure_cases.items():
+                assert check in err_df.check.values
+                assert (
+                    err_df.loc[err_df.check == check]
+                    .failure_case.isin(failure_cases)
+                    .all()
+                )
+
+
+@pytest.mark.parametrize("schema, data, expectation", [
+    [
+        SeriesSchema(Int, checks=Check.greater_than(0)),
+        pd.Series(["a", "b", "c"]),
+        {
+            "data": pd.Series(["a", "b", "c"]),
+            "schema_errors": {
+                # schema object context -> check failure cases
+                "SeriesSchema": {
+                    # check name -> failure cases
+                    "greater_than(0)": [
+                        "TypeError(\"'>' not supported between instances of "
+                        "'str' and 'int'\")"
+                    ],
+                    "pandas_dtype('int64')": ['object'],
+                },
+            },
+        }
+    ],
+    [
+        Column(
+            Int, checks=[Check.greater_than(1), Check.less_than(3)],
+            name="column"
+        ),
+        pd.DataFrame({"column": [1, 2, 3]}),
+        {
+            "data": pd.DataFrame({"column": [1, 2, 3]}),
+            "schema_errors": {
+                "Column": {"greater_than(1)": [1], "less_than(3)": [3]},
+            },
+        },
+    ],
+    [
+        Index(String, checks=Check.isin(["a", "b", "c"])),
+        pd.DataFrame({"col": [1, 2, 3]}, index=["a", "b", "d"]),
+        {
+            # expect that the data in the SchemaError is the pd.Index cast
+            # into a Series
+            "data": pd.Series(["a", "b", "d"]),
+            "schema_errors": {
+                "Index": {"isin(%s)" % {'a', 'b', 'c'}: ["d"]},
+            }
+        },
+    ],
+    [
+        MultiIndex(
+            indexes=[
+                Index(Int, checks=Check.greater_than(0), name="index0"),
+                Index(Int, checks=Check.less_than(0), name="index1"),
+            ]
+        ),
+        pd.DataFrame(
+            {"column": [1, 2, 3]},
+            index=pd.MultiIndex.from_arrays(
+                [[0, 1, 2], [-2, -1, 0]],
+                names=["index0", "index1"],
+            )
+        ),
+        {
+            # expect that the data in the SchemaError is the pd.MultiIndex cast
+            # into a DataFrame
+            "data": pd.DataFrame(
+                {"column": [1, 2, 3]},
+                index=pd.MultiIndex.from_arrays(
+                    [[0, 1, 2], [-2, -1, 0]],
+                    names=["index0", "index1"],
+                )
+            ),
+            "schema_errors": {
+                "MultiIndex": {
+                    "greater_than(0)": [0],
+                    "less_than(0)": [0],
+                },
+            }
+        },
+    ]
+])
+def test_lazy_series_validation_error(schema, data, expectation):
+    """Test exceptions on lazy series validation."""
+    try:
+        schema.validate(data, lazy=True)
+    except errors.SchemaErrors as err:
+        # data in the caught exception should be equal to the dataframe
+        # passed into validate
+        assert err.data.equals(expectation["data"])
+
+        # make sure all expected check errors are in schema errors
+        for schema_context, check_failure_cases in \
+                expectation["schema_errors"].items():
+            assert schema_context in err.schema_errors.schema_context.values
+            err_df = err.schema_errors.loc[
+                err.schema_errors.schema_context == schema_context]
+            for check, failure_cases in check_failure_cases.items():
+                assert check in err_df.check.values
+                assert (
+                    err_df.loc[err_df.check == check]
+                    .failure_case.isin(failure_cases)
+                    .all()
+                )
