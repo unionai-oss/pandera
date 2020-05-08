@@ -127,6 +127,7 @@ catch these errors and inspect the failure cases in a more granular form:
         print(err.data.head())
 
 .. testoutput:: lazy_validation
+    :pyversion: >= 3.6
 
     Schema errors and failure cases:
         schema_context        column                    check check_number  \
