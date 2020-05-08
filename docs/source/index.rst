@@ -196,6 +196,7 @@ Submit issues, feature requests or bugfixes on
    hypothesis
    decorators
    schema_inference
+   lazy_validation
    API_reference
 
 Indices and tables

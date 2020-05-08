@@ -36,10 +36,13 @@ extensions = [
 ]
 
 doctest_global_setup = """
+import sys
 import pandas as pd
 import numpy as np
 pd.options.display.max_columns = None # For Travis on macOS
 pd.options.display.max_rows = None # For Travis on macOS
+
+SKIP = sys.version_info < (3, 6)
 """
 
 doctest_default_flags = (
@@ -97,4 +100,4 @@ autosummary_generate = ["API_reference.rst"]
 
 
 def setup(app):
-    app.add_stylesheet('default.css')
+    app.add_css_file('default.css')

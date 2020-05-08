@@ -94,5 +94,6 @@ Errors
    :nosignatures:
 
    errors.SchemaError
+   errors.SchemaErrors
    errors.SchemaInitError
    errors.SchemaDefinitionError

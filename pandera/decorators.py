@@ -110,7 +110,7 @@ def check_input(
             try:
                 args[obj_getter] = schema.validate(args[obj_getter])
             except IndexError as e:
-                raise errors.SchemaError(
+                raise IndexError(
                     "error in check_input decorator of function '%s': the "
                     "index '%s' was supplied to the check but this "
                     "function accepts '%s' arguments, so the maximum "
@@ -118,7 +118,7 @@ def check_input(
                     (fn.__name__,
                      obj_getter,
                      len(_get_fn_argnames(fn)),
-                     max(0, len(_get_fn_argnames(fn))-1),
+                     max(0, len(_get_fn_argnames(fn)) - 1),
                      e
                      )
                     )
@@ -137,6 +137,7 @@ def check_input(
                     args[0], head, tail, sample, random_state)
             except errors.SchemaError as e:
                 raise errors.SchemaError(
+                    schema, args[0],
                     "error in check_input decorator of function '%s': %s" %
                     (fn.__name__, e))
         else:
@@ -248,6 +249,7 @@ def check_output(
             schema.validate(obj, head, tail, sample, random_state)
         except errors.SchemaError as e:
             raise errors.SchemaError(
+                schema, obj,
                 "error in check_output decorator of function '%s': %s" %
                 (fn.__name__, e))
 

@@ -31,7 +31,7 @@ class Column(SeriesSchemaBase):
             required: bool = True,
             name: str = None,
             regex: bool = False,
-        ) -> None:
+    ) -> None:
         """Create column validator object.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
@@ -129,6 +129,7 @@ class Column(SeriesSchemaBase):
             tail: Optional[int] = None,
             sample: Optional[int] = None,
             random_state: Optional[int] = None,
+            lazy: bool = False,
     ) -> pd.DataFrame:
         # pylint: disable=duplicate-code
         """Validate a Column in a DataFrame object.
@@ -141,12 +142,16 @@ class Column(SeriesSchemaBase):
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
         :returns: validated DataFrame.
         """
         check_obj = check_obj.copy()
 
         if self._name is None:
             raise errors.SchemaError(
+                self, check_obj,
                 "column name is set to None. Pass the ``name` argument when "
                 "initializing a Column object, or use the ``set_name`` "
                 "method.")
@@ -161,9 +166,10 @@ class Column(SeriesSchemaBase):
                     check_obj[column_name])
             check_results.append(
                 isinstance(
-                    super(
-                        Column, copy(self).set_name(column_name)
-                    ).validate(check_obj),
+                    super(Column, copy(self).set_name(column_name))
+                    .validate(
+                        check_obj, head, tail, sample, random_state, lazy
+                    ),
                     pd.DataFrame)
             )
 
@@ -208,6 +214,7 @@ class Column(SeriesSchemaBase):
             ]
         if column_keys_to_check.shape[0] == 0:
             raise errors.SchemaError(
+                self, columns,
                 "Column regex name='%s' did not match any columns in the "
                 "dataframe. Update the regex pattern so that it matches at "
                 "least one column:\n%s" % (self.name, columns.tolist())
@@ -300,6 +307,7 @@ class Index(SeriesSchemaBase):
             tail: Optional[int] = None,
             sample: Optional[int] = None,
             random_state: Optional[int] = None,
+            lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         # pylint: disable=duplicate-code
         """Validate DataFrameSchema or SeriesSchema Index.
@@ -319,7 +327,10 @@ class Index(SeriesSchemaBase):
             check_obj.index = self.coerce_dtype(check_obj.index)
 
         assert isinstance(
-            super(Index, self).validate(pd.Series(check_obj.index)),
+            super(Index, self).validate(
+                pd.Series(check_obj.index),
+                head, tail, sample, random_state, lazy,
+            ),
             pd.Series
         )
         return check_obj
@@ -345,7 +356,8 @@ class MultiIndex(DataFrameSchema):
             self,
             indexes: List[Index],
             coerce: bool = False,
-            strict=False) -> None:
+            strict: bool = False,
+            name: str = None) -> None:
         """Create MultiIndex validator.
 
         :param indexes: list of Index validators for each level of the
@@ -354,6 +366,7 @@ class MultiIndex(DataFrameSchema):
             specified pandas_dtypes before validation
         :param strict: whether or not to accept columns in the MultiIndex that
             aren't defined in the ``indexes`` argument.
+        :param name: name of schema component
 
         :example:
 
@@ -403,6 +416,7 @@ class MultiIndex(DataFrameSchema):
             },
             coerce=coerce,
             strict=strict,
+            name=name,
         )
 
     @property
@@ -418,6 +432,7 @@ class MultiIndex(DataFrameSchema):
         _coerced_multi_index = []
         if multi_index.nlevels != len(self.indexes):
             raise errors.SchemaError(
+                self, multi_index,
                 "multi_index does not have equal number of levels as "
                 "MultiIndex schema %d != %d." % (
                     multi_index.nlevels, len(self.indexes))
@@ -439,6 +454,7 @@ class MultiIndex(DataFrameSchema):
             tail: Optional[int] = None,
             sample: Optional[int] = None,
             random_state: Optional[int] = None,
+            lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         # pylint: disable=signature-differs,arguments-differ,duplicate-code
         # will need to clean up the class structure of this module since
@@ -454,19 +470,39 @@ class MultiIndex(DataFrameSchema):
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
         :returns: validated DataFrame or Series.
         """
 
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
 
-        assert isinstance(
-            super(MultiIndex, self).validate(
+        try:
+            validation_result = super(MultiIndex, self).validate(
                 check_obj.index.to_frame(),
-                head, tail, sample, random_state,
-            ),
-            pd.DataFrame
-        )
+                head, tail, sample, random_state, lazy,
+            )
+        except errors.SchemaErrors as err:
+            # This is a hack to re-raise the SchemaErrors exception and change
+            # the schema context to MultiIndex. This should be fixed by with
+            # a more principled schema class hierarchy.
+            schema_error_dicts = []
+            # pylint: disable=protected-access
+            for schema_error_dict in err._schema_error_dicts:
+                error = schema_error_dict["error"]
+                error = errors.SchemaError(
+                    self, check_obj, error.args[0],
+                    error.failure_cases.assign(column=error.schema.name),
+                    error.check, error.check_index
+                )
+                schema_error_dict["error"] = error
+                schema_error_dicts.append(schema_error_dict)
+
+            raise errors.SchemaErrors(schema_error_dicts, check_obj)
+
+        assert isinstance(validation_result, pd.DataFrame)
         return check_obj
 
     def __repr__(self):

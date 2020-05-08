@@ -191,7 +191,7 @@ class Hypothesis(_CheckBase):
         """
         if isinstance(relationship, str):
             if relationship not in self.RELATIONSHIPS:
-                raise errors.SchemaError(
+                raise errors.SchemaInitError(
                     "The relationship %s isn't a built in method"
                     % relationship)
             relationship = self.RELATIONSHIPS[relationship]
@@ -312,7 +312,7 @@ class Hypothesis(_CheckBase):
 
         """
         if relationship not in cls.RELATIONSHIPS:
-            raise errors.SchemaError(
+            raise errors.SchemaInitError(
                 "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_ind,
@@ -391,7 +391,7 @@ class Hypothesis(_CheckBase):
 
         """
         if relationship not in cls.RELATIONSHIPS:
-            raise errors.SchemaError(
+            raise errors.SchemaInitError(
                 "relationship must be one of %s" % set(cls.RELATIONSHIPS))
         return cls(
             test=stats.ttest_1samp,

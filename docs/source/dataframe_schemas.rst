@@ -658,6 +658,7 @@ data pipeline:
         columns={
             "col1": "<Schema Column: 'col1' type=int>"
         },
+        checks=[],
         index=None,
         transformer=None,
         coerce=False,

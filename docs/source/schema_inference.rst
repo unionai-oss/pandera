@@ -5,13 +5,15 @@
 Schema Inference
 ================
 
+*new in 0.4.0*
+
 .. warning::
    
    This functionality is experimental and not feature-complete, use with
    caution!
 
-The :py:func:`infer_schema` enables you to quickly infer a draft schema from
-a pandas dataframe or series.
+The :py:func:`infer_schema` function enables you to quickly infer a draft
+schema from a pandas dataframe or series.
 
 
 .. testcode:: infer_dataframe_schema
