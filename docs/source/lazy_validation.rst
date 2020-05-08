@@ -75,7 +75,6 @@ of all schemas and schema components gives you the option of doing just this:
     schema.validate(df, lazy=True)
 
 .. testoutput:: lazy_validation
-    :options: +IGNORE_EXCEPTION_DETAIL
 
     Traceback (most recent call last):
     ...
@@ -117,6 +116,7 @@ catch these errors and inspect the failure cases in a more granular form:
 
 
 .. testcode:: lazy_validation
+    :skipif: SKIP
     
     try:
         schema.validate(df, lazy=True)
@@ -127,7 +127,7 @@ catch these errors and inspect the failure cases in a more granular form:
         print(err.data.head())
 
 .. testoutput:: lazy_validation
-    :pyversion: >= 3.6
+    :skipif: SKIP
 
     Schema errors and failure cases:
         schema_context        column                    check check_number  \
