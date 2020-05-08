@@ -8,7 +8,7 @@ from .errors import SchemaError
 class SchemaErrorHandler():
     """Handler for SchemaError objects during validation."""
 
-    def __init__(self, lazy: bool):
+    def __init__(self, lazy: bool) -> None:
         """Initialize SchemaErrorHandler.
 
         :param lazy: if True, lazily evaluates schema checks and stores
