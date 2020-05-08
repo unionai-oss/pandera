@@ -97,4 +97,4 @@ autosummary_generate = ["API_reference.rst"]
 
 
 def setup(app):
-    app.add_stylesheet('default.css')
+    app.add_css_file('default.css')
