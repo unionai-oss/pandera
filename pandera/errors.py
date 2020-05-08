@@ -48,7 +48,7 @@ Directly inspect all errors by catching the exception:
 
 ```
 try:
-    schema.validate(dataframe)
+    schema.validate(dataframe, lazy=True)
 except SchemaErrors as err:
     err.schema_errors  # dataframe of schema errors
     err.data  # invalid dataframe
