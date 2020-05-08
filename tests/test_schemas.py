@@ -732,7 +732,9 @@ def test_lazy_dataframe_validation_error():
                     # check name -> failure cases
                     "greater_than(0)": [
                         "TypeError(\"'>' not supported between instances of "
-                        "'str' and 'int'\")"
+                        "'str' and 'int'\")",
+                        # TypeError raised in python=3.5
+                        "TypeError(\"unorderable types: str() > int()\")"
                     ],
                     "pandas_dtype('int64')": ['object'],
                 },

@@ -24,6 +24,7 @@ dependencies:
 
   # pandera dependencies
   - numpy
+  
   - pandas
   - scipy
   - wrapt
