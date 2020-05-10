@@ -201,7 +201,6 @@ class _CheckBase():
         self.failure_cases = None
 
         self._statistics = None
-        self._statistics_keys = None
 
     @property
     def statistics(self) -> Dict[str, Any]:
@@ -212,16 +211,6 @@ class _CheckBase():
     def statistics(self, statistics):
         """Set check statistics."""
         self._statistics = statistics
-
-    @property
-    def statistics_args(self) -> Dict[str, Any]:
-        """Get check statistics arguments."""
-        return getattr(self, "_statistics_args")
-
-    @statistics_args.setter
-    def statistics_args(self, statistics_args):
-        """Set check statistics keys."""
-        self._statistics_args = statistics_args
 
     def _format_groupby_input(
             self,
