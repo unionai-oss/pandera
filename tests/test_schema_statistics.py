@@ -483,4 +483,4 @@ def test_parse_checks_and_statistics_roundtrip(checks, expectation):
 
     check_statistics = {check.name: check.statistics for check in checks}
     check_list = schema_statistics.parse_check_statistics(check_statistics)
-    assert check_list == checks
+    assert set(check_list) == set(checks)

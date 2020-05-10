@@ -610,6 +610,11 @@ class SeriesSchemaBase():
         :param allow_duplicates:
         :type allow_duplicates: bool
         """
+        if checks is None:
+            checks = []
+        if isinstance(checks, (Check, Hypothesis)):
+            checks = [checks]
+
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
         self._allow_duplicates = allow_duplicates

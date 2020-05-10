@@ -229,7 +229,12 @@ class Column(SeriesSchemaBase):
         return "<Schema Column: '%s' type=%s>" % (self._name, dtype)
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        def _compare_dict(obj):
+            return {
+                k: v if k != "_checks" else set(v)
+                for k, v in obj.__dict__.items()
+            }
+        return _compare_dict(self) == _compare_dict(other)
 
 
 class Index(SeriesSchemaBase):
