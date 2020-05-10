@@ -5,7 +5,7 @@
 Schema Inference
 ================
 
-*new in 0.4.0*
+*New in version 0.4.0*
 
 .. warning::
    
@@ -31,8 +31,8 @@ schema from a pandas dataframe or series.
    schema = pa.infer_schema(df)
 
 
-You can then be modify the inferred schema with to obtain the schema definition
-that you're satisfied with.
+You can then modify the inferred schema to obtain the schema definition that
+you're satisfied with.
 
 For :py:class:`DataFrameSchema` objects, you can use the
 :py:func:`DataFrameSchema.add_columns`,

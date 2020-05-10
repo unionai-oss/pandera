@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from packaging import version
 
+import pandas as pd
 import pytest
 import yaml
 import pandera as pa
@@ -17,10 +18,38 @@ PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
 def _create_schema():
     return pa.DataFrameSchema(
         columns={
-            "int_column": pa.Column(pa.Int),
-            "float_column": pa.Column(pa.Float),
-            "str_column": pa.Column(pa.String),
-            "datetime_column": pa.Column(pa.DateTime),
+            "int_column": pa.Column(
+                pa.Int, checks=[
+                    pa.Check.greater_than(0),
+                    pa.Check.less_than(10),
+                    pa.Check.in_range(0, 10),
+                ],
+            ),
+            "float_column": pa.Column(
+                pa.Float, checks=[
+                    pa.Check.greater_than(-10),
+                    pa.Check.less_than(20),
+                    pa.Check.in_range(-10, 20),
+                ],
+            ),
+            "str_column": pa.Column(
+                pa.String, checks=[
+                    pa.Check.isin(["foo", "bar", "x", "xy"]),
+                    pa.Check.str_length(1, 3)
+                ],
+            ),
+            "datetime_column": pa.Column(
+                pa.DateTime, checks=[
+                    pa.Check.greater_than(pd.Timestamp("20100101")),
+                    pa.Check.less_than(pd.Timestamp("20200101")),
+                ]
+            ),
+            "timedelta_column": pa.Column(
+                pa.Timedelta, checks=[
+                    pa.Check.greater_than(pd.Timedelta(1000, unit="ns")),
+                    pa.Check.less_than(pd.Timedelta(10000, unit="ns")),
+                ]
+            )
         },
         index=pa.Index(pa.Int, name="int_index"),
     )
@@ -33,19 +62,45 @@ columns:
   int_column:
     pandas_dtype: int
     nullable: false
-    checks: null
+    checks:
+      greater_than: 0
+      less_than: 10
+      in_range:
+        min_value: 0
+        max_value: 10
   float_column:
     pandas_dtype: float
     nullable: false
-    checks: null
+    checks:
+      greater_than: -10
+      less_than: 20
+      in_range:
+        min_value: -10
+        max_value: 20
   str_column:
     pandas_dtype: string
     nullable: false
-    checks: null
+    checks:
+      isin:
+      - foo
+      - bar
+      - x
+      - xy
+      str_length:
+        min_value: 1
+        max_value: 3
   datetime_column:
     pandas_dtype: datetime64[ns]
     nullable: false
-    checks: null
+    checks:
+      greater_than: '2010-01-01 00:00:00'
+      less_than: '2020-01-01 00:00:00'
+  timedelta_column:
+    pandas_dtype: timedelta64[ns]
+    nullable: false
+    checks:
+      greater_than: 1000
+      less_than: 10000
 index:
 - pandas_dtype: int
   nullable: false
