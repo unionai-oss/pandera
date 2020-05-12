@@ -86,11 +86,23 @@ def test_infer_dataframe_statistics(multi_index, nullable):
 
 
 @pytest.mark.parametrize("check_stats, expectation", [
-    [{"min": 1}, [pa.Check.greater_than_or_equal_to(1)]],
-    [{"max": 10}, [pa.Check.less_than_or_equal_to(10)]],
-    [{"levels": ["a", "b", "c"]}, [pa.Check.isin(["a", "b", "c"])]],
     [
-        {"min": 1, "max": 10},
+        {"greater_than_or_equal_to": {"min_value": 1}},
+        [pa.Check.greater_than_or_equal_to(1)]
+    ],
+    [
+        {"less_than_or_equal_to": {"max_value": 10}},
+        [pa.Check.less_than_or_equal_to(10)]
+    ],
+    [
+        {"isin": {"allowed_values": ["a", "b", "c"]}},
+        [pa.Check.isin(["a", "b", "c"])]
+    ],
+    [
+        {
+            "greater_than_or_equal_to": {"min_value": 1},
+            "less_than_or_equal_to": {"max_value": 10},
+        },
         [pa.Check.greater_than_or_equal_to(1),
          pa.Check.less_than_or_equal_to(10)]
     ],
@@ -111,7 +123,10 @@ def test_parse_check_statistics(check_stats, expectation):
         [
             pd.Series([1, 2, 3], dtype=dtype.str_alias), {
                 "pandas_dtype": dtype, "nullable": False,
-                "checks": {"min": 1, "max": 3},
+                "checks": {
+                    "greater_than_or_equal_to": 1,
+                    "less_than_or_equal_to": 3
+                },
                 "name": None,
             }
         ]
@@ -122,7 +137,7 @@ def test_parse_check_statistics(check_stats, expectation):
     [
         pd.Series(["a", "b", "c", "a"], dtype="category"), {
             "pandas_dtype": pa.Category, "nullable": False,
-            "checks": {"levels": ["a", "b", "c"]},
+            "checks": {"isin": ["a", "b", "c"]},
             "name": None,
         }
     ],
@@ -136,8 +151,8 @@ def test_parse_check_statistics(check_stats, expectation):
         pd.Series(pd.to_datetime(["20180101", "20180102", "20180103"])), {
             "pandas_dtype": pa.DateTime, "nullable": False,
             "checks": {
-                "min": pd.Timestamp("20180101"),
-                "max": pd.Timestamp("20180103")
+                "greater_than_or_equal_to": pd.Timestamp("20180101"),
+                "less_than_or_equal_to": pd.Timestamp("20180103")
             },
             "name": None,
         }
@@ -168,7 +183,10 @@ INTEGER_TYPES = [
             0, pd.Series([1, 2, 3], dtype=dtype.value), {
                 # introducing nans to integer arrays upcasts to float
                 "pandas_dtype": DEFAULT_FLOAT, "nullable": True,
-                "checks": {"min": 2, "max": 3},
+                "checks": {
+                    "greater_than_or_equal_to": 2,
+                    "less_than_or_equal_to": 3
+                },
                 "name": None,
             }
         ]
@@ -178,14 +196,17 @@ INTEGER_TYPES = [
         # introducing nans to integer arrays upcasts to float
         0, pd.Series([True, False, True, False]), {
             "pandas_dtype": DEFAULT_FLOAT, "nullable": True,
-            "checks": {"min": 0, "max": 1},
+            "checks": {
+                "greater_than_or_equal_to": 0,
+                "less_than_or_equal_to": 1
+            },
             "name": None,
         }
     ],
     [
         0, pd.Series(["a", "b", "c", "a"], dtype="category"), {
             "pandas_dtype": pa.Category, "nullable": True,
-            "checks": {"levels": ["a", "b", "c"]},
+            "checks": {"isin": ["a", "b", "c"]},
             "name": None,
         }
     ],
@@ -199,8 +220,8 @@ INTEGER_TYPES = [
         2, pd.Series(pd.to_datetime(["20180101", "20180102", "20180103"])), {
             "pandas_dtype": pa.DateTime, "nullable": True,
             "checks": {
-                "min": pd.Timestamp("20180101"),
-                "max": pd.Timestamp("20180102")
+                "greater_than_or_equal_to": pd.Timestamp("20180101"),
+                "less_than_or_equal_to": pd.Timestamp("20180102")
             },
             "name": None,
         }
@@ -217,14 +238,28 @@ def test_infer_nullable_series_schema_statistics(
 @pytest.mark.parametrize("index, expectation", [
     [
         pd.RangeIndex(20), [
-            {"name": None, "pandas_dtype": PandasDtype.Int,
-             "nullable": False, "checks": {"min": 0, "max": 19}}
+            {
+                "name": None,
+                "pandas_dtype": PandasDtype.Int,
+                "nullable": False,
+                "checks": {
+                    "greater_than_or_equal_to": 0,
+                    "less_than_or_equal_to": 19,
+                }
+            }
         ],
     ],
     [
         pd.Index([1, 2, 3], name="int_index"), [
-            {"name": "int_index", "pandas_dtype": PandasDtype.Int,
-             "nullable": False, "checks": {"min": 1, "max": 3}}
+            {
+                "name": "int_index",
+                "pandas_dtype": PandasDtype.Int,
+                "nullable": False,
+                "checks": {
+                    "greater_than_or_equal_to": 1,
+                    "less_than_or_equal_to": 3,
+                }
+            }
         ],
     ],
     [
@@ -239,10 +274,21 @@ def test_infer_nullable_series_schema_statistics(
             names=["int_index", "str_index"],
         ),
         [
-            {"name": "int_index", "pandas_dtype": PandasDtype.Int,
-             "nullable": False, "checks": {"min": 10, "max": 12}},
-            {"name": "str_index", "pandas_dtype": PandasDtype.Category,
-             "nullable": False, "checks": {"levels": ["a", "b", "c"]}}
+            {
+                "name": "int_index",
+                "pandas_dtype": PandasDtype.Int,
+                "nullable": False,
+                "checks": {
+                    "greater_than_or_equal_to": 10,
+                    "less_than_or_equal_to": 12,
+                }
+            },
+            {
+                "name": "str_index",
+                "pandas_dtype": PandasDtype.Category,
+                "nullable": False,
+                "checks": {"isin": ["a", "b", "c"]}
+            }
         ],
     ],
 
@@ -292,34 +338,43 @@ def test_get_dataframe_schema_statistics():
             name="int_index"
         )
     )
-    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
-    assert statistics == {
+    expectation = {
         "columns": {
             "int": {
                 "pandas_dtype": pa.Int,
-                "checks": {"min": 0, "max": 100},
+                "checks": {
+                    "greater_than_or_equal_to": {"min_value": 0},
+                    "less_than_or_equal_to": {"max_value": 100},
+                },
                 "nullable": True,
             },
             "float": {
                 "pandas_dtype": pa.Float,
-                "checks": {"min": 50, "max": 100},
+                "checks": {
+                    "greater_than_or_equal_to": {"min_value": 50},
+                    "less_than_or_equal_to": {"max_value": 100},
+                },
                 "nullable": False,
             },
             "str": {
                 "pandas_dtype": pa.String,
-                "checks": {"levels": ["foo", "bar", "baz"]},
+                "checks": {"isin": {"allowed_values": ["foo", "bar", "baz"]}},
                 "nullable": False,
             },
         },
         "index": [
             {
                 "pandas_dtype": pa.Int,
-                "checks": {"min": 0},
+                "checks": {"greater_than_or_equal_to": {"min_value": 0}},
                 "nullable": False,
+                "coerce": False,
                 "name": "int_index",
             }
-        ]
+        ],
+        "coerce": False,
     }
+    statistics = schema_statistics.get_dataframe_schema_statistics(schema)
+    assert statistics == expectation
 
 
 def test_get_series_schema_statistics():
@@ -334,8 +389,12 @@ def test_get_series_schema_statistics():
     assert statistics == {
         "pandas_dtype": pa.Int,
         "nullable": False,
-        "checks": {"min": 0, "max": 100},
+        "checks": {
+            "greater_than_or_equal_to": {"min_value": 0},
+            "less_than_or_equal_to": {"max_value": 100},
+        },
         "name": None,
+        "coerce": False,
     }
 
 
@@ -354,8 +413,12 @@ def test_get_series_schema_statistics():
             {
                 "pandas_dtype": pa.Int,
                 "nullable": False,
-                "checks": {"min": 10, "max": 20},
-                "name": "int_index"
+                "checks": {
+                    "greater_than_or_equal_to": {"min_value": 10},
+                    "less_than_or_equal_to": {"max_value": 20},
+                },
+                "name": "int_index",
+                "coerce": False,
             }
         ]
     ]
@@ -368,22 +431,8 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
 
 
 @pytest.mark.parametrize("checks, expectation", [
-    # checks that map to statistics
-    [[pa.Check.greater_than_or_equal_to(10)], {"min": 10}],
-    [[pa.Check.less_than_or_equal_to(50)], {"max": 50}],
-    [[pa.Check.isin(["a", "b", "c"])], {"levels": ["a", "b", "c"]}],
-    [
-        [
-            pa.Check.greater_than_or_equal_to(10),
-            pa.Check.less_than_or_equal_to(50),
-            pa.Check.isin([10, 20, 30, 40, 50]),
-        ],
-        {"min": 10, "max": 50, "levels": [10, 20, 30, 40, 50]},
-    ],
-
-    # checks that don't map to statistics
     *[
-        [[check], None]
+        [[check], {check.name: check.statistics}]
         for check in [
             pa.Check.greater_than(1),
             pa.Check.less_than(1),
@@ -399,6 +448,20 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
         ]
     ],
 
+    # multiple checks at once
+    [
+        [
+            pa.Check.greater_than_or_equal_to(10),
+            pa.Check.less_than_or_equal_to(50),
+            pa.Check.isin([10, 20, 30, 40, 50]),
+        ],
+        {
+            "greater_than_or_equal_to": {"min_value": 10},
+            "less_than_or_equal_to": {"max_value": 50},
+            "isin": {"allowed_values": [10, 20, 30, 40, 50]},
+        },
+    ],
+
     # incompatible checks
     *[
         [
@@ -411,10 +474,17 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
         ]
     ]
 ])
-def test_parse_checks(checks, expectation):
-    """Test that parse checks correctly obtain statistics from checks."""
+def test_parse_checks_and_statistics_roundtrip(checks, expectation):
+    """
+    Test that parse checks correctly obtain statistics from checks and
+    vice-versa.
+    """
     if expectation is ValueError:
         with pytest.raises(ValueError):
             schema_statistics.parse_checks(checks)
         return
     assert schema_statistics.parse_checks(checks) == expectation
+
+    check_statistics = {check.name: check.statistics for check in checks}
+    check_list = schema_statistics.parse_check_statistics(check_statistics)
+    assert set(check_list) == set(checks)

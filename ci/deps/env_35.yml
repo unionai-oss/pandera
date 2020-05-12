@@ -23,8 +23,8 @@ dependencies:
   - pre_commit
 
   # pandera dependencies
+  - autopep8
   - numpy
-  
   - pandas
   - scipy
   - wrapt

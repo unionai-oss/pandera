@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from packaging import version
 
+import pandas as pd
 import pytest
 import yaml
 import pandera as pa
@@ -14,15 +15,53 @@ from pandera import io
 PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
 
 
-def _create_schema():
+def _create_schema(multi_index=False):
+
+    if multi_index:
+        index = pa.MultiIndex([
+            pa.Index(pa.Int, name="int_index0"),
+            pa.Index(pa.Int, name="int_index1"),
+            pa.Index(pa.Int, name="int_index2"),
+        ])
+    else:
+        index = pa.Index(pa.Int, name="int_index")
+
     return pa.DataFrameSchema(
         columns={
-            "int_column": pa.Column(pa.Int),
-            "float_column": pa.Column(pa.Float),
-            "str_column": pa.Column(pa.String),
-            "datetime_column": pa.Column(pa.DateTime),
+            "int_column": pa.Column(
+                pa.Int, checks=[
+                    pa.Check.greater_than(0),
+                    pa.Check.less_than(10),
+                    pa.Check.in_range(0, 10),
+                ],
+            ),
+            "float_column": pa.Column(
+                pa.Float, checks=[
+                    pa.Check.greater_than(-10),
+                    pa.Check.less_than(20),
+                    pa.Check.in_range(-10, 20),
+                ],
+            ),
+            "str_column": pa.Column(
+                pa.String, checks=[
+                    pa.Check.isin(["foo", "bar", "x", "xy"]),
+                    pa.Check.str_length(1, 3)
+                ],
+            ),
+            "datetime_column": pa.Column(
+                pa.DateTime, checks=[
+                    pa.Check.greater_than(pd.Timestamp("20100101")),
+                    pa.Check.less_than(pd.Timestamp("20200101")),
+                ]
+            ),
+            "timedelta_column": pa.Column(
+                pa.Timedelta, checks=[
+                    pa.Check.greater_than(pd.Timedelta(1000, unit="ns")),
+                    pa.Check.less_than(pd.Timedelta(10000, unit="ns")),
+                ]
+            )
         },
-        index=pa.Index(pa.Int, name="int_index"),
+        index=index,
     )
 
 
@@ -33,25 +72,65 @@ columns:
   int_column:
     pandas_dtype: int
     nullable: false
-    checks: null
+    checks:
+      greater_than: 0
+      less_than: 10
+      in_range:
+        min_value: 0
+        max_value: 10
   float_column:
     pandas_dtype: float
     nullable: false
-    checks: null
+    checks:
+      greater_than: -10
+      less_than: 20
+      in_range:
+        min_value: -10
+        max_value: 20
   str_column:
     pandas_dtype: string
     nullable: false
-    checks: null
+    checks:
+      isin:
+      - foo
+      - bar
+      - x
+      - xy
+      str_length:
+        min_value: 1
+        max_value: 3
   datetime_column:
     pandas_dtype: datetime64[ns]
     nullable: false
-    checks: null
+    checks:
+      greater_than: '2010-01-01 00:00:00'
+      less_than: '2020-01-01 00:00:00'
+  timedelta_column:
+    pandas_dtype: timedelta64[ns]
+    nullable: false
+    checks:
+      greater_than: 1000
+      less_than: 10000
 index:
 - pandas_dtype: int
   nullable: false
   checks: null
   name: int_index
+coerce: false
 """.format(version=pa.__version__)
+
+
+def test_inferred_schema_io():
+    """Test that inferred schema can be writted to yaml."""
+    df = pd.DataFrame({
+        "column1": [5, 10, 20],
+        "column2": [5., 1., 3.],
+        "column3": ["a", "b", "c"],
+    })
+    schema = pa.infer_schema(df)
+    schema_yaml_str = schema.to_yaml()
+    schema_from_yaml = io.from_yaml(schema_yaml_str)
+    assert schema == schema_from_yaml
 
 
 @pytest.mark.skipif(
@@ -114,3 +193,21 @@ def test_io_yaml():
         assert output is None
         schema_from_yaml = pa.DataFrameSchema.from_yaml(Path(f.name))
         assert schema_from_yaml == schema
+
+
+@pytest.mark.parametrize("multi_index", [
+    [True], [False]
+])
+def test_to_script(multi_index):
+    """Test writing DataFrameSchema to a script."""
+    schema_to_write = _create_schema(multi_index)
+    script = io.to_script(schema_to_write)
+
+    local_dict = {}
+    # pylint: disable=exec-used
+    exec(script, globals(), local_dict)
+
+    schema = local_dict["schema"]
+
+    # executing script should result in a variable `schema`
+    assert schema == schema_to_write

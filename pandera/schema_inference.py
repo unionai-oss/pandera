@@ -5,7 +5,7 @@ from typing import Union
 import pandas as pd
 
 from .schemas import DataFrameSchema, SeriesSchema
-from .schema_components import Column
+from .schema_components import Column, Index, MultiIndex
 from .schema_statistics import (
     infer_dataframe_statistics,
     infer_series_statistics,
@@ -33,6 +33,24 @@ def infer_schema(
         )
 
 
+def _create_index(index_statistics):
+    index = [
+        Index(
+            properties["pandas_dtype"],
+            checks=parse_check_statistics(properties["checks"]),
+            nullable=properties["nullable"],
+            name=properties["name"],
+        )
+        for properties in index_statistics
+    ]
+    if len(index) == 1:
+        index = index[0]  # type: ignore
+    else:
+        index = MultiIndex(index)  # type: ignore
+
+    return index
+
+
 def infer_dataframe_schema(df: pd.DataFrame) -> DataFrameSchema:
     """Infer a DataFrameSchema from a pandas DataFrame.
 
@@ -40,6 +58,7 @@ def infer_dataframe_schema(df: pd.DataFrame) -> DataFrameSchema:
     :returns: DataFrameSchema
     """
     df_statistics = infer_dataframe_statistics(df)
+
     schema = DataFrameSchema(
         columns={
             colname: Column(
@@ -49,6 +68,7 @@ def infer_dataframe_schema(df: pd.DataFrame) -> DataFrameSchema:
             )
             for colname, properties in df_statistics["columns"].items()
         },
+        index=_create_index(df_statistics["index"]),
         coerce=True,
     )
     schema._is_inferred = True  # pylint: disable=protected-access

@@ -12,6 +12,7 @@ pytest-cov
 twine
 asv
 pre-commit
+black
 numpy
 pandas
 scipy

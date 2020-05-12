@@ -29,8 +29,8 @@ SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
-def set_check_statistics(statistics):
-    """Decorator to get statistics from Check method."""
+def set_check_statistics(statistics_args):
+    """Decorator to set statistics based on Check method."""
 
     def set_check_statistics_decorator(class_method):
 
@@ -39,11 +39,12 @@ def set_check_statistics(statistics):
             args = list(args)
             arg_spec_args = inspect.getfullargspec(class_method).args[1:]
             args_dict = {**dict(zip(arg_spec_args, args)), **kwargs}
-            stats = {
-                stat: args_dict.get(stat) for stat in statistics
-            }
             check = class_method(cls, *args, **kwargs)
-            check.statistics = stats
+            check.statistics = {
+                stat: args_dict.get(stat) for stat in statistics_args
+                if args_dict.get(stat) is not None
+            }
+            check.statistics_args = statistics_args
             return check
 
         return _wrapper
@@ -768,42 +769,42 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["min_len", "max_len"])
+    @set_check_statistics(["min_value", "max_value"])
     def str_length(
             cls,
-            min_len: int = None,
-            max_len: int = None,
+            min_value: int = None,
+            max_value: int = None,
             raise_warning: bool = False) -> 'Check':
         """Ensure that the length of strings is within a specified range.
 
-        :param min_len: Minimum length of strings (default: no minimum)
-        :param max_len: Maximum length of strings (default: no maximum)
+        :param min_value: Minimum length of strings (default: no minimum)
+        :param max_value: Maximum length of strings (default: no maximum)
         :param raise_warning: if True, check raises UserWarning instead of
             SchemaError on validation.
 
         :returns: :class:`Check` object
         """
-        if min_len is None and max_len is None:
+        if min_value is None and max_value is None:
             raise ValueError(
                 "At least a minimum or a maximum need to be specified. Got "
                 "None.")
-        if max_len is None:
-            def check_fn(series: pd.Series) -> pd.Series:
+        if max_value is None:
+            def _str_length(series: pd.Series) -> pd.Series:
                 """Check for the minimum string length"""
-                return series.str.len() >= min_len
-        elif min_len is None:
-            def check_fn(series: pd.Series) -> pd.Series:
+                return series.str.len() >= min_value
+        elif min_value is None:
+            def _str_length(series: pd.Series) -> pd.Series:
                 """Check for the maximum string length"""
-                return series.str.len() <= max_len
+                return series.str.len() <= max_value
         else:
-            def check_fn(series: pd.Series) -> pd.Series:
+            def _str_length(series: pd.Series) -> pd.Series:
                 """Check for both, minimum and maximum string length"""
-                return (series.str.len() <= max_len) & \
-                    (series.str.len() >= min_len)
+                return (series.str.len() <= max_value) & \
+                    (series.str.len() >= min_value)
 
         return cls(
-            check_fn,
+            _str_length,
             name=cls.str_length.__name__,
-            error="str_length(%s, %s)" % (min_len, max_len),
+            error="str_length(%s, %s)" % (min_value, max_value),
             raise_warning=raise_warning,
         )

@@ -5,7 +5,7 @@
 Lazy Validation
 ===============
 
-*new in 0.4.0*
+*New in version 0.4.0*
 
 By default, when you call the ``validate`` method on schema or schema component
 objects, a :py:class:`errors.SchemaError` is raised as soon as one of the

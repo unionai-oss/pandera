@@ -26,22 +26,6 @@ NUMERIC_DTYPES = frozenset([
     PandasDtype.DateTime,
 ])
 
-# pylint: disable=unnecessary-lambda
-STATISTICS_TO_CHECKS = {
-    "min": lambda x: Check.greater_than_or_equal_to(x),
-    "max": lambda x: Check.less_than_or_equal_to(x),
-    "levels": lambda x: Check.isin(x),
-}
-
-CHECKS_TO_STATISTICS = {
-    Check.greater_than_or_equal_to.__name__: (
-        "min", lambda x: x.statistics["min_value"]),
-    Check.less_than_or_equal_to.__name__: (
-        "max", lambda x: x.statistics["max_value"]),
-    Check.isin.__name__: (
-        "levels", lambda x: x.statistics["allowed_values"]),
-}
-
 
 def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     """Infer column and index statistics from a pandas DataFrame."""
@@ -52,7 +36,7 @@ def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     column_statistics = {
         col: {
             "pandas_dtype": dtype,
-            "nullable": nullable_columns[col],
+            "nullable": bool(nullable_columns[col]),
             "checks": _get_array_check_statistics(df[col], dtype),
         }
         for col, dtype in inferred_column_dtypes.items()
@@ -68,7 +52,7 @@ def infer_series_statistics(series: pd.Series) -> Dict[str, Any]:
     dtype = _get_array_type(series)
     return {
         "pandas_dtype": dtype,
-        "nullable": series.isna().any(),
+        "nullable": bool(series.isna().any()),
         "checks": _get_array_check_statistics(series, dtype),
         "name": series.name,
     }
@@ -81,7 +65,7 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
         dtype = _get_array_type(index_level)
         return {
             "pandas_dtype": dtype,
-            "nullable": index_level.isna().any(),
+            "nullable": bool(index_level.isna().any()),
             "checks": _get_array_check_statistics(index_level, dtype),
             "name": index_level.name,
         }
@@ -108,10 +92,13 @@ def parse_check_statistics(check_stats: Union[Dict[str, Any], None]):
     if check_stats is None:
         return None
     checks = []
-    for stat, create_check_fn in STATISTICS_TO_CHECKS.items():
-        if stat not in check_stats:
-            continue
-        checks.append(create_check_fn(check_stats[stat]))
+    for check_name, stats in check_stats.items():
+        check = getattr(Check, check_name)
+        try:
+            checks.append(check(**stats))
+        except TypeError:
+            # if stats cannot be unpacked as key-word args, assume unary check.
+            checks.append(check(stats))
     return checks if checks else None
 
 
@@ -131,6 +118,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
             None if dataframe_schema.index is None else
             get_index_schema_statistics(dataframe_schema.index)
         ),
+        "coerce": dataframe_schema.coerce,
     }
     return statistics
 
@@ -141,6 +129,7 @@ def _get_series_base_schema_statistics(series_schema_base):
         "pandas_dtype": series_schema_base._pandas_dtype,
         "nullable": series_schema_base.nullable,
         "checks": parse_checks(series_schema_base.checks),
+        "coerce": series_schema_base.coerce,
         "name": series_schema_base.name,
     }
 
@@ -168,21 +157,22 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
     check_statistics = {}
     _check_memo = {}
     for check in checks:
-        stat_name, get_stat_fn = CHECKS_TO_STATISTICS.get(
-            check.name, (None, None))
-        if stat_name is not None and get_stat_fn is not None:
-            check_statistics[stat_name] = get_stat_fn(check)
-            _check_memo[stat_name] = check
+        check_statistics[check.name] = check.statistics
+        _check_memo[check.name] = check
 
     # raise ValueError on incompatible checks
-    if "min" in check_statistics and "max" in check_statistics:
-        min_value = check_statistics.get("min", float("-inf"))
-        max_value = check_statistics.get("max", float("inf"))
+    if "greater_than_or_equal_to" in check_statistics and \
+            "less_than_or_equal_to" in check_statistics:
+        min_value = check_statistics.get(
+            "greater_than_or_equal_to", float("-inf"))["min_value"]
+        max_value = check_statistics.get(
+            "less_than_or_equal_to", float("inf"))["max_value"]
         if min_value > max_value:
             raise ValueError(
                 "checks %s and %s are incompatible, reason: "
                 "min value %s > max value %s" % (
-                    _check_memo["min"], _check_memo["max"],
+                    _check_memo["greater_than_or_equal_to"],
+                    _check_memo["less_than_or_equal_to"],
                     min_value, max_value
                 ))
     return check_statistics if check_statistics else None
@@ -202,10 +192,15 @@ def _get_array_type(x):
 def _get_array_check_statistics(
         x, dtype: PandasDtype) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
-    if dtype in NUMERIC_DTYPES or dtype is PandasDtype.DateTime:
+    if dtype is PandasDtype.DateTime:
         check_stats = {
-            "min": x.min(),
-            "max": x.max(),
+            "greater_than_or_equal_to": x.min(),
+            "less_than_or_equal_to": x.max(),
+        }
+    elif dtype in NUMERIC_DTYPES:
+        check_stats = {
+            "greater_than_or_equal_to": float(x.min()),
+            "less_than_or_equal_to": float(x.max()),
         }
     elif dtype is PandasDtype.Category:
         try:
@@ -213,7 +208,7 @@ def _get_array_check_statistics(
         except AttributeError:
             categories = x.categories
         check_stats = {
-            "levels": categories.tolist(),
+            "isin": categories.tolist(),
         }
     else:
         check_stats = {}

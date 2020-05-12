@@ -30,6 +30,7 @@ dependencies:
   - pre-commit
 
   # pandera dependencies
+  - black
   - numpy
   - pandas
   - scipy

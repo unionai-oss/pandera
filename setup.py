@@ -29,6 +29,8 @@ setup(
         "pandas >= 0.23.0",
         "wrapt",
         "scipy ; python_version>='3.5'",
+        "black ; python_version>'3.5'",
+        "autopep8 ; python_version=='3.5'",
     ],
     python_requires='>=3.5',
     platforms='any',
