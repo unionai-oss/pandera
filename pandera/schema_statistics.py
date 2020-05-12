@@ -36,7 +36,7 @@ def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     column_statistics = {
         col: {
             "pandas_dtype": dtype,
-            "nullable": nullable_columns[col],
+            "nullable": bool(nullable_columns[col]),
             "checks": _get_array_check_statistics(df[col], dtype),
         }
         for col, dtype in inferred_column_dtypes.items()
@@ -52,7 +52,7 @@ def infer_series_statistics(series: pd.Series) -> Dict[str, Any]:
     dtype = _get_array_type(series)
     return {
         "pandas_dtype": dtype,
-        "nullable": series.isna().any(),
+        "nullable": bool(series.isna().any()),
         "checks": _get_array_check_statistics(series, dtype),
         "name": series.name,
     }
@@ -65,7 +65,7 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
         dtype = _get_array_type(index_level)
         return {
             "pandas_dtype": dtype,
-            "nullable": index_level.isna().any(),
+            "nullable": bool(index_level.isna().any()),
             "checks": _get_array_check_statistics(index_level, dtype),
             "name": index_level.name,
         }
@@ -118,6 +118,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
             None if dataframe_schema.index is None else
             get_index_schema_statistics(dataframe_schema.index)
         ),
+        "coerce": dataframe_schema.coerce,
     }
     return statistics
 
@@ -128,6 +129,7 @@ def _get_series_base_schema_statistics(series_schema_base):
         "pandas_dtype": series_schema_base._pandas_dtype,
         "nullable": series_schema_base.nullable,
         "checks": parse_checks(series_schema_base.checks),
+        "coerce": series_schema_base.coerce,
         "name": series_schema_base.name,
     }
 
@@ -190,10 +192,15 @@ def _get_array_type(x):
 def _get_array_check_statistics(
         x, dtype: PandasDtype) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
-    if dtype in NUMERIC_DTYPES or dtype is PandasDtype.DateTime:
+    if dtype is PandasDtype.DateTime:
         check_stats = {
             "greater_than_or_equal_to": x.min(),
             "less_than_or_equal_to": x.max(),
+        }
+    elif dtype in NUMERIC_DTYPES:
+        check_stats = {
+            "greater_than_or_equal_to": float(x.min()),
+            "less_than_or_equal_to": float(x.max()),
         }
     elif dtype is PandasDtype.Category:
         try:

@@ -83,6 +83,7 @@ IO Utils
 
    io.from_yaml
    io.to_yaml
+   io.to_script
 
 
 Errors

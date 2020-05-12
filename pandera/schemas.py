@@ -316,8 +316,9 @@ class DataFrameSchema():
             warnings.warn(
                 "This %s is an inferred schema that hasn't been "
                 "modified. It's recommended that you refine the schema "
-                "by calling `add_columns` or `remove_columns` before using it "
-                "to validate data." % type(self),
+                "by calling `add_columns`, `remove_columns`, or "
+                "`update_columns` before using it to validate data."
+                % type(self),
                 UserWarning
             )
 
@@ -503,7 +504,14 @@ class DataFrameSchema():
         )
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        def _compare_dict(obj):
+            return {
+                k: v for k, v in obj.__dict__.items()
+                if k != "_IS_INFERRED"
+            }
+        # if _compare_dict(self) != _compare_dict(other):
+        #     import ipdb; ipdb.set_trace()
+        return _compare_dict(self) == _compare_dict(other)
 
     @_inferred_schema_guard
     def add_columns(self,

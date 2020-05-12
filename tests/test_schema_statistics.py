@@ -367,9 +367,11 @@ def test_get_dataframe_schema_statistics():
                 "pandas_dtype": pa.Int,
                 "checks": {"greater_than_or_equal_to": {"min_value": 0}},
                 "nullable": False,
+                "coerce": False,
                 "name": "int_index",
             }
-        ]
+        ],
+        "coerce": False,
     }
     statistics = schema_statistics.get_dataframe_schema_statistics(schema)
     assert statistics == expectation
@@ -392,6 +394,7 @@ def test_get_series_schema_statistics():
             "less_than_or_equal_to": {"max_value": 100},
         },
         "name": None,
+        "coerce": False,
     }
 
 
@@ -414,7 +417,8 @@ def test_get_series_schema_statistics():
                     "greater_than_or_equal_to": {"min_value": 10},
                     "less_than_or_equal_to": {"max_value": 20},
                 },
-                "name": "int_index"
+                "name": "int_index",
+                "coerce": False,
             }
         ]
     ]

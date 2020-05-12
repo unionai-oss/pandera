@@ -57,11 +57,20 @@ def test_infer_schema(pandas_obj, expectation):
         )
 
 
-def test_infer_dataframe_schema():
+@pytest.mark.parametrize("multi_index", [
+    [False],
+    [True],
+])
+def test_infer_dataframe_schema(multi_index):
     """Test dataframe schema is correctly inferred."""
-    dataframe = _create_dataframe()
+    dataframe = _create_dataframe(multi_index=multi_index)
     schema = schema_inference.infer_dataframe_schema(dataframe)
     assert isinstance(schema, pa.DataFrameSchema)
+
+    if multi_index:
+        assert isinstance(schema.index, pa.MultiIndex)
+    else:
+        assert isinstance(schema.index, pa.Index)
 
     with pytest.warns(
             UserWarning,

@@ -15,7 +15,17 @@ from pandera import io
 PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
 
 
-def _create_schema():
+def _create_schema(multi_index=False):
+
+    if multi_index:
+        index = pa.MultiIndex([
+            pa.Index(pa.Int, name="int_index0"),
+            pa.Index(pa.Int, name="int_index1"),
+            pa.Index(pa.Int, name="int_index2"),
+        ])
+    else:
+        index = pa.Index(pa.Int, name="int_index")
+
     return pa.DataFrameSchema(
         columns={
             "int_column": pa.Column(
@@ -51,7 +61,7 @@ def _create_schema():
                 ]
             )
         },
-        index=pa.Index(pa.Int, name="int_index"),
+        index=index,
     )
 
 
@@ -106,7 +116,21 @@ index:
   nullable: false
   checks: null
   name: int_index
+coerce: false
 """.format(version=pa.__version__)
+
+
+def test_inferred_schema_io():
+    """Test that inferred schema can be writted to yaml."""
+    df = pd.DataFrame({
+        "column1": [5, 10, 20],
+        "column2": [5., 1., 3.],
+        "column3": ["a", "b", "c"],
+    })
+    schema = pa.infer_schema(df)
+    schema_yaml_str = schema.to_yaml()
+    schema_from_yaml = io.from_yaml(schema_yaml_str)
+    assert schema == schema_from_yaml
 
 
 @pytest.mark.skipif(
@@ -169,3 +193,21 @@ def test_io_yaml():
         assert output is None
         schema_from_yaml = pa.DataFrameSchema.from_yaml(Path(f.name))
         assert schema_from_yaml == schema
+
+
+@pytest.mark.parametrize("multi_index", [
+    [True], [False]
+])
+def test_to_script(multi_index):
+    """Test writing DataFrameSchema to a script."""
+    schema_to_write = _create_schema(multi_index)
+    script = io.to_script(schema_to_write)
+
+    local_dict = {}
+    # pylint: disable=exec-used
+    exec(script, globals(), local_dict)
+
+    schema = local_dict["schema"]
+
+    # executing script should result in a variable `schema`
+    assert schema == schema_to_write

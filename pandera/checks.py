@@ -44,9 +44,6 @@ def set_check_statistics(statistics_args):
                 stat: args_dict.get(stat) for stat in statistics_args
                 if args_dict.get(stat) is not None
             }
-            if class_method.__name__ == "in_range":
-                # import ipdb; ipdb.set_trace()
-                pass
             check.statistics_args = statistics_args
             return check
 

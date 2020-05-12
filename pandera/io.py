@@ -3,6 +3,7 @@
 import yaml
 from pathlib import Path
 
+import black
 import pandas as pd
 
 from .dtypes import PandasDtype
@@ -61,9 +62,11 @@ def _serialize_component_stats(component_stats):
     }
 
 
-def _serialize_schema(statistics):
+def _serialize_schema(dataframe_schema):
     """Serialize dataframe schema into into json/yaml-compatible format."""
     from pandera import __version__  # pylint: disable-all
+
+    statistics = get_dataframe_schema_statistics(dataframe_schema)
 
     columns, index = None, None
     if statistics["columns"] is not None:
@@ -83,6 +86,7 @@ def _serialize_schema(statistics):
         "version": __version__,
         "columns": columns,
         "index": index,
+        "coerce": dataframe_schema.coerce,
     }
 
 
@@ -164,6 +168,7 @@ def _deserialize_schema(serialized_schema):
             for col_name, column in columns.items()
         },
         index=index,
+        coerce=serialized_schema["coerce"],
     )
 
 
@@ -188,8 +193,7 @@ def to_yaml(dataframe_schema, stream=None):
     :param stream: file stream to write to. If None, dumps to string.
     :returns: yaml string if stream is None, otherwise returns None.
     """
-    statistics = _serialize_schema(
-        get_dataframe_schema_statistics(dataframe_schema))
+    statistics = _serialize_schema(dataframe_schema)
 
     def _write_yaml(obj, stream):
         try:
@@ -202,3 +206,125 @@ def to_yaml(dataframe_schema, stream=None):
             _write_yaml(statistics, f)
     except (TypeError, OSError):
         return _write_yaml(statistics, stream)
+
+
+SCRIPT_TEMPLATE = """
+from pandera import (
+    DataFrameSchema, Column, Check, Index, MultiIndex, PandasDtype
+)
+
+schema = DataFrameSchema(
+    columns={{{columns}}},
+    index={index},
+    coerce={coerce},
+    strict={strict},
+    name={name},
+)
+"""
+
+COLUMN_TEMPLATE = """
+Column(pandas_dtype={pandas_dtype},checks={checks},nullable={nullable})
+"""
+
+INDEX_TEMPLATE = (
+    "Index(pandas_dtype={pandas_dtype},checks={checks},"
+    "nullable={nullable},coerce={coerce},name={name})"
+)
+
+MULTIINDEX_TEMPLATE = """
+MultiIndex(indexes=[{indexes}])
+"""
+
+
+def _format_checks(checks_dict):
+    if checks_dict is None:
+        return "None"
+
+    checks = []
+    for check_name, check_kwargs in checks_dict.items():
+        args = ", ".join(
+            f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
+        )
+        checks.append(f"Check.{check_name}({args})")
+    return f"[{', '.join(checks)}]"
+
+
+def _format_index(index_statistics):
+    index = []
+    for properties in index_statistics:
+        index_code = INDEX_TEMPLATE.format(
+            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
+            checks=(
+                "None" if properties["checks"] is None else
+                _format_checks(properties["checks"])
+            ),
+            nullable=properties["nullable"],
+            coerce=properties["coerce"],
+            name=f'"{properties["name"]}"',
+        )
+        index.append(index_code.strip())
+
+    if len(index) == 1:
+        return index[0]
+
+    return MULTIINDEX_TEMPLATE.format(indexes=",".join(index)).strip()
+
+
+def to_script(dataframe_schema, path_or_buf=None):
+    """Write :py:class:`DataFrameSchema` to a python script.
+
+    :param dataframe_schema: schema to write to file or dump to string.
+    :param path_or_buf: filepath or buf stream to write to. If None, outputs
+        string representation of the script.
+    :returns: yaml string if stream is None, otherwise returns None.
+    """
+    statistics = get_dataframe_schema_statistics(dataframe_schema)
+
+    columns = {}
+    for colname, properties in statistics["columns"].items():
+        column_code = COLUMN_TEMPLATE.format(
+            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
+            checks=_format_checks(properties["checks"]),
+            nullable=properties["nullable"],
+        )
+        columns[colname] = column_code.strip()
+
+    index = _format_index(statistics["index"])
+
+    column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
+
+    script = SCRIPT_TEMPLATE.format(
+        columns=column_str,
+        index=index,
+        coerce=dataframe_schema.coerce,
+        strict=dataframe_schema.strict,
+        name=dataframe_schema.name.__repr__(),
+    ).strip()
+
+    # add pandas imports to handle datetime and timedelta.
+    if "Timedelta" in script:
+        script = "from pandas import Timedelta\n" + script
+    if "Timestamp" in script:
+        script = "from pandas import Timestamp\n" + script
+
+    formatted_script = black.format_str(
+        script, mode=black.FileMode(line_length=80),
+    )
+
+    if path_or_buf is None:
+        return formatted_script
+
+    with Path(path_or_buf).open("w") as f:
+        f.write(formatted_script)
+
+    def _write_script(obj, stream):
+        try:
+            return yaml.safe_dump(obj, stream=stream, sort_keys=False)
+        except TypeError:
+            return yaml.safe_dump(obj, stream=stream)
+
+    try:
+        with Path(path_or_buf).open("w") as f:
+            _write_script(formatted_script, f)
+    except (TypeError, OSError):
+        return _write_script(formatted_script, path_or_buf)
