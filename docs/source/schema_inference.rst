@@ -20,6 +20,7 @@ you to quickly infer a draft schema from a pandas dataframe or series. Below
 is a simple example:
 
 .. testcode:: infer_dataframe_schema
+   :skipif: SKIP
 
    import pandas as pd
    import pandera as pa
@@ -35,6 +36,7 @@ is a simple example:
    print(schema)
 
 .. testoutput:: infer_dataframe_schema
+   :skipif: SKIP
 
     DataFrameSchema(
         columns={
@@ -79,6 +81,7 @@ Write to a Python script
 You can also write your schema to a python script with :py:func:`io.to_script`:
 
 .. testcode:: infer_dataframe_schema
+   :skipif: SKIP
 
    from pandera import io
 
@@ -88,6 +91,7 @@ You can also write your schema to a python script with :py:func:`io.to_script`:
    print(schema_script)
 
 .. testoutput:: infer_dataframe_schema
+   :skipif: SKIP
 
     from pandas import Timestamp
     from pandera import (
@@ -153,6 +157,7 @@ and you can then read it into memory with :py:func:`io.from_yaml`. The
 is a convenience method for this functionality.
 
 .. testcode:: infer_dataframe_schema
+   :skipif: SKIP
 
    # supply a file-like object, Path, or str to write to a file. If not
    # specified, to_yaml will output a yaml string.
@@ -160,6 +165,7 @@ is a convenience method for this functionality.
    print(yaml_schema)
 
 .. testoutput:: infer_dataframe_schema
+   :skipif: SKIP
 
     schema_type: dataframe
     version: 0.3.2
