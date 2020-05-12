@@ -23,7 +23,7 @@ dependencies:
   - pre_commit
 
   # pandera dependencies
-  - black
+  - autopep8
   - numpy
   - pandas
   - scipy

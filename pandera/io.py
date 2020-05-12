@@ -1,9 +1,9 @@
 """Module for reading and writing schema objects."""
 
 import yaml
+from functools import partial
 from pathlib import Path
 
-import black
 import pandas as pd
 
 from .dtypes import PandasDtype
@@ -243,24 +243,26 @@ def _format_checks(checks_dict):
     checks = []
     for check_name, check_kwargs in checks_dict.items():
         args = ", ".join(
-            f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
+            "{}={}".format(k, v.__repr__()) for k, v in check_kwargs.items()
         )
-        checks.append(f"Check.{check_name}({args})")
-    return f"[{', '.join(checks)}]"
+        checks.append("Check.{}({})".format(check_name, args))
+    return "[{}]".format(', '.join(checks))
 
 
 def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
         index_code = INDEX_TEMPLATE.format(
-            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
+            pandas_dtype="PandasDtype.{}".format(
+                properties['pandas_dtype'].name
+            ),
             checks=(
                 "None" if properties["checks"] is None else
                 _format_checks(properties["checks"])
             ),
             nullable=properties["nullable"],
             coerce=properties["coerce"],
-            name=f'"{properties["name"]}"',
+            name='"{}"'.format(properties["name"]),
         )
         index.append(index_code.strip())
 
@@ -268,6 +270,22 @@ def _format_index(index_statistics):
         return index[0]
 
     return MULTIINDEX_TEMPLATE.format(indexes=",".join(index)).strip()
+
+
+def _format_script(script):
+    try:
+        import black
+        formatter = partial(
+            black.format_str, mode=black.FileMode(line_length=80)
+        )
+    except ImportError:
+        # use autopep8 for python3.5
+        import autopep8
+        formatter = partial(
+            autopep8.fix_code, options={"aggressive": 1}
+        )
+
+    return formatter(script)
 
 
 def to_script(dataframe_schema, path_or_buf=None):
@@ -283,7 +301,9 @@ def to_script(dataframe_schema, path_or_buf=None):
     columns = {}
     for colname, properties in statistics["columns"].items():
         column_code = COLUMN_TEMPLATE.format(
-            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
+            pandas_dtype="PandasDtype.{}".format(
+                properties['pandas_dtype'].name
+            ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
         )
@@ -291,7 +311,7 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     index = _format_index(statistics["index"])
 
-    column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
+    column_str = ", ".join("'{}': {}".format(k, v) for k, v in columns.items())
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
@@ -307,9 +327,7 @@ def to_script(dataframe_schema, path_or_buf=None):
     if "Timestamp" in script:
         script = "from pandas import Timestamp\n" + script
 
-    formatted_script = black.format_str(
-        script, mode=black.FileMode(line_length=80),
-    )
+    formatted_script = _format_script(script)
 
     if path_or_buf is None:
         return formatted_script
