@@ -120,6 +120,10 @@ coerce: false
 """.format(version=pa.__version__)
 
 
+@pytest.mark.skipif(
+    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
+    reason="pyyaml >= 5.1.0 required",
+)
 def test_inferred_schema_io():
     """Test that inferred schema can be writted to yaml."""
     df = pd.DataFrame({
