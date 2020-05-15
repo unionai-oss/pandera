@@ -13,7 +13,7 @@ Schema Inference
 
 With simple use cases, writing a schema definition manually is pretty
 straight-forward with pandera. However, it can get tedious to do this with
-dataframes that have many columns and varying data types.
+dataframes that have many columns of various data types.
 
 To help you handle these cases, the :py:func:`infer_schema` function enables
 you to quickly infer a draft schema from a pandas dataframe or series. Below
@@ -67,8 +67,8 @@ For :py:class:`SeriesSchema` objects:
 
 * :py:func:`SeriesSchema.set_checks`
 
-The section below describes two alternative workflows for persisting and
-modifying an inferred schema.
+The section below describes two workflows for persisting and modifying an
+inferred schema.
 
 Schema Persistence
 ------------------
