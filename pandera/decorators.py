@@ -32,7 +32,8 @@ def check_input(
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
-        random_state: Optional[int] = None) -> Callable:
+        random_state: Optional[int] = None,
+        lazy: bool = False) -> Callable:
     # pylint: disable=duplicate-code
     """Validate function argument when function is called.
 
@@ -55,6 +56,10 @@ def check_input(
         `sample` are de-duplicated.
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
+    :param random_state: random seed for the ``sample`` argument.
+    :param lazy: if True, lazily evaluates dataframe against all validation
+        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        ``SchemaError`` as soon as one occurs.
     :returns: wrapped function
 
     :example:
@@ -106,6 +111,7 @@ def check_input(
             decorated function was called.
         """
         args = list(args)
+        validate_args = (head, tail, sample, random_state, lazy)
         if isinstance(obj_getter, int):
             try:
                 args[obj_getter] = schema.validate(args[obj_getter])
@@ -124,17 +130,19 @@ def check_input(
                     )
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:
-                kwargs[obj_getter] = schema.validate(kwargs[obj_getter])
+                kwargs[obj_getter] = schema.validate(
+                    kwargs[obj_getter], *validate_args
+                )
             else:
                 arg_spec_args = _get_fn_argnames(fn)
                 args_dict = OrderedDict(
                     zip(arg_spec_args, args))
-                args_dict[obj_getter] = schema.validate(args_dict[obj_getter])
+                args_dict[obj_getter] = schema.validate(
+                    args_dict[obj_getter], *validate_args)
                 args = list(args_dict.values())
         elif obj_getter is None:
             try:
-                args[0] = schema.validate(
-                    args[0], head, tail, sample, random_state)
+                args[0] = schema.validate(args[0], *validate_args)
             except errors.SchemaError as e:
                 raise errors.SchemaError(
                     schema, args[0],
@@ -154,7 +162,8 @@ def check_output(
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
-        random_state: Optional[int] = None) -> Callable:
+        random_state: Optional[int] = None,
+        lazy: bool = False) -> Callable:
     # pylint: disable=duplicate-code
     """Validate function output.
 
@@ -177,6 +186,10 @@ def check_output(
         `sample` are de-duplicated.
     :param sample: validate a random sample of n rows. Rows overlapping
         with `head` or `tail` are de-duplicated.
+    :param random_state: random seed for the ``sample`` argument.
+    :param lazy: if True, lazily evaluates dataframe against all validation
+        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        ``SchemaError`` as soon as one occurs.
     :returns: wrapped function
 
     :example:
@@ -246,7 +259,7 @@ def check_output(
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         try:
-            schema.validate(obj, head, tail, sample, random_state)
+            schema.validate(obj, head, tail, sample, random_state, lazy)
         except errors.SchemaError as e:
             raise errors.SchemaError(
                 schema, obj,
