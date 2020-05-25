@@ -793,15 +793,15 @@ class SeriesSchemaBase():
                 check="column_name('%s')" % self._name,
             )
 
-        _dtype = self.dtype
-
         if self._nullable:
+            # currently, to handle null cases drop null values before passing
+            # into checks.
             series = series.dropna()
-            if _dtype in dtypes.NUMPY_NONNULLABLE_INT_DTYPES:
-                _series = series.astype(_dtype)
+            if self.dtype in dtypes.NUMPY_NONNULLABLE_INT_DTYPES:
+                _series = series.astype(self.dtype)
                 if (_series != series).any():
                     # in case where dtype is meant to be int, make sure that
-                    # casting to int results in the same values.
+                    # casting to int results in equal values.
                     msg = (
                         "after dropping null values, expected values in "
                         "series '%s' to be int, found: %s" %
@@ -817,22 +817,8 @@ class SeriesSchemaBase():
                     )
                 series = _series
 
-        nulls = series.isnull()
+        nulls = series.isna()
         if sum(nulls) > 0:
-            if series.dtype != _dtype:
-                msg = (
-                    "expected series '%s' to have type %s, got %s" %
-                    (series.name, self.dtype, series.dtype)
-                )
-                error_handler.collect_error(
-                    "wrong_pandas_dtype",
-                    errors.SchemaError(
-                        self, check_obj, msg,
-                        failure_cases=scalar_failure_case(self.dtype),
-                        check="pandas_dtype('%s')" % self.dtype,
-                    )
-                )
-
             msg = (
                 "non-nullable series '%s' contains null values: %s" %
                 (series.name,
@@ -843,7 +829,9 @@ class SeriesSchemaBase():
                 "series_contains_nulls",
                 errors.SchemaError(
                     self, check_obj, msg,
-                    failure_cases=series[nulls],
+                    failure_cases=reshape_failure_cases(
+                        series[nulls], ignore_na=False
+                    ),
                     check="not_nullable",
                 )
             )
@@ -862,22 +850,24 @@ class SeriesSchemaBase():
                     "series_contains_duplicates",
                     errors.SchemaError(
                         self, check_obj, msg,
-                        failure_cases=series[duplicates],
+                        failure_cases=reshape_failure_cases(
+                            series[duplicates]
+                        ),
                         check="no_duplicates",
                     )
                 )
 
-        if _dtype is not None and str(series.dtype) != _dtype:
+        if self.dtype is not None and str(series.dtype) != self.dtype:
             msg = (
                 "expected series '%s' to have type %s, got %s" %
-                (series.name, _dtype, str(series.dtype))
+                (series.name, self.dtype, str(series.dtype))
             )
             error_handler.collect_error(
                 "wrong_pandas_dtype",
                 errors.SchemaError(
                     self, check_obj, msg,
                     failure_cases=scalar_failure_case(str(series.dtype)),
-                    check="pandas_dtype('%s')" % _dtype,
+                    check="pandas_dtype('%s')" % self.dtype,
                 )
             )
 
