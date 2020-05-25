@@ -158,15 +158,6 @@ def test_series_schema():
         SeriesSchema(Float, nullable=False).validate(
             pd.Series([1.1, 2.3, 5.5, np.nan]))
 
-    # when series contains null values when schema is not nullable in addition
-    # to having the wrong data type
-    with pytest.raises(
-            errors.SchemaError,
-            match=(
-                r"^expected series '.+' to have type .+, got .+")):
-        SeriesSchema(Int, nullable=False).validate(
-            pd.Series([1.1, 2.3, 5.5, np.nan]))
-
 
 def test_series_schema_multiple_validators():
     """Tests how multiple Checks on a Series Schema are handled both
@@ -718,6 +709,39 @@ def test_lazy_dataframe_validation_error():
                     .failure_case.isin(failure_cases)
                     .all()
                 )
+
+
+def test_lazy_dataframe_validation_nullable():
+    """
+    Test that non-nullable column failure cases are correctly processed during
+    lazy validation.
+    """
+    schema = DataFrameSchema(
+        columns={
+            "int_column": Column(Int, nullable=False),
+            "float_column": Column(Float, nullable=False),
+            "str_column": Column(String, nullable=False),
+        },
+        strict=True
+    )
+
+    df = pd.DataFrame({
+        "int_column": [1, None, 3],
+        "float_column": [0.1, 1.2, None],
+        "str_column": [None, "foo", "bar"],
+    })
+
+    try:
+        schema.validate(df, lazy=True)
+    except errors.SchemaErrors as err:
+        assert err.schema_errors.failure_case.isna().all()
+        for col, index in [
+                ("int_column", 1),
+                ("float_column", 2),
+                ("str_column", 0)]:
+            # pylint: disable=cell-var-from-loop
+            assert err.schema_errors.loc[
+                lambda df: df.column == col, "index"].iloc[0] == index
 
 
 @pytest.mark.parametrize("schema, data, expectation", [

@@ -68,11 +68,14 @@ def scalar_failure_case(x) -> pd.DataFrame:
 
 
 def reshape_failure_cases(
-        failure_cases: Union[pd.DataFrame, pd.Series]) -> pd.DataFrame:
+        failure_cases: Union[pd.DataFrame, pd.Series],
+        ignore_na: bool = True
+) -> pd.DataFrame:
     """Construct readable error messages for vectorized_error_message.
 
     :param failure_cases: The failure cases encountered by the element-wise
         or vectorized validator.
+    :param ignore_na: whether or not to ignore null failure cases.
     :returns: DataFrame where index contains failure cases, the "index"
         column contains a list of integer indexes in the validation
         DataFrame that caused the failure, and a "count" column
@@ -112,4 +115,4 @@ def reshape_failure_cases(
             "type of failure_cases argument not understood: %s" %
             type(failure_cases))
 
-    return failure_cases.dropna()
+    return failure_cases.dropna() if ignore_na else failure_cases
