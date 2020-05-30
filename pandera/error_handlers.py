@@ -17,14 +17,16 @@ class SchemaErrorHandler():
         self._lazy = lazy
         self._collected_errors = []  # type: ignore
 
-    def collect_error(self, reason_code: str, schema_error: SchemaError):
+    def collect_error(
+            self, reason_code: str, schema_error: SchemaError,
+            original_exc: BaseException = None):
         """Collect schema error, raising exception if lazy is False.
 
         :param reason_code: string representing reason for error
         :param schema_error: ``SchemaError`` object.
         """
         if not self._lazy:
-            raise schema_error
+            raise schema_error from original_exc
 
         # delete data of validated object from SchemaError object to prevent
         # storing copies of the validated DataFrame/Series for every

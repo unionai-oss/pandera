@@ -202,16 +202,16 @@ class Hypothesis(_CheckBase):
             )
         return relationship
 
-    def _hypothesis_check(self, check_obj: Dict[str, pd.Series]):
+    def _hypothesis_check(
+            self, check_obj: Union[pd.Series, Dict[str, pd.Series]]
+    ):
         """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
             `_hypothesis_check` and `_vectorized_check`
 
         """
-        if self.is_one_sample_test:
-            # one-sample case where no groupby argument supplied, apply to
-            # entire column
+        if isinstance(check_obj, pd.Series):
             return self.relationship(*self.test(check_obj))
         return self.relationship(
             *self.test(*[check_obj.get(s) for s in self.samples]))
@@ -330,18 +330,31 @@ class Hypothesis(_CheckBase):
     @classmethod
     def one_sample_ttest(
             cls,
-            sample: str,
             popmean: float,
-            relationship: str,
+            sample: Optional[str] = None,
+            groupby: Union[str, List[str], Callable, None] = None,
+            relationship: str = "equal",
             alpha: float = DEFAULT_ALPHA,
             raise_warning=False,
     ):
         """Calculate a t-test for the mean of one sample.
 
         :param sample: The sample group to test. For `Column` and
-            `SeriesSchema` hypotheses, refers to the `groupby` level in the
-            `Column`. For `DataFrameSchema` hypotheses, refers to column in
-            the `DataFrame`.
+            `SeriesSchema` hypotheses, this refers to the `groupby` level that
+            is used to subset the `Column` being checked. For `DataFrameSchema`
+            hypotheses, refers to column in the `DataFrame`.
+        :param groupby: If a string or list of strings is provided, then these
+            columns are used to group the Column Series by `groupby`. If a
+            callable is passed, the expected signature is
+            DataFrame -> DataFrameGroupby. The function has access to the
+            entire dataframe, but the Column.name is selected from this
+            DataFrameGroupby object so that a SeriesGroupBy object is passed
+            into `fn`.
+
+            Specifying this argument changes the `fn` signature to:
+            dict[str|tuple[str], Series] -> bool|pd.Series[bool]
+
+            Where specific groups can be obtained from the input dict.
         :param popmean: population mean to compare `sample` to.
         :param relationship: Represents what relationship conditions are
             imposed on the hypothesis test. Available relationships
@@ -369,7 +382,6 @@ class Hypothesis(_CheckBase):
         ...     "height_in_feet": pa.Column(
         ...         pa.Float, [
         ...             pa.Hypothesis.one_sample_ttest(
-        ...                 sample="height_in_feet",
         ...                 popmean=5,
         ...                 relationship="greater_than",
         ...                 alpha=0.1),
@@ -396,6 +408,7 @@ class Hypothesis(_CheckBase):
         return cls(
             test=stats.ttest_1samp,
             samples=sample,
+            groupby=groupby,
             relationship=relationship,
             test_kwargs={"popmean": popmean},
             relationship_kwargs={"alpha": alpha},

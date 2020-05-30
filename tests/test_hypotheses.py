@@ -212,3 +212,40 @@ def test_two_sample_ttest_hypothesis_relationships():
                 ]),
                 "sex": Column(String)
             })
+
+
+def test_one_sample_hypothesis():
+    """Check one sample ttest."""
+    schema = DataFrameSchema({
+        "height_in_feet": Column(
+            Float, [
+                Hypothesis.one_sample_ttest(
+                    popmean=5,
+                    relationship="greater_than",
+                    alpha=0.1),
+            ]
+        ),
+    })
+
+    subset_schema = DataFrameSchema({
+        "group": Column(String),
+        "height_in_feet": Column(
+            Float, [
+                Hypothesis.one_sample_ttest(
+                    sample="A",
+                    groupby="group",
+                    popmean=5,
+                    relationship="greater_than",
+                    alpha=0.1),
+            ]
+        ),
+    })
+
+    df = (
+        pd.DataFrame({
+            "height_in_feet": [8.1, 7, 6.5, 6.7, 5.1],
+            "group": ["A", "A", "B", "B", "A"],
+        })
+    )
+    schema.validate(df)
+    subset_schema.validate(df)
