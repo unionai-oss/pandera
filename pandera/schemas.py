@@ -901,7 +901,8 @@ class SeriesSchemaBase():
                         failure_cases=scalar_failure_case(err_str),
                         check=check,
                         check_index=check_index
-                    )
+                    ),
+                    original_exc=err
                 )
 
         if lazy and error_handler.collected_errors:
