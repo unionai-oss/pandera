@@ -155,7 +155,7 @@ class Hypothesis(_CheckBase):
     @property
     def is_one_sample_test(self):
         """Return True if hypothesis is a one-sample test."""
-        return len(self.samples) == 1
+        return len(self.samples) <= 1
 
     def _prepare_series_input(
             self,
