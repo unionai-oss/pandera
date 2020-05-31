@@ -201,15 +201,6 @@ class DataFrameSchema():
         return dataframe if not dataframe_subsample else \
             pd.concat(dataframe_subsample).drop_duplicates()
 
-    def _check_dataframe(self, dataframe):
-        check_results = []
-        for check_index, check in enumerate(self.checks):
-            check_results.append(
-                _handle_check_results(
-                    self, check_index, check, dataframe)
-            )
-        return all(check_results)
-
     @property
     def dtype(self) -> Dict[str, str]:
         """
@@ -793,13 +784,15 @@ class SeriesSchemaBase():
                 check="column_name('%s')" % self._name,
             )
 
+        series_dtype = series.dtype
         if self._nullable:
             # currently, to handle null cases drop null values before passing
             # into checks.
-            series = series.dropna()
+            series_no_nans = series.dropna()
             if self.dtype in dtypes.NUMPY_NONNULLABLE_INT_DTYPES:
-                _series = series.astype(self.dtype)
-                if (_series != series).any():
+                _series = series_no_nans.astype(self.dtype)
+                series_dtype = _series.dtype
+                if (_series != series_no_nans).any():
                     # in case where dtype is meant to be int, make sure that
                     # casting to int results in equal values.
                     msg = (
@@ -811,30 +804,31 @@ class SeriesSchemaBase():
                         "unexpected_nullable_integer_type",
                         errors.SchemaError(
                             self, check_obj, msg,
-                            failure_cases=reshape_failure_cases(series),
+                            failure_cases=reshape_failure_cases(
+                                series_no_nans
+                            ),
                             check="nullable_integer",
                         )
                     )
-                series = _series
-
-        nulls = series.isna()
-        if sum(nulls) > 0:
-            msg = (
-                "non-nullable series '%s' contains null values: %s" %
-                (series.name,
-                 series[nulls].head(
-                     constants.N_FAILURE_CASES).to_dict())
-            )
-            error_handler.collect_error(
-                "series_contains_nulls",
-                errors.SchemaError(
-                    self, check_obj, msg,
-                    failure_cases=reshape_failure_cases(
-                        series[nulls], ignore_na=False
-                    ),
-                    check="not_nullable",
+        else:
+            nulls = series.isna()
+            if sum(nulls) > 0:
+                msg = (
+                    "non-nullable series '%s' contains null values: %s" %
+                    (series.name,
+                     series[nulls].head(
+                        constants.N_FAILURE_CASES).to_dict())
                 )
-            )
+                error_handler.collect_error(
+                    "series_contains_nulls",
+                    errors.SchemaError(
+                        self, check_obj, msg,
+                        failure_cases=reshape_failure_cases(
+                            series[nulls], ignore_na=False
+                        ),
+                        check="not_nullable",
+                    )
+                )
 
         # Check if the series contains duplicate values
         if not self._allow_duplicates:
@@ -857,16 +851,16 @@ class SeriesSchemaBase():
                     )
                 )
 
-        if self.dtype is not None and str(series.dtype) != self.dtype:
+        if self.dtype is not None and str(series_dtype) != self.dtype:
             msg = (
                 "expected series '%s' to have type %s, got %s" %
-                (series.name, self.dtype, str(series.dtype))
+                (series.name, self.dtype, str(series_dtype))
             )
             error_handler.collect_error(
                 "wrong_pandas_dtype",
                 errors.SchemaError(
                     self, check_obj, msg,
-                    failure_cases=scalar_failure_case(str(series.dtype)),
+                    failure_cases=scalar_failure_case(str(series_dtype)),
                     check="pandas_dtype('%s')" % self.dtype,
                 )
             )

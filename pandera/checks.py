@@ -60,6 +60,7 @@ class _CheckBase():
             check_fn: Callable,
             groups: Optional[Union[str, List[str]]] = None,
             groupby: Optional[Union[str, List[str], Callable]] = None,
+            ignore_na: bool = True,
             element_wise: bool = False,
             name: str = None,
             error: Optional[str] = None,
@@ -69,7 +70,7 @@ class _CheckBase():
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
-        :param fn: A function to check pandas data structure. For Column
+        :param check_fn: A function to check pandas data structure. For Column
             or SeriesSchema checks, if element_wise is True, this function
             should have the signature: ``Callable[[pd.Series],
             Union[pd.Series, bool]]``, where the output series is a boolean
@@ -106,6 +107,9 @@ class _CheckBase():
 
             where the input is a dictionary mapping
             keys to subsets of the column/dataframe.
+        :param ignore_na: If True, drops null values on the checked series or
+            dataframe before passing into the ``check_fn``. For dataframes,
+            drops rows with any null value.
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
@@ -181,6 +185,7 @@ class _CheckBase():
         self.element_wise = element_wise
         self.error = error
         self.name = name
+        self.ignore_na = ignore_na
         self.raise_warning = raise_warning
         self.n_failure_cases = n_failure_cases
 
@@ -276,6 +281,17 @@ class _CheckBase():
         groupby_obj = dataframe.groupby(self.groupby)
         return self._format_groupby_input(groupby_obj, self.groups)
 
+    def _handle_na(
+            self,
+            df_or_series: Union[pd.DataFrame, pd.Series],
+            column: Optional[str] = None):
+        """Handle nan values before passing to check function."""
+        if not self.ignore_na:
+            return df_or_series
+        elif column is not None:
+            return df_or_series[df_or_series[column].notna()]
+        return df_or_series.dropna()
+
     def __call__(
             self,
             df_or_series: Union[pd.DataFrame, pd.Series],
@@ -289,12 +305,13 @@ class _CheckBase():
         :returns: CheckResult tuple containing checked object,
             check validation result, and failure cases from the checked object.
         """
+        df_or_series = self._handle_na(df_or_series, column)
+
+        column_dataframe_context = None
         if column is not None and isinstance(df_or_series, pd.DataFrame):
             column_dataframe_context = df_or_series.drop(
                 column, axis="columns")
             df_or_series = df_or_series[column].copy()
-        else:
-            column_dataframe_context = None
 
         # prepare check object
         if isinstance(df_or_series, pd.Series):
@@ -338,7 +355,6 @@ class _CheckBase():
             check_passed = check_result.all().all()
         else:
             check_passed = check_result
-
         return CheckResult(check_passed, check_obj, failure_cases)
 
     def __eq__(self, other):
@@ -369,14 +385,13 @@ class Check(_CheckBase):
 
     @classmethod
     @set_check_statistics(["min_value"])
-    def greater_than(cls, min_value, raise_warning: bool = False) -> 'Check':
+    def greater_than(cls, min_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly greater than a minimum value.
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable
             to the dtype of the :class:`pandas.Series` to be validated (e.g. a
             numerical type for float or int and a datetime for datetime).
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -391,20 +406,18 @@ class Check(_CheckBase):
             _greater_than,
             name=cls.greater_than.__name__,
             error="greater_than(%s)" % min_value,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["min_value"])
-    def greater_than_or_equal_to(
-            cls, min_value, raise_warning: bool = False) -> 'Check':
+    def greater_than_or_equal_to(cls, min_value, **kwargs) -> 'Check':
         """Ensure all values are greater or equal a certain value.
 
         :param min_value: Allowed minimum value for values of a series. Must be
             a type comparable to the dtype of the :class:`pandas.Series` to be
             validated.
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -419,19 +432,18 @@ class Check(_CheckBase):
             _greater_or_equal,
             name=cls.greater_than_or_equal_to.__name__,
             error="greater_than_or_equal_to(%s)" % min_value,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["max_value"])
-    def less_than(cls, max_value, raise_warning: bool = False) -> 'Check':
+    def less_than(cls, max_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly below a maximum value.
 
         :param max_value: All elements of a series must be strictly smaller
             than this. Must be a type comparable to the dtype of the
             :class:`pandas.Series` to be validated.
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -446,20 +458,18 @@ class Check(_CheckBase):
             _less_than,
             name=cls.less_than.__name__,
             error="less_than(%s)" % max_value,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["max_value"])
-    def less_than_or_equal_to(
-            cls, max_value, raise_warning: bool = False) -> 'Check':
+    def less_than_or_equal_to(cls, max_value, **kwargs) -> 'Check':
         """Ensure no value of a series exceeds a certain value.
 
         :param max_value: Upper bound not to be exceeded. Must be a type
             comparable to the dtype of the :class:`pandas.Series` to be
             validated.
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -474,7 +484,7 @@ class Check(_CheckBase):
             _less_or_equal,
             name=cls.less_than_or_equal_to.__name__,
             error="less_than_or_equal_to(%s)" % max_value,
-            raise_warning=raise_warning,
+            **kwargs
         )
 
     @classmethod
@@ -482,7 +492,7 @@ class Check(_CheckBase):
         "min_value", "max_value", "include_min", "include_max"])
     def in_range(
             cls, min_value, max_value, include_min=True, include_max=True,
-            raise_warning: bool = False) -> 'Check':
+            **kwargs) -> 'Check':
         """Ensure all values of a series are within an interval.
 
         :param min_value: Left / lower endpoint of the interval.
@@ -494,8 +504,7 @@ class Check(_CheckBase):
         :param include_max: Defines whether min_value is also an allowed value
             (the default) or whether all values must be strictly smaller than
             max_value.
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         Both endpoints must be a type comparable to the dtype of the
         :class:`pandas.Series` to be validated.
@@ -524,18 +533,17 @@ class Check(_CheckBase):
             _in_range,
             name=cls.in_range.__name__,
             error="in_range(%s, %s)" % (min_value, max_value),
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["value"])
-    def equal_to(cls, value, raise_warning: bool = False) -> 'Check':
+    def equal_to(cls, value, **kwargs) -> 'Check':
         """Ensure all elements of a series equal a certain value.
 
         :param value: All elements of a given :class:`pandas.Series` must have
             this value
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -547,18 +555,17 @@ class Check(_CheckBase):
             _equal,
             name=cls.equal_to.__name__,
             error="equal_to(%s)" % value,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["value"])
-    def not_equal_to(cls, value, raise_warning: bool = False) -> 'Check':
+    def not_equal_to(cls, value, **kwargs) -> 'Check':
         """Ensure no elements of a series equals a certain value.
 
         :param value: This value must not occur in the checked
             :class:`pandas.Series`.
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -570,19 +577,17 @@ class Check(_CheckBase):
             _not_equal,
             name=cls.not_equal_to.__name__,
             error="not_equal_to(%s)" % value,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["allowed_values"])
     def isin(
-            cls, allowed_values: Iterable,
-            raise_warning: bool = False) -> 'Check':
+            cls, allowed_values: Iterable, **kwargs) -> 'Check':
         """Ensure only allowed values occur within a series.
 
         :param allowed_values: The set of allowed values. May be any iterable.
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
 
@@ -612,14 +617,13 @@ class Check(_CheckBase):
             _isin,
             name=cls.isin.__name__,
             error="isin(%s)" % set(allowed_values),
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["forbidden_values"])
     def notin(
-            cls, forbidden_values: Iterable,
-            raise_warning: bool = False) -> 'Check':
+            cls, forbidden_values: Iterable, **kwargs) -> 'Check':
         """Ensure some defined values don't occur within a series.
 
         :param forbidden_values: The set of values which should not occur. May
@@ -653,17 +657,16 @@ class Check(_CheckBase):
             _notin,
             name=cls.notin.__name__,
             error="notin(%s)" % set(forbidden_values),
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["pattern"])
-    def str_matches(cls, pattern: str, raise_warning: bool = False) -> 'Check':
+    def str_matches(cls, pattern: str, **kwargs) -> 'Check':
         """Ensure that string values match a regular expression.
 
         :param pattern: Regular expression pattern to use for matching
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
 
@@ -687,18 +690,17 @@ class Check(_CheckBase):
             _match,
             name=cls.str_matches.__name__,
             error="str_matches(%s)" % regex,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["pattern"])
     def str_contains(
-            cls, pattern: str, raise_warning: bool = False) -> 'Check':
+            cls, pattern: str, **kwargs) -> 'Check':
         """Ensure that a pattern can be found within each row.
 
         :param pattern: Regular expression pattern to use for searching
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
 
@@ -720,18 +722,17 @@ class Check(_CheckBase):
             _contains,
             name=cls.str_contains.__name__,
             error="str_contains(%s)" % regex,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["string"])
     def str_startswith(
-            cls, string: str, raise_warning: bool = False) -> 'Check':
+            cls, string: str, **kwargs) -> 'Check':
         """Ensure that all values start with a certain string.
 
         :param string: String all values should start with
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -743,17 +744,16 @@ class Check(_CheckBase):
             _startswith,
             name=cls.str_startswith.__name__,
             error="str_startswith(%s)" % string,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
     @set_check_statistics(["string"])
-    def str_endswith(cls, string: str, raise_warning: bool = False) -> 'Check':
+    def str_endswith(cls, string: str, **kwargs) -> 'Check':
         """Ensure that all values end with a certain string.
 
         :param string: String all values should end with
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -765,7 +765,7 @@ class Check(_CheckBase):
             _endswith,
             name=cls.str_endswith.__name__,
             error="str_endswith(%s)" % string,
-            raise_warning=raise_warning,
+            **kwargs,
         )
 
     @classmethod
@@ -774,13 +774,12 @@ class Check(_CheckBase):
             cls,
             min_value: int = None,
             max_value: int = None,
-            raise_warning: bool = False) -> 'Check':
+            **kwargs) -> 'Check':
         """Ensure that the length of strings is within a specified range.
 
         :param min_value: Minimum length of strings (default: no minimum)
         :param max_value: Maximum length of strings (default: no maximum)
-        :param raise_warning: if True, check raises UserWarning instead of
-            SchemaError on validation.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
 
         :returns: :class:`Check` object
         """
@@ -806,5 +805,5 @@ class Check(_CheckBase):
             _str_length,
             name=cls.str_length.__name__,
             error="str_length(%s, %s)" % (min_value, max_value),
-            raise_warning=raise_warning,
+            **kwargs,
         )

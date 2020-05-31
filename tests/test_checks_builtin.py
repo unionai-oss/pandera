@@ -11,9 +11,13 @@ from pandera.errors import SchemaError
 
 
 def check_values(values, check, expected_failure_cases):
-    """Creates a pd.Series from the given values and validates it with the check"""
+    """
+    Creates a pd.Series from the given values and validates it with the check
+    """
     series = pd.Series(values)
     check_result = check(series)
+    expected_check_obj = series.dropna() if check.ignore_na else series
+
     n_failure_cases = len(expected_failure_cases)
 
     # Assert that the check only fails if we expect it to
@@ -23,7 +27,8 @@ def check_values(values, check, expected_failure_cases):
     )
 
     # Assert that the returned check object is what was passed in
-    assert check_result.checked_object is series, "Wrong checked_object returned"
+    assert (check_result.checked_object == expected_check_obj).all(), \
+        "Wrong checked_object returned"
 
     # Assert that the failure cases are correct
     assert set(check_result.failure_cases) == set(expected_failure_cases), (
@@ -34,14 +39,16 @@ def check_values(values, check, expected_failure_cases):
 def check_none_failures(values, check):
     """Like check_values but expects a failure and due to Null values.
 
-    Asserts that the check fails on the given values and that the only failures are
-    Null values.
+    Asserts that the check fails on the given values and that the only
+    failures are Null values.
     """
     series = pd.Series(values)
     check_result = check(series)
     assert not check_result.check_passed, "Check should fail due to None value"
-    assert check_result.checked_object is series, "Wrong checked_object returned"
-    assert check_result.failure_cases.isnull().all(), "Only null values should be failure cases"
+    assert check_result.checked_object is series, \
+        "Wrong checked_object returned"
+    assert check_result.failure_cases.isnull().all(), \
+        "Only null values should be failure cases"
 
 
 def check_raise_error_or_warning(failure_values, check):
@@ -113,7 +120,9 @@ class TestGreaterThan:
     ])
     def test_failing_with_none(values, min_val):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.greater_than(min_val))
+        check_none_failures(
+            values, Check.greater_than(min_val, ignore_na=False)
+        )
 
 
 class TestGreaterThanOrEqualTo:
@@ -152,7 +161,8 @@ class TestGreaterThanOrEqualTo:
     ])
     def test_failing(values, min_val, failure_cases):
         """Run checks which should fail"""
-        check_values(values, Check.greater_than_or_equal_to(min_val), failure_cases)
+        check_values(
+            values, Check.greater_than_or_equal_to(min_val), failure_cases)
         check_raise_error_or_warning(
             values, Check.greater_than_or_equal_to(min_val))
 
@@ -164,7 +174,9 @@ class TestGreaterThanOrEqualTo:
     ])
     def test_failing_with_none(values, min_val):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.greater_than_or_equal_to(min_val))
+        check_none_failures(
+            values, Check.greater_than_or_equal_to(min_val, ignore_na=False)
+        )
 
 
 class TestLessThan:
@@ -214,7 +226,9 @@ class TestLessThan:
     ])
     def test_failing_with_none(values, max_value):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.less_than(max_value))
+        check_none_failures(
+            values, Check.less_than(max_value, ignore_na=False)
+        )
 
 
 class TestLessThanOrEqualTo:
@@ -266,7 +280,9 @@ class TestLessThanOrEqualTo:
     ])
     def test_failing_with_none(values, max_value):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.less_than_or_equal_to(max_value))
+        check_none_failures(
+            values, Check.less_than_or_equal_to(max_value, ignore_na=False)
+        )
 
 
 class TestInRange:
@@ -334,7 +350,9 @@ class TestInRange:
     ])
     def test_failing_with_none(values, check_args):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.in_range(*check_args))
+        check_none_failures(
+            values, Check.in_range(*check_args, ignore_na=False)
+        )
 
 
 class TestEqualTo:
@@ -376,7 +394,9 @@ class TestEqualTo:
     ])
     def test_failing_with_none(series_values, value):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(series_values, Check.equal_to(value))
+        check_none_failures(
+            series_values, Check.equal_to(value, ignore_na=False)
+        )
 
 
 class TestNotEqualTo:
@@ -463,17 +483,21 @@ class TestIsin:
     ])
     def test_failing_with_none(values, allowed):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(values, Check.isin(allowed))
+        check_none_failures(values, Check.isin(allowed, ignore_na=False))
 
     @staticmethod
     def test_ignore_mutable_arg():
-        """Check if a mutable argument passed by reference can be changed from outside"""
+        """
+        Check if a mutable argument passed by reference can be changed from
+        outside
+        """
         series_values = (1, 1)
         df = pd.DataFrame({'allowed': (1, 2)})
         check = Check.isin(df['allowed'])
         # Up to here the test should succeed
         check_values(series_values, check, {})
-        # When the Series with the allowed values is changed it should still succeed
+        # When the Series with the allowed values is changed it should still
+        # succeed
         df['allowed'] = 2
         check_values(series_values, check, {})
 
@@ -524,13 +548,17 @@ class TestNotin:
 
     @staticmethod
     def test_ignore_mutable_arg():
-        """Check if a mutable argument passed by reference can be changed from outside"""
+        """
+        Check if a mutable argument passed by reference can be changed from
+        outside
+        """
         series_values = (1, 1)
         df = pd.DataFrame({'forbidden': (0, 2)})
         check = Check.notin(df['forbidden'])
         # Up to here the test should succeed
         check_values(series_values, check, {})
-        # When the Series with the allowed values is changed it should still succeed
+        # When the Series with the allowed values is changed it should still
+        # succeed
         df['forbidden'] = 1
         check_values(series_values, check, {})
 
@@ -575,7 +603,9 @@ class TestStrMatches:
     ])
     def test_failing_with_none(series_values, pattern):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(series_values, Check.str_matches(pattern))
+        check_none_failures(
+            series_values, Check.str_matches(pattern, ignore_na=False)
+        )
 
 
 class TestStrContains:
@@ -619,7 +649,9 @@ class TestStrContains:
     ])
     def test_failing_with_none(series_values, pattern):
         """Validate the check works also on dataframes with None values"""
-        check_none_failures(series_values, Check.str_contains(pattern))
+        check_none_failures(
+            series_values, Check.str_contains(pattern, ignore_na=False)
+        )
 
 
 class TestStrStartsWith:
@@ -627,7 +659,8 @@ class TestStrStartsWith:
     @staticmethod
     @pytest.mark.parametrize('series_values, pattern', [
         (("abc", "abcdef"), "ab"),
-        ((r"$a\dbc", r"$a\dbcdef"), r"$a\d"),  # Ensure regex patterns are ignored
+        # Ensure regex patterns are ignored
+        ((r"$a\dbc", r"$a\dbcdef"), r"$a\d"),
     ])
     def test_succeeding(series_values, pattern):
         """Run checks which should succeed"""
@@ -651,7 +684,9 @@ class TestStrStartsWith:
     ])
     def test_failing_with_none(series_values, pattern):
         """Run checks which should succeed"""
-        check_none_failures(series_values, Check.str_startswith(pattern))
+        check_none_failures(
+            series_values, Check.str_startswith(pattern, ignore_na=False)
+        )
 
 
 class TestStrEndsWith:
@@ -659,7 +694,8 @@ class TestStrEndsWith:
     @staticmethod
     @pytest.mark.parametrize('series_values, pattern', [
         (("abc", "defabc"), "bc"),
-        ((r"bc^a\d", r"abc^a\d"), r"^a\d"),  # Ensure regex patterns are ignored
+        # Ensure regex patterns are ignored
+        ((r"bc^a\d", r"abc^a\d"), r"^a\d"),
     ])
     def test_succeeding(series_values, pattern):
         """Run checks which should succeed"""
@@ -683,7 +719,9 @@ class TestStrEndsWith:
     ])
     def test_failing_with_none(series_values, pattern):
         """Run checks which should succeed"""
-        check_none_failures(series_values, Check.str_endswith(pattern))
+        check_none_failures(
+            series_values, Check.str_endswith(pattern, ignore_na=False)
+        )
 
 
 class TestStrLength:
@@ -705,11 +743,13 @@ class TestStrLength:
         check_values(series_values, Check.str_length(min_len, max_len), {})
 
     @staticmethod
-    @pytest.mark.parametrize('series_values, min_len, max_len, failure_cases', [
-        (("abc", "defabc"), 1, 5, {"defabc"}),
-        (("abc", "defabc"), None, 5, {"defabc"}),
-        (("abc", "defabc"), 4, None, {"abc"}),
-    ])
+    @pytest.mark.parametrize(
+        'series_values, min_len, max_len, failure_cases', [
+            (("abc", "defabc"), 1, 5, {"defabc"}),
+            (("abc", "defabc"), None, 5, {"defabc"}),
+            (("abc", "defabc"), 4, None, {"abc"}),
+        ]
+    )
     def test_failing(series_values, min_len, max_len, failure_cases):
         """Run checks which should fail"""
         check_values(
@@ -725,4 +765,6 @@ class TestStrLength:
     ])
     def test_failing_with_none(series_values, min_len, max_len):
         """Run checks which should succeed"""
-        check_none_failures(series_values, Check.str_length(min_len, max_len))
+        check_none_failures(
+            series_values, Check.str_length(min_len, max_len, ignore_na=False)
+        )
