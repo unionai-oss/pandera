@@ -285,11 +285,29 @@ class _CheckBase():
             self,
             df_or_series: Union[pd.DataFrame, pd.Series],
             column: Optional[str] = None):
-        """Handle nan values before passing to check function."""
+        """Handle nan values before passing object to check function."""
         if not self.ignore_na:
             return df_or_series
-        elif column is not None:
-            return df_or_series[df_or_series[column].notna()]
+
+        drop_na_columns = []
+        if column is not None:
+            drop_na_columns.append(column)
+        if self.groupby is not None and isinstance(self.groupby, list):
+            # if groupby is specified as a list of columns, include them in
+            # the columns to consider when dropping records
+            for col in self.groupby:
+                # raise schema definition error if column is not in the
+                # validated dataframe
+                if isinstance(df_or_series, pd.DataFrame) and \
+                        col not in df_or_series:
+                    raise errors.SchemaDefinitionError(
+                        "`groupby` column '%s' not found" % col)
+            drop_na_columns.extend(self.groupby)
+
+        if drop_na_columns:
+            return df_or_series.loc[
+                df_or_series[drop_na_columns].dropna().index
+            ]
         return df_or_series.dropna()
 
     def __call__(
