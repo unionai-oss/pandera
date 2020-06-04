@@ -93,6 +93,20 @@ checks.
 
 .. _grouping:
 
+Handling Null Values
+--------------------
+
+By default, ``pandera`` drops null values before passing the objects to
+validate into the check function. For ``Series`` objects null elements are
+dropped (this also applies to columns), and for ``DataFrame`` objects, rows
+with any null value are dropped.
+
+If you want to check the properties of a pandas data structure while preserving
+null values, specify ``Check(..., ignore_na=False)`` when defining a check.
+
+Note that this is different from the ``nullable`` argument in :py:class:`Column`
+objects, which simply checks for null values in a column.
+
 Column Check Groups
 -------------------
 
@@ -106,7 +120,7 @@ Specifying ``groupby`` as a column name, list of column names, or
 callable changes the expected signature of the :py:class:`Check`
 function argument to:
 
-``Dict[Any, pd.Series] -> Union[bool, pd.Series]``
+``Callable[Dict[Any, pd.Series] -> Union[bool, pd.Series]``
 
 where the dict keys are the discrete keys in the ``groupby`` columns.
 

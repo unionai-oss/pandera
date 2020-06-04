@@ -651,7 +651,9 @@ def test_lazy_dataframe_validation_error():
             "str_col": Column(String, Check.isin(["foo", "bar"])),
             "not_in_dataframe": Column(Int),
         },
-        checks=Check(lambda df: df != 1, error="dataframe_not_equal_1"),
+        checks=Check(
+            lambda df: df != 1, error="dataframe_not_equal_1", ignore_na=False
+        ),
         index=Index(String, name="str_index"),
         strict=True,
     )
