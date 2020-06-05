@@ -1,12 +1,14 @@
 from setuptools import setup
 
+from pandera import __version__
+
 with open('README.md') as f:
     long_description = f.read()
 
 
 setup(
     name="pandera",
-    version="0.4.0",
+    version=__version__,
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
     description="A light-weight and flexible validation package for pandas "

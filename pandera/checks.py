@@ -109,7 +109,7 @@ class _CheckBase():
             keys to subsets of the column/dataframe.
         :param ignore_na: If True, drops null values on the checked series or
             dataframe before passing into the ``check_fn``. For dataframes,
-            drops rows with any null value.
+            drops rows with any null value. *New in version 0.4.0*
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
