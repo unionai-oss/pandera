@@ -1,14 +1,16 @@
 from setuptools import setup
 
-from pandera import __version__
-
 with open('README.md') as f:
     long_description = f.read()
+
+version = {}
+with open("pandera/version.py") as fp:
+    exec(fp.read(), version)
 
 
 setup(
     name="pandera",
-    version=__version__,
+    version=version["__version__"],
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
     description="A light-weight and flexible validation package for pandas "
@@ -30,6 +32,7 @@ setup(
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
         "wrapt",
+        "pyyaml >= 5.1",
         "scipy ; python_version>='3.5'",
         "black ; python_version>'3.5'",
         "autopep8 ; python_version=='3.5'",

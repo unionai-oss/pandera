@@ -8,6 +8,7 @@ from .dtypes import PandasDtype
 from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
+from .version import __version__
 
 
 # pylint: disable=invalid-name
@@ -30,6 +31,3 @@ UInt64 = PandasDtype.UInt64
 Object = PandasDtype.Object
 String = PandasDtype.String
 Timedelta = PandasDtype.Timedelta
-
-
-__version__ = "0.4.1"
