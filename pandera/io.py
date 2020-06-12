@@ -309,7 +309,8 @@ def to_script(dataframe_schema, path_or_buf=None):
         )
         columns[colname] = column_code.strip()
 
-    index = _format_index(statistics["index"])
+    index = None if statistics["index"] is None else \
+        _format_index(statistics["index"])
 
     column_str = ", ".join("'{}': {}".format(k, v) for k, v in columns.items())
 

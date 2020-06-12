@@ -746,6 +746,19 @@ def test_lazy_dataframe_validation_nullable():
                 lambda df: df.column == col, "index"].iloc[0] == index
 
 
+def test_lazy_dataframe_scalar_false_check():
+    """Lazy validation handles checks returning scalar False values."""
+    schema = DataFrameSchema(
+        checks=Check(
+            check_fn=lambda _df: False,
+            element_wise=False,
+            error="failing check"
+        )
+    )
+    with pytest.raises(errors.SchemaErrors):
+        schema(pd.DataFrame({"column": [1]}), lazy=True)
+
+
 @pytest.mark.parametrize("schema, data, expectation", [
     [
         SeriesSchema(Int, checks=Check.greater_than(0)),
@@ -830,7 +843,7 @@ def test_lazy_series_validation_error(schema, data, expectation):
     try:
         schema.validate(data, lazy=True)
     except errors.SchemaErrors as err:
-        # data in the caught exception should be equal to the dataframe
+        # data in the caught exception should be equal to the data
         # passed into validate
         assert err.data.equals(expectation["data"])
 
