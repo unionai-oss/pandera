@@ -1,10 +1,11 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
 
 import copy
+from functools import partial
+
 import numpy as np
 import pandas as pd
 import pytest
-
 
 from pandera import (
     Column, DataFrameSchema, Index, MultiIndex, SeriesSchema, Bool, Category,
@@ -746,17 +747,26 @@ def test_lazy_dataframe_validation_nullable():
                 lambda df: df.column == col, "index"].iloc[0] == index
 
 
-def test_lazy_dataframe_scalar_false_check():
+@pytest.mark.parametrize("schema_cls, data", [
+    [DataFrameSchema, pd.DataFrame({"column": [1]})],
+    [SeriesSchema, pd.Series([1, 2, 3])],
+    [partial(Column, name="column"), pd.DataFrame({"column": [1]})],
+    [
+        partial(Index, name="index"),
+        pd.DataFrame(index=pd.Index([1, 2, 3], name="index"))
+    ],
+])
+def test_lazy_dataframe_scalar_false_check(schema_cls, data):
     """Lazy validation handles checks returning scalar False values."""
-    schema = DataFrameSchema(
-        checks=Check(
-            check_fn=lambda _df: False,
-            element_wise=False,
-            error="failing check"
-        )
+    # define a check that always returns a scalare False value
+    check = Check(
+        check_fn=lambda _: False,
+        element_wise=False,
+        error="failing check"
     )
+    schema = schema_cls(checks=check)
     with pytest.raises(errors.SchemaErrors):
-        schema(pd.DataFrame({"column": [1]}), lazy=True)
+        schema(data, lazy=True)
 
 
 @pytest.mark.parametrize("schema, data, expectation", [

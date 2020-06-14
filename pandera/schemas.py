@@ -1005,7 +1005,7 @@ class SeriesSchema(SeriesSchemaBase):
             lazy: bool = False,
     ) -> pd.Series:
         """Alias for :func:`SeriesSchema.validate` method."""
-        return self.validate(check_obj)
+        return self.validate(check_obj, head, tail, sample, random_state, lazy)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
