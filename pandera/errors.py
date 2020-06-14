@@ -88,10 +88,8 @@ class SchemaErrors(Exception):
             schema_errors
             .fillna({"column": "<NA>"})
             .groupby(["schema_context", "column", "check"])
-            .failure_case.agg([failure_cases, len])
-            .rename(columns={
-                "len": "n_failure_cases",
-            })
+            .failure_case.agg([failure_cases])
+            .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
             .sort_index(
                 level=["schema_context", "column"],
                 ascending=[False, True],

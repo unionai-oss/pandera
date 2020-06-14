@@ -433,7 +433,8 @@ class DataFrameSchema():
             head: Optional[int] = None,
             tail: Optional[int] = None,
             sample: Optional[int] = None,
-            random_state: Optional[int] = None):
+            random_state: Optional[int] = None,
+            lazy: bool = False):
         """Alias for :func:`DataFrameSchema.validate` method.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -445,8 +446,12 @@ class DataFrameSchema():
         :type tail: int
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
         """
-        return self.validate(dataframe)
+        return self.validate(dataframe, head, tail, sample, random_state, lazy)
 
     def __repr__(self):
         """Represent string for logging."""
@@ -913,9 +918,10 @@ class SeriesSchemaBase():
             tail: Optional[int] = None,
             sample: Optional[int] = None,
             random_state: Optional[int] = None,
+            lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Alias for ``validate`` method."""
-        return self.validate(check_obj, head, tail, sample, random_state)
+        return self.validate(check_obj, head, tail, sample, random_state, lazy)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -996,9 +1002,10 @@ class SeriesSchema(SeriesSchemaBase):
             tail: Optional[int] = None,
             sample: Optional[int] = None,
             random_state: Optional[int] = None,
+            lazy: bool = False,
     ) -> pd.Series:
         """Alias for :func:`SeriesSchema.validate` method."""
-        return self.validate(check_obj)
+        return self.validate(check_obj, head, tail, sample, random_state, lazy)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -1039,7 +1046,8 @@ def _handle_check_results(
     check_result = check(check_obj, *check_args)
     if not check_result.check_passed:
         if check_result.failure_cases is None:
-            failure_cases = None
+            # encode scalar False values explicitly
+            failure_cases = scalar_failure_case(check_result.check_passed)
             error_msg = format_generic_error_message(
                 schema, check, check_index)
         else:

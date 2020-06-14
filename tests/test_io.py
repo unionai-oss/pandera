@@ -15,16 +15,18 @@ from pandera import io
 PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
 
 
-def _create_schema(multi_index=False):
+def _create_schema(index="single"):
 
-    if multi_index:
+    if index == "multi":
         index = pa.MultiIndex([
             pa.Index(pa.Int, name="int_index0"),
             pa.Index(pa.Int, name="int_index1"),
             pa.Index(pa.Int, name="int_index2"),
         ])
-    else:
+    elif index == "single":
         index = pa.Index(pa.Int, name="int_index")
+    else:
+        index = None
 
     return pa.DataFrameSchema(
         columns={
@@ -199,12 +201,12 @@ def test_io_yaml():
         assert schema_from_yaml == schema
 
 
-@pytest.mark.parametrize("multi_index", [
-    [True], [False]
+@pytest.mark.parametrize("index", [
+    "single", "multi", None
 ])
-def test_to_script(multi_index):
+def test_to_script(index):
     """Test writing DataFrameSchema to a script."""
-    schema_to_write = _create_schema(multi_index)
+    schema_to_write = _create_schema(index)
     script = io.to_script(schema_to_write)
 
     local_dict = {}
