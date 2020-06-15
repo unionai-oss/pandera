@@ -62,6 +62,9 @@ each pull request:
 Before submitting your changes for review, make sure to check that your changes
 do not break any tests by running: ``pytest tests/``
 
+Additionally, sphinxdocs may block you; make sure that the docs build successfully:
+``python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"``
+
 ### Raising Pull Requests
 
 Once your changes are ready to be submitted, make sure to push your changes to
