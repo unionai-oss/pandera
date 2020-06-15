@@ -194,6 +194,7 @@ is a convenience method for this functionality.
         less_than_or_equal_to: 2.0
       name: null
     coerce: true
+    strict: false
 
 You can edit this yaml file by specifying column names under the ``column``
 key. The respective values map onto key-word arguments in the

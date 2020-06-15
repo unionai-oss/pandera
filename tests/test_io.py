@@ -61,9 +61,11 @@ def _create_schema(index="single"):
                     pa.Check.greater_than(pd.Timedelta(1000, unit="ns")),
                     pa.Check.less_than(pd.Timedelta(10000, unit="ns")),
                 ]
-            )
+            ),
         },
         index=index,
+        coerce=False,
+        strict=True
     )
 
 
@@ -119,6 +121,7 @@ index:
   checks: null
   name: int_index
 coerce: false
+strict: true
 """.format(version=pa.__version__)
 
 
