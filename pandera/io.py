@@ -87,6 +87,7 @@ def _serialize_schema(dataframe_schema):
         "columns": columns,
         "index": index,
         "coerce": dataframe_schema.coerce,
+        "strict": dataframe_schema.strict,
     }
 
 
@@ -169,6 +170,7 @@ def _deserialize_schema(serialized_schema):
         },
         index=index,
         coerce=serialized_schema["coerce"],
+        strict=serialized_schema["strict"],
     )
 
 
