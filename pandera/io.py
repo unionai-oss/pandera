@@ -156,7 +156,9 @@ def _deserialize_schema(serialized_schema):
             for index_component in serialized_schema["index"]
         ]
 
-    if len(index) == 1:
+    if isinstance(index, type(None)):
+        index = None
+    elif len(index) == 1:
         index = Index(**index[0])
     else:
         index = MultiIndex(indexes=[
