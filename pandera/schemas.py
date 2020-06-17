@@ -6,6 +6,7 @@ import warnings
 from functools import wraps
 from pathlib import Path
 from typing import Callable, List, Optional, Union, Dict, Any
+from copy import deepcopy
 
 import pandas as pd
 
@@ -582,6 +583,30 @@ class DataFrameSchema():
         """
         import pandera.io  # pylint: disable-all
         return pandera.io.to_yaml(self, fp)
+    
+    def rename_columns(self, rename_dict: dict):
+        """Rename columns using a dictionary of key value pairs 
+        
+        :param rename_dict: Dictionary of key-value pairs. 
+            Example: {
+                'old_name1': 'new_name1',
+                'old_name2': 'new_name2',
+            }
+        :returns: dataframe schema (copy of original)
+        """
+        
+        # We iterate over the existing columns dict and replace those keys
+        # that exist in the rename_dict
+        new_schema = deepcopy(self)
+        new_columns = {
+            (rename_dict[col_name] if col_name in rename_dict else col_name): col_attrs
+            for col_name, col_attrs in self.columns.items()
+        }
+        
+        new_schema.columns = new_columns
+ 
+        return new_schema
+        
 
 
 class SeriesSchemaBase():
