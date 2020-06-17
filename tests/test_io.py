@@ -145,7 +145,7 @@ def _create_schema_null_index():
         },
         index=None
     )
-    
+
 
 YAML_SCHEMA_NULL_INDEX = """
 schema_type: dataframe
