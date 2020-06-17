@@ -587,11 +587,7 @@ class DataFrameSchema():
     def rename_columns(self, rename_dict: dict):
         """Rename columns using a dictionary of key value pairs 
         
-        :param rename_dict: Dictionary of key-value pairs. 
-            Example: {
-                'old_name1': 'new_name1',
-                'old_name2': 'new_name2',
-            }
+        :param rename_dict: Dictionary of 'old_name':'new_name' key-value pairs.
         :returns: dataframe schema (copy of original)
         """
         
