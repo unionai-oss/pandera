@@ -219,7 +219,7 @@ def test_to_yaml():
 )
 def test_from_yaml():
     """Test that from_yaml reads yaml string."""
-    
+
     for yml_string, schema_creator in YAML_VALIDATION_PAIRS:
         schema_from_yaml = io.from_yaml(yml_string)
         expected_schema = schema_creator()
