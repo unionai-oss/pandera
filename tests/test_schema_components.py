@@ -442,7 +442,7 @@ def test_non_str_column_name_regex(column_key):
 def test_rename_columns():
     """Check that DataFrameSchema.rename_columns() method does it's job"""
     
-    rename_dict: dict = {
+    rename_dict = {
         'col1': 'col1_new_name',
         'col2': 'col2_new_name'
     }
