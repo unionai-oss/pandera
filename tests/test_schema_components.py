@@ -437,3 +437,26 @@ def test_non_str_column_name_regex(column_key):
             name=column_key,
             regex=True,
         )
+
+
+def test_rename_columns():
+    """Check that DataFrameSchema.rename_columns() method does it's job"""
+
+    rename_dict = {
+        'col1': 'col1_new_name',
+        'col2': 'col2_new_name'
+    }
+
+    schema_original = DataFrameSchema(
+        columns={
+            'col1': Column(Int),
+            'col2': Column(Float)
+        }
+    )
+
+    schema_renamed = schema_original.rename_columns(rename_dict)
+
+    # Check if new column names are indeed present in the new schema
+    assert all([col_name in rename_dict.values() for col_name in schema_renamed.columns])
+    # Check if original schema didn't change in the process
+    assert all([col_name in schema_original.columns for col_name in rename_dict])

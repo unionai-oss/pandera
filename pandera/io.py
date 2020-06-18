@@ -157,7 +157,7 @@ def _deserialize_schema(serialized_schema):
         ]
 
     if index is None:
-        index = None
+        pass
     elif len(index) == 1:
         index = Index(**index[0])
     else:
