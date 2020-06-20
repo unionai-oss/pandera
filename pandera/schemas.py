@@ -517,11 +517,10 @@ class SeriesSchemaBase():
         try:
             return series_or_index.astype(self.dtype)
         except TypeError as exn:
-            (msg,) = exn.args
-            exn.args = "Error while coercing '%s' to type %s: %s" % (
-                self.name, self.dtype, msg
+            msg = "Error while coercing '%s' to type %s" % (
+                self.name, self.dtype
             )
-            raise exn
+            raise TypeError(msg) from exm
 
     @property
     def _allow_groupby(self):
