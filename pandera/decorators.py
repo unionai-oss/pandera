@@ -144,10 +144,16 @@ def check_input(
             try:
                 args[0] = schema.validate(args[0], *validate_args)
             except errors.SchemaError as e:
-                raise errors.SchemaError(
-                    schema, args[0],
+                msg = (
                     "error in check_input decorator of function '%s': %s" %
-                    (fn.__name__, e))
+                    (fn.__name__, e)
+                )
+                raise errors.SchemaError(
+                    schema, args[0], msg,
+                    failure_cases=e.failure_cases,
+                    check=e.check,
+                    check_index=e.check_index,
+                )
         else:
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
@@ -261,10 +267,16 @@ def check_output(
         try:
             schema.validate(obj, head, tail, sample, random_state, lazy)
         except errors.SchemaError as e:
-            raise errors.SchemaError(
-                schema, obj,
+            msg = (
                 "error in check_output decorator of function '%s': %s" %
-                (fn.__name__, e))
+                (fn.__name__, e)
+            )
+            raise errors.SchemaError(
+                schema, obj, msg,
+                failure_cases=e.failure_cases,
+                check=e.check,
+                check_index=e.check_index,
+            )
 
         return out
 

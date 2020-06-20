@@ -389,7 +389,7 @@ class DataFrameSchema():
                 )
 
             elif col_schema.coerce or self.coerce:
-                check_obj[colname] = col_schema.coerce_dtype(
+                check_obj.loc[:, colname] = col_schema.coerce_dtype(
                     check_obj[colname])
 
         schema_components = [
