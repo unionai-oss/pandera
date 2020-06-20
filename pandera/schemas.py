@@ -123,10 +123,16 @@ class DataFrameSchema():
 
         self.columns = {} if columns is None else columns
 
-        if coerce and None in [c.pandas_dtype for c in self.columns.values()]:
-            raise errors.SchemaInitError(
-                "Must specify dtype in all Columns if coercing "
-                "DataFrameSchema")
+        if coerce:
+            missing_pandas_type = [
+                name for name, col in self.columns.items()
+                if col.pandas_dtype is None
+            ]
+            if missing_pandas_type:
+                raise errors.SchemaInitError(
+                    "Must specify dtype in all Columns if coercing "
+                    "DataFrameSchema ; columns with missing pandas_type:" +
+                    ", ".join(missing_pandas_type))
 
         self.checks = checks
         self.index = index
@@ -746,7 +752,14 @@ class SeriesSchemaBase():
             # only coerce non-null elements to string
             return series_or_index.where(
                 series_or_index.isna(), series_or_index.astype(str))
-        return series_or_index.astype(self.dtype)
+
+        try:
+            return series_or_index.astype(self.dtype)
+        except TypeError as exc:
+            msg = "Error while coercing '%s' to type %s" % (
+                self.name, self.dtype
+            )
+            raise TypeError(msg) from exc
 
     @property
     def _allow_groupby(self):
