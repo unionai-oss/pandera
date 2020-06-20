@@ -85,9 +85,10 @@ class DataFrameSchema():
         self.columns = {} if columns is None else columns
 
         if coerce:
-            missing_pandas_type = [name
-                for name, col in self.columns.items()
-                if col.pandas_dtype is None]
+            missing_pandas_type = [
+                name for name, col in self.columns.items()
+                if col.pandas_dtype is None
+            ]
             if missing_pandas_type:
                 raise errors.SchemaInitError(
                     "Must specify dtype in all Columns if coercing "
@@ -517,7 +518,9 @@ class SeriesSchemaBase():
             return series_or_index.astype(self.dtype)
         except TypeError as exn:
             (msg,) = exn.args
-            exn.args = (f"{msg}, while processing {self.name or 'None'}",)
+            exn.args = "Error while coercing '%s' to type %s: %s" % (
+                self.name, self.dtype, msg
+            )
             raise exn
 
     @property
