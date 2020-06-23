@@ -18,4 +18,4 @@ pandas
 scipy
 wrapt
 pyyaml
-sphinx_autodoc_typehints
+sphinx_autodoc_typehints==1.10.3
