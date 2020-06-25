@@ -315,6 +315,7 @@ class _CheckBase():
             df_or_series: Union[pd.DataFrame, pd.Series],
             column: Optional[str] = None,
     ) -> CheckResult:
+        # pylint: disable=too-many-branches
         """Validate pandas DataFrame or Series.
 
         :param df_or_series: pandas DataFrame of Series to validate.
@@ -323,7 +324,6 @@ class _CheckBase():
         :returns: CheckResult tuple containing checked object,
             check validation result, and failure cases from the checked object.
         """
-        # pylint: disable=too-many-branches
         df_or_series = self._handle_na(df_or_series, column)
 
         column_dataframe_context = None
@@ -358,7 +358,6 @@ class _CheckBase():
 
         # failure cases only apply when the check function returns a boolean
         # series that matches the shape and index of the check_obj
-        # pylint: disable=too-many-branches
         if isinstance(check_obj, dict) or \
                 isinstance(check_result, bool) or \
                 not isinstance(check_result, (pd.Series, pd.DataFrame)) or \
