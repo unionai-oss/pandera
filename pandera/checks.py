@@ -370,7 +370,12 @@ class _CheckBase():
         elif isinstance(check_result, pd.DataFrame):
             # check results consisting of a boolean dataframe should be
             # reported at the most granular level.
-            failure_cases = check_obj.unstack()[~check_result.unstack()]
+            failure_cases = (
+                check_obj.unstack()[~check_result.unstack()]
+                .rename("failure_case")
+                .rename_axis(["column", "index"])
+                .reset_index()
+            )
         else:
             raise TypeError(
                 f"output type of check_fn not recognized: {type(check_result)}"
