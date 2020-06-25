@@ -378,7 +378,8 @@ class _CheckBase():
             )
         else:
             raise TypeError(
-                f"output type of check_fn not recognized: {type(check_result)}"
+                "output type of check_fn not recognized: %s" %
+                type(check_result)
             )
 
         # handle check_result return types
