@@ -358,6 +358,7 @@ class _CheckBase():
 
         # failure cases only apply when the check function returns a boolean
         # series that matches the shape and index of the check_obj
+        # pylint: disable=too-many-branches
         if isinstance(check_obj, dict) or \
                 isinstance(check_result, bool) or \
                 not isinstance(check_result, (pd.Series, pd.DataFrame)) or \
@@ -369,12 +370,7 @@ class _CheckBase():
         elif isinstance(check_result, pd.DataFrame):
             # check results consisting of a boolean dataframe should be
             # reported at the most granular level.
-            failure_cases = (
-                check_obj.unstack()[~check_result.unstack()]
-                .rename("failure_case")
-                .rename_axis(["column", "index"])
-                .reset_index()
-            )
+            failure_cases = check_obj.unstack()[~check_result.unstack()]
         else:
             raise TypeError(
                 f"output type of check_fn not recognized: {type(check_result)}"

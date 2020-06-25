@@ -76,7 +76,13 @@ def reshape_failure_cases(
 
     """
     if "column" in failure_cases and "failure_case" in failure_cases:
-        reshaped_failure_cases = failure_cases
+        # handle case where failure cases occur at the index-column level
+        reshaped_failure_cases = (
+            failure_cases
+            .rename("failure_case")
+            .rename_axis(["column", "index"])
+            .reset_index()
+        )
     elif hasattr(failure_cases, "index") and \
             isinstance(failure_cases.index, pd.MultiIndex):
         reshaped_failure_cases = (
