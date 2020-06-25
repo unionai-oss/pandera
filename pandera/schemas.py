@@ -1085,7 +1085,7 @@ def _handle_check_results(
                 schema, check, check_index)
         else:
             failure_cases = reshape_failure_cases(
-                check_result.failure_cases)
+                check_result.failure_cases, check.ignore_na)
             error_msg = format_vectorized_error_message(
                 schema, check, check_index, failure_cases)
 

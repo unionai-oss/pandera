@@ -37,20 +37,13 @@ def format_vectorized_error_message(
         element-wise or vectorized validator.
 
     """
-    agg_failure_cases = (
-        reshaped_failure_cases
-        .groupby("failure_case")["index"].agg([list, len])
-        .rename(columns={"list": "index", "len": "count"})
-        .sort_values("count", ascending=False)
-        .head(check.n_failure_cases)
-    )
     return (
         "%s failed element-wise validator %d:\n"
         "%s\nfailure cases:\n%s" % (
             parent_schema,
             check_index,
             check,
-            agg_failure_cases,
+            reshaped_failure_cases,
         )
     )
 
@@ -82,20 +75,24 @@ def reshape_failure_cases(
         representing how many failures of that case occurred.
 
     """
-    if hasattr(failure_cases, "index") and \
+    if "column" in failure_cases and "failure_case" in failure_cases:
+        reshaped_failure_cases = failure_cases
+    elif hasattr(failure_cases, "index") and \
             isinstance(failure_cases.index, pd.MultiIndex):
-        failure_cases = (
+        reshaped_failure_cases = (
             failure_cases
             .rename("failure_case")
-            .reset_index()
+            .to_frame()
             .assign(
                 index=lambda df: (
-                    df.apply(tuple, axis=1).astype(str)
+                    df.index.to_frame().apply(tuple, axis=1).astype(str)
                 )
-            )[["failure_case", "index"]]
+            )
+            [["failure_case", "index"]]
+            .reset_index(drop=True)
         )
     elif isinstance(failure_cases, pd.DataFrame):
-        failure_cases = (
+        reshaped_failure_cases = (
             failure_cases
             .rename_axis("column", axis=1)
             .rename_axis("index", axis=0)
@@ -104,7 +101,7 @@ def reshape_failure_cases(
             .reset_index()
         )
     elif isinstance(failure_cases, pd.Series):
-        failure_cases = (
+        reshaped_failure_cases = (
             failure_cases
             .rename("failure_case")
             .rename_axis("index")
@@ -115,4 +112,7 @@ def reshape_failure_cases(
             "type of failure_cases argument not understood: %s" %
             type(failure_cases))
 
-    return failure_cases.dropna() if ignore_na else failure_cases
+    return (
+        reshaped_failure_cases.dropna() if ignore_na
+        else reshaped_failure_cases
+    )

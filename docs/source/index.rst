@@ -133,13 +133,12 @@ In the case that a validation ``Check`` is violated:
 
     Traceback (most recent call last):
     ...
-    pandera.SchemaError: <Schema Column: 'column1' type=int64> failed element-wise validator 0:
-    <lambda>: range checker [0, 10]
+    SchemaError: <Schema Column: 'column1' type=int> failed element-wise validator 0:
+    <Check <lambda>: range checker [0, 10]>
     failure cases:
-                 index  count
-    failure_case
-    -20            [0]      1
-     30            [3]      1
+       index  failure_case
+    0      0           -20
+    1      3            30
 
 
 And in the case of a mis-specified column name:

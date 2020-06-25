@@ -323,6 +323,7 @@ class _CheckBase():
         :returns: CheckResult tuple containing checked object,
             check validation result, and failure cases from the checked object.
         """
+        # pylint: disable=too-many-branches
         df_or_series = self._handle_na(df_or_series, column)
 
         column_dataframe_context = None
@@ -363,14 +364,27 @@ class _CheckBase():
                 check_obj.shape[0] != check_result.shape[0] or \
                 (check_obj.index != check_result.index).all():
             failure_cases = None
-        else:
+        elif isinstance(check_result, pd.Series):
             failure_cases = check_obj[~check_result]
+        elif isinstance(check_result, pd.DataFrame):
+            # check results consisting of a boolean dataframe should be
+            # reported at the most granular level.
+            failure_cases = (
+                check_obj.unstack()[~check_result.unstack()]
+                .rename("failure_case")
+                .rename_axis(["column", "index"])
+                .reset_index()
+            )
+        else:
+            raise TypeError(
+                f"output type of check_fn not recognized: {type(check_result)}"
+            )
 
         # handle check_result return types
         if isinstance(check_result, pd.Series):
             check_passed = check_result.all()
         elif isinstance(check_result, pd.DataFrame):
-            check_passed = check_result.all().all()
+            check_passed = check_result.all(axis=None)
         else:
             check_passed = check_result
         return CheckResult(check_passed, check_obj, failure_cases)
