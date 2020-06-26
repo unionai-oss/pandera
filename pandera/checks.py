@@ -29,10 +29,10 @@ SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
-def set_check_statistics(statistics_args):
+def register_check_statistics(statistics_args):
     """Decorator to set statistics based on Check method."""
 
-    def set_check_statistics_decorator(class_method):
+    def register_check_statistics_decorator(class_method):
 
         @wraps(class_method)
         def _wrapper(cls, *args, **kwargs):
@@ -49,7 +49,7 @@ def set_check_statistics(statistics_args):
 
         return _wrapper
 
-    return set_check_statistics_decorator
+    return register_check_statistics_decorator
 
 
 class _CheckBase():
@@ -417,7 +417,7 @@ class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
 
     @classmethod
-    @set_check_statistics(["min_value"])
+    @register_check_statistics(["min_value"])
     def greater_than(cls, min_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly greater than a minimum value.
 
@@ -469,7 +469,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["max_value"])
+    @register_check_statistics(["max_value"])
     def less_than(cls, max_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly below a maximum value.
 
@@ -495,7 +495,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["max_value"])
+    @register_check_statistics(["max_value"])
     def less_than_or_equal_to(cls, max_value, **kwargs) -> 'Check':
         """Ensure no value of a series exceeds a certain value.
 
@@ -521,7 +521,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics([
+    @register_check_statistics([
         "min_value", "max_value", "include_min", "include_max"])
     def in_range(
             cls, min_value, max_value, include_min=True, include_max=True,
@@ -570,7 +570,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["value"])
+    @register_check_statistics(["value"])
     def equal_to(cls, value, **kwargs) -> 'Check':
         """Ensure all elements of a series equal a certain value.
 
@@ -592,7 +592,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["value"])
+    @register_check_statistics(["value"])
     def not_equal_to(cls, value, **kwargs) -> 'Check':
         """Ensure no elements of a series equals a certain value.
 
@@ -614,7 +614,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["allowed_values"])
+    @register_check_statistics(["allowed_values"])
     def isin(
             cls, allowed_values: Iterable, **kwargs) -> 'Check':
         """Ensure only allowed values occur within a series.
@@ -654,7 +654,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["forbidden_values"])
+    @register_check_statistics(["forbidden_values"])
     def notin(
             cls, forbidden_values: Iterable, **kwargs) -> 'Check':
         """Ensure some defined values don't occur within a series.
@@ -694,7 +694,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["pattern"])
+    @register_check_statistics(["pattern"])
     def str_matches(cls, pattern: str, **kwargs) -> 'Check':
         """Ensure that string values match a regular expression.
 
@@ -727,7 +727,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["pattern"])
+    @register_check_statistics(["pattern"])
     def str_contains(
             cls, pattern: str, **kwargs) -> 'Check':
         """Ensure that a pattern can be found within each row.
@@ -759,7 +759,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["string"])
+    @register_check_statistics(["string"])
     def str_startswith(
             cls, string: str, **kwargs) -> 'Check':
         """Ensure that all values start with a certain string.
@@ -781,7 +781,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["string"])
+    @register_check_statistics(["string"])
     def str_endswith(cls, string: str, **kwargs) -> 'Check':
         """Ensure that all values end with a certain string.
 
@@ -802,7 +802,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["min_value", "max_value"])
+    @register_check_statistics(["min_value", "max_value"])
     def str_length(
             cls,
             min_value: int = None,
