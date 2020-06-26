@@ -443,7 +443,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @set_check_statistics(["min_value"])
+    @register_check_statistics(["min_value"])
     def greater_than_or_equal_to(cls, min_value, **kwargs) -> 'Check':
         """Ensure all values are greater or equal a certain value.
 
