@@ -17,7 +17,7 @@ correctness.*
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest)](https://pandera.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/pandera-dev/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385266.svg)](https://doi.org/10.5281/zenodo.3385266)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3926689.svg)](https://doi.org/10.5281/zenodo.3926689)
 [![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
 
 `pandas` data structures contain information that `pandera` explicitly
@@ -117,7 +117,7 @@ on GitHub.
 
 ## Issues
 
-Go [here](https://github.com/pandera-dev/pandera-dev/issues) to submit feature
+Go [here](https://github.com/pandera-dev/pandera/issues) to submit feature
 requests or bugfixes.
 
 ## Other Data Validation Libraries
@@ -157,15 +157,24 @@ Here are a few other alternatives for validating Python data structures.
 ### Citation Information
 
 ```
-@misc{niels_bantilan_2019_3385266,
+@software{niels_bantilan_2020_3926689,
   author       = {Niels Bantilan and
                   Nigel Markey and
                   Riccardo Albertazzi and
-                  chr1st1ank},
-  title        = {pandera-dev/pandera: 0.2.0 pre-release 1},
-  month        = sep,
-  year         = 2019,
-  doi          = {10.5281/zenodo.3385266},
-  url          = {https://doi.org/10.5281/zenodo.3385266}
+                  Nemanja Radojković and
+                  chr1st1ank and
+                  Aditya Singh and
+                  Anthony Truchet - C3.AI and
+                  Steve Taylor and
+                  Sunho Kim and
+                  Zachary Lawrence},
+  title        = {{pandera-dev/pandera: 0.4.4: bugfixes in yaml
+                   serialization, error reporting, refactor internals}},
+  month        = jul,
+  year         = 2020,
+  publisher    = {Zenodo},
+  version      = {0.4.4},
+  doi          = {10.5281/zenodo.3926689},
+  url          = {https://doi.org/10.5281/zenodo.3926689}
 }
 ```
