@@ -3,6 +3,7 @@
 import yaml
 from functools import partial
 from pathlib import Path
+from collections import ChainMap
 
 import pandas as pd
 
@@ -132,9 +133,17 @@ def _deserialize_component_stats(serialized_component_stats):
         "pandas_dtype": pandas_dtype,
         "nullable": serialized_component_stats["nullable"],
         "checks": checks,
-        **(
-            {} if "name" not in serialized_component_stats else
-            {"name": serialized_component_stats["name"]}
+        **ChainMap(
+            ({} if "name" not in serialized_component_stats else
+            {"name": serialized_component_stats["name"]}),
+            ({} if "allow_duplicates" not in serialized_component_stats else
+            {"allow_duplicates": serialized_component_stats["allow_duplicates"]}),
+            ({} if "coerce" not in serialized_component_stats else
+            {"coerce": serialized_component_stats["coerce"]}),
+            ({} if "required" not in serialized_component_stats else
+            {"required": serialized_component_stats["required"]}),
+            ({} if "regex" not in serialized_component_stats else
+            {"regex": serialized_component_stats["regex"]})
         )
     }
 
