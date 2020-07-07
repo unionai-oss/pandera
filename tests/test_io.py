@@ -63,7 +63,7 @@ def _create_schema(index="single"):
                 ]
             ),
             "optional_props_column": pa.Column(
-                pa.String, 
+                pa.String,
                 nullable=True,
                 allow_duplicates=True,
                 coerce=True,
