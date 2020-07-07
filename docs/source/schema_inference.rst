@@ -112,9 +112,19 @@ You can also write your schema to a python script with :py:func:`io.to_script`:
                     Check.less_than_or_equal_to(max_value=20.0),
                 ],
                 nullable=False,
+                allow_duplicates=True,
+                coerce=False,
+                required=True,
+                regex=False,
             ),
             "column2": Column(
-                pandas_dtype=PandasDtype.String, checks=None, nullable=False
+                pandas_dtype=PandasDtype.String,
+                checks=None,
+                nullable=False,
+                allow_duplicates=True,
+                coerce=False,
+                required=True,
+                regex=False,
             ),
             "column3": Column(
                 pandas_dtype=PandasDtype.DateTime,
@@ -127,6 +137,10 @@ You can also write your schema to a python script with :py:func:`io.to_script`:
                     ),
                 ],
                 nullable=False,
+                allow_duplicates=True,
+                coerce=False,
+                required=True,
+                regex=False,
             ),
         },
         index=Index(
@@ -176,16 +190,28 @@ is a convenience method for this functionality.
         checks:
           greater_than_or_equal_to: 5.0
           less_than_or_equal_to: 20.0
+        allow_duplicates: true
+        coerce: false
+        required: true
+        regex: false
       column2:
         pandas_dtype: string
         nullable: false
         checks: null
+        allow_duplicates: true
+        coerce: false
+        required: true
+        regex: false
       column3:
         pandas_dtype: datetime64[ns]
         nullable: false
         checks:
           greater_than_or_equal_to: '2010-01-01 00:00:00'
           less_than_or_equal_to: '2012-01-01 00:00:00'
+        allow_duplicates: true
+        coerce: false
+        required: true
+        regex: false
     index:
     - pandas_dtype: int64
       nullable: false
@@ -193,6 +219,7 @@ is a convenience method for this functionality.
         greater_than_or_equal_to: 0.0
         less_than_or_equal_to: 2.0
       name: null
+      coerce: false
     coerce: true
     strict: false
 
