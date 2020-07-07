@@ -3,7 +3,6 @@
 import yaml
 from functools import partial
 from pathlib import Path
-from collections import ChainMap
 
 import pandas as pd
 
@@ -56,10 +55,11 @@ def _serialize_component_stats(component_stats):
         "pandas_dtype": component_stats["pandas_dtype"].value,
         "nullable": component_stats["nullable"],
         "checks": serialized_checks,
-        **(
-            {} if "name" not in component_stats else
-            {"name": component_stats["name"]}
-        )
+        **{
+            key: component_stats.get(key) for key in
+            ["name", "allow_duplicates", "coerce", "required", "regex"]
+            if key in component_stats
+        }
     }
 
 
@@ -133,18 +133,11 @@ def _deserialize_component_stats(serialized_component_stats):
         "pandas_dtype": pandas_dtype,
         "nullable": serialized_component_stats["nullable"],
         "checks": checks,
-        **ChainMap(
-            ({} if "name" not in serialized_component_stats else
-            {"name": serialized_component_stats["name"]}),
-            ({} if "allow_duplicates" not in serialized_component_stats else
-            {"allow_duplicates": serialized_component_stats["allow_duplicates"]}),
-            ({} if "coerce" not in serialized_component_stats else
-            {"coerce": serialized_component_stats["coerce"]}),
-            ({} if "required" not in serialized_component_stats else
-            {"required": serialized_component_stats["required"]}),
-            ({} if "regex" not in serialized_component_stats else
-            {"regex": serialized_component_stats["regex"]})
-        )
+        **{
+            key: serialized_component_stats.get(key) for key in
+            ["name", "allow_duplicates", "coerce", "required", "regex"]
+            if key in serialized_component_stats
+        }
     }
 
 
@@ -236,7 +229,15 @@ schema = DataFrameSchema(
 """
 
 COLUMN_TEMPLATE = """
-Column(pandas_dtype={pandas_dtype},checks={checks},nullable={nullable})
+Column(
+    pandas_dtype={pandas_dtype},
+    checks={checks},
+    nullable={nullable},
+    allow_duplicates={allow_duplicates},
+    coerce={coerce},
+    required={required},
+    regex={regex},
+)
 """
 
 INDEX_TEMPLATE = (
@@ -319,6 +320,10 @@ def to_script(dataframe_schema, path_or_buf=None):
             ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
+            allow_duplicates=properties["allow_duplicates"],
+            coerce=properties["coerce"],
+            required=properties["required"],
+            regex=properties["regex"],
         )
         columns[colname] = column_code.strip()
 

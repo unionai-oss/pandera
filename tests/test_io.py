@@ -62,6 +62,17 @@ def _create_schema(index="single"):
                     pa.Check.less_than(pd.Timedelta(10000, unit="ns")),
                 ]
             ),
+            "optional_props_column": pa.Column(
+                pa.String, 
+                nullable=True,
+                allow_duplicates=True,
+                coerce=True,
+                required=False,
+                regex=True,
+                checks=[
+                    pa.Check.str_length(1, 3)
+                ],
+                ),
         },
         index=index,
         coerce=False,
@@ -115,6 +126,17 @@ columns:
     checks:
       greater_than: 1000
       less_than: 10000
+  optional_props_column:
+    pandas_dtype: string
+    nullable: true
+    allow_duplicates: true,
+    coerce: true,
+    required: false,
+    regex: true,
+    checks:
+      str_length:
+        min_value: 1
+        max_value: 3
 index:
 - pandas_dtype: int
   nullable: false
