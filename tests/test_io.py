@@ -62,6 +62,17 @@ def _create_schema(index="single"):
                     pa.Check.less_than(pd.Timedelta(10000, unit="ns")),
                 ]
             ),
+            "optional_props_column": pa.Column(
+                pa.String,
+                nullable=True,
+                allow_duplicates=True,
+                coerce=True,
+                required=False,
+                regex=True,
+                checks=[
+                    pa.Check.str_length(1, 3)
+                ],
+                ),
         },
         index=index,
         coerce=False,
@@ -82,6 +93,10 @@ columns:
       in_range:
         min_value: 0
         max_value: 10
+    allow_duplicates: true
+    coerce: false
+    required: true
+    regex: false
   float_column:
     pandas_dtype: float
     nullable: false
@@ -91,6 +106,10 @@ columns:
       in_range:
         min_value: -10
         max_value: 20
+    allow_duplicates: true
+    coerce: false
+    required: true
+    regex: false
   str_column:
     pandas_dtype: string
     nullable: false
@@ -103,23 +122,47 @@ columns:
       str_length:
         min_value: 1
         max_value: 3
+    allow_duplicates: true
+    coerce: false
+    required: true
+    regex: false
   datetime_column:
     pandas_dtype: datetime64[ns]
     nullable: false
     checks:
       greater_than: '2010-01-01 00:00:00'
       less_than: '2020-01-01 00:00:00'
+    allow_duplicates: true
+    coerce: false
+    required: true
+    regex: false
   timedelta_column:
     pandas_dtype: timedelta64[ns]
     nullable: false
     checks:
       greater_than: 1000
       less_than: 10000
+    allow_duplicates: true
+    coerce: false
+    required: true
+    regex: false
+  optional_props_column:
+    pandas_dtype: string
+    nullable: true
+    checks:
+      str_length:
+        min_value: 1
+        max_value: 3
+    allow_duplicates: true
+    coerce: true
+    required: false
+    regex: true
 index:
 - pandas_dtype: int
   nullable: false
   checks: null
   name: int_index
+  coerce: false
 coerce: false
 strict: true
 """.format(version=pa.__version__)
