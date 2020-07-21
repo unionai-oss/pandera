@@ -76,13 +76,13 @@ class PandasDtype(Enum):
         ``pandera`` also offers limited support for
         `pandas extension types <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_,
         however since the release of pandas 1.0.0 there are backwards
-        incompatible extension types like the ``String`` array. The extension
-        types, e.g. ``pd.StringDtype()`` and their string aliases should work
-        when supplied to the ``pandas_dtype`` argument when initializing
-        ``pa.SeriesSchemaBase`` objects, but this functionality is only
-        tested for pandas >= 1.0.0. Extension types in earlier versions are
-        not guaranteed to work as the ``pandas_dtype`` argument in schemas
-        or schema components.
+        incompatible extension types like the ``Integer`` array. The extension
+        types, e.g. ``pd.IntDtype64()`` and their string alias should work
+        when supplied to the ``pandas_dtype`` argument, unless otherwise
+        specified below, but this functionality is only tested for
+        pandas >= 1.0.0. Extension types in earlier versions are not guaranteed
+        to work as the ``pandas_dtype`` argument in schemas or schema
+        components.
 
     """
 
@@ -103,12 +103,21 @@ class PandasDtype(Enum):
     UInt16 = "uint16"  #: ``"uint16"`` numpy dtype
     UInt32 = "uint32"  #: ``"uint32"`` numpy dtype
     UInt64 = "uint64"  #: ``"uint64"`` numpy dtype
+    INT8 = "Int8"  #: ``"Int8"`` pandas dtype:: pandas 0.24.0+
+    INT16 = "Int16"  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
+    INT32 = "Int32"  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
+    INT64 = "Int64"  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
+    UINT8 = "UInt8"  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
+    UINT16 = "UInt16"  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
+    UINT32 = "UInt32"  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
+    UINT64 = "UInt64"  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
     Object = "object"  #: ``"object"`` numpy dtype
 
-    #: The string datatype doesn't map to a first-class pandas datatype and is
-    #: representated as a numpy ``"object"`` array. This will change after
-    #: pandera explicitly supports pandas 1.0+ and is currently handled
-    #: internally by pandera as a special case.
+    #: The string datatype doesn't map to the first-class pandas datatype and
+    #: is representated as a numpy ``"object"`` array. This will change after
+    #: pandera only supports pandas 1.0+ and is currently handled
+    #: internally by pandera as a special case. To use the pandas ``string``
+    #: data type, you must explicitly use ``pd.StringDtype()``.
     String = "string"
 
     @property
@@ -121,14 +130,14 @@ class PandasDtype(Enum):
         }.get(self.value, self.value)
 
     @classmethod
-    def from_str_alias(cls, str_alias: str) -> Union["PandasDtype", None]:
+    def from_str_alias(cls, str_alias: str) -> "PandasDtype":
         """Get PandasDtype from string alias.
 
         :param: pandas dtype string alias from
             https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#basics-dtypes
         :returns: pandas dtype
         """
-        return {
+        pandas_dtype = {
             "bool": cls.Bool,
             "datetime64[ns]": cls.DateTime,
             "timedelta64[ns]": cls.Timedelta,
@@ -146,9 +155,25 @@ class PandasDtype(Enum):
             "uint16": cls.UInt16,
             "uint32": cls.UInt32,
             "uint64": cls.UInt64,
+            "Int8": cls.INT8,
+            "Int16": cls.INT16,
+            "Int32": cls.INT32,
+            "Int64": cls.INT64,
+            "UInt8": cls.UINT8,
+            "UInt16": cls.UINT16,
+            "UInt32": cls.UINT32,
+            "UInt64": cls.UINT64,
             "object": cls.Object,
             "string": cls.String,
         }.get(str_alias)
+
+        if pandas_dtype is None:
+            raise ValueError(
+                "pandas dtype string alias '%s' not recognized" %
+                str_alias
+            )
+
+        return pandas_dtype
 
     @classmethod
     def from_pandas_api_type(

@@ -9,7 +9,7 @@ import numpy as np
 import pandera as pa
 from pandera import (
     Column, DataFrameSchema, SeriesSchema, Check, DateTime, Float, Int,
-    String, Bool, Category, Object, Timedelta
+    String, Bool, Category, Object, Timedelta, PandasDtype
 )
 from pandera.dtypes import (
     _DEFAULT_PANDAS_INT_TYPE, _DEFAULT_PANDAS_FLOAT_TYPE,
@@ -115,6 +115,52 @@ def test_numeric_dtypes():
                 )
             ]
         )
+
+
+@pytest.mark.parametrize(
+    "dtype", [
+        pa.INT8,
+        pa.INT16,
+        pa.INT32,
+        pa.INT64,
+        pa.UINT8,
+        pa.UINT16,
+        pa.UINT32,
+        pa.UINT64,
+    ]
+)
+@pytest.mark.parametrize("coerce", [True, False])
+def test_pandas_nullable_int_dtype(dtype, coerce):
+    """Test that pandas nullable int dtype can be specified in a schema."""
+    assert all(
+        isinstance(
+            schema.validate(
+                pd.DataFrame(
+                    # keep max range to 127 in order to support Int8
+                    {"col": range(128)},
+                    **({} if coerce else {"dtype": dtype.str_alias})
+                )
+            ),
+            pd.DataFrame
+        )
+        for schema in [
+            DataFrameSchema(
+                {"col": Column(dtype, nullable=False)},
+                coerce=coerce
+            ),
+            DataFrameSchema(
+                {"col": Column(dtype.str_alias, nullable=False)},
+                coerce=coerce
+            )
+        ]
+    )
+
+
+@pytest.mark.parametrize("str_alias", ["foo", "bar", "baz", "asdf", "qwerty"])
+def test_unrecognized_str_aliases(str_alias):
+    """Test that unrecognized string aliases are supported."""
+    with pytest.raises(ValueError):
+        PandasDtype.from_str_alias(str_alias)
 
 
 def test_category_dtype():
