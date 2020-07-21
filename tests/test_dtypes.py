@@ -117,6 +117,10 @@ def test_numeric_dtypes():
         )
 
 
+@pytest.mark.skipif(
+    PANDAS_VERSION.release < (1, 0, 0),  # type: ignore
+    reason="pandas >= 1.0.0 required",
+)
 @pytest.mark.parametrize(
     "dtype", [
         pa.INT8,
