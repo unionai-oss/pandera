@@ -276,7 +276,10 @@ def _format_index(index_statistics):
             ),
             nullable=properties["nullable"],
             coerce=properties["coerce"],
-            name='"{}"'.format(properties["name"]),
+            name=(
+                "None" if properties["name"] is None else
+                '"{}"'.format(properties["name"])
+            )
         )
         index.append(index_code.strip())
 
