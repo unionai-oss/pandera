@@ -7,9 +7,6 @@ assignees: ''
 
 ---
 
-- [ ] I have searched the [[pandas] tag](https://stackoverflow.com/questions/tagged/pandas) on StackOverflow for similar questions.
-- [ ] I have asked my usage related question on [StackOverflow](https://stackoverflow.com).
-
 #### Question about pandera
 
 **Note**: If you'd still like to submit a question, please read [this guide](
