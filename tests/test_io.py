@@ -24,7 +24,8 @@ def _create_schema(index="single"):
             pa.Index(pa.Int, name="int_index2"),
         ])
     elif index == "single":
-        index = pa.Index(pa.Int, name="int_index")
+        # make sure io modules can handle case when index name is None
+        index = pa.Index(pa.Int, name=None)
     else:
         index = None
 
@@ -161,7 +162,7 @@ index:
 - pandas_dtype: int
   nullable: false
   checks: null
-  name: int_index
+  name: null
   coerce: false
 coerce: false
 strict: true
@@ -221,9 +222,10 @@ strict: false
 """.format(version=pa.__version__)
 
 YAML_VALIDATION_PAIRS = [
-    [YAML_SCHEMA, _create_schema],
+    # [YAML_SCHEMA, _create_schema],
     [YAML_SCHEMA_NULL_INDEX, _create_schema_null_index]
 ]
+
 
 @pytest.mark.skipif(
     PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
@@ -287,9 +289,10 @@ def test_io_yaml_file_obj():
     platform.system() == "Windows",
     reason="skipping due to issues with opening file names for temp files."
 )
-def test_io_yaml():
+@pytest.mark.parametrize("index", ["single", "multi", None])
+def test_io_yaml(index):
     """Test read and write operation on file names."""
-    schema = _create_schema()
+    schema = _create_schema(index)
 
     # pass in a file name
     with tempfile.NamedTemporaryFile("w+") as f:

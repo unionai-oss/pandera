@@ -151,7 +151,7 @@ You can also write your schema to a python script with :py:func:`io.to_script`:
             ],
             nullable=False,
             coerce=False,
-            name="None",
+            name=None,
         ),
         coerce=True,
         strict=False,
