@@ -14,6 +14,7 @@ from . import errors, constants
 
 CheckResult = namedtuple(
     "CheckResult", [
+        "check_output",
         "check_passed",
         "checked_object",
         "failure_cases",
@@ -321,8 +322,17 @@ class _CheckBase():
         :param df_or_series: pandas DataFrame of Series to validate.
         :param column: for dataframe checks, apply the check function to this
             column.
-        :returns: CheckResult tuple containing checked object,
-            check validation result, and failure cases from the checked object.
+        :returns: CheckResult tuple containing:
+            - check_output: boolean scalar, Series or DataFrame indicating
+              which elements passed the check
+            - check_passed: boolean scalar that indicating whether the check
+              passed overall.
+            - checked_object: the checked object itself. Depending on the
+              options provided to the ``Check``, this will be a pandas Series,
+              DataFrame, or if the ``groupby`` option is specified, a
+              ``Dict[str, Series]`` or ``Dict[str, DataFrame]`` where the keys
+              are distinct groups.
+            - failure_cases: subset of the check_object that failed.
         """
         df_or_series = self._handle_na(df_or_series, column)
 
@@ -348,29 +358,29 @@ class _CheckBase():
         check_fn = partial(self._check_fn, **self._check_kwargs)
 
         if self.element_wise:
-            check_result = check_obj.apply(check_fn, axis=1) if \
+            check_output = check_obj.apply(check_fn, axis=1) if \
                 isinstance(check_obj, pd.DataFrame) else \
                 check_obj.map(check_fn) if \
                 isinstance(check_obj, pd.Series) else check_fn(check_obj)
         else:
             # vectorized check function case
-            check_result = check_fn(check_obj)
+            check_output = check_fn(check_obj)
 
         # failure cases only apply when the check function returns a boolean
         # series that matches the shape and index of the check_obj
         if isinstance(check_obj, dict) or \
-                isinstance(check_result, bool) or \
-                not isinstance(check_result, (pd.Series, pd.DataFrame)) or \
-                check_obj.shape[0] != check_result.shape[0] or \
-                (check_obj.index != check_result.index).all():
+                isinstance(check_output, bool) or \
+                not isinstance(check_output, (pd.Series, pd.DataFrame)) or \
+                check_obj.shape[0] != check_output.shape[0] or \
+                (check_obj.index != check_output.index).all():
             failure_cases = None
-        elif isinstance(check_result, pd.Series):
-            failure_cases = check_obj[~check_result]
-        elif isinstance(check_result, pd.DataFrame):
+        elif isinstance(check_output, pd.Series):
+            failure_cases = check_obj[~check_output]
+        elif isinstance(check_output, pd.DataFrame):
             # check results consisting of a boolean dataframe should be
             # reported at the most granular level.
             failure_cases = (
-                check_obj.unstack()[~check_result.unstack()]
+                check_obj.unstack()[~check_output.unstack()]
                 .rename("failure_case")
                 .rename_axis(["column", "index"])
                 .reset_index()
@@ -378,17 +388,19 @@ class _CheckBase():
         else:
             raise TypeError(
                 "output type of check_fn not recognized: %s" %
-                type(check_result)
+                type(check_output)
             )
 
-        # handle check_result return types
-        if isinstance(check_result, pd.Series):
-            check_passed = check_result.all()
-        elif isinstance(check_result, pd.DataFrame):
-            check_passed = check_result.all(axis=None)
-        else:
-            check_passed = check_result
-        return CheckResult(check_passed, check_obj, failure_cases)
+        check_passed = (
+            check_output.all()
+            if isinstance(check_output, pd.Series)
+            else check_output.all(axis=None)
+            if isinstance(check_output, pd.DataFrame) else check_output
+        )
+
+        return CheckResult(
+            check_output, check_passed, check_obj, failure_cases
+        )
 
     def __eq__(self, other):
         are_fn_objects_equal = \
