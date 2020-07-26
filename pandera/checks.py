@@ -323,16 +323,20 @@ class _CheckBase():
         :param column: for dataframe checks, apply the check function to this
             column.
         :returns: CheckResult tuple containing:
-            - check_output: boolean scalar, Series or DataFrame indicating
-              which elements passed the check
-            - check_passed: boolean scalar that indicating whether the check
-              passed overall.
-            - checked_object: the checked object itself. Depending on the
-              options provided to the ``Check``, this will be a pandas Series,
-              DataFrame, or if the ``groupby`` option is specified, a
-              ``Dict[str, Series]`` or ``Dict[str, DataFrame]`` where the keys
-              are distinct groups.
-            - failure_cases: subset of the check_object that failed.
+
+            ``check_output``: boolean scalar, ``Series`` or ``DataFrame``
+            indicating which elements passed the check.
+
+            ``check_passed``: boolean scalar that indicating whether the check
+            passed overall.
+
+            ``checked_object``: the checked object itself. Depending on the
+            options provided to the ``Check``, this will be a pandas Series,
+            DataFrame, or if the ``groupby`` option is specified, a
+            ``Dict[str, Series]`` or ``Dict[str, DataFrame]`` where the keys
+            are distinct groups.
+
+            ``failure_cases``: subset of the check_object that failed.
         """
         df_or_series = self._handle_na(df_or_series, column)
 
