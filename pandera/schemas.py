@@ -609,7 +609,6 @@ class DataFrameSchema():
         return new_schema
 
 
-
 class SeriesSchemaBase():
     """Base series validator object."""
 
@@ -715,6 +714,26 @@ class SeriesSchemaBase():
         return self._name
 
     @property
+    def pandas_dtype(self) -> Union[
+            str,
+            dtypes.PandasDtype,
+            dtypes.PandasExtensionType]:
+        """Get the pandas dtype"""
+        return self._pandas_dtype
+
+    @pandas_dtype.setter
+    def pandas_dtype(self, value: Union[
+            str,
+            dtypes.PandasDtype,
+            dtypes.PandasExtensionType]) -> None:
+        """Set the pandas dtype"""
+        self._pandas_dtype = value
+        try:
+            self.dtype
+        except TypeError:
+            raise
+
+    @property
     def dtype(self) -> Union[str, None]:
         """String representation of the dtype."""
         try:
@@ -735,8 +754,10 @@ class SeriesSchemaBase():
             dtype = self._pandas_dtype.str_alias
         else:
             raise TypeError(
-                "type of `pandas_dtype` argument not recognized: %s" %
-                type(self._pandas_dtype)
+                "type of `pandas_dtype` argument not recognized: %s "
+                "Please specify a pandera PandasDtype enum, legal pandas data "
+                "type, pandas data type string alias, or numpy data type "
+                "string alias" % type(self._pandas_dtype)
             )
         return dtype
 
