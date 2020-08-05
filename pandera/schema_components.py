@@ -76,11 +76,10 @@ class Column(SeriesSchemaBase):
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True")
         self.required = required
-        self.pandas_dtype = pandas_dtype
         self._name = name
         self._regex = regex
 
-        if coerce and pandas_dtype is None:
+        if coerce and self._pandas_dtype is None:
             raise errors.SchemaInitError(
                 "Must specify dtype if coercing a Column's type")
 
@@ -98,7 +97,7 @@ class Column(SeriesSchemaBase):
     def properties(self) -> Dict[str, Any]:
         """Get column properties."""
         return {
-            "pandas_dtype": self.pandas_dtype,
+            "pandas_dtype": self._pandas_dtype,
             "checks": self._checks,
             "nullable": self._nullable,
             "allow_duplicates": self._allow_duplicates,

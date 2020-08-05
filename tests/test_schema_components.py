@@ -460,3 +460,23 @@ def test_rename_columns():
     assert all([col_name in rename_dict.values() for col_name in schema_renamed.columns])
     # Check if original schema didn't change in the process
     assert all([col_name in schema_original.columns for col_name in rename_dict])
+
+
+def test_column_type_can_be_set():
+    """Test that the Column dtype can be edited during schema construction."""
+
+    column_a = Column(Int, name="a")
+    changed_type = Float
+
+    column_a.pandas_dtype = Float
+
+    assert column_a.pandas_dtype == changed_type
+    assert column_a.dtype == changed_type.str_alias
+
+    for invalid_dtype in ("foobar", "bar"):
+        with pytest.raises(ValueError):
+            column_a.pandas_dtype = invalid_dtype
+
+    for invalid_dtype in (1, 2.2, ["foo", 1, 1.1], {"b": 1}):
+        with pytest.raises(TypeError):
+            column_a.pandas_dtype = invalid_dtype
