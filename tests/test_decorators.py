@@ -50,27 +50,34 @@ def test_check_function_decorators():
         # what is being tested.
         return dataframe.assign(f=["a", "b", "a"])
 
-    # case 2: input and output validation using positional arguments
+    # case 2: simplest path test - df is first and the only argument and function returns
+    # single dataframe as output.
+    @check_input(in_schema)
+    @check_output(out_schema)
+    def test_func2(dataframe):
+        return dataframe.assign(f=["a", "b", "a"])
+
+    # case 3: input and output validation using positional arguments
     @check_input(in_schema, 1)
     @check_output(out_schema, 0)
-    def test_func2(x, dataframe):
+    def test_func3(x, dataframe):
         return dataframe.assign(f=["a", "b", "a"]), x
 
-    # case 3: dataframe to validate is called as a keyword argument and the
+    # case 4: dataframe to validate is called as a keyword argument and the
     # output is in a dictionary
     @check_input(in_schema, "in_dataframe")
     @check_output(out_schema, "out_dataframe")
-    def test_func3(x, in_dataframe=None):
+    def test_func4(x, in_dataframe=None):
         return {
             "x": x,
             "out_dataframe": in_dataframe.assign(f=["a", "b", "a"]),
         }
 
-    # case 4: dataframe is a positional argument but the obj_getter in the
+    # case 5: dataframe is a positional argument but the obj_getter in the
     # check_input decorator refers to the argument name of the dataframe
     @check_input(in_schema, "dataframe")
     @check_output(out_schema)
-    def test_func4(x, dataframe):
+    def test_func5(x, dataframe):
         # pylint: disable=W0613
         # disables unused-arguments because handling the second argument is
         # what is being tested.
@@ -90,25 +97,25 @@ def test_check_function_decorators():
     assert isinstance(df, pd.DataFrame)
 
     # call function with a dataframe passed as a keyword argument
-    df = test_func1(dataframe=df, x="foo")
+    df = test_func2(dataframe=df)
     assert isinstance(df, pd.DataFrame)
 
-    df, x = test_func2("foo", df)
+    df, x = test_func3("foo", df)
     assert x == "foo"
     assert isinstance(df, pd.DataFrame)
 
-    result = test_func3("foo", in_dataframe=df)
+    result = test_func4("foo", in_dataframe=df)
     assert result["x"] == "foo"
     assert isinstance(df, pd.DataFrame)
 
     # case 5: even if the pandas object to validate is called as a positional
     # argument, the check_input decorator should still be able to handle
     # it.
-    result = test_func3("foo", df)
+    result = test_func4("foo", df)
     assert result["x"] == "foo"
     assert isinstance(df, pd.DataFrame)
 
-    df = test_func4("foo", df)
+    df = test_func5("foo", df)
     assert x == "foo"
     assert isinstance(df, pd.DataFrame)
 

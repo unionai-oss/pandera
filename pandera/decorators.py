@@ -154,7 +154,7 @@ def check_input(
                     check=e.check,
                     check_index=e.check_index,
                 )
-        elif obj_getter is None and kwargs:
+        elif obj_getter is None and len(kwargs) == 1:
             try:
                 # assume that the first keyword argument is the dataframe we want to validate
                 # since the dicts are ordered in python 3.6+
