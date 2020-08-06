@@ -84,7 +84,13 @@ def test_check_function_decorators():
               pd.Timestamp("2018-01-02")],
         "d": [np.nan, 1.0, 2.0],
     })
+
+    # call function with a dataframe passed as a positional argument
     df = test_func1(df, "foo")
+    assert isinstance(df, pd.DataFrame)
+
+    # call function with a dataframe passed as a keyword argument
+    df = test_func1(dataframe=df, x="foo")
     assert isinstance(df, pd.DataFrame)
 
     df, x = test_func2("foo", df)
@@ -211,7 +217,13 @@ def test_check_input_method_decorators():
         assert "column2" in result_df.columns
 
     transformer = TransformerClass()
+
+    # call method with a dataframe passed as a positional argument
     _assert_expectation(transformer.transform_first_arg(dataframe))
+
+    # call method with a dataframe passed as a keyword argument
+    _assert_expectation(transformer.transform_first_arg(df=dataframe))
+
     _assert_expectation(
         transformer.transform_first_arg_with_list_getter(dataframe))
     _assert_expectation(
