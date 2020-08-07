@@ -4,7 +4,9 @@ import inspect
 import warnings
 
 from collections import OrderedDict
-from typing import Any, Callable, List, Union, Tuple, Dict, Optional
+from typing import Any, Callable, List, Union, Tuple, Dict, Optional, NoReturn
+
+import pandas as pd
 
 import wrapt
 
@@ -24,6 +26,32 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
         # don't include "self" argument
         arg_spec_args = arg_spec_args[1:]
     return arg_spec_args
+
+
+def _handle_schema_error(
+        fn: Callable,
+        schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+        arg_df: pd.DataFrame,
+        schema_error: errors.SchemaError) -> NoReturn:
+    """Reraise schema validation error with decorator context.
+
+    :param fn: check the DataFrame or Series input of this function.
+    :param schema: dataframe/series schema object
+    :param arg_df: dataframe/series we are validating.
+    :param schema_error: original exception.
+    :raises SchemaError: when ``DataFrame`` violates built-in or custom
+        checks.
+    """
+    msg = (
+        "error in check_input decorator of function '%s': %s" %
+        (fn.__name__, schema_error)
+    )
+    raise errors.SchemaError(
+        schema, arg_df, msg,
+        failure_cases=schema_error.failure_cases,
+        check=schema_error.check,
+        check_index=schema_error.check_index,
+    )
 
 
 def check_input(
@@ -144,16 +172,7 @@ def check_input(
             try:
                 args[0] = schema.validate(args[0], *validate_args)
             except errors.SchemaError as e:
-                msg = (
-                    "error in check_input decorator of function '%s': %s" %
-                    (fn.__name__, e)
-                )
-                raise errors.SchemaError(
-                    schema, args[0], msg,
-                    failure_cases=e.failure_cases,
-                    check=e.check,
-                    check_index=e.check_index,
-                )
+                _handle_schema_error(fn, schema, args[0], e)
         elif obj_getter is None and kwargs:
             # get the first key in the same order specified in the
             # function argument.
@@ -164,16 +183,7 @@ def check_input(
                     kwargs[args_names[0]], *validate_args
                 )
             except errors.SchemaError as e:
-                msg = (
-                    "error in check_input decorator of function '%s': %s" %
-                    (fn.__name__, e)
-                )
-                raise errors.SchemaError(
-                    schema, kwargs[args_names[0]], msg,
-                    failure_cases=e.failure_cases,
-                    check=e.check,
-                    check_index=e.check_index,
-                )
+                _handle_schema_error(fn, schema, kwargs[args_names[0]], e)
         else:
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
