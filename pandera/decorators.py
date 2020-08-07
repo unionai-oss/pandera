@@ -142,7 +142,7 @@ def check_input(
                 args = list(args_dict.values())
         elif obj_getter is None:
             try:
-                if len(args) == 0:
+                if not args:
                     # get the first key in the same order specified in the
                     # function argument.
                     args_names = _get_fn_argnames(fn)
