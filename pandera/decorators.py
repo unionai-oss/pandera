@@ -140,17 +140,9 @@ def check_input(
                 args_dict[obj_getter] = schema.validate(
                     args_dict[obj_getter], *validate_args)
                 args = list(args_dict.values())
-        elif obj_getter is None:
+        elif obj_getter is None and args:
             try:
-                if not args:
-                    # get the first key in the same order specified in the
-                    # function argument.
-                    args_names = _get_fn_argnames(fn)
-                    kwargs[args_names[0]] = schema.validate(
-                        kwargs[args_names[0]], *validate_args
-                    )
-                else:
-                    args[0] = schema.validate(args[0], *validate_args)
+                args[0] = schema.validate(args[0], *validate_args)
             except errors.SchemaError as e:
                 msg = (
                     "error in check_input decorator of function '%s': %s" %
@@ -158,6 +150,26 @@ def check_input(
                 )
                 raise errors.SchemaError(
                     schema, args[0], msg,
+                    failure_cases=e.failure_cases,
+                    check=e.check,
+                    check_index=e.check_index,
+                )
+        elif obj_getter is None and kwargs:
+            # get the first key in the same order specified in the
+            # function argument.
+            args_names = _get_fn_argnames(fn)
+
+            try:
+                kwargs[args_names[0]] = schema.validate(
+                    kwargs[args_names[0]], *validate_args
+                )
+            except errors.SchemaError as e:
+                msg = (
+                    "error in check_input decorator of function '%s': %s" %
+                    (fn.__name__, e)
+                )
+                raise errors.SchemaError(
+                    schema, args_names[0], msg,
                     failure_cases=e.failure_cases,
                     check=e.check,
                     check_index=e.check_index,

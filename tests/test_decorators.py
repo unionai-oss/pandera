@@ -136,6 +136,11 @@ def test_check_function_decorator_errors():
 
     with pytest.raises(
             errors.SchemaError,
+            match=r"^error in check_input decorator of function"):
+        test_func(df=pd.DataFrame({"column2": ["a", "b", "c"]}))
+
+    with pytest.raises(
+            errors.SchemaError,
             match=r"^error in check_output decorator of function"):
         test_func(pd.DataFrame({"column1": [1, 2, 3]}))
 
