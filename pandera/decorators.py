@@ -169,7 +169,7 @@ def check_input(
                     (fn.__name__, e)
                 )
                 raise errors.SchemaError(
-                    schema, args_names[0], msg,
+                    schema, kwargs[args_names[0]], msg,
                     failure_cases=e.failure_cases,
                     check=e.check,
                     check_index=e.check_index,
