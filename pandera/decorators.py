@@ -140,9 +140,17 @@ def check_input(
                 args_dict[obj_getter] = schema.validate(
                     args_dict[obj_getter], *validate_args)
                 args = list(args_dict.values())
-        elif obj_getter is None and args:
+        elif obj_getter is None:
             try:
-                args[0] = schema.validate(args[0], *validate_args)
+                if len(args) == 0:
+                    # get the first key in the same order specified in the
+                    # function argument.
+                    args_names = _get_fn_argnames(fn)
+                    kwargs[args_names[0]] = schema.validate(
+                        kwargs[args_names[0]], *validate_args
+                    )
+                else:
+                    args[0] = schema.validate(args[0], *validate_args)
             except errors.SchemaError as e:
                 msg = (
                     "error in check_input decorator of function '%s': %s" %
@@ -150,23 +158,6 @@ def check_input(
                 )
                 raise errors.SchemaError(
                     schema, args[0], msg,
-                    failure_cases=e.failure_cases,
-                    check=e.check,
-                    check_index=e.check_index,
-                )
-        elif obj_getter is None and len(kwargs) == 1:
-            try:
-                # assume that the first keyword argument is the dataframe we want to validate
-                # since the dicts are ordered in python 3.6+
-                key = next(iter(kwargs.keys()))
-                kwargs[key] = schema.validate(kwargs[key], *validate_args)
-            except errors.SchemaError as e:
-                msg = (
-                    "error in check_input decorator of function '%s': %s" %
-                    (fn.__name__, e)
-                )
-                raise errors.SchemaError(
-                    schema, kwargs[key], msg,
                     failure_cases=e.failure_cases,
                     check=e.check,
                     check_index=e.check_index,
