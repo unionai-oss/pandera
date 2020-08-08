@@ -84,7 +84,17 @@ def test_check_function_decorators():
               pd.Timestamp("2018-01-02")],
         "d": [np.nan, 1.0, 2.0],
     })
+
+    # call function with a dataframe passed as a positional argument
     df = test_func1(df, "foo")
+    assert isinstance(df, pd.DataFrame)
+
+    # call function with a dataframe passed as a first keyword argument
+    df = test_func1(dataframe=df, x="foo")
+    assert isinstance(df, pd.DataFrame)
+
+    # call function with a dataframe passed as a second keyword argument
+    df = test_func1(x="foo", dataframe=df)
     assert isinstance(df, pd.DataFrame)
 
     df, x = test_func2("foo", df)
@@ -120,6 +130,11 @@ def test_check_function_decorator_errors():
             errors.SchemaError,
             match=r"^error in check_input decorator of function"):
         test_func(pd.DataFrame({"column2": ["a", "b", "c"]}))
+
+    with pytest.raises(
+            errors.SchemaError,
+            match=r"^error in check_input decorator of function"):
+        test_func(df=pd.DataFrame({"column2": ["a", "b", "c"]}))
 
     with pytest.raises(
             errors.SchemaError,
@@ -191,6 +206,11 @@ def test_check_input_method_decorators():
         def transform_first_arg(self, df):
             return _transform_helper(df)
 
+        @check_input(in_schema)
+        @check_output(out_schema)
+        def transform_first_arg_with_two_func_args(self, df, x):
+            return _transform_helper(df)
+
         @check_input(in_schema, 0)
         @check_output(out_schema)
         def transform_first_arg_with_list_getter(self, df):
@@ -211,7 +231,16 @@ def test_check_input_method_decorators():
         assert "column2" in result_df.columns
 
     transformer = TransformerClass()
+
+    # call method with a dataframe passed as a positional argument
     _assert_expectation(transformer.transform_first_arg(dataframe))
+
+    # call method with a dataframe passed as a first keyword argument
+    _assert_expectation(transformer.transform_first_arg(df=dataframe))
+
+    # call method with a dataframe passed as a second keyword argument
+    _assert_expectation(transformer.transform_first_arg_with_two_func_args(x="foo", df=dataframe))
+
     _assert_expectation(
         transformer.transform_first_arg_with_list_getter(dataframe))
     _assert_expectation(
