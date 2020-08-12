@@ -34,6 +34,7 @@ setup(
         "wrapt",
         "pyyaml >= 5.1",
         "scipy ; python_version>='3.5'",
+        "typing_inspect >= 0.6.0"
         "black ; python_version>'3.5'",
         "autopep8 ; python_version=='3.5'",
     ],
