@@ -4,7 +4,18 @@ import inspect
 import warnings
 
 from collections import OrderedDict
-from typing import Any, Callable, List, Union, Tuple, Dict, Optional, NoReturn
+from typing import (
+    Any,
+    Callable,
+    List,
+    Union,
+    Tuple,
+    Dict,
+    Optional,
+    NoReturn,
+    cast,
+    get_type_hints,
+)
 
 import pandas as pd
 
@@ -12,6 +23,7 @@ import wrapt
 
 from . import schemas
 from . import errors
+from .typing import SchemaModel, get_first_arg, is_frame_or_series_origin
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
@@ -29,10 +41,12 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
 
 
 def _handle_schema_error(
-        fn: Callable,
-        schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
-        arg_df: pd.DataFrame,
-        schema_error: errors.SchemaError) -> NoReturn:
+    decorator_name,
+    fn: Callable,
+    schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+    arg_df: pd.DataFrame,
+    schema_error: errors.SchemaError,
+) -> NoReturn:
     """Reraise schema validation error with decorator context.
 
     :param fn: check the DataFrame or Series input of this function.
@@ -43,8 +57,8 @@ def _handle_schema_error(
         checks.
     """
     msg = (
-        "error in check_input decorator of function '%s': %s" %
-        (fn.__name__, schema_error)
+        "error in %s decorator of function '%s': %s" %
+        (decorator_name, fn.__name__, schema_error)
     )
     raise errors.SchemaError(
         schema, arg_df, msg,
@@ -172,7 +186,7 @@ def check_input(
             try:
                 args[0] = schema.validate(args[0], *validate_args)
             except errors.SchemaError as e:
-                _handle_schema_error(fn, schema, args[0], e)
+                _handle_schema_error("check_input", fn, schema, args[0], e)
         elif obj_getter is None and kwargs:
             # get the first key in the same order specified in the
             # function argument.
@@ -183,7 +197,9 @@ def check_input(
                     kwargs[args_names[0]], *validate_args
                 )
             except errors.SchemaError as e:
-                _handle_schema_error(fn, schema, kwargs[args_names[0]], e)
+                _handle_schema_error(
+                    "check_input", fn, schema, kwargs[args_names[0]], e
+                )
         else:
             raise ValueError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
@@ -292,21 +308,55 @@ def check_output(
         elif callable(obj_getter):
             obj = obj_getter(out)
         else:
-            raise ValueError(
-                "obj_getter is unrecognized type: %s" % type(obj_getter))
+            raise ValueError("obj_getter is unrecognized type: %s" % type(obj_getter))
         try:
             schema.validate(obj, head, tail, sample, random_state, lazy)
         except errors.SchemaError as e:
-            msg = (
-                "error in check_output decorator of function '%s': %s" %
-                (fn.__name__, e)
-            )
-            raise errors.SchemaError(
-                schema, obj, msg,
-                failure_cases=e.failure_cases,
-                check=e.check,
-                check_index=e.check_index,
-            )
+            _handle_schema_error("check_output", fn, schema, obj, e)
+
+        return out
+
+    return _wrapper
+
+
+def check_types(
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
+    lazy: bool = False,
+) -> Callable:
+    @wrapt.decorator
+    def _wrapper(
+        fn: Callable,
+        instance: Union[None, Any],
+        args: Union[List[Any], Tuple[Any]],
+        kwargs: Dict[str, Any],
+    ):
+        sig = inspect.signature(fn)
+        arguments = sig.bind(*args, **kwargs).arguments
+        hints = get_type_hints(fn)
+        return_hint = hints.pop("return", None)
+
+        for arg_name, annotation in hints.items():
+            if is_frame_or_series_origin(annotation):
+                model = cast(SchemaModel, get_first_arg(annotation))
+                schema = model.get_schema()
+                obj = arguments[arg_name]
+                try:
+                    schema.validate(obj, head, tail, sample, random_state, lazy)
+                except errors.SchemaError as e:
+                    _handle_schema_error("check_types", fn, schema, obj, e)
+
+        out = fn(*args, **kwargs)
+
+        if is_frame_or_series_origin(return_hint):
+            model = cast(SchemaModel, get_first_arg(return_hint))
+            schema = model.get_schema()
+            try:
+                schema.validate(out, head, tail, sample, random_state, lazy)
+            except errors.SchemaError as e:
+                _handle_schema_error("check_types", fn, out, "return", e)
 
         return out
 
