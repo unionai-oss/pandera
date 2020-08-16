@@ -7,9 +7,11 @@ from typing import Union, Optional, Tuple, Any, List, Dict
 import numpy as np
 import pandas as pd
 
-from . import errors, dtypes
+from . import errors
 from .dtypes import PandasDtype
-from .schemas import DataFrameSchema, SeriesSchemaBase, CheckList
+from .schemas import (
+    DataFrameSchema, SeriesSchemaBase, CheckList, PandasDtypeInputTypes
+)
 
 
 def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
@@ -22,8 +24,7 @@ class Column(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: Union[
-                str, PandasDtype, dtypes.PandasExtensionType] = None,
+            pandas_dtype: PandasDtypeInputTypes = None,
             checks: CheckList = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -241,13 +242,13 @@ class Index(SeriesSchemaBase):
 
     def __init__(
             self,
-            pandas_dtype: Union[
-                str, PandasDtype, dtypes.PandasExtensionType] = None,
+            pandas_dtype: PandasDtypeInputTypes = None,
             checks: CheckList = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
             coerce: bool = False,
             name: str = None) -> None:
+        # pylint: disable=useless-super-delegation
         """Create Index validator.
 
         :param pandas_dtype: datatype of the column. A ``PandasDtype`` for

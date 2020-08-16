@@ -168,7 +168,7 @@ class PandasDtype(Enum):
         }.get(str_alias)
 
         if pandas_dtype is None:
-            raise ValueError(
+            raise TypeError(
                 "pandas dtype string alias '%s' not recognized" %
                 str_alias
             )
@@ -198,6 +198,27 @@ class PandasDtype(Enum):
             "timedelta64": cls.Timedelta,
             "timedelta": cls.Timedelta,
         }.get(pandas_api_type)
+
+    @classmethod
+    def from_python_type(cls, python_type: type) -> "PandasDtype":
+        """Get PandasDtype enum from built-in python type.
+
+        :param python_type: built-in python type. Allowable types are:
+            str, int, float, list, dict
+        """
+        pandas_dtype = {
+            str: cls.String,
+            int: cls.Int,
+            float: cls.Float,
+        }.get(python_type)
+
+        if pandas_dtype is None:
+            raise TypeError(
+                "python type '%s' not recognized as pandas data type" %
+                python_type
+            )
+
+        return pandas_dtype
 
     def __eq__(self, other):
         # pylint: disable=comparison-with-callable,too-many-return-statements

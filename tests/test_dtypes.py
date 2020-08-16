@@ -163,7 +163,7 @@ def test_pandas_nullable_int_dtype(dtype, coerce):
 @pytest.mark.parametrize("str_alias", ["foo", "bar", "baz", "asdf", "qwerty"])
 def test_unrecognized_str_aliases(str_alias):
     """Test that unrecognized string aliases are supported."""
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         PandasDtype.from_str_alias(str_alias)
 
 
@@ -294,3 +294,28 @@ def test_pandas_extension_types():
         series_kwargs = {} if series_kwargs is None else series_kwargs
         series_schema = SeriesSchema(pandas_dtype=dtype, **series_kwargs)
         assert isinstance(series_schema.validate(data), pd.Series)
+
+
+def test_python_builtin_types():
+    """Test support python data types can be used for validation."""
+    schema = DataFrameSchema({
+        "int_col": Column(int),
+        "float_col": Column(float),
+        "str_col": Column(str),
+    })
+    df = pd.DataFrame({
+        "int_col": [1, 2, 3],
+        "float_col": [1., 2., 3.],
+        "str_col": list("abc"),
+    })
+    assert isinstance(schema(df), pd.DataFrame)
+    assert schema.dtype["int_col"] == PandasDtype.Int.str_alias
+    assert schema.dtype["float_col"] == PandasDtype.Float.str_alias
+    assert schema.dtype["str_col"] == PandasDtype.String.str_alias
+
+
+@pytest.mark.parametrize("python_type", [list, dict, set])
+def test_python_builtin_types_not_supported(python_type):
+    """Test unsupport python data types raise a type error."""
+    with pytest.raises(TypeError):
+        Column(python_type)
