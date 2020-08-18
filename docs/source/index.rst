@@ -67,7 +67,7 @@ Quick Start
         ]),
     })
 
-    validated_df = schema.validate(df)
+    validated_df = schema(df)
     print(validated_df)
 
 .. testoutput:: quick_start
@@ -79,22 +79,23 @@ Quick Start
     3       10    -10.1  value_2
     4        9    -20.4  value_1
 
-
-Alternatively, you can pass strings representing the
-`legal pandas datatypes <https://pandas.pydata.org/pandas-docs/stable/getting_started/basics.html#dtypes>`_:
+Alternatively, you can pass the built-in python types that are supported by
+pandas, or strings representing the
+`legal pandas datatypes <https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#basics-dtypes>`_:
 
 .. testcode:: quick_start
 
     schema = pa.DataFrameSchema({
-        "column1": pa.Column("int64", checks=pa.Check.less_than_or_equal_to(10)),
-        "column2": pa.Column("float64", checks=pa.Check.less_than(-1.2)),
-        # use "string" as of pandas >= 1.0
-        "column3": pa.Column("object", checks=[
-            pa.Check.str_startswith("value_"),
-            # define custom checks as functions that take a series as input and
-            # outputs a boolean or boolean Series
-            pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-        ]),
+        # built-in python types
+        "int_column": pa.Column(int),
+        "float_column": pa.Column(float),
+        "str_column": pa.Column(str),
+
+        # pandas dtype string aliases
+        "int_column2": pa.Column("int64"),
+        "float_column2": pa.Column("float64"),
+        # pandas > 1.0.0 support native "string" type
+        "str_column2": pa.Column("object"),
     })
 
 For more details on data types, see :py:class:`pandera.PandasDtype`
@@ -126,7 +127,7 @@ In the case that a validation ``Check`` is violated:
         "column1": [-20, 5, 10, 30],
     })
 
-    simple_schema.validate(fail_check_df)
+    simple_schema(fail_check_df)
 
 
 .. testoutput:: informative_errors

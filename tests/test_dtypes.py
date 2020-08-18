@@ -302,16 +302,19 @@ def test_python_builtin_types():
         "int_col": Column(int),
         "float_col": Column(float),
         "str_col": Column(str),
+        "bool_col": Column(bool),
     })
     df = pd.DataFrame({
         "int_col": [1, 2, 3],
         "float_col": [1., 2., 3.],
         "str_col": list("abc"),
+        "bool_col": [True, False, True],
     })
     assert isinstance(schema(df), pd.DataFrame)
     assert schema.dtype["int_col"] == PandasDtype.Int.str_alias
     assert schema.dtype["float_col"] == PandasDtype.Float.str_alias
     assert schema.dtype["str_col"] == PandasDtype.String.str_alias
+    assert schema.dtype["bool_col"] == PandasDtype.Bool.str_alias
 
 
 @pytest.mark.parametrize("python_type", [list, dict, set])
