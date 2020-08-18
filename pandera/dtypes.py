@@ -183,8 +183,7 @@ class PandasDtype(Enum):
         return pandas_dtype
 
     @classmethod
-    def from_pandas_api_type(
-            cls, pandas_api_type: str) -> "PandasDtype":
+    def from_pandas_api_type(cls, pandas_api_type: str) -> "PandasDtype":
         """Get PandasDtype enum from pandas api type.
 
         :param pandas_api_type: string output from

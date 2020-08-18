@@ -319,6 +319,38 @@ def test_python_builtin_types():
 
 @pytest.mark.parametrize("python_type", [list, dict, set])
 def test_python_builtin_types_not_supported(python_type):
-    """Test unsupport python data types raise a type error."""
+    """Test unsupported python data types raise a type error."""
     with pytest.raises(TypeError):
         Column(python_type)
+
+
+@pytest.mark.parametrize(
+    "pandas_api_type,pandas_dtype", [
+        ["string", PandasDtype.String],
+        ["floating", PandasDtype.Float],
+        ["integer", PandasDtype.Int],
+        ["categorical", PandasDtype.Category],
+        ["boolean", PandasDtype.Bool],
+        ["datetime64", PandasDtype.DateTime],
+        ["datetime", PandasDtype.DateTime],
+        ["timedelta64", PandasDtype.Timedelta],
+        ["timedelta", PandasDtype.Timedelta],
+    ]
+)
+def test_pandas_api_types(pandas_api_type, pandas_dtype):
+    """Test pandas api type conversion."""
+    assert PandasDtype.from_pandas_api_type(pandas_api_type) is pandas_dtype
+
+
+@pytest.mark.parametrize(
+    "invalid_pandas_api_type", [
+        "foo",
+        "bar",
+        "baz",
+        "this is not a type",
+    ]
+)
+def test_pandas_api_type_exception(invalid_pandas_api_type):
+    """Test unsupported values for pandas api type conversion."""
+    with pytest.raises(TypeError):
+        PandasDtype.from_pandas_api_type(invalid_pandas_api_type)
