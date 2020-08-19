@@ -474,7 +474,7 @@ def test_column_type_can_be_set():
     assert column_a.dtype == changed_type.str_alias
 
     for invalid_dtype in ("foobar", "bar"):
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             column_a.pandas_dtype = invalid_dtype
 
     for invalid_dtype in (1, 2.2, ["foo", 1, 1.1], {"b": 1}):

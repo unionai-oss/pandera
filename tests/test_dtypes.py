@@ -163,7 +163,7 @@ def test_pandas_nullable_int_dtype(dtype, coerce):
 @pytest.mark.parametrize("str_alias", ["foo", "bar", "baz", "asdf", "qwerty"])
 def test_unrecognized_str_aliases(str_alias):
     """Test that unrecognized string aliases are supported."""
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         PandasDtype.from_str_alias(str_alias)
 
 
@@ -294,3 +294,63 @@ def test_pandas_extension_types():
         series_kwargs = {} if series_kwargs is None else series_kwargs
         series_schema = SeriesSchema(pandas_dtype=dtype, **series_kwargs)
         assert isinstance(series_schema.validate(data), pd.Series)
+
+
+def test_python_builtin_types():
+    """Test support python data types can be used for validation."""
+    schema = DataFrameSchema({
+        "int_col": Column(int),
+        "float_col": Column(float),
+        "str_col": Column(str),
+        "bool_col": Column(bool),
+    })
+    df = pd.DataFrame({
+        "int_col": [1, 2, 3],
+        "float_col": [1., 2., 3.],
+        "str_col": list("abc"),
+        "bool_col": [True, False, True],
+    })
+    assert isinstance(schema(df), pd.DataFrame)
+    assert schema.dtype["int_col"] == PandasDtype.Int.str_alias
+    assert schema.dtype["float_col"] == PandasDtype.Float.str_alias
+    assert schema.dtype["str_col"] == PandasDtype.String.str_alias
+    assert schema.dtype["bool_col"] == PandasDtype.Bool.str_alias
+
+
+@pytest.mark.parametrize("python_type", [list, dict, set])
+def test_python_builtin_types_not_supported(python_type):
+    """Test unsupported python data types raise a type error."""
+    with pytest.raises(TypeError):
+        Column(python_type)
+
+
+@pytest.mark.parametrize(
+    "pandas_api_type,pandas_dtype", [
+        ["string", PandasDtype.String],
+        ["floating", PandasDtype.Float],
+        ["integer", PandasDtype.Int],
+        ["categorical", PandasDtype.Category],
+        ["boolean", PandasDtype.Bool],
+        ["datetime64", PandasDtype.DateTime],
+        ["datetime", PandasDtype.DateTime],
+        ["timedelta64", PandasDtype.Timedelta],
+        ["timedelta", PandasDtype.Timedelta],
+    ]
+)
+def test_pandas_api_types(pandas_api_type, pandas_dtype):
+    """Test pandas api type conversion."""
+    assert PandasDtype.from_pandas_api_type(pandas_api_type) is pandas_dtype
+
+
+@pytest.mark.parametrize(
+    "invalid_pandas_api_type", [
+        "foo",
+        "bar",
+        "baz",
+        "this is not a type",
+    ]
+)
+def test_pandas_api_type_exception(invalid_pandas_api_type):
+    """Test unsupported values for pandas api type conversion."""
+    with pytest.raises(TypeError):
+        PandasDtype.from_pandas_api_type(invalid_pandas_api_type)

@@ -11,7 +11,7 @@ import pandas as pd
 
 from . import errors, constants, dtypes
 from .checks import Check
-from .dtypes import PandasDtype
+from .dtypes import PandasDtype, PandasExtensionType
 from .error_formatters import (
     format_generic_error_message, format_vectorized_error_message,
     reshape_failure_cases, scalar_failure_case,
@@ -28,6 +28,8 @@ CheckList = Optional[
         List[Union[Check, Hypothesis]]
     ]
 ]
+
+PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
 
 
 def _inferred_schema_guard(method):
@@ -614,9 +616,7 @@ class SeriesSchemaBase():
 
     def __init__(
             self,
-            pandas_dtype: Union[
-                str, dtypes.PandasDtype, dtypes.PandasExtensionType
-            ] = None,
+            pandas_dtype: PandasDtypeInputTypes = None,
             checks: CheckList = None,
             nullable: bool = False,
             allow_duplicates: bool = True,
@@ -655,6 +655,12 @@ class SeriesSchemaBase():
             if check.groupby is not None and not self._allow_groupby:
                 raise errors.SchemaInitError(
                     "Cannot use groupby checks with type %s" % type(self))
+
+        # make sure pandas dtype is valid
+        try:
+            self.dtype
+        except TypeError:
+            raise
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
@@ -750,6 +756,8 @@ class SeriesSchemaBase():
         elif isinstance(self._pandas_dtype, str):
             dtype = PandasDtype.from_str_alias(  # type: ignore
                 self._pandas_dtype).str_alias
+        elif isinstance(self._pandas_dtype, type):
+            dtype = PandasDtype.from_python_type(self._pandas_dtype).str_alias
         elif isinstance(self._pandas_dtype, dtypes.PandasDtype):
             dtype = self._pandas_dtype.str_alias
         else:
@@ -845,8 +853,6 @@ class SeriesSchemaBase():
 
         series_dtype = series.dtype
         if self._nullable:
-            # currently, to handle null cases drop null values before passing
-            # into checks.
             series_no_nans = series.dropna()
             if self.dtype in dtypes.NUMPY_NONNULLABLE_INT_DTYPES:
                 _series = series_no_nans.astype(self.dtype)

@@ -1,7 +1,6 @@
 """Schema datatypes."""
 
 from enum import Enum
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -63,8 +62,16 @@ class PandasDtype(Enum):
     2    c
     dtype: object
 
-    You can also directly use the string alias for each data-type in the
-    schema definition:
+    Alternatively, you can use built-in python scalar types for integers,
+    floats, booleans, and strings:
+
+    >>> pa.SeriesSchema(int).validate(pd.Series([1, 2, 3]))
+    0    1
+    1    2
+    2    3
+    dtype: int64
+
+    You can also use the pandas string aliases in the schema definition:
 
     >>> pa.SeriesSchema("int").validate(pd.Series([1, 2, 3]))
     0    1
@@ -168,7 +175,7 @@ class PandasDtype(Enum):
         }.get(str_alias)
 
         if pandas_dtype is None:
-            raise ValueError(
+            raise TypeError(
                 "pandas dtype string alias '%s' not recognized" %
                 str_alias
             )
@@ -176,8 +183,7 @@ class PandasDtype(Enum):
         return pandas_dtype
 
     @classmethod
-    def from_pandas_api_type(
-            cls, pandas_api_type: str) -> Union["PandasDtype", None]:
+    def from_pandas_api_type(cls, pandas_api_type: str) -> "PandasDtype":
         """Get PandasDtype enum from pandas api type.
 
         :param pandas_api_type: string output from
@@ -187,7 +193,7 @@ class PandasDtype(Enum):
         if pandas_api_type.startswith("mixed"):
             return cls.Object
 
-        return {
+        pandas_dtype = {
             "string": cls.String,
             "floating": cls.Float,
             "integer": cls.Int,
@@ -198,6 +204,36 @@ class PandasDtype(Enum):
             "timedelta64": cls.Timedelta,
             "timedelta": cls.Timedelta,
         }.get(pandas_api_type)
+
+        if pandas_dtype is None:
+            raise TypeError(
+                "pandas api type '%s' not recognized" %
+                pandas_api_type
+            )
+
+        return pandas_dtype
+
+    @classmethod
+    def from_python_type(cls, python_type: type) -> "PandasDtype":
+        """Get PandasDtype enum from built-in python type.
+
+        :param python_type: built-in python type. Allowable types are:
+            str, int, float, and bool.
+        """
+        pandas_dtype = {
+            bool: cls.Bool,
+            str: cls.String,
+            int: cls.Int,
+            float: cls.Float,
+        }.get(python_type)
+
+        if pandas_dtype is None:
+            raise TypeError(
+                "python type '%s' not recognized as pandas data type" %
+                python_type
+            )
+
+        return pandas_dtype
 
     def __eq__(self, other):
         # pylint: disable=comparison-with-callable,too-many-return-statements
