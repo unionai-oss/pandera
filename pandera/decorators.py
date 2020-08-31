@@ -13,17 +13,19 @@ from typing import (
     Dict,
     Optional,
     NoReturn,
+    Type,
     cast,
     get_type_hints,
 )
 
 import pandas as pd
+from typing_inspect import get_origin
 
 import wrapt
 
 from . import schemas
 from . import errors
-from .typing import SchemaModel, get_first_arg, is_frame_or_series_origin
+from .typing import DataFrame, SchemaModel, Series, get_first_arg
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
@@ -319,6 +321,12 @@ def check_output(
     return _wrapper
 
 
+def _is_frame_or_series_hint(annotation: Type) -> bool:
+    """Test if base annotation is a typing.Series or typing.DataFrame."""
+    origin = get_origin(annotation)
+    return origin is DataFrame or origin is Series
+
+
 def check_types(
     head: Optional[int] = None,
     tail: Optional[int] = None,
@@ -326,6 +334,7 @@ def check_types(
     random_state: Optional[int] = None,
     lazy: bool = False,
 ) -> Callable:
+    """Validate function inputs and output based on type annotations."""
     @wrapt.decorator
     def _wrapper(
         fn: Callable,
@@ -339,7 +348,7 @@ def check_types(
         return_hint = hints.pop("return", None)
 
         for arg_name, annotation in hints.items():
-            if is_frame_or_series_origin(annotation):
+            if _is_frame_or_series_hint(annotation):
                 model = cast(SchemaModel, get_first_arg(annotation))
                 schema = model.get_schema()
                 obj = arguments[arg_name]
@@ -350,7 +359,7 @@ def check_types(
 
         out = fn(*args, **kwargs)
 
-        if is_frame_or_series_origin(return_hint):
+        if _is_frame_or_series_hint(return_hint):
             model = cast(SchemaModel, get_first_arg(return_hint))
             schema = model.get_schema()
             try:
