@@ -1,30 +1,28 @@
 """Decorators for integrating pandera into existing data pipelines."""
 
+import functools
 import inspect
 import warnings
-
 from collections import OrderedDict
 from typing import (
     Any,
     Callable,
-    List,
-    Union,
-    Tuple,
     Dict,
-    Optional,
+    List,
     NoReturn,
+    Optional,
+    Tuple,
     Type,
+    Union,
     cast,
     get_type_hints,
 )
 
 import pandas as pd
+import wrapt
 from typing_inspect import get_origin
 
-import wrapt
-
-from . import schemas
-from . import errors
+from . import errors, schemas
 from .typing import DataFrame, SchemaModel, Series, get_first_arg
 
 
@@ -328,6 +326,8 @@ def _is_frame_or_series_hint(annotation: Type) -> bool:
 
 
 def check_types(
+    fn=None,
+    *,
     head: Optional[int] = None,
     tail: Optional[int] = None,
     sample: Optional[int] = None,
@@ -335,9 +335,19 @@ def check_types(
     lazy: bool = False,
 ) -> Callable:
     """Validate function inputs and output based on type annotations."""
+    if fn is None:
+        return functools.partial(
+            check_types,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+        )
+
     @wrapt.decorator
     def _wrapper(
-        fn: Callable,
+        wrapped: Callable,
         instance: Union[None, Any],
         args: Union[List[Any], Tuple[Any]],
         kwargs: Dict[str, Any],
@@ -369,4 +379,5 @@ def check_types(
 
         return out
 
-    return _wrapper
+    return _wrapper(fn)
+

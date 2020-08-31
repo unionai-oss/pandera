@@ -30,7 +30,7 @@ def test_check_types():
     class A(SchemaModel):
         a: Series["int"]
 
-    @pa.check_types()
+    @pa.check_types
     def transform(df: DataFrame[A]) -> DataFrame[A]:
         return df
 
@@ -51,21 +51,21 @@ def test_check_types_errors():
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
-    @pa.check_types()
+    @pa.check_types
     def transform_index(df) -> DataFrame[A]:
         return df.reset_index(drop=True)
 
     with pytest.raises(SchemaError):
         transform_index(df)
 
-    @pa.check_types()
+    @pa.check_types
     def to_b(df: DataFrame[A]) -> DataFrame[B]:
         return df
 
     with pytest.raises(SchemaError, match="column 'b' not in dataframe"):
         to_b(df)
 
-    @pa.check_types()
+    @pa.check_types
     def to_str(df: DataFrame[A]) -> DataFrame[A]:
         df["a"] = "1"
         return df
