@@ -1,7 +1,7 @@
 """Define typing extensions."""
 import inspect
 import warnings
-from typing import Any, Generic, Iterable, Optional, Dict, Type, TypeVar
+from typing import Any, Dict, Generic, Iterable, List, Optional, Type, TypeVar
 
 import pandas as pd
 from typing_inspect import get_args, get_forward_arg, get_origin, is_optional_type
@@ -12,9 +12,7 @@ from .dtypes import PandasDtype
 from .errors import SchemaInitError
 from .schemas import CheckList, DataFrameSchema, PandasDtypeInputTypes, SeriesSchemaBase
 
-Dtype = TypeVar(
-    "Dtype", PandasDtype, dtypes.PandasExtensionType, bool, int, str, float
-)
+Dtype = TypeVar("Dtype", PandasDtype, dtypes.PandasExtensionType, bool, int, str, float)
 
 
 def get_first_arg(annotation: Type) -> type:
@@ -77,8 +75,8 @@ class SchemaModel:
 
         cls._check_missing_annotations()
 
-        columns = {}
-        index = None
+        columns: Dict[str, schema_components.Index] = {}
+        indexes: List[schema_components.Index] = []
         for arg_name, annotation in cls.__annotations__.items():
             optional = is_optional_type(annotation)
             if optional:
@@ -95,26 +93,29 @@ class SchemaModel:
                 )
 
             if schema_component is Series:
-                if field:
-                    columns[arg_name] = field.to_column(dtype, required=not optional)
-                else:
-                    columns[arg_name] = schema_components.Column(
-                        dtype, required=not optional
-                    )
+                col_constructor = field.to_column if field else schema_components.Column
+                columns[arg_name] = col_constructor(
+                    dtype, required=not optional, name=arg_name
+                )
             elif schema_component is Index:
-                if index:
-                    raise SchemaInitError("Found multiple indexes.")
                 if optional:
                     raise SchemaInitError(f"Index '{arg_name}' cannot be Optional.")
-                if field:
-                    index = field.to_index(dtype)
-                else:
-                    index = schema_components.Index(dtype)
+                index_constructor = field.to_index if field else schema_components.Index
+                indexes.append(index_constructor(dtype, name=arg_name))
             else:
                 raise SchemaInitError(
                     f"Invalid annotation for {arg_name}. "
                     f"{annotation} should be of type Series or Index."
                 )
+
+        if indexes:
+            if len(indexes) == 1:
+                index = indexes[0]
+                index._name = None  # don't force name on single index
+            else:
+                index = schema_components.MultiIndex(indexes)
+        else:
+            index = None
 
         cls._schema = DataFrameSchema(columns, index=index)
         return cls._schema
@@ -158,7 +159,10 @@ class FieldInfo:
         return component(pandas_dtype, checks=self.checks, **kwargs)
 
     def to_column(
-        self, pandas_dtype: PandasDtypeInputTypes, required=True
+        self,
+        pandas_dtype: PandasDtypeInputTypes,
+        required: bool = True,
+        name: str = None,
     ) -> schema_components.Column:
         """Create a schema_components.Column from a field."""
         return self._to_schema_component(
@@ -169,9 +173,12 @@ class FieldInfo:
             coerce=self.coerce,
             regex=self.regex,
             required=required,
+            name=name,
         )
 
-    def to_index(self, pandas_dtype: PandasDtypeInputTypes) -> schema_components.Index:
+    def to_index(
+        self, pandas_dtype: PandasDtypeInputTypes, name: str = None
+    ) -> schema_components.Index:
         """Create a schema_components.Index from a field."""
         return self._to_schema_component(
             pandas_dtype,
@@ -179,6 +186,7 @@ class FieldInfo:
             nullable=self.nullable,
             allow_duplicates=self.allow_duplicates,
             coerce=self.coerce,
+            name=name,
         )
 
 

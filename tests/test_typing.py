@@ -160,3 +160,14 @@ def test_field_checks(arg: str, value: Any, expected: pa.Check):
     checks = Field(**{arg: value}).to_column("string").checks
     assert len(checks) == 1
     assert checks[0] == expected
+
+
+def test_multiindex():
+    class Schema(SchemaModel):
+        a: Index["int"]
+        b: Index["string"]
+
+    expected = pa.DataFrameSchema(
+        index=pa.MultiIndex([pa.Index(pa.Int, name="a"), pa.Index(pa.String, name="b")])
+    )
+    assert expected == Schema.get_schema()
