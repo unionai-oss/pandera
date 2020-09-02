@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.errors import SchemaError, SchemaInitError
-from pandera.typing import DataFrame, Field, Index, SchemaModel, Series
+from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
+from pandera.typing import DataFrame, Field, Index, SchemaModel, Series, validator
 
 
 def test_schemamodel_to_dataframeschema():
@@ -171,3 +171,103 @@ def test_multiindex():
         index=pa.MultiIndex([pa.Index(pa.Int, name="a"), pa.Index(pa.String, name="b")])
     )
     assert expected == Schema.get_schema()
+
+
+def test_validator_single_column():
+    class Schema(SchemaModel):
+        a: Series["int"]
+
+        @validator("a")
+        def int_column_lt_100(series: pd.Series) -> bool:
+            return series < 100
+
+    df = pd.DataFrame({"a": [101]})
+    schema = Schema.get_schema()
+    err_msg = r"Column\s*a\s*<Check int_column_lt_100>\s*\[101\]\s*1"
+    with pytest.raises(SchemaErrors, match=err_msg):
+        schema.validate(df, lazy=True)
+
+
+def test_validator_single_index():
+    class Schema(SchemaModel):
+        a: Index["int"]
+
+        @validator("a")
+        def int_column_lt_100(idx: pd.Index) -> bool:
+            return idx < 100
+
+    df = pd.DataFrame(index=[101])
+    schema = Schema.get_schema()
+    err_msg = r"Index\s*<NA>\s*<Check int_column_lt_100>\s*\[101\]\s*"
+    with pytest.raises(SchemaErrors, match=err_msg):
+        schema.validate(df, lazy=True)
+
+
+def test_validator_non_existing():
+    class Schema(SchemaModel):
+        a: Series["int"]
+
+        @validator("nope")
+        def int_column_lt_100(series: pd.Series) -> bool:
+            return series < 100
+
+    err_msg = "Validator int_column_lt_100 is assigned to a non-existing field 'nope'"
+    with pytest.raises(SchemaInitError, match=err_msg):
+        Schema.get_schema()
+
+
+def test_multiple_validators():
+    class Schema(SchemaModel):
+        a: Series["int"]
+
+        @validator("a")
+        def int_column_lt_100(series: pd.Series) -> bool:
+            return series < 100
+
+        @validator("a")
+        def int_column_gt_0(series: pd.Series) -> bool:
+            return series > 0
+
+    schema = Schema.get_schema()
+    assert len(schema.columns["a"].checks) == 2
+
+    df = pd.DataFrame({"a": [0]})
+    err_msg = r"Column\s*a\s*<Check int_column_gt_0>\s*\[0\]\s*1"
+    with pytest.raises(SchemaErrors, match=err_msg):
+        schema.validate(df, lazy=True)
+
+    df = pd.DataFrame({"a": [101]})
+    err_msg = r"Column\s*a\s*<Check int_column_lt_100>\s*\[101\]\s*1"
+    with pytest.raises(SchemaErrors, match=err_msg):
+        schema.validate(df, lazy=True)
+
+
+def test_validator_multiple_columns():
+    class Schema(SchemaModel):
+        a: Series["int"]
+        b: Series["int"]
+
+        @validator("a", "b")
+        def int_column_lt_100(series: pd.Series) -> bool:
+            return series < 100
+
+    df = pd.DataFrame({"a": [101], "b": [200]})
+    schema = Schema.get_schema()
+    with pytest.raises(SchemaErrors, match="2 schema errors were found"):
+        schema.validate(df, lazy=True)
+
+
+def test_validator_regex():
+    class Schema(SchemaModel):
+        a: Series["int"]
+        abc: Series["int"]
+        cba: Series["int"]
+
+        @validator("^a", regex=True)
+        def int_column_lt_100(series: pd.Series) -> bool:
+            return series < 100
+
+    df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
+    schema = Schema.get_schema()
+    with pytest.raises(SchemaErrors, match="1 schema errors were found"):
+        schema.validate(df, lazy=True)
