@@ -40,7 +40,7 @@ def get_first_arg(annotation: Type) -> type:
     :example:
 
     >>> import numpy as np
-    >>> from pandera.typing import Series, get_first_arg
+    >>> from pandera.schema_model import Series, get_first_arg
     >>>
     >>> assert get_first_arg(Series[np.int32]) == np.int32
     >>> assert get_first_arg(Series["np.int32"]) == "np.int32"

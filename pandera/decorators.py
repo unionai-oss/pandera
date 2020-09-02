@@ -23,7 +23,7 @@ import wrapt
 from typing_inspect import get_origin
 
 from . import errors, schemas
-from .typing import DataFrame, SchemaModel, Series, get_first_arg
+from .schema_model import DataFrame, SchemaModel, Series, get_first_arg
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:

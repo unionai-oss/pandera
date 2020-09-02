@@ -7,7 +7,7 @@ import pytest
 
 import pandera as pa
 from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
-from pandera.typing import DataFrame, Field, Index, SchemaModel, Series, validator
+from pandera.schema_model import DataFrame, Field, Index, SchemaModel, Series, validator
 
 
 def test_schemamodel_to_dataframeschema():
