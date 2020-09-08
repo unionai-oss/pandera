@@ -187,7 +187,7 @@ class _CheckBase():
         self.error = error
         self.name = name or getattr(
             self._check_fn, '__name__',
-            self._check_fn.__class__.__name__)
+            self._check_fn.__class__.__name__
         )
         self.ignore_na = ignore_na
         self.raise_warning = raise_warning
