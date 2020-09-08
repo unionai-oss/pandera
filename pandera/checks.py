@@ -185,7 +185,10 @@ class _CheckBase():
         self._check_kwargs = check_kwargs
         self.element_wise = element_wise
         self.error = error
-        self.name = name
+        self.name = name or getattr(
+            self._check_fn, '__name__',
+            self._check_fn.__class__.__name__)
+        )
         self.ignore_na = ignore_na
         self.raise_warning = raise_warning
         self.n_failure_cases = n_failure_cases
@@ -422,11 +425,8 @@ class _CheckBase():
         return hash(self.__dict__["_check_fn"].__code__.co_code)
 
     def __repr__(self):
-        name = getattr(
-            self._check_fn, '__name__',
-            self._check_fn.__class__.__name__)
-        return "<Check %s: %s>" % (name, self.error) \
-            if self.error is not None else "<Check %s>" % name
+        return "<Check %s: %s>" % (self.name, self.error) \
+            if self.error is not None else "<Check %s>" % self.name
 
 
 class Check(_CheckBase):
