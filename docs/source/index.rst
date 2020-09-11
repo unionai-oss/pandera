@@ -81,7 +81,7 @@ Quick Start
 
 Alternatively, you can pass the built-in python types that are supported by
 pandas, or strings representing the
-`legal pandas datatypes <https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#basics-dtypes>`_:
+`legal pandas datatypes <https://pandas.pydata.org/docs/user_guide/basics.html#dtypes>`_:
 
 .. testcode:: quick_start
 
