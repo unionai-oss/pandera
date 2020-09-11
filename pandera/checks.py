@@ -653,10 +653,11 @@ class Check(_CheckBase):
         # changed from outside.
         try:
             allowed_values = frozenset(allowed_values)
-        except TypeError:
+        except TypeError as exc:
             raise ValueError(
                 "Argument allowed_values must be iterable. Got %s" %
-                allowed_values)
+                allowed_values
+            ) from exc
 
         def _isin(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
@@ -693,10 +694,11 @@ class Check(_CheckBase):
         # changed from outside.
         try:
             forbidden_values = frozenset(forbidden_values)
-        except TypeError:
+        except TypeError as exc:
             raise ValueError(
                 "Argument forbidden_values must be iterable. Got %s" %
-                forbidden_values)
+                forbidden_values
+            ) from exc
 
         def _notin(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
@@ -724,10 +726,11 @@ class Check(_CheckBase):
         # By compiling the regex we get the benefit of an early argument check
         try:
             regex = re.compile(pattern)
-        except TypeError:
+        except TypeError as exc:
             raise ValueError(
                 'pattern="%s" cannot be compiled as regular expression' %
-                pattern)
+                pattern
+            ) from exc
 
         def _match(series: pd.Series) -> pd.Series:
             """
@@ -758,10 +761,11 @@ class Check(_CheckBase):
         # By compiling the regex we get the benefit of an early argument check
         try:
             regex = re.compile(pattern)
-        except TypeError:
+        except TypeError as exc:
             raise ValueError(
                 'pattern="%s" cannot be compiled as regular expression' %
-                pattern)
+                pattern
+            ) from exc
 
         def _contains(series: pd.Series) -> pd.Series:
             """Check if a regex search is successful within each value"""

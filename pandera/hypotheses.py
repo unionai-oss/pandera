@@ -143,7 +143,7 @@ class Hypothesis(_CheckBase):
         elif samples is None:
             samples = []
         self.samples = samples
-        super(Hypothesis, self).__init__(
+        super().__init__(
             self._hypothesis_check,
             groupby=groupby,
             element_wise=False,
@@ -164,8 +164,7 @@ class Hypothesis(_CheckBase):
     ) -> SeriesCheckObj:
         """Prepare Series input for Hypothesis check."""
         self.groups = self.samples
-        return super(Hypothesis, self)._prepare_series_input(
-            series, dataframe_context)
+        return super()._prepare_series_input(series, dataframe_context)
 
     def _prepare_dataframe_input(
             self, dataframe: pd.DataFrame) -> DataFrameCheckObj:

@@ -143,19 +143,20 @@ def check_input(
         if isinstance(obj_getter, int):
             try:
                 args[obj_getter] = schema.validate(args[obj_getter])
-            except IndexError as e:
+            except IndexError as exc:
                 raise IndexError(
                     "error in check_input decorator of function '%s': the "
                     "index '%s' was supplied to the check but this "
                     "function accepts '%s' arguments, so the maximum "
                     "index is '%s'. The full error is: '%s'" %
-                    (fn.__name__,
-                     obj_getter,
-                     len(_get_fn_argnames(fn)),
-                     max(0, len(_get_fn_argnames(fn)) - 1),
-                     e
-                     )
+                    (
+                        fn.__name__,
+                        obj_getter,
+                        len(_get_fn_argnames(fn)),
+                        max(0, len(_get_fn_argnames(fn)) - 1),
+                        exc
                     )
+                ) from exc
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:
                 kwargs[obj_getter] = schema.validate(
