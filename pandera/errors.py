@@ -31,7 +31,7 @@ class SchemaError(Exception):
     def __init__(
             self, schema, data, message,
             failure_cases=None, check=None, check_index=None):
-        super(SchemaError, self).__init__(message)
+        super().__init__(message)
         self.schema = schema
         self.data = data
         self.failure_cases = failure_cases
@@ -62,9 +62,7 @@ class SchemaErrors(Exception):
     def __init__(self, schema_error_dicts, data):
         error_counts, schema_errors = self._parse_schema_errors(
             schema_error_dicts)
-        super(SchemaErrors, self).__init__(
-            self._message(error_counts, schema_errors)
-        )
+        super().__init__(self._message(error_counts, schema_errors))
         self._schema_error_dicts = schema_error_dicts
         self.error_counts = error_counts
         self.schema_errors = schema_errors

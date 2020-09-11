@@ -68,8 +68,9 @@ class Column(SeriesSchemaBase):
 
         See :ref:`here<column>` for more usage details.
         """
-        super(Column, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce)
+        super().__init__(
+            pandas_dtype, checks, nullable, allow_duplicates, coerce
+        )
         if name is not None \
                 and not isinstance(name, str) \
                 and not _is_valid_multiindex_tuple_str(name) \
@@ -284,8 +285,9 @@ class Index(SeriesSchemaBase):
         See :ref:`here<index>` for more usage details.
 
         """
-        super(Index, self).__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce, name)
+        super().__init__(
+            pandas_dtype, checks, nullable, allow_duplicates, coerce, name
+        )
 
     def coerce_dtype(self, series_or_index: pd.Index) -> pd.Index:
         """Coerce type of a pd.Index by type specified in pandas_dtype.
@@ -332,7 +334,7 @@ class Index(SeriesSchemaBase):
             check_obj.index = self.coerce_dtype(check_obj.index)
 
         assert isinstance(
-            super(Index, self).validate(
+            super().validate(
                 pd.Series(check_obj.index),
                 head, tail, sample, random_state, lazy,
             ),
@@ -409,7 +411,7 @@ class MultiIndex(DataFrameSchema):
         """
         # pylint: disable=W0212
         self.indexes = indexes
-        super(MultiIndex, self).__init__(
+        super().__init__(
             columns={
                 i if index._name is None else index._name: Column(
                     pandas_dtype=index._pandas_dtype,
@@ -485,7 +487,7 @@ class MultiIndex(DataFrameSchema):
             check_obj.index = self.coerce_dtype(check_obj.index)
 
         try:
-            validation_result = super(MultiIndex, self).validate(
+            validation_result = super().validate(
                 check_obj.index.to_frame(),
                 head, tail, sample, random_state, lazy,
             )
