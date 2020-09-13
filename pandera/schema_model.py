@@ -1,4 +1,4 @@
-"""Define typing extensions."""
+"""Class-based api"""
 import inspect
 import re
 import warnings
@@ -37,6 +37,7 @@ _ValidatorConfig = namedtuple("_ValidatorConfig", ["fields", "regex", "check"])
 _VALIDATOR_KEY = "__validator_config__"
 _DATAFRAME_VALIDATOR_KEY = "__dataframe_validator_config__"
 _TRANSFORMER_KEY = "__dataframe_transformer_config__"
+_CONFIG_KEY = "Config"
 
 
 def get_first_arg(annotation: Type) -> type:
@@ -65,6 +66,24 @@ class Index(pd.Index, Generic[Dtype]):
     """Representation of pandas.Index."""
 
 
+class BaseConfig:
+    name: Optional[str] = None
+    coerce: bool = False
+    strict: bool = False
+    multiindex_coerce: bool = False
+    multiindex_strict: bool = False
+    multiindex_name: Optional[str] = None
+
+
+_config_options = [attr for attr in vars(BaseConfig) if not attr.startswith("_")]
+
+
+def _extract_config_options(config: Type) -> Dict[str, Any]:
+    return {
+        name: value for name, value in vars(config).items() if name in _config_options
+    }
+
+
 def _regex_filter(seq: Iterable, regexps: List[str]) -> Set[str]:
     """Filter items matching at least one of the regexes."""
     matched: Set[str] = set()
@@ -80,7 +99,7 @@ def _get_field_annotations(cls: Type["SchemaModel"]) -> Dict[str, Any]:
         raise SchemaInitError(f"{cls.__name__} is not annotated.")
     missing = []
     for attr_name, _ in inspect.getmembers(cls, lambda x: not inspect.isroutine(x)):
-        if attr_name.startswith("_"):  # ignore protected attributes
+        if attr_name.startswith("_") or attr_name == _CONFIG_KEY:
             annotations.pop(attr_name, None)
         elif attr_name not in annotations:
             missing.append(attr_name)
@@ -131,7 +150,7 @@ def _extract_transformer(fn: Callable) -> Optional[Callable]:
 
 
 def _build_schema_index(
-    indexes: List[schema_components.Index],
+    indexes: List[schema_components.Index], **multiindex_kwargs: Any
 ) -> Optional[SchemaIndex]:
     index: Optional[SchemaIndex] = None
     if indexes:
@@ -139,12 +158,14 @@ def _build_schema_index(
             index = indexes[0]
             index._name = None  # don't force name on single index
         else:
-            index = schema_components.MultiIndex(indexes)
+            index = schema_components.MultiIndex(indexes, **multiindex_kwargs)
     return index
 
 
 class SchemaModel:
+    Config: Type[BaseConfig] = BaseConfig
     __schema__: Optional[DataFrameSchema] = None
+    __config__: Type[BaseConfig] = BaseConfig
 
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"{cls.__name__} may not be instantiated")
@@ -170,9 +191,22 @@ class SchemaModel:
                     f"{cls.__name__} can only have one 'dataframe_transformer'."
                 )
             transformer = tr
-        columns, index = cls._build_columns_index(checks, annotations)
+
+        config_options = cls._inherit_config_options()
+        mi_kwargs = {
+            name[len("multiindex_") :]: value
+            for name, value in config_options.items()
+            if name.startswith("multiindex_")
+        }
+        columns, index = cls._build_columns_index(checks, annotations, **mi_kwargs)
         cls.__schema__ = DataFrameSchema(
-            columns, index=index, checks=df_checks, transformer=transformer
+            columns,
+            index=index,
+            checks=df_checks,
+            transformer=transformer,
+            coerce=config_options["coerce"],
+            strict=config_options["strict"],
+            name=config_options["name"],
         )
         return cls.__schema__
 
@@ -181,6 +215,7 @@ class SchemaModel:
         cls,
         checks: Dict[str, List[CheckOrHypothesis]],
         annotations: Dict[str, Any],
+        **multiindex_kwargs: Any,
     ) -> Tuple[
         Dict[str, schema_components.Column],
         Optional[Union[schema_components.Index, schema_components.MultiIndex]],
@@ -224,7 +259,7 @@ class SchemaModel:
                     + f"{annotation} should be of type Series or Index."
                 )
 
-        return columns, _build_schema_index(indexes)
+        return columns, _build_schema_index(indexes, **multiindex_kwargs)
 
     @classmethod
     def _inherit_field_annotations(cls) -> Dict[str, Any]:
@@ -236,6 +271,20 @@ class SchemaModel:
             base_annotations = _get_field_annotations(base)
             annotations.update(base_annotations)
         return annotations
+
+    @classmethod
+    def _inherit_config_options(cls) -> Dict[str, Any]:
+        """Collect config options from bases in mro reverse order."""
+        bases = inspect.getmro(cls)[:-1]
+        bases = cast(Tuple[Type[SchemaModel]], bases)
+        root_model, *models = reversed(bases)
+
+        options = _extract_config_options(root_model.Config)
+        for model in models:
+            config = getattr(model, _CONFIG_KEY, {})
+            base_options = _extract_config_options(config)
+            options.update(base_options)
+        return options
 
 
 Schema = TypeVar("Schema", bound=SchemaModel)

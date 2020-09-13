@@ -16,6 +16,7 @@ from pandera.schema_model import (
     validator,
     dataframe_validator,
     dataframe_transformer,
+    BaseConfig,
 )
 
 
@@ -406,3 +407,39 @@ def test_multiple_dataframe_transformers():
         SchemaInitError, match="can only have one 'dataframe_transformer'"
     ):
         B.to_schema().validate(df)
+
+
+def test_config():
+    class A(SchemaModel):
+        a: Series["int"]
+        idx_1: Index["string"]
+        idx_2: Index["string"]
+
+        class Config:
+            name = "A schema"
+            coerce = True
+            multiindex_coerce = True
+            multiindex_strict = True
+            multiindex_name: Optional[str] = "mi"
+
+    class B(A):
+        b: Series["int"]
+
+        class Config:
+            name = "B schema"
+            strict = True
+
+    expected = pa.DataFrameSchema(
+        columns={"a": pa.Column(pa.Int), "b": pa.Column(pa.Int)},
+        index=pa.MultiIndex(
+            [pa.Index(pa.String, name="idx_1"), pa.Index(pa.String, name="idx_2")],
+            coerce=True,
+            strict=True,
+            name="mi",
+        ),
+        name="B schema",
+        coerce=True,
+        strict=True,
+    )
+
+    assert expected == B.to_schema()
