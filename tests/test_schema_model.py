@@ -7,7 +7,16 @@ import pytest
 
 import pandera as pa
 from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
-from pandera.schema_model import DataFrame, Field, Index, SchemaModel, Series, validator
+from pandera.schema_model import (
+    DataFrame,
+    Field,
+    Index,
+    SchemaModel,
+    Series,
+    validator,
+    dataframe_validator,
+    dataframe_transformer,
+)
 
 
 def test_schemamodel_to_dataframeschema():
@@ -338,3 +347,62 @@ def test_inherit_schemamodel_fields_checks():
     assert len(schema.columns["a"].checks) == 2
     assert len(schema.columns["abc"].checks) == 1
     assert len(schema.index.checks) == 1
+
+
+def test_dataframe_validator():
+    class A(SchemaModel):
+        a: Series["int"]
+        b: Series["int"]
+
+        @dataframe_validator
+        def value_lt_100(df: pd.DataFrame) -> bool:
+            return df < 100
+
+    class B(A):
+        @dataframe_validator()
+        def value_gt_0(df: pd.DataFrame) -> bool:
+            return df > 0
+
+    df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
+    schema = B.to_schema()
+    with pytest.raises(SchemaErrors, match="2 schema errors were found"):
+        schema.validate(df, lazy=True)
+
+
+def test_dataframe_transformer():
+    class Schema(SchemaModel):
+        a: Series["int"]
+
+        @dataframe_transformer
+        def neg_a(df: pd.DataFrame) -> pd.DataFrame:
+            df["a"] = -df["a"]
+            return df
+
+    df = pd.DataFrame({"a": [1]})
+    actual = Schema.to_schema().validate(df)
+    expected = pd.DataFrame({"a": [-1]})
+    pd.testing.assert_frame_equal(actual, expected)
+
+
+def test_multiple_dataframe_transformers():
+    class A(SchemaModel):
+        a: Series["int"]
+
+        @dataframe_transformer
+        def neg_a(df: pd.DataFrame) -> pd.DataFrame:
+            df["a"] = -df["a"]
+            return df
+
+    class B(A):
+        b: Series["int"]
+
+        @dataframe_transformer
+        def neg_b(df: pd.DataFrame) -> pd.DataFrame:
+            df["b"] = -df["b"]
+            return df
+
+    df = pd.DataFrame({"a": [1]})
+    with pytest.raises(
+        SchemaInitError, match="can only have one 'dataframe_transformer'"
+    ):
+        B.to_schema().validate(df)

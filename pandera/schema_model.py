@@ -35,6 +35,8 @@ CheckOrHypothesis = Union[Check, Hypothesis]
 
 _ValidatorConfig = namedtuple("_ValidatorConfig", ["fields", "regex", "check"])
 _VALIDATOR_KEY = "__validator_config__"
+_DATAFRAME_VALIDATOR_KEY = "__dataframe_validator_config__"
+_TRANSFORMER_KEY = "__dataframe_transformer_config__"
 
 
 def get_first_arg(annotation: Type) -> type:
@@ -115,6 +117,19 @@ def _update_checks(
     return checks
 
 
+def _extract_df_check(fn: Callable) -> Optional[CheckOrHypothesis]:
+    df_validator = getattr(fn, _DATAFRAME_VALIDATOR_KEY, None)
+    if isinstance(df_validator, (Check, Hypothesis)):
+        return df_validator
+    return None
+
+
+def _extract_transformer(fn: Callable) -> Optional[Callable]:
+    if getattr(fn, _TRANSFORMER_KEY, None):
+        return fn
+    return None
+
+
 def _build_schema_index(
     indexes: List[schema_components.Index],
 ) -> Optional[SchemaIndex]:
@@ -142,10 +157,23 @@ class SchemaModel:
 
         annotations = cls._inherit_field_annotations()
         checks: Dict[str, List[CheckOrHypothesis]] = {}
+        df_checks: List[CheckOrHypothesis] = []
+        transformer = None
         for _, fn in inspect.getmembers(cls, inspect.isfunction):
             _update_checks(checks, fn, list(annotations.keys()))
+            df_check = _extract_df_check(fn)
+            if df_check:
+                df_checks.append(df_check)
+            tr = _extract_transformer(fn)
+            if transformer and tr:
+                raise SchemaInitError(
+                    f"{cls.__name__} can only have one 'dataframe_transformer'."
+                )
+            transformer = tr
         columns, index = cls._build_columns_index(checks, annotations)
-        cls.__schema__ = DataFrameSchema(columns, index=index)
+        cls.__schema__ = DataFrameSchema(
+            columns, index=index, checks=df_checks, transformer=transformer
+        )
         return cls.__schema__
 
     @classmethod
@@ -384,4 +412,43 @@ def validator(*fields, regex: bool = False, **check_kwargs) -> ClassValidator:
         )
         return check_fn
 
+    return _wrapper
+
+
+def dataframe_validator(_fn=None, **check_kwargs) -> ClassValidator:
+    """Decorate method on the SchemaModel indicating that it should be used to
+    validate the DataFrame.
+    """
+
+    def _wrapper(check_fn: Callable[..., bool]) -> Callable[..., bool]:
+        check = Check(check_fn, **check_kwargs)
+        setattr(
+            check_fn,
+            _DATAFRAME_VALIDATOR_KEY,
+            check,
+        )
+        return check_fn
+
+    if callable(_fn):
+        return _wrapper(_fn)  # type: ignore
+    return _wrapper
+
+
+def dataframe_transformer(fn=None) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    """Decorate method on the SchemaModel indicating that it should be used to
+    transform the DataFrame.
+    """
+
+    def _wrapper(
+        check_fn: Callable[..., bool]
+    ) -> Callable[[pd.DataFrame], pd.DataFrame]:
+        setattr(
+            check_fn,
+            _TRANSFORMER_KEY,
+            True,
+        )
+        return check_fn
+
+    if callable(fn):
+        return _wrapper(fn)
     return _wrapper
