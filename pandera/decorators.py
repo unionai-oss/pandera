@@ -360,7 +360,7 @@ def check_types(
         for arg_name, annotation in hints.items():
             if _is_frame_or_series_hint(annotation):
                 model = cast(SchemaModel, get_first_arg(annotation))
-                schema = model.get_schema()
+                schema = model.to_schema()
                 obj = arguments[arg_name]
                 try:
                     schema.validate(obj, head, tail, sample, random_state, lazy)
@@ -371,7 +371,7 @@ def check_types(
 
         if _is_frame_or_series_hint(return_hint):
             model = cast(SchemaModel, get_first_arg(return_hint))
-            schema = model.get_schema()
+            schema = model.to_schema()
             try:
                 schema.validate(out, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:
@@ -380,4 +380,3 @@ def check_types(
         return out
 
     return _wrapper(fn)
-

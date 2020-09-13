@@ -12,9 +12,11 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 import pandas as pd
@@ -29,9 +31,10 @@ from .schemas import CheckList, DataFrameSchema, PandasDtypeInputTypes, SeriesSc
 
 Dtype = TypeVar("Dtype", PandasDtype, dtypes.PandasExtensionType, bool, int, str, float)
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
+CheckOrHypothesis = Union[Check, Hypothesis]
 
 _ValidatorConfig = namedtuple("_ValidatorConfig", ["fields", "regex", "check"])
-_VALIDATOR_CONFIG_KEY = "__validator_config__"
+_VALIDATOR_KEY = "__validator_config__"
 
 
 def get_first_arg(annotation: Type) -> type:
@@ -60,83 +63,103 @@ class Index(pd.Index, Generic[Dtype]):
     """Representation of pandas.Index."""
 
 
-def _filter_regexes(seq: Iterable, regexes: List[str]) -> Set[str]:
+def _regex_filter(seq: Iterable, regexps: List[str]) -> Set[str]:
+    """Filter items matching at least one of the regexes."""
     matched: Set[str] = set()
-    for regex in regexes:
+    for regex in regexps:
         pattern = re.compile(regex)
         matched.update(filter(pattern.match, seq))
     return matched
 
 
+def _get_field_annotations(cls: Type["SchemaModel"]) -> Dict[str, Any]:
+    annotations = cls.__annotations__
+    if not annotations:
+        raise SchemaInitError(f"{cls.__name__} is not annotated.")
+    missing = []
+    for attr_name, _ in inspect.getmembers(cls, lambda x: not inspect.isroutine(x)):
+        if attr_name.startswith("_"):  # ignore protected attributes
+            annotations.pop(attr_name, None)
+        elif attr_name not in annotations:
+            missing.append(attr_name)
+
+    if missing:
+        warnings.warn(
+            f"The following unannotated attributes will be ignored: {missing}"
+        )
+    return annotations
+
+
+def _update_checks(
+    checks: Dict[str, List[CheckOrHypothesis]],
+    fn: Callable,
+    fields: List[str],
+) -> Dict[str, List[CheckOrHypothesis]]:
+    """Extract validator from function and append it to the checks list."""
+    field_validator = getattr(fn, _VALIDATOR_KEY, None)
+    if isinstance(field_validator, _ValidatorConfig):
+        if field_validator.regex:
+            matched = _regex_filter(fields, field_validator.fields)
+        else:
+            matched = field_validator.fields
+        for field in matched:
+            if field not in fields:
+                raise SchemaInitError(
+                    f"Validator {fn.__name__} is assigned to a non-existing "
+                    + f"field '{field}'."
+                )
+            if field not in checks:
+                checks[field] = []
+            checks[field].append(field_validator.check)
+
+    return checks
+
+
+def _build_schema_index(
+    indexes: List[schema_components.Index],
+) -> Optional[SchemaIndex]:
+    index: Optional[SchemaIndex] = None
+    if indexes:
+        if len(indexes) == 1:
+            index = indexes[0]
+            index._name = None  # don't force name on single index
+        else:
+            index = schema_components.MultiIndex(indexes)
+    return index
+
+
 class SchemaModel:
-    __schema: Optional[DataFrameSchema] = None
-    __checks: Dict[str, Set[Check]] = {}
+    __schema__: Optional[DataFrameSchema] = None
 
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"{cls.__name__} may not be instantiated")
 
     @classmethod
-    def _get_attrs(cls):
-        def not_callable(x):
-            return (
-                not inspect.ismethod(x)
-                and not inspect.isfunction(x)
-                and not inspect.isbuiltin(x)
-            )
-
-        private_attrs = {"_SchemaModel__checks", "_SchemaModel__schema"}
-        return [
-            attr
-            for attr, _ in inspect.getmembers(cls, not_callable)
-            if not attr.startswith("__") and attr not in private_attrs
-        ]
-
-    @classmethod
-    def _check_missing_annotations(cls):
-        annotations = cls.__annotations__
-        if not annotations:
-            raise SchemaInitError(f"{cls.__name__} is not annotated.")
-
-        missing = [attr for attr in cls._get_attrs() if attr not in annotations.keys()]
-        if missing:
-            warnings.warn(
-                f"The following unannotated attributes will be ignored: {missing}"
-            )
-
-    @classmethod
-    def _extract_validators(cls):
-        model_fields = list(cls.__annotations__.keys())
-        for fn_name, fn in inspect.getmembers(cls, inspect.isfunction):
-            check_definition = getattr(fn, _VALIDATOR_CONFIG_KEY, None)
-            if isinstance(check_definition, _ValidatorConfig):
-                if check_definition.regex:
-                    matched = _filter_regexes(model_fields, check_definition.fields)
-                else:
-                    matched = check_definition.fields
-
-                for field in matched:
-                    if field not in model_fields:
-                        raise SchemaInitError(
-                            f"Validator {fn_name} is assigned to a non-existing "
-                            f"field '{field}'."
-                        )
-                    if field in cls.__checks:
-                        cls.__checks[field].add(check_definition.check)
-                    else:
-                        cls.__checks[field] = {check_definition.check}
-
-    @classmethod
-    def get_schema(cls) -> DataFrameSchema:
+    def to_schema(cls) -> DataFrameSchema:
         """Create DataFrameSchema from the SchemaModel."""
-        if cls.__schema:
-            return cls.__schema
+        if cls.__schema__:
+            return cls.__schema__
 
-        cls._check_missing_annotations()
-        cls._extract_validators()
+        annotations = cls._inherit_field_annotations()
+        checks: Dict[str, List[CheckOrHypothesis]] = {}
+        for _, fn in inspect.getmembers(cls, inspect.isfunction):
+            _update_checks(checks, fn, list(annotations.keys()))
+        columns, index = cls._build_columns_index(checks, annotations)
+        cls.__schema__ = DataFrameSchema(columns, index=index)
+        return cls.__schema__
 
+    @classmethod
+    def _build_columns_index(
+        cls,
+        checks: Dict[str, List[CheckOrHypothesis]],
+        annotations: Dict[str, Any],
+    ) -> Tuple[
+        Dict[str, schema_components.Column],
+        Optional[Union[schema_components.Index, schema_components.MultiIndex]],
+    ]:
         columns: Dict[str, schema_components.Column] = {}
         indexes: List[schema_components.Index] = []
-        for field_name, annotation in cls.__annotations__.items():
+        for field_name, annotation in annotations.items():
             optional = is_optional_type(annotation)
             if optional:
                 # e.g extract Series[int] from Optional[Series[int]]
@@ -147,37 +170,44 @@ class SchemaModel:
             field = getattr(cls, field_name, None)
             if field and not isinstance(field, FieldInfo):
                 raise SchemaInitError(
-                    f"'{field_name}' can only be assigned the result of 'Field', "
-                    f"not a '{field.__class__}.'"
+                    f"'{field_name}' can only be assigned a 'Field', "
+                    + f"not a '{field.__class__}.'"
                 )
-            checks = cls.__checks.get(field_name, None)
+            field_checks = checks.get(field_name, [])
 
             if schema_component is Series:
                 col_constructor = field.to_column if field else schema_components.Column
                 columns[field_name] = col_constructor(
-                    dtype, required=not optional, checks=checks, name=field_name
+                    dtype,
+                    required=not optional,
+                    checks=field_checks,
+                    name=field_name,
                 )
             elif schema_component is Index:
                 if optional:
                     raise SchemaInitError(f"Index '{field_name}' cannot be Optional.")
                 index_constructor = field.to_index if field else schema_components.Index
-                indexes.append(index_constructor(dtype, checks=checks, name=field_name))
+                indexes.append(
+                    index_constructor(dtype, checks=field_checks, name=field_name)
+                )
             else:
                 raise SchemaInitError(
                     f"Invalid annotation for {field_name}. "
-                    f"{annotation} should be of type Series or Index."
+                    + f"{annotation} should be of type Series or Index."
                 )
 
-        index: Optional[SchemaIndex] = None
-        if indexes:
-            if len(indexes) == 1:
-                index = indexes[0]
-                index._name = None  # don't force name on single index
-            else:
-                index = schema_components.MultiIndex(indexes)
+        return columns, _build_schema_index(indexes)
 
-        cls.__schema = DataFrameSchema(columns, index=index)
-        return cls.__schema
+    @classmethod
+    def _inherit_field_annotations(cls) -> Dict[str, Any]:
+        """Collect field annotations from bases in mro reverse order."""
+        bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
+        bases = cast(Tuple[Type[SchemaModel]], bases)
+        annotations = {}
+        for base in reversed(bases):
+            base_annotations = _get_field_annotations(base)
+            annotations.update(base_annotations)
+        return annotations
 
 
 Schema = TypeVar("Schema", bound=SchemaModel)
@@ -193,7 +223,7 @@ SchemaComponent = TypeVar("SchemaComponent", bound=SeriesSchemaBase)
 def _to_checklist(checks: Optional[CheckList]) -> List[Union[Check, Hypothesis]]:
     checks = checks or []
     if isinstance(checks, (Check, Hypothesis)):
-        checks = [checks]
+        return [checks]
     return checks
 
 
@@ -336,16 +366,22 @@ def Field(
     )
 
 
-def validator(*fields, regex: bool = False, **check_kwargs) -> Callable:
-    """Decorate method on the SchemaModel indicating that it should be used to 
-    validate fields."""
+AnyCallable = Callable[..., Any]
+ClassValidator = Callable[[AnyCallable], Callable[..., bool]]
 
-    def decorator(check_fn: Callable) -> Callable:
+
+def validator(*fields, regex: bool = False, **check_kwargs) -> ClassValidator:
+    """Decorate method on the SchemaModel indicating that it should be used to
+    validate fields (columns or index).
+    """
+
+    def _wrapper(check_fn: Callable[..., bool]) -> Callable[..., bool]:
+        check = Check(check_fn, **check_kwargs)
         setattr(
             check_fn,
-            _VALIDATOR_CONFIG_KEY,
-            _ValidatorConfig(set(fields), regex, Check(check_fn, **check_kwargs)),
+            _VALIDATOR_KEY,
+            _ValidatorConfig(set(fields), regex, check),
         )
         return check_fn
 
-    return decorator
+    return _wrapper
