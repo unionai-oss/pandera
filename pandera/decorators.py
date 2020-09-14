@@ -4,25 +4,13 @@ import functools
 import inspect
 import warnings
 from collections import OrderedDict
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    NoReturn,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
 import pandas as pd
-import typing_inspect
 import wrapt
 
 from . import errors, schemas
-from .schema_model import DataFrame, SchemaModel, Series, get_first_arg
+from .typing import is_frame_or_series_hint, parse_annotation
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
@@ -318,12 +306,6 @@ def check_output(
     return _wrapper
 
 
-def _is_frame_or_series_hint(annotation: Type) -> bool:
-    """Test if base annotation is a typing.Series or typing.DataFrame."""
-    origin = typing_inspect.get_origin(annotation)
-    return origin is DataFrame or origin is Series
-
-
 def check_types(
     fn=None,
     *,
@@ -355,20 +337,27 @@ def check_types(
 
         arguments = sig.bind(*args, **kwargs).arguments
         for name, value in arguments.items():
-            annotation = sig.parameters[name].annotation
-            if _is_frame_or_series_hint(annotation):
-                model = cast(SchemaModel, get_first_arg(annotation))
-                schema = model.to_schema()
-                try:
-                    schema.validate(value, head, tail, sample, random_state, lazy)
-                except errors.SchemaError as e:
-                    _handle_schema_error("check_types", fn, schema, value, e)
+            raw_annotation = sig.parameters[name].annotation
+            if not is_frame_or_series_hint(raw_annotation):
+                continue
+
+            annotation = parse_annotation(raw_annotation)
+            if annotation.optional and value is None:
+                continue
+
+            schema = annotation.arg.to_schema()
+            try:
+                schema.validate(value, head, tail, sample, random_state, lazy)
+            except errors.SchemaError as e:
+                _handle_schema_error("check_types", fn, schema, value, e)
 
         out = fn(*args, **kwargs)
 
-        if _is_frame_or_series_hint(sig.return_annotation):
-            model = cast(SchemaModel, get_first_arg(sig.return_annotation))
-            schema = model.to_schema()
+        if is_frame_or_series_hint(sig.return_annotation):
+            annotation = parse_annotation(sig.return_annotation)
+            if annotation.optional and out is None:
+                return out
+            schema = annotation.arg.to_schema()
             try:
                 schema.validate(out, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:

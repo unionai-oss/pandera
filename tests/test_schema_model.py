@@ -5,23 +5,13 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.errors import SchemaError, SchemaErrors, SchemaInitError
-from pandera.schema_model import (
-    DataFrame,
-    Field,
-    Index,
-    SchemaModel,
-    Series,
-    validator,
-    dataframe_validator,
-    dataframe_transformer,
-)
+from pandera.typing import Index, Series
 
 
-def test_schemamodel_to_dataframeschema():
+def test_simple_to_schema():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Series[int]
         b: Series[str]
         idx: Index[str]
@@ -33,56 +23,29 @@ def test_schemamodel_to_dataframeschema():
 
     assert expected == Schema.to_schema()
 
-# required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class A(SchemaModel):
-    a: Series[int]
-    idx: Index[str]
 
+def test_invalid_annotations():
+    """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
-class B(SchemaModel):
-    b: Series[int]
+    class IntSchema(pa.SchemaModel):
+        a: int
 
+    with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
+        IntSchema.to_schema()
 
-def test_check_types():
-    @pa.check_types
-    def transform(df: DataFrame[A]) -> DataFrame[A]:
-        return df
+    from decimal import Decimal
 
-    df = pd.DataFrame({"a": [1]},  index=["1"])
-    pd.testing.assert_frame_equal(transform(df), df)
+    class InvalidDtypeSchema(pa.SchemaModel):
+        d: Series[Decimal]
 
-
-def test_check_types_errors():
-
-    df = pd.DataFrame({"a": [1]}, index=["1"])
-
-    @pa.check_types
-    def transform_index(df: DataFrame[A]) -> DataFrame[A]:
-        return df.reset_index(drop=True)
-
-    with pytest.raises(SchemaError):
-        transform_index(df)
-
-    @pa.check_types
-    def to_b(df: DataFrame[A]) -> DataFrame[B]:
-        return df
-
-    with pytest.raises(SchemaError, match="column 'b' not in dataframe"):
-        to_b(df)
-
-    @pa.check_types
-    def to_str(df: DataFrame[A]) -> DataFrame[A]:
-        df["a"] = "1"
-        return df
-
-    with pytest.raises(SchemaError, match="expected series 'a' to have type int64"):
-        to_str(df)
+    with pytest.raises(TypeError, match="python type '<class 'decimal.Decimal'>"):
+        InvalidDtypeSchema.to_schema()
 
 
 def test_optional_column():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Optional[Series[str]]
-        b: Optional[Series[str]] = Field(eq="b")
+        b: Optional[Series[str]] = pa.Field(eq="b")
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
@@ -90,20 +53,22 @@ def test_optional_column():
 
 
 def test_optional_index():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         idx: Optional[Index[str]]
 
-    with pytest.raises(SchemaInitError, match="Index 'idx' cannot be Optional."):
+    with pytest.raises(
+        pa.errors.SchemaInitError, match="Index 'idx' cannot be Optional."
+    ):
         Schema.to_schema()
 
 
 def test_schemamodel_with_fields():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
-    class Schema(SchemaModel):
-        a: Series[int] = Field(eq=9, neq=0)
+    class Schema(pa.SchemaModel):
+        a: Series[int] = pa.Field(eq=9, neq=0)
         b: Series[str]
-        idx: Index[str] = Field(str_length={"min_value": 1})
+        idx: Index[str] = pa.Field(str_length={"min_value": 1})
 
     actual = Schema.to_schema()
     expected = pa.DataFrameSchema(
@@ -122,7 +87,7 @@ def test_schemamodel_with_fields():
 def test_field_to_column():
     for flag in ["nullable", "allow_duplicates", "coerce", "regex"]:
         for value in [True, False]:
-            col = Field(**{flag: value}).to_column(pa.DateTime, required=value)
+            col = pa.Field(**{flag: value}).to_column(pa.DateTime, required=value)
             assert isinstance(col, pa.Column)
             assert col.dtype == pa.DateTime.value
             assert col.properties[flag] == value
@@ -132,14 +97,14 @@ def test_field_to_column():
 def test_field_to_index():
     for flag in ["nullable", "allow_duplicates"]:
         for value in [True, False]:
-            index = Field(**{flag: value}).to_index(pa.DateTime)
+            index = pa.Field(**{flag: value}).to_index(pa.DateTime)
             assert isinstance(index, pa.Index)
             assert index.dtype == pa.DateTime.value
             assert getattr(index, flag) == value
 
 
 def test_field_no_checks():
-    assert not Field().to_column(str).checks
+    assert not pa.Field().to_column(str).checks
 
 
 @pytest.mark.parametrize(
@@ -162,13 +127,13 @@ def test_field_no_checks():
     ],
 )
 def test_field_checks(arg: str, value: Any, expected: pa.Check):
-    checks = Field(**{arg: value}).to_column(str).checks
+    checks = pa.Field(**{arg: value}).to_column(str).checks
     assert len(checks) == 1
     assert checks[0] == expected
 
 
 def test_multiindex():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Index[int]
         b: Index[str]
 
@@ -179,40 +144,40 @@ def test_multiindex():
 
 
 def test_validator_single_column():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Series[int]
 
-        @validator("a")
+        @pa.validator("a")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
     df = pd.DataFrame({"a": [101]})
     schema = Schema.to_schema()
     err_msg = r"Column\s*a\s*<Check int_column_lt_100>\s*\[101\]\s*1"
-    with pytest.raises(SchemaErrors, match=err_msg):
+    with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
 
 def test_validator_single_index():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Index[str]
 
-        @validator("a")
+        @pa.validator("a")
         def not_dog(idx: pd.Index) -> bool:
             return ~idx.str.contains("dog")
 
     df = pd.DataFrame(index=["cat", "dog"])
     schema = Schema.to_schema()
     err_msg = r"Index\s*<NA>\s*<Check not_dog>\s*\[dog\]\s*"
-    with pytest.raises(SchemaErrors, match=err_msg):
+    with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
 
 def test_validator_and_check():
-    class Schema(SchemaModel):
-        a: Series[int] = Field(eq=1)
+    class Schema(pa.SchemaModel):
+        a: Series[int] = pa.Field(eq=1)
 
-        @validator("a")
+        @pa.validator("a")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -221,27 +186,27 @@ def test_validator_and_check():
 
 
 def test_validator_non_existing():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Series[int]
 
-        @validator("nope")
+        @pa.validator("nope")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
     err_msg = "Validator int_column_lt_100 is assigned to a non-existing field 'nope'"
-    with pytest.raises(SchemaInitError, match=err_msg):
+    with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
         Schema.to_schema()
 
 
 def test_multiple_validators():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Series[int]
 
-        @validator("a")
+        @pa.validator("a")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
-        @validator("a")
+        @pa.validator("a")
         def int_column_gt_0(series: pd.Series) -> bool:
             return series > 0
 
@@ -250,50 +215,50 @@ def test_multiple_validators():
 
     df = pd.DataFrame({"a": [0]})
     err_msg = r"Column\s*a\s*<Check int_column_gt_0>\s*\[0\]\s*1"
-    with pytest.raises(SchemaErrors, match=err_msg):
+    with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
     df = pd.DataFrame({"a": [101]})
     err_msg = r"Column\s*a\s*<Check int_column_lt_100>\s*\[101\]\s*1"
-    with pytest.raises(SchemaErrors, match=err_msg):
+    with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
 
 def test_validator_multiple_columns():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Series[int]
         b: Series[int]
 
-        @validator("a", "b")
+        @pa.validator("a", "b")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "b": [200]})
     schema = Schema.to_schema()
-    with pytest.raises(SchemaErrors, match="2 schema errors were found"):
+    with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
         schema.validate(df, lazy=True)
 
 
 def test_validator_regex():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Series[int]
         abc: Series[int]
         cba: Series[int]
 
-        @validator("^a", regex=True)
+        @pa.validator("^a", regex=True)
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
     schema = Schema.to_schema()
-    with pytest.raises(SchemaErrors, match="1 schema errors were found"):
+    with pytest.raises(pa.errors.SchemaErrors, match="1 schema errors were found"):
         schema.validate(df, lazy=True)
 
 
 def test_inherit_schemamodel_fields():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
-    class A(SchemaModel):
+    class A(pa.SchemaModel):
         a: Series[int]
         idx: Index[str]
 
@@ -315,10 +280,10 @@ def test_inherit_schemamodel_fields():
 def test_inherit_schemamodel_fields_checks():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
-    class A(SchemaModel):
+    class A(pa.SchemaModel):
         a: Series[int]
 
-        @validator("^a", regex=True)
+        @pa.validator("^a", regex=True)
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -326,7 +291,7 @@ def test_inherit_schemamodel_fields_checks():
         b: Series[str]
         idx: Index[str]
 
-        @validator("a")
+        @pa.validator("a")
         def int_column_lt_5(series: pd.Series) -> bool:
             return series < 5
 
@@ -334,7 +299,7 @@ def test_inherit_schemamodel_fields_checks():
         b: Series[int]
         abc: Series[int]
 
-        @validator("idx")
+        @pa.validator("idx")
         def not_dog(idx: pd.Index) -> bool:
             return ~idx.str.contains("dog")
 
@@ -345,30 +310,30 @@ def test_inherit_schemamodel_fields_checks():
 
 
 def test_dataframe_validator():
-    class A(SchemaModel):
+    class A(pa.SchemaModel):
         a: Series[int]
         b: Series[int]
 
-        @dataframe_validator
+        @pa.dataframe_validator
         def value_lt_100(df: pd.DataFrame) -> bool:
             return df < 100
 
     class B(A):
-        @dataframe_validator()
+        @pa.dataframe_validator()
         def value_gt_0(df: pd.DataFrame) -> bool:
             return df > 0
 
     df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
     schema = B.to_schema()
-    with pytest.raises(SchemaErrors, match="2 schema errors were found"):
+    with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
         schema.validate(df, lazy=True)
 
 
 def test_dataframe_transformer():
-    class Schema(SchemaModel):
+    class Schema(pa.SchemaModel):
         a: Series[int]
 
-        @dataframe_transformer
+        @pa.dataframe_transformer
         def neg_a(df: pd.DataFrame) -> pd.DataFrame:
             df["a"] = -df["a"]
             return df
@@ -380,10 +345,10 @@ def test_dataframe_transformer():
 
 
 def test_multiple_dataframe_transformers():
-    class A(SchemaModel):
+    class A(pa.SchemaModel):
         a: Series[int]
 
-        @dataframe_transformer
+        @pa.dataframe_transformer
         def neg_a(df: pd.DataFrame) -> pd.DataFrame:
             df["a"] = -df["a"]
             return df
@@ -391,20 +356,20 @@ def test_multiple_dataframe_transformers():
     class B(A):
         b: Series[int]
 
-        @dataframe_transformer
+        @pa.dataframe_transformer
         def neg_b(df: pd.DataFrame) -> pd.DataFrame:
             df["b"] = -df["b"]
             return df
 
     df = pd.DataFrame({"a": [1]})
     with pytest.raises(
-        SchemaInitError, match="can only have one 'dataframe_transformer'"
+        pa.errors.SchemaInitError, match="can only have one 'dataframe_transformer'"
     ):
         B.to_schema().validate(df)
 
 
 def test_config():
-    class A(SchemaModel):
+    class A(pa.SchemaModel):
         a: Series[int]
         idx_1: Index[str]
         idx_2: Index[str]

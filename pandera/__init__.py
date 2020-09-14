@@ -8,8 +8,15 @@ from .dtypes import PandasDtype
 from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
+from .schema_model import (
+    Field,
+    SchemaModel,
+    dataframe_transformer,
+    dataframe_validator,
+    validator,
+)
+from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
-
 
 # pylint: disable=invalid-name
 Bool = PandasDtype.Bool

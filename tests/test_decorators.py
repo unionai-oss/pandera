@@ -1,13 +1,26 @@
 """Testing the Decorators that check a functions input or output."""
 
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from pandera import errors
 from pandera import (
-    Column, DataFrameSchema, Check, DateTime, Float, Int, String, check_input,
-    check_output)
+    Check,
+    Column,
+    DataFrameSchema,
+    DateTime,
+    Float,
+    Int,
+    SchemaModel,
+    String,
+    check_input,
+    check_output,
+    check_types,
+    errors,
+)
+from pandera.typing import DataFrame, Index, Series
 
 
 def test_check_function_decorators():
@@ -247,3 +260,77 @@ def test_check_input_method_decorators():
         transformer.transform_secord_arg_with_list_getter(None, dataframe))
     _assert_expectation(
         transformer.transform_secord_arg_with_dict_getter(None, dataframe))
+
+# required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+class InSchema(SchemaModel):
+    a: Series[int]
+    idx: Index[str]
+
+
+class OutSchema(SchemaModel):
+    b: Series[int]
+
+
+def test_check_types():
+    @check_types
+    def transform(df: DataFrame[InSchema]) -> DataFrame[InSchema]:
+        return df
+
+    df = pd.DataFrame({"a": [1]}, index=["1"])
+    pd.testing.assert_frame_equal(transform(df), df)
+
+
+def test_check_types_errors():
+
+    df = pd.DataFrame({"a": [1]}, index=["1"])
+
+    @check_types
+    def transform_index(df: DataFrame[InSchema]) -> DataFrame[InSchema]:
+        return df.reset_index(drop=True)
+
+    with pytest.raises(errors.SchemaError):
+        transform_index(df)
+
+    @check_types
+    def to_b(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
+        return df
+
+    with pytest.raises(errors.SchemaError, match="column 'b' not in dataframe"):
+        to_b(df)
+
+    @check_types
+    def to_str(df: DataFrame[InSchema]) -> DataFrame[InSchema]:
+        df["a"] = "1"
+        return df
+
+    with pytest.raises(
+        errors.SchemaError, match="expected series 'a' to have type int64"
+    ):
+        to_str(df)
+
+
+def test_check_types_optional_out():
+    @check_types
+    def optional_out(df: DataFrame[InSchema]) -> Optional[DataFrame[OutSchema]]:
+        return None
+
+    df = pd.DataFrame({"a": [1]}, index=["1"])
+    assert optional_out(df) is None
+
+
+def test_check_types_optional_in():
+    @check_types
+    def optional_in(df: Optional[DataFrame[InSchema]]) -> None:
+        return None
+
+    assert optional_in(None) is None
+
+
+def test_check_types_optional_in_out():
+    @check_types
+    def optional_in_out(
+        df: Optional[DataFrame[InSchema]],
+    ) -> Optional[DataFrame[OutSchema]]:
+        return None
+
+    assert optional_in_out(None) is None
