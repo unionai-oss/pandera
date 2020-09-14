@@ -1,5 +1,4 @@
 """Tests schema creation and validation from type annotations."""
-
 from typing import Any, Optional
 
 import pandas as pd
@@ -16,7 +15,6 @@ from pandera.schema_model import (
     validator,
     dataframe_validator,
     dataframe_transformer,
-    BaseConfig,
 )
 
 
@@ -24,45 +22,42 @@ def test_schemamodel_to_dataframeschema():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
     class Schema(SchemaModel):
-        a: Series["int"]
-        b: Series["string"]
-        idx: Index["string"]
+        a: Series[int]
+        b: Series[str]
+        idx: Index[str]
 
     expected = pa.DataFrameSchema(
-        columns={"a": pa.Column(pa.Int64), "b": pa.Column("string")},
-        index=pa.Index("string"),
+        columns={"a": pa.Column(int), "b": pa.Column(str)},
+        index=pa.Index(str),
     )
 
     assert expected == Schema.to_schema()
 
+# required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+class A(SchemaModel):
+    a: Series[int]
+    idx: Index[str]
+
+
+class B(SchemaModel):
+    b: Series[int]
+
 
 def test_check_types():
-    class A(SchemaModel):
-        a: Series["int"]
-
     @pa.check_types
     def transform(df: DataFrame[A]) -> DataFrame[A]:
         return df
 
-    df = pd.DataFrame({"a": [1]})
-    try:
-        transform(df)
-    except Exception as e:
-        pytest.fail(f"Unexpected Exception {e}")
+    df = pd.DataFrame({"a": [1]},  index=["1"])
+    pd.testing.assert_frame_equal(transform(df), df)
 
 
 def test_check_types_errors():
-    class A(SchemaModel):
-        a: Series["int"]
-        idx: Index["string"]
-
-    class B(SchemaModel):
-        b: Series["int"]
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
     @pa.check_types
-    def transform_index(df) -> DataFrame[A]:
+    def transform_index(df: DataFrame[A]) -> DataFrame[A]:
         return df.reset_index(drop=True)
 
     with pytest.raises(SchemaError):
@@ -86,8 +81,8 @@ def test_check_types_errors():
 
 def test_optional_column():
     class Schema(SchemaModel):
-        a: Optional[Series["string"]]
-        b: Optional[Series["string"]] = Field(eq="b")
+        a: Optional[Series[str]]
+        b: Optional[Series[str]] = Field(eq="b")
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
@@ -96,7 +91,7 @@ def test_optional_column():
 
 def test_optional_index():
     class Schema(SchemaModel):
-        idx: Optional[Index["string"]]
+        idx: Optional[Index[str]]
 
     with pytest.raises(SchemaInitError, match="Index 'idx' cannot be Optional."):
         Schema.to_schema()
@@ -106,19 +101,19 @@ def test_schemamodel_with_fields():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
     class Schema(SchemaModel):
-        a: Series["int"] = Field(eq=9, neq=0)
-        b: Series["string"]
-        idx: Index["string"] = Field(str_length={"min_value": 1})
+        a: Series[int] = Field(eq=9, neq=0)
+        b: Series[str]
+        idx: Index[str] = Field(str_length={"min_value": 1})
 
     actual = Schema.to_schema()
     expected = pa.DataFrameSchema(
         columns={
             "a": pa.Column(
-                "int", checks=[pa.Check.equal_to(9), pa.Check.not_equal_to(0)]
+                int, checks=[pa.Check.equal_to(9), pa.Check.not_equal_to(0)]
             ),
-            "b": pa.Column("string"),
+            "b": pa.Column(str),
         },
-        index=pa.Index("string", pa.Check.str_length(1)),
+        index=pa.Index(str, pa.Check.str_length(1)),
     )
 
     assert actual == expected
@@ -144,7 +139,7 @@ def test_field_to_index():
 
 
 def test_field_no_checks():
-    assert not Field().to_column("string").checks
+    assert not Field().to_column(str).checks
 
 
 @pytest.mark.parametrize(
@@ -167,25 +162,25 @@ def test_field_no_checks():
     ],
 )
 def test_field_checks(arg: str, value: Any, expected: pa.Check):
-    checks = Field(**{arg: value}).to_column("string").checks
+    checks = Field(**{arg: value}).to_column(str).checks
     assert len(checks) == 1
     assert checks[0] == expected
 
 
 def test_multiindex():
     class Schema(SchemaModel):
-        a: Index["int"]
-        b: Index["string"]
+        a: Index[int]
+        b: Index[str]
 
     expected = pa.DataFrameSchema(
-        index=pa.MultiIndex([pa.Index(pa.Int, name="a"), pa.Index(pa.String, name="b")])
+        index=pa.MultiIndex([pa.Index(int, name="a"), pa.Index(str, name="b")])
     )
     assert expected == Schema.to_schema()
 
 
 def test_validator_single_column():
     class Schema(SchemaModel):
-        a: Series["int"]
+        a: Series[int]
 
         @validator("a")
         def int_column_lt_100(series: pd.Series) -> bool:
@@ -200,7 +195,7 @@ def test_validator_single_column():
 
 def test_validator_single_index():
     class Schema(SchemaModel):
-        a: Index["string"]
+        a: Index[str]
 
         @validator("a")
         def not_dog(idx: pd.Index) -> bool:
@@ -215,7 +210,7 @@ def test_validator_single_index():
 
 def test_validator_and_check():
     class Schema(SchemaModel):
-        a: Series["int"] = Field(eq=1)
+        a: Series[int] = Field(eq=1)
 
         @validator("a")
         def int_column_lt_100(series: pd.Series) -> bool:
@@ -227,7 +222,7 @@ def test_validator_and_check():
 
 def test_validator_non_existing():
     class Schema(SchemaModel):
-        a: Series["int"]
+        a: Series[int]
 
         @validator("nope")
         def int_column_lt_100(series: pd.Series) -> bool:
@@ -240,7 +235,7 @@ def test_validator_non_existing():
 
 def test_multiple_validators():
     class Schema(SchemaModel):
-        a: Series["int"]
+        a: Series[int]
 
         @validator("a")
         def int_column_lt_100(series: pd.Series) -> bool:
@@ -266,8 +261,8 @@ def test_multiple_validators():
 
 def test_validator_multiple_columns():
     class Schema(SchemaModel):
-        a: Series["int"]
-        b: Series["int"]
+        a: Series[int]
+        b: Series[int]
 
         @validator("a", "b")
         def int_column_lt_100(series: pd.Series) -> bool:
@@ -281,9 +276,9 @@ def test_validator_multiple_columns():
 
 def test_validator_regex():
     class Schema(SchemaModel):
-        a: Series["int"]
-        abc: Series["int"]
-        cba: Series["int"]
+        a: Series[int]
+        abc: Series[int]
+        cba: Series[int]
 
         @validator("^a", regex=True)
         def int_column_lt_100(series: pd.Series) -> bool:
@@ -299,19 +294,19 @@ def test_inherit_schemamodel_fields():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
     class A(SchemaModel):
-        a: Series["int"]
-        idx: Index["string"]
+        a: Series[int]
+        idx: Index[str]
 
     class B(A):
-        b: Series["string"]
-        idx: Index["string"]
+        b: Series[str]
+        idx: Index[str]
 
     class C(A):
-        b: Series["int"]
+        b: Series[int]
 
     expected = pa.DataFrameSchema(
-        columns={"a": pa.Column(pa.Int64), "b": pa.Column("int")},
-        index=pa.Index("string"),
+        columns={"a": pa.Column(int), "b": pa.Column(int)},
+        index=pa.Index(str),
     )
 
     assert expected == C.to_schema()
@@ -321,30 +316,29 @@ def test_inherit_schemamodel_fields_checks():
     """Tests that a SchemaModel.to_schema() can produce the correct schema."""
 
     class A(SchemaModel):
-        a: Series["int"]
+        a: Series[int]
 
         @validator("^a", regex=True)
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
     class B(A):
-        b: Series["string"]
-        idx: Index["string"]
+        b: Series[str]
+        idx: Index[str]
 
         @validator("a")
         def int_column_lt_5(series: pd.Series) -> bool:
             return series < 5
 
     class C(B):
-        b: Series["int"]
-        abc: Series["int"]
+        b: Series[int]
+        abc: Series[int]
 
         @validator("idx")
         def not_dog(idx: pd.Index) -> bool:
             return ~idx.str.contains("dog")
 
     schema = C.to_schema()
-    print(f"{schema.columns['a'].checks=}")
     assert len(schema.columns["a"].checks) == 2
     assert len(schema.columns["abc"].checks) == 1
     assert len(schema.index.checks) == 1
@@ -352,8 +346,8 @@ def test_inherit_schemamodel_fields_checks():
 
 def test_dataframe_validator():
     class A(SchemaModel):
-        a: Series["int"]
-        b: Series["int"]
+        a: Series[int]
+        b: Series[int]
 
         @dataframe_validator
         def value_lt_100(df: pd.DataFrame) -> bool:
@@ -372,7 +366,7 @@ def test_dataframe_validator():
 
 def test_dataframe_transformer():
     class Schema(SchemaModel):
-        a: Series["int"]
+        a: Series[int]
 
         @dataframe_transformer
         def neg_a(df: pd.DataFrame) -> pd.DataFrame:
@@ -387,7 +381,7 @@ def test_dataframe_transformer():
 
 def test_multiple_dataframe_transformers():
     class A(SchemaModel):
-        a: Series["int"]
+        a: Series[int]
 
         @dataframe_transformer
         def neg_a(df: pd.DataFrame) -> pd.DataFrame:
@@ -395,7 +389,7 @@ def test_multiple_dataframe_transformers():
             return df
 
     class B(A):
-        b: Series["int"]
+        b: Series[int]
 
         @dataframe_transformer
         def neg_b(df: pd.DataFrame) -> pd.DataFrame:
@@ -411,9 +405,9 @@ def test_multiple_dataframe_transformers():
 
 def test_config():
     class A(SchemaModel):
-        a: Series["int"]
-        idx_1: Index["string"]
-        idx_2: Index["string"]
+        a: Series[int]
+        idx_1: Index[str]
+        idx_2: Index[str]
 
         class Config:
             name = "A schema"
@@ -423,16 +417,16 @@ def test_config():
             multiindex_name: Optional[str] = "mi"
 
     class B(A):
-        b: Series["int"]
+        b: Series[int]
 
         class Config:
             name = "B schema"
             strict = True
 
     expected = pa.DataFrameSchema(
-        columns={"a": pa.Column(pa.Int), "b": pa.Column(pa.Int)},
+        columns={"a": pa.Column(int), "b": pa.Column(int)},
         index=pa.MultiIndex(
-            [pa.Index(pa.String, name="idx_1"), pa.Index(pa.String, name="idx_2")],
+            [pa.Index(str, name="idx_1"), pa.Index(str, name="idx_2")],
             coerce=True,
             strict=True,
             name="mi",

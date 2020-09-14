@@ -17,10 +17,11 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_type_hints,
 )
 
 import pandas as pd
-from typing_inspect import get_args, get_forward_arg, get_origin, is_optional_type
+import typing_inspect
 
 from . import dtypes, schema_components
 from .checks import Check
@@ -51,9 +52,9 @@ def get_first_arg(annotation: Type) -> type:
     >>> assert get_first_arg(Series[np.int32]) == np.int32
     >>> assert get_first_arg(Series["np.int32"]) == "np.int32"
     """
-    arg = get_args(annotation)[0]
+    arg = typing_inspect.get_args(annotation)[0]
     # e.g get_args(Series["int32"])[0] gives ForwardRef('int32')
-    fwd = get_forward_arg(arg)
+    fwd = typing_inspect.get_forward_arg(arg)
 
     return fwd if fwd is not None else arg
 
@@ -94,7 +95,7 @@ def _regex_filter(seq: Iterable, regexps: List[str]) -> Set[str]:
 
 
 def _get_field_annotations(cls: Type["SchemaModel"]) -> Dict[str, Any]:
-    annotations = cls.__annotations__
+    annotations = get_type_hints(cls)
     if not annotations:
         raise SchemaInitError(f"{cls.__name__} is not annotated.")
     missing = []
@@ -223,12 +224,12 @@ class SchemaModel:
         columns: Dict[str, schema_components.Column] = {}
         indexes: List[schema_components.Index] = []
         for field_name, annotation in annotations.items():
-            optional = is_optional_type(annotation)
+            optional = typing_inspect.is_optional_type(annotation)
             if optional:
                 # e.g extract Series[int] from Optional[Series[int]]
                 annotation = get_first_arg(annotation)
 
-            schema_component = get_origin(annotation)
+            schema_component = typing_inspect.get_origin(annotation)
             dtype = get_first_arg(annotation)
             field = getattr(cls, field_name, None)
             if field and not isinstance(field, FieldInfo):
@@ -331,7 +332,6 @@ class FieldInfo:
         **kwargs: Any,
     ) -> SchemaComponent:
         checks = _to_checklist(checks)
-
         return component(pandas_dtype, checks=self.checks + checks, **kwargs)
 
     def to_column(

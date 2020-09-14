@@ -15,12 +15,11 @@ from typing import (
     Type,
     Union,
     cast,
-    get_type_hints,
 )
 
 import pandas as pd
+import typing_inspect
 import wrapt
-from typing_inspect import get_origin
 
 from . import errors, schemas
 from .schema_model import DataFrame, SchemaModel, Series, get_first_arg
@@ -321,7 +320,7 @@ def check_output(
 
 def _is_frame_or_series_hint(annotation: Type) -> bool:
     """Test if base annotation is a typing.Series or typing.DataFrame."""
-    origin = get_origin(annotation)
+    origin = typing_inspect.get_origin(annotation)
     return origin is DataFrame or origin is Series
 
 
@@ -353,24 +352,22 @@ def check_types(
         kwargs: Dict[str, Any],
     ):
         sig = inspect.signature(fn)
-        arguments = sig.bind(*args, **kwargs).arguments
-        hints = get_type_hints(fn)
-        return_hint = hints.pop("return", None)
 
-        for arg_name, annotation in hints.items():
+        arguments = sig.bind(*args, **kwargs).arguments
+        for name, value in arguments.items():
+            annotation = sig.parameters[name].annotation
             if _is_frame_or_series_hint(annotation):
                 model = cast(SchemaModel, get_first_arg(annotation))
                 schema = model.to_schema()
-                obj = arguments[arg_name]
                 try:
-                    schema.validate(obj, head, tail, sample, random_state, lazy)
+                    schema.validate(value, head, tail, sample, random_state, lazy)
                 except errors.SchemaError as e:
-                    _handle_schema_error("check_types", fn, schema, obj, e)
+                    _handle_schema_error("check_types", fn, schema, value, e)
 
         out = fn(*args, **kwargs)
 
-        if _is_frame_or_series_hint(return_hint):
-            model = cast(SchemaModel, get_first_arg(return_hint))
+        if _is_frame_or_series_hint(sig.return_annotation):
+            model = cast(SchemaModel, get_first_arg(sig.return_annotation))
             schema = model.to_schema()
             try:
                 schema.validate(out, head, tail, sample, random_state, lazy)
