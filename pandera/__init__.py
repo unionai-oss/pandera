@@ -11,7 +11,6 @@ from .schema_inference import infer_schema
 from .schema_model import (
     Field,
     SchemaModel,
-    dataframe_transformer,
     dataframe_validator,
     validator,
 )

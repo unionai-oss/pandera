@@ -329,45 +329,6 @@ def test_dataframe_validator():
         schema.validate(df, lazy=True)
 
 
-def test_dataframe_transformer():
-    class Schema(pa.SchemaModel):
-        a: Series[int]
-
-        @pa.dataframe_transformer
-        def neg_a(df: pd.DataFrame) -> pd.DataFrame:
-            df["a"] = -df["a"]
-            return df
-
-    df = pd.DataFrame({"a": [1]})
-    actual = Schema.to_schema().validate(df)
-    expected = pd.DataFrame({"a": [-1]})
-    pd.testing.assert_frame_equal(actual, expected)
-
-
-def test_multiple_dataframe_transformers():
-    class A(pa.SchemaModel):
-        a: Series[int]
-
-        @pa.dataframe_transformer
-        def neg_a(df: pd.DataFrame) -> pd.DataFrame:
-            df["a"] = -df["a"]
-            return df
-
-    class B(A):
-        b: Series[int]
-
-        @pa.dataframe_transformer
-        def neg_b(df: pd.DataFrame) -> pd.DataFrame:
-            df["b"] = -df["b"]
-            return df
-
-    df = pd.DataFrame({"a": [1]})
-    with pytest.raises(
-        pa.errors.SchemaInitError, match="can only have one 'dataframe_transformer'"
-    ):
-        B.to_schema().validate(df)
-
-
 def test_config():
     class A(pa.SchemaModel):
         a: Series[int]

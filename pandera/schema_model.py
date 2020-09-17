@@ -34,7 +34,6 @@ __all__ = [
     "SchemaModel",
     "BaseConfig",
     "dataframe_validator",
-    "dataframe_transformer",
     "dataframe_validator",
 ]
 
@@ -45,7 +44,6 @@ SchemaComponent = TypeVar("SchemaComponent", bound=SeriesSchemaBase)
 _ValidatorConfig = namedtuple("_ValidatorConfig", ["fields", "regex", "check"])
 _VALIDATOR_KEY = "__validator_config__"
 _DATAFRAME_VALIDATOR_KEY = "__dataframe_validator_config__"
-_TRANSFORMER_KEY = "__dataframe_transformer_config__"
 _CONFIG_KEY = "Config"
 
 
@@ -231,18 +229,11 @@ class SchemaModel:
         annotations = cls._inherit_field_annotations()
         checks: Dict[str, List[CheckOrHypothesis]] = {}
         df_checks: List[CheckOrHypothesis] = []
-        transformer = None
         for _, fn in inspect.getmembers(cls, inspect.isfunction):
             _update_checks(checks, fn, list(annotations.keys()))
             df_check = _extract_df_check(fn)
             if df_check:
                 df_checks.append(df_check)
-            tr = _extract_transformer(fn)
-            if transformer and tr:
-                raise SchemaInitError(
-                    f"{cls.__name__} can only have one 'dataframe_transformer'."
-                )
-            transformer = tr
 
         config_options = cls._inherit_config_options()
         mi_kwargs = {
@@ -255,7 +246,6 @@ class SchemaModel:
             columns,
             index=index,
             checks=df_checks,
-            transformer=transformer,
             coerce=config_options["coerce"],
             strict=config_options["strict"],
             name=config_options["name"],
@@ -410,26 +400,6 @@ def dataframe_validator(_fn=None, **check_kwargs) -> ClassValidator:
     return _wrapper
 
 
-def dataframe_transformer(fn=None) -> Callable[[pd.DataFrame], pd.DataFrame]:
-    """Decorate method on the SchemaModel indicating that it should be used to
-    transform the DataFrame.
-    """
-
-    def _wrapper(
-        check_fn: Callable[..., bool]
-    ) -> Callable[[pd.DataFrame], pd.DataFrame]:
-        setattr(
-            check_fn,
-            _TRANSFORMER_KEY,
-            True,
-        )
-        return check_fn
-
-    if callable(fn):
-        return _wrapper(fn)
-    return _wrapper
-
-
 def _regex_filter(seq: Iterable, regexps: List[str]) -> Set[str]:
     """Filter items matching at least one of the regexes."""
     matched: Set[str] = set()
@@ -468,10 +438,4 @@ def _extract_df_check(fn: Callable) -> Optional[CheckOrHypothesis]:
     df_validator = getattr(fn, _DATAFRAME_VALIDATOR_KEY, None)
     if isinstance(df_validator, (Check, Hypothesis)):
         return df_validator
-    return None
-
-
-def _extract_transformer(fn: Callable) -> Optional[Callable]:
-    if getattr(fn, _TRANSFORMER_KEY, None):
-        return fn
     return None
