@@ -143,11 +143,11 @@ def test_multiindex():
     assert expected == Schema.to_schema()
 
 
-def test_validator_single_column():
+def test_check_single_column():
     class Schema(pa.SchemaModel):
         a: Series[int]
 
-        @pa.validator("a")
+        @pa.check("a")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -158,11 +158,11 @@ def test_validator_single_column():
         schema.validate(df, lazy=True)
 
 
-def test_validator_single_index():
+def test_check_single_index():
     class Schema(pa.SchemaModel):
         a: Index[str]
 
-        @pa.validator("a")
+        @pa.check("a")
         def not_dog(idx: pd.Index) -> bool:
             return ~idx.str.contains("dog")
 
@@ -173,11 +173,11 @@ def test_validator_single_index():
         schema.validate(df, lazy=True)
 
 
-def test_validator_and_check():
+def test_check_and_check():
     class Schema(pa.SchemaModel):
         a: Series[int] = pa.Field(eq=1)
 
-        @pa.validator("a")
+        @pa.check("a")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -185,11 +185,11 @@ def test_validator_and_check():
     assert len(schema.columns["a"].checks) == 2
 
 
-def test_validator_non_existing():
+def test_check_non_existing():
     class Schema(pa.SchemaModel):
         a: Series[int]
 
-        @pa.validator("nope")
+        @pa.check("nope")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -198,15 +198,15 @@ def test_validator_non_existing():
         Schema.to_schema()
 
 
-def test_multiple_validators():
+def test_multiple_checks():
     class Schema(pa.SchemaModel):
         a: Series[int]
 
-        @pa.validator("a")
+        @pa.check("a")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
-        @pa.validator("a")
+        @pa.check("a")
         def int_column_gt_0(series: pd.Series) -> bool:
             return series > 0
 
@@ -224,12 +224,12 @@ def test_multiple_validators():
         schema.validate(df, lazy=True)
 
 
-def test_validator_multiple_columns():
+def test_check_multiple_columns():
     class Schema(pa.SchemaModel):
         a: Series[int]
         b: Series[int]
 
-        @pa.validator("a", "b")
+        @pa.check("a", "b")
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -239,13 +239,13 @@ def test_validator_multiple_columns():
         schema.validate(df, lazy=True)
 
 
-def test_validator_regex():
+def test_check_regex():
     class Schema(pa.SchemaModel):
         a: Series[int]
         abc: Series[int]
         cba: Series[int]
 
-        @pa.validator("^a", regex=True)
+        @pa.check("^a", regex=True)
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -283,7 +283,7 @@ def test_inherit_schemamodel_fields_checks():
     class A(pa.SchemaModel):
         a: Series[int]
 
-        @pa.validator("^a", regex=True)
+        @pa.check("^a", regex=True)
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
@@ -291,7 +291,7 @@ def test_inherit_schemamodel_fields_checks():
         b: Series[str]
         idx: Index[str]
 
-        @pa.validator("a")
+        @pa.check("a")
         def int_column_lt_5(series: pd.Series) -> bool:
             return series < 5
 
@@ -299,7 +299,7 @@ def test_inherit_schemamodel_fields_checks():
         b: Series[int]
         abc: Series[int]
 
-        @pa.validator("idx")
+        @pa.check("idx")
         def not_dog(idx: pd.Index) -> bool:
             return ~idx.str.contains("dog")
 
@@ -309,17 +309,17 @@ def test_inherit_schemamodel_fields_checks():
     assert len(schema.index.checks) == 1
 
 
-def test_dataframe_validator():
+def test_dateframe_check():
     class A(pa.SchemaModel):
         a: Series[int]
         b: Series[int]
 
-        @pa.dataframe_validator
+        @pa.dateframe_check
         def value_lt_100(df: pd.DataFrame) -> bool:
             return df < 100
 
     class B(A):
-        @pa.dataframe_validator()
+        @pa.dateframe_check()
         def value_gt_0(df: pd.DataFrame) -> bool:
             return df > 0
 

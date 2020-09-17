@@ -33,8 +33,8 @@ __all__ = [
     "Field",
     "SchemaModel",
     "BaseConfig",
-    "dataframe_validator",
-    "dataframe_validator",
+    "dateframe_check",
+    "dateframe_check",
 ]
 
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
@@ -42,8 +42,8 @@ CheckOrHypothesis = Union[Check, Hypothesis]
 SchemaComponent = TypeVar("SchemaComponent", bound=SeriesSchemaBase)
 
 _ValidatorConfig = namedtuple("_ValidatorConfig", ["fields", "regex", "check"])
-_VALIDATOR_KEY = "__validator_config__"
-_DATAFRAME_VALIDATOR_KEY = "__dataframe_validator_config__"
+_CHECK_KEY = "__check_config__"
+_DATAFRAME_CHECK_KEY = "__dateframe_check_config__"
 _CONFIG_KEY = "Config"
 
 
@@ -364,7 +364,7 @@ AnyCallable = Callable[..., Any]
 ClassValidator = Callable[[AnyCallable], Callable[..., bool]]
 
 
-def validator(*fields, regex: bool = False, **check_kwargs) -> ClassValidator:
+def check(*fields, regex: bool = False, **check_kwargs) -> ClassValidator:
     """Decorate method on the SchemaModel indicating that it should be used to
     validate fields (columns or index).
     """
@@ -373,7 +373,7 @@ def validator(*fields, regex: bool = False, **check_kwargs) -> ClassValidator:
         check = Check(check_fn, **check_kwargs)
         setattr(
             check_fn,
-            _VALIDATOR_KEY,
+            _CHECK_KEY,
             _ValidatorConfig(set(fields), regex, check),
         )
         return check_fn
@@ -381,7 +381,7 @@ def validator(*fields, regex: bool = False, **check_kwargs) -> ClassValidator:
     return _wrapper
 
 
-def dataframe_validator(_fn=None, **check_kwargs) -> ClassValidator:
+def dateframe_check(_fn=None, **check_kwargs) -> ClassValidator:
     """Decorate method on the SchemaModel indicating that it should be used to
     validate the DataFrame.
     """
@@ -390,7 +390,7 @@ def dataframe_validator(_fn=None, **check_kwargs) -> ClassValidator:
         check = Check(check_fn, **check_kwargs)
         setattr(
             check_fn,
-            _DATAFRAME_VALIDATOR_KEY,
+            _DATAFRAME_CHECK_KEY,
             check,
         )
         return check_fn
@@ -414,13 +414,13 @@ def _update_checks(
     fn: Callable,
     fields: List[str],
 ) -> Dict[str, List[CheckOrHypothesis]]:
-    """Extract validator from function and append it to the checks list."""
-    field_validator = getattr(fn, _VALIDATOR_KEY, None)
-    if isinstance(field_validator, _ValidatorConfig):
-        if field_validator.regex:
-            matched = _regex_filter(fields, field_validator.fields)
+    """Extract check from function and append it to the checks list."""
+    field_check = getattr(fn, _CHECK_KEY, None)
+    if isinstance(field_check, _ValidatorConfig):
+        if field_check.regex:
+            matched = _regex_filter(fields, field_check.fields)
         else:
-            matched = field_validator.fields
+            matched = field_check.fields
         for field in matched:
             if field not in fields:
                 raise SchemaInitError(
@@ -429,13 +429,13 @@ def _update_checks(
                 )
             if field not in checks:
                 checks[field] = []
-            checks[field].append(field_validator.check)
+            checks[field].append(field_check.check)
 
     return checks
 
 
 def _extract_df_check(fn: Callable) -> Optional[CheckOrHypothesis]:
-    df_validator = getattr(fn, _DATAFRAME_VALIDATOR_KEY, None)
-    if isinstance(df_validator, (Check, Hypothesis)):
-        return df_validator
+    df_check = getattr(fn, _DATAFRAME_CHECK_KEY, None)
+    if isinstance(df_check, (Check, Hypothesis)):
+        return df_check
     return None

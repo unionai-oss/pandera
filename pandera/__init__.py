@@ -8,12 +8,7 @@ from .dtypes import PandasDtype
 from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
-from .schema_model import (
-    Field,
-    SchemaModel,
-    dataframe_validator,
-    validator,
-)
+from .schema_model import Field, SchemaModel, check, dateframe_check
 from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
 
