@@ -1,4 +1,6 @@
 """Tests schema creation and validation from type annotations."""
+# pylint:disable=R0903,C0115,C0116
+
 from typing import Any, Optional
 
 import pandas as pd
@@ -9,7 +11,7 @@ from pandera.typing import Index, Series
 
 
 def test_simple_to_schema():
-    """Tests that a SchemaModel.to_schema() can produce the correct schema."""
+    """Test that SchemaModel.to_schema() can produce the correct schema."""
 
     class Schema(pa.SchemaModel):
         a: Series[int]
@@ -25,7 +27,9 @@ def test_simple_to_schema():
 
 
 def test_invalid_annotations():
-    """Tests that a SchemaModel.to_schema() can produce the correct schema."""
+    """Test that SchemaModel.to_schema() fails if annotations or types are not
+    recognized.
+    """
 
     class IntSchema(pa.SchemaModel):
         a: int
@@ -33,16 +37,18 @@ def test_invalid_annotations():
     with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
         IntSchema.to_schema()
 
-    from decimal import Decimal
+    from decimal import Decimal # pylint:disable=C0415
 
     class InvalidDtypeSchema(pa.SchemaModel):
-        d: Series[Decimal]
+        d: Series[Decimal] # type: ignore
 
     with pytest.raises(TypeError, match="python type '<class 'decimal.Decimal'>"):
         InvalidDtypeSchema.to_schema()
 
 
 def test_optional_column():
+    """Test that optional columns are not required."""
+
     class Schema(pa.SchemaModel):
         a: Optional[Series[str]]
         b: Optional[Series[str]] = pa.Field(eq="b")
@@ -53,6 +59,8 @@ def test_optional_column():
 
 
 def test_optional_index():
+    """Test that optional indices are not required."""
+
     class Schema(pa.SchemaModel):
         idx: Optional[Index[str]]
 
@@ -63,7 +71,7 @@ def test_optional_index():
 
 
 def test_schemamodel_with_fields():
-    """Tests that a SchemaModel.to_schema() can produce the correct schema."""
+    """Test that Fields are translated in the schema."""
 
     class Schema(pa.SchemaModel):
         a: Series[int] = pa.Field(eq=9, neq=0)
@@ -85,6 +93,7 @@ def test_schemamodel_with_fields():
 
 
 def test_field_to_column():
+    """Test that Field outputs the correct column options."""
     for flag in ["nullable", "allow_duplicates", "coerce", "regex"]:
         for value in [True, False]:
             col = pa.Field(**{flag: value}).to_column(pa.DateTime, required=value)
@@ -95,6 +104,7 @@ def test_field_to_column():
 
 
 def test_field_to_index():
+    """Test that Field outputs the correct index options."""
     for flag in ["nullable", "allow_duplicates"]:
         for value in [True, False]:
             index = pa.Field(**{flag: value}).to_index(pa.DateTime)
@@ -104,6 +114,7 @@ def test_field_to_index():
 
 
 def test_field_no_checks():
+    """Test Field without checks."""
     assert not pa.Field().to_column(str).checks
 
 
@@ -127,12 +138,15 @@ def test_field_no_checks():
     ],
 )
 def test_field_checks(arg: str, value: Any, expected: pa.Check):
+    """Test that all built-in checks are available in a Field."""
     checks = pa.Field(**{arg: value}).to_column(str).checks
     assert len(checks) == 1
     assert checks[0] == expected
 
 
 def test_multiindex():
+    """Test that multiple Index annotations create a MultiIndex."""
+
     class Schema(pa.SchemaModel):
         a: Index[int]
         b: Index[str]
@@ -144,6 +158,8 @@ def test_multiindex():
 
 
 def test_check_single_column():
+    """Test the behaviour of a check on a single column."""
+
     class Schema(pa.SchemaModel):
         a: Series[int]
 
@@ -159,6 +175,8 @@ def test_check_single_column():
 
 
 def test_check_single_index():
+    """Test the behaviour of a check on a single index."""
+
     class Schema(pa.SchemaModel):
         a: Index[str]
 
@@ -173,7 +191,9 @@ def test_check_single_index():
         schema.validate(df, lazy=True)
 
 
-def test_check_and_check():
+def test_field_and_check():
+    """Test the combination of a field and a check on the same column."""
+
     class Schema(pa.SchemaModel):
         a: Series[int] = pa.Field(eq=1)
 
@@ -186,6 +206,8 @@ def test_check_and_check():
 
 
 def test_check_non_existing():
+    """Test a check on a non-existing column."""
+
     class Schema(pa.SchemaModel):
         a: Series[int]
 
@@ -199,6 +221,8 @@ def test_check_non_existing():
 
 
 def test_multiple_checks():
+    """Test multiple checks on the same column."""
+
     class Schema(pa.SchemaModel):
         a: Series[int]
 
@@ -225,6 +249,8 @@ def test_multiple_checks():
 
 
 def test_check_multiple_columns():
+    """Test a single check decorator targeting multiple columns."""
+
     class Schema(pa.SchemaModel):
         a: Series[int]
         b: Series[int]
@@ -240,6 +266,8 @@ def test_check_multiple_columns():
 
 
 def test_check_regex():
+    """Test the regex argument of the check decorator."""
+
     class Schema(pa.SchemaModel):
         a: Series[int]
         abc: Series[int]
@@ -256,17 +284,17 @@ def test_check_regex():
 
 
 def test_inherit_schemamodel_fields():
-    """Tests that a SchemaModel.to_schema() can produce the correct schema."""
+    """Test that columns and indices are inherited."""
 
-    class A(pa.SchemaModel):
+    class Base(pa.SchemaModel):
         a: Series[int]
         idx: Index[str]
 
-    class B(A):
+    class Mid(Base):
         b: Series[str]
         idx: Index[str]
 
-    class C(A):
+    class Child(Mid):
         b: Series[int]
 
     expected = pa.DataFrameSchema(
@@ -274,20 +302,20 @@ def test_inherit_schemamodel_fields():
         index=pa.Index(str),
     )
 
-    assert expected == C.to_schema()
+    assert expected == Child.to_schema()
 
 
-def test_inherit_schemamodel_fields_checks():
-    """Tests that a SchemaModel.to_schema() can produce the correct schema."""
+def test_inherit_schemamodel_checks():
+    """Test that checks are inherited."""
 
-    class A(pa.SchemaModel):
+    class Base(pa.SchemaModel):
         a: Series[int]
 
         @pa.check("^a", regex=True)
         def int_column_lt_100(series: pd.Series) -> bool:
             return series < 100
 
-    class B(A):
+    class Mid(Base):
         b: Series[str]
         idx: Index[str]
 
@@ -295,7 +323,7 @@ def test_inherit_schemamodel_fields_checks():
         def int_column_lt_5(series: pd.Series) -> bool:
             return series < 5
 
-    class C(B):
+    class Child(Mid):
         b: Series[int]
         abc: Series[int]
 
@@ -303,14 +331,14 @@ def test_inherit_schemamodel_fields_checks():
         def not_dog(idx: pd.Index) -> bool:
             return ~idx.str.contains("dog")
 
-    schema = C.to_schema()
+    schema = Child.to_schema()
     assert len(schema.columns["a"].checks) == 2
     assert len(schema.columns["abc"].checks) == 1
     assert len(schema.index.checks) == 1
 
 
 def test_dateframe_check():
-    class A(pa.SchemaModel):
+    class Base(pa.SchemaModel):
         a: Series[int]
         b: Series[int]
 
@@ -318,19 +346,21 @@ def test_dateframe_check():
         def value_lt_100(df: pd.DataFrame) -> bool:
             return df < 100
 
-    class B(A):
+    class Child(Base):
         @pa.dateframe_check()
         def value_gt_0(df: pd.DataFrame) -> bool:
             return df > 0
 
     df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
-    schema = B.to_schema()
+    schema = Child.to_schema()
     with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
         schema.validate(df, lazy=True)
 
 
 def test_config():
-    class A(pa.SchemaModel):
+    """Test that Config can be inherited and translate into DataFramSchema options."""
+
+    class Base(pa.SchemaModel):
         a: Series[int]
         idx_1: Index[str]
         idx_2: Index[str]
@@ -342,7 +372,7 @@ def test_config():
             multiindex_strict = True
             multiindex_name: Optional[str] = "mi"
 
-    class B(A):
+    class Child(Base):
         b: Series[int]
 
         class Config:
@@ -357,9 +387,9 @@ def test_config():
             strict=True,
             name="mi",
         ),
-        name="B schema",
+        name="Child schema",
         coerce=True,
         strict=True,
     )
 
-    assert expected == B.to_schema()
+    assert expected == Child.to_schema()

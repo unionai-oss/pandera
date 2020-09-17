@@ -262,25 +262,32 @@ def test_check_input_method_decorators():
         transformer.transform_secord_arg_with_dict_getter(None, dataframe))
 
 # required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class InSchema(SchemaModel):
+class InSchema(SchemaModel): # pylint:disable=R0903:
+    """Test schema used as input."""
     a: Series[int]
     idx: Index[str]
 
 
-class OutSchema(SchemaModel):
+class OutSchema(SchemaModel): # pylint:disable=R0903:
+    """Test schema used as output."""
     b: Series[int]
 
 
-def test_check_types():
+def test_check_types_unchanged():
+    """Test the check_types behaviour when the dataframe is unchanged within the
+    function being checked."""
+
     @check_types
-    def transform(df: DataFrame[InSchema]) -> DataFrame[InSchema]:
+    def transform(df: DataFrame[InSchema], notused: int) -> DataFrame[InSchema]: # pylint: disable=W0613
         return df
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
-    pd.testing.assert_frame_equal(transform(df), df)
+    pd.testing.assert_frame_equal(transform(df, 2), df)
 
 
 def test_check_types_errors():
+    """Test that check_types behaviour raises an error if the input or ouput schemas
+    are not respected."""
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
@@ -303,15 +310,16 @@ def test_check_types_errors():
         df["a"] = "1"
         return df
 
-    with pytest.raises(
-        errors.SchemaError, match="expected series 'a' to have type int64"
-    ):
+    err_msg = "expected series 'a' to have type int64"
+    with pytest.raises(errors.SchemaError, match=err_msg):
         to_str(df)
 
 
 def test_check_types_optional_out():
+    """Test the check_types behaviour when the output schema is optional."""
+
     @check_types
-    def optional_out(df: DataFrame[InSchema]) -> Optional[DataFrame[OutSchema]]:
+    def optional_out(df: DataFrame[InSchema]) -> Optional[DataFrame[OutSchema]]: # pylint: disable=W0613
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -319,18 +327,20 @@ def test_check_types_optional_out():
 
 
 def test_check_types_optional_in():
+    """Test the check_types behaviour when the input schema is optional."""
+
     @check_types
-    def optional_in(df: Optional[DataFrame[InSchema]]) -> None:
+    def optional_in(df: Optional[DataFrame[InSchema]]) -> None: # pylint: disable=W0613
         return None
 
     assert optional_in(None) is None
 
 
 def test_check_types_optional_in_out():
+    """Test the check_types behaviour when both input and outputs schemas are optional."""
+
     @check_types
-    def optional_in_out(
-        df: Optional[DataFrame[InSchema]],
-    ) -> Optional[DataFrame[OutSchema]]:
+    def transform(df: Optional[DataFrame[InSchema]]) -> Optional[DataFrame[OutSchema]]: # pylint: disable=W0613
         return None
 
-    assert optional_in_out(None) is None
+    assert transform(None) is None

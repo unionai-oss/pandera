@@ -1,3 +1,6 @@
+"""Typing definitions and helpers."""
+# pylint: disable=R0903
+
 import sys
 from typing import Generic, Type, TypeVar, Union
 
@@ -5,7 +8,6 @@ import pandas as pd
 import typing_inspect
 
 from .dtypes import PandasDtype, PandasExtensionType
-from .schemas import DataFrameSchema
 
 __all__ = ["Index", "Series", "DataFrame"]
 
@@ -31,6 +33,7 @@ class DataFrame(pd.DataFrame, Generic[Schema]):
 
 
 class Annotation:
+    """Metadata extracted from an annotation."""
     def __init__(self, origin: Type, arg: Type, optional: bool) -> None:
         self.origin = origin
         self.arg = arg

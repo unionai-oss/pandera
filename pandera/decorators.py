@@ -6,8 +6,8 @@ import warnings
 from collections import OrderedDict
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
-import pandas as pd
 import wrapt
+import pandas as pd
 
 from . import errors, schemas
 from .typing import is_frame_or_series_hint, parse_annotation
@@ -329,8 +329,8 @@ def check_types(
 
     @wrapt.decorator
     def _wrapper(
-        wrapped: Callable,
-        instance: Union[None, Any],
+        wrapped: Callable, # pylint:disable=W0613
+        instance: Union[None, Any], # pylint:disable=W0613
         args: Union[List[Any], Tuple[Any]],
         kwargs: Dict[str, Any],
     ):
@@ -366,4 +366,4 @@ def check_types(
 
         return out
 
-    return _wrapper(fn)
+    return _wrapper(fn) # pylint:disable=E1120

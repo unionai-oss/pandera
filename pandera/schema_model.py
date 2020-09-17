@@ -19,8 +19,6 @@ from typing import (
     get_type_hints,
 )
 
-import pandas as pd
-
 from . import schema_components
 from .checks import Check
 from .errors import SchemaInitError
@@ -141,6 +139,7 @@ def Field(
     """Used to provide extra information about a field of a SchemaModel.
     Some arguments apply only to number dtypes and some apply only to ``str``.
     """
+    # pylint:disable=C0103,W0613,R0914
     check_kwargs = {
         "ignore_na": ignore_na,
         "raise_warning": raise_warning,
@@ -152,11 +151,11 @@ def Field(
         arg_value = args[arg_name]
         if arg_value is None:
             continue
-        if arg_name in {"in_range", "str_length"}:  # dict args
-            check = check_constructor(**arg_value, **check_kwargs)
+        if arg_name in {"in_range", "str_length"}:
+            check_ = check_constructor(**arg_value, **check_kwargs)
         else:
-            check = check_constructor(arg_value, **check_kwargs)
-        checks.append(check)
+            check_ = check_constructor(arg_value, **check_kwargs)
+        checks.append(check_)
 
     return FieldInfo(
         checks=checks or None,
@@ -192,7 +191,7 @@ _check_dispatch = {
 }
 
 
-class BaseConfig:
+class BaseConfig: # pylint:disable=R0903
     """Define DataFrameSchema-wide options."""
 
     name: Optional[str] = None
@@ -213,6 +212,8 @@ def _extract_config_options(config: Type) -> Dict[str, Any]:
 
 
 class SchemaModel:
+    """Definition of a DataFrameSchema."""
+
     Config: Type[BaseConfig] = BaseConfig
     __schema__: Optional[DataFrameSchema] = None
     __config__: Type[BaseConfig] = BaseConfig
@@ -354,7 +355,7 @@ def _build_schema_index(
     if indices:
         if len(indices) == 1:
             index = indices[0]
-            index._name = None  # don't force name on single index
+            index._name = None # pylint:disable=W0212 # don't force name on single index
         else:
             index = schema_components.MultiIndex(indices, **multiindex_kwargs)
     return index
@@ -370,11 +371,11 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassValidator:
     """
 
     def _wrapper(check_fn: Callable[..., bool]) -> Callable[..., bool]:
-        check = Check(check_fn, **check_kwargs)
+        check_ = Check(check_fn, **check_kwargs)
         setattr(
             check_fn,
             _CHECK_KEY,
-            _ValidatorConfig(set(fields), regex, check),
+            _ValidatorConfig(set(fields), regex, check_),
         )
         return check_fn
 
@@ -387,11 +388,11 @@ def dateframe_check(_fn=None, **check_kwargs) -> ClassValidator:
     """
 
     def _wrapper(check_fn: Callable[..., bool]) -> Callable[..., bool]:
-        check = Check(check_fn, **check_kwargs)
+        check_ = Check(check_fn, **check_kwargs)
         setattr(
             check_fn,
             _DATAFRAME_CHECK_KEY,
-            check,
+            check_,
         )
         return check_fn
 
