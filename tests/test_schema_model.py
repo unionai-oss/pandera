@@ -153,7 +153,7 @@ def test_validator_single_column():
 
     df = pd.DataFrame({"a": [101]})
     schema = Schema.to_schema()
-    err_msg = r"Column\s*a\s*<Check int_column_lt_100>\s*\[101\]\s*1"
+    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -168,7 +168,7 @@ def test_validator_single_index():
 
     df = pd.DataFrame(index=["cat", "dog"])
     schema = Schema.to_schema()
-    err_msg = r"Index\s*<NA>\s*<Check not_dog>\s*\[dog\]\s*"
+    err_msg = r"Index\s*<NA>\s*not_dog\s*\[dog\]\s*"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -214,12 +214,12 @@ def test_multiple_validators():
     assert len(schema.columns["a"].checks) == 2
 
     df = pd.DataFrame({"a": [0]})
-    err_msg = r"Column\s*a\s*<Check int_column_gt_0>\s*\[0\]\s*1"
+    err_msg = r"Column\s*a\s*int_column_gt_0\s*\[0\]\s*1"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
     df = pd.DataFrame({"a": [101]})
-    err_msg = r"Column\s*a\s*<Check int_column_lt_100>\s*\[101\]\s*1"
+    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
