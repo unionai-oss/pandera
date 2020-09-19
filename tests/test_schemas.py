@@ -175,11 +175,12 @@ def test_series_schema_multiple_validators():
         schema.validate(pd.Series([1, 5, 20, 50]))
 
 
-def test_series_schema_with_index():
+@pytest.mark.parametrize("coerce", [True, False])
+def test_series_schema_with_index(coerce):
     """Test SeriesSchema with Index and MultiIndex components."""
     schema_with_index = SeriesSchema(
         pandas_dtype=Int,
-        index=Index(Int),
+        index=Index(Int, coerce=coerce),
     )
     validated_series = schema_with_index(pd.Series([1, 2, 3], index=[1, 2, 3]))
     assert isinstance(validated_series, pd.Series)
@@ -187,8 +188,8 @@ def test_series_schema_with_index():
     schema_with_multiindex = SeriesSchema(
         pandas_dtype=Int,
         index=MultiIndex([
-            Index(Int),
-            Index(String),
+            Index(Int, coerce=coerce),
+            Index(String, coerce=coerce),
         ])
     )
     multi_index = pd.MultiIndex.from_arrays(
