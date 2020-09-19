@@ -1088,7 +1088,8 @@ class SeriesSchema(SeriesSchemaBase):
             check_obj.index = self.index.coerce_dtype(check_obj.index)
 
         # validate index
-        self.index(check_obj.index)
+        if self.index:
+            self.index(check_obj)
 
         return super(SeriesSchema, self).validate(
             check_obj, head, tail, sample, random_state, lazy
