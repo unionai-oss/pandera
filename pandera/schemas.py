@@ -990,6 +990,38 @@ class SeriesSchemaBase():
 class SeriesSchema(SeriesSchemaBase):
     """Series validator."""
 
+    def __init__(
+            self,
+            pandas_dtype: PandasDtypeInputTypes = None,
+            checks: CheckList = None,
+            index=None,
+            nullable: bool = False,
+            allow_duplicates: bool = True,
+            coerce: bool = False,
+            name: str = None) -> None:
+        """Initialize series schema base object.
+
+        :param pandas_dtype: datatype of the column. If a string is specified,
+            then assumes one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+        :param checks: If element_wise is True, then callable signature should
+            be:
+
+            ``Callable[Any, bool]`` where the ``Any`` input is a scalar element
+            in the column. Otherwise, the input is assumed to be a
+            pandas.Series object.
+        :type checks: callable
+        :param index: specify the datatypes and properties of the index.
+        :param nullable: Whether or not column can contain null values.
+        :type nullable: bool
+        :param allow_duplicates:
+        :type allow_duplicates: bool
+        """
+        super().__init__(
+            pandas_dtype, checks, nullable, allow_duplicates, coerce, name
+        )
+        self.index = index
+
     @property
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
@@ -1052,8 +1084,16 @@ class SeriesSchema(SeriesSchemaBase):
         if self.coerce:
             check_obj = self.coerce_dtype(check_obj)
 
+        if self.index is not None and (self.index.coerce or self.coerce):
+            check_obj.index = self.index.coerce_dtype(check_obj.index)
+
+        # validate index
+        if self.index:
+            self.index(check_obj)
+
         return super(SeriesSchema, self).validate(
-            check_obj, head, tail, sample, random_state, lazy)
+            check_obj, head, tail, sample, random_state, lazy
+        )
 
     def __call__(
             self,

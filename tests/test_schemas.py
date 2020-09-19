@@ -175,6 +175,33 @@ def test_series_schema_multiple_validators():
         schema.validate(pd.Series([1, 5, 20, 50]))
 
 
+@pytest.mark.parametrize("coerce", [True, False])
+def test_series_schema_with_index(coerce):
+    """Test SeriesSchema with Index and MultiIndex components."""
+    schema_with_index = SeriesSchema(
+        pandas_dtype=Int,
+        index=Index(Int, coerce=coerce),
+    )
+    validated_series = schema_with_index(pd.Series([1, 2, 3], index=[1, 2, 3]))
+    assert isinstance(validated_series, pd.Series)
+
+    schema_with_multiindex = SeriesSchema(
+        pandas_dtype=Int,
+        index=MultiIndex([
+            Index(Int, coerce=coerce),
+            Index(String, coerce=coerce),
+        ])
+    )
+    multi_index = pd.MultiIndex.from_arrays(
+        [[0, 1, 2], ["foo", "bar", "foo"]],
+    )
+    validated_series_multiindex = schema_with_multiindex(
+        pd.Series([1, 2, 3], index=multi_index)
+    )
+    assert isinstance(validated_series_multiindex, pd.Series)
+    assert (validated_series_multiindex.index == multi_index).all()
+
+
 class SeriesGreaterCheck:
     # pylint: disable=too-few-public-methods
     """Class creating callable objects to check if series elements exceed a
