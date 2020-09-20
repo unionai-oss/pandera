@@ -437,6 +437,9 @@ class Check(_CheckBase):
     def equal_to(cls, value, **kwargs) -> 'Check':
         """Ensure all elements of a series equal a certain value.
 
+        *New in version 0.4.5*
+        Alias: ``eq``
+
         :param value: All elements of a given :class:`pandas.Series` must have
             this value
         :param kwargs: key-word arguments passed into the `Check` initializer.
@@ -461,6 +464,9 @@ class Check(_CheckBase):
     def not_equal_to(cls, value, **kwargs) -> 'Check':
         """Ensure no elements of a series equals a certain value.
 
+        *New in version 0.4.5*
+        Alias: ``ne``
+
         :param value: This value must not occur in the checked
             :class:`pandas.Series`.
         :param kwargs: key-word arguments passed into the `Check` initializer.
@@ -484,6 +490,9 @@ class Check(_CheckBase):
     @register_check_statistics(["min_value"])
     def greater_than(cls, min_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly greater than a minimum value.
+
+        *New in version 0.4.5*
+        Alias: ``gt``
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable
             to the dtype of the :class:`pandas.Series` to be validated (e.g. a
@@ -513,6 +522,9 @@ class Check(_CheckBase):
     def greater_than_or_equal_to(cls, min_value, **kwargs) -> 'Check':
         """Ensure all values are greater or equal a certain value.
 
+        *New in version 0.4.5*
+        Alias: ``ge``
+
         :param min_value: Allowed minimum value for values of a series. Must be
             a type comparable to the dtype of the :class:`pandas.Series` to be
             validated.
@@ -541,6 +553,9 @@ class Check(_CheckBase):
     def less_than(cls, max_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly below a maximum value.
 
+        *New in version 0.4.5*
+        Alias: ``lt``
+
         :param max_value: All elements of a series must be strictly smaller
             than this. Must be a type comparable to the dtype of the
             :class:`pandas.Series` to be validated.
@@ -568,6 +583,9 @@ class Check(_CheckBase):
     @register_check_statistics(["max_value"])
     def less_than_or_equal_to(cls, max_value, **kwargs) -> 'Check':
         """Ensure values are less than or equal to a maximum value.
+
+        *New in version 0.4.5*
+        Alias: ``le``
 
         :param max_value: Upper bound not to be exceeded. Must be a type
             comparable to the dtype of the :class:`pandas.Series` to be

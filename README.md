@@ -156,6 +156,22 @@ Here are a few other alternatives for validating Python data structures.
 
 ### Citation Information
 
+#### [Paper](https://conference.scipy.org/proceedings/scipy2020/niels_bantilan.html)
+
+```
+@InProceedings{ niels_bantilan-proc-scipy-2020,
+  author    = { {N}iels {B}antilan },
+  title     = { pandera: {S}tatistical {D}ata {V}alidation of {P}andas {D}ataframes },
+  booktitle = { {P}roceedings of the 19th {P}ython in {S}cience {C}onference },
+  pages     = { 116 - 124 },
+  year      = { 2020 },
+  editor    = { {M}eghann {A}garwal and {C}hris {C}alloway and {D}illon {N}iederhut and {D}avid {S}hupe },
+  doi       = { 10.25080/Majora-342d178e-010 }
+}
+```
+
+#### Software Package
+
 ```
 @software{niels_bantilan_2020_3926689,
   author       = {Niels Bantilan and
