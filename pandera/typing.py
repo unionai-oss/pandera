@@ -19,15 +19,15 @@ GenericDtype = TypeVar(
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
 
 
-class Index(pd.Index, Generic[GenericDtype]):
+class Index(pd.Index, Generic[GenericDtype]): # pylint:disable=abstract-method
     """Representation of pandas.Index."""
 
 
-class Series(pd.Series, Generic[GenericDtype]):
+class Series(pd.Series, Generic[GenericDtype]): # pylint:disable=too-many-ancestors
     """Representation of pandas.Series."""
 
 
-class DataFrame(pd.DataFrame, Generic[Schema]):
+class DataFrame(pd.DataFrame, Generic[Schema]): # pylint:disable=too-many-ancestors
     """Representation of pandas.DataFrame."""
 
 
