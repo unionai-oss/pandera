@@ -1,7 +1,6 @@
 """Class-based api"""
 import inspect
 import re
-import warnings
 from typing import (
     Any,
     Dict,
@@ -120,16 +119,16 @@ class SchemaModel:
             annotation_info = parse_annotation(raw_annotation)
 
             field = getattr(cls, field_name, None)
-            if field and not isinstance(field, FieldInfo):
+            if field is not None and not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{field.__class__}.'"
                 )
-            field_checks = checks.get(field_name, [])
 
+            field_checks = checks.get(field_name, [])
             if annotation_info.origin is Series:
                 col_constructor = field.to_column if field else schema_components.Column
-                columns[field_name] = col_constructor(
+                columns[field_name] = col_constructor(  # type: ignore
                     annotation_info.arg,
                     required=not annotation_info.optional,
                     checks=field_checks,
@@ -139,7 +138,7 @@ class SchemaModel:
                 if annotation_info.optional:
                     raise SchemaInitError(f"Index '{field_name}' cannot be Optional.")
                 index_constructor = field.to_index if field else schema_components.Index
-                index = index_constructor(
+                index = index_constructor(  # type: ignore
                     annotation_info.arg, checks=field_checks, name=field_name
                 )
                 indices.append(index)
@@ -229,8 +228,6 @@ class SchemaModel:
 
 def _get_field_annotations(model: Type[SchemaModel]) -> Dict[str, Any]:
     annotations = get_type_hints(model)
-    if not annotations:
-        raise SchemaInitError(f"{model.__name__} is not annotated.")
 
     def _not_routine(member: Any) -> bool:
         return not inspect.isroutine(member)
@@ -243,9 +240,8 @@ def _get_field_annotations(model: Type[SchemaModel]) -> Dict[str, Any]:
             missing.append(name)
 
     if missing:
-        warnings.warn(
-            f"The following unannotated attributes will be ignored: {missing}"
-        )
+        raise SchemaInitError(f"Found missing annotations: {missing}")
+
     return annotations
 
 

@@ -28,7 +28,7 @@ _CheckList = Union[Check, List[Check]]
 
 def _to_checklist(checks: Optional[_CheckList]) -> List[Check]:
     checks = checks or []
-    if isinstance(checks, Check):
+    if isinstance(checks, Check):  # pragma: no cover
         return [checks]
     return checks
 

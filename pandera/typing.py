@@ -19,15 +19,15 @@ GenericDtype = TypeVar(
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
 
 
-class Index(pd.Index, Generic[GenericDtype]): # pylint:disable=abstract-method
+class Index(pd.Index, Generic[GenericDtype]):  # pylint:disable=abstract-method
     """Representation of pandas.Index."""
 
 
-class Series(pd.Series, Generic[GenericDtype]): # pylint:disable=too-many-ancestors
+class Series(pd.Series, Generic[GenericDtype]):  # pylint:disable=too-many-ancestors
     """Representation of pandas.Series."""
 
 
-class DataFrame(pd.DataFrame, Generic[Schema]): # pylint:disable=too-many-ancestors
+class DataFrame(pd.DataFrame, Generic[Schema]):  # pylint:disable=too-many-ancestors
     """Representation of pandas.DataFrame."""
 
 
@@ -38,9 +38,6 @@ class AnnotationInfo:
         self.origin = origin
         self.arg = arg
         self.optional = optional
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({vars(self)})"
 
 
 def is_frame_or_series_hint(raw_annotation: Type) -> bool:
@@ -58,8 +55,7 @@ def parse_annotation(raw_annotation: Type) -> AnnotationInfo:
     optional = typing_inspect.is_optional_type(raw_annotation)
     if optional:
         # e.g: Typing.Union[pandera.typing.Index[str], NoneType]
-        if _LEGACY_TYPING:
-            print(raw_annotation)
+        if _LEGACY_TYPING:  # pragma: no cover
             # get_args -> ((pandera.typing.Index, <class 'str'>), <class 'NoneType'>)
             origin, arg = typing_inspect.get_args(raw_annotation)[0]
             return AnnotationInfo(origin, arg, optional)

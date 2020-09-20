@@ -1,6 +1,6 @@
 """Tests schema creation and validation from type annotations."""
 # pylint:disable=R0903,C0115,C0116
-
+import re
 from typing import Iterable, Optional
 
 import pandas as pd
@@ -10,7 +10,7 @@ import pandera as pa
 from pandera.typing import Index, Series
 
 
-def test_simple_to_schema():
+def test_to_schema():
     """Test that SchemaModel.to_schema() can produce the correct schema."""
 
     class Schema(pa.SchemaModel):
@@ -25,25 +25,38 @@ def test_simple_to_schema():
 
     assert expected == Schema.to_schema()
 
+    with pytest.raises(TypeError):
+        Schema()
+
 
 def test_invalid_annotations():
     """Test that SchemaModel.to_schema() fails if annotations or types are not
     recognized.
     """
 
-    class IntSchema(pa.SchemaModel):
+    class Missing(pa.SchemaModel):
+        a = pa.Field()
+        b: Series[int]
+        c = pa.Field()
+        _d = 0
+
+    err_msg = re.escape("Found missing annotations: ['a', 'c']")
+    with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
+        Missing.to_schema()
+
+    class Invalid(pa.SchemaModel):
         a: int
 
     with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
-        IntSchema.to_schema()
+        Invalid.to_schema()
 
     from decimal import Decimal  # pylint:disable=C0415
 
-    class InvalidDtypeSchema(pa.SchemaModel):
+    class InvalidDtype(pa.SchemaModel):
         d: Series[Decimal]  # type: ignore
 
     with pytest.raises(TypeError, match="python type '<class 'decimal.Decimal'>"):
-        InvalidDtypeSchema.to_schema()
+        InvalidDtype.to_schema()
 
 
 def test_optional_column():
@@ -92,6 +105,16 @@ def test_schemamodel_with_fields():
     assert actual == expected
 
 
+def test_invalid_field():
+    class Schema(pa.SchemaModel):
+        a: Series[int] = 0
+
+    with pytest.raises(
+        pa.errors.SchemaInitError, match="'a' can only be assigned a 'Field'"
+    ):
+        Schema.to_schema()
+
+
 def test_multiindex():
     """Test that multiple Index annotations create a MultiIndex."""
 
@@ -112,8 +135,8 @@ def test_check_single_column():
         a: Series[int]
 
         @pa.check("a")
-        @classmethod
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            # pylint:disable=no-self-argument
             assert cls is Schema
             return series < 100
 
@@ -131,8 +154,8 @@ def test_check_single_index():
         a: Index[str]
 
         @pa.check("a")
-        @classmethod
         def not_dog(cls, idx: pd.Index) -> Iterable[bool]:
+            # pylint:disable=no-self-argument
             assert cls is Schema
             return ~idx.str.contains("dog")
 
@@ -309,7 +332,7 @@ def test_dataframe_check():
             return df < 200
 
     class Child(Base):
-        @pa.dataframe_check
+        @pa.dataframe_check()
         @classmethod
         def value_min(cls, df: pd.DataFrame) -> Iterable[bool]:
             return df > 0
