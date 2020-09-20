@@ -570,6 +570,41 @@ class DataFrameSchema():
         schema_copy.columns.update({column_name: new_column})
         return schema_copy
 
+    def rename_columns(self, rename_dict: dict):
+        """Rename columns using a dictionary of key-value pairs.
+
+        :param rename_dict: dictionary of 'old_name': 'new_name' key-value
+            pairs.
+        :returns: dataframe schema (copy of original)
+        """
+
+        # We iterate over the existing columns dict and replace those keys
+        # that exist in the rename_dict
+        new_schema = copy.deepcopy(self)
+        new_columns = {
+            (
+                rename_dict[col_name]if col_name in rename_dict else col_name
+            ): col_attrs
+            for col_name, col_attrs in self.columns.items()
+        }
+
+        new_schema.columns = new_columns
+        return new_schema
+
+    def select_columns(self, columns: list):
+        """Select subset of columns in the schema.
+
+        :param columns: list of column names to select.
+        :returns: dataframe schema (copy of original)
+        """
+        new_schema = copy.deepcopy(self)
+        new_columns = {
+            col_name: column for col_name, column in self.columns.items()
+            if col_name in columns
+        }
+        new_schema.columns = new_columns
+        return new_schema
+
     @classmethod
     def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
         """Create DataFrameSchema from yaml file.
@@ -590,25 +625,6 @@ class DataFrameSchema():
         """
         import pandera.io  # pylint: disable-all
         return pandera.io.to_yaml(self, fp)
-
-    def rename_columns(self, rename_dict: dict):
-        """Rename columns using a dictionary of key value pairs 
-
-        :param rename_dict: Dictionary of 'old_name':'new_name' key-value pairs.
-        :returns: dataframe schema (copy of original)
-        """
-
-        # We iterate over the existing columns dict and replace those keys
-        # that exist in the rename_dict
-        new_schema = copy.deepcopy(self)
-        new_columns = {
-            (rename_dict[col_name] if col_name in rename_dict else col_name): col_attrs
-            for col_name, col_attrs in self.columns.items()
-        }
-
-        new_schema.columns = new_columns
-
-        return new_schema
 
 
 class SeriesSchemaBase():

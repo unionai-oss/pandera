@@ -669,6 +669,60 @@ def test_dataframe_schema_update_column(
     assertion_fn(schema, new_schema)
 
 
+def test_rename_columns():
+    """Check that DataFrameSchema.rename_columns() method does it's job"""
+
+    rename_dict = {"col1": "col1_new_name", "col2": "col2_new_name"}
+    schema_original = DataFrameSchema(
+        columns={"col1": Column(Int), "col2": Column(Float)}
+    )
+
+    schema_renamed = schema_original.rename_columns(rename_dict)
+
+    # Check if new column names are indeed present in the new schema
+    assert all(
+        [
+            col_name in rename_dict.values()
+            for col_name in schema_renamed.columns
+        ]
+    )
+    # Check if original schema didn't change in the process
+    assert all(
+        [col_name in schema_original.columns for col_name in rename_dict]
+    )
+
+
+@pytest.mark.parametrize(
+    "select_columns, schema", [
+        (
+            ["col1", "col2"], DataFrameSchema(
+                columns={
+                    "col1": Column(Int),
+                    "col2": Column(Int),
+                    "col3": Column(Int),
+                }
+            )
+        ),
+        (
+            [("col1", "col1b"), ("col2", "col2b")], DataFrameSchema(
+                columns={
+                    ("col1", "col1a"): Column(Int),
+                    ("col1", "col1b"): Column(Int),
+                    ("col2", "col2a"): Column(Int),
+                    ("col2", "col2b"): Column(Int),
+                }
+            )
+        )
+    ]
+)
+def test_select_columns(select_columns, schema):
+    """Check that select_columns method correctly creates new subset schema."""
+    original_columns = list(schema.columns)
+    schema_selected = schema.select_columns(select_columns)
+    assert all(x in select_columns for x in schema_selected.columns)
+    assert all(x in original_columns for x in schema.columns)
+
+
 def test_lazy_dataframe_validation_error():
     """Test exceptions on lazy dataframe validation."""
     schema = DataFrameSchema(
