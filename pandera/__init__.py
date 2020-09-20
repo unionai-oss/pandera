@@ -5,7 +5,7 @@ from .checks import Check
 from .hypotheses import Hypothesis
 from .decorators import check_input, check_output, check_types
 from .dtypes import PandasDtype
-from .schema_model import SchemaModel
+from .model import SchemaModel
 from .model_components import Field, check, dataframe_check
 from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
