@@ -36,6 +36,7 @@ dependencies:
   - scipy
   - wrapt
   - pyyaml
+  - typing_inspect
 
   - pip:
     - sphinx_autodoc_typehints==1.10.3
