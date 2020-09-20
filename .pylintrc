@@ -14,6 +14,8 @@ good-names=
 
 [MESSAGES CONTROL]
 disable=
+    # C0330 conflicts with black: https://github.com/psf/black/issues/48
+    C0330,
     R0913,
     duplicate-code,
     too-many-instance-attributes,

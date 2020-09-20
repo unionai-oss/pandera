@@ -2,7 +2,7 @@
 # pylint: disable=R0903
 
 import sys
-from typing import Generic, Type, TypeVar, Union
+from typing import Generic, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
@@ -13,7 +13,6 @@ __all__ = ["Index", "Series", "DataFrame"]
 
 _LEGACY_TYPING = sys.version_info[:3] < (3, 7, 0)
 
-Dtype = Union[PandasDtype, PandasExtensionType, bool, int, str, float]
 GenericDtype = TypeVar(
     "GenericDtype", PandasDtype, PandasExtensionType, bool, int, str, float
 )
@@ -32,8 +31,9 @@ class DataFrame(pd.DataFrame, Generic[Schema]):
     """Representation of pandas.DataFrame."""
 
 
-class Annotation:
-    """Metadata extracted from an annotation."""
+class AnnotationInfo:
+    """Captures extra information about an annotation."""
+
     def __init__(self, origin: Type, arg: Type, optional: bool) -> None:
         self.origin = origin
         self.arg = arg
@@ -49,7 +49,7 @@ def is_frame_or_series_hint(raw_annotation: Type) -> bool:
     return origin is DataFrame or origin is Series
 
 
-def parse_annotation(raw_annotation: Type) -> Annotation:
+def parse_annotation(raw_annotation: Type) -> AnnotationInfo:
     """Parse key information from annotation.
 
     :param annotation: A subscripted type.
@@ -62,11 +62,11 @@ def parse_annotation(raw_annotation: Type) -> Annotation:
             print(raw_annotation)
             # get_args -> ((pandera.typing.Index, <class 'str'>), <class 'NoneType'>)
             origin, arg = typing_inspect.get_args(raw_annotation)[0]
-            return Annotation(origin, arg, optional)
+            return AnnotationInfo(origin, arg, optional)
         # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
         raw_annotation = typing_inspect.get_args(raw_annotation)[0]
 
     origin = typing_inspect.get_origin(raw_annotation)
     args = typing_inspect.get_args(raw_annotation)
     arg = args[0] if args else args
-    return Annotation(origin=origin, arg=arg, optional=optional)
+    return AnnotationInfo(origin=origin, arg=arg, optional=optional)

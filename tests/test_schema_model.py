@@ -1,7 +1,7 @@
 """Tests schema creation and validation from type annotations."""
 # pylint:disable=R0903,C0115,C0116
 
-from typing import Any, Optional
+from typing import Iterable, Optional
 
 import pandas as pd
 import pytest
@@ -37,10 +37,10 @@ def test_invalid_annotations():
     with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
         IntSchema.to_schema()
 
-    from decimal import Decimal # pylint:disable=C0415
+    from decimal import Decimal  # pylint:disable=C0415
 
     class InvalidDtypeSchema(pa.SchemaModel):
-        d: Series[Decimal] # type: ignore
+        d: Series[Decimal]  # type: ignore
 
     with pytest.raises(TypeError, match="python type '<class 'decimal.Decimal'>"):
         InvalidDtypeSchema.to_schema()
@@ -92,58 +92,6 @@ def test_schemamodel_with_fields():
     assert actual == expected
 
 
-def test_field_to_column():
-    """Test that Field outputs the correct column options."""
-    for flag in ["nullable", "allow_duplicates", "coerce", "regex"]:
-        for value in [True, False]:
-            col = pa.Field(**{flag: value}).to_column(pa.DateTime, required=value)
-            assert isinstance(col, pa.Column)
-            assert col.dtype == pa.DateTime.value
-            assert col.properties[flag] == value
-            assert col.required == value
-
-
-def test_field_to_index():
-    """Test that Field outputs the correct index options."""
-    for flag in ["nullable", "allow_duplicates"]:
-        for value in [True, False]:
-            index = pa.Field(**{flag: value}).to_index(pa.DateTime)
-            assert isinstance(index, pa.Index)
-            assert index.dtype == pa.DateTime.value
-            assert getattr(index, flag) == value
-
-
-def test_field_no_checks():
-    """Test Field without checks."""
-    assert not pa.Field().to_column(str).checks
-
-
-@pytest.mark.parametrize(
-    "arg,value,expected",
-    [
-        ("eq", 9, pa.Check.equal_to(9)),
-        ("neq", 9, pa.Check.not_equal_to(9)),
-        ("gt", 9, pa.Check.greater_than(9)),
-        ("ge", 9, pa.Check.greater_than_or_equal_to(9)),
-        ("lt", 9, pa.Check.less_than(9)),
-        ("le", 9, pa.Check.less_than_or_equal_to(9)),
-        ("in_range", {"min_value": 1, "max_value": 9}, pa.Check.in_range(1, 9)),
-        ("isin", [9, "a"], pa.Check.isin([9, "a"])),
-        ("notin", [9, "a"], pa.Check.notin([9, "a"])),
-        ("str_contains", "a", pa.Check.str_contains("a")),
-        ("str_endswith", "a", pa.Check.str_endswith("a")),
-        ("str_matches", "a", pa.Check.str_matches("a")),
-        ("str_length", {"min_value": 1, "max_value": 9}, pa.Check.str_length(1, 9)),
-        ("str_startswith", "a", pa.Check.str_startswith("a")),
-    ],
-)
-def test_field_checks(arg: str, value: Any, expected: pa.Check):
-    """Test that all built-in checks are available in a Field."""
-    checks = pa.Field(**{arg: value}).to_column(str).checks
-    assert len(checks) == 1
-    assert checks[0] == expected
-
-
 def test_multiindex():
     """Test that multiple Index annotations create a MultiIndex."""
 
@@ -164,7 +112,9 @@ def test_check_single_column():
         a: Series[int]
 
         @pa.check("a")
-        def int_column_lt_100(series: pd.Series) -> bool:
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            assert cls is Schema
             return series < 100
 
     df = pd.DataFrame({"a": [101]})
@@ -181,7 +131,9 @@ def test_check_single_index():
         a: Index[str]
 
         @pa.check("a")
-        def not_dog(idx: pd.Index) -> bool:
+        @classmethod
+        def not_dog(cls, idx: pd.Index) -> Iterable[bool]:
+            assert cls is Schema
             return ~idx.str.contains("dog")
 
     df = pd.DataFrame(index=["cat", "dog"])
@@ -198,7 +150,8 @@ def test_field_and_check():
         a: Series[int] = pa.Field(eq=1)
 
         @pa.check("a")
-        def int_column_lt_100(series: pd.Series) -> bool:
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
             return series < 100
 
     schema = Schema.to_schema()
@@ -212,10 +165,11 @@ def test_check_non_existing():
         a: Series[int]
 
         @pa.check("nope")
-        def int_column_lt_100(series: pd.Series) -> bool:
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
             return series < 100
 
-    err_msg = "Validator int_column_lt_100 is assigned to a non-existing field 'nope'"
+    err_msg = "Check int_column_lt_100 is assigned to a non-existing field 'nope'"
     with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
         Schema.to_schema()
 
@@ -227,11 +181,13 @@ def test_multiple_checks():
         a: Series[int]
 
         @pa.check("a")
-        def int_column_lt_100(series: pd.Series) -> bool:
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
             return series < 100
 
         @pa.check("a")
-        def int_column_gt_0(series: pd.Series) -> bool:
+        @classmethod
+        def int_column_gt_0(cls, series: pd.Series) -> Iterable[bool]:
             return series > 0
 
     schema = Schema.to_schema()
@@ -256,7 +212,8 @@ def test_check_multiple_columns():
         b: Series[int]
 
         @pa.check("a", "b")
-        def int_column_lt_100(series: pd.Series) -> bool:
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "b": [200]})
@@ -274,7 +231,8 @@ def test_check_regex():
         cba: Series[int]
 
         @pa.check("^a", regex=True)
-        def int_column_lt_100(series: pd.Series) -> bool:
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
@@ -305,60 +263,72 @@ def test_inherit_schemamodel_fields():
     assert expected == Child.to_schema()
 
 
-def test_inherit_schemamodel_checks():
-    """Test that checks are inherited."""
+def test_inherit_field_checks():
+    """Test that checks are inherited and overridden."""
 
     class Base(pa.SchemaModel):
         a: Series[int]
-
-        @pa.check("^a", regex=True)
-        def int_column_lt_100(series: pd.Series) -> bool:
-            return series < 100
-
-    class Mid(Base):
-        b: Series[str]
-        idx: Index[str]
-
-        @pa.check("a")
-        def int_column_lt_5(series: pd.Series) -> bool:
-            return series < 5
-
-    class Child(Mid):
-        b: Series[int]
         abc: Series[int]
 
-        @pa.check("idx")
-        def not_dog(idx: pd.Index) -> bool:
-            return ~idx.str.contains("dog")
+        @pa.check("^a", regex=True)
+        @classmethod
+        def a_max(cls, series: pd.Series) -> Iterable[bool]:
+            return series < 100
+
+        @pa.check("a")
+        @classmethod
+        def a_min(cls, series: pd.Series) -> Iterable[bool]:
+            return series > 1
+
+    class Child(Base):
+        @pa.check("a")
+        @classmethod
+        def a_max(cls, series: pd.Series) -> Iterable[bool]:
+            return series < 10
 
     schema = Child.to_schema()
     assert len(schema.columns["a"].checks) == 2
-    assert len(schema.columns["abc"].checks) == 1
-    assert len(schema.index.checks) == 1
+    assert len(schema.columns["abc"].checks) == 0
+
+    df = pd.DataFrame({"a": [15], "abc": [100]})
+    err_msg = r"Column\s*a\s*a_max\s*\[15\]\s*1"
+    with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
+        schema.validate(df, lazy=True)
 
 
-def test_dateframe_check():
+def test_dataframe_check():
+    """Test dataframe checks."""
+
     class Base(pa.SchemaModel):
         a: Series[int]
         b: Series[int]
 
-        @pa.dateframe_check
-        def value_lt_100(df: pd.DataFrame) -> bool:
-            return df < 100
+        @pa.dataframe_check
+        @classmethod
+        def value_max(cls, df: pd.DataFrame) -> Iterable[bool]:
+            return df < 200
 
     class Child(Base):
-        @pa.dateframe_check()
-        def value_gt_0(df: pd.DataFrame) -> bool:
+        @pa.dataframe_check
+        @classmethod
+        def value_min(cls, df: pd.DataFrame) -> Iterable[bool]:
             return df > 0
 
-    df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
+        @pa.dataframe_check
+        @classmethod
+        def value_max(cls, df: pd.DataFrame) -> Iterable[bool]:
+            return df < 100
+
     schema = Child.to_schema()
+    assert len(schema.checks) == 2
+
+    df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
     with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
         schema.validate(df, lazy=True)
 
 
 def test_config():
-    """Test that Config can be inherited and translate into DataFramSchema options."""
+    """Test that Config can be inherited and translate into DataFrameSchema options."""
 
     class Base(pa.SchemaModel):
         a: Series[int]
@@ -366,7 +336,7 @@ def test_config():
         idx_2: Index[str]
 
         class Config:
-            name = "A schema"
+            name = "Base schema"
             coerce = True
             multiindex_coerce = True
             multiindex_strict = True
@@ -376,15 +346,16 @@ def test_config():
         b: Series[int]
 
         class Config:
-            name = "B schema"
+            name = "Child schema"
             strict = True
+            multiindex_strict = False
 
     expected = pa.DataFrameSchema(
         columns={"a": pa.Column(int), "b": pa.Column(int)},
         index=pa.MultiIndex(
             [pa.Index(str, name="idx_1"), pa.Index(str, name="idx_2")],
             coerce=True,
-            strict=True,
+            strict=False,
             name="mi",
         ),
         name="Child schema",

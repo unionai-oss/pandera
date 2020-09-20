@@ -338,15 +338,15 @@ def check_types(
 
         arguments = sig.bind(*args, **kwargs).arguments
         for name, value in arguments.items():
-            raw_annotation = sig.parameters[name].annotation
-            if not is_frame_or_series_hint(raw_annotation):
+            annotation = sig.parameters[name].annotation
+            if not is_frame_or_series_hint(annotation):
                 continue
 
-            annotation = parse_annotation(raw_annotation)
-            if annotation.optional and value is None:
+            annotation_info = parse_annotation(annotation)
+            if annotation_info.optional and value is None:
                 continue
 
-            schema = annotation.arg.to_schema()
+            schema = annotation_info.arg.to_schema()
             try:
                 schema.validate(value, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:
@@ -355,10 +355,10 @@ def check_types(
         out = fn(*args, **kwargs)
 
         if is_frame_or_series_hint(sig.return_annotation):
-            annotation = parse_annotation(sig.return_annotation)
-            if annotation.optional and out is None:
+            annotation_info = parse_annotation(sig.return_annotation)
+            if annotation_info.optional and out is None:
                 return out
-            schema = annotation.arg.to_schema()
+            schema = annotation_info.arg.to_schema()
             try:
                 schema.validate(out, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:
