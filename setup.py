@@ -37,6 +37,7 @@ setup(
         "typing_inspect >= 0.6.0"
         "black ; python_version>'3.5'",
         "autopep8 ; python_version=='3.5'",
+        "typing_extensions ; python_version<'3.8'",
     ],
     python_requires='>=3.5',
     platforms='any',
