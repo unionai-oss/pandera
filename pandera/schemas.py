@@ -594,6 +594,8 @@ class DataFrameSchema():
     def select_columns(self, columns: list):
         """Select subset of columns in the schema.
 
+        *New in version 0.4.5*
+
         :param columns: list of column names to select.
         :returns: dataframe schema (copy of original)
         """
