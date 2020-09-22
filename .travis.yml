@@ -16,11 +16,10 @@ os:
   - windows
 
 env:
-  - JOB="3.5" ENV_FILE="ci/deps/env_35.yml"
-  - JOB="3.6" ENV_FILE="ci/deps/env_36.yml"
-  - JOB="3.7" ENV_FILE="ci/deps/env_37.yml"
-  - JOB="3.8" ENV_FILE="ci/deps/env_38.yml"
-  - JOB="latest" ENV_FILE="ci/deps/env_latest.yml"
+  - JOB="3.6" PYTHON="python=3.6.*"
+  - JOB="3.7" PYTHON="python=3.7.*"
+  - JOB="3.8" PYTHON="python=3.8.*"
+  - JOB="latest" PYTHON="python"
 
 before_install:
   - |
@@ -70,7 +69,7 @@ install:
     conda info -a || exit 1
   # Setup Conda Env
   - |
-    conda env create -n hosts -f $ENV_FILE || exit 1
+    conda env create -n hosts $PYTHON -f environment.yml || exit 1
     source activate hosts
 
     python setup.py install
