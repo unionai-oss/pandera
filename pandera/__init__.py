@@ -11,7 +11,6 @@ from .schema_inference import infer_schema
 from .version import __version__
 
 
-# pylint: disable=invalid-name
 Bool = PandasDtype.Bool
 DateTime = PandasDtype.DateTime
 Category = PandasDtype.Category
