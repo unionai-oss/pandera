@@ -69,7 +69,7 @@ install:
   # Setup Conda Env
   - |
     conda create -n hosts python=$PYTHON_VERSION || exit 1
-    conda env update -n hosts -f environment.yml -y
+    conda env update -n hosts -f environment.yml
     source activate hosts
 
     python setup.py install
