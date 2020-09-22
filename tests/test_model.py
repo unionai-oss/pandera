@@ -1,5 +1,5 @@
 """Tests schema creation and validation from type annotations."""
-# pylint:disable=R0903,C0115,C0116
+# pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
 from typing import Iterable, Optional
 
@@ -27,46 +27,6 @@ def test_to_schema():
 
     with pytest.raises(TypeError):
         Schema()
-
-
-@pytest.mark.parametrize(
-    "actual, expected",
-    [
-        (pa.typing.Bool, pa.Bool),
-        (pa.typing.DateTime, pa.DateTime),
-        (pa.typing.Category, pa.Category),
-        (pa.typing.Float, pa.Float),
-        (pa.typing.Float16, pa.Float16),
-        (pa.typing.Float32, pa.Float32),
-        (pa.typing.Float64, pa.Float64),
-        (pa.typing.Int, pa.Int),
-        (pa.typing.Int8, pa.Int8),
-        (pa.typing.Int16, pa.Int16),
-        (pa.typing.Int32, pa.Int32),
-        (pa.typing.Int64, pa.Int64),
-        (pa.typing.UInt8, pa.UInt8),
-        (pa.typing.UInt16, pa.UInt16),
-        (pa.typing.UInt32, pa.UInt32),
-        (pa.typing.UInt64, pa.UInt64),
-        (pa.typing.UINT8, pa.UINT8),
-        (pa.typing.UINT16, pa.UINT16),
-        (pa.typing.UINT32, pa.UINT32),
-        (pa.typing.UINT64, pa.UINT64),
-        (pa.typing.UINT8, pa.UINT8),
-        (pa.typing.UINT16, pa.UINT16),
-        (pa.typing.UINT32, pa.UINT32),
-        (pa.typing.UINT64, pa.UINT64),
-        (pa.typing.Object, pa.Object),
-        (pa.typing.String, pa.String),
-        (pa.typing.Timedelta, pa.Timedelta),
-    ],
-)
-def test_literal_dtype(actual, expected):
-    class Schema(pa.SchemaModel):
-        col: Series[actual]
-
-    schema = Schema.to_schema()
-    assert schema.columns["col"] == pa.Column(expected, name="col")
 
 
 def test_invalid_annotations():

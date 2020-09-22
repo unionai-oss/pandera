@@ -11,27 +11,61 @@ from .dtypes import PandasDtype, PandasExtensionType
 
 if sys.version_info < (3, 8):  # pragma: no cover
     from typing_extensions import Literal
-else:
+else: # pragma: no cover
     from typing import Literal  # pylint:disable=no-name-in-module
 
 
 _LEGACY_TYPING = sys.version_info[:3] < (3, 7, 0)
 
-GenericDtype = TypeVar(
-    "GenericDtype", PandasDtype, PandasExtensionType, bool, int, str, float
+GenericDtype = TypeVar(  # type: ignore
+    "GenericDtype",
+    PandasDtype,
+    PandasExtensionType,
+    bool,
+    int,
+    str,
+    float,
+    Literal[PandasDtype.Bool],
+    Literal[PandasDtype.DateTime],
+    Literal[PandasDtype.Category],
+    Literal[PandasDtype.Float],
+    Literal[PandasDtype.Float16],
+    Literal[PandasDtype.Float32],
+    Literal[PandasDtype.Float64],
+    Literal[PandasDtype.Int],
+    Literal[PandasDtype.Int8],
+    Literal[PandasDtype.Int16],
+    Literal[PandasDtype.Int32],
+    Literal[PandasDtype.Int64],
+    Literal[PandasDtype.UInt8],
+    Literal[PandasDtype.UInt16],
+    Literal[PandasDtype.UInt32],
+    Literal[PandasDtype.UInt64],
+    Literal[PandasDtype.INT8],
+    Literal[PandasDtype.INT16],
+    Literal[PandasDtype.INT32],
+    Literal[PandasDtype.INT64],
+    Literal[PandasDtype.UINT8],
+    Literal[PandasDtype.UINT16],
+    Literal[PandasDtype.UINT32],
+    Literal[PandasDtype.UINT64],
+    Literal[PandasDtype.Object],
+    Literal[PandasDtype.String],
+    Literal[PandasDtype.Timedelta],
+    covariant=True,
 )
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
 
 
-class Index(pd.Index, Generic[GenericDtype]):  # pylint:disable=abstract-method
+class Index(pd.Index, Generic[GenericDtype]):  # type: ignore # pylint:disable=abstract-method
     """Representation of pandas.Index."""
 
 
-class Series(pd.Series, Generic[GenericDtype]):  # pylint:disable=too-many-ancestors
+class Series(pd.Series, Generic[GenericDtype]):  # type: ignore # pylint:disable=too-many-ancestors
     """Representation of pandas.Series."""
 
 
-class DataFrame(pd.DataFrame, Generic[Schema]):  # pylint:disable=too-many-ancestors
+class DataFrame(pd.DataFrame, Generic[Schema]):  # pylint:disable=too-many-ancestors,abstract-method
     """Representation of pandas.DataFrame."""
 
 
