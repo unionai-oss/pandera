@@ -68,7 +68,8 @@ install:
     conda info -a || exit 1
   # Setup Conda Env
   - |
-    conda env create -n hosts python=$PYTHON_VERSION -f environment.yml || exit 1
+    conda create -n hosts python=$PYTHON_VERSION || exit 1
+    conda env update -n hosts -f environment.yml -y
     source activate hosts
 
     python setup.py install
