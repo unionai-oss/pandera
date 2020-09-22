@@ -1,4 +1,4 @@
-name: pandera-dev-latest
+name: pandera-dev
 channels:
   - defaults
   - conda-forge
