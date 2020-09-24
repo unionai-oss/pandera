@@ -11,11 +11,11 @@ pytest
 pytest-cov
 twine
 asv
-pre-commit
+pre_commit
 black
 numpy
 pandas
 scipy
 wrapt
 pyyaml
-sphinx_autodoc_typehints==1.10.3
+sphinx_autodoc_typehints

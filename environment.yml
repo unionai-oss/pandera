@@ -1,11 +1,8 @@
-name: pandera-dev-latest
+name: pandera-dev
 channels:
   - defaults
   - conda-forge
 dependencies:
-  # required
-  - python
-
   # environment management
   - pip
 
@@ -27,7 +24,7 @@ dependencies:
   - asv
 
   # optional
-  - pre-commit
+  - pre_commit
 
   # pandera dependencies
   - black
@@ -38,4 +35,4 @@ dependencies:
   - pyyaml
 
   - pip:
-    - sphinx_autodoc_typehints==1.10.3
+    - sphinx_autodoc_typehints

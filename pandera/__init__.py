@@ -1,6 +1,6 @@
 """A flexible and expressive pandas validation library."""
 
-from . import errors, constants, io
+from . import errors, constants
 from .checks import Check
 from .hypotheses import Hypothesis
 from .decorators import check_input, check_output
@@ -11,7 +11,6 @@ from .schema_inference import infer_schema
 from .version import __version__
 
 
-# pylint: disable=invalid-name
 Bool = PandasDtype.Bool
 DateTime = PandasDtype.DateTime
 Category = PandasDtype.Category

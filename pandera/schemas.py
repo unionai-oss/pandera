@@ -1,4 +1,5 @@
 """Core pandera schema class definitions."""
+# pylint: disable=too-many-lines
 
 import json
 import copy
@@ -38,7 +39,6 @@ def _inferred_schema_guard(method):
     False.
     """
 
-    # pylint: disable=inconsistent-return-statements
     @wraps(method)
     def _wrapper(schema, *args, **kwargs):
         new_schema = method(schema, *args, **kwargs)
@@ -256,7 +256,7 @@ class DataFrameSchema():
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=duplicate-code,too-many-locals
+        # pylint: disable=too-many-locals,too-many-branches
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -310,7 +310,6 @@ class DataFrameSchema():
         5         0.76      dog
         """
 
-        # pylint: disable=too-many-branches
         if self._is_inferred:
             warnings.warn(
                 "This %s is an inferred schema that hasn't been "
@@ -607,6 +606,16 @@ class DataFrameSchema():
         new_schema.columns = new_columns
         return new_schema
 
+    def to_script(self, fp: Union[str, Path] = None) -> "DataFrameSchema":
+        """Create DataFrameSchema from yaml file.
+
+        :param path: str, Path to write script
+        :returns: dataframe schema.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+        return pandera.io.to_script(self, fp)
+
     @classmethod
     def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
         """Create DataFrameSchema from yaml file.
@@ -615,7 +624,8 @@ class DataFrameSchema():
             string.
         :returns: dataframe schema.
         """
-        import pandera.io  # pylint: disable-all
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
         return pandera.io.from_yaml(yaml_schema)
 
     def to_yaml(self, fp: Union[str, Path] = None):
@@ -625,7 +635,8 @@ class DataFrameSchema():
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
-        import pandera.io  # pylint: disable-all
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
         return pandera.io.to_yaml(self, fp)
 
 
@@ -675,10 +686,7 @@ class SeriesSchemaBase():
                     "Cannot use groupby checks with type %s" % type(self))
 
         # make sure pandas dtype is valid
-        try:
-            self.dtype
-        except TypeError:
-            raise
+        self.dtype  # pylint: disable=pointless-statement
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
@@ -752,10 +760,7 @@ class SeriesSchemaBase():
             dtypes.PandasExtensionType]) -> None:
         """Set the pandas dtype"""
         self._pandas_dtype = value
-        try:
-            self.dtype
-        except TypeError:
-            raise
+        self.dtype  # pylint: disable=pointless-statement
 
     @property
     def dtype(self) -> Union[str, None]:
@@ -824,7 +829,7 @@ class SeriesSchemaBase():
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=too-many-branches,W0212,too-many-locals,duplicate-code  # noqa
+        # pylint: disable=too-many-locals,too-many-branches
         """Validate a series or specific column in dataframe.
 
         :check_obj: pandas DataFrame or Series to validate.
@@ -898,9 +903,12 @@ class SeriesSchemaBase():
             if sum(nulls) > 0:
                 msg = (
                     "non-nullable series '%s' contains null values: %s" %
-                    (series.name,
-                     series[nulls].head(
-                        constants.N_FAILURE_CASES).to_dict())
+                    (
+                        series.name,
+                        series[nulls].head(
+                            constants.N_FAILURE_CASES
+                        ).to_dict()
+                    )
                 )
                 error_handler.collect_error(
                     "series_contains_nulls",
@@ -967,7 +975,7 @@ class SeriesSchemaBase():
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the
                 # Check
                 err_str = '%s("%s")' % (err.__class__.__name__, err.args[0])
@@ -1054,7 +1062,6 @@ class SeriesSchema(SeriesSchemaBase):
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> pd.Series:
-        # pylint: disable=duplicate-code
         """Validate a Series object.
 
         :param check_obj: One-dimensional ndarray with axis labels
@@ -1109,7 +1116,7 @@ class SeriesSchema(SeriesSchemaBase):
         if self.index:
             self.index(check_obj)
 
-        return super(SeriesSchema, self).validate(
+        return super().validate(
             check_obj, head, tail, sample, random_state, lazy
         )
 

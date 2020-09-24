@@ -33,11 +33,10 @@ setup(
         "pandas >= 0.23.0",
         "wrapt",
         "pyyaml >= 5.1",
-        "scipy ; python_version>='3.5'",
-        "black ; python_version>'3.5'",
-        "autopep8 ; python_version=='3.5'",
+        "scipy",
+        "black",
     ],
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     platforms='any',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -46,9 +45,9 @@ setup(
         'Intended Audience :: Science/Research',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering'
         ],
 

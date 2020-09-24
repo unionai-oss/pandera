@@ -309,19 +309,31 @@ def test_io_yaml(index):
         assert schema_from_yaml == schema
 
 
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="skipping due to issues with opening file names for temp files."
+)
 @pytest.mark.parametrize("index", [
     "single", "multi", None
 ])
 def test_to_script(index):
     """Test writing DataFrameSchema to a script."""
     schema_to_write = _create_schema(index)
-    script = io.to_script(schema_to_write)
 
-    local_dict = {}
-    # pylint: disable=exec-used
-    exec(script, globals(), local_dict)
+    for script in [io.to_script(schema_to_write), schema_to_write.to_script()]:
 
-    schema = local_dict["schema"]
+        local_dict = {}
+        # pylint: disable=exec-used
+        exec(script, globals(), local_dict)
 
-    # executing script should result in a variable `schema`
-    assert schema == schema_to_write
+        schema = local_dict["schema"]
+
+        # executing script should result in a variable `schema`
+        assert schema == schema_to_write
+
+    with tempfile.NamedTemporaryFile("w+") as f:
+        schema_to_write.to_script(Path(f.name))
+        # pylint: disable=exec-used
+        exec(f.read(), globals(), local_dict)
+        schema = local_dict["schema"]
+        assert schema == schema_to_write

@@ -218,12 +218,11 @@ class _CheckBase():
         """Set check statistics."""
         self._statistics = statistics
 
+    @staticmethod
     def _format_groupby_input(
-            self,
             groupby_obj: GroupbyObject,
             groups: Optional[List[str]],
     ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
-        # pylint: disable=no-self-use
         """Format groupby object into dict of groups to Series or DataFrame.
 
         :param groupby_obj: a pandas groupby object.

@@ -194,7 +194,7 @@ def test_check_input_method_decorators():
     class TransformerClass():
         """Contains functions with different signatures representing the way
         that the decorators can be called."""
-        # pylint: disable=E0012,C0111,C0116,W0613, R0201
+        # pylint: disable=E0012,C0111,C0116,W0613,R0201
         # disables missing-function-docstring as this is a factory method
         # disables unused-arguments because handling the second argument is
         # what is being tested and this is intentional.
