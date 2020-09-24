@@ -606,6 +606,16 @@ class DataFrameSchema():
         new_schema.columns = new_columns
         return new_schema
 
+    def to_script(self, fp: Union[str, Path] = None) -> "DataFrameSchema":
+        """Create DataFrameSchema from yaml file.
+
+        :param path: str, Path to write script
+        :returns: dataframe schema.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+        return pandera.io.to_script(self, fp)
+
     @classmethod
     def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
         """Create DataFrameSchema from yaml file.
@@ -614,7 +624,8 @@ class DataFrameSchema():
             string.
         :returns: dataframe schema.
         """
-        import pandera.io  # pylint: disable=import-outside-toplevel
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
         return pandera.io.from_yaml(yaml_schema)
 
     def to_yaml(self, fp: Union[str, Path] = None):
@@ -624,7 +635,8 @@ class DataFrameSchema():
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
-        import pandera.io  # pylint: disable=import-outside-toplevel
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
         return pandera.io.to_yaml(self, fp)
 
 
@@ -1104,7 +1116,7 @@ class SeriesSchema(SeriesSchemaBase):
         if self.index:
             self.index(check_obj)
 
-        return super(SeriesSchema, self).validate(
+        return super().validate(
             check_obj, head, tail, sample, random_state, lazy
         )
 
