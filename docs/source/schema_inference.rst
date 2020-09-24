@@ -83,11 +83,9 @@ You can also write your schema to a python script with :py:func:`io.to_script`:
 .. testcode:: infer_dataframe_schema
    :skipif: SKIP
 
-   from pandera import io
-
    # supply a file-like object, Path, or str to write to a file. If not
    # specified, to_script will output the code as a string.
-   schema_script = io.to_script(schema)
+   schema_script = schema.to_script()
    print(schema_script)
 
 .. testoutput:: infer_dataframe_schema
@@ -182,7 +180,7 @@ is a convenience method for this functionality.
    :skipif: SKIP
 
     schema_type: dataframe
-    version: 0.4.4
+    version: 0.4.5
     columns:
       column1:
         pandas_dtype: int64

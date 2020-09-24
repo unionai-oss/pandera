@@ -69,9 +69,9 @@ df = pd.DataFrame({
 
 # define schema
 schema = pa.DataFrameSchema({
-    "column1": pa.Column(pa.Int, checks=pa.Check.less_than_or_equal_to(10)),
-    "column2": pa.Column(pa.Float, checks=pa.Check.less_than(-1.2)),
-    "column3": pa.Column(pa.String, checks=[
+    "column1": pa.Column(int, checks=pa.Check.less_than_or_equal_to(10)),
+    "column2": pa.Column(float, checks=pa.Check.less_than(-1.2)),
+    "column3": pa.Column(str, checks=[
         pa.Check.str_startswith("value_"),
         # define custom checks as functions that take a series as input and
         # outputs a boolean or boolean Series
@@ -155,6 +155,22 @@ Here are a few other alternatives for validating Python data structures.
 
 
 ### Citation Information
+
+#### [Paper](https://conference.scipy.org/proceedings/scipy2020/niels_bantilan.html)
+
+```
+@InProceedings{ niels_bantilan-proc-scipy-2020,
+  author    = { {N}iels {B}antilan },
+  title     = { pandera: {S}tatistical {D}ata {V}alidation of {P}andas {D}ataframes },
+  booktitle = { {P}roceedings of the 19th {P}ython in {S}cience {C}onference },
+  pages     = { 116 - 124 },
+  year      = { 2020 },
+  editor    = { {M}eghann {A}garwal and {C}hris {C}alloway and {D}illon {N}iederhut and {D}avid {S}hupe },
+  doi       = { 10.25080/Majora-342d178e-010 }
+}
+```
+
+#### Software Package
 
 ```
 @software{niels_bantilan_2020_3926689,

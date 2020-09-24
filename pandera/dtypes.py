@@ -236,7 +236,7 @@ class PandasDtype(Enum):
         return pandas_dtype
 
     def __eq__(self, other):
-        # pylint: disable=comparison-with-callable,too-many-return-statements
+        # pylint: disable=comparison-with-callable
         # see https://github.com/PyCQA/pylint/issues/2306
         if other is None:
             return False

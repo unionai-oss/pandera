@@ -218,12 +218,11 @@ class _CheckBase():
         """Set check statistics."""
         self._statistics = statistics
 
+    @staticmethod
     def _format_groupby_input(
-            self,
             groupby_obj: GroupbyObject,
             groups: Optional[List[str]],
     ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
-        # pylint: disable=no-self-use
         """Format groupby object into dict of groups to Series or DataFrame.
 
         :param groupby_obj: a pandas groupby object.
@@ -433,9 +432,66 @@ class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
 
     @classmethod
+    @register_check_statistics(["value"])
+    def equal_to(cls, value, **kwargs) -> 'Check':
+        """Ensure all elements of a series equal a certain value.
+
+        *New in version 0.4.5*
+        Alias: ``eq``
+
+        :param value: All elements of a given :class:`pandas.Series` must have
+            this value
+        :param kwargs: key-word arguments passed into the `Check` initializer.
+
+        :returns: :class:`Check` object
+        """
+        def _equal(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series == value
+
+        return cls(
+            _equal,
+            name=cls.equal_to.__name__,
+            error="equal_to(%s)" % value,
+            **kwargs,
+        )
+
+    eq = equal_to
+
+    @classmethod
+    @register_check_statistics(["value"])
+    def not_equal_to(cls, value, **kwargs) -> 'Check':
+        """Ensure no elements of a series equals a certain value.
+
+        *New in version 0.4.5*
+        Alias: ``ne``
+
+        :param value: This value must not occur in the checked
+            :class:`pandas.Series`.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
+
+        :returns: :class:`Check` object
+        """
+        def _not_equal(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return series != value
+
+        return cls(
+            _not_equal,
+            name=cls.not_equal_to.__name__,
+            error="not_equal_to(%s)" % value,
+            **kwargs,
+        )
+
+    ne = not_equal_to
+
+    @classmethod
     @register_check_statistics(["min_value"])
     def greater_than(cls, min_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly greater than a minimum value.
+
+        *New in version 0.4.5*
+        Alias: ``gt``
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable
             to the dtype of the :class:`pandas.Series` to be validated (e.g. a
@@ -458,10 +514,15 @@ class Check(_CheckBase):
             **kwargs,
         )
 
+    gt = greater_than
+
     @classmethod
     @register_check_statistics(["min_value"])
     def greater_than_or_equal_to(cls, min_value, **kwargs) -> 'Check':
         """Ensure all values are greater or equal a certain value.
+
+        *New in version 0.4.5*
+        Alias: ``ge``
 
         :param min_value: Allowed minimum value for values of a series. Must be
             a type comparable to the dtype of the :class:`pandas.Series` to be
@@ -484,10 +545,15 @@ class Check(_CheckBase):
             **kwargs,
         )
 
+    ge = greater_than_or_equal_to
+
     @classmethod
     @register_check_statistics(["max_value"])
     def less_than(cls, max_value, **kwargs) -> 'Check':
         """Ensure values of a series are strictly below a maximum value.
+
+        *New in version 0.4.5*
+        Alias: ``lt``
 
         :param max_value: All elements of a series must be strictly smaller
             than this. Must be a type comparable to the dtype of the
@@ -510,10 +576,15 @@ class Check(_CheckBase):
             **kwargs,
         )
 
+    lt = less_than
+
     @classmethod
     @register_check_statistics(["max_value"])
     def less_than_or_equal_to(cls, max_value, **kwargs) -> 'Check':
-        """Ensure no value of a series exceeds a certain value.
+        """Ensure values are less than or equal to a maximum value.
+
+        *New in version 0.4.5*
+        Alias: ``le``
 
         :param max_value: Upper bound not to be exceeded. Must be a type
             comparable to the dtype of the :class:`pandas.Series` to be
@@ -535,6 +606,8 @@ class Check(_CheckBase):
             error="less_than_or_equal_to(%s)" % max_value,
             **kwargs
         )
+
+    le = less_than_or_equal_to
 
     @classmethod
     @register_check_statistics([
@@ -582,50 +655,6 @@ class Check(_CheckBase):
             _in_range,
             name=cls.in_range.__name__,
             error="in_range(%s, %s)" % (min_value, max_value),
-            **kwargs,
-        )
-
-    @classmethod
-    @register_check_statistics(["value"])
-    def equal_to(cls, value, **kwargs) -> 'Check':
-        """Ensure all elements of a series equal a certain value.
-
-        :param value: All elements of a given :class:`pandas.Series` must have
-            this value
-        :param kwargs: key-word arguments passed into the `Check` initializer.
-
-        :returns: :class:`Check` object
-        """
-        def _equal(series: pd.Series) -> pd.Series:
-            """Comparison function for check"""
-            return series == value
-
-        return cls(
-            _equal,
-            name=cls.equal_to.__name__,
-            error="equal_to(%s)" % value,
-            **kwargs,
-        )
-
-    @classmethod
-    @register_check_statistics(["value"])
-    def not_equal_to(cls, value, **kwargs) -> 'Check':
-        """Ensure no elements of a series equals a certain value.
-
-        :param value: This value must not occur in the checked
-            :class:`pandas.Series`.
-        :param kwargs: key-word arguments passed into the `Check` initializer.
-
-        :returns: :class:`Check` object
-        """
-        def _not_equal(series: pd.Series) -> pd.Series:
-            """Comparison function for check"""
-            return series != value
-
-        return cls(
-            _not_equal,
-            name=cls.not_equal_to.__name__,
-            error="not_equal_to(%s)" % value,
             **kwargs,
         )
 

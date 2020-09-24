@@ -175,6 +175,33 @@ def test_series_schema_multiple_validators():
         schema.validate(pd.Series([1, 5, 20, 50]))
 
 
+@pytest.mark.parametrize("coerce", [True, False])
+def test_series_schema_with_index(coerce):
+    """Test SeriesSchema with Index and MultiIndex components."""
+    schema_with_index = SeriesSchema(
+        pandas_dtype=Int,
+        index=Index(Int, coerce=coerce),
+    )
+    validated_series = schema_with_index(pd.Series([1, 2, 3], index=[1, 2, 3]))
+    assert isinstance(validated_series, pd.Series)
+
+    schema_with_multiindex = SeriesSchema(
+        pandas_dtype=Int,
+        index=MultiIndex([
+            Index(Int, coerce=coerce),
+            Index(String, coerce=coerce),
+        ])
+    )
+    multi_index = pd.MultiIndex.from_arrays(
+        [[0, 1, 2], ["foo", "bar", "foo"]],
+    )
+    validated_series_multiindex = schema_with_multiindex(
+        pd.Series([1, 2, 3], index=multi_index)
+    )
+    assert isinstance(validated_series_multiindex, pd.Series)
+    assert (validated_series_multiindex.index == multi_index).all()
+
+
 class SeriesGreaterCheck:
     # pylint: disable=too-few-public-methods
     """Class creating callable objects to check if series elements exceed a
@@ -640,6 +667,60 @@ def test_dataframe_schema_update_column(
 
     new_schema = schema.update_column(column_to_update, **update)
     assertion_fn(schema, new_schema)
+
+
+def test_rename_columns():
+    """Check that DataFrameSchema.rename_columns() method does it's job"""
+
+    rename_dict = {"col1": "col1_new_name", "col2": "col2_new_name"}
+    schema_original = DataFrameSchema(
+        columns={"col1": Column(Int), "col2": Column(Float)}
+    )
+
+    schema_renamed = schema_original.rename_columns(rename_dict)
+
+    # Check if new column names are indeed present in the new schema
+    assert all(
+        [
+            col_name in rename_dict.values()
+            for col_name in schema_renamed.columns
+        ]
+    )
+    # Check if original schema didn't change in the process
+    assert all(
+        [col_name in schema_original.columns for col_name in rename_dict]
+    )
+
+
+@pytest.mark.parametrize(
+    "select_columns, schema", [
+        (
+            ["col1", "col2"], DataFrameSchema(
+                columns={
+                    "col1": Column(Int),
+                    "col2": Column(Int),
+                    "col3": Column(Int),
+                }
+            )
+        ),
+        (
+            [("col1", "col1b"), ("col2", "col2b")], DataFrameSchema(
+                columns={
+                    ("col1", "col1a"): Column(Int),
+                    ("col1", "col1b"): Column(Int),
+                    ("col2", "col2a"): Column(Int),
+                    ("col2", "col2b"): Column(Int),
+                }
+            )
+        )
+    ]
+)
+def test_select_columns(select_columns, schema):
+    """Check that select_columns method correctly creates new subset schema."""
+    original_columns = list(schema.columns)
+    schema_selected = schema.select_columns(select_columns)
+    assert all(x in select_columns for x in schema_selected.columns)
+    assert all(x in original_columns for x in schema.columns)
 
 
 def test_lazy_dataframe_validation_error():

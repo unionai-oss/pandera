@@ -1,10 +1,10 @@
 """Module for reading and writing schema objects."""
 
-import yaml
 from functools import partial
 from pathlib import Path
 
 import pandas as pd
+import yaml
 
 from .dtypes import PandasDtype
 from .schema_statistics import get_dataframe_schema_statistics
@@ -65,7 +65,7 @@ def _serialize_component_stats(component_stats):
 
 def _serialize_schema(dataframe_schema):
     """Serialize dataframe schema into into json/yaml-compatible format."""
-    from pandera import __version__  # pylint: disable-all
+    from pandera import __version__  # pylint: disable=import-outside-toplevel
 
     statistics = get_dataframe_schema_statistics(dataframe_schema)
 
@@ -114,8 +114,7 @@ def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype):
 
 
 def _deserialize_component_stats(serialized_component_stats):
-    # pylint: disable-all
-    from pandera import Check
+    from pandera import Check  # pylint: disable=import-outside-toplevel
 
     pandas_dtype = PandasDtype.from_str_alias(
         serialized_component_stats["pandas_dtype"]
@@ -142,7 +141,7 @@ def _deserialize_component_stats(serialized_component_stats):
 
 
 def _deserialize_schema(serialized_schema):
-    # pylint: disable-all
+    # pylint: disable=import-outside-toplevel
     from pandera import DataFrameSchema, Column, Index, MultiIndex
 
     columns, index = None, None
@@ -168,10 +167,7 @@ def _deserialize_schema(serialized_schema):
         ])
 
     return DataFrameSchema(
-        columns={
-            col_name: column
-            for col_name, column in columns.items()
-        },
+        columns=columns,
         index=index,
         coerce=serialized_schema["coerce"],
         strict=serialized_schema["strict"],
@@ -290,18 +286,10 @@ def _format_index(index_statistics):
 
 
 def _format_script(script):
-    try:
-        import black
-        formatter = partial(
-            black.format_str, mode=black.FileMode(line_length=80)
-        )
-    except ImportError:
-        # use autopep8 for python3.5
-        import autopep8
-        formatter = partial(
-            autopep8.fix_code, options={"aggressive": 1}
-        )
-
+    import black  # pylint: disable=import-outside-toplevel
+    formatter = partial(
+        black.format_str, mode=black.FileMode(line_length=80)
+    )
     return formatter(script)
 
 
@@ -356,15 +344,3 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     with Path(path_or_buf).open("w") as f:
         f.write(formatted_script)
-
-    def _write_script(obj, stream):
-        try:
-            return yaml.safe_dump(obj, stream=stream, sort_keys=False)
-        except TypeError:
-            return yaml.safe_dump(obj, stream=stream)
-
-    try:
-        with Path(path_or_buf).open("w") as f:
-            _write_script(formatted_script, f)
-    except (TypeError, OSError):
-        return _write_script(formatted_script, path_or_buf)

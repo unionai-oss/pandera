@@ -1,4 +1,5 @@
 """Core pandera schema class definitions."""
+# pylint: disable=too-many-lines
 
 import json
 import copy
@@ -49,7 +50,6 @@ def _inferred_schema_guard(method):
     False.
     """
 
-    # pylint: disable=inconsistent-return-statements
     @wraps(method)
     def _wrapper(schema, *args, **kwargs):
         new_schema = method(schema, *args, **kwargs)
@@ -267,7 +267,7 @@ class DataFrameSchema():
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=duplicate-code,too-many-locals
+        # pylint: disable=too-many-locals,too-many-branches
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -321,7 +321,6 @@ class DataFrameSchema():
         5         0.76      dog
         """
 
-        # pylint: disable=too-many-branches
         if self._is_inferred:
             warnings.warn(
                 "This %s is an inferred schema that hasn't been "
@@ -581,6 +580,53 @@ class DataFrameSchema():
         schema_copy.columns.update({column_name: new_column})
         return schema_copy
 
+    def rename_columns(self, rename_dict: dict):
+        """Rename columns using a dictionary of key-value pairs.
+
+        :param rename_dict: dictionary of 'old_name': 'new_name' key-value
+            pairs.
+        :returns: dataframe schema (copy of original)
+        """
+
+        # We iterate over the existing columns dict and replace those keys
+        # that exist in the rename_dict
+        new_schema = copy.deepcopy(self)
+        new_columns = {
+            (
+                rename_dict[col_name]if col_name in rename_dict else col_name
+            ): col_attrs
+            for col_name, col_attrs in self.columns.items()
+        }
+
+        new_schema.columns = new_columns
+        return new_schema
+
+    def select_columns(self, columns: list):
+        """Select subset of columns in the schema.
+
+        *New in version 0.4.5*
+
+        :param columns: list of column names to select.
+        :returns: dataframe schema (copy of original)
+        """
+        new_schema = copy.deepcopy(self)
+        new_columns = {
+            col_name: column for col_name, column in self.columns.items()
+            if col_name in columns
+        }
+        new_schema.columns = new_columns
+        return new_schema
+
+    def to_script(self, fp: Union[str, Path] = None) -> "DataFrameSchema":
+        """Create DataFrameSchema from yaml file.
+
+        :param path: str, Path to write script
+        :returns: dataframe schema.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+        return pandera.io.to_script(self, fp)
+
     @classmethod
     def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
         """Create DataFrameSchema from yaml file.
@@ -589,7 +635,8 @@ class DataFrameSchema():
             string.
         :returns: dataframe schema.
         """
-        import pandera.io  # pylint: disable-all
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
         return pandera.io.from_yaml(yaml_schema)
 
     def to_yaml(self, fp: Union[str, Path] = None):
@@ -599,27 +646,9 @@ class DataFrameSchema():
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
-        import pandera.io  # pylint: disable-all
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
         return pandera.io.to_yaml(self, fp)
-
-    def rename_columns(self, rename_dict: dict):
-        """Rename columns using a dictionary of key value pairs 
-
-        :param rename_dict: Dictionary of 'old_name':'new_name' key-value pairs.
-        :returns: dataframe schema (copy of original)
-        """
-
-        # We iterate over the existing columns dict and replace those keys
-        # that exist in the rename_dict
-        new_schema = copy.deepcopy(self)
-        new_columns = {
-            (rename_dict[col_name] if col_name in rename_dict else col_name): col_attrs
-            for col_name, col_attrs in self.columns.items()
-        }
-
-        new_schema.columns = new_columns
-
-        return new_schema
 
 
 class SeriesSchemaBase():
@@ -668,10 +697,7 @@ class SeriesSchemaBase():
                     "Cannot use groupby checks with type %s" % type(self))
 
         # make sure pandas dtype is valid
-        try:
-            self.dtype
-        except TypeError:
-            raise
+        self.dtype  # pylint: disable=pointless-statement
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
@@ -745,10 +771,7 @@ class SeriesSchemaBase():
             dtypes.PandasExtensionType]) -> None:
         """Set the pandas dtype"""
         self._pandas_dtype = value
-        try:
-            self.dtype
-        except TypeError:
-            raise
+        self.dtype  # pylint: disable=pointless-statement
 
     @property
     def dtype(self) -> Optional[str]:
@@ -824,7 +847,7 @@ class SeriesSchemaBase():
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=too-many-branches,W0212,too-many-locals,duplicate-code  # noqa
+        # pylint: disable=too-many-locals,too-many-branches
         """Validate a series or specific column in dataframe.
 
         :check_obj: pandas DataFrame or Series to validate.
@@ -898,9 +921,12 @@ class SeriesSchemaBase():
             if sum(nulls) > 0:
                 msg = (
                     "non-nullable series '%s' contains null values: %s" %
-                    (series.name,
-                     series[nulls].head(
-                        constants.N_FAILURE_CASES).to_dict())
+                    (
+                        series.name,
+                        series[nulls].head(
+                            constants.N_FAILURE_CASES
+                        ).to_dict()
+                    )
                 )
                 error_handler.collect_error(
                     "series_contains_nulls",
@@ -967,7 +993,7 @@ class SeriesSchemaBase():
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the
                 # Check
                 err_str = '%s("%s")' % (err.__class__.__name__, err.args[0])
@@ -1008,6 +1034,38 @@ class SeriesSchemaBase():
 class SeriesSchema(SeriesSchemaBase):
     """Series validator."""
 
+    def __init__(
+            self,
+            pandas_dtype: PandasDtypeInputTypes = None,
+            checks: CheckList = None,
+            index=None,
+            nullable: bool = False,
+            allow_duplicates: bool = True,
+            coerce: bool = False,
+            name: str = None) -> None:
+        """Initialize series schema base object.
+
+        :param pandas_dtype: datatype of the column. If a string is specified,
+            then assumes one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+        :param checks: If element_wise is True, then callable signature should
+            be:
+
+            ``Callable[Any, bool]`` where the ``Any`` input is a scalar element
+            in the column. Otherwise, the input is assumed to be a
+            pandas.Series object.
+        :type checks: callable
+        :param index: specify the datatypes and properties of the index.
+        :param nullable: Whether or not column can contain null values.
+        :type nullable: bool
+        :param allow_duplicates:
+        :type allow_duplicates: bool
+        """
+        super().__init__(
+            pandas_dtype, checks, nullable, allow_duplicates, coerce, name
+        )
+        self.index = index
+
     @property
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
@@ -1022,7 +1080,6 @@ class SeriesSchema(SeriesSchemaBase):
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> pd.Series:
-        # pylint: disable=duplicate-code
         """Validate a Series object.
 
         :param check_obj: One-dimensional ndarray with axis labels
@@ -1070,8 +1127,16 @@ class SeriesSchema(SeriesSchemaBase):
         if self.coerce:
             check_obj = self.coerce_dtype(check_obj)
 
-        return super(SeriesSchema, self).validate(
-            check_obj, head, tail, sample, random_state, lazy)
+        if self.index is not None and (self.index.coerce or self.coerce):
+            check_obj.index = self.index.coerce_dtype(check_obj.index)
+
+        # validate index
+        if self.index:
+            self.index(check_obj)
+
+        return super().validate(
+            check_obj, head, tail, sample, random_state, lazy
+        )
 
     def __call__(
             self,

@@ -132,7 +132,6 @@ class Column(SeriesSchemaBase):
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=duplicate-code
         """Validate a Column in a DataFrame object.
 
         :param check_obj: pandas DataFrame to validate.
@@ -241,54 +240,6 @@ class Column(SeriesSchemaBase):
 class Index(SeriesSchemaBase):
     """Validate types and properties of a DataFrame Index."""
 
-    def __init__(
-            self,
-            pandas_dtype: PandasDtypeInputTypes = None,
-            checks: CheckList = None,
-            nullable: bool = False,
-            allow_duplicates: bool = True,
-            coerce: bool = False,
-            name: str = None) -> None:
-        # pylint: disable=useless-super-delegation
-        """Create Index validator.
-
-        :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
-            type-checking dataframe. If a string is specified, then assumes
-            one of the valid pandas string values:
-            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
-        :param checks: checks to verify validity of the index.
-        :param nullable: Whether or not column can contain null values.
-        :param allow_duplicates: Whether or not to coerce the column to the
-            specified pandas_dtype before validation
-        :param coerce: If True, when schema.validate is called the index will
-            be coerced into the specified dtype.
-        :param name: name of the index
-
-        :example:
-
-        >>> import pandas as pd
-        >>> import pandera as pa
-        >>>
-        >>>
-        >>> schema = pa.DataFrameSchema(
-        ...     columns={"column": pa.Column(pa.String)},
-        ...     index=pa.Index(pa.Int, allow_duplicates=False))
-        >>>
-        >>> schema.validate(
-        ...     pd.DataFrame({"column": ["foo"] * 3}, index=range(3))
-        ... )
-          column
-        0    foo
-        1    foo
-        2    foo
-
-        See :ref:`here<index>` for more usage details.
-
-        """
-        super().__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce, name
-        )
-
     def coerce_dtype(self, series_or_index: pd.Index) -> pd.Index:
         """Coerce type of a pd.Index by type specified in pandas_dtype.
 
@@ -316,7 +267,6 @@ class Index(SeriesSchemaBase):
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=duplicate-code
         """Validate DataFrameSchema or SeriesSchema Index.
 
         :check_obj: pandas DataFrame of Series containing index to validate.
@@ -409,7 +359,6 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
-        # pylint: disable=W0212
         self.indexes = indexes
         super().__init__(
             columns={
@@ -463,10 +412,6 @@ class MultiIndex(DataFrameSchema):
             random_state: Optional[int] = None,
             lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=signature-differs,arguments-differ,duplicate-code
-        # will need to clean up the class structure of this module since
-        # this MultiIndex subclasses DataFrameSchema, which has a different
-        # signature
         """Validate DataFrame or Series MultiIndex.
 
         :param check_obj: pandas DataFrame of Series to validate.
