@@ -309,6 +309,10 @@ def test_io_yaml(index):
         assert schema_from_yaml == schema
 
 
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="skipping due to issues with opening file names for temp files."
+)
 @pytest.mark.parametrize("index", [
     "single", "multi", None
 ])
