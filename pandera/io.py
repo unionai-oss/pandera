@@ -344,15 +344,3 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     with Path(path_or_buf).open("w") as f:
         f.write(formatted_script)
-
-    def _write_script(obj, stream):
-        try:
-            return yaml.safe_dump(obj, stream=stream, sort_keys=False)
-        except TypeError:
-            return yaml.safe_dump(obj, stream=stream)
-
-    try:
-        with Path(path_or_buf).open("w") as f:
-            _write_script(formatted_script, f)
-    except (TypeError, OSError):
-        return _write_script(formatted_script, path_or_buf)

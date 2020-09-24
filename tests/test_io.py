@@ -326,3 +326,10 @@ def test_to_script(index):
 
         # executing script should result in a variable `schema`
         assert schema == schema_to_write
+
+    with tempfile.NamedTemporaryFile("w+") as f:
+        schema_to_write.to_script(Path(f.name))
+        # pylint: disable=exec-used
+        exec(f.read(), globals(), local_dict)
+        schema = local_dict["schema"]
+        assert schema == schema_to_write
