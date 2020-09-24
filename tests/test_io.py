@@ -315,13 +315,14 @@ def test_io_yaml(index):
 def test_to_script(index):
     """Test writing DataFrameSchema to a script."""
     schema_to_write = _create_schema(index)
-    script = io.to_script(schema_to_write)
 
-    local_dict = {}
-    # pylint: disable=exec-used
-    exec(script, globals(), local_dict)
+    for script in [io.to_script(schema_to_write), schema_to_write.to_script()]:
 
-    schema = local_dict["schema"]
+        local_dict = {}
+        # pylint: disable=exec-used
+        exec(script, globals(), local_dict)
 
-    # executing script should result in a variable `schema`
-    assert schema == schema_to_write
+        schema = local_dict["schema"]
+
+        # executing script should result in a variable `schema`
+        assert schema == schema_to_write
