@@ -33,9 +33,11 @@ CheckList = Optional[
 PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
 
 if pd.__version__ < "1.0.0":
+    # pylint: disable=no-name-in-module
     from pandas.core.dtypes.dtypes import registry, ExtensionDtype
 
     def is_extension_array_dtype(arr_or_dtype):
+        # pylint: disable=missing-function-docstring
         dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
         return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
 
@@ -791,7 +793,7 @@ class SeriesSchemaBase():
                     raise TypeError(
                         f"Pandas dtype {dtype_} cannot be instantiated: {err}\n"
                         + "Usage Tip: Use an instance or a string representation."
-                    )
+                    ) from err
             return str(dtype_)
 
         if isinstance(dtype_, str):
