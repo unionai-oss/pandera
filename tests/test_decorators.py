@@ -7,11 +7,13 @@ import pytest
 from pandera import errors
 from pandera import (
     Column, DataFrameSchema, Check, DateTime, Float, Int, String, check_input,
-    check_output)
+    check_output, check_io,
+)
 
 
 def test_check_function_decorators():
-    """Tests 5 different methods that are common across the @check_input and
+    """
+    Tests 5 different methods that are common across the @check_input and
     @check_output decorators.
     """
     in_schema = DataFrameSchema(
@@ -247,3 +249,62 @@ def test_check_input_method_decorators():
         transformer.transform_secord_arg_with_list_getter(None, dataframe))
     _assert_expectation(
         transformer.transform_secord_arg_with_dict_getter(None, dataframe))
+
+
+def test_check_io():
+
+    schema = DataFrameSchema({"col": Column(Int)})
+
+    @check_io(df1=schema, df2=schema, out=schema)
+    def simple_func(df1, df2):
+        return df1.assign(col=df1["col"] + df2["col"])
+
+    @check_io(out=(1, schema))
+    def output_with_obj_getter():
+        pass
+
+    @check_io(
+        out=[(0, schema), (1, schema)]
+    )
+    def multiple_outputs_tuple(df):
+        return df, df
+
+    @check_io(
+        out=[(0, schema), ("foo", schema), (lambda x: x[2]["bar"], schema)]
+    )
+    def multiple_outputs_dict(df):
+        return {
+            0: df,
+            "foo": df,
+            2: {"bar": df}
+        }
+
+    def multiple_output_getters():
+        pass
+
+    def different_input_schemas():
+        pass
+
+    def validate_kwargs():
+        pass
+
+    def unexpected_input_args():
+        pass
+
+    def unexpected_output_args():
+        pass
+
+    df1 = pd.DataFrame({"col": [1, 1, 1]})
+    df2 = pd.DataFrame({"col": [2, 2, 2]})
+
+    expected = pd.DataFrame({"col": [3, 3, 3]})
+    result = simple_func(df1, df2)
+    assert (result == expected).all(axis=None)
+
+
+    # TODO: test cases:
+    # - test multiple outputs
+    # - test outputs with object getter of int, str, Callable types
+    # - test different input schemas
+    # - test with validate kwargs
+    # - test error cases: type error
