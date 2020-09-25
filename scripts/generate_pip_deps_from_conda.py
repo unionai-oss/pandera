@@ -105,7 +105,7 @@ def main(conda_fname, pip_fname, compare=False):
 
     if compare:
         with open(pip_fname) as pip_fd:
-            return pip_content != pip_fd.read()
+            return pip_content.strip() != pip_fd.read().strip()
     else:
         with open(pip_fname, "w") as pip_fd:
             pip_fd.write(pip_content)
