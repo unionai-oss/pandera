@@ -20,4 +20,4 @@ wrapt
 pyyaml
 typing_inspect
 typing_extensions
-sphinx_autodoc_typehints==1.10.3
+sphinx_autodoc_typehints
