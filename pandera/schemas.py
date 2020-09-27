@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, List, Optional, Union, Dict, Any
 
 import pandas as pd
+from packaging import version
 
 from . import errors, constants, dtypes
 from .checks import Check
@@ -32,9 +33,9 @@ CheckList = Optional[
 
 PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
 
-if pd.__version__ < "1.0.0":
+if version.parse(pd.__version__).major < 1: # type: ignore
     # pylint: disable=no-name-in-module
-    from pandas.core.dtypes.dtypes import registry, ExtensionDtype
+    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 
     def is_extension_array_dtype(arr_or_dtype):
         # pylint: disable=missing-function-docstring

@@ -4,13 +4,14 @@ from typing import Type
 
 import pandas as pd
 import pytest
+from packaging import version
 
 import pandera as pa
 from pandera.dtypes import PandasDtype
 from pandera.model import SchemaModel
 from pandera.typing import Series
 
-LEGACY_PANDAS = pd.__version__ < "1.0.0"
+LEGACY_PANDAS = version.parse(pd.__version__).major < 1  # type: ignore
 
 
 class SchemaBool(pa.SchemaModel):
