@@ -4,13 +4,14 @@ import functools
 import inspect
 import warnings
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union, cast
 
 import wrapt
 import pandas as pd
 
 from . import errors, schemas
-from .typing import parse_annotation
+from . typing import parse_annotation
+from . model import SchemaModel
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
@@ -347,7 +348,8 @@ def check_types(
             if not annotation_info.is_generic_df:
                 continue
 
-            schema = annotation_info.arg.to_schema()
+            model = cast(SchemaModel, annotation_info.arg)
+            schema = model.to_schema()
             try:
                 schema.validate(arg_value, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:
@@ -360,7 +362,8 @@ def check_types(
             return out
 
         if annotation_info.is_generic_df:
-            schema = annotation_info.arg.to_schema()
+            model = cast(SchemaModel, annotation_info.arg)
+            schema = model.to_schema()
             try:
                 schema.validate(out, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:

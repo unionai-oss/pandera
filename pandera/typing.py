@@ -1,5 +1,5 @@
 """Typing definitions and helpers."""
-
+# pylint:disable=abstract-method,disable=too-many-ancestors
 import sys
 from typing import Generic, Optional, Type, TypeVar
 
@@ -56,7 +56,7 @@ GenericDtype = TypeVar(  # type: ignore
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
 
 
-class Index(pd.Index, Generic[GenericDtype]):  # type: ignore # pylint:disable=abstract-method
+class Index(pd.Index, Generic[GenericDtype]):
     """Representation of pandas.Index."""
 
 
@@ -64,7 +64,7 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore # pylint:disable
     """Representation of pandas.Series."""
 
 
-class DataFrame(pd.DataFrame, Generic[Schema]):  # pylint:disable=abstract-method
+class DataFrame(pd.DataFrame, Generic[Schema]):
     """Representation of pandas.DataFrame."""
 
 
