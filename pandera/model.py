@@ -15,6 +15,8 @@ from typing import (
     get_type_hints,
 )
 
+import pandas as pd
+
 from . import schema_components
 from .checks import Check
 from .errors import SchemaInitError
@@ -102,6 +104,20 @@ class SchemaModel:
             name=cls.__config__["name"],
         )
         return cls.__schema__
+
+    @classmethod
+    @pd.util.Substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    def validate(
+        cls,
+        check_obj: pd.DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+    ) -> pd.DataFrame:
+        """%(validate_doc)s"""
+        cls.to_schema().validate(check_obj, head, tail, sample, random_state, lazy)
 
     @classmethod
     def _build_columns_index(

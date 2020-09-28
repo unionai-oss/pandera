@@ -160,10 +160,9 @@ def test_check_single_index():
             return ~idx.str.contains("dog")
 
     df = pd.DataFrame(index=["cat", "dog"])
-    schema = Schema.to_schema()
     err_msg = r"Index\s*<NA>\s*not_dog\s*\[dog\]\s*"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
-        schema.validate(df, lazy=True)
+        Schema.validate(df, lazy=True)
 
 
 def test_field_and_check():
@@ -240,9 +239,8 @@ def test_check_multiple_columns():
             return series < 100
 
     df = pd.DataFrame({"a": [101], "b": [200]})
-    schema = Schema.to_schema()
     with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
-        schema.validate(df, lazy=True)
+        Schema.validate(df, lazy=True)
 
 
 def test_check_regex():
@@ -259,9 +257,8 @@ def test_check_regex():
             return series < 100
 
     df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
-    schema = Schema.to_schema()
     with pytest.raises(pa.errors.SchemaErrors, match="1 schema errors were found"):
-        schema.validate(df, lazy=True)
+        Schema.validate(df, lazy=True)
 
 
 def test_inherit_schemamodel_fields():
