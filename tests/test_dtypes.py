@@ -335,6 +335,7 @@ def test_python_builtin_types_not_supported(python_type):
         ["datetime", PandasDtype.DateTime],
         ["timedelta64", PandasDtype.Timedelta],
         ["timedelta", PandasDtype.Timedelta],
+        ["mixed-integer", PandasDtype.Object]
     ]
 )
 def test_pandas_api_types(pandas_api_type, pandas_dtype):
@@ -354,3 +355,9 @@ def test_pandas_api_type_exception(invalid_pandas_api_type):
     """Test unsupported values for pandas api type conversion."""
     with pytest.raises(TypeError):
         PandasDtype.from_pandas_api_type(invalid_pandas_api_type)
+
+@pytest.mark.parametrize("pandas_dtype", (pandas_dtype for pandas_dtype in PandasDtype))
+def test_pandas_dtype_equality(pandas_dtype):
+    """Test __eq__ implementation."""
+    assert pandas_dtype != None # pylint:disable=singleton-comparison
+    assert pandas_dtype == pandas_dtype.value
