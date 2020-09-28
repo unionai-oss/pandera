@@ -10,7 +10,7 @@ import wrapt
 import pandas as pd
 
 from . import errors, schemas
-from .typing import is_frame_or_series_hint, parse_annotation
+from .typing import parse_annotation
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
@@ -308,7 +308,7 @@ def check_output(
 
 
 def check_types(
-    fn=None,
+    wrapped=None,
     *,
     head: Optional[int] = None,
     tail: Optional[int] = None,
@@ -316,8 +316,8 @@ def check_types(
     random_state: Optional[int] = None,
     lazy: bool = False,
 ) -> Callable:
-    """Validate function inputs and output based on type annotations."""
-    if fn is None:
+    """Validate function inputs and output based o>n type annotations."""
+    if wrapped is None:
         return functools.partial(
             check_types,
             head=head,
@@ -329,41 +329,43 @@ def check_types(
 
     @wrapt.decorator
     def _wrapper(
-        wrapped: Callable, # pylint:disable=W0613
-        instance: Union[None, Any], # pylint:disable=W0613
+        wrapped: Callable,
+        instance: Optional[Any], # pylint:disable=unused-argument
         args: Union[List[Any], Tuple[Any]],
         kwargs: Dict[str, Any],
     ):
-        sig = inspect.signature(fn)
+        sig = inspect.signature(wrapped)
 
         arguments = sig.bind(*args, **kwargs).arguments
-        for name, value in arguments.items():
-            annotation = sig.parameters[name].annotation
-            if not is_frame_or_series_hint(annotation):
+        for arg_name, arg_value in arguments.items():
+            annotation = sig.parameters[arg_name].annotation
+            annotation_info = parse_annotation(annotation)
+
+            if annotation_info.optional and arg_value is None:
                 continue
 
-            annotation_info = parse_annotation(annotation)
-            if annotation_info.optional and value is None:
+            if not annotation_info.is_generic_df:
                 continue
 
             schema = annotation_info.arg.to_schema()
             try:
-                schema.validate(value, head, tail, sample, random_state, lazy)
+                schema.validate(arg_value, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:
-                _handle_schema_error("check_types", fn, schema, value, e)
+                _handle_schema_error("check_types", wrapped, schema, arg_value, e)
 
-        out = fn(*args, **kwargs)
+        out = wrapped(*args, **kwargs)
 
-        if is_frame_or_series_hint(sig.return_annotation):
-            annotation_info = parse_annotation(sig.return_annotation)
-            if annotation_info.optional and out is None:
-                return out
+        annotation_info = parse_annotation(sig.return_annotation)
+        if annotation_info.optional and out is None:
+            return out
+
+        if annotation_info.is_generic_df:
             schema = annotation_info.arg.to_schema()
             try:
                 schema.validate(out, head, tail, sample, random_state, lazy)
             except errors.SchemaError as e:
-                _handle_schema_error("check_types", fn, out, "return", e)
+                _handle_schema_error("check_types", wrapped, out, "return", e)
 
         return out
 
-    return _wrapper(fn) # pylint:disable=E1120
+    return _wrapper(wrapped) # pylint:disable=no-value-for-parameter

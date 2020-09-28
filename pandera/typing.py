@@ -1,8 +1,7 @@
 """Typing definitions and helpers."""
-# pylint: disable=R0903
 
 import sys
-from typing import Generic, Type, TypeVar
+from typing import Generic, Optional, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
@@ -11,7 +10,7 @@ from .dtypes import PandasDtype, PandasExtensionType
 
 if sys.version_info < (3, 8):  # pragma: no cover
     from typing_extensions import Literal
-else: # pragma: no cover
+else:  # pragma: no cover
     from typing import Literal  # pylint:disable=no-name-in-module
 
 
@@ -65,18 +64,25 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore # pylint:disable
     """Representation of pandas.Series."""
 
 
-class DataFrame(pd.DataFrame, Generic[Schema]):  # pylint:disable=too-many-ancestors,abstract-method
+class DataFrame(pd.DataFrame, Generic[Schema]):  # pylint:disable=abstract-method
     """Representation of pandas.DataFrame."""
 
 
-class AnnotationInfo:
+class AnnotationInfo:  # pylint:disable=too-few-public-methods
     """Captures extra information about an annotation."""
 
-    def __init__(self, origin: Type, arg: Type, optional: bool, literal=False) -> None:
+    def __init__(
+        self, origin: Optional[Type], arg: Optional[Type], optional: bool, literal=False
+    ) -> None:
         self.origin = origin
         self.arg = arg
         self.optional = optional
         self.literal = literal
+
+    @property
+    def is_generic_df(self) -> bool:
+        """True if the annotation is a pandera.typing.DataFrame."""
+        return self.origin is not None and issubclass(self.origin, DataFrame)
 
 
 def is_frame_or_series_hint(raw_annotation: Type) -> bool:

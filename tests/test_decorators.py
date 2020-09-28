@@ -11,6 +11,7 @@ from pandera import (
     Column,
     DataFrameSchema,
     DateTime,
+    Field,
     Float,
     Int,
     SchemaModel,
@@ -261,16 +262,50 @@ def test_check_input_method_decorators():
     _assert_expectation(
         transformer.transform_secord_arg_with_dict_getter(None, dataframe))
 
-# required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class InSchema(SchemaModel): # pylint:disable=R0903:
-    """Test schema used as input."""
-    a: Series[int]
-    idx: Index[str]
+
+# required to be a global: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+class OnlyZeroesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
+    """Schema with a single column containing zeroes."""
+
+    a: Series[int] = Field(eq=0)
 
 
-class OutSchema(SchemaModel): # pylint:disable=R0903:
-    """Test schema used as output."""
-    b: Series[int]
+def test_check_types_arguments():
+    """Test that check_types forwards key-words arguments to validate."""
+    df = pd.DataFrame({"a": [0, 0]})
+
+    @check_types()
+    def transform_empty_parenthesis(
+        df: DataFrame[OnlyZeroesSchema],
+    ) -> DataFrame[OnlyZeroesSchema]:  # pylint: disable=unused-argument
+        return df
+
+    transform_empty_parenthesis(df)
+
+    @check_types(head=1)
+    def transform_head(
+        df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
+    ) -> DataFrame[OnlyZeroesSchema]:
+        return pd.DataFrame({"a": [0, 0]})
+
+    transform_head(df)
+
+    @check_types(tail=1)
+    def transform_tail(
+        df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
+    ) -> DataFrame[OnlyZeroesSchema]:
+        return pd.DataFrame({"a": [1, 0]})
+
+    transform_tail(df)
+
+    @check_types(lazy=True)
+    def transform_lazy(
+        df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
+    ) -> DataFrame[OnlyZeroesSchema]:
+        return pd.DataFrame({"a": [1, 1]})
+
+    with pytest.raises(errors.SchemaErrors, match="Usage Tip"):
+        transform_lazy(df)
 
 
 def test_check_types_unchanged():
@@ -278,48 +313,76 @@ def test_check_types_unchanged():
     function being checked."""
 
     @check_types
-    def transform(df: DataFrame[InSchema], notused: int) -> DataFrame[InSchema]: # pylint: disable=W0613
+    def transform(
+        df: DataFrame[OnlyZeroesSchema], notused: int  # pylint: disable=unused-argument
+    ) -> DataFrame[OnlyZeroesSchema]:
         return df
 
-    df = pd.DataFrame({"a": [1]}, index=["1"])
+    df = pd.DataFrame({"a": [0]})
     pd.testing.assert_frame_equal(transform(df, 2), df)
 
 
-def test_check_types_errors():
-    """Test that check_types behaviour raises an error if the input or ouput schemas
-    are not respected."""
+# required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+class InSchema(SchemaModel):  # pylint:disable=too-few-public-methods
+    """Test schema used as input."""
+
+    a: Series[int]
+    idx: Index[str]
+
+
+class OutSchema(SchemaModel):  # pylint: disable=too-few-public-methods
+    """Test schema used as output."""
+
+    b: Series[int]
+
+
+def test_check_types_multiple_inputs():
+    """Test that check_types behaviour when multiple inputs are annotated."""
+
+    @check_types
+    def transform(df_1: DataFrame[InSchema], df_2: DataFrame[InSchema]):
+        return pd.concat([df_1, df_2])
+
+    correct = pd.DataFrame({"a": [1]}, index=["1"])
+    transform(correct, correct)
+
+    wrong = pd.DataFrame({"b": [1]})
+    with pytest.raises(errors.SchemaError, match="column 'a' not in dataframe"):
+        transform(correct, wrong)
+
+
+def test_check_types_error_input():
+    """Test that check_types raises an error when the input is not correct."""
+
+    @check_types
+    def transform(df: DataFrame[InSchema]):
+        return df
+
+    df = pd.DataFrame({"b": [1]})
+    with pytest.raises(errors.SchemaError, match="column 'a' not in dataframe"):
+        transform(df)
+
+
+def test_check_types_error_output():
+    """Test that check_types raises an error when the output is not correct."""
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
     @check_types
-    def transform_index(df: DataFrame[InSchema]) -> DataFrame[InSchema]:
-        return df.reset_index(drop=True)
-
-    with pytest.raises(errors.SchemaError):
-        transform_index(df)
-
-    @check_types
-    def to_b(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
+    def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
         return df
 
     with pytest.raises(errors.SchemaError, match="column 'b' not in dataframe"):
-        to_b(df)
-
-    @check_types
-    def to_str(df: DataFrame[InSchema]) -> DataFrame[InSchema]:
-        df["a"] = "1"
-        return df
-
-    err_msg = "expected series 'a' to have type int64"
-    with pytest.raises(errors.SchemaError, match=err_msg):
-        to_str(df)
+        transform(df)
 
 
 def test_check_types_optional_out():
     """Test the check_types behaviour when the output schema is optional."""
 
     @check_types
-    def optional_out(df: DataFrame[InSchema]) -> Optional[DataFrame[OutSchema]]: # pylint: disable=W0613
+    def optional_out(
+        df: DataFrame[InSchema],  # pylint: disable=unused-argument
+    ) -> Optional[DataFrame[OutSchema]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -330,7 +393,9 @@ def test_check_types_optional_in():
     """Test the check_types behaviour when the input schema is optional."""
 
     @check_types
-    def optional_in(df: Optional[DataFrame[InSchema]]) -> None: # pylint: disable=W0613
+    def optional_in(
+        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
+    ) -> None:
         return None
 
     assert optional_in(None) is None
@@ -340,7 +405,9 @@ def test_check_types_optional_in_out():
     """Test the check_types behaviour when both input and outputs schemas are optional."""
 
     @check_types
-    def transform(df: Optional[DataFrame[InSchema]]) -> Optional[DataFrame[OutSchema]]: # pylint: disable=W0613
+    def transform(
+        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
+    ) -> Optional[DataFrame[OutSchema]]:
         return None
 
     assert transform(None) is None
