@@ -61,7 +61,7 @@ class SchemaModel:
 
     Config: Type[BaseConfig] = BaseConfig
     __schema__: Optional[DataFrameSchema] = None
-    __config__: Dict[str, Any] = {}
+    __config__: Optional[Type[BaseConfig]] = None
     __field_annotations__: Dict[str, Type] = {}
     __checks__: Dict[str, List[Check]] = {}
     __dataframe_checks__: List[Check] = []
@@ -84,10 +84,10 @@ class SchemaModel:
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
         cls.__dataframe_checks__ = cls._extract_df_checks(df_check_infos)
 
-        cls.__config__ = cls._collect_config_options()
+        cls.__config__ = cls._collect_config()
         mi_kwargs = {
             name[len("multiindex_") :]: value
-            for name, value in cls.__config__.items()
+            for name, value in vars(cls.__config__).items()
             if name.startswith("multiindex_")
         }
         columns, index = cls._build_columns_index(
@@ -99,9 +99,9 @@ class SchemaModel:
             columns,
             index=index,
             checks=cls.__dataframe_checks__,  # type: ignore
-            coerce=cls.__config__["coerce"],
-            strict=cls.__config__["strict"],
-            name=cls.__config__["name"],
+            coerce=cls.__config__.coerce,
+            strict=cls.__config__.strict,
+            name=cls.__config__.name,
         )
         return cls.__schema__
 
@@ -177,7 +177,7 @@ class SchemaModel:
         return annotations
 
     @classmethod
-    def _collect_config_options(cls) -> Dict[str, Any]:
+    def _collect_config(cls) -> Type[BaseConfig]:
         """Collect config options from bases."""
         bases = inspect.getmro(cls)[:-1]
         bases = cast(Tuple[Type[SchemaModel]], bases)
@@ -188,7 +188,7 @@ class SchemaModel:
             config = getattr(model, _CONFIG_KEY, {})
             base_options = _extract_config_options(config)
             options.update(base_options)
-        return options
+        return type("Config", (BaseConfig,), options)
 
     @classmethod
     def _collect_check_infos(cls, key: str) -> List[CheckInfo]:
