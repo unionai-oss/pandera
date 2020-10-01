@@ -85,12 +85,6 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         return self.origin is not None and issubclass(self.origin, DataFrame)
 
 
-def is_frame_or_series_hint(raw_annotation: Type) -> bool:
-    """Test if base annotation is a typing.Series or typing.DataFrame."""
-    origin = typing_inspect.get_origin(raw_annotation)
-    return origin is DataFrame or origin is Series
-
-
 def parse_annotation(raw_annotation: Type) -> AnnotationInfo:
     """Parse key information from annotation.
 
