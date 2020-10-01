@@ -37,7 +37,7 @@ def test_field_no_checks():
     "arg,value,expected",
     [
         ("eq", 9, pa.Check.equal_to(9)),
-        ("neq", 9, pa.Check.not_equal_to(9)),
+        ("ne", 9, pa.Check.not_equal_to(9)),
         ("gt", 9, pa.Check.greater_than(9)),
         ("ge", 9, pa.Check.greater_than_or_equal_to(9)),
         ("lt", 9, pa.Check.less_than(9)),

@@ -103,7 +103,7 @@ class FieldInfo:
 def Field(
     *,
     eq: Any = None,
-    neq: Any = None,
+    ne: Any = None,
     gt: Any = None,
     ge: Any = None,
     lt: Any = None,
@@ -156,7 +156,7 @@ def Field(
 
 _check_dispatch = {
     "eq": Check.equal_to,
-    "neq": Check.not_equal_to,
+    "ne": Check.not_equal_to,
     "gt": Check.greater_than,
     "ge": Check.greater_than_or_equal_to,
     "lt": Check.less_than,

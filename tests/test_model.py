@@ -87,7 +87,7 @@ def test_schemamodel_with_fields():
     """Test that Fields are translated in the schema."""
 
     class Schema(pa.SchemaModel):
-        a: Series[int] = pa.Field(eq=9, neq=0)
+        a: Series[int] = pa.Field(eq=9, ne=0)
         b: Series[str]
         idx: Index[str] = pa.Field(str_length={"min_value": 1})
 
