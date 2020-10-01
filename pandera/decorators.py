@@ -317,7 +317,7 @@ def check_types(
     random_state: Optional[int] = None,
     lazy: bool = False,
 ) -> Callable:
-    """Validate function inputs and output based o>n type annotations."""
+    """Validate function inputs and output based on type annotations."""
     if wrapped is None:
         return functools.partial(
             check_types,
@@ -331,7 +331,7 @@ def check_types(
     @wrapt.decorator
     def _wrapper(
         wrapped: Callable,
-        instance: Optional[Any], # pylint:disable=unused-argument
+        instance: Optional[Any],  # pylint:disable=unused-argument
         args: Union[List[Any], Tuple[Any]],
         kwargs: Dict[str, Any],
     ):
@@ -371,4 +371,4 @@ def check_types(
 
         return out
 
-    return _wrapper(wrapped) # pylint:disable=no-value-for-parameter
+    return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
