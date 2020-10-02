@@ -33,6 +33,8 @@ dependencies:
   - scipy
   - wrapt
   - pyyaml
+  - typing_inspect
+  - typing_extensions
 
   - pip:
     - sphinx_autodoc_typehints

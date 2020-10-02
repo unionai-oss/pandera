@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, List, Optional, Union, Dict, Any
 
 import pandas as pd
+from packaging import version
 
 from . import errors, constants, dtypes
 from .checks import Check
@@ -31,6 +32,19 @@ CheckList = Optional[
 ]
 
 PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
+
+if version.parse(pd.__version__).major < 1: # type: ignore
+    # pylint: disable=no-name-in-module
+    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
+
+    def is_extension_array_dtype(arr_or_dtype):
+        # pylint: disable=missing-function-docstring
+        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
+        return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
+
+
+else:
+    from pandas.api.types import is_extension_array_dtype  # type: ignore
 
 
 def _inferred_schema_guard(method):
@@ -763,34 +777,41 @@ class SeriesSchemaBase():
         self.dtype  # pylint: disable=pointless-statement
 
     @property
-    def dtype(self) -> Union[str, None]:
+    def dtype(self) -> Optional[str]:
         """String representation of the dtype."""
-        try:
-            is_extension_type = isinstance(
-                self._pandas_dtype,
-                pd.core.dtypes.base.ExtensionDtype)
-        except (AttributeError, TypeError):
-            is_extension_type = False
+        dtype_ = self._pandas_dtype
+        if dtype_ is None:
+            return dtype_
 
-        if is_extension_type:
-            dtype = str(self._pandas_dtype)
-        elif self._pandas_dtype is None:
-            dtype = self._pandas_dtype  # type: ignore
-        elif isinstance(self._pandas_dtype, str):
-            dtype = PandasDtype.from_str_alias(  # type: ignore
-                self._pandas_dtype).str_alias
-        elif isinstance(self._pandas_dtype, type):
-            dtype = PandasDtype.from_python_type(self._pandas_dtype).str_alias
-        elif isinstance(self._pandas_dtype, dtypes.PandasDtype):
-            dtype = self._pandas_dtype.str_alias
-        else:
-            raise TypeError(
-                "type of `pandas_dtype` argument not recognized: %s "
-                "Please specify a pandera PandasDtype enum, legal pandas data "
-                "type, pandas data type string alias, or numpy data type "
-                "string alias" % type(self._pandas_dtype)
-            )
-        return dtype
+        if is_extension_array_dtype(dtype_):
+            if isinstance(dtype_, type):
+                try:
+                    # Convert to str here because some pandas dtypes allow
+                    # an empty constructor for compatatibility but fail on str().
+                    # e.g: PeriodDtype
+                    return str(dtype_())
+                except (TypeError, AttributeError) as err:
+                    raise TypeError(
+                        f"Pandas dtype {dtype_} cannot be instantiated: {err}\n"
+                        + "Usage Tip: Use an instance or a string representation."
+                    ) from err
+            return str(dtype_)
+
+        if isinstance(dtype_, str):
+            dtype_ = PandasDtype.from_str_alias(dtype_)
+
+        if isinstance(dtype_, type):
+            dtype_ = PandasDtype.from_python_type(dtype_)
+
+        if isinstance(dtype_, dtypes.PandasDtype):
+            return dtype_.str_alias
+
+        raise TypeError(
+            "type of `pandas_dtype` argument not recognized: %s "
+            "Please specify a pandera PandasDtype enum, legal pandas data "
+            "type, pandas data type string alias, or numpy data type "
+            "string alias" % type(self._pandas_dtype)
+        )
 
     def coerce_dtype(
             self, series_or_index: Union[pd.Series, pd.Index]) -> pd.Series:

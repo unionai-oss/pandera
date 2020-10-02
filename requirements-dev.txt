@@ -18,4 +18,6 @@ pandas
 scipy
 wrapt
 pyyaml
+typing_inspect
+typing_extensions
 sphinx_autodoc_typehints
