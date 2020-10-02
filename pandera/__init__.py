@@ -3,14 +3,16 @@
 from . import errors, constants
 from .checks import Check
 from .hypotheses import Hypothesis
-from .decorators import check_input, check_output, check_io
+from .decorators import check_input, check_output, check_io, check_types
 from .dtypes import PandasDtype
+from .model import SchemaModel
+from .model_components import Field, check, dataframe_check
 from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
 from .version import __version__
 
-
+# pylint: disable=invalid-name
 Bool = PandasDtype.Bool
 DateTime = PandasDtype.DateTime
 Category = PandasDtype.Category
