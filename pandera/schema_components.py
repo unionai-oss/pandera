@@ -41,7 +41,7 @@ class Column(SeriesSchemaBase):
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
-        :param allow_duplicates: Whether or not column can contain duplicate 
+        :param allow_duplicates: Whether or not column can contain duplicate
             values.
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype.
