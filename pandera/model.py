@@ -72,9 +72,6 @@ class SchemaModel:
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
         """Create DataFrameSchema from the SchemaModel."""
-        if cls.__schema__:
-            return cls.__schema__
-
         cls.__field_annotations__ = cls._collect_field_annotations()
 
         check_infos = cast(List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY))

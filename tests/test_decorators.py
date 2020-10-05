@@ -330,6 +330,12 @@ class InSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     idx: Index[str]
 
 
+class DerivedOutSchema(InSchema):
+    """Test schema derived from InSchema."""
+
+    b: Series[int]
+
+
 class OutSchema(SchemaModel):  # pylint: disable=too-few-public-methods
     """Test schema used as output."""
 
@@ -363,26 +369,28 @@ def test_check_types_error_input():
         transform(df)
 
 
-def test_check_types_error_output():
+@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
+def test_check_types_error_output(out_schema_cls):
     """Test that check_types raises an error when the output is not correct."""
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
     @check_types
-    def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
+    def transform(df: DataFrame[InSchema]) -> DataFrame[out_schema_cls]:
         return df
 
     with pytest.raises(errors.SchemaError, match="column 'b' not in dataframe"):
         transform(df)
 
 
-def test_check_types_optional_out():
+@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
+def test_check_types_optional_out(out_schema_cls):
     """Test the check_types behaviour when the output schema is optional."""
 
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[OutSchema]]:
+    ) -> Optional[DataFrame[out_schema_cls]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -401,13 +409,14 @@ def test_check_types_optional_in():
     assert optional_in(None) is None
 
 
-def test_check_types_optional_in_out():
+@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
+def test_check_types_optional_in_out(out_schema_cls):
     """Test the check_types behaviour when both input and outputs schemas are optional."""
 
     @check_types
     def transform(
         df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[OutSchema]]:
+    ) -> Optional[DataFrame[out_schema_cls]]:
         return None
 
     assert transform(None) is None
