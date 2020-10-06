@@ -64,7 +64,7 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore # pylint:disable
     """Representation of pandas.Series."""
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     class DataFrame(pd.DataFrame):
         """Representation of pandas.DataFrame."""
 
