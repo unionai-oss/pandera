@@ -1,7 +1,7 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import sys
-from typing import Generic, Optional, Type, TypeVar
+from typing import Generic, Optional, Type, TypeVar, TYPE_CHECKING
 
 import pandas as pd
 import typing_inspect
@@ -64,8 +64,11 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore # pylint:disable
     """Representation of pandas.Series."""
 
 
-class DataFrame(pd.DataFrame, Generic[Schema]):
-    """Representation of pandas.DataFrame."""
+if TYPE_CHECKING:
+    DataFrame = pd.DataFrame
+else:
+    class DataFrame(pd.DataFrame, Generic[Schema]):
+        """Representation of pandas.DataFrame."""
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
