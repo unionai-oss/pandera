@@ -8,6 +8,14 @@ version = {}
 with open("pandera/version.py") as fp:
     exec(fp.read(), version)
 
+_extras_require = {
+    "hypothesis": ["scipy"],
+    "io": ["pyyaml >= 5.1", "black"],
+}
+extras_require = {
+    **_extras_require,
+    "all": list(set(x for l in _extras_require.values() for x in l)),
+}
 
 setup(
     name="pandera",
@@ -34,10 +42,7 @@ setup(
         "pandas >= 0.23.0",
         "wrapt"
     ],
-    extras_require={
-        "hypothesis": ["scipy"],
-        "io": ["pyyaml >= 5.1", "black"]
-    },
+    extras_require=extras_require,
     python_requires='>=3.6',
     platforms='any',
     classifiers=[
