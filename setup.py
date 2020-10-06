@@ -1,3 +1,4 @@
+
 from setuptools import setup
 
 with open('README.md') as f:
@@ -31,11 +32,11 @@ setup(
     install_requires=[
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
-        "wrapt",
-        "pyyaml >= 5.1",
-        "scipy",
-        "black",
+        "wrapt"
     ],
+    extras_require={
+      'all': ["pyyaml >= 5.1", "black", "scipy"]
+    },
     python_requires='>=3.6',
     platforms='any',
     classifiers=[
