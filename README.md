@@ -45,6 +45,12 @@ Using pip:
 
 ```
 pip install pandera
+
+# Alternatively, If you want to include hypothesis checks
+pip install pandera[hypothesis]
+
+# Alternatively, If you want to include code formatting support
+pip install pandera[io]
 ```
 
 Using conda:
