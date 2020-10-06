@@ -36,6 +36,9 @@ SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
 _CONFIG_KEY = "Config"
 
 
+MODEL_CACHE: Dict[Type["SchemaModel"], DataFrameSchema] = {}
+
+
 class BaseConfig:  # pylint:disable=R0903
     """Define DataFrameSchema-wide options."""
 
@@ -72,8 +75,8 @@ class SchemaModel:
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
         """Create DataFrameSchema from the SchemaModel."""
-        if cls.__schema__:
-            return cls.__schema__
+        if cls in MODEL_CACHE:
+            return MODEL_CACHE[cls]
 
         cls.__field_annotations__ = cls._collect_field_annotations()
 
@@ -103,6 +106,8 @@ class SchemaModel:
             strict=cls.__config__.strict,
             name=cls.__config__.name,
         )
+        if cls not in MODEL_CACHE:
+            MODEL_CACHE[cls] = cls.__schema__
         return cls.__schema__
 
     @classmethod
