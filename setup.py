@@ -35,7 +35,8 @@ setup(
         "wrapt"
     ],
     extras_require={
-      'all': ["pyyaml >= 5.1", "black", "scipy"]
+        "hypothesis": ["scipy"],
+        "io": ["pyyaml >= 5.1", "black"]
     },
     python_requires='>=3.6',
     platforms='any',
