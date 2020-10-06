@@ -136,7 +136,7 @@ Here are a few other alternatives for validating Python data structures.
 - [pandas-validator](https://github.com/c-data/pandas-validator)
 - [table_enforcer](https://github.com/xguse/table_enforcer)
 
-**Other tools that include data validation**
+**Other tools for data validation**
 
 - [great_expectations](https://github.com/great-expectations/great_expectations)
 
@@ -147,7 +147,7 @@ Here are a few other alternatives for validating Python data structures.
 - `check_input` and `check_output` decorators enable seamless integration with
   existing code.
 - `Check`s provide flexibility and performance by providing access to `pandas`
-  API by design.
+  API by design and offers built-in checks for common data tests.
 - `Hypothesis` class provides a tidy-first interface for statistical hypothesis
   testing.
 - `Check`s and `Hypothesis` objects support both tidy and wide data validation.
