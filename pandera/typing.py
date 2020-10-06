@@ -65,7 +65,11 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore # pylint:disable
 
 
 if TYPE_CHECKING:
-    DataFrame = pd.DataFrame
+    class DataFrame(pd.DataFrame):
+        """Representation of pandas.DataFrame."""
+
+        def __class_getitem__(cls, item):
+            pass
 else:
     class DataFrame(pd.DataFrame, Generic[Schema]):
         """Representation of pandas.DataFrame."""
