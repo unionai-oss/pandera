@@ -32,11 +32,10 @@ Install with `pip`:
 
     pip install pandera
 
-    # If you want to include hypothesis checks
-    pip install pandera[hypothesis]
-
-    # If you want to include code formatting support
-    pip install pandera[io]
+    # install optional functionality
+    pip install pandera[hypothesis]  # hypothesis checks
+    pip install pandera[io]  # yaml/script schema io utilities
+    pip install pandera[all]  # all packages
 
 
 Or conda:
