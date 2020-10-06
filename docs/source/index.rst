@@ -32,12 +32,19 @@ Install with `pip`:
 
     pip install pandera
 
+    # If you want to include hypothesis checks
+    pip install pandera[hypothesis]
+
+    # If you want to include code formatting support
+    pip install pandera[io]
+
 
 Or conda:
 
 .. code:: bash
 
     conda install -c conda-forge pandera
+
 
 
 Quick Start
