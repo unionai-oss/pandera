@@ -19,51 +19,74 @@ create a development environment that is separate from your existing Python
 environment so that you can make and test changes without compromising your
 own work environment.
 
-### Dataframe Style Guides
-We have guidelines regarding dataframe and schema styles that are enforced for
-each pull request:
+### Dataframe Schema Style Guides
+
+We have guidelines regarding dataframe and schema styles that are encouraged
+for each pull request:
 
 - If specifying a single column DataFrame, this can be expressed as a one-liner:
-```DataFrameSchema({"col1": Column(...)})```
+    ```python
+    DataFrameSchema({"col1": Column(...)})
+    ```
 
 - If specifying one column with multiple lines, or multiple columns:
-    ```
-    DataFrameSchema({
-        "col1": Column(type, checks=[
-            Check(...),
-            Check(...),
-        ]),
-    })
-
-
-    DataFrameSchema({
-        "col1": Column(...),
-        "col2": Column(...),
-    })
-    ```
-
-- If specifying single columns with additional arguments
-    ```
-    DataFrameSchema({"a": Column(Int, nullable=True)},
-                    strict=True)
-    ```
-
-- If specifying columns with additional arguments
-    ```
+    ```python
     DataFrameSchema(
         {
-            "col1": Column(...),
-            "col2": Column(...),
+            "col1": Column(
+                int,
+                checks=[
+                    Check(...),
+                    Check(...),
+                ]
+            ),
+        }
+    )
+    ```
+
+- If specifying columns with additional arguments that fit in one line:
+    ```python
+    DataFrameSchema(
+        {"a": Column(int, nullable=True)},
+        strict=True
+    )
+    ```
+
+- If specifying columns with additional arguments that don't fit in one line:
+    ```python
+    DataFrameSchema(
+        {
+            "a": Column(
+                int,
+                nullable=True,
+                coerce=True,
+                ...
+            ),
+            "b": Column(
+                ...,
+            )
         },
         strict=True)
     ```
+
+### Set up `pre-commit`
+
+This project uses [pre-commit](https://pre-commit.com/) to ensure that code
+standard checks pass locally before pushing to the remote project repo. Follow
+the [installation instructions](https://pre-commit.com/#installation), then
+set up hooks with `pre-commit install`. After `pylint` and `mypy` checks should
+be run with every commit.
 
 ### Run the tests
 Before submitting your changes for review, make sure to check that your changes
 do not break any tests by running: ``pytest tests/``
 
-Additionally, sphinxdocs may block you; make sure that the docs build successfully:
-``python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"``
+Additionally, sphinxdocs may block you; make sure that the docs build
+successfully:
+
+```
+make docs
+```
 
 ### Raising Pull Requests
 
