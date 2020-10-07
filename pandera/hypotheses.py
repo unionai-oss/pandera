@@ -4,11 +4,18 @@ from functools import partial
 from typing import Callable, Union, Optional, List, Dict
 
 import pandas as pd
-from scipy import stats
+
+try:
+    from scipy import stats
+except ImportError:  # pragma: no cover
+    raise RuntimeError((
+        'Hypothesis checks requires "scipy" to be installed. \n'
+        'You can install pandera together with the Hypothesis dependencies with: \n'
+        "pip install pandera[hypothesis]\n"
+    ))
 
 from . import errors
 from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
-
 
 DEFAULT_ALPHA = 0.01
 
