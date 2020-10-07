@@ -6,12 +6,12 @@ from pathlib import Path
 import pandas as pd
 try:
     import yaml
-except ImportError:  # pragma: no cover
+except ImportError as exc:  # pragma: no cover
     raise RuntimeError((
         'IO and formatting requires "pyyaml" to be installed. \n'
         'You can install pandera together with the IO dependencies with: \n'
         "pip install pandera[io]\n"
-    ))
+    )) from exc
 
 from .dtypes import PandasDtype
 from .schema_statistics import get_dataframe_schema_statistics
@@ -295,12 +295,12 @@ def _format_index(index_statistics):
 def _format_script(script):
     try:
         import black  # pylint: disable=import-outside-toplevel
-    except ImportError:  # pragma: no cover
+    except ImportError as exc:  # pragma: no cover
         raise RuntimeError((
             'IO and formatting requires "black" to be installed. \n'
             'You can install pandera together with the IO dependencies with: \n'
             "pip install pandera[io]\n"
-        ))
+        )) from exc
 
     formatter = partial(
         black.format_str, mode=black.FileMode(line_length=80)

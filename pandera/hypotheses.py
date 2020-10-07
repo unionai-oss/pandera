@@ -7,12 +7,12 @@ import pandas as pd
 
 try:
     from scipy import stats
-except ImportError:  # pragma: no cover
+except ImportError as exc:  # pragma: no cover
     raise RuntimeError((
         'Hypothesis checks requires "scipy" to be installed. \n'
         'You can install pandera together with the Hypothesis dependencies with: \n'
         "pip install pandera[hypothesis]\n"
-    ))
+    )) from exc
 
 from . import errors
 from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
