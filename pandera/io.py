@@ -7,7 +7,7 @@ import pandas as pd
 try:
     import yaml
 except ImportError as exc:  # pragma: no cover
-    raise RuntimeError((
+    raise ImportError((
         'IO and formatting requires "pyyaml" to be installed. \n'
         'You can install pandera together with the IO dependencies with: \n'
         "pip install pandera[io]\n"
@@ -296,7 +296,7 @@ def _format_script(script):
     try:
         import black  # pylint: disable=import-outside-toplevel
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError((
+        raise ImportError((
             'IO and formatting requires "black" to be installed. \n'
             'You can install pandera together with the IO dependencies with: \n'
             "pip install pandera[io]\n"
