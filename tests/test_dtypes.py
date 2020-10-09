@@ -218,6 +218,7 @@ def test_category_dtype_coerce():
 
 
 def helper_type_validation(dataframe_type, schema_type, debugging=False):
+    """Helper function for using same or different dtypes for the dataframe and the schema_type"""
     df = pd.DataFrame({"column1": [dataframe_type(1)]})
     if debugging:
         print(dataframe_type, df.column1)
@@ -227,7 +228,8 @@ def helper_type_validation(dataframe_type, schema_type, debugging=False):
     schema(df)
 
 
-def test_complex_type():
+def test_numpy_type():
+    """Test various numpy dtypes"""
     # Test correct conversions
     valid_types = (
         (np.complex, np.complex),  # Pandas converts complex numbers always to np.complex128
@@ -262,7 +264,8 @@ def test_complex_type():
     for valid_type in valid_types:
         try:
             helper_type_validation(valid_type[0], valid_type[1])
-        except:
+        except:  # pylint: disable=bare-except
+            # No exceptions since it should cover all exceptions for debug purpose
             # Rerun test with debug inforation
             print(f"Error on types: {valid_type}")
             helper_type_validation(valid_type[0], valid_type[1], True)
