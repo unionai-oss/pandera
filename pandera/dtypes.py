@@ -119,6 +119,10 @@ class PandasDtype(Enum):
     UINT32 = "UInt32"  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
     UINT64 = "UInt64"  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
     Object = "object"  #: ``"object"`` numpy dtype
+    Complex = "complex"  #: ``"complex"`` numpy dtype
+    Complex64 = "complex64"  #: ``"complex"`` numpy dtype
+    Complex128 = "complex128"  #: ``"complex"`` numpy dtype
+    Complex256 = "complex256"  #: ``"complex"`` numpy dtype
 
     #: The string datatype doesn't map to the first-class pandas datatype and
     #: is representated as a numpy ``"object"`` array. This will change after
@@ -172,6 +176,10 @@ class PandasDtype(Enum):
             "UInt64": cls.UINT64,
             "object": cls.Object,
             "string": cls.String,
+            "complex": cls.Complex,
+            "complex64": cls.Complex64,
+            "complex128": cls.Complex128,
+            "complex256": cls.Complex256
         }.get(str_alias)
 
         if pandas_dtype is None:
@@ -225,13 +233,17 @@ class PandasDtype(Enum):
             str: cls.String,
             int: cls.Int,
             float: cls.Float,
+            complex: cls.Complex128  # np.complex is alias for np.complex128
         }.get(python_type)
 
         if pandas_dtype is None:
-            raise TypeError(
-                "python type '%s' not recognized as pandas data type" %
-                python_type
-            )
+            if python_type in [item for sublist in np.sctypes.values() for item in sublist]:
+                pandas_dtype = cls.from_str_alias(python_type.__name__)
+            else:
+                raise TypeError(
+                    "python type '%s' not recognized as pandas data type" %
+                    python_type
+                )
 
         return pandas_dtype
 
