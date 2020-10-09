@@ -237,13 +237,11 @@ def test_numpy_type():
         (np.complex128, np.complex),
         (np.complex64, np.complex128),  # Pandas converts complex numbers always to np.complex128
         (np.complex128, np.complex128),
-        (np.complex256, np.complex128),
         (np.float, np.float),
         (np.float, np.float64),
         (np.float16, np.float64),  # Pandas converts float numbers always to np.float64
         (np.float32, np.float64),
         (np.float64, np.float64),
-        (np.float128, np.float64),
         (np.int, np.int),
         (np.int, np.int64),
         (np.int8, np.int64),   # Pandas converts int numbers always to np.int64
