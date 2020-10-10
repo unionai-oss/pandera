@@ -8,7 +8,9 @@ import pandas as pd
 try:
     from scipy import stats
 except ImportError as exc:  # pragma: no cover
-    stats = None
+    _has_scipy = False
+else:
+    _has_scipy = True
 
 from . import errors
 from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
@@ -313,11 +315,12 @@ class Hypothesis(_CheckBase):
         4             4.0     B
 
         """
-        assert stats is not None, (
+        if not _has_scipy:
+            raise ImportError((
             'Hypothesis checks requires "scipy" to be installed. \n'
             'You can install pandera together with the Hypothesis dependencies with: \n'
             "pip install pandera[hypothesis]\n"
-        )
+        ))
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
@@ -410,11 +413,12 @@ class Hypothesis(_CheckBase):
 
 
         """
-        assert stats is not None, (
-            'Hypothesis checks requires "scipy" to be installed. \n'
-            'You can install pandera together with the Hypothesis dependencies with: \n'
-            "pip install pandera[hypothesis]\n"
-        )
+        if not _has_scipy:
+            raise ImportError((
+                'Hypothesis checks requires "scipy" to be installed. \n'
+                'You can install pandera together with the Hypothesis dependencies with: \n'
+                "pip install pandera[hypothesis]\n"
+            ))
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
