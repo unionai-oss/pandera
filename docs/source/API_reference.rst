@@ -77,6 +77,10 @@ Schema Inference
 IO Utils
 --------
 
+The IO features require a pandera installation with the right extension:
+
+``pip install pandera[io]`` or ``pip install pandera[all]``
+
 .. autosummary::
    :toctree: generated
    :nosignatures:

@@ -73,6 +73,10 @@ inferred schema.
 Schema Persistence
 ------------------
 
+**Warning:** The IO features require a pandera installation with the right extension:
+
+``pip install pandera[hypothesis]`` or ``pip install pandera[all]``
+
 There are two ways of persisting schemas, inferred or otherwise.
 
 Write to a Python script

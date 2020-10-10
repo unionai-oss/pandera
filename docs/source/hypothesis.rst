@@ -9,6 +9,16 @@ Hypothesis Testing
 
 ``pandera`` enables you to perform statistical hypothesis tests on your data.
 
+Install
+-------
+
+The hypothesis feature requires a pandera installation with the right extension:
+
+``pip install pandera[hypothesis]`` or ``pip install pandera[all]``
+
+Overview
+--------
+
 The :py:class:`Hypothesis` class defines built in methods, which can be called
 as in this example of a two-sample t-test:
 
