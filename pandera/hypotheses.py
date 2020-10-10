@@ -8,9 +8,9 @@ import pandas as pd
 try:
     from scipy import stats
 except ImportError as exc:  # pragma: no cover
-    _has_scipy = False
+    _HAS_SCIPY = False
 else:
-    _has_scipy = True
+    _HAS_SCIPY = True
 
 from . import errors
 from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
@@ -315,7 +315,7 @@ class Hypothesis(_CheckBase):
         4             4.0     B
 
         """
-        if not _has_scipy:
+        if not _HAS_SCIPY:
             raise ImportError((
             'Hypothesis checks requires "scipy" to be installed. \n'
             'You can install pandera together with the Hypothesis dependencies with: \n'
@@ -413,7 +413,7 @@ class Hypothesis(_CheckBase):
 
 
         """
-        if not _has_scipy:
+        if not _HAS_SCIPY:
             raise ImportError((
                 'Hypothesis checks requires "scipy" to be installed. \n'
                 'You can install pandera together with the Hypothesis dependencies with: \n'
