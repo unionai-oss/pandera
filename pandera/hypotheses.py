@@ -315,7 +315,7 @@ class Hypothesis(_CheckBase):
         4             4.0     B
 
         """
-        if not HAS_SCIPY:
+        if not HAS_SCIPY:  # pragma: no cover
             raise ImportError(
                 'Hypothesis checks requires "scipy" to be installed. \n'
                 "You can install pandera together with the Hypothesis "
@@ -414,7 +414,7 @@ class Hypothesis(_CheckBase):
 
 
         """
-        if not HAS_SCIPY:
+        if not HAS_SCIPY:  # pragma: no cover
             raise ImportError(
                 'Hypothesis checks requires "scipy" to be installed. \n'
                 "You can install pandera together with the hypothesis "
