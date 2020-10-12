@@ -9,12 +9,12 @@ Hypothesis Testing
 
 ``pandera`` enables you to perform statistical hypothesis tests on your data.
 
-Install
--------
 
-The hypothesis feature requires a pandera installation with ``hypotheses``
-dependency set. See the :ref:`installation<installation>` instructions for more
-details.
+.. note::
+
+   The hypothesis feature requires a pandera installation with ``hypotheses``
+   dependency set. See the :ref:`installation<installation>` instructions for
+   more details.
 
 Overview
 --------

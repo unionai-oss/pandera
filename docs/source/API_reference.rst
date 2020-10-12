@@ -5,6 +5,10 @@
 API Reference
 =============
 
+The ``io`` module and built-in ``Hypothesis`` checks require a pandera
+installation with the corresponding extension, see the
+:ref:`installation<installation>` instructions for more details.
+
 Schemas
 -------
 
@@ -76,10 +80,6 @@ Schema Inference
 
 IO Utils
 --------
-
-The IO features require a pandera installation with the right extension:
-
-``pip install pandera[io]`` or ``pip install pandera[all]``
 
 .. autosummary::
    :toctree: generated
