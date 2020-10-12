@@ -13,7 +13,8 @@ Install
 -------
 
 The hypothesis feature requires a pandera installation with ``hypotheses``
-dependency set. See :ref:`installation` for more details.
+dependency set. See the :ref:`installation<installation>` instructions for more
+details.
 
 Overview
 --------

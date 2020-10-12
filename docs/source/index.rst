@@ -23,6 +23,9 @@ production-critical data pipelines or reproducible research settings. With
    via :ref:`function decorators<decorators>`.
 
 
+.. _installation:
+
+
 Install
 -------
 
