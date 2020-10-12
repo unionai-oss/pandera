@@ -6,7 +6,8 @@ cache:
 
 before_cache:
   - rm -rf $CONDA_DIR/pkgs/cache
-  - rm -rf $CONDA_DIR/envs/hosts
+  - rm -rf $CONDA_DIR/envs/pandera
+  - rm -rf $CONDA_DIR/envs/pandera-core
   - rm -rf $CONDA_DIR/conda-meta/history
   - touch $CONDA_DIR/conda-meta/history
 
@@ -40,7 +41,7 @@ install:
 
     if [ -d "$CONDA_DIR" ] && [ -e "$CONDA_BIN_DIR/conda" ]; then
         echo "Miniconda install already present from cache: $CONDA_DIR"
-        rm -rf $CONDA_DIR/envs/hosts  # Just in case...
+        rm -rf $CONDA_DIR/envs/*  # Just in case...
     else
         echo "Installing Miniconda..."
         rm -rf $CONDA_DIR  # Just in case...
@@ -66,21 +67,23 @@ install:
     conda update conda
     conda update --all
     conda info -a || exit 1
-  # Setup Conda Env
+  # Setup Conda Envs
   - |
-    conda create -n hosts python=$PYTHON_VERSION || exit 1
-    conda env update -n hosts -f environment.yml
-    source activate hosts
-
-    python setup.py install
+    conda create -n pandera python=$PYTHON_VERSION || exit 1
+    conda env update -n pandera -f environment.yml
+    conda create -n pandera-core --clone pandera
     conda list
+  - source activate pandera && pip install .[all]
+  - source activate pandera-core && pip install .
 
 script:
-  # Use the conda environment
-  - source activate hosts
   # Dependencies
   # Check that requirements-dev.text is generated exclusively by environment.yml
   - python ./scripts/generate_pip_deps_from_conda.py --compare
+  # Test minimal installation
+  - source activate pandera-core && pytest
+  # Test full installation
+  - source activate pandera
   # Linting
   - pylint pandera tests
   # Type checking

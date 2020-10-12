@@ -2,11 +2,20 @@
 
 import pandas as pd
 import pytest
-from scipy import stats
 
 from pandera import errors
-from pandera import (
-    Column, DataFrameSchema, Float, Int, String, Hypothesis)
+from pandera import Column, DataFrameSchema, Float, Int, String, Hypothesis
+from pandera.hypotheses import HAS_SCIPY
+
+
+if HAS_SCIPY:
+    from scipy import stats
+
+
+# skip all tests in module if "hypotheses" depends aren't installed
+pytestmark = pytest.mark.skipif(
+    not HAS_SCIPY, reason='needs "hypotheses" module dependencies'
+)
 
 
 def test_dataframe_hypothesis_checks():

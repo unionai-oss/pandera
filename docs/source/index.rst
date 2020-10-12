@@ -32,10 +32,13 @@ Install with `pip`:
 
     pip install pandera
 
-    # install optional functionality
-    pip install pandera[hypothesis]  # hypothesis checks
-    pip install pandera[io]  # yaml/script schema io utilities
-    pip install pandera[all]  # all packages
+Installing optional functionality:
+
+.. code:: bash
+
+    pip install pandera[hypotheses]  # hypothesis checks
+    pip install pandera[io]          # yaml/script schema io utilities
+    pip install pandera[all]         # all packages
 
 
 Or conda:

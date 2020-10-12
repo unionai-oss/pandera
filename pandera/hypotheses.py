@@ -7,10 +7,10 @@ import pandas as pd
 
 try:
     from scipy import stats
-except ImportError as exc:  # pragma: no cover
-    _HAS_SCIPY = False
+except ImportError:  # pragma: no cover
+    HAS_SCIPY = False
 else:
-    _HAS_SCIPY = True
+    HAS_SCIPY = True
 
 from . import errors
 from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
@@ -315,12 +315,13 @@ class Hypothesis(_CheckBase):
         4             4.0     B
 
         """
-        if not _HAS_SCIPY:
-            raise ImportError((
-            'Hypothesis checks requires "scipy" to be installed. \n'
-            'You can install pandera together with the Hypothesis dependencies with: \n'
-            "pip install pandera[hypothesis]\n"
-        ))
+        if not HAS_SCIPY:
+            raise ImportError(
+                'Hypothesis checks requires "scipy" to be installed. \n'
+                "You can install pandera together with the Hypothesis "
+                "dependencies with: \n"
+                "pip install pandera[hypothesis]\n"
+            )
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
@@ -413,12 +414,13 @@ class Hypothesis(_CheckBase):
 
 
         """
-        if not _HAS_SCIPY:
-            raise ImportError((
+        if not HAS_SCIPY:
+            raise ImportError(
                 'Hypothesis checks requires "scipy" to be installed. \n'
-                'You can install pandera together with the Hypothesis dependencies with: \n'
-                "pip install pandera[hypothesis]\n"
-            ))
+                "You can install pandera together with the hypothesis "
+                "dependencies with: \n"
+                "pip install pandera[hypothesis]"
+            )
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(

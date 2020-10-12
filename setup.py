@@ -9,7 +9,7 @@ with open("pandera/version.py") as fp:
     exec(fp.read(), version)
 
 _extras_require = {
-    "hypothesis": ["scipy"],
+    "hypotheses": ["scipy"],
     "io": ["pyyaml >= 5.1", "black"],
 }
 extras_require = {

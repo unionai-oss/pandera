@@ -12,9 +12,8 @@ Hypothesis Testing
 Install
 -------
 
-The hypothesis feature requires a pandera installation with the right extension:
-
-``pip install pandera[hypothesis]`` or ``pip install pandera[all]``
+The hypothesis feature requires a pandera installation with ``hypotheses``
+dependency set. See :ref:`installation` for more details.
 
 Overview
 --------

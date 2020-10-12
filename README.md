@@ -39,17 +39,21 @@ readable and robust.
 
 The official documentation is hosted on ReadTheDocs: https://pandera.readthedocs.io
 
+.. installation:
+
 ## Install
 
 Using pip:
 
 ```
 pip install pandera
+```
 
-# install optional functionality
-pip install pandera[hypothesis]  # hypothesis checks
-pip install pandera[io]  # yaml/script schema io utilities
-pip install pandera[all]  # all packages
+Installing optional functionality:
+```
+pip install pandera[hypotheses]  # hypothesis checks
+pip install pandera[io]          # yaml/script schema io utilities
+pip install pandera[all]         # all packages
 ```
 
 Using conda:

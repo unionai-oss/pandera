@@ -7,12 +7,35 @@ from packaging import version
 
 import pandas as pd
 import pytest
-import yaml
 import pandera as pa
-from pandera import io
 
 
-PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
+try:
+    from pandera import io
+except ImportError:
+    HAS_IO = False
+else:
+    HAS_IO = True
+
+
+try:
+    import yaml
+except ImportError:  # pragma: no cover
+    PYYAML_VERSION = None
+else:
+    PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
+
+
+SKIP_YAML_TESTS = (
+    PYYAML_VERSION is None or
+    PYYAML_VERSION.release < (5, 1, 0)  # type: ignore
+)
+
+
+# skip all tests in module if "io" depends aren't installed
+pytestmark = pytest.mark.skipif(
+    not HAS_IO, reason='needs "io" module dependencies'
+)
 
 
 def _create_schema(index="single"):
@@ -228,7 +251,7 @@ YAML_VALIDATION_PAIRS = [
 
 
 @pytest.mark.skipif(
-    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
+    SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
 def test_inferred_schema_io():
@@ -245,7 +268,7 @@ def test_inferred_schema_io():
 
 
 @pytest.mark.skipif(
-    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
+    SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
 def test_to_yaml():
@@ -259,7 +282,7 @@ def test_to_yaml():
 
 
 @pytest.mark.skipif(
-    PYYAML_VERSION.release < (5, 1, 0),  # type: ignore
+    SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
 def test_from_yaml():
