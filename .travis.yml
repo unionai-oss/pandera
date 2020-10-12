@@ -78,12 +78,12 @@ install:
 
 script:
   # Dependencies
-  # Check that requirements-dev.text is generated exclusively by environment.yml
-  - python ./scripts/generate_pip_deps_from_conda.py --compare
   # Test minimal installation
   - source activate pandera-core && pytest
   # Test full installation
   - source activate pandera
+  # Check that requirements-dev.text is generated exclusively by environment.yml
+  - python ./scripts/generate_pip_deps_from_conda.py --compare
   # Linting
   - pylint pandera tests
   # Type checking
