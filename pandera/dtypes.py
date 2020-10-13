@@ -179,6 +179,7 @@ class PandasDtype(Enum):
             "UInt64": cls.UINT64,
             "object": cls.Object,
             "string": cls.String,
+            "str": cls.String,
             "complex": cls.Complex,
             "complex64": cls.Complex64,
             "complex128": cls.Complex128,
