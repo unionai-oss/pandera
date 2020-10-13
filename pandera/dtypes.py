@@ -262,12 +262,6 @@ class PandasDtype(Enum):
         if pandas_dtype is None:
             pandas_dtype = cls.from_str_alias(numpy_type.__name__)
 
-        if pandas_dtype is None:
-            raise TypeError(
-                "numpy type '%s' not recognized as pandas data type" %
-                numpy_type
-            )
-
         return pandas_dtype
 
     def __eq__(self, other):
