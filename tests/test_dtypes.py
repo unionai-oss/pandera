@@ -282,6 +282,10 @@ def test_numpy_type():
         with pytest.raises(SchemaError):
             helper_type_validation(invalid_type[0], invalid_type[1])
 
+    PandasDtype.from_numpy_type(np.float)
+    with pytest.raises(TypeError):
+        PandasDtype.from_numpy_type(pd.DatetimeIndex)
+
 def test_datetime():
     """Test datetime types can be validated properly by schema.validate"""
     schema = DataFrameSchema(
