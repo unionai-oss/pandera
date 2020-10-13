@@ -248,7 +248,7 @@ class PandasDtype(Enum):
         return pandas_dtype
 
     @classmethod
-    def from_numpy_type(cls, numpy_type: type) -> "PandasDtype":
+    def from_numpy_type(cls, numpy_type: np.dtype) -> "PandasDtype":
         """Get PandasDtype enum from numpy type.
 
         :param numpy_type: numpy data type.
@@ -256,7 +256,7 @@ class PandasDtype(Enum):
 
         # numpy aliases
         pandas_dtype = {
-            complex: cls.Complex128  # np.complex is alias for np.complex128
+            np.complex: cls.Complex128  # np.complex is alias for np.complex128
         }.get(numpy_type)
 
         if pandas_dtype is None:
