@@ -1,3 +1,4 @@
+
 from setuptools import setup
 
 with open('README.md') as f:
@@ -7,6 +8,14 @@ version = {}
 with open("pandera/version.py") as fp:
     exec(fp.read(), version)
 
+_extras_require = {
+    "hypotheses": ["scipy"],
+    "io": ["pyyaml >= 5.1", "black"],
+}
+extras_require = {
+    **_extras_require,
+    "all": list(set(x for l in _extras_require.values() for x in l)),
+}
 
 setup(
     name="pandera",
@@ -31,11 +40,9 @@ setup(
     install_requires=[
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
-        "wrapt",
-        "pyyaml >= 5.1",
-        "scipy",
-        "black",
+        "wrapt"
     ],
+    extras_require=extras_require,
     python_requires='>=3.6',
     platforms='any',
     classifiers=[

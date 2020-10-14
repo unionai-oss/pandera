@@ -4,11 +4,16 @@ from functools import partial
 from typing import Callable, Union, Optional, List, Dict
 
 import pandas as pd
-from scipy import stats
+
+try:
+    from scipy import stats
+except ImportError:  # pragma: no cover
+    HAS_SCIPY = False
+else:
+    HAS_SCIPY = True
 
 from . import errors
 from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
-
 
 DEFAULT_ALPHA = 0.01
 
@@ -310,6 +315,14 @@ class Hypothesis(_CheckBase):
         4             4.0     B
 
         """
+        if not HAS_SCIPY:  # pragma: no cover
+            raise ImportError(
+                'Hypothesis checks requires "scipy" to be installed. \n'
+                "You can install pandera together with the Hypothesis "
+                "dependencies with: \n"
+                "pip install pandera[hypothesis]\n"
+            )
+
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
                 "relationship must be one of %s" % set(cls.RELATIONSHIPS))
@@ -401,6 +414,14 @@ class Hypothesis(_CheckBase):
 
 
         """
+        if not HAS_SCIPY:  # pragma: no cover
+            raise ImportError(
+                'Hypothesis checks requires "scipy" to be installed. \n'
+                "You can install pandera together with the hypothesis "
+                "dependencies with: \n"
+                "pip install pandera[hypothesis]"
+            )
+
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
                 "relationship must be one of %s" % set(cls.RELATIONSHIPS))

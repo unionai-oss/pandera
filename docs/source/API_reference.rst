@@ -5,6 +5,10 @@
 API Reference
 =============
 
+The ``io`` module and built-in ``Hypothesis`` checks require a pandera
+installation with the corresponding extension, see the
+:ref:`installation<installation>` instructions for more details.
+
 Schemas
 -------
 

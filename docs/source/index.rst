@@ -23,6 +23,9 @@ production-critical data pipelines or reproducible research settings. With
    via :ref:`function decorators<decorators>`.
 
 
+.. _installation:
+
+
 Install
 -------
 
@@ -32,12 +35,21 @@ Install with `pip`:
 
     pip install pandera
 
+Installing optional functionality:
+
+.. code:: bash
+
+    pip install pandera[hypotheses]  # hypothesis checks
+    pip install pandera[io]          # yaml/script schema io utilities
+    pip install pandera[all]         # all packages
+
 
 Or conda:
 
 .. code:: bash
 
     conda install -c conda-forge pandera
+
 
 
 Quick Start

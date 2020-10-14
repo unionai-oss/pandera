@@ -4,13 +4,12 @@ from typing import Union
 
 import pandas as pd
 
-from .checks import Check
-from .hypotheses import Hypothesis
+from .checks import _CheckBase
 
 
 def format_generic_error_message(
         parent_schema,
-        check: Union[Check, Hypothesis],
+        check: _CheckBase,
         check_index: int,
 ) -> str:
     """Construct an error message when a check validator fails.
@@ -25,7 +24,7 @@ def format_generic_error_message(
 
 def format_vectorized_error_message(
         parent_schema,
-        check: Union[Check, Hypothesis],
+        check: _CheckBase,
         check_index: int,
         reshaped_failure_cases: pd.DataFrame) -> str:
     """Construct an error message when a validator fails.

@@ -73,6 +73,10 @@ inferred schema.
 Schema Persistence
 ------------------
 
+The schema persistence feature requires a pandera installation with the ``io``
+extension. See the :ref:`installation<installation>` instructions for more
+details.
+
 There are two ways of persisting schemas, inferred or otherwise.
 
 Write to a Python script
