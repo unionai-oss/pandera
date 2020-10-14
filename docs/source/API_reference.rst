@@ -30,6 +30,48 @@ Schema Components
    MultiIndex
 
 
+Schema Models
+-------------
+
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
+
+   SchemaModel
+
+**Model Components**
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   Field
+   check
+   dataframe_check
+
+**Typing**
+
+.. autosummary::
+   :toctree: generated
+   :template: typing_class.rst
+   :nosignatures:
+
+   typing.DataFrame
+   typing.Series
+   typing.Index
+
+**Base Classes**
+
+.. autosummary::
+   :toctree: generated
+   :template: model_component_class.rst
+   :nosignatures:
+
+   model.BaseConfig
+   model_components.FieldInfo
+
+
 Checks
 ------
 
@@ -62,6 +104,7 @@ Decorators
 
    check_input
    check_output
+   check_types
 
 
 Schema Inference

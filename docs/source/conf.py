@@ -98,6 +98,11 @@ html_theme_options = {
 html_static_path = ['_static']
 
 autosummary_generate = ["API_reference.rst"]
+autosummary_filename_map = {
+    "pandera.Check": "pandera.Check",
+    "pandera.check": "pandera.check_decorator",
+}
+set_type_checking_flag = False
 
 
 def setup(app):

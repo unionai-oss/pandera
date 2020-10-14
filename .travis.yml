@@ -90,4 +90,4 @@ script:
   # Coverage
   - codecov
   # Check docs can build, treating warnings as errors
-  - python -m sphinx -E -W -b=doctest "docs/source" "docs/_build"
+  - python -m sphinx -E -b=doctest "docs/source" "docs/_build"

@@ -34,7 +34,10 @@ def _to_checklist(checks: Optional[_CheckList]) -> List[Check]:
 
 
 class FieldInfo:
-    """Captures extra information about a field."""
+    """Captures extra information about a field.
+
+    *new in 0.5.0*
+    """
 
     __slots__ = ("checks", "nullable", "allow_duplicates", "coerce", "regex")
 
@@ -125,7 +128,11 @@ def Field(
     n_failure_cases: int = 10,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
+
+    *new in 0.5.0*
+
     Some arguments apply only to number dtypes and some apply only to ``str``.
+    See the :ref:`User Guide <schema_models>` for more.
     """
     # pylint:disable=C0103,W0613,R0914
     check_kwargs = {
@@ -210,17 +217,6 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
         self.regex = regex
 
 
-class BaseConfig:  # pylint:disable=R0903
-    """Define DataFrameSchema-wide options."""
-
-    name: Optional[str] = None
-    coerce: bool = False
-    strict: bool = False
-    multiindex_coerce: bool = False
-    multiindex_strict: bool = False
-    multiindex_name: Optional[str] = None
-
-
 def _to_function_and_classmethod(
     fn: Union[AnyCallable, classmethod]
 ) -> Tuple[AnyCallable, classmethod]:
@@ -235,9 +231,14 @@ ClassCheck = Callable[[Union[classmethod, AnyCallable]], classmethod]
 
 
 def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
-    """Decorate a method on the SchemaModel indicating that it should be used to
-    validate a field (column or index). The method will be converted to a classmethod.
-    Therefore its signature must start with `cls` followed by regular check arguments.
+    """Decorator to make SchemaModel method a column/index check function.
+
+    *new in 0.5.0*
+
+    This indicates that the decorated method should be used to validate a field
+    (column or index). The method will be converted to a classmethod. Therefore
+    its signature must start with `cls` followed by regular check arguments.
+    See the :ref:`User Guide <schema_model_custom_check>` for more.
 
     :param _fn: Method to decorate.
     :param check_kwargs: Keywords arguments forwarded to Check.
@@ -256,9 +257,15 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
 
 
 def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
-    """Decorate a method on the SchemaModel indicating that it should be used to
-    validate the DataFrame. The method will be converted to a classmethod. Therefore
-    its signature must start with `cls` followed by regular check arguments.
+    """Decorator to make SchemaModel method a dataframe-wide check function.
+
+    *new in 0.5.0*
+
+    Decorate a method on the SchemaModel indicating that it should be used to
+    validate the DataFrame. The method will be converted to a classmethod.
+    Therefore its signature must start with `cls` followed by regular check
+    arguments. See the :ref:`User Guide <schema_model_dataframe_check>` for
+    more.
 
     :param check_kwargs: Keywords arguments forwarded to Check.
     """

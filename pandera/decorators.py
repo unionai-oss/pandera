@@ -317,7 +317,21 @@ def check_types(
     random_state: Optional[int] = None,
     lazy: bool = False,
 ) -> Callable:
-    """Validate function inputs and output based on type annotations."""
+    """Validate function inputs and output based on type annotations.
+
+    See the :ref:`User Guide <schema_models>` for more.
+
+    :param head: validate the first n rows. Rows overlapping with `tail` or
+        `sample` are de-duplicated.
+    :param tail: validate the last n rows. Rows overlapping with `head` or
+        `sample` are de-duplicated.
+    :param sample: validate a random sample of n rows. Rows overlapping
+        with `head` or `tail` are de-duplicated.
+    :param random_state: random seed for the ``sample`` argument.
+    :param lazy: if True, lazily evaluates dataframe against all validation
+        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        ``SchemaError`` as soon as one occurs.
+    """
     if wrapped is None:
         return functools.partial(
             check_types,

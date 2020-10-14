@@ -107,6 +107,8 @@ null values, specify ``Check(..., ignore_na=False)`` when defining a check.
 Note that this is different from the ``nullable`` argument in :py:class:`Column`
 objects, which simply checks for null values in a column.
 
+.. _column_check_groups:
+
 Column Check Groups
 -------------------
 
@@ -171,6 +173,7 @@ fly.
 
     schema.validate(df)
 
+.. _wide_checks:
 
 Wide Checks
 -----------

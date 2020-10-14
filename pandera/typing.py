@@ -8,6 +8,7 @@ import typing_inspect
 
 from .dtypes import PandasDtype, PandasExtensionType
 
+
 if sys.version_info < (3, 8):  # pragma: no cover
     from typing_extensions import Literal
 else:  # pragma: no cover
@@ -56,23 +57,41 @@ GenericDtype = TypeVar(  # type: ignore
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
 
 
+# pylint:disable=too-few-public-methods
 class Index(pd.Index, Generic[GenericDtype]):
-    """Representation of pandas.Index."""
+    """Representation of pandas.Index, only used for type annotation.
+
+    *new in 0.5.0*
+    """
 
 
-class Series(pd.Series, Generic[GenericDtype]):  # type: ignore # pylint:disable=too-many-ancestors
-    """Representation of pandas.Series."""
+# pylint:disable=too-few-public-methods
+class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
+    """Representation of pandas.Series, only used for type annotation.
+
+    *new in 0.5.0*
+    """
 
 
 if TYPE_CHECKING:  # pragma: no cover
+    # pylint:disable=too-few-public-methods
     class DataFrame(pd.DataFrame):
-        """Representation of pandas.DataFrame."""
+        """
+        Representation of pandas.DataFrame, only used for type annotation.
+
+        *new in 0.5.0*
+        """
 
         def __class_getitem__(cls, item):
             pass
 else:
+    # pylint:disable=too-few-public-methods
     class DataFrame(pd.DataFrame, Generic[Schema]):
-        """Representation of pandas.DataFrame."""
+        """
+        Representation of pandas.DataFrame, only used for type annotation.
+
+        *new in 0.5.0*
+        """
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods

@@ -21,6 +21,8 @@ production-critical data pipelines or reproducible research settings. With
    :ref:`hypothesis testing<hypothesis>`.
 #. Seamlessly integrate with existing data analysis/processing pipelines
    via :ref:`function decorators<decorators>`.
+#. Define schema models with a :ref:`class-based API<schema_models>` with
+   pydantic-style syntax and validate dataframes using the typing syntax.
 
 
 Install
@@ -196,6 +198,7 @@ Submit issues, feature requests or bugfixes on
    hypothesis
    decorators
    schema_inference
+   schema_models
    lazy_validation
    API_reference
 

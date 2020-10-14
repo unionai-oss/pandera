@@ -128,6 +128,22 @@ def test_multiindex():
     assert expected == Schema.to_schema()
 
 
+def test_check_validate_method():
+    """Test validate method on valid data."""
+
+    class Schema(pa.SchemaModel):
+        a: Series[int]
+
+        @pa.check("a")
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            # pylint:disable=no-self-argument
+            assert cls is Schema
+            return series < 100
+
+    df = pd.DataFrame({"a": [99]})
+    assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
+
+
 def test_check_single_column():
     """Test the behaviour of a check on a single column."""
 
