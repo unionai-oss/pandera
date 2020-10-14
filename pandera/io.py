@@ -2,6 +2,7 @@
 
 from functools import partial
 from pathlib import Path
+import warnings
 
 import pandas as pd
 try:
@@ -260,10 +261,13 @@ def _format_checks(checks_dict):
 
     checks = []
     for check_name, check_kwargs in checks_dict.items():
-        args = ", ".join(
-            "{}={}".format(k, v.__repr__()) for k, v in check_kwargs.items()
-        )
-        checks.append("Check.{}({})".format(check_name, args))
+        if check_kwargs is None:
+            warnings.warn(f"Check {check_name} cannot be serialized. This check will be ignored")
+        else:
+            args = ", ".join(
+                "{}={}".format(k, v.__repr__()) for k, v in check_kwargs.items()
+            )
+            checks.append("Check.{}({})".format(check_name, args))
     return "[{}]".format(', '.join(checks))
 
 
