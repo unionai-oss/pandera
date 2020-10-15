@@ -375,13 +375,13 @@ def test_to_script_lambda_check():
         pa.io.to_script(schema)
 
 def test_to_yaml_lambda_check():
-        """Test writing DataFrameSchema to a yaml with lambda check."""
-        schema = pa.DataFrameSchema({
-            "a": pa.Column(
-                pa.Int,
-                checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
-            ),
-        })
+    """Test writing DataFrameSchema to a yaml with lambda check."""
+    schema = pa.DataFrameSchema({
+        "a": pa.Column(
+            pa.Int,
+            checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
+        ),
+    })
 
-        with pytest.warns(UserWarning):
-            pa.io.to_yaml(schema)
+    with pytest.warns(UserWarning):
+        pa.io.to_yaml(schema)
