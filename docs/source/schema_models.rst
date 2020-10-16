@@ -157,10 +157,10 @@ You can also use inheritance to build schemas on top of a base schema.
 
 .. testoutput:: dataframe_schema_model
 
-       year  passengers  idx
-    1  2000       61000    1
-    2  2001       50000    2
-    3  2002       45000    3
+       year  passengers
+    1  2000       61000
+    2  2001       50000
+    3  2002       45000
 
 
 Config
