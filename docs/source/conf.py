@@ -102,7 +102,6 @@ autosummary_filename_map = {
     "pandera.Check": "pandera.Check",
     "pandera.check": "pandera.check_decorator",
 }
-set_type_checking_flag = False
 
 
 def setup(app):
