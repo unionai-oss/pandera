@@ -7,7 +7,7 @@ dependencies:
   - pip
 
   # documentation
-  - sphinx
+  - sphinx >= 3.2.0
   - sphinx_rtd_theme
 
   # testing
