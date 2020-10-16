@@ -333,6 +333,8 @@ def check_io(
         **inputs: Dict[InputGetter, Schemas]) -> Callable:
     """Check schema for multiple inputs and outputs.
 
+    See :ref:`here<decorators>` for more usage details.
+
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
     :param tail: validate the last n rows. Rows overlapping with `head` or
@@ -368,7 +370,7 @@ def check_io(
     @wrapt.decorator
     def _wrapper(
             fn: Callable,
-            instance: Union[None, Any],
+            instance: Union[None, Any],  # pylint: disable=unused-argument
             args: Union[List[Any], Tuple[Any]],
             kwargs: Dict[str, Any]):
         """Check pandas DataFrame or Series before calling the function.
@@ -383,10 +385,12 @@ def check_io(
         """
         wrapped_fn = fn
         for input_getter, input_schema in inputs.items():
+            # pylint: disable=no-value-for-parameter
             wrapped_fn = check_input(
                 input_schema, input_getter, *check_args  # type: ignore
             )(wrapped_fn)
 
+        # pylint: disable=no-value-for-parameter
         for out_getter, out_schema in out_schemas:  # type: ignore
             wrapped_fn = check_output(
                 out_schema, out_getter, *check_args

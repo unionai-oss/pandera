@@ -130,3 +130,47 @@ DataFrame/Series of the decorated function.
     zero_column_1_arg(preprocessed_df)
     zero_column_1_dict(preprocessed_df)
     zero_column_1_custom(preprocessed_df)
+
+
+Check IO
+~~~~~~~~
+
+For convenience, you can also use the :py:func:`check_io` decorator where
+you can specify input and output schemas more concisely:
+
+.. testcode:: check_io
+
+    import pandas as pd
+    import pandera as pa
+
+    from pandera import DataFrameSchema, Column, Check, check_input
+
+
+    df = pd.DataFrame({
+       "column1": [1, 4, 0, 10, 9],
+       "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
+    })
+
+    in_schema = DataFrameSchema({
+       "column1": Column(int),
+       "column2": Column(float),
+    })
+
+    out_schema = in_schema.add_columns({"column3": Column(float)})
+
+    @pa.check_io(df1=in_schema, df2=in_schema, out=out_schema)
+    def preprocessor(df1, df2):
+        return (df1 + df2).assign(column3=lambda x: x.column1 + x.column2)
+
+    preprocessed_df = preprocessor(df, df)
+    print(preprocessed_df)
+
+
+.. testoutput:: check_io
+
+       column1  column2  column3
+    0        2     -2.6     -0.6
+    1        8     -2.8      5.2
+    2        0     -5.8     -5.8
+    3       20    -20.2     -0.2
+    4       18    -40.8    -22.8

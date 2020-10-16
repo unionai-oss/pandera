@@ -252,20 +252,20 @@ def test_check_input_method_decorators():
 
 
 def test_check_io():
+    # pylint: disable=too-many-locals
+    """Test that check_io correctly validates/invalidates data."""
 
-    schema = DataFrameSchema({"col": Column(Int)})
+    schema = DataFrameSchema({"col": Column(Int, Check.gt(0))})
 
     @check_io(df1=schema, df2=schema, out=schema)
     def simple_func(df1, df2):
         return df1.assign(col=df1["col"] + df2["col"])
 
     @check_io(out=(1, schema))
-    def output_with_obj_getter():
-        pass
+    def output_with_obj_getter(df):
+        return None, df
 
-    @check_io(
-        out=[(0, schema), (1, schema)]
-    )
+    @check_io(out=[(0, schema), (1, schema)])
     def multiple_outputs_tuple(df):
         return df, df
 
@@ -279,32 +279,52 @@ def test_check_io():
             2: {"bar": df}
         }
 
-    def multiple_output_getters():
-        pass
+    @check_io(df=schema, out=schema, head=1)
+    def validate_head(df):
+        return df
 
-    def different_input_schemas():
-        pass
+    @check_io(df=schema, out=schema, tail=1)
+    def validate_tail(df):
+        return df
 
-    def validate_kwargs():
-        pass
+    @check_io(df=schema, out=schema, sample=1, random_state=100)
+    def validate_sample(df):
+        return df
 
-    def unexpected_input_args():
-        pass
-
-    def unexpected_output_args():
-        pass
+    @check_io(df=schema, out=schema, lazy=True)
+    def validate_lazy(df):
+        return df
 
     df1 = pd.DataFrame({"col": [1, 1, 1]})
     df2 = pd.DataFrame({"col": [2, 2, 2]})
-
+    invalid_df = pd.DataFrame({"col": [-1, -1, -1]})
     expected = pd.DataFrame({"col": [3, 3, 3]})
-    result = simple_func(df1, df2)
-    assert (result == expected).all(axis=None)
 
+    for fn, valid, invalid, out in [
+            (simple_func, [df1, df2], [invalid_df, invalid_df], expected),
+            (output_with_obj_getter, [df1], [invalid_df], (None, df1)),
+            (multiple_outputs_tuple, [df1], [invalid_df], (df1, df1)),
+            (
+                multiple_outputs_dict,
+                [df1],
+                [invalid_df],
+                {
+                    0: df1,
+                    "foo": df1,
+                    2: {"bar": df1}
+                }
+            ),
+            (validate_head, [df1], [invalid_df], df1),
+            (validate_tail, [df1], [invalid_df], df1),
+            (validate_sample, [df1], [invalid_df], df1),
+            (validate_lazy, [df1], [invalid_df], df1)]:
+        result = fn(*valid)
+        if isinstance(result, pd.Series):
+            assert (result == out).all()
+        if isinstance(result, pd.DataFrame):
+            assert (result == out).all(axis=None)
+        else:
+            assert result == out
 
-    # TODO: test cases:
-    # - test multiple outputs
-    # - test outputs with object getter of int, str, Callable types
-    # - test different input schemas
-    # - test with validate kwargs
-    # - test error cases: type error
+        with pytest.raises(errors.SchemaError):
+            fn(*invalid)
