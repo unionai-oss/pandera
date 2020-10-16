@@ -326,5 +326,8 @@ def test_check_io():
         else:
             assert result == out
 
-        with pytest.raises(errors.SchemaError):
+        expected_error = (
+            errors.SchemaErrors if fn is validate_lazy else errors.SchemaError
+        )
+        with pytest.raises(expected_error):
             fn(*invalid)
