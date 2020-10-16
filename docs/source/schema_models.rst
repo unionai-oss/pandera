@@ -148,10 +148,7 @@ You can also use inheritance to build schemas on top of a base schema.
     @pa.check_types
     def transform(df: DataFrame[BaseSchema]) -> DataFrame[FinalSchema]:
         return (
-            df.assign(
-                passengers=[61000, 50000, 45000],
-                idx=[1, 2 ,3]
-            )
+            df.assign(passengers=[61000, 50000, 45000])
             .set_index(pd.Index([1, 2 ,3]))
             .astype({"year": int})
         )
