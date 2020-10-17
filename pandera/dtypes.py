@@ -26,6 +26,7 @@ NUMPY_TYPES_ALIAS = frozenset([np.complex])
 # defaults to int32.
 _DEFAULT_PANDAS_INT_TYPE = str(pd.Series([1]).dtype)
 _DEFAULT_PANDAS_FLOAT_TYPE = str(pd.Series([1.]).dtype)
+_DEFAULT_PANDAS_COMPLEX_TYPE = str(pd.Series([complex(1)]).dtype)
 _DEFAULT_NUMPY_INT_TYPE = str(np.dtype(int))
 _DEFAULT_NUMPY_FLOAT_TYPE = str(np.dtype(float))
 
@@ -128,7 +129,7 @@ class PandasDtype(Enum):
     Complex256 = "complex256"  #: ``"complex"`` numpy dtype
 
     #: The string datatype doesn't map to the first-class pandas datatype and
-    #: is representated as a numpy ``"object"`` array. This will change after
+    #: is represented as a numpy ``"object"`` array. This will change after
     #: pandera only supports pandas 1.0+ and is currently handled
     #: internally by pandera as a special case. To use the pandas ``string``
     #: data type, you must explicitly use ``pd.StringDtype()``.
@@ -140,6 +141,7 @@ class PandasDtype(Enum):
         return {
             "int": _DEFAULT_PANDAS_INT_TYPE,
             "float": _DEFAULT_PANDAS_FLOAT_TYPE,
+            "complex": _DEFAULT_PANDAS_COMPLEX_TYPE,
             "string": "object",
         }.get(self.value, self.value)
 
@@ -236,7 +238,9 @@ class PandasDtype(Enum):
             bool: cls.Bool,
             str: cls.String,
             int: cls.Int,
-            float: cls.Float
+            float: cls.Float,
+            object: cls.Object,
+            complex: cls.Complex,
         }.get(python_type)
 
         if pandas_dtype is None:
