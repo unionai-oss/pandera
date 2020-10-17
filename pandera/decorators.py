@@ -16,7 +16,7 @@ from . import errors
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
-OutputGetter = Union[int, str, Callable]
+OutputGetter = Union[str, int, Callable]
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
@@ -191,7 +191,7 @@ def check_input(
             except errors.SchemaError as e:
                 _handle_schema_error(fn, schema, kwargs[args_names[0]], e)
         else:
-            raise ValueError(
+            raise TypeError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         return fn(*args, **kwargs)
 
@@ -298,7 +298,7 @@ def check_output(
         elif callable(obj_getter):
             obj = obj_getter(out)
         else:
-            raise ValueError(
+            raise TypeError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         try:
             schema.validate(obj, head, tail, sample, random_state, lazy)
@@ -357,15 +357,6 @@ def check_io(
     :returns: wrapped function
     """
     check_args = (head, tail, sample, random_state, lazy)
-    out_schemas = out
-    if isinstance(out, list):
-        out_schemas = out
-    elif isinstance(out, (schemas.DataFrameSchema, schemas.SeriesSchema)):
-        out_schemas = [(None, out)]  # type: ignore
-    elif isinstance(out, tuple):
-        out_schemas = [out]
-    else:
-        raise TypeError(f"type of out argument not recognized: {type(out)}")
 
     @wrapt.decorator
     def _wrapper(
@@ -383,6 +374,18 @@ def check_io(
         :param kwargs: the dictionary of keyword arguments supplied when the
             decorated function was called.
         """
+        out_schemas = out
+        if isinstance(out, list):
+            out_schemas = out
+        elif isinstance(out, (schemas.DataFrameSchema, schemas.SeriesSchema)):
+            out_schemas = [(None, out)]  # type: ignore
+        elif isinstance(out, tuple):
+            out_schemas = [out]
+        else:
+            raise TypeError(
+                f"type of out argument not recognized: {type(out)}"
+            )
+
         wrapped_fn = fn
         for input_getter, input_schema in inputs.items():
             # pylint: disable=no-value-for-parameter

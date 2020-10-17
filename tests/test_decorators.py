@@ -152,8 +152,25 @@ def test_check_function_decorator_errors():
     with pytest.raises(
             IndexError,
             match=r"^error in check_input decorator of function"):
-        test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]})
-                                         )
+        test_incorrect_check_input_index(
+            pd.DataFrame({"column1": [1, 2, 3]})
+        )
+
+
+def test_check_output_transformer():
+    """Test check warning on output transformer."""
+
+    @check_output(
+        DataFrameSchema(
+            {"column": Column(int)},
+            transformer=lambda df: df
+        )
+    )
+    def test_func(df):
+        return df
+
+    with pytest.warns(UserWarning):
+        test_func(pd.DataFrame({"column": [1, 2, 3]}))
 
 
 def test_check_function_decorator_transform():
@@ -331,3 +348,57 @@ def test_check_io():
         )
         with pytest.raises(expected_error):
             fn(*invalid)
+
+
+@pytest.mark.parametrize(
+    "obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}]
+)
+def test_check_input_output_unrecognized_obj_getter(obj_getter):
+    """
+    Test that check_input and check_output raise correct errors on unrecognized
+    dataframe object getters
+    """
+    schema = DataFrameSchema({"column": Column(int)})
+
+    @check_input(schema, obj_getter)
+    def test_check_input_fn(df):
+        return df
+
+    @check_output(schema, obj_getter)
+    def test_check_output_fn(df):
+        return df
+
+    for fn in [test_check_input_fn, test_check_output_fn]:
+        with pytest.raises(TypeError):
+            fn(pd.DataFrame({"column": [1, 2, 3]}))
+
+
+@pytest.mark.parametrize(
+    "out,error,msg", [
+        (1, TypeError, None),
+        (1.5, TypeError, None),
+        ("foo", TypeError, None),
+        (["foo"], ValueError, "too many values to unpack"),
+        (
+            (None, "foo"),
+            AttributeError,
+            "'str' object has no attribute 'validate'",
+        ),
+        (
+            [(None, "foo")],
+            AttributeError,
+            "'str' object has no attribute 'validate'",
+        ),
+    ]
+)
+def test_check_io_unrecognized_obj_getter(out, error, msg):
+    """
+    Test that check_io raise correct errors on unrecognized decorator arguments
+    """
+
+    @check_io(out=out)
+    def test_check_io_fn(df):
+        return df
+
+    with pytest.raises(error, match=msg):
+        test_check_io_fn(pd.DataFrame({"column": [1, 2, 3]}))
