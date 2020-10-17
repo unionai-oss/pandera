@@ -32,7 +32,6 @@ def test_check_function_decorators():
                               element_wise=True),
                         nullable=True)
         },
-        transformer=lambda df: df.assign(e="foo")
     )
     out_schema = DataFrameSchema(
         {
@@ -50,13 +49,13 @@ def test_check_function_decorators():
         # pylint: disable=W0613
         # disables unused-arguments because handling the second argument is
         # what is being tested.
-        return dataframe.assign(f=["a", "b", "a"])
+        return dataframe.assign(e="foo", f=["a", "b", "a"])
 
     # case 2: input and output validation using positional arguments
     @check_input(in_schema, 1)
     @check_output(out_schema, 0)
     def test_func2(x, dataframe):
-        return dataframe.assign(f=["a", "b", "a"]), x
+        return dataframe.assign(e="foo", f=["a", "b", "a"]), x
 
     # case 3: dataframe to validate is called as a keyword argument and the
     # output is in a dictionary
@@ -65,7 +64,7 @@ def test_check_function_decorators():
     def test_func3(x, in_dataframe=None):
         return {
             "x": x,
-            "out_dataframe": in_dataframe.assign(f=["a", "b", "a"]),
+            "out_dataframe": in_dataframe.assign(e="foo", f=["a", "b", "a"]),
         }
 
     # case 4: dataframe is a positional argument but the obj_getter in the
@@ -76,7 +75,7 @@ def test_check_function_decorators():
         # pylint: disable=W0613
         # disables unused-arguments because handling the second argument is
         # what is being tested.
-        return dataframe.assign(f=["a", "b", "a"])
+        return dataframe.assign(e="foo", f=["a", "b", "a"])
 
     df = pd.DataFrame({
         "a": [1, 2, 3],
@@ -155,49 +154,6 @@ def test_check_function_decorator_errors():
         test_incorrect_check_input_index(
             pd.DataFrame({"column1": [1, 2, 3]})
         )
-
-
-def test_check_output_transformer():
-    """Test check warning on output transformer."""
-
-    @check_output(
-        DataFrameSchema(
-            {"column": Column(int)},
-            transformer=lambda df: df
-        )
-    )
-    def test_func(df):
-        return df
-
-    with pytest.warns(UserWarning):
-        test_func(pd.DataFrame({"column": [1, 2, 3]}))
-
-
-def test_check_function_decorator_transform():
-    """Test that transformer argument is in effect in check_input decorator."""
-
-    in_schema = DataFrameSchema(
-        {"column1": Column(Int)},
-        transformer=lambda df: df.assign(column2="foo"))
-    out_schema = DataFrameSchema(
-        {"column1": Column(Int),
-         "column2": Column(String)})
-
-    @check_input(in_schema)
-    @check_output(out_schema)
-    def func_input_transform1(df):
-        return df
-
-    result1 = func_input_transform1(pd.DataFrame({"column1": [1, 2, 3]}))
-    assert "column2" in result1
-
-    @check_input(in_schema, 1)
-    @check_output(out_schema, 1)
-    def func_input_transform2(_, df):
-        return _, df
-
-    result2 = func_input_transform2(None, pd.DataFrame({"column1": [1, 2, 3]}))
-    assert "column2" in result2[1]
 
 
 def test_check_input_method_decorators():

@@ -46,7 +46,6 @@ is a simple example:
         },
         checks=[],
         index=<Schema Index>,
-        transformer=None,
         coerce=True,
         strict=False
     )

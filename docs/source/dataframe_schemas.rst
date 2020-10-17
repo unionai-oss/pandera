@@ -660,7 +660,6 @@ data pipeline:
         },
         checks=[],
         index=None,
-        transformer=None,
         coerce=False,
         strict=True
     )

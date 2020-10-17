@@ -1,7 +1,6 @@
 """Decorators for integrating pandera into existing data pipelines."""
 
 import inspect
-import warnings
 
 from collections import OrderedDict
 from typing import Any, Callable, List, Union, Tuple, Dict, Optional, NoReturn
@@ -71,9 +70,7 @@ def check_input(
     """Validate function argument when function is called.
 
     This is a decorator function that validates the schema of a dataframe
-    argument in a function. Note that if a transformer is specified by the
-    schema, the decorator will return the transformed dataframe, which will be
-    passed into the decorated function.
+    argument in a function.
 
     :param schema: dataframe/series schema object
     :param obj_getter:  (Default value = None) if int, obj_getter refers to the
@@ -210,9 +207,7 @@ def check_output(
     """Validate function output.
 
     Similar to input validator, but validates the output of the decorated
-    function. Note that the `transformer` function supplied to the
-    DataFrameSchema will not have an effect in the check_output schema
-    validator.
+    function.
 
     :param schema: dataframe/series schema object
     :param obj_getter:  (Default value = None) if int, assumes that the output
@@ -284,12 +279,6 @@ def check_output(
         :param kwargs: the dictionary of keyword arguments supplied when the
             decorated function was called.
         """
-        if hasattr(schema, "transformer") and \
-                getattr(schema, "transformer") is not None:
-            warnings.warn(
-                "The schema transformer function has no effect in a "
-                "check_output decorator. Please perform the necessary "
-                "transformations in the '%s' function instead." % fn.__name__)
         out = fn(*args, **kwargs)
         if obj_getter is None:
             obj = out

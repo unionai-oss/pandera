@@ -951,3 +951,9 @@ def test_lazy_series_validation_error(schema, data, expectation):
                     .failure_case.isin(failure_cases)
                     .all()
                 )
+
+
+def test_schema_transformer_deprecated():
+    """Using the transformer argument should raise a deprecation warning."""
+    with pytest.warns(DeprecationWarning):
+        DataFrameSchema(transformer=lambda df: df)
