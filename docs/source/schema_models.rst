@@ -137,7 +137,8 @@ You can also use inheritance to build schemas on top of a base schema.
         year: Series[str]
 
     class FinalSchema(BaseSchema):
-        year: Series[int]  # overwrites the base type
+        # overwrite the base type
+        year: Series[int] = pa.Field(ge=2000, coerce=True)
         passengers: Series[int]
         idx: Index[int] = pa.Field(ge=0)
 
@@ -149,7 +150,7 @@ You can also use inheritance to build schemas on top of a base schema.
     def transform(df: DataFrame[BaseSchema]) -> DataFrame[FinalSchema]:
         return (
             df.assign(passengers=[61000, 50000, 45000])
-            .set_index(pd.Index([1, 2 ,3]))
+            .set_index(pd.Index([1, 2, 3]))
             .astype({"year": int})
         )
 
