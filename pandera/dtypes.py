@@ -18,6 +18,9 @@ NUMPY_NONNULLABLE_INT_DTYPES = [
     "uint8", "uint16", "uint32", "uint64",
 ]
 
+NUMPY_TYPES = frozenset([item for sublist in np.sctypes.values() for item in sublist])
+NUMPY_TYPES_ALIAS = frozenset([np.complex])
+
 # for int and float dtype, delegate string representation to the
 # default based on OS. In Windows, pandas defaults to int64 while numpy
 # defaults to int32.
@@ -119,6 +122,10 @@ class PandasDtype(Enum):
     UINT32 = "UInt32"  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
     UINT64 = "UInt64"  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
     Object = "object"  #: ``"object"`` numpy dtype
+    Complex = "complex"  #: ``"complex"`` numpy dtype
+    Complex64 = "complex64"  #: ``"complex"`` numpy dtype
+    Complex128 = "complex128"  #: ``"complex"`` numpy dtype
+    Complex256 = "complex256"  #: ``"complex"`` numpy dtype
 
     #: The string datatype doesn't map to the first-class pandas datatype and
     #: is representated as a numpy ``"object"`` array. This will change after
@@ -172,6 +179,11 @@ class PandasDtype(Enum):
             "UInt64": cls.UINT64,
             "object": cls.Object,
             "string": cls.String,
+            "str": cls.String,
+            "complex": cls.Complex,
+            "complex64": cls.Complex64,
+            "complex128": cls.Complex128,
+            "complex256": cls.Complex256
         }.get(str_alias)
 
         if pandas_dtype is None:
@@ -224,7 +236,7 @@ class PandasDtype(Enum):
             bool: cls.Bool,
             str: cls.String,
             int: cls.Int,
-            float: cls.Float,
+            float: cls.Float
         }.get(python_type)
 
         if pandas_dtype is None:
@@ -232,6 +244,23 @@ class PandasDtype(Enum):
                 "python type '%s' not recognized as pandas data type" %
                 python_type
             )
+
+        return pandas_dtype
+
+    @classmethod
+    def from_numpy_type(cls, numpy_type: np.dtype) -> "PandasDtype":
+        """Get PandasDtype enum from numpy type.
+
+        :param numpy_type: numpy data type.
+        """
+
+        # numpy aliases
+        pandas_dtype = {
+            np.complex: cls.Complex128  # np.complex is alias for np.complex128
+        }.get(numpy_type)
+
+        if pandas_dtype is None:
+            pandas_dtype = cls.from_str_alias(numpy_type.__name__)
 
         return pandas_dtype
 

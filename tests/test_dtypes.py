@@ -17,7 +17,6 @@ from pandera.dtypes import (
 )
 from pandera.errors import SchemaError
 
-
 PANDAS_VERSION = version.parse(pd.__version__)
 
 TESTABLE_DTYPES = [
@@ -217,6 +216,75 @@ def test_category_dtype_coerce():
     )
     assert isinstance(validated_df, pd.DataFrame)
 
+
+def helper_type_validation(dataframe_type, schema_type, debugging=False):
+    """Helper function for using same or different dtypes for the dataframe and the schema_type"""
+    df = pd.DataFrame({"column1": [dataframe_type(1)]})
+    if debugging:
+        print(dataframe_type, df.column1)
+    schema = pa.DataFrameSchema({"column1": pa.Column(schema_type)})
+    if debugging:
+        print(schema)
+    schema(df)
+
+
+def test_numpy_type():
+    """Test various numpy dtypes"""
+    # Test correct conversions
+    valid_types = (
+        (np.complex, np.complex),  # Pandas converts complex numbers always to np.complex128
+        (np.complex, np.complex128),
+        (np.complex128, np.complex),
+        (np.complex64, np.complex128),  # Pandas converts complex numbers always to np.complex128
+        (np.complex128, np.complex128),
+        (np.float, np.float),
+        (np.float, np.float64),
+        (np.float16, np.float64),  # Pandas converts float numbers always to np.float64
+        (np.float32, np.float64),
+        (np.float64, np.float64),
+        (np.int, np.int),
+        (np.int, np.int64),
+        (np.int8, np.int64),   # Pandas converts int numbers always to np.int64
+        (np.int16, np.int64),
+        (np.int32, np.int64),
+        (np.int64, np.int64),
+        (np.uint, np.int64),  # Pandas converts int numbers always to np.int64
+        (np.uint, np.int64),
+        (np.uint8, np.int64),
+        (np.uint16, np.int64),
+        (np.uint32, np.int64),
+        (np.uint64, np.int64),
+        (np.bool, np.bool),
+        (np.str, np.str)
+        # np.object, np.void and bytes are not tested
+    )
+
+    for valid_type in valid_types:
+        try:
+            helper_type_validation(valid_type[0], valid_type[1])
+        except:  # pylint: disable=bare-except
+            # No exceptions since it should cover all exceptions for debug purpose
+            # Rerun test with debug inforation
+            print(f"Error on types: {valid_type}")
+            helper_type_validation(valid_type[0], valid_type[1], True)
+
+    # Examples of types comparisons, which shall fail
+    invalid_types = (
+        (np.complex, np.int),
+        (np.int, np.complex),
+        (float, np.complex),
+        (np.complex, float),
+        (np.int, np.float),
+        (np.uint8, np.float),
+        (np.complex, str)
+    )
+    for invalid_type in invalid_types:
+        with pytest.raises(SchemaError):
+            helper_type_validation(invalid_type[0], invalid_type[1])
+
+    PandasDtype.from_numpy_type(np.float)
+    with pytest.raises(TypeError):
+        PandasDtype.from_numpy_type(pd.DatetimeIndex)
 
 def test_datetime():
     """Test datetime types can be validated properly by schema.validate"""
