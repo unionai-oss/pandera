@@ -14,6 +14,11 @@ from . import schemas
 from . import errors
 
 
+Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
+InputGetter = Union[str, int]
+OutputGetter = Union[str, int, Callable]
+
+
 def _get_fn_argnames(fn: Callable) -> List[str]:
     """Get argument names of a function.
 
@@ -30,7 +35,7 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
 
 def _handle_schema_error(
         fn: Callable,
-        schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+        schema: Schemas,
         arg_df: pd.DataFrame,
         schema_error: errors.SchemaError) -> NoReturn:
     """Reraise schema validation error with decorator context.
@@ -55,8 +60,8 @@ def _handle_schema_error(
 
 
 def check_input(
-        schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
-        obj_getter: Optional[Union[str, int]] = None,
+        schema: Schemas,
+        obj_getter: Optional[InputGetter] = None,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -186,7 +191,7 @@ def check_input(
             except errors.SchemaError as e:
                 _handle_schema_error(fn, schema, kwargs[args_names[0]], e)
         else:
-            raise ValueError(
+            raise TypeError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         return fn(*args, **kwargs)
 
@@ -194,8 +199,8 @@ def check_input(
 
 
 def check_output(
-        schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
-        obj_getter: Optional[Union[int, str, Callable]] = None,
+        schema: Schemas,
+        obj_getter: Optional[OutputGetter] = None,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -293,7 +298,7 @@ def check_output(
         elif callable(obj_getter):
             obj = obj_getter(out)
         else:
-            raise ValueError(
+            raise TypeError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
         try:
             schema.validate(obj, head, tail, sample, random_state, lazy)
@@ -310,5 +315,90 @@ def check_output(
             )
 
         return out
+
+    return _wrapper
+
+
+def check_io(
+        head: int = None,
+        tail: int = None,
+        sample: int = None,
+        random_state: int = None,
+        lazy: bool = False,
+        out: Union[
+            Schemas,
+            Tuple[OutputGetter, Schemas],
+            List[Tuple[OutputGetter, Schemas]],
+        ] = None,
+        **inputs: Dict[InputGetter, Schemas]) -> Callable:
+    """Check schema for multiple inputs and outputs.
+
+    See :ref:`here<decorators>` for more usage details.
+
+    :param head: validate the first n rows. Rows overlapping with `tail` or
+        `sample` are de-duplicated.
+    :param tail: validate the last n rows. Rows overlapping with `head` or
+        `sample` are de-duplicated.
+    :param sample: validate a random sample of n rows. Rows overlapping
+        with `head` or `tail` are de-duplicated.
+    :param random_state: random seed for the ``sample`` argument.
+    :param lazy: if True, lazily evaluates dataframe against all validation
+        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        ``SchemaError`` as soon as one occurs.
+    :param out: this should be a schema object if the function outputs a single
+        dataframe/series. It can be a two-tuple, where the first element is
+        a string, integer, or callable that fetches the pandas data structure
+        in the output, and the second element is the schema to validate
+        against. For multiple outputs, specify a list of two-tuples following
+        the above structure.
+    :param inputs: kwargs keys should be the argument name in the decorated
+        function and values should be the schema used to validate the pandas
+        data structure referenced by the argument name.
+    :returns: wrapped function
+    """
+    check_args = (head, tail, sample, random_state, lazy)
+
+    @wrapt.decorator
+    def _wrapper(
+            fn: Callable,
+            instance: Union[None, Any],  # pylint: disable=unused-argument
+            args: Union[List[Any], Tuple[Any]],
+            kwargs: Dict[str, Any]):
+        """Check pandas DataFrame or Series before calling the function.
+
+        :param fn: check the DataFrame or Series output of this function
+        :param instance: the object to which the wrapped function was bound
+            when it was called. Only applies to methods.
+        :param args: the list of positional arguments supplied when the
+            decorated function was called.
+        :param kwargs: the dictionary of keyword arguments supplied when the
+            decorated function was called.
+        """
+        out_schemas = out
+        if isinstance(out, list):
+            out_schemas = out
+        elif isinstance(out, (schemas.DataFrameSchema, schemas.SeriesSchema)):
+            out_schemas = [(None, out)]  # type: ignore
+        elif isinstance(out, tuple):
+            out_schemas = [out]
+        else:
+            raise TypeError(
+                f"type of out argument not recognized: {type(out)}"
+            )
+
+        wrapped_fn = fn
+        for input_getter, input_schema in inputs.items():
+            # pylint: disable=no-value-for-parameter
+            wrapped_fn = check_input(
+                input_schema, input_getter, *check_args  # type: ignore
+            )(wrapped_fn)
+
+        # pylint: disable=no-value-for-parameter
+        for out_getter, out_schema in out_schemas:  # type: ignore
+            wrapped_fn = check_output(
+                out_schema, out_getter, *check_args
+            )(wrapped_fn)
+
+        return wrapped_fn(*args, **kwargs)
 
     return _wrapper

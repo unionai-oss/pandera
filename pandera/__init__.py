@@ -3,7 +3,7 @@
 from . import errors, constants
 from .checks import Check
 from .hypotheses import Hypothesis
-from .decorators import check_input, check_output
+from .decorators import check_input, check_output, check_io
 from .dtypes import PandasDtype
 from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex

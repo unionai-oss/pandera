@@ -7,11 +7,13 @@ import pytest
 from pandera import errors
 from pandera import (
     Column, DataFrameSchema, Check, DateTime, Float, Int, String, check_input,
-    check_output)
+    check_output, check_io,
+)
 
 
 def test_check_function_decorators():
-    """Tests 5 different methods that are common across the @check_input and
+    """
+    Tests 5 different methods that are common across the @check_input and
     @check_output decorators.
     """
     in_schema = DataFrameSchema(
@@ -150,8 +152,25 @@ def test_check_function_decorator_errors():
     with pytest.raises(
             IndexError,
             match=r"^error in check_input decorator of function"):
-        test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]})
-                                         )
+        test_incorrect_check_input_index(
+            pd.DataFrame({"column1": [1, 2, 3]})
+        )
+
+
+def test_check_output_transformer():
+    """Test check warning on output transformer."""
+
+    @check_output(
+        DataFrameSchema(
+            {"column": Column(int)},
+            transformer=lambda df: df
+        )
+    )
+    def test_func(df):
+        return df
+
+    with pytest.warns(UserWarning):
+        test_func(pd.DataFrame({"column": [1, 2, 3]}))
 
 
 def test_check_function_decorator_transform():
@@ -247,3 +266,139 @@ def test_check_input_method_decorators():
         transformer.transform_secord_arg_with_list_getter(None, dataframe))
     _assert_expectation(
         transformer.transform_secord_arg_with_dict_getter(None, dataframe))
+
+
+def test_check_io():
+    # pylint: disable=too-many-locals
+    """Test that check_io correctly validates/invalidates data."""
+
+    schema = DataFrameSchema({"col": Column(Int, Check.gt(0))})
+
+    @check_io(df1=schema, df2=schema, out=schema)
+    def simple_func(df1, df2):
+        return df1.assign(col=df1["col"] + df2["col"])
+
+    @check_io(out=(1, schema))
+    def output_with_obj_getter(df):
+        return None, df
+
+    @check_io(out=[(0, schema), (1, schema)])
+    def multiple_outputs_tuple(df):
+        return df, df
+
+    @check_io(
+        out=[(0, schema), ("foo", schema), (lambda x: x[2]["bar"], schema)]
+    )
+    def multiple_outputs_dict(df):
+        return {
+            0: df,
+            "foo": df,
+            2: {"bar": df}
+        }
+
+    @check_io(df=schema, out=schema, head=1)
+    def validate_head(df):
+        return df
+
+    @check_io(df=schema, out=schema, tail=1)
+    def validate_tail(df):
+        return df
+
+    @check_io(df=schema, out=schema, sample=1, random_state=100)
+    def validate_sample(df):
+        return df
+
+    @check_io(df=schema, out=schema, lazy=True)
+    def validate_lazy(df):
+        return df
+
+    df1 = pd.DataFrame({"col": [1, 1, 1]})
+    df2 = pd.DataFrame({"col": [2, 2, 2]})
+    invalid_df = pd.DataFrame({"col": [-1, -1, -1]})
+    expected = pd.DataFrame({"col": [3, 3, 3]})
+
+    for fn, valid, invalid, out in [
+            (simple_func, [df1, df2], [invalid_df, invalid_df], expected),
+            (output_with_obj_getter, [df1], [invalid_df], (None, df1)),
+            (multiple_outputs_tuple, [df1], [invalid_df], (df1, df1)),
+            (
+                multiple_outputs_dict,
+                [df1],
+                [invalid_df],
+                {
+                    0: df1,
+                    "foo": df1,
+                    2: {"bar": df1}
+                }
+            ),
+            (validate_head, [df1], [invalid_df], df1),
+            (validate_tail, [df1], [invalid_df], df1),
+            (validate_sample, [df1], [invalid_df], df1),
+            (validate_lazy, [df1], [invalid_df], df1)]:
+        result = fn(*valid)
+        if isinstance(result, pd.Series):
+            assert (result == out).all()
+        if isinstance(result, pd.DataFrame):
+            assert (result == out).all(axis=None)
+        else:
+            assert result == out
+
+        expected_error = (
+            errors.SchemaErrors if fn is validate_lazy else errors.SchemaError
+        )
+        with pytest.raises(expected_error):
+            fn(*invalid)
+
+
+@pytest.mark.parametrize(
+    "obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}]
+)
+def test_check_input_output_unrecognized_obj_getter(obj_getter):
+    """
+    Test that check_input and check_output raise correct errors on unrecognized
+    dataframe object getters
+    """
+    schema = DataFrameSchema({"column": Column(int)})
+
+    @check_input(schema, obj_getter)
+    def test_check_input_fn(df):
+        return df
+
+    @check_output(schema, obj_getter)
+    def test_check_output_fn(df):
+        return df
+
+    for fn in [test_check_input_fn, test_check_output_fn]:
+        with pytest.raises(TypeError):
+            fn(pd.DataFrame({"column": [1, 2, 3]}))
+
+
+@pytest.mark.parametrize(
+    "out,error,msg", [
+        (1, TypeError, None),
+        (1.5, TypeError, None),
+        ("foo", TypeError, None),
+        (["foo"], ValueError, "too many values to unpack"),
+        (
+            (None, "foo"),
+            AttributeError,
+            "'str' object has no attribute 'validate'",
+        ),
+        (
+            [(None, "foo")],
+            AttributeError,
+            "'str' object has no attribute 'validate'",
+        ),
+    ]
+)
+def test_check_io_unrecognized_obj_getter(out, error, msg):
+    """
+    Test that check_io raise correct errors on unrecognized decorator arguments
+    """
+
+    @check_io(out=out)
+    def test_check_io_fn(df):
+        return df
+
+    with pytest.raises(error, match=msg):
+        test_check_io_fn(pd.DataFrame({"column": [1, 2, 3]}))

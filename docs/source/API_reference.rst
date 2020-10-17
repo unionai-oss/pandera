@@ -66,6 +66,7 @@ Decorators
 
    check_input
    check_output
+   check_io
 
 
 Schema Inference
