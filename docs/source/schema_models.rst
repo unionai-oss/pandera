@@ -12,7 +12,7 @@ Schema Models (new)
 ``pandera`` provides a class-based API that's heavily inspired by
 `pydantic <https://pydantic-docs.helpmanual.io/>`_. In contrast to the
 :ref:`object-based API<DataFrameSchemas>`, you can define schema models in
-much the same way you define ``pydantic`` models. The You can define schema
+much the same way you define ``pydantic`` models. You can define schema
 models that can be used with the ``pandera.typing`` module to annotate
 functions via the `typing <https://docs.python.org/3/library/typing.html>`_
 syntax.
@@ -137,8 +137,7 @@ You can also use inheritance to build schemas on top of a base schema.
         year: Series[str]
 
     class FinalSchema(BaseSchema):
-        # overwrite the base type
-        year: Series[int] = pa.Field(ge=2000, coerce=True)
+        year: Series[int] = pa.Field(ge=2000, coerce=True)  # overwrite the base type
         passengers: Series[int]
         idx: Index[int] = pa.Field(ge=0)
 
@@ -169,7 +168,7 @@ Config
 
 The ``Config`` class can be specified within a ``SchemaModel`` subclass
 definition, where you can set schema-wide options. The full set of options
-can be found in the :py:class:`BaseConfig` class.
+can be found in the :py:class:`model.BaseConfig` class.
 
 .. testcode:: dataframe_schema_model
 

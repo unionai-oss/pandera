@@ -17,6 +17,16 @@ a {
 
 .wy-nav-side {
   background-color: #414552;
+  width: 350px;
+}
+
+/* make sure sidebar is wide enough */
+.wy-side-scroll, .wy-menu-vertical, .wy-side-nav-search {
+  width: 350px;
+}
+
+.wy-nav-content-wrap {
+  margin-left: 350px;
 }
 
 .wy-side-nav-search {
