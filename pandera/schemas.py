@@ -136,9 +136,18 @@ class DataFrameSchema():
                     "DataFrameSchema ; columns with missing pandas_type:" +
                     ", ".join(missing_pandas_type))
 
+        if transformer is not None:
+            warnings.warn(
+                "The `transformers` argument has been deprecated and will no "
+                "longer have any effect on validated dataframes. To achieve "
+                "the same goal, you can apply the function to the validated "
+                "data with `transformer(schema(df))` or "
+                "`schema(df).pipe(transformer)`",
+                DeprecationWarning
+            )
+
         self.checks = checks
         self.index = index
-        self.transformer = transformer
         self.strict = strict
         self.name = name
         self._coerce = coerce
@@ -428,10 +437,6 @@ class DataFrameSchema():
                 error_handler.collected_errors, check_obj)
 
         assert all(check_results)
-
-        if self.transformer is not None:
-            check_obj = self.transformer(check_obj)
-
         return check_obj
 
     def __call__(
@@ -462,11 +467,10 @@ class DataFrameSchema():
 
     def __repr__(self):
         """Represent string for logging."""
-        return "%s(columns=%s, index=%s, transformer=%s, coerce=%s)" % \
+        return "%s(columns=%s, index=%s, coerce=%s)" % \
             (self.__class__.__name__,
              self.columns,
              self.index,
-             self.transformer,
              self.coerce)
 
     def __str__(self):
@@ -491,7 +495,6 @@ class DataFrameSchema():
             "{columns},\n"
             "{checks},\n"
             "{indent}index={index},\n"
-            "{indent}transformer={transformer},\n"
             "{indent}coerce={coerce},\n"
             "{indent}strict={strict}\n"
             ")"
@@ -500,7 +503,6 @@ class DataFrameSchema():
             columns=columns,
             checks=checks,
             index=str(self.index),
-            transformer=str(self.transformer),
             coerce=self.coerce,
             strict=self.strict,
             indent=_indent,
