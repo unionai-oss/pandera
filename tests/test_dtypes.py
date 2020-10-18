@@ -218,7 +218,10 @@ def test_category_dtype_coerce():
 
 
 def helper_type_validation(dataframe_type, schema_type, debugging=False):
-    """Helper function for using same or different dtypes for the dataframe and the schema_type"""
+    """
+    Helper function for using same or different dtypes for the dataframe and
+    the schema_type
+    """
     df = pd.DataFrame({"column1": [dataframe_type(1)]})
     if debugging:
         print(dataframe_type, df.column1)
@@ -232,23 +235,27 @@ def test_numpy_type():
     """Test various numpy dtypes"""
     # Test correct conversions
     valid_types = (
-        (np.complex, np.complex),  # Pandas converts complex numbers always to np.complex128
+        # Pandas always converts complex numbers to np.complex128
+        (np.complex, np.complex),
         (np.complex, np.complex128),
         (np.complex128, np.complex),
-        (np.complex64, np.complex128),  # Pandas converts complex numbers always to np.complex128
+        (np.complex64, np.complex128),
         (np.complex128, np.complex128),
+        # Pandas always converts float numbers to np.float64
         (np.float, np.float),
         (np.float, np.float64),
-        (np.float16, np.float64),  # Pandas converts float numbers always to np.float64
+        (np.float16, np.float64),
         (np.float32, np.float64),
         (np.float64, np.float64),
+        # Pandas always converts int numbers to np.int64
         (np.int, np.int),
         (np.int, np.int64),
-        (np.int8, np.int64),   # Pandas converts int numbers always to np.int64
+        (np.int8, np.int64),
         (np.int16, np.int64),
         (np.int32, np.int64),
         (np.int64, np.int64),
-        (np.uint, np.int64),  # Pandas converts int numbers always to np.int64
+        # Pandas always converts int numbers to np.int64
+        (np.uint, np.int64),
         (np.uint, np.int64),
         (np.uint8, np.int64),
         (np.uint16, np.int64),
@@ -263,7 +270,8 @@ def test_numpy_type():
         try:
             helper_type_validation(valid_type[0], valid_type[1])
         except:  # pylint: disable=bare-except
-            # No exceptions since it should cover all exceptions for debug purpose
+            # No exceptions since it should cover all exceptions for debug
+            # purpose
             # Rerun test with debug inforation
             print(f"Error on types: {valid_type}")
             helper_type_validation(valid_type[0], valid_type[1], True)
@@ -285,6 +293,7 @@ def test_numpy_type():
     PandasDtype.from_numpy_type(np.float)
     with pytest.raises(TypeError):
         PandasDtype.from_numpy_type(pd.DatetimeIndex)
+
 
 def test_datetime():
     """Test datetime types can be validated properly by schema.validate"""
@@ -371,18 +380,24 @@ def test_python_builtin_types():
         "float_col": Column(float),
         "str_col": Column(str),
         "bool_col": Column(bool),
+        "object_col": Column(object),
+        "complex_col": Column(complex),
     })
     df = pd.DataFrame({
         "int_col": [1, 2, 3],
         "float_col": [1., 2., 3.],
         "str_col": list("abc"),
         "bool_col": [True, False, True],
+        "object_col": [[1], 1, {"foo": "bar"}],
+        "complex_col": [complex(1), complex(2), complex(3)],
     })
     assert isinstance(schema(df), pd.DataFrame)
     assert schema.dtype["int_col"] == PandasDtype.Int.str_alias
     assert schema.dtype["float_col"] == PandasDtype.Float.str_alias
     assert schema.dtype["str_col"] == PandasDtype.String.str_alias
     assert schema.dtype["bool_col"] == PandasDtype.Bool.str_alias
+    assert schema.dtype["object_col"] == PandasDtype.Object.str_alias
+    assert schema.dtype["complex_col"] == PandasDtype.Complex.str_alias
 
 
 @pytest.mark.parametrize("python_type", [list, dict, set])
