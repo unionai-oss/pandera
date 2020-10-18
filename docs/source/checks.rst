@@ -126,7 +126,7 @@ function argument to:
 
 where the dict keys are the discrete keys in the ``groupby`` columns.
 
-In the example below we define a :py:class:`DataFrameSchema` with column checks
+In the example below we define a :class:`~pandera.schemas.DataFrameSchema` with column checks
 for ``height_in_feet`` using a single column, multiple columns, and a more
 complex groupby function that creates a new column ``age_less_than_15`` on the
 fly.

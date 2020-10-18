@@ -13,8 +13,8 @@ Schemas
    :template: class.rst
    :nosignatures:
 
-   DataFrameSchema
-   SeriesSchema
+   pandera.schemas.DataFrameSchema
+   pandera.schemas.SeriesSchema
 
 
 Schema Components
@@ -25,9 +25,9 @@ Schema Components
    :template: class.rst
    :nosignatures:
 
-   Column
-   Index
-   MultiIndex
+   pandera.schema_components.Column
+   pandera.schema_components.Index
+   pandera.schema_components.MultiIndex
 
 
 Schema Models
@@ -38,7 +38,7 @@ Schema Models
    :template: class.rst
    :nosignatures:
 
-   SchemaModel
+   pandera.model.SchemaModel
 
 **Model Components**
 
@@ -46,9 +46,9 @@ Schema Models
    :toctree: generated
    :nosignatures:
 
-   Field
-   check
-   dataframe_check
+   pandera.model_components.Field
+   pandera.model_components.check
+   pandera.model_components.dataframe_check
 
 **Typing**
 
@@ -57,9 +57,9 @@ Schema Models
    :template: typing_class.rst
    :nosignatures:
 
-   typing.DataFrame
-   typing.Series
-   typing.Index
+   pandera.typing.DataFrame
+   pandera.typing.Series
+   pandera.typing.Index
 
 **Base Classes**
 
@@ -68,8 +68,8 @@ Schema Models
    :template: model_component_class.rst
    :nosignatures:
 
-   model.BaseConfig
-   model_components.FieldInfo
+   pandera.model.BaseConfig
+   pandera.model_components.FieldInfo
 
 
 Checks
@@ -80,8 +80,8 @@ Checks
    :template: class.rst
    :nosignatures:
 
-   Check
-   Hypothesis
+   pandera.checks.Check
+   pandera.hypotheses.Hypothesis
 
 
 Pandas Data Types
@@ -92,7 +92,7 @@ Pandas Data Types
    :template: pandas_dtype_class.rst
    :nosignatures:
 
-   PandasDtype
+   pandera.dtypes.PandasDtype
 
 
 Decorators
@@ -102,9 +102,9 @@ Decorators
    :toctree: generated
    :nosignatures:
 
-   check_input
-   check_output
-   check_types
+   pandera.decorators.check_input
+   pandera.decorators.check_output
+   pandera.decorators.check_types
 
 
 Schema Inference
@@ -114,7 +114,7 @@ Schema Inference
    :toctree: generated
    :nosignatures:
 
-   infer_schema
+   pandera.schema_inference.infer_schema
 
 
 IO Utils
@@ -124,9 +124,9 @@ IO Utils
    :toctree: generated
    :nosignatures:
 
-   io.from_yaml
-   io.to_yaml
-   io.to_script
+   pandera.io.from_yaml
+   pandera.io.to_yaml
+   pandera.io.to_script
 
 
 Errors
@@ -137,7 +137,7 @@ Errors
    :template: class.rst
    :nosignatures:
 
-   errors.SchemaError
-   errors.SchemaErrors
-   errors.SchemaInitError
-   errors.SchemaDefinitionError
+   pandera.errors.SchemaError
+   pandera.errors.SchemaErrors
+   pandera.errors.SchemaInitError
+   pandera.errors.SchemaDefinitionError

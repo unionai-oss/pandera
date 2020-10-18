@@ -10,7 +10,7 @@ Lazy Validation
 By default, when you call the ``validate`` method on schema or schema component
 objects, a :py:class:`errors.SchemaError` is raised as soon as one of the
 assumptions specified in the schema is falsified. For example, for a
-:py:class:`DataFrameSchema` object, the following situations will raise an
+:class:`~pandera.schemas.DataFrameSchema` object, the following situations will raise an
 exception:
 
 * a column specified in the schema is not present in the dataframe.

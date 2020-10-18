@@ -7,7 +7,7 @@
 DataFrame Schemas
 =================
 
-The :py:class:`DataFrameSchema` class enables the specification of a schema
+The :class:`~pandera.schemas.DataFrameSchema` class enables the specification of a schema
 that verifies the columns and index of a pandas ``DataFrame`` object.
 
 The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.

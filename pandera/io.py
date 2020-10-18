@@ -175,7 +175,7 @@ def _deserialize_schema(serialized_schema):
 
 
 def from_yaml(yaml_schema):
-    """Create :py:class:`DataFrameSchema` from yaml file.
+    """Create :class:`~pandera.schemas.DataFrameSchema` from yaml file.
 
     :param yaml_schema: str or Path to yaml schema, or serialized yaml string.
     :returns: dataframe schema.
@@ -189,7 +189,7 @@ def from_yaml(yaml_schema):
 
 
 def to_yaml(dataframe_schema, stream=None):
-    """Write :py:class:`DataFrameSchema` to yaml file.
+    """Write :class:`~pandera.schemas.DataFrameSchema` to yaml file.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param stream: file stream to write to. If None, dumps to string.
@@ -294,7 +294,7 @@ def _format_script(script):
 
 
 def to_script(dataframe_schema, path_or_buf=None):
-    """Write :py:class:`DataFrameSchema` to a python script.
+    """Write :class:`~pandera.schemas.DataFrameSchema` to a python script.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param path_or_buf: filepath or buf stream to write to. If None, outputs

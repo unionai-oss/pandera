@@ -568,7 +568,7 @@ class DataFrameSchema():
         """Create copy of a DataFrameSchema with updated column properties.
 
         :param column_name:
-        :param kwargs: key-word arguments supplied to :py:class:`Column`
+        :param kwargs: key-word arguments supplied to :class:`~pandera.schema_components.Column`
         :returns: a new DataFrameSchema with updated column
         """
         if "name" in kwargs:

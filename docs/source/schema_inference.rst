@@ -56,7 +56,7 @@ These inferred schemas are **rough drafts** that shouldn't be used for
 validation without modification. You can modify the inferred schema to
 obtain the schema definition that you're satisfied with.
 
-For :py:class:`DataFrameSchema` objects, the following methods create
+For :class:`~pandera.schemas.DataFrameSchema` objects, the following methods create
 modified copies of the schema:
 
 * :py:func:`DataFrameSchema.add_columns`

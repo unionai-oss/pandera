@@ -67,7 +67,7 @@ def _extract_config_options(config: Type) -> Dict[str, Any]:
 
 
 class SchemaModel:
-    """Definition of a DataFrameSchema.
+    """Definition of a :class:`~pandera.DataFrameSchema`.
 
     *new in 0.5.0*
 
@@ -86,7 +86,7 @@ class SchemaModel:
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
-        """Create DataFrameSchema from the SchemaModel."""
+        """Create :class:`~pandera.DataFrameSchema` from the :class:`.SchemaModel`."""
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
