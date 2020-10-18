@@ -168,7 +168,7 @@ Config
 
 The ``Config`` class can be specified within a ``SchemaModel`` subclass
 definition, where you can set schema-wide options. The full set of options
-can be found in the :py:class:`model.BaseConfig` class.
+can be found in the :class:`~pandera.model.BaseConfig` class.
 
 .. testcode:: dataframe_schema_model
 
