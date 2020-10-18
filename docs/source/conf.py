@@ -32,6 +32,7 @@ author = "Niels Bantilan, Nigel Markey"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
     "sphinx.ext.viewcode",
@@ -102,6 +103,12 @@ autosummary_generate = ["API_reference.rst"]
 autosummary_filename_map = {
     "pandera.Check": "pandera.Check",
     "pandera.check": "pandera.check_decorator",
+}
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
 }
 
 
