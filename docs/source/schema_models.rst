@@ -12,19 +12,20 @@ Schema Models (new)
 ``pandera`` provides a class-based API that's heavily inspired by
 `pydantic <https://pydantic-docs.helpmanual.io/>`_. In contrast to the
 :ref:`object-based API<DataFrameSchemas>`, you can define schema models in
-much the same way you define ``pydantic`` models. You can define schema
-models that can be used with the ``pandera.typing`` module to annotate
-functions via the `typing <https://docs.python.org/3/library/typing.html>`_
-syntax.
+much the same way you'd define ``pydantic`` models. 
+
+`Schema Models` are annotated with the :mod:`pandera.typing` module using the standard 
+`typing <https://docs.python.org/3/library/typing.html>`_ syntax. Models can be 
+explictly converted to a :class:`~pandera.schemas.DataFrameSchema` or used to validate a
+:class:`~pandas.DataFrame` directly. 
 
 .. note::
 
    Due to current limitations in the pandas library (see discussion
    `here <https://github.com/pandera-dev/pandera/issues/253#issuecomment-665338337>`_),
-   type annotations that use ``pandera`` schema models are only used for
-   **run-time** validation and **cannot** be statically analyzed with packages
-   like `mypy <http://mypy-lang.org/>`_. See the discussion
-   `here <https://github.com/pandera-dev/pandera/issues/253#issuecomment-665338337>`_
+   ``pandera`` annotations are only used for **run-time** validation and **cannot** be 
+   leveraged by static-type checkers like `mypy <http://mypy-lang.org/>`_. See the 
+   discussion `here <https://github.com/pandera-dev/pandera/issues/253#issuecomment-665338337>`_
    for more details.
 
 
@@ -38,17 +39,17 @@ Basic Usage
     from pandera.typing import Index, DataFrame, Series
 
 
-    class Schema(pa.SchemaModel):
-
+    class InputSchema(pa.SchemaModel):
         year: Series[int] = pa.Field(gt=2000, coerce=True)
         month: Series[int] = pa.Field(ge=1, le=12, coerce=True)
         day: Series[int] = pa.Field(ge=0, le=365, coerce=True)
 
+    class OutputSchema(InputSchema):
+        revenue: Series[float]
 
     @pa.check_types
-    def transform(df: DataFrame[Schema]):
-        ...  # transform dataframe
-        return df
+    def transform(df: DataFrame[InputSchema]) -> DataFrame[OutputSchema]:
+        return df.assign(revenue=100.0)
 
 
     df = pd.DataFrame({
@@ -80,22 +81,22 @@ Basic Usage
 
 As you can see in the example above, you can define a schema by sub-classing
 :class:`~pandera.model.SchemaModel` and defining column/index fields as class attributes.
-The :func:`~pandera.decorators.check_types` decorator is required to perform validation
-of the dataframe at run-time.
+The :func:`~pandera.decorators.check_types` decorator is required to perform validation of the dataframe at 
+run-time.
 
-Note that :func:`~pandera.model_components.Field` s apply to both :class:`~pandera.schema_components.Column` and
-:class:`~pandera.schema_components.Index` objects, exposing the built-in :class:`~pandera.checks.Check` s via
-key-word arguments.
+Note that :class:`~pandera.model_components.Field` s apply to both 
+:class:`~pandera.schema_components.Column` and :class:`~pandera.schema_components.Index` 
+objects, exposing the built-in :class:`Check` s via key-word arguments.
 
 Converting to DataFrameSchema
 -----------------------------
 
-You can easily convert a :class:`~pandera.model.SchemaModel` class into a
+You can easily convert a :class:`~pandera.model.SchemaModel` class into a 
 :class:`~pandera.schemas.DataFrameSchema`:
 
 .. testcode:: dataframe_schema_model
 
-    print(Schema.to_schema())
+    print(InputSchema.to_schema())
 
 .. testoutput:: dataframe_schema_model
 
@@ -112,11 +113,11 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
         strict=False
     )
 
-Or use the :func:`~pandera.model.SchemaModel.validate` method to validate dataframes:
+Or use the :meth:`~pandera.model.SchemaModel.validate` method to validate dataframes:
 
 .. testcode:: dataframe_schema_model
 
-    print(Schema.validate(df))
+    print(InputSchema.validate(df))
 
 .. testoutput:: dataframe_schema_model
 
@@ -125,6 +126,65 @@ Or use the :func:`~pandera.model.SchemaModel.validate` method to validate datafr
     1  2002      6  156
     2  2003     12  365
 
+Supported dtypes
+----------------
+
+Any dtypes supported by ``pandera`` can be used as type parameters for 
+:class:`pandera.typing.Series` and :class:`pandera.typing.Index`.
+
+There are, however, a couple of gotchas:
+
+* The enumeration :class:`pandera.dtypes.PandasDtype` is not directly supported because 
+  the type parameter of a :class:`~typing.Generic` cannot be an enumeration [#dtypes]_. 
+  Instead, you can use the :mod:`pandera.typing` counterparts:
+  :data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
+
+:green:`✔` Good: 
+
+.. code-block::
+    
+    import pandera as pa
+    from pandera.typing import Series, String
+
+    class Schema(pa.SchemaModel):
+        a: Series[String]
+
+:red:`✘` Bad:
+
+.. testcode:: dataframe_schema_model
+    
+    class Schema(pa.SchemaModel):
+        a: Series[pa.PandasDtype.String]
+
+.. testoutput:: dataframe_schema_model
+
+    Traceback (most recent call last):
+    ...
+    AttributeError: type object 'Generic' has no attribute 'value'
+
+* You must give a **type**, not an **instance**.
+
+:green:`✔` Good:
+
+.. code-block::
+    
+    import pandas as pd
+
+    class Schema(pa.SchemaModel):
+        a: Series[pd.StringDtype]
+
+:red:`✘` Bad:
+
+.. testcode:: dataframe_schema_model
+    
+    class Schema(pa.SchemaModel):
+        a: Series[pd.StringDtype()]
+
+.. testoutput:: dataframe_schema_model
+
+    Traceback (most recent call last):
+    ...
+    TypeError: Parameters to generic types must be types. Got StringDtype.
 
 Schema Inheritance
 ------------------
@@ -162,13 +222,14 @@ You can also use inheritance to build schemas on top of a base schema.
     2  2001       50000
     3  2002       45000
 
+.. _schema_model_config:
 
 Config
 ------
 
-The ``Config`` class can be specified within a ``SchemaModel`` subclass
-definition, where you can set schema-wide options. The full set of options
-can be found in the :class:`~pandera.model.BaseConfig` class.
+Schema-wide options can be controlled via the ``Config`` class on the ``SchemaModel`` 
+subclass. The full set of options can be found in the :class:`~pandera.model.BaseConfig` 
+class. 
 
 .. testcode:: dataframe_schema_model
 
@@ -184,11 +245,14 @@ can be found in the :class:`~pandera.model.BaseConfig` class.
             coerce = True
             foo = "bar"  # not a valid option, ignored
 
+It is not required for the ``Config`` to subclass :class:`~pandera.model.BaseConfig` but
+it **must** be named '**Config**'.
 
 MultiIndex
 ----------
 
-The MultiIndex capabilities are also supported with the class-based API:
+The :class:`~pandera.schema_components.MultiIndex` capabilities are also supported with 
+the class-based API:
 
 .. testcode:: dataframe_schema_model
 
@@ -197,8 +261,8 @@ The MultiIndex capabilities are also supported with the class-based API:
     
     class MultiIndexSchema(pa.SchemaModel):
         
-        year: Index[int]
-        month: Index[int]
+        year: Index[int] = pa.Field(gt=2000, coerce=True)
+        month: Index[int] = pa.Field(ge=1, le=12, coerce=True)
         passengers: Series[int]
     
         class Config:
@@ -206,8 +270,9 @@ The MultiIndex capabilities are also supported with the class-based API:
             multiindex_name = "time"
             multiindex_strict = True
             multiindex_coerce = True
-            
-    print(MultiIndexSchema.to_schema().index)
+    
+    index = MultiIndexSchema.to_schema().index
+    print(index)
 
 .. testoutput:: dataframe_schema_model
 
@@ -223,16 +288,36 @@ The MultiIndex capabilities are also supported with the class-based API:
         strict=True
     )
 
+.. testcode:: dataframe_schema_model
+
+    from pprint import pprint
+
+    pprint({name: col.checks for name, col in index.columns.items()})
+
+.. testoutput:: dataframe_schema_model
+
+    {'month': [<Check greater_than_or_equal_to: greater_than_or_equal_to(1)>,
+            <Check less_than_or_equal_to: less_than_or_equal_to(12)>],
+    'year': [<Check greater_than: greater_than(2000)>]}
+
+Multiple :class:`~pandera.typing.Index` annotations are automatically converted into a
+:class:`~pandera.schema_components.MultiIndex`. MultiIndex options are given in the
+:ref:`schema_model_config`.
+
 .. _schema_model_custom_check:
 
 Custom Checks
 -------------
 
-Unlike the object-based API, custom checks can be specified as class methods,
-where the :func:`~pandera.model_components.check` decorator automatically converts the method into
-a ``classmethod``.
+Unlike the object-based API, custom checks can be specified as class methods.
+
+Column/Index checks
+^^^^^^^^^^^^^^^^^^^
 
 .. testcode:: dataframe_schema_model
+
+    import pandera as pa
+    from pandera.typing import Index, Series
 
     class CustomCheckSchema(pa.SchemaModel):
 
@@ -252,8 +337,17 @@ a ``classmethod``.
         def check_idx(cls, idx: Index[int]) -> Series[bool]:
             return idx.str.contains("dog")
 
-Note the you can supply the key-word arguments of the :class:`~pandera.checks.Check` class
-initializer to get the the flexibility of :ref:`groupby checks <column_check_groups>`
+Note that:
+
+* You can supply the key-word arguments of the :class:`~pandera.checks.Check` class
+  initializer to get the flexibility of :ref:`groupby checks <column_check_groups>`
+* Similarly to ``pydantic``, :func:`classmethod` decorator is added behind the scenes 
+  if omitted.
+* You still may need to add the `@classmethod` decorator **after** the 
+  :func:`~pandera.model_components.check` decorator if your static-type checker or 
+  linter complains.  
+* Since ``checks`` are class methods, the first argument value they receive is a 
+  SchemaModel subclass, not an instance of a model.
 
 .. testcode:: dataframe_schema_model
 
@@ -288,10 +382,14 @@ DataFrame Checks
 ^^^^^^^^^^^^^^^^
 
 You can also define dataframe-level checks, similar to the
-:ref:`object-based API <wide_checks>`, using the :func:`~pandera.model_components.dataframe_check`
-decorator:
+:ref:`object-based API <wide_checks>`, using the 
+:func:`~pandera.schema_components.dataframe_check` decorator:
 
 .. testcode:: dataframe_schema_model
+
+    import pandas as pd
+    import pandera as pa
+    from pandera.typing import Index, Series
 
     class DataFrameCheckSchema(pa.SchemaModel):
 
@@ -310,3 +408,63 @@ decorator:
     })
 
     DataFrameCheckSchema.validate(df)
+
+Inheritance
+^^^^^^^^^^^
+
+The custom checks are inherited and therefore can be overwritten by the subclass.
+
+.. testcode:: dataframe_schema_model
+
+    import pandas as pd
+    import pandera as pa
+    from pandera.typing import Index, Series
+
+    class Base(pa.SchemaModel):
+
+        a: Series[int] = pa.Field(coerce=True)
+
+        @pa.check("a", name="foobar") 
+        def check_a(cls, a: Series[int]) -> Series[bool]:
+            return a < 100
+
+
+    class Child(pa.SchemaModel):
+
+        a: Series[int] = pa.Field(coerce=False)
+
+        @pa.check("a", name="foobar") 
+        def check_a(cls, a: Series[int]) -> Series[bool]:
+            return a > 100
+
+    is_a_coerce = Child.to_schema().columns["a"].coerce
+    print(f"coerce: {is_a_coerce}")
+
+.. testoutput:: dataframe_schema_model
+
+    coerce: False
+
+.. testcode:: dataframe_schema_model
+
+    df = pd.DataFrame({"a": [1, 2, 3]})  
+    print(Child.validate(df))
+
+.. testoutput:: dataframe_schema_model
+
+    Traceback (most recent call last):
+    ...
+    pandera.errors.SchemaError: <Schema Column: 'a' type=<class 'int'>> failed element-wise validator 0:
+    <Check foobar>
+    failure cases:
+        index  failure_case
+    0      0             1
+    1      1             2
+    2      2             3
+
+
+Footnotes
+---------
+
+.. [#dtypes] It is actually possible to use a PandasDtype by encasing it in a 
+    :class:`typing.Literal` like ``Series[Literal[PandasDtype.Category]]``. 
+    :mod:`pandera.typing` defines aliases to reduce boilerplate.

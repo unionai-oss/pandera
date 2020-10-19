@@ -54,14 +54,12 @@ Schema Models
 
 .. autosummary::
    :toctree: generated
-   :template: typing_class.rst
+   :template: typing_module.rst
    :nosignatures:
 
-   pandera.typing.DataFrame
-   pandera.typing.Series
-   pandera.typing.Index
+   pandera.typing
 
-**Base Classes**
+**Config**
 
 .. autosummary::
    :toctree: generated
@@ -69,7 +67,6 @@ Schema Models
    :nosignatures:
 
    pandera.model.BaseConfig
-   pandera.model_components.FieldInfo
 
 
 Checks

@@ -119,11 +119,16 @@ def test_multiindex():
     """Test that multiple Index annotations create a MultiIndex."""
 
     class Schema(pa.SchemaModel):
-        a: Index[int]
+        a: Index[int] = pa.Field(gt=0)
         b: Index[str]
 
     expected = pa.DataFrameSchema(
-        index=pa.MultiIndex([pa.Index(int, name="a"), pa.Index(str, name="b")])
+        index=pa.MultiIndex(
+            [
+                pa.Index(int, name="a", checks=pa.Check.gt(0)),
+                pa.Index(str, name="b"),
+            ]
+        )
     )
     assert expected == Schema.to_schema()
 

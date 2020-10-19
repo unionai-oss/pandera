@@ -99,6 +99,11 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+rst_prolog = """
+.. role:: red
+.. role:: green
+"""
+
 autosummary_generate = ["API_reference.rst"]
 autosummary_filename_map = {
     "pandera.Check": "pandera.Check",
