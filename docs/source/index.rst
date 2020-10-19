@@ -100,7 +100,7 @@ pandas, or strings representing the
         "str_column2": pa.Column("object"),
     })
 
-For more details on data types, see :py:class:`pandera.PandasDtype`
+For more details on data types, see :class:`~pandera.dtypes.PandasDtype`
 
 
 Informative Errors

@@ -8,7 +8,7 @@ Decorators for Pipeline Integration
 ===================================
 
 If you have an existing data pipeline that uses pandas data structures,
-you can use the :py:func:`check_input` and :py:func:`check_output` decorators
+you can use the :func:`~pandera.decorators.check_input` and :func:`~pandera.decorators.check_output` decorators
 to easily check function arguments or returned variables from existing
 functions.
 

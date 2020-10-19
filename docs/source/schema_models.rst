@@ -79,19 +79,19 @@ Basic Usage
 
 
 As you can see in the example above, you can define a schema by sub-classing
-:py:class:`SchemaModel` and defining column/index fields as class attributes.
-The :py:func:`check_types` decorator is required to perform validation
+:class:`~pandera.model.SchemaModel` and defining column/index fields as class attributes.
+The :func:`~pandera.decorators.check_types` decorator is required to perform validation
 of the dataframe at run-time.
 
-Note that :py:class:`Field` s apply to both :py:class:`Column` and
-:py:class:`Index` objects, exposing the built-in :py:class:`Check` s via
+Note that :func:`~pandera.model_components.Field` s apply to both :class:`~pandera.schema_components.Column` and
+:class:`~pandera.schema_components.Index` objects, exposing the built-in :class:`~pandera.checks.Check` s via
 key-word arguments.
 
 Converting to DataFrameSchema
 -----------------------------
 
-You can easily convert a :py:class:`SchemaModel` class into a
-:py:class:`DataFrameSchema`:
+You can easily convert a :class:`~pandera.model.SchemaModel` class into a
+:class:`~pandera.schemas.DataFrameSchema`:
 
 .. testcode:: dataframe_schema_model
 
@@ -112,7 +112,7 @@ You can easily convert a :py:class:`SchemaModel` class into a
         strict=False
     )
 
-Or use the :py:func:`SchemaModel.validate` method to validate dataframes:
+Or use the :func:`~pandera.model.SchemaModel.validate` method to validate dataframes:
 
 .. testcode:: dataframe_schema_model
 
@@ -229,7 +229,7 @@ Custom Checks
 -------------
 
 Unlike the object-based API, custom checks can be specified as class methods,
-where the :py:func:`check` decorator automatically converts the method into
+where the :func:`~pandera.model_components.check` decorator automatically converts the method into
 a ``classmethod``.
 
 .. testcode:: dataframe_schema_model
@@ -252,7 +252,7 @@ a ``classmethod``.
         def check_idx(cls, idx: Index[int]) -> Series[bool]:
             return idx.str.contains("dog")
 
-Note the you can supply the key-word arguments of the :py:class:`Check` class
+Note the you can supply the key-word arguments of the :class:`~pandera.checks.Check` class
 initializer to get the the flexibility of :ref:`groupby checks <column_check_groups>`
 
 .. testcode:: dataframe_schema_model
@@ -288,7 +288,7 @@ DataFrame Checks
 ^^^^^^^^^^^^^^^^
 
 You can also define dataframe-level checks, similar to the
-:ref:`object-based API <wide_checks>`, using the :py:func:`dataframe_check`
+:ref:`object-based API <wide_checks>`, using the :func:`~pandera.model_components.dataframe_check`
 decorator:
 
 .. testcode:: dataframe_schema_model

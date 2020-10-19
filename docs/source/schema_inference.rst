@@ -15,7 +15,7 @@ With simple use cases, writing a schema definition manually is pretty
 straight-forward with pandera. However, it can get tedious to do this with
 dataframes that have many columns of various data types.
 
-To help you handle these cases, the :py:func:`infer_schema` function enables
+To help you handle these cases, the :func:`~pandera.schema_inference.infer_schema` function enables
 you to quickly infer a draft schema from a pandas dataframe or series. Below
 is a simple example:
 
@@ -59,13 +59,13 @@ obtain the schema definition that you're satisfied with.
 For :class:`~pandera.schemas.DataFrameSchema` objects, the following methods create
 modified copies of the schema:
 
-* :py:func:`DataFrameSchema.add_columns`
-* :py:func:`DataFrameSchema.remove_columns`
-* :py:func:`DataFrameSchema.update_column`
+* :func:`~pandera.schemas.DataFrameSchema.add_columns`
+* :func:`~pandera.schemas.DataFrameSchema.remove_columns`
+* :func:`~pandera.schemas.DataFrameSchema.update_column`
 
-For :py:class:`SeriesSchema` objects:
+For :class:`~pandera.schemas.SeriesSchema` objects:
 
-* :py:func:`SeriesSchema.set_checks`
+* :func:`~pandera.schemas.SeriesSchema.set_checks`
 
 The section below describes two workflows for persisting and modifying an
 inferred schema.
@@ -78,7 +78,7 @@ There are two ways of persisting schemas, inferred or otherwise.
 Write to a Python script
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can also write your schema to a python script with :py:func:`io.to_script`:
+You can also write your schema to a python script with :func:`~pandera.io.to_script`:
 
 .. testcode:: infer_dataframe_schema
    :skipif: SKIP
@@ -163,9 +163,9 @@ validate data once you are satisfied with your schema definition.
 Write to YAML
 ~~~~~~~~~~~~~
 
-You can also write the schema object to a yaml file with :py:func:`io.to_yaml`,
-and you can then read it into memory with :py:func:`io.from_yaml`. The
-:py:func:`DataFrameSchema.to_yaml` and :py:func:`DataFrameSchema.from_yaml`
+You can also write the schema object to a yaml file with :func:`~pandera.io.to_yaml`,
+and you can then read it into memory with :func:`~pandera.io.from_yaml`. The
+:func:`~pandera.schemas.DataFrameSchema.to_yaml` and :func:`~pandera.schemas.DataFrameSchema.from_yaml`
 is a convenience method for this functionality.
 
 .. testcode:: infer_dataframe_schema
@@ -223,9 +223,9 @@ is a convenience method for this functionality.
 
 You can edit this yaml file by specifying column names under the ``column``
 key. The respective values map onto key-word arguments in the
-:py:class:`Column` class.
+:class:`~pandera.schema_components.Column` class.
 
 .. note::
 
-   Currently, only built-in :py:class:`Check` methods are supported under the
+   Currently, only built-in :class:`~pandera.checks.Check` methods are supported under the
    ``checks`` key.

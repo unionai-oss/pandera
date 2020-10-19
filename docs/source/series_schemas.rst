@@ -7,7 +7,7 @@
 Series Schemas
 ==============
 
-The :py:class:`SeriesSchema` class allows for the validation of pandas
+The :class:`~pandera.schemas.SeriesSchema` class allows for the validation of pandas
 ``Series`` objects, and are very similar to :ref:`columns<column>` and
 :ref:`indexes<index>` described in :ref:`DataFrameSchemas<DataFrameSchemas>`.
 
