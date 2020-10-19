@@ -152,12 +152,14 @@ There are, however, a couple of gotchas:
 :red:`✘` Bad:
 
 .. testcode:: dataframe_schema_model
-    
+    :skipif: PY36  
+
     class Schema(pa.SchemaModel):
         a: Series[pa.PandasDtype.String]
 
 .. testoutput:: dataframe_schema_model
-
+    :skipif: PY36  
+    
     Traceback (most recent call last):
     ...
     AttributeError: type object 'Generic' has no attribute 'value'

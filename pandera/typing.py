@@ -84,6 +84,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
         def __class_getitem__(cls, item):
             pass
+
+
 else:
     # pylint:disable=too-few-public-methods
     class DataFrame(pd.DataFrame, Generic[Schema]):

@@ -46,6 +46,7 @@ pd.options.display.max_columns = None # For Travis on macOS
 pd.options.display.max_rows = None # For Travis on macOS
 
 SKIP = sys.version_info < (3, 6)
+PY36 = sys.version_info < (3, 7)
 """
 
 doctest_default_flags = (
