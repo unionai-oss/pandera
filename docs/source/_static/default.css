@@ -17,6 +17,16 @@ a {
 
 .wy-nav-side {
   background-color: #414552;
+  width: 375px;
+}
+
+/* make sure sidebar is wide enough */
+.wy-side-scroll, .wy-menu-vertical, .wy-side-nav-search {
+  width: 375px;
+}
+
+.wy-nav-content {
+  margin-left: 75px;
 }
 
 .wy-side-nav-search {
@@ -41,4 +51,21 @@ a {
 
 .wy-menu-vertical li:hover > a span.toctree-expand {
   color: #dedede;
+}
+
+@media screen and (max-width: 768px) {
+  .wy-nav-side {
+    left: -375px;
+  }
+  .wy-nav-content {
+    margin-left: 0px;
+  }
+}
+
+.red {
+  color: red;
+}
+
+.green {
+  color: green;
 }

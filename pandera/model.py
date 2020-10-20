@@ -40,14 +40,21 @@ MODEL_CACHE: Dict[Type["SchemaModel"], DataFrameSchema] = {}
 
 
 class BaseConfig:  # pylint:disable=R0903
-    """Define DataFrameSchema-wide options."""
+    """Define DataFrameSchema-wide options.
 
-    name: Optional[str] = None
-    coerce: bool = False
-    strict: bool = False
+    *new in 0.5.0*
+    """
+
+    name: Optional[str] = None  #: name of schema
+    coerce: bool = False  #: coerce types of all schema components
+    strict: bool = False  #: make sure all specified columns are in dataframe
+    multiindex_name: Optional[str] = None  #: name of multiindex
+
+    #: coerce types of all MultiIndex components
     multiindex_coerce: bool = False
+
+    #: make sure all specified columns are in MultiIndex
     multiindex_strict: bool = False
-    multiindex_name: Optional[str] = None
 
 
 _config_options = [attr for attr in vars(BaseConfig) if not attr.startswith("_")]
@@ -60,7 +67,12 @@ def _extract_config_options(config: Type) -> Dict[str, Any]:
 
 
 class SchemaModel:
-    """Definition of a DataFrameSchema."""
+    """Definition of a :class:`~pandera.DataFrameSchema`.
+
+    *new in 0.5.0*
+
+    See the :ref:`User Guide <schema_models>` for more.
+    """
 
     Config: Type[BaseConfig] = BaseConfig
     __schema__: Optional[DataFrameSchema] = None
@@ -74,7 +86,7 @@ class SchemaModel:
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
-        """Create DataFrameSchema from the SchemaModel."""
+        """Create :class:`~pandera.DataFrameSchema` from the :class:`.SchemaModel`."""
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
@@ -122,7 +134,9 @@ class SchemaModel:
         lazy: bool = False,
     ) -> pd.DataFrame:
         """%(validate_doc)s"""
-        cls.to_schema().validate(check_obj, head, tail, sample, random_state, lazy)
+        return cls.to_schema().validate(
+            check_obj, head, tail, sample, random_state, lazy
+        )
 
     @classmethod
     def _build_columns_index(

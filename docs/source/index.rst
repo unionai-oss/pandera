@@ -21,6 +21,8 @@ production-critical data pipelines or reproducible research settings. With
    :ref:`hypothesis testing<hypothesis>`.
 #. Seamlessly integrate with existing data analysis/processing pipelines
    via :ref:`function decorators<decorators>`.
+#. Define schema models with a :ref:`class-based API<schema_models>` with
+   pydantic-style syntax and validate dataframes using the typing syntax.
 
 
 .. _installation:
@@ -110,7 +112,7 @@ pandas, or strings representing the
         "str_column2": pa.Column("object"),
     })
 
-For more details on data types, see :py:class:`pandera.PandasDtype`
+For more details on data types, see :class:`~pandera.dtypes.PandasDtype`
 
 
 Informative Errors
@@ -208,6 +210,7 @@ Submit issues, feature requests or bugfixes on
    hypothesis
    decorators
    schema_inference
+   schema_models
    lazy_validation
    API_reference
 

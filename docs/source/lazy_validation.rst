@@ -8,9 +8,9 @@ Lazy Validation
 *New in version 0.4.0*
 
 By default, when you call the ``validate`` method on schema or schema component
-objects, a :py:class:`errors.SchemaError` is raised as soon as one of the
+objects, a :class:`~pandera.errors.SchemaError` is raised as soon as one of the
 assumptions specified in the schema is falsified. For example, for a
-:py:class:`DataFrameSchema` object, the following situations will raise an
+:class:`~pandera.schemas.DataFrameSchema` object, the following situations will raise an
 exception:
 
 * a column specified in the schema is not present in the dataframe.
@@ -18,7 +18,7 @@ exception:
 * the ``pandas_dtype`` does not match.
 * if ``coerce=True``, the dataframe column cannot be coerced into the specified
   ``pandas_dtype``.
-* the :py:class:`Check` specified in one of the columns returns ``False`` or
+* the :class:`~pandera.checks.Check` specified in one of the columns returns ``False`` or
   a boolean series containing at least one ``False`` value.
 
 
@@ -109,7 +109,7 @@ of all schemas and schema components gives you the option of doing just this:
         err.data  # invalid dataframe
     ```
 
-As you can see from the output above, a :py:class:`errors.SchemaErrors`
+As you can see from the output above, a :class:`~pandera.errors.SchemaErrors`
 exception is raised with a summary of the error counts and failure cases
 caught by the schema. You can also see from the **Usage Tip** that you can
 catch these errors and inspect the failure cases in a more granular form:

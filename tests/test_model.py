@@ -119,13 +119,34 @@ def test_multiindex():
     """Test that multiple Index annotations create a MultiIndex."""
 
     class Schema(pa.SchemaModel):
-        a: Index[int]
+        a: Index[int] = pa.Field(gt=0)
         b: Index[str]
 
     expected = pa.DataFrameSchema(
-        index=pa.MultiIndex([pa.Index(int, name="a"), pa.Index(str, name="b")])
+        index=pa.MultiIndex(
+            [
+                pa.Index(int, name="a", checks=pa.Check.gt(0)),
+                pa.Index(str, name="b"),
+            ]
+        )
     )
     assert expected == Schema.to_schema()
+
+
+def test_check_validate_method():
+    """Test validate method on valid data."""
+
+    class Schema(pa.SchemaModel):
+        a: Series[int]
+
+        @pa.check("a")
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            # pylint:disable=no-self-argument
+            assert cls is Schema
+            return series < 100
+
+    df = pd.DataFrame({"a": [99]})
+    assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
 
 
 def test_check_single_column():

@@ -7,7 +7,7 @@
 DataFrame Schemas
 =================
 
-The :py:class:`DataFrameSchema` class enables the specification of a schema
+The :class:`~pandera.schemas.DataFrameSchema` class enables the specification of a schema
 that verifies the columns and index of a pandas ``DataFrame`` object.
 
 The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
@@ -43,7 +43,7 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 Column Validation
 -----------------
 
-A :py:class:`Column` must specify the properties of a column in a dataframe
+A :class:`~pandera.schema_components.Column` must specify the properties of a column in a dataframe
 object. It can be optionally verified for its data type, `null values`_ or
 duplicate values. The column can be coerced_ into the specified type, and the
 required_ parameter allows control over whether or not the column is allowed to
@@ -94,7 +94,7 @@ nullable. In order to accept null values, you need to explicitly specify
     `pandas prior to version 0.24.0 <https://pandas.pydata.org/pandas-docs/stable/user_guide/integer_na.html>`_,
     integer arrays cannot contain ``NaN`` values, so this schema will return
     a DataFrame where ``column1`` is of type ``float``.
-    :py:class:`PandasDtype` does not currently support the nullable integer
+    :class:`~pandera.dtypes.PandasDtype` does not currently support the nullable integer
     array type, but you can still use the "Int64" string alias for nullable
     integer arrays
 
@@ -402,7 +402,7 @@ schema, specify ``strict=True``:
 Index Validation
 ----------------
 
-You can also specify an :py:class:`Index` in the :py:class:`DataFrameSchema`.
+You can also specify an :class:`~pandera.schema_components.Index` in the :class:`~pandera.schemas.DataFrameSchema`.
 
 .. testcode:: index_validation
 
@@ -499,7 +499,7 @@ tuples for each level in the index hierarchy:
 MultiIndex Indexes
 ~~~~~~~~~~~~~~~~~~
 
-The :py:class:`pandera.MultiIndex` class allows you to define multi-index
+The :class:`~pandera.schema_components.MultiIndex` class allows you to define multi-index
 indexes by composing a list of ``pandera.Index`` objects.
 
 .. testcode:: multiindex_indexes
@@ -587,8 +587,8 @@ DataFrameSchema Transformations
 -------------------------------
 
 Pandera supports transforming a schema using
-:py:meth:`DataFrameSchema.add_columns` and
-:py:meth:`DataFrameSchema.remove_columns`.
+:func:`~pandera.schemas.DataFrameSchema.add_columns` and
+:func:`~pandera.schemas.DataFrameSchema.remove_columns`.
 
 Once you've defined a schema, you can add columns to the schema and to create
 a new schema object with the additional columns. This is useful for re-using
