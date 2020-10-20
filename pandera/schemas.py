@@ -817,6 +817,11 @@ class SeriesSchemaBase():
                 self.name, self.dtype
             )
             raise TypeError(msg) from exc
+        except ValueError as exc:
+            msg = "Error while coercing '%s' to type %s: %s" % (
+                self.name, self.dtype, exc
+            )
+            raise errors.SchemaError(self, None, msg) from exc
 
     @property
     def _allow_groupby(self):

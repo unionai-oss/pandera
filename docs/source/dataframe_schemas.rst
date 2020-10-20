@@ -153,7 +153,7 @@ checks.
 
     Traceback (most recent call last):
     ...
-    ValueError: cannot convert float NaN to integer
+    pandera.errors.SchemaError: Error while coercing 'column1' to type int64: Cannot convert non-finite values (NA or inf) to integer
 
 
 The best way to handle this case is to simply specify the column as a

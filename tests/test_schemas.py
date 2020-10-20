@@ -300,7 +300,10 @@ def test_coerce_dtype_in_dataframe():
         # make sure that correct error is raised when null values are present
         # in a float column that's coerced to an int
         schema = DataFrameSchema({"column4": Column(Int, coerce=True)})
-        with pytest.raises(ValueError):
+        with pytest.raises(
+                errors.SchemaError,
+                match=r"^Error while coercing .* to type u{0,1}int[0-9]{1,2}: "
+                r"Cannot convert non-finite values \(NA or inf\) to integer"):
             schema.validate(df)
 
 
