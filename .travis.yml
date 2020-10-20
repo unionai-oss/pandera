@@ -17,9 +17,12 @@ os:
   - windows
 
 env:
-  - PYTHON_VERSION=3.6
-  - PYTHON_VERSION=3.7
-  - PYTHON_VERSION=3.8
+  - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_latest.yml
+  - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_latest.yml
+  - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_latest.yml
+  - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_0_25_3.yml
+  - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_0_25_3.yml
+  - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_0_25_3.yml
 
 before_install:
   - |
@@ -70,7 +73,7 @@ install:
   # Setup Conda Envs
   - |
     conda create -n pandera python=$PYTHON_VERSION || exit 1
-    conda env update -n pandera -f environment.yml
+    conda env update -n pandera -f $ENV_FILE
     conda create -n pandera-core python=$PYTHON_VERSION pytest
     conda list
   - source activate pandera && pip install .[all]
