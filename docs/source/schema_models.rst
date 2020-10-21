@@ -150,13 +150,13 @@ however, a couple of gotchas:
 :red:`✘` Bad:
 
 .. testcode:: dataframe_schema_model
-    :skipif: PY36  
+    :skipif: PANDAS_PRE_V1
 
     class Schema(pa.SchemaModel):
         a: Series[pa.PandasDtype.String]
 
 .. testoutput:: dataframe_schema_model
-    :skipif: PY36  
+    :skipif: PANDAS_PRE_V1
     
     Traceback (most recent call last):
     ...
