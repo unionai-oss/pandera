@@ -39,7 +39,6 @@ readable and robust.
 
 The official documentation is hosted on ReadTheDocs: https://pandera.readthedocs.io
 
-.. installation:
 
 ## Install
 
