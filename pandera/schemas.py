@@ -781,8 +781,7 @@ class SeriesSchemaBase():
         elif isinstance(self._pandas_dtype, str):
             dtype = PandasDtype.from_str_alias(  # type: ignore
                 self._pandas_dtype).str_alias
-        elif self._pandas_dtype in dtypes.NUMPY_TYPES or \
-                self._pandas_dtype in dtypes.NUMPY_TYPES_ALIAS:
+        elif self._pandas_dtype in dtypes.NUMPY_TYPES:
             dtype = PandasDtype.from_numpy_type(self._pandas_dtype).str_alias
         elif isinstance(self._pandas_dtype, type):
             dtype = PandasDtype.from_python_type(self._pandas_dtype).str_alias

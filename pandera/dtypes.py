@@ -18,8 +18,10 @@ NUMPY_NONNULLABLE_INT_DTYPES = [
     "uint8", "uint16", "uint32", "uint64",
 ]
 
-NUMPY_TYPES = frozenset([item for sublist in np.sctypes.values() for item in sublist])
-NUMPY_TYPES_ALIAS = frozenset([np.complex])
+NUMPY_TYPES = (
+    frozenset([item for sublist in np.sctypes.values() for item in sublist])
+    .union(frozenset([np.complex, np.int, np.uint, np.float]))
+)
 
 # for int and float dtype, delegate string representation to the
 # default based on OS. In Windows, pandas defaults to int64 while numpy
@@ -257,16 +259,7 @@ class PandasDtype(Enum):
 
         :param numpy_type: numpy data type.
         """
-
-        # numpy aliases
-        pandas_dtype = {
-            np.complex: cls.Complex128  # np.complex is alias for np.complex128
-        }.get(numpy_type)
-
-        if pandas_dtype is None:
-            pandas_dtype = cls.from_str_alias(numpy_type.__name__)
-
-        return pandas_dtype
+        return cls.from_str_alias(numpy_type.__name__)
 
     def __eq__(self, other):
         # pylint: disable=comparison-with-callable
