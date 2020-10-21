@@ -46,9 +46,9 @@ from packaging import version
 pd.options.display.max_columns = None # For Travis on macOS
 pd.options.display.max_rows = None # For Travis on macOS
 
-PANDAS_PRE_V1 = version.parse(pd.__version__).release < (1, 0, 0)
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)
+SKIP_PANDAS_LT_V1 = version.parse(pd.__version__).release < (1, 0) or SKIP
 """
 
 doctest_default_flags = (

@@ -150,13 +150,13 @@ however, a couple of gotchas:
 :red:`✘` Bad:
 
 .. testcode:: dataframe_schema_model
-    :skipif: PANDAS_PRE_V1
+    :skipif: SKIP_PANDAS_LT_V1
 
     class Schema(pa.SchemaModel):
         a: Series[pa.PandasDtype.String]
 
 .. testoutput:: dataframe_schema_model
-    :skipif: PANDAS_PRE_V1
+    :skipif: SKIP_PANDAS_LT_V1
     
     Traceback (most recent call last):
     ...
@@ -167,6 +167,7 @@ however, a couple of gotchas:
 :green:`✔` Good:
 
 .. code-block::
+    :skipif: SKIP_PANDAS_LT_V1
     
     import pandas as pd
 
@@ -176,11 +177,13 @@ however, a couple of gotchas:
 :red:`✘` Bad:
 
 .. testcode:: dataframe_schema_model
+    :skipif: SKIP_PANDAS_LT_V1
     
     class Schema(pa.SchemaModel):
         a: Series[pd.StringDtype()]
 
 .. testoutput:: dataframe_schema_model
+    :skipif: SKIP_PANDAS_LT_V1
 
     Traceback (most recent call last):
     ...
