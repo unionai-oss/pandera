@@ -23,26 +23,27 @@ class Hypothesis(_CheckBase):
 
     #: Relationships available for built-in hypothesis tests.
     RELATIONSHIPS = {
-        "greater_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
-                         stat > 0 and pvalue / 2 < alpha),
-        "less_than": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
-                      stat < 0 and pvalue / 2 < alpha),
-        "not_equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA:
-                      pvalue < alpha),
+        "greater_than": (
+            lambda stat, pvalue, alpha=DEFAULT_ALPHA: stat > 0 and pvalue / 2 < alpha
+        ),
+        "less_than": (
+            lambda stat, pvalue, alpha=DEFAULT_ALPHA: stat < 0 and pvalue / 2 < alpha
+        ),
+        "not_equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue < alpha),
         "equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue >= alpha),
     }
 
     def __init__(
-            self,
-            test: Callable,
-            samples: Optional[Union[str, List[str]]] = None,
-            groupby: Optional[Union[str, List[str], Callable]] = None,
-            relationship: Union[str, Callable] = "equal",
-            test_kwargs: Dict = None,
-            relationship_kwargs: Dict = None,
-            name: Optional[str] = None,
-            error: Optional[str] = None,
-            raise_warning: bool = False,
+        self,
+        test: Callable,
+        samples: Optional[Union[str, List[str]]] = None,
+        groupby: Optional[Union[str, List[str], Callable]] = None,
+        relationship: Union[str, Callable] = "equal",
+        test_kwargs: Dict = None,
+        relationship_kwargs: Dict = None,
+        name: Optional[str] = None,
+        error: Optional[str] = None,
+        raise_warning: bool = False,
     ) -> None:
         """Perform a hypothesis test on a Series or DataFrame.
 
@@ -142,7 +143,8 @@ class Hypothesis(_CheckBase):
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(
             self._relationships(relationship),
-            **{} if relationship_kwargs is None else relationship_kwargs)
+            **{} if relationship_kwargs is None else relationship_kwargs
+        )
         if isinstance(samples, str):
             samples = [samples]
         elif samples is None:
@@ -163,21 +165,19 @@ class Hypothesis(_CheckBase):
         return len(self.samples) <= 1
 
     def _prepare_series_input(
-            self,
-            series: pd.Series,
-            dataframe_context: pd.DataFrame = None
+        self, series: pd.Series, dataframe_context: pd.DataFrame = None
     ) -> SeriesCheckObj:
         """Prepare Series input for Hypothesis check."""
         self.groups = self.samples
         return super()._prepare_series_input(series, dataframe_context)
 
-    def _prepare_dataframe_input(
-            self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
+    def _prepare_dataframe_input(self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema Hypothesis check."""
         if self.groupby is not None:
             raise errors.SchemaDefinitionError(
                 "`groupby` cannot be used for DataFrameSchema checks, must "
-                "be used in Column checks.")
+                "be used in Column checks."
+            )
         if self.is_one_sample_test:
             return dataframe[self.samples[0]]
         check_obj = [(sample, dataframe[sample]) for sample in self.samples]
@@ -196,19 +196,17 @@ class Hypothesis(_CheckBase):
         if isinstance(relationship, str):
             if relationship not in self.RELATIONSHIPS:
                 raise errors.SchemaInitError(
-                    "The relationship %s isn't a built in method"
-                    % relationship)
+                    "The relationship %s isn't a built in method" % relationship
+                )
             relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
             raise ValueError(
-                "expected relationship to be str or callable, found %s" % type(
-                    relationship)
+                "expected relationship to be str or callable, found %s"
+                % type(relationship)
             )
         return relationship
 
-    def _hypothesis_check(
-            self, check_obj: Union[pd.Series, Dict[str, pd.Series]]
-    ):
+    def _hypothesis_check(self, check_obj: Union[pd.Series, Dict[str, pd.Series]]):
         """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
@@ -217,20 +215,19 @@ class Hypothesis(_CheckBase):
         """
         if isinstance(check_obj, pd.Series):
             return self.relationship(*self.test(check_obj))
-        return self.relationship(
-            *self.test(*[check_obj.get(s) for s in self.samples]))
+        return self.relationship(*self.test(*[check_obj.get(s) for s in self.samples]))
 
     @classmethod
     def two_sample_ttest(
-            cls,
-            sample1: str,
-            sample2: str,
-            groupby: Union[str, List[str], Callable, None] = None,
-            relationship: str = "equal",
-            alpha=DEFAULT_ALPHA,
-            equal_var=True,
-            nan_policy="propagate",
-            raise_warning=False,
+        cls,
+        sample1: str,
+        sample2: str,
+        groupby: Union[str, List[str], Callable, None] = None,
+        relationship: str = "equal",
+        alpha=DEFAULT_ALPHA,
+        equal_var=True,
+        nan_policy="propagate",
+        raise_warning=False,
     ):
         """Calculate a t-test for the means of two samples.
 
@@ -325,7 +322,8 @@ class Hypothesis(_CheckBase):
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
-                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS)
+            )
         return cls(
             test=stats.ttest_ind,
             samples=[sample1, sample2],
@@ -334,20 +332,19 @@ class Hypothesis(_CheckBase):
             test_kwargs={"equal_var": equal_var, "nan_policy": nan_policy},
             relationship_kwargs={"alpha": alpha},
             name="two_sample_ttest",
-            error="failed two sample ttest between '%s' and '%s'" % (
-                sample1, sample2),
+            error="failed two sample ttest between '%s' and '%s'" % (sample1, sample2),
             raise_warning=raise_warning,
         )
 
     @classmethod
     def one_sample_ttest(
-            cls,
-            popmean: float,
-            sample: Optional[str] = None,
-            groupby: Union[str, List[str], Callable, None] = None,
-            relationship: str = "equal",
-            alpha: float = DEFAULT_ALPHA,
-            raise_warning=False,
+        cls,
+        popmean: float,
+        sample: Optional[str] = None,
+        groupby: Union[str, List[str], Callable, None] = None,
+        relationship: str = "equal",
+        alpha: float = DEFAULT_ALPHA,
+        raise_warning=False,
     ):
         """Calculate a t-test for the mean of one sample.
 
@@ -424,7 +421,8 @@ class Hypothesis(_CheckBase):
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
-                "relationship must be one of %s" % set(cls.RELATIONSHIPS))
+                "relationship must be one of %s" % set(cls.RELATIONSHIPS)
+            )
         return cls(
             test=stats.ttest_1samp,
             samples=sample,

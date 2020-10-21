@@ -9,9 +9,7 @@ import pandas as pd
 
 from . import errors
 from .dtypes import PandasDtype
-from .schemas import (
-    DataFrameSchema, SeriesSchemaBase, CheckList, PandasDtypeInputTypes
-)
+from .schemas import DataFrameSchema, SeriesSchemaBase, CheckList, PandasDtypeInputTypes
 
 
 def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
@@ -23,15 +21,15 @@ class Column(SeriesSchemaBase):
     """Validate types and properties of DataFrame columns."""
 
     def __init__(
-            self,
-            pandas_dtype: PandasDtypeInputTypes = None,
-            checks: CheckList = None,
-            nullable: bool = False,
-            allow_duplicates: bool = True,
-            coerce: bool = False,
-            required: bool = True,
-            name: str = None,
-            regex: bool = False,
+        self,
+        pandas_dtype: PandasDtypeInputTypes = None,
+        checks: CheckList = None,
+        nullable: bool = False,
+        allow_duplicates: bool = True,
+        coerce: bool = False,
+        required: bool = True,
+        name: str = None,
+        regex: bool = False,
     ) -> None:
         """Create column validator object.
 
@@ -68,22 +66,24 @@ class Column(SeriesSchemaBase):
 
         See :ref:`here<column>` for more usage details.
         """
-        super().__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce
-        )
-        if name is not None \
-                and not isinstance(name, str) \
-                and not _is_valid_multiindex_tuple_str(name) \
-                and regex:
+        super().__init__(pandas_dtype, checks, nullable, allow_duplicates, coerce)
+        if (
+            name is not None
+            and not isinstance(name, str)
+            and not _is_valid_multiindex_tuple_str(name)
+            and regex
+        ):
             raise ValueError(
-                "You cannot specify a non-string name when setting regex=True")
+                "You cannot specify a non-string name when setting regex=True"
+            )
         self.required = required
         self._name = name
         self._regex = regex
 
         if coerce and self._pandas_dtype is None:
             raise errors.SchemaInitError(
-                "Must specify dtype if coercing a Column's type")
+                "Must specify dtype if coercing a Column's type"
+            )
 
     @property
     def regex(self) -> bool:
@@ -115,22 +115,25 @@ class Column(SeriesSchemaBase):
         :param str name: the name of the column object
 
         """
-        if not isinstance(name, str) and \
-                not _is_valid_multiindex_tuple_str(name) \
-                and self.regex:
+        if (
+            not isinstance(name, str)
+            and not _is_valid_multiindex_tuple_str(name)
+            and self.regex
+        ):
             raise ValueError(
-                "You cannot specify a non-string name when setting regex=True")
+                "You cannot specify a non-string name when setting regex=True"
+            )
         self._name = name
         return self
 
     def validate(
-            self,
-            check_obj: pd.DataFrame,
-            head: Optional[int] = None,
-            tail: Optional[int] = None,
-            sample: Optional[int] = None,
-            random_state: Optional[int] = None,
-            lazy: bool = False,
+        self,
+        check_obj: pd.DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
     ) -> pd.DataFrame:
         """Validate a Column in a DataFrame object.
 
@@ -151,34 +154,35 @@ class Column(SeriesSchemaBase):
 
         if self._name is None:
             raise errors.SchemaError(
-                self, check_obj,
+                self,
+                check_obj,
                 "column name is set to None. Pass the ``name` argument when "
                 "initializing a Column object, or use the ``set_name`` "
-                "method.")
+                "method.",
+            )
 
-        column_keys_to_check = self.get_regex_columns(check_obj.columns) if \
-            self._regex else [self._name]
+        column_keys_to_check = (
+            self.get_regex_columns(check_obj.columns) if self._regex else [self._name]
+        )
 
         check_results = []
         for column_name in column_keys_to_check:
             if self.coerce:
-                check_obj[column_name] = self.coerce_dtype(
-                    check_obj[column_name])
+                check_obj[column_name] = self.coerce_dtype(check_obj[column_name])
             check_results.append(
                 isinstance(
-                    super(Column, copy(self).set_name(column_name))
-                    .validate(
+                    super(Column, copy(self).set_name(column_name)).validate(
                         check_obj, head, tail, sample, random_state, lazy
                     ),
-                    pd.DataFrame)
+                    pd.DataFrame,
+                )
             )
 
         assert all(check_results)
         return check_obj
 
     def get_regex_columns(
-            self,
-            columns: Union[pd.Index, pd.MultiIndex]
+        self, columns: Union[pd.Index, pd.MultiIndex]
     ) -> Union[pd.Index, pd.MultiIndex]:
         """Get matching column names based on regex column name pattern.
 
@@ -190,14 +194,14 @@ class Column(SeriesSchemaBase):
             if len(self.name) != columns.nlevels:
                 raise IndexError(
                     "Column regex name='%s' is a tuple, expected a MultiIndex "
-                    "columns with %d number of levels, found %d level(s)" %
-                    (self.name, len(self.name), columns.nlevels)
+                    "columns with %d number of levels, found %d level(s)"
+                    % (self.name, len(self.name), columns.nlevels)
                 )
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(self.name):
-                matched = pd.Index(
-                    columns.get_level_values(i).str.match(name)
-                ).fillna(False)
+                matched = pd.Index(columns.get_level_values(i).str.match(name)).fillna(
+                    False
+                )
                 matches = matches & np.array(matched.tolist())
             column_keys_to_check = columns[matches]
         else:
@@ -210,14 +214,17 @@ class Column(SeriesSchemaBase):
             column_keys_to_check = columns[
                 # str.match will return nan values when the index value is
                 # not a string.
-                pd.Index(columns.str.match(self.name)).fillna(False).tolist()
+                pd.Index(columns.str.match(self.name))
+                .fillna(False)
+                .tolist()
             ]
         if column_keys_to_check.shape[0] == 0:
             raise errors.SchemaError(
-                self, columns,
+                self,
+                columns,
                 "Column regex name='%s' did not match any columns in the "
                 "dataframe. Update the regex pattern so that it matches at "
-                "least one column:\n%s" % (self.name, columns.tolist())
+                "least one column:\n%s" % (self.name, columns.tolist()),
             )
         return column_keys_to_check
 
@@ -230,10 +237,8 @@ class Column(SeriesSchemaBase):
 
     def __eq__(self, other):
         def _compare_dict(obj):
-            return {
-                k: v if k != "_checks" else set(v)
-                for k, v in obj.__dict__.items()
-            }
+            return {k: v if k != "_checks" else set(v) for k, v in obj.__dict__.items()}
+
         return _compare_dict(self) == _compare_dict(other)
 
 
@@ -249,7 +254,8 @@ class Index(SeriesSchemaBase):
         """
         if self._pandas_dtype is PandasDtype.String:
             return series_or_index.where(
-                series_or_index.isna(), series_or_index.astype(str))
+                series_or_index.isna(), series_or_index.astype(str)
+            )
             # only coerce non-null elements to string
         return series_or_index.astype(self.dtype)
 
@@ -259,13 +265,13 @@ class Index(SeriesSchemaBase):
         return False
 
     def validate(
-            self,
-            check_obj: Union[pd.DataFrame, pd.Series],
-            head: Optional[int] = None,
-            tail: Optional[int] = None,
-            sample: Optional[int] = None,
-            random_state: Optional[int] = None,
-            lazy: bool = False,
+        self,
+        check_obj: Union[pd.DataFrame, pd.Series],
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 
@@ -286,9 +292,13 @@ class Index(SeriesSchemaBase):
         assert isinstance(
             super().validate(
                 pd.Series(check_obj.index),
-                head, tail, sample, random_state, lazy,
+                head,
+                tail,
+                sample,
+                random_state,
+                lazy,
             ),
-            pd.Series
+            pd.Series,
         )
         return check_obj
 
@@ -310,11 +320,12 @@ class MultiIndex(DataFrameSchema):
     """
 
     def __init__(
-            self,
-            indexes: List[Index],
-            coerce: bool = False,
-            strict: bool = False,
-            name: str = None) -> None:
+        self,
+        indexes: List[Index],
+        coerce: bool = False,
+        strict: bool = False,
+        name: str = None,
+    ) -> None:
         """Create MultiIndex validator.
 
         :param indexes: list of Index validators for each level of the
@@ -362,7 +373,9 @@ class MultiIndex(DataFrameSchema):
         self.indexes = indexes
         super().__init__(
             columns={
-                i if index._name is None else index._name: Column(
+                i
+                if index._name is None
+                else index._name: Column(
                     pandas_dtype=index._pandas_dtype,
                     checks=index.checks,
                     nullable=index._nullable,
@@ -388,10 +401,11 @@ class MultiIndex(DataFrameSchema):
         _coerced_multi_index = []
         if multi_index.nlevels != len(self.indexes):
             raise errors.SchemaError(
-                self, multi_index,
+                self,
+                multi_index,
                 "multi_index does not have equal number of levels as "
-                "MultiIndex schema %d != %d." % (
-                    multi_index.nlevels, len(self.indexes))
+                "MultiIndex schema %d != %d."
+                % (multi_index.nlevels, len(self.indexes)),
             )
 
         for level_i, index in enumerate(self.indexes):
@@ -400,17 +414,16 @@ class MultiIndex(DataFrameSchema):
                 index_array = index.coerce_dtype(index_array)
             _coerced_multi_index.append(index_array)
 
-        return pd.MultiIndex.from_arrays(
-            _coerced_multi_index, names=multi_index.names)
+        return pd.MultiIndex.from_arrays(_coerced_multi_index, names=multi_index.names)
 
     def validate(
-            self,
-            check_obj: Union[pd.DataFrame, pd.Series],
-            head: Optional[int] = None,
-            tail: Optional[int] = None,
-            sample: Optional[int] = None,
-            random_state: Optional[int] = None,
-            lazy: bool = False,
+        self,
+        check_obj: Union[pd.DataFrame, pd.Series],
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrame or Series MultiIndex.
 
@@ -434,7 +447,11 @@ class MultiIndex(DataFrameSchema):
         try:
             validation_result = super().validate(
                 check_obj.index.to_frame(),
-                head, tail, sample, random_state, lazy,
+                head,
+                tail,
+                sample,
+                random_state,
+                lazy,
             )
         except errors.SchemaErrors as err:
             # This is a hack to re-raise the SchemaErrors exception and change
@@ -445,9 +462,12 @@ class MultiIndex(DataFrameSchema):
             for schema_error_dict in err._schema_error_dicts:
                 error = schema_error_dict["error"]
                 error = errors.SchemaError(
-                    self, check_obj, error.args[0],
+                    self,
+                    check_obj,
+                    error.args[0],
                     error.failure_cases.assign(column=error.schema.name),
-                    error.check, error.check_index
+                    error.check,
+                    error.check_index,
                 )
                 schema_error_dict["error"] = error
                 schema_error_dicts.append(schema_error_dict)

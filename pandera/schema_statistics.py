@@ -9,30 +9,30 @@ from .checks import Check
 from .dtypes import PandasDtype
 
 
-NUMERIC_DTYPES = frozenset([
-    PandasDtype.Float,
-    PandasDtype.Float16,
-    PandasDtype.Float32,
-    PandasDtype.Float64,
-    PandasDtype.Int,
-    PandasDtype.Int8,
-    PandasDtype.Int16,
-    PandasDtype.Int32,
-    PandasDtype.Int64,
-    PandasDtype.UInt8,
-    PandasDtype.UInt16,
-    PandasDtype.UInt32,
-    PandasDtype.UInt64,
-    PandasDtype.DateTime,
-])
+NUMERIC_DTYPES = frozenset(
+    [
+        PandasDtype.Float,
+        PandasDtype.Float16,
+        PandasDtype.Float32,
+        PandasDtype.Float64,
+        PandasDtype.Int,
+        PandasDtype.Int8,
+        PandasDtype.Int16,
+        PandasDtype.Int32,
+        PandasDtype.Int64,
+        PandasDtype.UInt8,
+        PandasDtype.UInt16,
+        PandasDtype.UInt32,
+        PandasDtype.UInt64,
+        PandasDtype.DateTime,
+    ]
+)
 
 
 def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     """Infer column and index statistics from a pandas DataFrame."""
     nullable_columns = df.isna().any()
-    inferred_column_dtypes = {
-        col: _get_array_type(df[col]) for col in df
-    }
+    inferred_column_dtypes = {col: _get_array_type(df[col]) for col in df}
     column_statistics = {
         col: {
             "pandas_dtype": dtype,
@@ -72,16 +72,14 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
 
     if isinstance(index, pd.MultiIndex):
         index_statistics = [
-            _index_stats(index.get_level_values(i))
-            for i in range(index.nlevels)
+            _index_stats(index.get_level_values(i)) for i in range(index.nlevels)
         ]
     elif isinstance(index, pd.Index):
         index_statistics = [_index_stats(index)]
     else:
         warnings.warn(
-            "index type %s not recognized, skipping index inference" %
-            type(index),
-            UserWarning
+            "index type %s not recognized, skipping index inference" % type(index),
+            UserWarning,
         )
         index_statistics = []
     return index_statistics if index_statistics else None
@@ -119,8 +117,9 @@ def get_dataframe_schema_statistics(dataframe_schema):
             for col_name, column in dataframe_schema.columns.items()
         },
         "index": (
-            None if dataframe_schema.index is None else
-            get_index_schema_statistics(dataframe_schema.index)
+            None
+            if dataframe_schema.index is None
+            else get_index_schema_statistics(dataframe_schema.index)
         ),
         "coerce": dataframe_schema.coerce,
     }
@@ -165,20 +164,27 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
         _check_memo[check.name] = check
 
     # raise ValueError on incompatible checks
-    if "greater_than_or_equal_to" in check_statistics and \
-            "less_than_or_equal_to" in check_statistics:
-        min_value = check_statistics.get(
-            "greater_than_or_equal_to", float("-inf"))["min_value"]
-        max_value = check_statistics.get(
-            "less_than_or_equal_to", float("inf"))["max_value"]
+    if (
+        "greater_than_or_equal_to" in check_statistics
+        and "less_than_or_equal_to" in check_statistics
+    ):
+        min_value = check_statistics.get("greater_than_or_equal_to", float("-inf"))[
+            "min_value"
+        ]
+        max_value = check_statistics.get("less_than_or_equal_to", float("inf"))[
+            "max_value"
+        ]
         if min_value > max_value:
             raise ValueError(
                 "checks %s and %s are incompatible, reason: "
-                "min value %s > max value %s" % (
+                "min value %s > max value %s"
+                % (
                     _check_memo["greater_than_or_equal_to"],
                     _check_memo["less_than_or_equal_to"],
-                    min_value, max_value
-                ))
+                    min_value,
+                    max_value,
+                )
+            )
     return check_statistics if check_statistics else None
 
 
@@ -193,8 +199,7 @@ def _get_array_type(x):
     return dtype
 
 
-def _get_array_check_statistics(
-        x, dtype: PandasDtype) -> Union[Dict[str, Any], None]:
+def _get_array_check_statistics(x, dtype: PandasDtype) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
     if dtype is PandasDtype.DateTime:
         check_stats = {

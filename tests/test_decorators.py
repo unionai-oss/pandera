@@ -32,28 +32,33 @@ def test_check_function_decorators():
     """
     in_schema = DataFrameSchema(
         {
-            "a": Column(Int, [
-                Check(lambda x: x >= 1, element_wise=True),
-                Check(lambda s: s.mean() > 0)]),
-            "b": Column(String,
-                        Check(lambda x: x in ["x", "y", "z"],
-                              element_wise=True)),
-            "c": Column(DateTime,
-                        Check(lambda x: pd.Timestamp("2018-01-01") <= x,
-                              element_wise=True)),
-            "d": Column(Float,
-                        Check(lambda x: np.isnan(x) or x < 3,
-                              element_wise=True),
-                        nullable=True)
+            "a": Column(
+                Int,
+                [
+                    Check(lambda x: x >= 1, element_wise=True),
+                    Check(lambda s: s.mean() > 0),
+                ],
+            ),
+            "b": Column(
+                String, Check(lambda x: x in ["x", "y", "z"], element_wise=True)
+            ),
+            "c": Column(
+                DateTime,
+                Check(lambda x: pd.Timestamp("2018-01-01") <= x, element_wise=True),
+            ),
+            "d": Column(
+                Float,
+                Check(lambda x: np.isnan(x) or x < 3, element_wise=True),
+                nullable=True,
+            ),
         },
     )
     out_schema = DataFrameSchema(
         {
-            "e": Column(String,
-                        Check(lambda s: s == "foo")),
-            "f": Column(String,
-                        Check(lambda x: x in ["a", "b"], element_wise=True))
-        })
+            "e": Column(String, Check(lambda s: s == "foo")),
+            "f": Column(String, Check(lambda x: x in ["a", "b"], element_wise=True)),
+        }
+    )
 
     # case 1: simplest path test - df is first argument and function returns
     # single dataframe as output.
@@ -91,14 +96,18 @@ def test_check_function_decorators():
         # what is being tested.
         return dataframe.assign(e="foo", f=["a", "b", "a"])
 
-    df = pd.DataFrame({
-        "a": [1, 2, 3],
-        "b": ["x", "y", "z"],
-        "c": [pd.Timestamp("2018-01-01"),
-              pd.Timestamp("2018-01-03"),
-              pd.Timestamp("2018-01-02")],
-        "d": [np.nan, 1.0, 2.0],
-    })
+    df = pd.DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b": ["x", "y", "z"],
+            "c": [
+                pd.Timestamp("2018-01-01"),
+                pd.Timestamp("2018-01-03"),
+                pd.Timestamp("2018-01-02"),
+            ],
+            "d": [np.nan, 1.0, 2.0],
+        }
+    )
 
     # call function with a dataframe passed as a positional argument
     df = test_func1(df, "foo")
@@ -142,18 +151,18 @@ def test_check_function_decorator_errors():
         return df
 
     with pytest.raises(
-            errors.SchemaError,
-            match=r"^error in check_input decorator of function"):
+        errors.SchemaError, match=r"^error in check_input decorator of function"
+    ):
         test_func(pd.DataFrame({"column2": ["a", "b", "c"]}))
 
     with pytest.raises(
-            errors.SchemaError,
-            match=r"^error in check_input decorator of function"):
+        errors.SchemaError, match=r"^error in check_input decorator of function"
+    ):
         test_func(df=pd.DataFrame({"column2": ["a", "b", "c"]}))
 
     with pytest.raises(
-            errors.SchemaError,
-            match=r"^error in check_output decorator of function"):
+        errors.SchemaError, match=r"^error in check_output decorator of function"
+    ):
         test_func(pd.DataFrame({"column1": [1, 2, 3]}))
 
     # case 2: check that if the input decorator refers to an index that's not
@@ -163,11 +172,9 @@ def test_check_function_decorator_errors():
         return df
 
     with pytest.raises(
-            IndexError,
-            match=r"^error in check_input decorator of function"):
-        test_incorrect_check_input_index(
-            pd.DataFrame({"column1": [1, 2, 3]})
-        )
+        IndexError, match=r"^error in check_input decorator of function"
+    ):
+        test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]}))
 
 
 def test_check_input_method_decorators():
@@ -180,9 +187,10 @@ def test_check_input_method_decorators():
     def _transform_helper(df):
         return df.assign(column2=[1, 2, 3])
 
-    class TransformerClass():
+    class TransformerClass:
         """Contains functions with different signatures representing the way
         that the decorators can be called."""
+
         # pylint: disable=E0012,C0111,C0116,W0613,R0201
         # disables missing-function-docstring as this is a factory method
         # disables unused-arguments because handling the second argument is
@@ -228,14 +236,17 @@ def test_check_input_method_decorators():
     _assert_expectation(transformer.transform_first_arg(df=dataframe))
 
     # call method with a dataframe passed as a second keyword argument
-    _assert_expectation(transformer.transform_first_arg_with_two_func_args(x="foo", df=dataframe))
+    _assert_expectation(
+        transformer.transform_first_arg_with_two_func_args(x="foo", df=dataframe)
+    )
 
+    _assert_expectation(transformer.transform_first_arg_with_list_getter(dataframe))
     _assert_expectation(
-        transformer.transform_first_arg_with_list_getter(dataframe))
+        transformer.transform_secord_arg_with_list_getter(None, dataframe)
+    )
     _assert_expectation(
-        transformer.transform_secord_arg_with_list_getter(None, dataframe))
-    _assert_expectation(
-        transformer.transform_secord_arg_with_dict_getter(None, dataframe))
+        transformer.transform_secord_arg_with_dict_getter(None, dataframe)
+    )
 
 
 def test_check_io():
@@ -256,15 +267,9 @@ def test_check_io():
     def multiple_outputs_tuple(df):
         return df, df
 
-    @check_io(
-        out=[(0, schema), ("foo", schema), (lambda x: x[2]["bar"], schema)]
-    )
+    @check_io(out=[(0, schema), ("foo", schema), (lambda x: x[2]["bar"], schema)])
     def multiple_outputs_dict(df):
-        return {
-            0: df,
-            "foo": df,
-            2: {"bar": df}
-        }
+        return {0: df, "foo": df, 2: {"bar": df}}
 
     @check_io(df=schema, out=schema, head=1)
     def validate_head(df):
@@ -288,23 +293,20 @@ def test_check_io():
     expected = pd.DataFrame({"col": [3, 3, 3]})
 
     for fn, valid, invalid, out in [
-            (simple_func, [df1, df2], [invalid_df, invalid_df], expected),
-            (output_with_obj_getter, [df1], [invalid_df], (None, df1)),
-            (multiple_outputs_tuple, [df1], [invalid_df], (df1, df1)),
-            (
-                multiple_outputs_dict,
-                [df1],
-                [invalid_df],
-                {
-                    0: df1,
-                    "foo": df1,
-                    2: {"bar": df1}
-                }
-            ),
-            (validate_head, [df1], [invalid_df], df1),
-            (validate_tail, [df1], [invalid_df], df1),
-            (validate_sample, [df1], [invalid_df], df1),
-            (validate_lazy, [df1], [invalid_df], df1)]:
+        (simple_func, [df1, df2], [invalid_df, invalid_df], expected),
+        (output_with_obj_getter, [df1], [invalid_df], (None, df1)),
+        (multiple_outputs_tuple, [df1], [invalid_df], (df1, df1)),
+        (
+            multiple_outputs_dict,
+            [df1],
+            [invalid_df],
+            {0: df1, "foo": df1, 2: {"bar": df1}},
+        ),
+        (validate_head, [df1], [invalid_df], df1),
+        (validate_tail, [df1], [invalid_df], df1),
+        (validate_sample, [df1], [invalid_df], df1),
+        (validate_lazy, [df1], [invalid_df], df1),
+    ]:
         result = fn(*valid)
         if isinstance(result, pd.Series):
             assert (result == out).all()
@@ -320,9 +322,7 @@ def test_check_io():
             fn(*invalid)
 
 
-@pytest.mark.parametrize(
-    "obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}]
-)
+@pytest.mark.parametrize("obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}])
 def test_check_input_output_unrecognized_obj_getter(obj_getter):
     """
     Test that check_input and check_output raise correct errors on unrecognized
@@ -344,7 +344,8 @@ def test_check_input_output_unrecognized_obj_getter(obj_getter):
 
 
 @pytest.mark.parametrize(
-    "out,error,msg", [
+    "out,error,msg",
+    [
         (1, TypeError, None),
         (1.5, TypeError, None),
         ("foo", TypeError, None),
@@ -359,7 +360,7 @@ def test_check_input_output_unrecognized_obj_getter(obj_getter):
             AttributeError,
             "'str' object has no attribute 'validate'",
         ),
-    ]
+    ],
 )
 def test_check_io_unrecognized_obj_getter(out, error, msg):
     """

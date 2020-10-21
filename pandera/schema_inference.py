@@ -14,7 +14,7 @@ from .schema_statistics import (
 
 
 def infer_schema(
-        pandas_obj: Union[pd.DataFrame, pd.Series]
+    pandas_obj: Union[pd.DataFrame, pd.Series]
 ) -> Union[DataFrameSchema, SeriesSchema]:
     """Infer schema for pandas DataFrame or Series object.
 
