@@ -2,7 +2,7 @@
 # See that file for comments about the need/usage of each dependency.
 
 pip
-sphinx
+sphinx >= 3.2.0
 sphinx_rtd_theme
 codecov
 mypy
@@ -18,4 +18,6 @@ pandas
 scipy
 wrapt
 pyyaml
+typing_inspect
+typing_extensions
 sphinx_autodoc_typehints

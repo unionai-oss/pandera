@@ -17,8 +17,8 @@ Schemas
    :template: class.rst
    :nosignatures:
 
-   DataFrameSchema
-   SeriesSchema
+   pandera.schemas.DataFrameSchema
+   pandera.schemas.SeriesSchema
 
 
 Schema Components
@@ -29,9 +29,48 @@ Schema Components
    :template: class.rst
    :nosignatures:
 
-   Column
-   Index
-   MultiIndex
+   pandera.schema_components.Column
+   pandera.schema_components.Index
+   pandera.schema_components.MultiIndex
+
+
+Schema Models
+-------------
+
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
+
+   pandera.model.SchemaModel
+
+**Model Components**
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   pandera.model_components.Field
+   pandera.model_components.check
+   pandera.model_components.dataframe_check
+
+**Typing**
+
+.. autosummary::
+   :toctree: generated
+   :template: typing_module.rst
+   :nosignatures:
+
+   pandera.typing
+
+**Config**
+
+.. autosummary::
+   :toctree: generated
+   :template: model_component_class.rst
+   :nosignatures:
+
+   pandera.model.BaseConfig
 
 
 Checks
@@ -42,8 +81,8 @@ Checks
    :template: class.rst
    :nosignatures:
 
-   Check
-   Hypothesis
+   pandera.checks.Check
+   pandera.hypotheses.Hypothesis
 
 
 Pandas Data Types
@@ -54,7 +93,7 @@ Pandas Data Types
    :template: pandas_dtype_class.rst
    :nosignatures:
 
-   PandasDtype
+   pandera.dtypes.PandasDtype
 
 
 Decorators
@@ -64,9 +103,10 @@ Decorators
    :toctree: generated
    :nosignatures:
 
-   check_input
-   check_output
-   check_io
+   pandera.decorators.check_input
+   pandera.decorators.check_output
+   pandera.decorators.check_io
+   pandera.decorators.check_types
 
 
 Schema Inference
@@ -76,7 +116,7 @@ Schema Inference
    :toctree: generated
    :nosignatures:
 
-   infer_schema
+   pandera.schema_inference.infer_schema
 
 
 IO Utils
@@ -86,9 +126,9 @@ IO Utils
    :toctree: generated
    :nosignatures:
 
-   io.from_yaml
-   io.to_yaml
-   io.to_script
+   pandera.io.from_yaml
+   pandera.io.to_yaml
+   pandera.io.to_script
 
 
 Errors
@@ -99,7 +139,7 @@ Errors
    :template: class.rst
    :nosignatures:
 
-   errors.SchemaError
-   errors.SchemaErrors
-   errors.SchemaInitError
-   errors.SchemaDefinitionError
+   pandera.errors.SchemaError
+   pandera.errors.SchemaErrors
+   pandera.errors.SchemaInitError
+   pandera.errors.SchemaDefinitionError

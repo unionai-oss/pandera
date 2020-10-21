@@ -9,7 +9,6 @@ Hypothesis Testing
 
 ``pandera`` enables you to perform statistical hypothesis tests on your data.
 
-
 .. note::
 
    The hypothesis feature requires a pandera installation with ``hypotheses``
@@ -19,8 +18,8 @@ Hypothesis Testing
 Overview
 --------
 
-The :py:class:`Hypothesis` class defines built in methods, which can be called
-as in this example of a two-sample t-test:
+The :class:`~pandera.hypotheses.Hypothesis` class defines built in methods,
+which can be called as in this example of a two-sample t-test:
 
 .. testcode:: hypothesis_testing
 

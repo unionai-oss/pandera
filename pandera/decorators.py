@@ -1,16 +1,16 @@
 """Decorators for integrating pandera into existing data pipelines."""
 
+import functools
 import inspect
-
 from collections import OrderedDict
-from typing import Any, Callable, List, Union, Tuple, Dict, Optional, NoReturn
-
-import pandas as pd
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union, cast
 
 import wrapt
+import pandas as pd
 
-from . import schemas
-from . import errors
+from . import errors, schemas
+from . typing import parse_annotation
+from . model import SchemaModel
 
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
@@ -33,10 +33,12 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
 
 
 def _handle_schema_error(
-        fn: Callable,
-        schema: Schemas,
-        arg_df: pd.DataFrame,
-        schema_error: errors.SchemaError) -> NoReturn:
+    decorator_name,
+    fn: Callable,
+    schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+    arg_df: pd.DataFrame,
+    schema_error: errors.SchemaError,
+) -> NoReturn:
     """Reraise schema validation error with decorator context.
 
     :param fn: check the DataFrame or Series input of this function.
@@ -47,8 +49,8 @@ def _handle_schema_error(
         checks.
     """
     msg = (
-        "error in check_input decorator of function '%s': %s" %
-        (fn.__name__, schema_error)
+        "error in %s decorator of function '%s': %s" %
+        (decorator_name, fn.__name__, schema_error)
     )
     raise errors.SchemaError(
         schema, arg_df, msg,
@@ -175,7 +177,7 @@ def check_input(
             try:
                 args[0] = schema.validate(args[0], *validate_args)
             except errors.SchemaError as e:
-                _handle_schema_error(fn, schema, args[0], e)
+                _handle_schema_error("check_input", fn, schema, args[0], e)
         elif obj_getter is None and kwargs:
             # get the first key in the same order specified in the
             # function argument.
@@ -186,7 +188,9 @@ def check_input(
                     kwargs[args_names[0]], *validate_args
                 )
             except errors.SchemaError as e:
-                _handle_schema_error(fn, schema, kwargs[args_names[0]], e)
+                _handle_schema_error(
+                    "check_input", fn, schema, kwargs[args_names[0]], e
+                )
         else:
             raise TypeError(
                 "obj_getter is unrecognized type: %s" % type(obj_getter))
@@ -292,16 +296,7 @@ def check_output(
         try:
             schema.validate(obj, head, tail, sample, random_state, lazy)
         except errors.SchemaError as e:
-            msg = (
-                "error in check_output decorator of function '%s': %s" %
-                (fn.__name__, e)
-            )
-            raise errors.SchemaError(
-                schema, obj, msg,
-                failure_cases=e.failure_cases,
-                check=e.check,
-                check_index=e.check_index,
-            )
+            _handle_schema_error("check_output", fn, schema, obj, e)
 
         return out
 
@@ -391,3 +386,83 @@ def check_io(
         return wrapped_fn(*args, **kwargs)
 
     return _wrapper
+
+
+def check_types(
+    wrapped=None,
+    *,
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
+    lazy: bool = False,
+) -> Callable:
+    """Validate function inputs and output based on type annotations.
+
+    See the :ref:`User Guide <schema_models>` for more.
+
+    :param head: validate the first n rows. Rows overlapping with `tail` or
+        `sample` are de-duplicated.
+    :param tail: validate the last n rows. Rows overlapping with `head` or
+        `sample` are de-duplicated.
+    :param sample: validate a random sample of n rows. Rows overlapping
+        with `head` or `tail` are de-duplicated.
+    :param random_state: random seed for the ``sample`` argument.
+    :param lazy: if True, lazily evaluates dataframe against all validation
+        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        ``SchemaError`` as soon as one occurs.
+    """
+    if wrapped is None:
+        return functools.partial(
+            check_types,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+        )
+
+    @wrapt.decorator
+    def _wrapper(
+        wrapped: Callable,
+        instance: Optional[Any],  # pylint:disable=unused-argument
+        args: Union[List[Any], Tuple[Any]],
+        kwargs: Dict[str, Any],
+    ):
+        sig = inspect.signature(wrapped)
+
+        arguments = sig.bind(*args, **kwargs).arguments
+        for arg_name, arg_value in arguments.items():
+            annotation = sig.parameters[arg_name].annotation
+            annotation_info = parse_annotation(annotation)
+
+            if annotation_info.optional and arg_value is None:
+                continue
+
+            if not annotation_info.is_generic_df:
+                continue
+
+            model = cast(SchemaModel, annotation_info.arg)
+            schema = model.to_schema()
+            try:
+                schema.validate(arg_value, head, tail, sample, random_state, lazy)
+            except errors.SchemaError as e:
+                _handle_schema_error("check_types", wrapped, schema, arg_value, e)
+
+        out = wrapped(*args, **kwargs)
+
+        annotation_info = parse_annotation(sig.return_annotation)
+        if annotation_info.optional and out is None:
+            return out
+
+        if annotation_info.is_generic_df:
+            model = cast(SchemaModel, annotation_info.arg)
+            schema = model.to_schema()
+            try:
+                schema.validate(out, head, tail, sample, random_state, lazy)
+            except errors.SchemaError as e:
+                _handle_schema_error("check_types", wrapped, out, "return", e)
+
+        return out
+
+    return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
