@@ -4,6 +4,7 @@
 pip
 sphinx >= 3.2.0
 sphinx_rtd_theme
+isort >= 5.6.4
 codecov
 mypy
 pylint>=2.4.4

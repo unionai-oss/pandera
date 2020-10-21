@@ -5,9 +5,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import schema_statistics
-from pandera import dtypes, PandasDtype
-
+from pandera import PandasDtype, dtypes, schema_statistics
 
 DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_INT_TYPE)
 DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)

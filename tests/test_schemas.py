@@ -8,18 +8,18 @@ import pandas as pd
 import pytest
 
 from pandera import (
-    Column,
-    DataFrameSchema,
-    Index,
-    MultiIndex,
-    SeriesSchema,
     Bool,
     Category,
     Check,
+    Column,
+    DataFrameSchema,
     DateTime,
     Float,
+    Index,
     Int,
+    MultiIndex,
     Object,
+    SeriesSchema,
     String,
     Timedelta,
     errors,

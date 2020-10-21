@@ -11,6 +11,7 @@ dependencies:
   - sphinx_rtd_theme
 
   # testing
+  - isort >= 5.6.4
   - codecov
   - mypy
   - pylint>=2.4.4
@@ -20,7 +21,7 @@ dependencies:
   # packaging
   - twine
 
-  # performance testing
+# performance testing
   - asv
 
   # optional

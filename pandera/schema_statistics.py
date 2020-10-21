@@ -8,7 +8,6 @@ import pandas as pd
 from .checks import Check
 from .dtypes import PandasDtype
 
-
 NUMERIC_DTYPES = frozenset(
     [
         PandasDtype.Float,

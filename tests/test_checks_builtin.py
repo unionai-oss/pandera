@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 
 from pandera.checks import Check
-from pandera.schemas import DataFrameSchema, SeriesSchema
-from pandera.schema_components import Column
 from pandera.errors import SchemaError
+from pandera.schema_components import Column
+from pandera.schemas import DataFrameSchema, SeriesSchema
 
 
 def check_values(values, check, expected_failure_cases):

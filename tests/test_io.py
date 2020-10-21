@@ -3,12 +3,12 @@
 import platform
 import tempfile
 from pathlib import Path
-from packaging import version
 
 import pandas as pd
 import pytest
-import pandera as pa
+from packaging import version
 
+import pandera as pa
 
 try:
     from pandera import io
@@ -26,11 +26,7 @@ else:
     PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
 
 
-SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (
-    5,
-    1,
-    0,
-)  # type: ignore
+SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  # type: ignore
 
 
 # skip all tests in module if "io" depends aren't installed

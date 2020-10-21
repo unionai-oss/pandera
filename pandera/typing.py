@@ -1,13 +1,12 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import sys
-from typing import Generic, Optional, Type, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, Optional, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
 
 from .dtypes import PandasDtype, PandasExtensionType
-
 
 if sys.version_info < (3, 8):  # pragma: no cover
     from typing_extensions import Literal

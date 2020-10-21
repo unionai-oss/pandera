@@ -1,32 +1,32 @@
 """Tests a variety of python and pandas dtypes, and tests some specific
 coercion examples."""
 
+import numpy as np
 import pandas as pd
 import pytest
 from packaging import version
 
-import numpy as np
 import pandera as pa
 from pandera import (
+    Bool,
+    Category,
+    Check,
     Column,
     DataFrameSchema,
-    SeriesSchema,
-    Check,
     DateTime,
     Float,
     Int,
-    String,
-    Bool,
-    Category,
     Object,
-    Timedelta,
     PandasDtype,
+    SeriesSchema,
+    String,
+    Timedelta,
 )
 from pandera.dtypes import (
-    _DEFAULT_PANDAS_INT_TYPE,
-    _DEFAULT_PANDAS_FLOAT_TYPE,
-    _DEFAULT_NUMPY_INT_TYPE,
     _DEFAULT_NUMPY_FLOAT_TYPE,
+    _DEFAULT_NUMPY_INT_TYPE,
+    _DEFAULT_PANDAS_FLOAT_TYPE,
+    _DEFAULT_PANDAS_INT_TYPE,
 )
 from pandera.errors import SchemaError
 

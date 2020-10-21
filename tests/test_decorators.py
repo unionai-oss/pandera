@@ -17,8 +17,8 @@ from pandera import (
     SchemaModel,
     String,
     check_input,
-    check_output,
     check_io,
+    check_output,
     check_types,
     errors,
 )

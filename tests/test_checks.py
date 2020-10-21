@@ -1,20 +1,22 @@
 """Tests the way Columns are Checked"""
 
 import copy
+
 import pandas as pd
 import pytest
 
-from pandera import errors, error_formatters
 from pandera import (
-    Column,
-    DataFrameSchema,
-    Index,
-    SeriesSchema,
     Bool,
     Check,
+    Column,
+    DataFrameSchema,
     Float,
+    Index,
     Int,
+    SeriesSchema,
     String,
+    error_formatters,
+    errors,
 )
 
 

@@ -1,23 +1,23 @@
 """Testing the components of the Schema objects."""
 
 import copy
+
 import numpy as np
 import pandas as pd
 import pytest
 
-
-from pandera import errors
 from pandera import (
+    Check,
     Column,
     DataFrameSchema,
-    Index,
-    MultiIndex,
-    Check,
     DateTime,
     Float,
+    Index,
     Int,
+    MultiIndex,
     Object,
     String,
+    errors,
 )
 from tests.test_dtypes import TESTABLE_DTYPES
 

@@ -5,13 +5,12 @@ import inspect
 from collections import OrderedDict
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union, cast
 
-import wrapt
 import pandas as pd
+import wrapt
 
 from . import errors, schemas
-from .typing import parse_annotation
 from .model import SchemaModel
-
+from .typing import parse_annotation
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]

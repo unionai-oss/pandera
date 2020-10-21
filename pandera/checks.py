@@ -5,12 +5,11 @@ import operator
 import re
 from collections import namedtuple
 from functools import partial, wraps
-from typing import Any, Dict, Union, Optional, List, Callable, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from . import errors, constants
-
+from . import constants, errors
 
 CheckResult = namedtuple(
     "CheckResult",

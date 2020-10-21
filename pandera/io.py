@@ -1,10 +1,13 @@
 """Module for reading and writing schema objects."""
 
+import warnings
 from functools import partial
 from pathlib import Path
-import warnings
 
 import pandas as pd
+
+from .dtypes import PandasDtype
+from .schema_statistics import get_dataframe_schema_statistics
 
 try:
     import black
@@ -15,9 +18,6 @@ except ImportError as exc:  # pragma: no cover
         "You can install pandera together with the IO dependencies with: \n"
         "pip install pandera[io]\n"
     ) from exc
-
-from .dtypes import PandasDtype
-from .schema_statistics import get_dataframe_schema_statistics
 
 
 SCHEMA_TYPES = {"dataframe"}
@@ -153,7 +153,7 @@ def _deserialize_component_stats(serialized_component_stats):
 
 def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
-    from pandera import DataFrameSchema, Column, Index, MultiIndex
+    from pandera import Column, DataFrameSchema, Index, MultiIndex
 
     columns, index = None, None
     if serialized_schema["columns"] is not None:

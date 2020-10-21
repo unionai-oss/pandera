@@ -3,10 +3,8 @@
 import pandas as pd
 import pytest
 
-from pandera import errors
-from pandera import Column, DataFrameSchema, Float, Int, String, Hypothesis
+from pandera import Column, DataFrameSchema, Float, Hypothesis, Int, String, errors
 from pandera.hypotheses import HAS_SCIPY
-
 
 if HAS_SCIPY:
     from scipy import stats

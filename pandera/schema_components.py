@@ -1,15 +1,14 @@
 """Components used in pandera schemas."""
 
 from copy import copy
-
-from typing import Union, Optional, Tuple, Any, List, Dict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from . import errors
 from .dtypes import PandasDtype
-from .schemas import DataFrameSchema, SeriesSchemaBase, CheckList, PandasDtypeInputTypes
+from .schemas import CheckList, DataFrameSchema, PandasDtypeInputTypes, SeriesSchemaBase
 
 
 def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:

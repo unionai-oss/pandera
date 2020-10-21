@@ -1,17 +1,17 @@
 """Core pandera schema class definitions."""
 # pylint: disable=too-many-lines
 
-import json
 import copy
+import json
 import warnings
 from functools import wraps
 from pathlib import Path
-from typing import Callable, List, Optional, Union, Dict, Any
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from packaging import version
 
-from . import errors, constants, dtypes
+from . import constants, dtypes, errors
 from .checks import Check
 from .dtypes import PandasDtype, PandasExtensionType
 from .error_formatters import (
@@ -22,7 +22,6 @@ from .error_formatters import (
 )
 from .error_handlers import SchemaErrorHandler
 from .hypotheses import Hypothesis
-
 
 N_INDENT_SPACES = 4
 

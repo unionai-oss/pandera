@@ -5,7 +5,6 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 
-
 # pylint: disable=invalid-name
 try:
     PandasExtensionType = pd.core.dtypes.base.ExtensionDtype

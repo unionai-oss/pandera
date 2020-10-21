@@ -1,9 +1,12 @@
 """Data validation checks for hypothesis testing."""
 
 from functools import partial
-from typing import Callable, Union, Optional, List, Dict
+from typing import Callable, Dict, List, Optional, Union
 
 import pandas as pd
+
+from . import errors
+from .checks import DataFrameCheckObj, SeriesCheckObj, _CheckBase
 
 try:
     from scipy import stats
@@ -12,8 +15,6 @@ except ImportError:  # pragma: no cover
 else:
     HAS_SCIPY = True
 
-from . import errors
-from .checks import _CheckBase, SeriesCheckObj, DataFrameCheckObj
 
 DEFAULT_ALPHA = 0.01
 

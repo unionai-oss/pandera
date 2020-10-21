@@ -23,6 +23,11 @@ repos:
       - id: mixed-line-ending
         description: Replaces or checks mixed line ending
 
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.6.4
+    hooks:
+      - id: isort
+
   - repo: https://github.com/psf/black
     rev: 20.8b1
     hooks:
