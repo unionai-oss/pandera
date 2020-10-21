@@ -108,7 +108,6 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
         },
         checks=[],
         index=None,
-        transformer=None,
         coerce=False,
         strict=False
     )
@@ -130,14 +129,13 @@ Supported dtypes
 ----------------
 
 Any dtypes supported by ``pandera`` can be used as type parameters for 
-:class:`pandera.typing.Series` and :class:`pandera.typing.Index`.
+:class:`~pandera.typing.Series` and :class:`~pandera.typing.Index`. There are,
+however, a couple of gotchas:
 
-There are, however, a couple of gotchas:
-
-* The enumeration :class:`pandera.dtypes.PandasDtype` is not directly supported because 
-  the type parameter of a :class:`~typing.Generic` cannot be an enumeration [#dtypes]_. 
-  Instead, you can use the :mod:`pandera.typing` counterparts:
-  :data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
+1. The enumeration :class:`~pandera.dtypes.PandasDtype` is not directly supported because 
+   the type parameter of a :class:`typing.Generic` cannot be an enumeration [#dtypes]_. 
+   Instead, you can use the :mod:`pandera.typing` counterparts:
+   :data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
 
 :green:`✔` Good: 
 
@@ -164,7 +162,7 @@ There are, however, a couple of gotchas:
     ...
     AttributeError: type object 'Generic' has no attribute 'value'
 
-* You must give a **type**, not an **instance**.
+2. You must give a **type**, not an **instance**.
 
 :green:`✔` Good:
 
@@ -285,7 +283,6 @@ the class-based API:
         },
         checks=[],
         index=None,
-        transformer=None,
         coerce=True,
         strict=True
     )
@@ -339,17 +336,17 @@ Column/Index checks
         def check_idx(cls, idx: Index[int]) -> Series[bool]:
             return idx.str.contains("dog")
 
-Note that:
+.. note::
 
-* You can supply the key-word arguments of the :class:`~pandera.checks.Check` class
-  initializer to get the flexibility of :ref:`groupby checks <column_check_groups>`
-* Similarly to ``pydantic``, :func:`classmethod` decorator is added behind the scenes 
-  if omitted.
-* You still may need to add the `@classmethod` decorator **after** the 
-  :func:`~pandera.model_components.check` decorator if your static-type checker or 
-  linter complains.  
-* Since ``checks`` are class methods, the first argument value they receive is a 
-  SchemaModel subclass, not an instance of a model.
+    * You can supply the key-word arguments of the :class:`~pandera.checks.Check` class
+      initializer to get the flexibility of :ref:`groupby checks <column_check_groups>`
+    * Similarly to ``pydantic``, :func:`classmethod` decorator is added behind the scenes 
+      if omitted.
+    * You still may need to add the ``@classmethod`` decorator *after* the 
+      :func:`~pandera.model_components.check` decorator if your static-type checker or 
+      linter complains.  
+    * Since ``checks`` are class methods, the first argument value they receive is a 
+      SchemaModel subclass, not an instance of a model.
 
 .. testcode:: dataframe_schema_model
 
@@ -422,7 +419,7 @@ The custom checks are inherited and therefore can be overwritten by the subclass
     import pandera as pa
     from pandera.typing import Index, Series
 
-    class Base(pa.SchemaModel):
+    class Parent(pa.SchemaModel):
 
         a: Series[int] = pa.Field(coerce=True)
 
@@ -431,7 +428,7 @@ The custom checks are inherited and therefore can be overwritten by the subclass
             return a < 100
 
 
-    class Child(pa.SchemaModel):
+    class Child(Parent):
 
         a: Series[int] = pa.Field(coerce=False)
 

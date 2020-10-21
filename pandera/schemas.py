@@ -794,23 +794,21 @@ class SeriesSchemaBase():
                     return str(dtype_())
                 except (TypeError, AttributeError) as err:
                     raise TypeError(
-                        f"Pandas dtype {dtype_} cannot be instantiated: {err}\n"
-                        + "Usage Tip: Use an instance or a string representation."
+                        f"Pandas dtype {dtype_} cannot be instantiated: "
+                        f"{err}\n Usage Tip: Use an instance or a string "
+                        "representation."
                     ) from err
             return str(dtype_)
 
         if dtype_ in dtypes.NUMPY_TYPES:
-            dtype = PandasDtype.from_numpy_type(dtype_).str_alias
-
-        if isinstance(dtype_, str):
+            dtype_ = PandasDtype.from_numpy_type(dtype_)
+        elif isinstance(dtype_, str):
             dtype_ = PandasDtype.from_str_alias(dtype_)
-
-        if isinstance(dtype_, type):
+        elif isinstance(dtype_, type):
             dtype_ = PandasDtype.from_python_type(dtype_)
 
         if isinstance(dtype_, dtypes.PandasDtype):
             return dtype_.str_alias
-
         raise TypeError(
             "type of `pandas_dtype` argument not recognized: %s "
             "Please specify a pandera PandasDtype enum, legal pandas data "
