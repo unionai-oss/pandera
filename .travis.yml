@@ -89,6 +89,7 @@ script:
   - python ./scripts/generate_pip_deps_from_conda.py --compare
   # Formatting
   - isort --check-only pandera tests
+  - black --check pandera tests
   # Linting
   - pylint pandera tests
   # Type checking
