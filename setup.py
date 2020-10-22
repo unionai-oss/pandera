@@ -40,7 +40,9 @@ setup(
     install_requires=[
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
-        "wrapt"
+        "typing_extensions ; python_version<'3.8'",
+        "typing_inspect >= 0.6.0",
+        "wrapt",
     ],
     extras_require=extras_require,
     python_requires='>=3.6',
