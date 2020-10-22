@@ -3,7 +3,17 @@
 import functools
 import inspect
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    NoReturn,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import pandas as pd
 import wrapt
@@ -150,7 +160,7 @@ def check_input(
             decorated function was called.
         """
         args = list(args)
-        validate_args = (head, tail, sample, random_state, lazy)
+        validate_args = (head, tail, sample, random_state, lazy, inplace)
         if isinstance(obj_getter, int):
             try:
                 args[obj_getter] = schema.validate(args[obj_getter])
@@ -170,7 +180,9 @@ def check_input(
                 ) from exc
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:
-                kwargs[obj_getter] = schema.validate(kwargs[obj_getter], *validate_args)
+                kwargs[obj_getter] = schema.validate(
+                    kwargs[obj_getter], *validate_args
+                )
             else:
                 arg_spec_args = _get_fn_argnames(fn)
                 args_dict = OrderedDict(zip(arg_spec_args, args))
@@ -197,7 +209,9 @@ def check_input(
                     "check_input", fn, schema, kwargs[args_names[0]], e
                 )
         else:
-            raise TypeError("obj_getter is unrecognized type: %s" % type(obj_getter))
+            raise TypeError(
+                "obj_getter is unrecognized type: %s" % type(obj_getter)
+            )
         return fn(*args, **kwargs)
 
     return _wrapper
@@ -300,9 +314,13 @@ def check_output(
         elif callable(obj_getter):
             obj = obj_getter(out)
         else:
-            raise TypeError("obj_getter is unrecognized type: %s" % type(obj_getter))
+            raise TypeError(
+                "obj_getter is unrecognized type: %s" % type(obj_getter)
+            )
         try:
-            schema.validate(obj, head, tail, sample, random_state, lazy)
+            schema.validate(
+                obj, head, tail, sample, random_state, lazy, inplace
+            )
         except errors.SchemaError as e:
             _handle_schema_error("check_output", fn, schema, obj, e)
 
@@ -352,7 +370,7 @@ def check_io(
         data structure referenced by the argument name.
     :returns: wrapped function
     """
-    check_args = (head, tail, sample, random_state, lazy)
+    check_args = (head, tail, sample, random_state, lazy, inplace)
 
     @wrapt.decorator
     def _wrapper(
@@ -379,7 +397,9 @@ def check_io(
         elif isinstance(out, tuple):
             out_schemas = [out]
         else:
-            raise TypeError(f"type of out argument not recognized: {type(out)}")
+            raise TypeError(
+                f"type of out argument not recognized: {type(out)}"
+            )
 
         wrapped_fn = fn
         for input_getter, input_schema in inputs.items():
@@ -390,7 +410,9 @@ def check_io(
 
         # pylint: disable=no-value-for-parameter
         for out_getter, out_schema in out_schemas:  # type: ignore
-            wrapped_fn = check_output(out_schema, out_getter, *check_args)(wrapped_fn)
+            wrapped_fn = check_output(out_schema, out_getter, *check_args)(
+                wrapped_fn
+            )
 
         return wrapped_fn(*args, **kwargs)
 
@@ -432,6 +454,7 @@ def check_types(
             sample=sample,
             random_state=random_state,
             lazy=lazy,
+            inplace=inplace,
         )
 
     @wrapt.decorator
@@ -457,9 +480,13 @@ def check_types(
             model = cast(SchemaModel, annotation_info.arg)
             schema = model.to_schema()
             try:
-                schema.validate(arg_value, head, tail, sample, random_state, lazy)
+                schema.validate(
+                    arg_value, head, tail, sample, random_state, lazy, inplace
+                )
             except errors.SchemaError as e:
-                _handle_schema_error("check_types", wrapped, schema, arg_value, e)
+                _handle_schema_error(
+                    "check_types", wrapped, schema, arg_value, e
+                )
 
         out = wrapped(*args, **kwargs)
 
@@ -471,7 +498,9 @@ def check_types(
             model = cast(SchemaModel, annotation_info.arg)
             schema = model.to_schema()
             try:
-                schema.validate(out, head, tail, sample, random_state, lazy)
+                schema.validate(
+                    out, head, tail, sample, random_state, lazy, inplace
+                )
             except errors.SchemaError as e:
                 _handle_schema_error("check_types", wrapped, out, "return", e)
 
