@@ -286,7 +286,7 @@ def test_check_io():
     @check_io(df=schema, out=schema, lazy=True)
     def validate_lazy(df):
         return df
-    
+
     @check_io(df=schema, out=schema, inplace=True)
     def validate_inplace(df):
         return df
