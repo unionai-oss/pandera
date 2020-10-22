@@ -4,6 +4,7 @@ conditions necessary for the doctests to pass properly exist on the host
 system."""
 
 import pandas as pd
+
 from docs.source import conf
 
 

@@ -5,26 +5,24 @@ import operator
 import re
 from collections import namedtuple
 from functools import partial, wraps
-from typing import Any, Dict, Union, Optional, List, Callable, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from . import errors, constants
-
+from . import constants, errors
 
 CheckResult = namedtuple(
-    "CheckResult", [
+    "CheckResult",
+    [
         "check_output",
         "check_passed",
         "checked_object",
         "failure_cases",
-    ])
+    ],
+)
 
 
-GroupbyObject = Union[
-    pd.core.groupby.SeriesGroupBy,
-    pd.core.groupby.DataFrameGroupBy
-]
+GroupbyObject = Union[pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy]
 
 SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
@@ -34,7 +32,6 @@ def register_check_statistics(statistics_args):
     """Decorator to set statistics based on Check method."""
 
     def register_check_statistics_decorator(class_method):
-
         @wraps(class_method)
         def _wrapper(cls, *args, **kwargs):
             args = list(args)
@@ -42,7 +39,8 @@ def register_check_statistics(statistics_args):
             args_dict = {**dict(zip(arg_spec_args, args)), **kwargs}
             check = class_method(cls, *args, **kwargs)
             check.statistics = {
-                stat: args_dict.get(stat) for stat in statistics_args
+                stat: args_dict.get(stat)
+                for stat in statistics_args
                 if args_dict.get(stat) is not None
             }
             check.statistics_args = statistics_args
@@ -53,21 +51,21 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-class _CheckBase():
+class _CheckBase:
     """Check base class."""
 
     def __init__(
-            self,
-            check_fn: Callable,
-            groups: Optional[Union[str, List[str]]] = None,
-            groupby: Optional[Union[str, List[str], Callable]] = None,
-            ignore_na: bool = True,
-            element_wise: bool = False,
-            name: str = None,
-            error: Optional[str] = None,
-            raise_warning: bool = False,
-            n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
-            **check_kwargs
+        self,
+        check_fn: Callable,
+        groups: Optional[Union[str, List[str]]] = None,
+        groupby: Optional[Union[str, List[str], Callable]] = None,
+        ignore_na: bool = True,
+        element_wise: bool = False,
+        name: str = None,
+        error: Optional[str] = None,
+        raise_warning: bool = False,
+        n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
+        **check_kwargs
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
@@ -179,15 +177,13 @@ class _CheckBase():
         """
 
         if element_wise and groupby is not None:
-            raise errors.SchemaInitError(
-                "Cannot use groupby when element_wise=True.")
+            raise errors.SchemaInitError("Cannot use groupby when element_wise=True.")
         self._check_fn = check_fn
         self._check_kwargs = check_kwargs
         self.element_wise = element_wise
         self.error = error
         self.name = name or getattr(
-            self._check_fn, '__name__',
-            self._check_fn.__class__.__name__
+            self._check_fn, "__name__", self._check_fn.__class__.__name__
         )
         self.ignore_na = ignore_na
         self.raise_warning = raise_warning
@@ -196,7 +192,8 @@ class _CheckBase():
         if groupby is None and groups is not None:
             raise ValueError(
                 "`groupby` argument needs to be provided when `groups` "
-                "argument is defined")
+                "argument is defined"
+            )
 
         if isinstance(groupby, str):
             groupby = [groupby]
@@ -220,8 +217,8 @@ class _CheckBase():
 
     @staticmethod
     def _format_groupby_input(
-            groupby_obj: GroupbyObject,
-            groups: Optional[List[str]],
+        groupby_obj: GroupbyObject,
+        groups: Optional[List[str]],
     ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
         """Format groupby object into dict of groups to Series or DataFrame.
 
@@ -236,16 +233,14 @@ class _CheckBase():
         if invalid_groups:
             raise KeyError(
                 "groups %s provided in `groups` argument not a valid group "
-                "key. Valid group keys: %s" % (invalid_groups, group_keys))
+                "key. Valid group keys: %s" % (invalid_groups, group_keys)
+            )
         return {
-            group_key: group for group_key, group in groupby_obj
-            if group_key in groups
+            group_key: group for group_key, group in groupby_obj if group_key in groups
         }
 
     def _prepare_series_input(
-            self,
-            series: pd.Series,
-            dataframe_context: Optional[pd.DataFrame] = None
+        self, series: pd.Series, dataframe_context: Optional[pd.DataFrame] = None
     ) -> SeriesCheckObj:
         """Prepare input for Column check.
 
@@ -260,19 +255,18 @@ class _CheckBase():
         if dataframe_context is None or self.groupby is None:
             return series
         if isinstance(self.groupby, list):
-            groupby_obj = (
-                pd.concat([series, dataframe_context[self.groupby]], axis=1)
-                .groupby(self.groupby)[series.name]
-            )
+            groupby_obj = pd.concat(
+                [series, dataframe_context[self.groupby]], axis=1
+            ).groupby(self.groupby)[series.name]
             return self._format_groupby_input(groupby_obj, self.groups)
         if callable(self.groupby):
-            groupby_obj = self.groupby(
-                pd.concat([series, dataframe_context], axis=1))[series.name]
+            groupby_obj = self.groupby(pd.concat([series, dataframe_context], axis=1))[
+                series.name
+            ]
             return self._format_groupby_input(groupby_obj, self.groups)
         raise TypeError("Type %s not recognized for `groupby` argument.")
 
-    def _prepare_dataframe_input(
-            self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
+    def _prepare_dataframe_input(self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema check.
 
         :param dataframe: dataframe to validate.
@@ -285,9 +279,8 @@ class _CheckBase():
         return self._format_groupby_input(groupby_obj, self.groups)
 
     def _handle_na(
-            self,
-            df_or_series: Union[pd.DataFrame, pd.Series],
-            column: Optional[str] = None):
+        self, df_or_series: Union[pd.DataFrame, pd.Series], column: Optional[str] = None
+    ):
         """Handle nan values before passing object to check function."""
         if not self.ignore_na:
             return df_or_series
@@ -301,22 +294,20 @@ class _CheckBase():
             for col in self.groupby:
                 # raise schema definition error if column is not in the
                 # validated dataframe
-                if isinstance(df_or_series, pd.DataFrame) and \
-                        col not in df_or_series:
+                if isinstance(df_or_series, pd.DataFrame) and col not in df_or_series:
                     raise errors.SchemaDefinitionError(
-                        "`groupby` column '%s' not found" % col)
+                        "`groupby` column '%s' not found" % col
+                    )
             drop_na_columns.extend(self.groupby)
 
         if drop_na_columns:
-            return df_or_series.loc[
-                df_or_series[drop_na_columns].dropna().index
-            ]
+            return df_or_series.loc[df_or_series[drop_na_columns].dropna().index]
         return df_or_series.dropna()
 
     def __call__(
-            self,
-            df_or_series: Union[pd.DataFrame, pd.Series],
-            column: Optional[str] = None,
+        self,
+        df_or_series: Union[pd.DataFrame, pd.Series],
+        column: Optional[str] = None,
     ) -> CheckResult:
         # pylint: disable=too-many-branches
         """Validate pandas DataFrame or Series.
@@ -344,41 +335,46 @@ class _CheckBase():
 
         column_dataframe_context = None
         if column is not None and isinstance(df_or_series, pd.DataFrame):
-            column_dataframe_context = df_or_series.drop(
-                column, axis="columns")
+            column_dataframe_context = df_or_series.drop(column, axis="columns")
             df_or_series = df_or_series[column].copy()
 
         # prepare check object
         if isinstance(df_or_series, pd.Series):
             check_obj = self._prepare_series_input(
-                df_or_series, column_dataframe_context)
+                df_or_series, column_dataframe_context
+            )
         elif isinstance(df_or_series, pd.DataFrame):
             check_obj = self._prepare_dataframe_input(df_or_series)
         else:
             raise ValueError(
                 "object of type %s not supported. Must be a "
-                "Series, a dictionary of Series, or DataFrame" %
-                df_or_series)
+                "Series, a dictionary of Series, or DataFrame" % df_or_series
+            )
 
         # apply check function to check object
         check_fn = partial(self._check_fn, **self._check_kwargs)
 
         if self.element_wise:
-            check_output = check_obj.apply(check_fn, axis=1) if \
-                isinstance(check_obj, pd.DataFrame) else \
-                check_obj.map(check_fn) if \
-                isinstance(check_obj, pd.Series) else check_fn(check_obj)
+            check_output = (
+                check_obj.apply(check_fn, axis=1)
+                if isinstance(check_obj, pd.DataFrame)
+                else check_obj.map(check_fn)
+                if isinstance(check_obj, pd.Series)
+                else check_fn(check_obj)
+            )
         else:
             # vectorized check function case
             check_output = check_fn(check_obj)
 
         # failure cases only apply when the check function returns a boolean
         # series that matches the shape and index of the check_obj
-        if isinstance(check_obj, dict) or \
-                isinstance(check_output, bool) or \
-                not isinstance(check_output, (pd.Series, pd.DataFrame)) or \
-                check_obj.shape[0] != check_output.shape[0] or \
-                (check_obj.index != check_output.index).all():
+        if (
+            isinstance(check_obj, dict)
+            or isinstance(check_output, bool)
+            or not isinstance(check_output, (pd.Series, pd.DataFrame))
+            or check_obj.shape[0] != check_output.shape[0]
+            or (check_obj.index != check_output.index).all()
+        ):
             failure_cases = None
         elif isinstance(check_output, pd.Series):
             failure_cases = check_obj[~check_output]
@@ -393,30 +389,28 @@ class _CheckBase():
             )
         else:
             raise TypeError(
-                "output type of check_fn not recognized: %s" %
-                type(check_output)
+                "output type of check_fn not recognized: %s" % type(check_output)
             )
 
         check_passed = (
             check_output.all()
             if isinstance(check_output, pd.Series)
             else check_output.all(axis=None)
-            if isinstance(check_output, pd.DataFrame) else check_output
+            if isinstance(check_output, pd.DataFrame)
+            else check_output
         )
 
-        return CheckResult(
-            check_output, check_passed, check_obj, failure_cases
-        )
+        return CheckResult(check_output, check_passed, check_obj, failure_cases)
 
     def __eq__(self, other):
-        are_fn_objects_equal = \
-            self.__dict__["_check_fn"].__code__.co_code == \
-            other.__dict__["_check_fn"].__code__.co_code
-
-        are_all_other_check_attributes_equal = (
-            {i: self.__dict__[i] for i in self.__dict__ if i != '_check_fn'} ==
-            {i: other.__dict__[i] for i in other.__dict__ if i != '_check_fn'}
+        are_fn_objects_equal = (
+            self.__dict__["_check_fn"].__code__.co_code
+            == other.__dict__["_check_fn"].__code__.co_code
         )
+
+        are_all_other_check_attributes_equal = {
+            i: self.__dict__[i] for i in self.__dict__ if i != "_check_fn"
+        } == {i: other.__dict__[i] for i in other.__dict__ if i != "_check_fn"}
 
         return are_fn_objects_equal and are_all_other_check_attributes_equal
 
@@ -424,8 +418,11 @@ class _CheckBase():
         return hash(self.__dict__["_check_fn"].__code__.co_code)
 
     def __repr__(self):
-        return "<Check %s: %s>" % (self.name, self.error) \
-            if self.error is not None else "<Check %s>" % self.name
+        return (
+            "<Check %s: %s>" % (self.name, self.error)
+            if self.error is not None
+            else "<Check %s>" % self.name
+        )
 
 
 class Check(_CheckBase):
@@ -433,7 +430,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["value"])
-    def equal_to(cls, value, **kwargs) -> 'Check':
+    def equal_to(cls, value, **kwargs) -> "Check":
         """Ensure all elements of a series equal a certain value.
 
         *New in version 0.4.5*
@@ -445,6 +442,7 @@ class Check(_CheckBase):
 
         :returns: :class:`Check` object
         """
+
         def _equal(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
             return series == value
@@ -460,7 +458,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["value"])
-    def not_equal_to(cls, value, **kwargs) -> 'Check':
+    def not_equal_to(cls, value, **kwargs) -> "Check":
         """Ensure no elements of a series equals a certain value.
 
         *New in version 0.4.5*
@@ -472,6 +470,7 @@ class Check(_CheckBase):
 
         :returns: :class:`Check` object
         """
+
         def _not_equal(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
             return series != value
@@ -487,7 +486,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["min_value"])
-    def greater_than(cls, min_value, **kwargs) -> 'Check':
+    def greater_than(cls, min_value, **kwargs) -> "Check":
         """Ensure values of a series are strictly greater than a minimum value.
 
         *New in version 0.4.5*
@@ -518,7 +517,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["min_value"])
-    def greater_than_or_equal_to(cls, min_value, **kwargs) -> 'Check':
+    def greater_than_or_equal_to(cls, min_value, **kwargs) -> "Check":
         """Ensure all values are greater or equal a certain value.
 
         *New in version 0.4.5*
@@ -549,7 +548,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["max_value"])
-    def less_than(cls, max_value, **kwargs) -> 'Check':
+    def less_than(cls, max_value, **kwargs) -> "Check":
         """Ensure values of a series are strictly below a maximum value.
 
         *New in version 0.4.5*
@@ -580,7 +579,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["max_value"])
-    def less_than_or_equal_to(cls, max_value, **kwargs) -> 'Check':
+    def less_than_or_equal_to(cls, max_value, **kwargs) -> "Check":
         """Ensure values are less than or equal to a maximum value.
 
         *New in version 0.4.5*
@@ -604,17 +603,16 @@ class Check(_CheckBase):
             _less_or_equal,
             name=cls.less_than_or_equal_to.__name__,
             error="less_than_or_equal_to(%s)" % max_value,
-            **kwargs
+            **kwargs,
         )
 
     le = less_than_or_equal_to
 
     @classmethod
-    @register_check_statistics([
-        "min_value", "max_value", "include_min", "include_max"])
+    @register_check_statistics(["min_value", "max_value", "include_min", "include_max"])
     def in_range(
-            cls, min_value, max_value, include_min=True, include_max=True,
-            **kwargs) -> 'Check':
+        cls, min_value, max_value, include_min=True, include_max=True, **kwargs
+    ) -> "Check":
         """Ensure all values of a series are within an interval.
 
         :param min_value: Left / lower endpoint of the interval.
@@ -637,11 +635,13 @@ class Check(_CheckBase):
             raise ValueError("min_value must not be None")
         if max_value is None:
             raise ValueError("max_value must not be None")
-        if max_value < min_value or (min_value == max_value
-                                     and (not include_min or not include_max)):
+        if max_value < min_value or (
+            min_value == max_value and (not include_min or not include_max)
+        ):
             raise ValueError(
                 "The combination of min_value = %s and max_value = %s "
-                "defines an empty interval!" % (min_value, max_value))
+                "defines an empty interval!" % (min_value, max_value)
+            )
         # Using functions from operator module to keep conditions out of the
         # closure
         left_op = operator.le if include_min else operator.lt
@@ -660,8 +660,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["allowed_values"])
-    def isin(
-            cls, allowed_values: Iterable, **kwargs) -> 'Check':
+    def isin(cls, allowed_values: Iterable, **kwargs) -> "Check":
         """Ensure only allowed values occur within a series.
 
         :param allowed_values: The set of allowed values. May be any iterable.
@@ -684,8 +683,7 @@ class Check(_CheckBase):
             allowed_values = frozenset(allowed_values)
         except TypeError as exc:
             raise ValueError(
-                "Argument allowed_values must be iterable. Got %s" %
-                allowed_values
+                "Argument allowed_values must be iterable. Got %s" % allowed_values
             ) from exc
 
         def _isin(series: pd.Series) -> pd.Series:
@@ -701,8 +699,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["forbidden_values"])
-    def notin(
-            cls, forbidden_values: Iterable, **kwargs) -> 'Check':
+    def notin(cls, forbidden_values: Iterable, **kwargs) -> "Check":
         """Ensure some defined values don't occur within a series.
 
         :param forbidden_values: The set of values which should not occur. May
@@ -725,8 +722,7 @@ class Check(_CheckBase):
             forbidden_values = frozenset(forbidden_values)
         except TypeError as exc:
             raise ValueError(
-                "Argument forbidden_values must be iterable. Got %s" %
-                forbidden_values
+                "Argument forbidden_values must be iterable. Got %s" % forbidden_values
             ) from exc
 
         def _notin(series: pd.Series) -> pd.Series:
@@ -742,7 +738,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["pattern"])
-    def str_matches(cls, pattern: str, **kwargs) -> 'Check':
+    def str_matches(cls, pattern: str, **kwargs) -> "Check":
         """Ensure that string values match a regular expression.
 
         :param pattern: Regular expression pattern to use for matching
@@ -757,8 +753,7 @@ class Check(_CheckBase):
             regex = re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
-                'pattern="%s" cannot be compiled as regular expression' %
-                pattern
+                'pattern="%s" cannot be compiled as regular expression' % pattern
             ) from exc
 
         def _match(series: pd.Series) -> pd.Series:
@@ -776,8 +771,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["pattern"])
-    def str_contains(
-            cls, pattern: str, **kwargs) -> 'Check':
+    def str_contains(cls, pattern: str, **kwargs) -> "Check":
         """Ensure that a pattern can be found within each row.
 
         :param pattern: Regular expression pattern to use for searching
@@ -792,8 +786,7 @@ class Check(_CheckBase):
             regex = re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
-                'pattern="%s" cannot be compiled as regular expression' %
-                pattern
+                'pattern="%s" cannot be compiled as regular expression' % pattern
             ) from exc
 
         def _contains(series: pd.Series) -> pd.Series:
@@ -809,8 +802,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["string"])
-    def str_startswith(
-            cls, string: str, **kwargs) -> 'Check':
+    def str_startswith(cls, string: str, **kwargs) -> "Check":
         """Ensure that all values start with a certain string.
 
         :param string: String all values should start with
@@ -818,6 +810,7 @@ class Check(_CheckBase):
 
         :returns: :class:`Check` object
         """
+
         def _startswith(series: pd.Series) -> pd.Series:
             """Returns true only for strings starting with string"""
             return series.str.startswith(string, na=False)
@@ -831,7 +824,7 @@ class Check(_CheckBase):
 
     @classmethod
     @register_check_statistics(["string"])
-    def str_endswith(cls, string: str, **kwargs) -> 'Check':
+    def str_endswith(cls, string: str, **kwargs) -> "Check":
         """Ensure that all values end with a certain string.
 
         :param string: String all values should end with
@@ -839,6 +832,7 @@ class Check(_CheckBase):
 
         :returns: :class:`Check` object
         """
+
         def _endswith(series: pd.Series) -> pd.Series:
             """Returns true only for strings ending with string"""
             return series.str.endswith(string, na=False)
@@ -853,10 +847,8 @@ class Check(_CheckBase):
     @classmethod
     @register_check_statistics(["min_value", "max_value"])
     def str_length(
-            cls,
-            min_value: int = None,
-            max_value: int = None,
-            **kwargs) -> 'Check':
+        cls, min_value: int = None, max_value: int = None, **kwargs
+    ) -> "Check":
         """Ensure that the length of strings is within a specified range.
 
         :param min_value: Minimum length of strings (default: no minimum)
@@ -867,21 +859,25 @@ class Check(_CheckBase):
         """
         if min_value is None and max_value is None:
             raise ValueError(
-                "At least a minimum or a maximum need to be specified. Got "
-                "None.")
+                "At least a minimum or a maximum need to be specified. Got " "None."
+            )
         if max_value is None:
+
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for the minimum string length"""
                 return series.str.len() >= min_value
+
         elif min_value is None:
+
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for the maximum string length"""
                 return series.str.len() <= max_value
+
         else:
+
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for both, minimum and maximum string length"""
-                return (series.str.len() <= max_value) & \
-                    (series.str.len() >= min_value)
+                return (series.str.len() <= max_value) & (series.str.len() >= min_value)
 
         return cls(
             _str_length,

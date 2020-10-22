@@ -5,7 +5,6 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 
-
 # pylint: disable=invalid-name
 try:
     PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
@@ -14,20 +13,27 @@ except AttributeError:
 
 
 NUMPY_NONNULLABLE_INT_DTYPES = [
-    "int", "int_", "int8", "int16", "int32", "int64",
-    "uint8", "uint16", "uint32", "uint64",
+    "int",
+    "int_",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
 ]
 
-NUMPY_TYPES = (
-    frozenset([item for sublist in np.sctypes.values() for item in sublist])
-    .union(frozenset([np.complex, np.int, np.uint, np.float]))
-)
+NUMPY_TYPES = frozenset(
+    [item for sublist in np.sctypes.values() for item in sublist]
+).union(frozenset([np.complex, np.int, np.uint, np.float]))
 
 # for int and float dtype, delegate string representation to the
 # default based on OS. In Windows, pandas defaults to int64 while numpy
 # defaults to int32.
 _DEFAULT_PANDAS_INT_TYPE = str(pd.Series([1]).dtype)
-_DEFAULT_PANDAS_FLOAT_TYPE = str(pd.Series([1.]).dtype)
+_DEFAULT_PANDAS_FLOAT_TYPE = str(pd.Series([1.0]).dtype)
 _DEFAULT_PANDAS_COMPLEX_TYPE = str(pd.Series([complex(1)]).dtype)
 _DEFAULT_NUMPY_INT_TYPE = str(np.dtype(int))
 _DEFAULT_NUMPY_FLOAT_TYPE = str(np.dtype(float))
@@ -187,14 +193,11 @@ class PandasDtype(Enum):
             "complex": cls.Complex,
             "complex64": cls.Complex64,
             "complex128": cls.Complex128,
-            "complex256": cls.Complex256
+            "complex256": cls.Complex256,
         }.get(str_alias)
 
         if pandas_dtype is None:
-            raise TypeError(
-                "pandas dtype string alias '%s' not recognized" %
-                str_alias
-            )
+            raise TypeError("pandas dtype string alias '%s' not recognized" % str_alias)
 
         return pandas_dtype
 
@@ -222,10 +225,7 @@ class PandasDtype(Enum):
         }.get(pandas_api_type)
 
         if pandas_dtype is None:
-            raise TypeError(
-                "pandas api type '%s' not recognized" %
-                pandas_api_type
-            )
+            raise TypeError("pandas api type '%s' not recognized" % pandas_api_type)
 
         return pandas_dtype
 
@@ -247,8 +247,7 @@ class PandasDtype(Enum):
 
         if pandas_dtype is None:
             raise TypeError(
-                "python type '%s' not recognized as pandas data type" %
-                python_type
+                "python type '%s' not recognized as pandas data type" % python_type
             )
 
         return pandas_dtype

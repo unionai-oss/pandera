@@ -3,12 +3,12 @@
 import platform
 import tempfile
 from pathlib import Path
-from packaging import version
 
 import pandas as pd
 import pytest
-import pandera as pa
+from packaging import version
 
+import pandera as pa
 
 try:
     from pandera import io
@@ -26,26 +26,23 @@ else:
     PYYAML_VERSION = version.parse(yaml.__version__)  # type: ignore
 
 
-SKIP_YAML_TESTS = (
-    PYYAML_VERSION is None or
-    PYYAML_VERSION.release < (5, 1, 0)  # type: ignore
-)
+SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  # type: ignore
 
 
 # skip all tests in module if "io" depends aren't installed
-pytestmark = pytest.mark.skipif(
-    not HAS_IO, reason='needs "io" module dependencies'
-)
+pytestmark = pytest.mark.skipif(not HAS_IO, reason='needs "io" module dependencies')
 
 
 def _create_schema(index="single"):
 
     if index == "multi":
-        index = pa.MultiIndex([
-            pa.Index(pa.Int, name="int_index0"),
-            pa.Index(pa.Int, name="int_index1"),
-            pa.Index(pa.Int, name="int_index2"),
-        ])
+        index = pa.MultiIndex(
+            [
+                pa.Index(pa.Int, name="int_index0"),
+                pa.Index(pa.Int, name="int_index1"),
+                pa.Index(pa.Int, name="int_index2"),
+            ]
+        )
     elif index == "single":
         # make sure io modules can handle case when index name is None
         index = pa.Index(pa.Int, name=None)
@@ -55,36 +52,41 @@ def _create_schema(index="single"):
     return pa.DataFrameSchema(
         columns={
             "int_column": pa.Column(
-                pa.Int, checks=[
+                pa.Int,
+                checks=[
                     pa.Check.greater_than(0),
                     pa.Check.less_than(10),
                     pa.Check.in_range(0, 10),
                 ],
             ),
             "float_column": pa.Column(
-                pa.Float, checks=[
+                pa.Float,
+                checks=[
                     pa.Check.greater_than(-10),
                     pa.Check.less_than(20),
                     pa.Check.in_range(-10, 20),
                 ],
             ),
             "str_column": pa.Column(
-                pa.String, checks=[
+                pa.String,
+                checks=[
                     pa.Check.isin(["foo", "bar", "x", "xy"]),
-                    pa.Check.str_length(1, 3)
+                    pa.Check.str_length(1, 3),
                 ],
             ),
             "datetime_column": pa.Column(
-                pa.DateTime, checks=[
+                pa.DateTime,
+                checks=[
                     pa.Check.greater_than(pd.Timestamp("20100101")),
                     pa.Check.less_than(pd.Timestamp("20200101")),
-                ]
+                ],
             ),
             "timedelta_column": pa.Column(
-                pa.Timedelta, checks=[
+                pa.Timedelta,
+                checks=[
                     pa.Check.greater_than(pd.Timedelta(1000, unit="ns")),
                     pa.Check.less_than(pd.Timedelta(10000, unit="ns")),
-                ]
+                ],
             ),
             "optional_props_column": pa.Column(
                 pa.String,
@@ -93,14 +95,12 @@ def _create_schema(index="single"):
                 coerce=True,
                 required=False,
                 regex=True,
-                checks=[
-                    pa.Check.str_length(1, 3)
-                ],
-                ),
+                checks=[pa.Check.str_length(1, 3)],
+            ),
         },
         index=index,
         coerce=False,
-        strict=True
+        strict=True,
     )
 
 
@@ -189,7 +189,9 @@ index:
   coerce: false
 coerce: false
 strict: true
-""".format(version=pa.__version__)
+""".format(
+    version=pa.__version__
+)
 
 
 def _create_schema_null_index():
@@ -197,20 +199,22 @@ def _create_schema_null_index():
     return pa.DataFrameSchema(
         columns={
             "float_column": pa.Column(
-                pa.Float, checks=[
+                pa.Float,
+                checks=[
                     pa.Check.greater_than(-10),
                     pa.Check.less_than(20),
                     pa.Check.in_range(-10, 20),
-                ]
+                ],
             ),
             "str_column": pa.Column(
-                pa.String, checks=[
+                pa.String,
+                checks=[
                     pa.Check.isin(["foo", "bar", "x", "xy"]),
-                    pa.Check.str_length(1, 3)
-                ]
+                    pa.Check.str_length(1, 3),
+                ],
             ),
         },
-        index=None
+        index=None,
     )
 
 
@@ -242,7 +246,9 @@ columns:
 index: null
 coerce: false
 strict: false
-""".format(version=pa.__version__)
+""".format(
+    version=pa.__version__
+)
 
 YAML_VALIDATION_PAIRS = [
     # [YAML_SCHEMA, _create_schema],
@@ -256,11 +262,13 @@ YAML_VALIDATION_PAIRS = [
 )
 def test_inferred_schema_io():
     """Test that inferred schema can be writted to yaml."""
-    df = pd.DataFrame({
-        "column1": [5, 10, 20],
-        "column2": [5., 1., 3.],
-        "column3": ["a", "b", "c"],
-    })
+    df = pd.DataFrame(
+        {
+            "column1": [5, 10, 20],
+            "column2": [5.0, 1.0, 3.0],
+            "column3": ["a", "b", "c"],
+        }
+    )
     schema = pa.infer_schema(df)
     schema_yaml_str = schema.to_yaml()
     schema_from_yaml = io.from_yaml(schema_yaml_str)
@@ -310,7 +318,7 @@ def test_io_yaml_file_obj():
 
 @pytest.mark.skipif(
     platform.system() == "Windows",
-    reason="skipping due to issues with opening file names for temp files."
+    reason="skipping due to issues with opening file names for temp files.",
 )
 @pytest.mark.parametrize("index", ["single", "multi", None])
 def test_io_yaml(index):
@@ -334,11 +342,9 @@ def test_io_yaml(index):
 
 @pytest.mark.skipif(
     platform.system() == "Windows",
-    reason="skipping due to issues with opening file names for temp files."
+    reason="skipping due to issues with opening file names for temp files.",
 )
-@pytest.mark.parametrize("index", [
-    "single", "multi", None
-])
+@pytest.mark.parametrize("index", ["single", "multi", None])
 def test_to_script(index):
     """Test writing DataFrameSchema to a script."""
     schema_to_write = _create_schema(index)
@@ -364,24 +370,27 @@ def test_to_script(index):
 
 def test_to_script_lambda_check():
     """Test writing DataFrameSchema to a script with lambda check."""
-    schema = pa.DataFrameSchema({
-        "a": pa.Column(
-            pa.Int,
-            checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
-        ),
-    })
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int, checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
+            ),
+        }
+    )
 
     with pytest.warns(UserWarning):
         pa.io.to_script(schema)
 
+
 def test_to_yaml_lambda_check():
     """Test writing DataFrameSchema to a yaml with lambda check."""
-    schema = pa.DataFrameSchema({
-        "a": pa.Column(
-            pa.Int,
-            checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
-        ),
-    })
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int, checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
+            ),
+        }
+    )
 
     with pytest.warns(UserWarning):
         pa.io.to_yaml(schema)

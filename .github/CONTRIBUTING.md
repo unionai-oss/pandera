@@ -5,7 +5,7 @@ and suggestions are welcome!
 
 ## Getting Started
 
-If you are looking to contribute to the *pandera* codebase, the best place to
+If you are looking to contribute to the _pandera_ codebase, the best place to
 start is the [GitHub "issues" tab](https://github.com/pandera-dev/pandera/issues).
 This is also a great place for filing bug reports and making suggestions for
 ways in which we can improve the code and documentation.
@@ -25,61 +25,65 @@ We have guidelines regarding dataframe and schema styles that are encouraged
 for each pull request:
 
 - If specifying a single column DataFrame, this can be expressed as a one-liner:
-    ```python
-    DataFrameSchema({"col1": Column(...)})
-    ```
+
+  ```python
+  DataFrameSchema({"col1": Column(...)})
+  ```
 
 - If specifying one column with multiple lines, or multiple columns:
-    ```python
-    DataFrameSchema(
-        {
-            "col1": Column(
-                int,
-                checks=[
-                    Check(...),
-                    Check(...),
-                ]
-            ),
-        }
-    )
-    ```
+
+  ```python
+  DataFrameSchema(
+      {
+          "col1": Column(
+              int,
+              checks=[
+                  Check(...),
+                  Check(...),
+              ]
+          ),
+      }
+  )
+  ```
 
 - If specifying columns with additional arguments that fit in one line:
-    ```python
-    DataFrameSchema(
-        {"a": Column(int, nullable=True)},
-        strict=True
-    )
-    ```
+
+  ```python
+  DataFrameSchema(
+      {"a": Column(int, nullable=True)},
+      strict=True
+  )
+  ```
 
 - If specifying columns with additional arguments that don't fit in one line:
-    ```python
-    DataFrameSchema(
-        {
-            "a": Column(
-                int,
-                nullable=True,
-                coerce=True,
-                ...
-            ),
-            "b": Column(
-                ...,
-            )
-        },
-        strict=True)
-    ```
+  ```python
+  DataFrameSchema(
+      {
+          "a": Column(
+              int,
+              nullable=True,
+              coerce=True,
+              ...
+          ),
+          "b": Column(
+              ...,
+          )
+      },
+      strict=True)
+  ```
 
 ### Set up `pre-commit`
 
 This project uses [pre-commit](https://pre-commit.com/) to ensure that code
 standard checks pass locally before pushing to the remote project repo. Follow
 the [installation instructions](https://pre-commit.com/#installation), then
-set up hooks with `pre-commit install`. After `pylint` and `mypy` checks should
+set up hooks with `pre-commit install`. After, `black`, `pylint` and `mypy` checks should
 be run with every commit.
 
 ### Run the tests
+
 Before submitting your changes for review, make sure to check that your changes
-do not break any tests by running: ``pytest tests/``
+do not break any tests by running: `pytest tests/`
 
 Additionally, sphinxdocs may block you; make sure that the docs build
 successfully:
@@ -91,7 +95,7 @@ make docs
 ### Raising Pull Requests
 
 Once your changes are ready to be submitted, make sure to push your changes to
-your fork of the GitHub repo before creating a pull request.  We will review
+your fork of the GitHub repo before creating a pull request. We will review
 your changes, and might ask you to make additional changes before it is finally
 ready to merge. However, once it's ready, we will merge it, and you will have
 successfully contributed to the codebase!

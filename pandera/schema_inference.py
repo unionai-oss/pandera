@@ -4,17 +4,17 @@ from typing import Union
 
 import pandas as pd
 
-from .schemas import DataFrameSchema, SeriesSchema
 from .schema_components import Column, Index, MultiIndex
 from .schema_statistics import (
     infer_dataframe_statistics,
     infer_series_statistics,
     parse_check_statistics,
 )
+from .schemas import DataFrameSchema, SeriesSchema
 
 
 def infer_schema(
-        pandas_obj: Union[pd.DataFrame, pd.Series]
+    pandas_obj: Union[pd.DataFrame, pd.Series]
 ) -> Union[DataFrameSchema, SeriesSchema]:
     """Infer schema for pandas DataFrame or Series object.
 

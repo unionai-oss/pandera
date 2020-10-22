@@ -8,7 +8,7 @@ Schema Inference
 *New in version 0.4.0*
 
 .. warning::
-   
+
    This functionality is experimental. Use with caution!
 
 With simple use cases, writing a schema definition manually is pretty

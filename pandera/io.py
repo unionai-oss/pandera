@@ -1,29 +1,28 @@
 """Module for reading and writing schema objects."""
 
+import warnings
 from functools import partial
 from pathlib import Path
-import warnings
 
 import pandas as pd
+
+from .dtypes import PandasDtype
+from .schema_statistics import get_dataframe_schema_statistics
+
 try:
     import black
     import yaml
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
         'IO and formatting requires "pyyaml" and "black" to be installed. \n'
-        'You can install pandera together with the IO dependencies with: \n'
+        "You can install pandera together with the IO dependencies with: \n"
         "pip install pandera[io]\n"
     ) from exc
-
-from .dtypes import PandasDtype
-from .schema_statistics import get_dataframe_schema_statistics
 
 
 SCHEMA_TYPES = {"dataframe"}
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-NOT_JSON_SERIALIZABLE = {
-    PandasDtype.DateTime, PandasDtype.Timedelta
-}
+NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 
 def _serialize_check_stats(check_stats, pandas_dtype):
@@ -57,8 +56,10 @@ def _serialize_component_stats(component_stats):
         serialized_checks = {}
         for check_name, check_stats in component_stats["checks"].items():
             if check_stats is None:
-                warnings.warn(f"Check {check_name} cannot be serialized. This check will be "
-                              f"ignored")
+                warnings.warn(
+                    f"Check {check_name} cannot be serialized. This check will be "
+                    f"ignored"
+                )
             else:
                 serialized_checks[check_name] = _serialize_check_stats(
                     check_stats, component_stats["pandas_dtype"]
@@ -68,10 +69,10 @@ def _serialize_component_stats(component_stats):
         "nullable": component_stats["nullable"],
         "checks": serialized_checks,
         **{
-            key: component_stats.get(key) for key in
-            ["name", "allow_duplicates", "coerce", "required", "regex"]
+            key: component_stats.get(key)
+            for key in ["name", "allow_duplicates", "coerce", "required", "regex"]
             if key in component_stats
-        }
+        },
     }
 
 
@@ -105,7 +106,6 @@ def _serialize_schema(dataframe_schema):
 
 
 def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype):
-
     def handle_stat_dtype(stat):
         if pandas_dtype == PandasDtype.DateTime:
             return pd.to_datetime(stat, format=DATETIME_FORMAT)
@@ -137,24 +137,23 @@ def _deserialize_component_stats(serialized_component_stats):
             _deserialize_check_stats(
                 getattr(Check, check_name), check_stats, pandas_dtype
             )
-            for check_name, check_stats
-            in serialized_component_stats["checks"].items()
+            for check_name, check_stats in serialized_component_stats["checks"].items()
         ]
     return {
         "pandas_dtype": pandas_dtype,
         "nullable": serialized_component_stats["nullable"],
         "checks": checks,
         **{
-            key: serialized_component_stats.get(key) for key in
-            ["name", "allow_duplicates", "coerce", "required", "regex"]
+            key: serialized_component_stats.get(key)
+            for key in ["name", "allow_duplicates", "coerce", "required", "regex"]
             if key in serialized_component_stats
-        }
+        },
     }
 
 
 def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
-    from pandera import DataFrameSchema, Column, Index, MultiIndex
+    from pandera import Column, DataFrameSchema, Index, MultiIndex
 
     columns, index = None, None
     if serialized_schema["columns"] is not None:
@@ -174,9 +173,9 @@ def _deserialize_schema(serialized_schema):
     elif len(index) == 1:
         index = Index(**index[0])
     else:
-        index = MultiIndex(indexes=[
-            Index(**index_properties) for index_properties in index
-        ])
+        index = MultiIndex(
+            indexes=[Index(**index_properties) for index_properties in index]
+        )
 
     return DataFrameSchema(
         columns=columns,
@@ -265,32 +264,34 @@ def _format_checks(checks_dict):
     checks = []
     for check_name, check_kwargs in checks_dict.items():
         if check_kwargs is None:
-            warnings.warn(f"Check {check_name} cannot be serialized. This check will be ignored")
+            warnings.warn(
+                f"Check {check_name} cannot be serialized. This check will be ignored"
+            )
         else:
             args = ", ".join(
                 "{}={}".format(k, v.__repr__()) for k, v in check_kwargs.items()
             )
             checks.append("Check.{}({})".format(check_name, args))
-    return "[{}]".format(', '.join(checks))
+    return "[{}]".format(", ".join(checks))
 
 
 def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
         index_code = INDEX_TEMPLATE.format(
-            pandas_dtype="PandasDtype.{}".format(
-                properties['pandas_dtype'].name
-            ),
+            pandas_dtype="PandasDtype.{}".format(properties["pandas_dtype"].name),
             checks=(
-                "None" if properties["checks"] is None else
-                _format_checks(properties["checks"])
+                "None"
+                if properties["checks"] is None
+                else _format_checks(properties["checks"])
             ),
             nullable=properties["nullable"],
             coerce=properties["coerce"],
             name=(
-                "None" if properties["name"] is None else
-                '"{}"'.format(properties["name"])
-            )
+                "None"
+                if properties["name"] is None
+                else '"{}"'.format(properties["name"])
+            ),
         )
         index.append(index_code.strip())
 
@@ -301,9 +302,7 @@ def _format_index(index_statistics):
 
 
 def _format_script(script):
-    formatter = partial(
-        black.format_str, mode=black.FileMode(line_length=80)
-    )
+    formatter = partial(black.format_str, mode=black.FileMode(line_length=80))
     return formatter(script)
 
 
@@ -320,9 +319,7 @@ def to_script(dataframe_schema, path_or_buf=None):
     columns = {}
     for colname, properties in statistics["columns"].items():
         column_code = COLUMN_TEMPLATE.format(
-            pandas_dtype="PandasDtype.{}".format(
-                properties['pandas_dtype'].name
-            ),
+            pandas_dtype="PandasDtype.{}".format(properties["pandas_dtype"].name),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
             allow_duplicates=properties["allow_duplicates"],
@@ -332,8 +329,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         )
         columns[colname] = column_code.strip()
 
-    index = None if statistics["index"] is None else \
-        _format_index(statistics["index"])
+    index = None if statistics["index"] is None else _format_index(statistics["index"])
 
     column_str = ", ".join("'{}': {}".format(k, v) for k, v in columns.items())
 

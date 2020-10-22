@@ -5,15 +5,15 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-
 ErrorData = namedtuple(
-    "ErrorData", [
+    "ErrorData",
+    [
         "data",
         "error_counts",
         "column_errors",
         "type_errors",
         "check_errors",
-    ]
+    ],
 )
 
 
@@ -29,8 +29,8 @@ class SchemaError(Exception):
     """Raised when object does not pass schema validation constraints."""
 
     def __init__(
-            self, schema, data, message,
-            failure_cases=None, check=None, check_index=None):
+        self, schema, data, message, failure_cases=None, check=None, check_index=None
+    ):
         super().__init__(message)
         self.schema = schema
         self.data = data
@@ -60,8 +60,7 @@ class SchemaErrors(Exception):
     """Raised when multiple schema are lazily collected into one error."""
 
     def __init__(self, schema_error_dicts, data):
-        error_counts, schema_errors = self._parse_schema_errors(
-            schema_error_dicts)
+        error_counts, schema_errors = self._parse_schema_errors(schema_error_dicts)
         super().__init__(self._message(error_counts, schema_errors))
         self._schema_error_dicts = schema_error_dicts
         self.error_counts = error_counts
@@ -71,8 +70,7 @@ class SchemaErrors(Exception):
     @staticmethod
     def _message(error_counts, schema_errors):
         """Format error message."""
-        msg = "A total of %s schema errors were found.\n" % \
-            sum(error_counts.values())
+        msg = "A total of %s schema errors were found.\n" % sum(error_counts.values())
 
         msg += "\nError Counts"
         msg += "\n------------\n"
@@ -83,8 +81,7 @@ class SchemaErrors(Exception):
             return list(set(x))
 
         agg_schema_errors = (
-            schema_errors
-            .fillna({"column": "<NA>"})
+            schema_errors.fillna({"column": "<NA>"})
             .groupby(["schema_context", "column", "check"])
             .failure_case.agg([failure_cases])
             .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
@@ -109,8 +106,12 @@ class SchemaErrors(Exception):
         check_failure_cases = []
 
         column_order = [
-            "schema_context", "column", "check", "check_number",
-            "failure_case", "index",
+            "schema_context",
+            "column",
+            "check",
+            "check_number",
+            "failure_case",
+            "index",
         ]
 
         for schema_error_dict in schema_error_dicts:
@@ -118,11 +119,17 @@ class SchemaErrors(Exception):
             err = schema_error_dict["error"]
 
             error_counts[reason_code] += 1
-            check_identifier = None if err.check is None \
-                else err.check if isinstance(err.check, str) \
-                else err.check.error if err.check.error is not None \
-                else err.check.name if err.check.name is not None \
+            check_identifier = (
+                None
+                if err.check is None
+                else err.check
+                if isinstance(err.check, str)
+                else err.check.error
+                if err.check.error is not None
+                else err.check.name
+                if err.check.name is not None
                 else str(err.check)
+            )
 
             if err.failure_cases is not None:
                 if "column" in err.failure_cases:
@@ -138,12 +145,13 @@ class SchemaErrors(Exception):
                     schema_context=err.schema.__class__.__name__,
                     check=check_identifier,
                     check_number=err.check_index,
-                    column=column
+                    column=column,
                 )
                 check_failure_cases.append(failure_cases[column_order])
 
         schema_errors = (
-            pd.concat(check_failure_cases).reset_index(drop=True)
+            pd.concat(check_failure_cases)
+            .reset_index(drop=True)
             .sort_values("schema_context", ascending=False)
         )
         return error_counts, schema_errors

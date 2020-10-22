@@ -1,4 +1,4 @@
-.. empty 
+.. empty
 
 {{ fullname | escape | underline }}
 

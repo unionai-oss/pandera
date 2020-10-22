@@ -5,7 +5,7 @@ from typing import List
 from .errors import SchemaError
 
 
-class SchemaErrorHandler():
+class SchemaErrorHandler:
     """Handler for SchemaError objects during validation."""
 
     def __init__(self, lazy: bool) -> None:
@@ -18,8 +18,11 @@ class SchemaErrorHandler():
         self._collected_errors = []  # type: ignore
 
     def collect_error(
-            self, reason_code: str, schema_error: SchemaError,
-            original_exc: BaseException = None):
+        self,
+        reason_code: str,
+        schema_error: SchemaError,
+        original_exc: BaseException = None,
+    ):
         """Collect schema error, raising exception if lazy is False.
 
         :param reason_code: string representing reason for error
@@ -34,10 +37,12 @@ class SchemaErrorHandler():
         del schema_error.data
         schema_error.data = None
 
-        self._collected_errors.append({
-            "reason_code": reason_code,
-            "error": schema_error,
-        })
+        self._collected_errors.append(
+            {
+                "reason_code": reason_code,
+                "error": schema_error,
+            }
+        )
 
     @property
     def collected_errors(self) -> List[SchemaError]:

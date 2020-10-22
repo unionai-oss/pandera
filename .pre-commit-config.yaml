@@ -1,14 +1,49 @@
+exclude: (^asv_bench|setup.py|requirements-dev.txt)
+
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.3.0
+    hooks:
+      - id: check-ast
+        description: Simply check whether files parse as valid python
+      - id: check-case-conflict
+        description: Check for files that would conflict in case-insensitive filesystems
+      - id: check-docstring-first
+        description: Checks for a common error of placing code before the docstring.
+      - id: check-merge-conflict
+        description: Check for files that contain merge conflict strings
+      - id: check-yaml
+        description: Attempts to load all yaml files to verify syntax
+      - id: debug-statements
+        description: Check for debugger imports and py37+ breakpoint() calls in python source
+      - id: end-of-file-fixer
+        description: Makes sure files end in a newline and only a newline
+      - id: trailing-whitespace
+        description: Trims trailing whitespace
+      - id: mixed-line-ending
+        description: Replaces or checks mixed line ending
+
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.6.4
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/psf/black
+    rev: 20.8b1
+    hooks:
+      - id: black
+
   - repo: https://github.com/pycqa/pylint
-    rev: pylint-2.5.0
+    rev: pylint-2.6.0
     hooks:
-    -   id: pylint
+      - id: pylint
         args: ["--disable=import-error"]
-        exclude: (^docs/|^scripts|setup.py)
+        exclude: (^docs/|^scripts)
+
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.782
+    rev: v0.790
     hooks:
-    -   id: mypy
+      - id: mypy
         entry: mypy pandera tests
         files: (^pandera/|^tests)
         exclude: (^docs/|^scripts)

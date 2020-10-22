@@ -52,7 +52,7 @@ of all schemas and schema components gives you the option of doing just this:
 
     import pandas as pd
     import pandera as pa
-    
+
     from pandera import Check, Column, DataFrameSchema
 
     schema = pa.DataFrameSchema(
@@ -64,14 +64,14 @@ of all schemas and schema components gives you the option of doing just this:
         },
         strict=True
     )
-    
+
     df = pd.DataFrame({
         "int_column": ["a", "b", "c"],
         "float_column": [0, 1, 2],
         "str_column": ["a", "b", "d"],
         "unknown_column": None,
     })
-    
+
     schema.validate(df, lazy=True)
 
 .. testoutput:: lazy_validation
@@ -117,7 +117,7 @@ catch these errors and inspect the failure cases in a more granular form:
 
 .. testcode:: lazy_validation
     :skipif: SKIP
-    
+
     try:
         schema.validate(df, lazy=True)
     except pa.errors.SchemaErrors as err:
