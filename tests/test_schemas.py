@@ -1,4 +1,5 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
+# pylint: disable=too-many-lines
 
 import copy
 from functools import partial
@@ -19,6 +20,7 @@ from pandera import (
     Int,
     MultiIndex,
     Object,
+    PandasDtype,
     SeriesSchema,
     String,
     Timedelta,
@@ -1001,14 +1003,15 @@ def test_schema_transformer_deprecated():
 
 @pytest.mark.parametrize("inplace", [True, False])
 @pytest.mark.parametrize(
-    "from_dtype,to_dtype", [
+    "from_dtype,to_dtype",
+    [
         [float, int],
         [int, float],
         [object, int],
         [object, float],
         [int, object],
         [float, object],
-    ]
+    ],
 )
 def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     """Test coercion logic for validation when inplace is True and False"""
@@ -1018,7 +1021,7 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     assert validated_df["column"].dtype == to_dtype
     if inplace:
         # inplace mutates original dataframe
-        assert df["column"].dtype == to_dtype
+        assert df["column"].dtype == PandasDtype.from_python_type(to_dtype).str_alias
     else:
         # not inplace preserves original dataframe type
-        assert df["column"].dtype == from_dtype
+        assert df["column"].dtype == PandasDtype.from_python_type(from_dtype).str_alias
