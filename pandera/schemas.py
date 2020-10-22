@@ -213,29 +213,6 @@ class DataFrameSchema:
             for column_name, column in self.columns.items()
         }
 
-    @staticmethod
-    def _dataframe_to_validate(
-        dataframe: pd.DataFrame,
-        head: Optional[int],
-        tail: Optional[int],
-        sample: Optional[int],
-        random_state: Optional[int],
-    ) -> pd.DataFrame:
-        dataframe_subsample = []
-        if head is not None:
-            dataframe_subsample.append(dataframe.head(head))
-        if tail is not None:
-            dataframe_subsample.append(dataframe.tail(tail))
-        if sample is not None:
-            dataframe_subsample.append(
-                dataframe.sample(sample, random_state=random_state)
-            )
-        return (
-            dataframe
-            if not dataframe_subsample
-            else pd.concat(dataframe_subsample).drop_duplicates()
-        )
-
     @property
     def dtype(self) -> Dict[str, str]:
         """
@@ -283,6 +260,7 @@ class DataFrameSchema:
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> pd.DataFrame:
         # pylint: disable=too-many-locals,too-many-branches
         """Check if all columns in a dataframe have a column in the Schema.
@@ -298,6 +276,8 @@ class DataFrameSchema:
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrorReport``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
         :returns: validated ``DataFrame``
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -348,6 +328,9 @@ class DataFrameSchema:
             )
 
         error_handler = SchemaErrorHandler(lazy)
+
+        if not inplace:
+            check_obj = check_obj.copy()
 
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
@@ -433,7 +416,7 @@ class DataFrameSchema:
                 check_obj.index = self.index.coerce_dtype(check_obj.index)
             schema_components.append(self.index)
 
-        dataframe_to_validate = self._dataframe_to_validate(
+        df_to_validate = _pandas_obj_to_validate(
             check_obj, head, tail, sample, random_state
         )
 
@@ -442,7 +425,7 @@ class DataFrameSchema:
         for schema_component in schema_components:
             try:
                 check_results.append(
-                    isinstance(schema_component(dataframe_to_validate), pd.DataFrame)
+                    isinstance(schema_component(df_to_validate), pd.DataFrame)
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
@@ -452,14 +435,16 @@ class DataFrameSchema:
             try:
                 check_results.append(
                     _handle_check_results(
-                        self, check_index, check, dataframe_to_validate
+                        self, check_index, check, df_to_validate
                     )
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
 
         if lazy and error_handler.collected_errors:
-            raise errors.SchemaErrors(error_handler.collected_errors, check_obj)
+            raise errors.SchemaErrors(
+                error_handler.collected_errors, check_obj
+            )
 
         assert all(check_results)
         return check_obj
@@ -472,6 +457,7 @@ class DataFrameSchema:
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ):
         """Alias for :func:`DataFrameSchema.validate` method.
 
@@ -488,8 +474,12 @@ class DataFrameSchema:
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrorReport``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
         """
-        return self.validate(dataframe, head, tail, sample, random_state, lazy)
+        return self.validate(
+            dataframe, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __repr__(self):
         """Represent string for logging."""
@@ -585,7 +575,8 @@ class DataFrameSchema:
         """Create copy of a DataFrameSchema with updated column properties.
 
         :param column_name:
-        :param kwargs: key-word arguments supplied to :class:`~pandera.schema_components.Column`
+        :param kwargs: key-word arguments supplied to
+            :class:`~pandera.schema_components.Column`
         :returns: a new DataFrameSchema with updated column
         """
         if "name" in kwargs:
@@ -873,8 +864,9 @@ class SeriesSchemaBase:
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
-        # pylint: disable=too-many-locals,too-many-branches
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a series or specific column in dataframe.
 
         :check_obj: pandas DataFrame or Series to validate.
@@ -888,6 +880,8 @@ class SeriesSchemaBase:
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrorReport``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
 
         """
@@ -903,15 +897,17 @@ class SeriesSchemaBase:
 
         error_handler = SchemaErrorHandler(lazy)
 
-        check_obj_to_validate = _pandas_obj_to_validate(
-            check_obj, head, tail, sample, random_state
-        )
+        check_obj = _pandas_obj_to_validate(
+            check_obj, head, tail, sample, random_state)
 
         series = (
-            check_obj_to_validate.copy()
-            if isinstance(check_obj_to_validate, pd.Series)
-            else check_obj_to_validate[self.name].copy()
+            check_obj
+            if isinstance(check_obj, pd.Series)
+            else check_obj[self.name]
         )
+
+        if not inplace:
+            series = series.copy()
 
         if series.name != self._name:
             msg = "Expected %s to have name '%s', found '%s'" % (
@@ -1057,9 +1053,12 @@ class SeriesSchemaBase:
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Alias for ``validate`` method."""
-        return self.validate(check_obj, head, tail, sample, random_state, lazy)
+        return self.validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -1112,6 +1111,7 @@ class SeriesSchema(SeriesSchemaBase):
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> pd.Series:
         """Validate a Series object.
 
@@ -1127,6 +1127,8 @@ class SeriesSchema(SeriesSchemaBase):
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrorReport``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
         :returns: validated Series.
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -1166,7 +1168,9 @@ class SeriesSchema(SeriesSchemaBase):
         if self.index:
             self.index(check_obj)
 
-        return super().validate(check_obj, head, tail, sample, random_state, lazy)
+        return super().validate(
+            check_obj, head, tail, sample, random_state, lazy
+        )
 
     def __call__(
         self,
@@ -1176,6 +1180,7 @@ class SeriesSchema(SeriesSchemaBase):
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> pd.Series:
         """Alias for :func:`SeriesSchema.validate` method."""
         return self.validate(check_obj, head, tail, sample, random_state, lazy)

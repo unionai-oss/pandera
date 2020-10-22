@@ -133,6 +133,7 @@ class Column(SeriesSchemaBase):
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> pd.DataFrame:
         """Validate a Column in a DataFrame object.
 
@@ -147,9 +148,12 @@ class Column(SeriesSchemaBase):
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrorReport``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
         :returns: validated DataFrame.
         """
-        check_obj = check_obj.copy()
+        if not inplace:
+            check_obj = check_obj.copy()
 
         if self._name is None:
             raise errors.SchemaError(
@@ -271,6 +275,7 @@ class Index(SeriesSchemaBase):
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 
@@ -282,6 +287,11 @@ class Index(SeriesSchemaBase):
         :param sample: validate a random sample of n rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
 
@@ -296,6 +306,7 @@ class Index(SeriesSchemaBase):
                 sample,
                 random_state,
                 lazy,
+                inplace,
             ),
             pd.Series,
         )
@@ -423,6 +434,7 @@ class MultiIndex(DataFrameSchema):
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrame or Series MultiIndex.
 
@@ -437,6 +449,8 @@ class MultiIndex(DataFrameSchema):
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrorReport``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
 
@@ -451,6 +465,7 @@ class MultiIndex(DataFrameSchema):
                 sample,
                 random_state,
                 lazy,
+                inplace,
             )
         except errors.SchemaErrors as err:
             # This is a hack to re-raise the SchemaErrors exception and change

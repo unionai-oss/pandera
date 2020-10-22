@@ -70,6 +70,7 @@ def check_input(
     sample: Optional[int] = None,
     random_state: Optional[int] = None,
     lazy: bool = False,
+    inplace: bool = False,
 ) -> Callable:
     # pylint: disable=duplicate-code
     """Validate function argument when function is called.
@@ -95,6 +96,8 @@ def check_input(
     :param lazy: if True, lazily evaluates dataframe against all validation
         checks and raises a ``SchemaErrorReport``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
+    :param inplace: if True, applies coercion to the object of validation,
+        otherwise creates a copy of the data.
     :returns: wrapped function
 
     :example:
@@ -208,6 +211,7 @@ def check_output(
     sample: Optional[int] = None,
     random_state: Optional[int] = None,
     lazy: bool = False,
+    inplace: bool = False,
 ) -> Callable:
     # pylint: disable=duplicate-code
     """Validate function output.
@@ -233,6 +237,8 @@ def check_output(
     :param lazy: if True, lazily evaluates dataframe against all validation
         checks and raises a ``SchemaErrorReport``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
+    :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
     :returns: wrapped function
 
     :example:
@@ -311,6 +317,7 @@ def check_io(
     sample: int = None,
     random_state: int = None,
     lazy: bool = False,
+    inplace: bool = False,
     out: Union[
         Schemas,
         Tuple[OutputGetter, Schemas],
@@ -332,6 +339,8 @@ def check_io(
     :param lazy: if True, lazily evaluates dataframe against all validation
         checks and raises a ``SchemaErrorReport``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
+    :param inplace: if True, applies coercion to the object of validation,
+        otherwise creates a copy of the data.
     :param out: this should be a schema object if the function outputs a single
         dataframe/series. It can be a two-tuple, where the first element is
         a string, integer, or callable that fetches the pandas data structure
@@ -396,6 +405,7 @@ def check_types(
     sample: Optional[int] = None,
     random_state: Optional[int] = None,
     lazy: bool = False,
+    inplace: bool = False,
 ) -> Callable:
     """Validate function inputs and output based on type annotations.
 
@@ -411,6 +421,8 @@ def check_types(
     :param lazy: if True, lazily evaluates dataframe against all validation
         checks and raises a ``SchemaErrorReport``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
+    :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
     """
     if wrapped is None:
         return functools.partial(

@@ -286,6 +286,10 @@ def test_check_io():
     @check_io(df=schema, out=schema, lazy=True)
     def validate_lazy(df):
         return df
+    
+    @check_io(df=schema, out=schema, inplace=True)
+    def validate_inplace(df):
+        return df
 
     df1 = pd.DataFrame({"col": [1, 1, 1]})
     df2 = pd.DataFrame({"col": [2, 2, 2]})
@@ -306,6 +310,7 @@ def test_check_io():
         (validate_tail, [df1], [invalid_df], df1),
         (validate_sample, [df1], [invalid_df], df1),
         (validate_lazy, [df1], [invalid_df], df1),
+        (validate_inplace, [df1], [invalid_df], df1),
     ]:
         result = fn(*valid)
         if isinstance(result, pd.Series):
