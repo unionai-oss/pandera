@@ -70,7 +70,13 @@ def _serialize_component_stats(component_stats):
         "checks": serialized_checks,
         **{
             key: component_stats.get(key)
-            for key in ["name", "allow_duplicates", "coerce", "required", "regex"]
+            for key in [
+                "name",
+                "allow_duplicates",
+                "coerce",
+                "required",
+                "regex",
+            ]
             if key in component_stats
         },
     }
@@ -137,7 +143,9 @@ def _deserialize_component_stats(serialized_component_stats):
             _deserialize_check_stats(
                 getattr(Check, check_name), check_stats, pandas_dtype
             )
-            for check_name, check_stats in serialized_component_stats["checks"].items()
+            for check_name, check_stats in serialized_component_stats[
+                "checks"
+            ].items()
         ]
     return {
         "pandas_dtype": pandas_dtype,
@@ -145,7 +153,13 @@ def _deserialize_component_stats(serialized_component_stats):
         "checks": checks,
         **{
             key: serialized_component_stats.get(key)
-            for key in ["name", "allow_duplicates", "coerce", "required", "regex"]
+            for key in [
+                "name",
+                "allow_duplicates",
+                "coerce",
+                "required",
+                "regex",
+            ]
             if key in serialized_component_stats
         },
     }
@@ -269,7 +283,8 @@ def _format_checks(checks_dict):
             )
         else:
             args = ", ".join(
-                "{}={}".format(k, v.__repr__()) for k, v in check_kwargs.items()
+                "{}={}".format(k, v.__repr__())
+                for k, v in check_kwargs.items()
             )
             checks.append("Check.{}({})".format(check_name, args))
     return "[{}]".format(", ".join(checks))
@@ -279,7 +294,9 @@ def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
         index_code = INDEX_TEMPLATE.format(
-            pandas_dtype="PandasDtype.{}".format(properties["pandas_dtype"].name),
+            pandas_dtype="PandasDtype.{}".format(
+                properties["pandas_dtype"].name
+            ),
             checks=(
                 "None"
                 if properties["checks"] is None
@@ -319,7 +336,9 @@ def to_script(dataframe_schema, path_or_buf=None):
     columns = {}
     for colname, properties in statistics["columns"].items():
         column_code = COLUMN_TEMPLATE.format(
-            pandas_dtype="PandasDtype.{}".format(properties["pandas_dtype"].name),
+            pandas_dtype="PandasDtype.{}".format(
+                properties["pandas_dtype"].name
+            ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
             allow_duplicates=properties["allow_duplicates"],
@@ -329,7 +348,11 @@ def to_script(dataframe_schema, path_or_buf=None):
         )
         columns[colname] = column_code.strip()
 
-    index = None if statistics["index"] is None else _format_index(statistics["index"])
+    index = (
+        None
+        if statistics["index"] is None
+        else _format_index(statistics["index"])
+    )
 
     column_str = ", ".join("'{}': {}".format(k, v) for k, v in columns.items())
 

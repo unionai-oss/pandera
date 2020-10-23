@@ -40,11 +40,15 @@ def test_check_function_decorators():
                 ],
             ),
             "b": Column(
-                String, Check(lambda x: x in ["x", "y", "z"], element_wise=True)
+                String,
+                Check(lambda x: x in ["x", "y", "z"], element_wise=True),
             ),
             "c": Column(
                 DateTime,
-                Check(lambda x: pd.Timestamp("2018-01-01") <= x, element_wise=True),
+                Check(
+                    lambda x: pd.Timestamp("2018-01-01") <= x,
+                    element_wise=True,
+                ),
             ),
             "d": Column(
                 Float,
@@ -56,7 +60,9 @@ def test_check_function_decorators():
     out_schema = DataFrameSchema(
         {
             "e": Column(String, Check(lambda s: s == "foo")),
-            "f": Column(String, Check(lambda x: x in ["a", "b"], element_wise=True)),
+            "f": Column(
+                String, Check(lambda x: x in ["a", "b"], element_wise=True)
+            ),
         }
     )
 
@@ -151,17 +157,20 @@ def test_check_function_decorator_errors():
         return df
 
     with pytest.raises(
-        errors.SchemaError, match=r"^error in check_input decorator of function"
+        errors.SchemaError,
+        match=r"^error in check_input decorator of function",
     ):
         test_func(pd.DataFrame({"column2": ["a", "b", "c"]}))
 
     with pytest.raises(
-        errors.SchemaError, match=r"^error in check_input decorator of function"
+        errors.SchemaError,
+        match=r"^error in check_input decorator of function",
     ):
         test_func(df=pd.DataFrame({"column2": ["a", "b", "c"]}))
 
     with pytest.raises(
-        errors.SchemaError, match=r"^error in check_output decorator of function"
+        errors.SchemaError,
+        match=r"^error in check_output decorator of function",
     ):
         test_func(pd.DataFrame({"column1": [1, 2, 3]}))
 
@@ -237,10 +246,14 @@ def test_check_input_method_decorators():
 
     # call method with a dataframe passed as a second keyword argument
     _assert_expectation(
-        transformer.transform_first_arg_with_two_func_args(x="foo", df=dataframe)
+        transformer.transform_first_arg_with_two_func_args(
+            x="foo", df=dataframe
+        )
     )
 
-    _assert_expectation(transformer.transform_first_arg_with_list_getter(dataframe))
+    _assert_expectation(
+        transformer.transform_first_arg_with_list_getter(dataframe)
+    )
     _assert_expectation(
         transformer.transform_secord_arg_with_list_getter(None, dataframe)
     )
@@ -267,7 +280,9 @@ def test_check_io():
     def multiple_outputs_tuple(df):
         return df, df
 
-    @check_io(out=[(0, schema), ("foo", schema), (lambda x: x[2]["bar"], schema)])
+    @check_io(
+        out=[(0, schema), ("foo", schema), (lambda x: x[2]["bar"], schema)]
+    )
     def multiple_outputs_dict(df):
         return {0: df, "foo": df, 2: {"bar": df}}
 
@@ -327,7 +342,9 @@ def test_check_io():
             fn(*invalid)
 
 
-@pytest.mark.parametrize("obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}])
+@pytest.mark.parametrize(
+    "obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}]
+)
 def test_check_input_output_unrecognized_obj_getter(obj_getter):
     """
     Test that check_input and check_output raise correct errors on unrecognized
@@ -431,7 +448,8 @@ def test_check_types_unchanged():
 
     @check_types
     def transform(
-        df: DataFrame[OnlyZeroesSchema], notused: int  # pylint: disable=unused-argument
+        df: DataFrame[OnlyZeroesSchema],
+        notused: int,  # pylint: disable=unused-argument
     ) -> DataFrame[OnlyZeroesSchema]:
         return df
 
@@ -470,7 +488,9 @@ def test_check_types_multiple_inputs():
     transform(correct, correct)
 
     wrong = pd.DataFrame({"b": [1]})
-    with pytest.raises(errors.SchemaError, match="column 'a' not in dataframe"):
+    with pytest.raises(
+        errors.SchemaError, match="column 'a' not in dataframe"
+    ):
         transform(correct, wrong)
 
 
@@ -482,7 +502,9 @@ def test_check_types_error_input():
         return df
 
     df = pd.DataFrame({"b": [1]})
-    with pytest.raises(errors.SchemaError, match="column 'a' not in dataframe"):
+    with pytest.raises(
+        errors.SchemaError, match="column 'a' not in dataframe"
+    ):
         transform(df)
 
 
@@ -496,7 +518,9 @@ def test_check_types_error_output(out_schema_cls):
     def transform(df: DataFrame[InSchema]) -> DataFrame[out_schema_cls]:
         return df
 
-    with pytest.raises(errors.SchemaError, match="column 'b' not in dataframe"):
+    with pytest.raises(
+        errors.SchemaError, match="column 'b' not in dataframe"
+    ):
         transform(df)
 
 

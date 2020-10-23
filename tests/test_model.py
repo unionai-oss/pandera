@@ -55,7 +55,9 @@ def test_invalid_annotations():
     class InvalidDtype(pa.SchemaModel):
         d: Series[Decimal]  # type: ignore
 
-    with pytest.raises(TypeError, match="python type '<class 'decimal.Decimal'>"):
+    with pytest.raises(
+        TypeError, match="python type '<class 'decimal.Decimal'>"
+    ):
         InvalidDtype.to_schema()
 
 
@@ -212,7 +214,9 @@ def test_check_non_existing():
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
             return series < 100
 
-    err_msg = "Check int_column_lt_100 is assigned to a non-existing field 'nope'"
+    err_msg = (
+        "Check int_column_lt_100 is assigned to a non-existing field 'nope'"
+    )
     with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
         Schema.to_schema()
 
@@ -260,7 +264,9 @@ def test_check_multiple_columns():
             return series < 100
 
     df = pd.DataFrame({"a": [101], "b": [200]})
-    with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
+    with pytest.raises(
+        pa.errors.SchemaErrors, match="2 schema errors were found"
+    ):
         Schema.validate(df, lazy=True)
 
 
@@ -278,7 +284,9 @@ def test_check_regex():
             return series < 100
 
     df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
-    with pytest.raises(pa.errors.SchemaErrors, match="1 schema errors were found"):
+    with pytest.raises(
+        pa.errors.SchemaErrors, match="1 schema errors were found"
+    ):
         Schema.validate(df, lazy=True)
 
 
@@ -364,7 +372,9 @@ def test_dataframe_check():
     assert len(schema.checks) == 2
 
     df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
-    with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
+    with pytest.raises(
+        pa.errors.SchemaErrors, match="2 schema errors were found"
+    ):
         schema.validate(df, lazy=True)
 
 

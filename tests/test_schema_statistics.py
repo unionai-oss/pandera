@@ -105,7 +105,10 @@ def test_infer_dataframe_statistics(multi_index, nullable):
                 "greater_than_or_equal_to": {"min_value": 1},
                 "less_than_or_equal_to": {"max_value": 10},
             },
-            [pa.Check.greater_than_or_equal_to(1), pa.Check.less_than_or_equal_to(10)],
+            [
+                pa.Check.greater_than_or_equal_to(1),
+                pa.Check.less_than_or_equal_to(10),
+            ],
         ],
         [{}, None],
     ],
@@ -137,7 +140,9 @@ def test_parse_check_statistics(check_stats, expectation):
                 },
             ]
             for dtype in (
-                x for x in schema_statistics.NUMERIC_DTYPES if x != PandasDtype.DateTime
+                x
+                for x in schema_statistics.NUMERIC_DTYPES
+                if x != PandasDtype.DateTime
             )
         ],
         [
@@ -218,7 +223,10 @@ INTEGER_TYPES = [
             {
                 "pandas_dtype": DEFAULT_FLOAT,
                 "nullable": True,
-                "checks": {"greater_than_or_equal_to": 0, "less_than_or_equal_to": 1},
+                "checks": {
+                    "greater_than_or_equal_to": 0,
+                    "less_than_or_equal_to": 1,
+                },
                 "name": None,
             },
         ],
@@ -257,7 +265,9 @@ INTEGER_TYPES = [
         ],
     ],
 )
-def test_infer_nullable_series_schema_statistics(null_index, series, expectation):
+def test_infer_nullable_series_schema_statistics(
+    null_index, series, expectation
+):
     """Test nullable series statistics are correctly inferred."""
     series.iloc[null_index] = None
     statistics = schema_statistics.infer_series_statistics(series)
@@ -366,7 +376,9 @@ def test_get_dataframe_schema_statistics():
                     pa.Check.less_than_or_equal_to(100),
                 ],
             ),
-            "str": pa.Column(pa.String, checks=[pa.Check.isin(["foo", "bar", "baz"])]),
+            "str": pa.Column(
+                pa.String, checks=[pa.Check.isin(["foo", "bar", "baz"])]
+            ),
         },
         index=pa.Index(
             pa.Int,
@@ -479,7 +491,9 @@ def test_get_series_schema_statistics():
 )
 def test_get_index_schema_statistics(index_schema_component, expectation):
     """Test that index schema statistics logic is correct."""
-    statistics = schema_statistics.get_index_schema_statistics(index_schema_component)
+    statistics = schema_statistics.get_index_schema_statistics(
+        index_schema_component
+    )
     assert statistics == expectation
 
 
@@ -524,7 +538,12 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
                 ],
                 ValueError,
             ]
-            for min_value, max_value in [(5, 1), (10, 1), (100, 10), (1000, 100)]
+            for min_value, max_value in [
+                (5, 1),
+                (10, 1),
+                (100, 10),
+                (1000, 100),
+            ]
         ],
     ],
 )

@@ -3,7 +3,15 @@
 import pandas as pd
 import pytest
 
-from pandera import Column, DataFrameSchema, Float, Hypothesis, Int, String, errors
+from pandera import (
+    Column,
+    DataFrameSchema,
+    Float,
+    Hypothesis,
+    Int,
+    String,
+    errors,
+)
 from pandera.hypotheses import HAS_SCIPY
 
 if HAS_SCIPY:
@@ -85,7 +93,10 @@ def test_hypothesis():
     """Tests the different API calls of Hypothesis."""
     # Example df for tests:
     df = pd.DataFrame(
-        {"height_in_feet": [6.5, 7, 6.1, 5.1, 4], "sex": ["M", "M", "F", "F", "F"]}
+        {
+            "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
+            "sex": ["M", "M", "F", "F", "F"],
+        }
     )
 
     # Initialise the different ways of calling a test:

@@ -122,9 +122,14 @@ class SchemaUINT64(pa.SchemaModel):
     col: Series[pa.typing.UINT64]
 
 
-def _test_literal_pandas_dtype(model: Type[SchemaModel], pandas_dtype: PandasDtype):
+def _test_literal_pandas_dtype(
+    model: Type[SchemaModel], pandas_dtype: PandasDtype
+):
     schema = model.to_schema()
-    assert schema.columns["col"].dtype == pa.Column(pandas_dtype, name="col").dtype
+    assert (
+        schema.columns["col"].dtype
+        == pa.Column(pandas_dtype, name="col").dtype
+    )
 
 
 @pytest.mark.parametrize(
@@ -172,7 +177,9 @@ def test_literal_legacy_pandas_dtype(
         (SchemaUINT64, pa.UINT64),
     ],
 )
-def test_literal_new_pandas_dtype(model: Type[SchemaModel], pandas_dtype: PandasDtype):
+def test_literal_new_pandas_dtype(
+    model: Type[SchemaModel], pandas_dtype: PandasDtype
+):
     """Test literal annotations with the new nullable pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
 
@@ -206,7 +213,9 @@ def _test_pandas_extension_dtype(
             model.to_schema()
     else:
         schema = model.to_schema()
-        assert schema.columns["col"].dtype == pa.Column(dtype(), name="col").dtype
+        assert (
+            schema.columns["col"].dtype == pa.Column(dtype(), name="col").dtype
+        )
 
 
 @pytest.mark.parametrize(
@@ -275,7 +284,9 @@ if not LEGACY_PANDAS:
         ],
     )
     def test_new_pandas_extension_dtype(
-        model, dtype: pd.core.dtypes.base.ExtensionDtype, has_mandatory_args: bool
+        model,
+        dtype: pd.core.dtypes.base.ExtensionDtype,
+        has_mandatory_args: bool,
     ):
         """Test type annotations with the new nullable pandas dtypes."""
         _test_pandas_extension_dtype(model, dtype, has_mandatory_args)

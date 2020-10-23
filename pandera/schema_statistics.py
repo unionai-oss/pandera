@@ -71,13 +71,15 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
 
     if isinstance(index, pd.MultiIndex):
         index_statistics = [
-            _index_stats(index.get_level_values(i)) for i in range(index.nlevels)
+            _index_stats(index.get_level_values(i))
+            for i in range(index.nlevels)
         ]
     elif isinstance(index, pd.Index):
         index_statistics = [_index_stats(index)]
     else:
         warnings.warn(
-            "index type %s not recognized, skipping index inference" % type(index),
+            "index type %s not recognized, skipping index inference"
+            % type(index),
             UserWarning,
         )
         index_statistics = []
@@ -167,12 +169,12 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
         "greater_than_or_equal_to" in check_statistics
         and "less_than_or_equal_to" in check_statistics
     ):
-        min_value = check_statistics.get("greater_than_or_equal_to", float("-inf"))[
-            "min_value"
-        ]
-        max_value = check_statistics.get("less_than_or_equal_to", float("inf"))[
-            "max_value"
-        ]
+        min_value = check_statistics.get(
+            "greater_than_or_equal_to", float("-inf")
+        )["min_value"]
+        max_value = check_statistics.get(
+            "less_than_or_equal_to", float("inf")
+        )["max_value"]
         if min_value > max_value:
             raise ValueError(
                 "checks %s and %s are incompatible, reason: "
@@ -198,7 +200,9 @@ def _get_array_type(x):
     return dtype
 
 
-def _get_array_check_statistics(x, dtype: PandasDtype) -> Union[Dict[str, Any], None]:
+def _get_array_check_statistics(
+    x, dtype: PandasDtype
+) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
     if dtype is PandasDtype.DateTime:
         check_stats = {

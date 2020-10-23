@@ -57,12 +57,16 @@ class BaseConfig:  # pylint:disable=R0903
     multiindex_strict: bool = False
 
 
-_config_options = [attr for attr in vars(BaseConfig) if not attr.startswith("_")]
+_config_options = [
+    attr for attr in vars(BaseConfig) if not attr.startswith("_")
+]
 
 
 def _extract_config_options(config: Type) -> Dict[str, Any]:
     return {
-        name: value for name, value in vars(config).items() if name in _config_options
+        name: value
+        for name, value in vars(config).items()
+        if name in _config_options
     }
 
 
@@ -92,7 +96,9 @@ class SchemaModel:
 
         cls.__field_annotations__ = cls._collect_field_annotations()
 
-        check_infos = cast(List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY))
+        check_infos = cast(
+            List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
+        )
         field_names = list(cls.__field_annotations__.keys())
         cls.__checks__ = cls._extract_checks(check_infos, field_names)
 
@@ -162,7 +168,9 @@ class SchemaModel:
 
             field_checks = checks.get(field_name, [])
             if annotation_info.origin is Series:
-                col_constructor = field.to_column if field else schema_components.Column
+                col_constructor = (
+                    field.to_column if field else schema_components.Column
+                )
                 columns[field_name] = col_constructor(  # type: ignore
                     annotation_info.arg,
                     required=not annotation_info.optional,
@@ -171,8 +179,12 @@ class SchemaModel:
                 )
             elif annotation_info.origin is Index:
                 if annotation_info.optional:
-                    raise SchemaInitError(f"Index '{field_name}' cannot be Optional.")
-                index_constructor = field.to_index if field else schema_components.Index
+                    raise SchemaInitError(
+                        f"Index '{field_name}' cannot be Optional."
+                    )
+                index_constructor = (
+                    field.to_index if field else schema_components.Index
+                )
                 index = index_constructor(  # type: ignore
                     annotation_info.arg, checks=field_checks, name=field_name
                 )

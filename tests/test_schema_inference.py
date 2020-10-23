@@ -54,7 +54,9 @@ def test_infer_schema(pandas_obj, expectation):
         with pytest.raises(TypeError, match="^pandas_obj type not recognized"):
             schema_inference.infer_schema(pandas_obj)
     else:
-        assert isinstance(schema_inference.infer_schema(pandas_obj), expectation)
+        assert isinstance(
+            schema_inference.infer_schema(pandas_obj), expectation
+        )
 
 
 @pytest.mark.parametrize(
@@ -76,7 +78,8 @@ def test_infer_dataframe_schema(multi_index):
         assert isinstance(schema.index, pa.Index)
 
     with pytest.warns(
-        UserWarning, match="^This .+ is an inferred schema that hasn't been modified"
+        UserWarning,
+        match="^This .+ is an inferred schema that hasn't been modified",
     ):
         schema.validate(dataframe)
 
@@ -85,14 +88,16 @@ def test_infer_dataframe_schema(multi_index):
     assert schema._is_inferred
     assert not schema_with_added_cols._is_inferred
     assert isinstance(
-        schema_with_added_cols.validate(dataframe.assign(foo="a")), pd.DataFrame
+        schema_with_added_cols.validate(dataframe.assign(foo="a")),
+        pd.DataFrame,
     )
 
     schema_with_removed_cols = schema.remove_columns(["int"])
     assert schema._is_inferred
     assert not schema_with_removed_cols._is_inferred
     assert isinstance(
-        schema_with_removed_cols.validate(dataframe.drop("int", axis=1)), pd.DataFrame
+        schema_with_removed_cols.validate(dataframe.drop("int", axis=1)),
+        pd.DataFrame,
     )
 
 
@@ -113,12 +118,15 @@ def test_infer_series_schema(series):
     assert isinstance(schema, pa.SeriesSchema)
 
     with pytest.warns(
-        UserWarning, match="^This .+ is an inferred schema that hasn't been modified"
+        UserWarning,
+        match="^This .+ is an inferred schema that hasn't been modified",
     ):
         schema.validate(series)
 
     # modifying an inferred schema should set _is_inferred to False
-    schema_with_new_checks = schema.set_checks([pa.Check(lambda x: x is not None)])
+    schema_with_new_checks = schema.set_checks(
+        [pa.Check(lambda x: x is not None)]
+    )
     assert schema._is_inferred
     assert not schema_with_new_checks._is_inferred
     assert isinstance(schema_with_new_checks.validate(series), pd.Series)

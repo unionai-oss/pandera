@@ -8,7 +8,12 @@ import pandas as pd
 
 from . import errors
 from .dtypes import PandasDtype
-from .schemas import CheckList, DataFrameSchema, PandasDtypeInputTypes, SeriesSchemaBase
+from .schemas import (
+    CheckList,
+    DataFrameSchema,
+    PandasDtypeInputTypes,
+    SeriesSchemaBase,
+)
 
 
 def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
@@ -65,7 +70,9 @@ class Column(SeriesSchemaBase):
 
         See :ref:`here<column>` for more usage details.
         """
-        super().__init__(pandas_dtype, checks, nullable, allow_duplicates, coerce)
+        super().__init__(
+            pandas_dtype, checks, nullable, allow_duplicates, coerce
+        )
         if (
             name is not None
             and not isinstance(name, str)
@@ -165,13 +172,17 @@ class Column(SeriesSchemaBase):
             )
 
         column_keys_to_check = (
-            self.get_regex_columns(check_obj.columns) if self._regex else [self._name]
+            self.get_regex_columns(check_obj.columns)
+            if self._regex
+            else [self._name]
         )
 
         check_results = []
         for column_name in column_keys_to_check:
             if self.coerce:
-                check_obj[column_name] = self.coerce_dtype(check_obj[column_name])
+                check_obj[column_name] = self.coerce_dtype(
+                    check_obj[column_name]
+                )
             check_results.append(
                 isinstance(
                     super(Column, copy(self).set_name(column_name)).validate(
@@ -202,9 +213,9 @@ class Column(SeriesSchemaBase):
                 )
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(self.name):
-                matched = pd.Index(columns.get_level_values(i).str.match(name)).fillna(
-                    False
-                )
+                matched = pd.Index(
+                    columns.get_level_values(i).str.match(name)
+                ).fillna(False)
                 matches = matches & np.array(matched.tolist())
             column_keys_to_check = columns[matches]
         else:
@@ -240,7 +251,10 @@ class Column(SeriesSchemaBase):
 
     def __eq__(self, other):
         def _compare_dict(obj):
-            return {k: v if k != "_checks" else set(v) for k, v in obj.__dict__.items()}
+            return {
+                k: v if k != "_checks" else set(v)
+                for k, v in obj.__dict__.items()
+            }
 
         return _compare_dict(self) == _compare_dict(other)
 
@@ -424,7 +438,9 @@ class MultiIndex(DataFrameSchema):
                 index_array = index.coerce_dtype(index_array)
             _coerced_multi_index.append(index_array)
 
-        return pd.MultiIndex.from_arrays(_coerced_multi_index, names=multi_index.names)
+        return pd.MultiIndex.from_arrays(
+            _coerced_multi_index, names=multi_index.names
+        )
 
     def validate(
         self,

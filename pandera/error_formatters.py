@@ -18,7 +18,11 @@ def format_generic_error_message(
     :param check: check that generated error.
     :param check_index: The validator that failed.
     """
-    return "%s failed series validator %d:\n%s" % (parent_schema, check_index, check)
+    return "%s failed series validator %d:\n%s" % (
+        parent_schema,
+        check_index,
+        check,
+    )
 
 
 def format_vectorized_error_message(
@@ -36,11 +40,15 @@ def format_vectorized_error_message(
         element-wise or vectorized validator.
 
     """
-    return "%s failed element-wise validator %d:\n" "%s\nfailure cases:\n%s" % (
-        parent_schema,
-        check_index,
-        check,
-        reshaped_failure_cases,
+    return (
+        "%s failed element-wise validator %d:\n"
+        "%s\nfailure cases:\n%s"
+        % (
+            parent_schema,
+            check_index,
+            check,
+            reshaped_failure_cases,
+        )
     )
 
 
@@ -82,7 +90,9 @@ def reshape_failure_cases(
             failure_cases.rename("failure_case")
             .to_frame()
             .assign(
-                index=lambda df: (df.index.to_frame().apply(tuple, axis=1).astype(str))
+                index=lambda df: (
+                    df.index.to_frame().apply(tuple, axis=1).astype(str)
+                )
             )[["failure_case", "index"]]
             .reset_index(drop=True)
         )
@@ -96,11 +106,18 @@ def reshape_failure_cases(
         )
     elif isinstance(failure_cases, pd.Series):
         reshaped_failure_cases = (
-            failure_cases.rename("failure_case").rename_axis("index").reset_index()
+            failure_cases.rename("failure_case")
+            .rename_axis("index")
+            .reset_index()
         )
     else:
         raise TypeError(
-            "type of failure_cases argument not understood: %s" % type(failure_cases)
+            "type of failure_cases argument not understood: %s"
+            % type(failure_cases)
         )
 
-    return reshaped_failure_cases.dropna() if ignore_na else reshaped_failure_cases
+    return (
+        reshaped_failure_cases.dropna()
+        if ignore_na
+        else reshaped_failure_cases
+    )

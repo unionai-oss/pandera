@@ -11,7 +11,9 @@ def test_field_to_column():
     """Test that Field outputs the correct column options."""
     for flag in ["nullable", "allow_duplicates", "coerce", "regex"]:
         for value in [True, False]:
-            col = pa.Field(**{flag: value}).to_column(pa.DateTime, required=value)
+            col = pa.Field(**{flag: value}).to_column(
+                pa.DateTime, required=value
+            )
             assert isinstance(col, pa.Column)
             assert col.dtype == pa.DateTime.value
             assert col.properties[flag] == value
@@ -42,13 +44,21 @@ def test_field_no_checks():
         ("ge", 9, pa.Check.greater_than_or_equal_to(9)),
         ("lt", 9, pa.Check.less_than(9)),
         ("le", 9, pa.Check.less_than_or_equal_to(9)),
-        ("in_range", {"min_value": 1, "max_value": 9}, pa.Check.in_range(1, 9)),
+        (
+            "in_range",
+            {"min_value": 1, "max_value": 9},
+            pa.Check.in_range(1, 9),
+        ),
         ("isin", [9, "a"], pa.Check.isin([9, "a"])),
         ("notin", [9, "a"], pa.Check.notin([9, "a"])),
         ("str_contains", "a", pa.Check.str_contains("a")),
         ("str_endswith", "a", pa.Check.str_endswith("a")),
         ("str_matches", "a", pa.Check.str_matches("a")),
-        ("str_length", {"min_value": 1, "max_value": 9}, pa.Check.str_length(1, 9)),
+        (
+            "str_length",
+            {"min_value": 1, "max_value": 9},
+            pa.Check.str_length(1, 9),
+        ),
         ("str_startswith", "a", pa.Check.str_startswith("a")),
     ],
 )

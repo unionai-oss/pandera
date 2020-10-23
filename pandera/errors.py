@@ -29,7 +29,13 @@ class SchemaError(Exception):
     """Raised when object does not pass schema validation constraints."""
 
     def __init__(
-        self, schema, data, message, failure_cases=None, check=None, check_index=None
+        self,
+        schema,
+        data,
+        message,
+        failure_cases=None,
+        check=None,
+        check_index=None,
     ):
         super().__init__(message)
         self.schema = schema
@@ -60,7 +66,9 @@ class SchemaErrors(Exception):
     """Raised when multiple schema are lazily collected into one error."""
 
     def __init__(self, schema_error_dicts, data):
-        error_counts, schema_errors = self._parse_schema_errors(schema_error_dicts)
+        error_counts, schema_errors = self._parse_schema_errors(
+            schema_error_dicts
+        )
         super().__init__(self._message(error_counts, schema_errors))
         self._schema_error_dicts = schema_error_dicts
         self.error_counts = error_counts
@@ -70,7 +78,9 @@ class SchemaErrors(Exception):
     @staticmethod
     def _message(error_counts, schema_errors):
         """Format error message."""
-        msg = "A total of %s schema errors were found.\n" % sum(error_counts.values())
+        msg = "A total of %s schema errors were found.\n" % sum(
+            error_counts.values()
+        )
 
         msg += "\nError Counts"
         msg += "\n------------\n"

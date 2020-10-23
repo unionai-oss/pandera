@@ -44,10 +44,12 @@ def test_check_groupby():
                     Check(lambda s: s["foo"] > 10, groupby="col2"),
                     Check(lambda s: s["bar"] < 10, groupby=["col2"]),
                     Check(
-                        lambda s: s["foo"] > 10, groupby=lambda df: df.groupby("col2")
+                        lambda s: s["foo"] > 10,
+                        groupby=lambda df: df.groupby("col2"),
                     ),
                     Check(
-                        lambda s: s["bar"] < 10, groupby=lambda df: df.groupby("col2")
+                        lambda s: s["bar"] < 10,
+                        groupby=lambda df: df.groupby("col2"),
                     ),
                 ],
             ),
@@ -137,8 +139,12 @@ def test_check_groups():
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["foo"] > 10, groupby="col2", groups=["foo"]),
-                    Check(lambda s: s["foo"] > 10, groupby="col2", groups="foo"),
+                    Check(
+                        lambda s: s["foo"] > 10, groupby="col2", groups=["foo"]
+                    ),
+                    Check(
+                        lambda s: s["foo"] > 10, groupby="col2", groups="foo"
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -163,7 +169,9 @@ def test_check_groups():
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["bar"] > 10, groupby="col2", groups="foo"),
+                    Check(
+                        lambda s: s["bar"] > 10, groupby="col2", groups="foo"
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -182,7 +190,9 @@ def test_check_groups():
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["baz"] > 10, groupby="col2", groups=["foo"]),
+                    Check(
+                        lambda s: s["baz"] > 10, groupby="col2", groups=["foo"]
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -200,7 +210,9 @@ def test_check_groups():
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["foo"] > 10, groupby="col2", groups=["baz"]),
+                    Check(
+                        lambda s: s["foo"] > 10, groupby="col2", groups=["baz"]
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -221,17 +233,22 @@ def test_groupby_init_exceptions():
                     Int,
                     [
                         Check(
-                            lambda s: s["foo"] > 10, element_wise=True, groupby=["col2"]
+                            lambda s: s["foo"] > 10,
+                            element_wise=True,
+                            groupby=["col2"],
                         ),
                     ],
                 ),
-                "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+                "col2": Column(
+                    String, Check(lambda s: s.isin(["foo", "bar"]))
+                ),
             }
         )
 
     # can't use groupby in Checks where element_wise == True
     with pytest.raises(
-        errors.SchemaInitError, match=r"^Cannot use groupby when element_wise=True."
+        errors.SchemaInitError,
+        match=r"^Cannot use groupby when element_wise=True.",
     ):
         init_schema_element_wise()
 
@@ -357,7 +374,9 @@ def test_raise_warning_series():
     """Test that checks with raise_warning=True raise a warning."""
     data = pd.Series([-1, -2, -3])
     error_schema = SeriesSchema(checks=Check(lambda s: s > 0))
-    warning_schema = SeriesSchema(checks=Check(lambda s: s > 0, raise_warning=True))
+    warning_schema = SeriesSchema(
+        checks=Check(lambda s: s > 0, raise_warning=True)
+    )
 
     with pytest.raises(errors.SchemaError):
         error_schema(data)
@@ -393,10 +412,14 @@ def test_dataframe_schema_check():
     """Test that DataFrameSchema-level Checks work properly."""
     data = pd.DataFrame([range(10) for _ in range(10)])
 
-    schema_check_return_bool = DataFrameSchema(checks=Check(lambda df: (df < 10).all()))
+    schema_check_return_bool = DataFrameSchema(
+        checks=Check(lambda df: (df < 10).all())
+    )
     assert isinstance(schema_check_return_bool.validate(data), pd.DataFrame)
 
-    schema_check_return_series = DataFrameSchema(checks=Check(lambda df: df[0] < 10))
+    schema_check_return_series = DataFrameSchema(
+        checks=Check(lambda df: df[0] < 10)
+    )
     assert isinstance(schema_check_return_series.validate(data), pd.DataFrame)
 
     schema_check_return_df = DataFrameSchema(checks=Check(lambda df: df < 10))
