@@ -20,9 +20,11 @@ env:
   - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_latest.yml
   - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_latest.yml
   - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_latest.yml
+  - PYTHON_VERSION=3.9 ENV_FILE=ci/environment_pandas_latest.yml
   - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_0_25_3.yml
   - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_0_25_3.yml
   - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_0_25_3.yml
+  - PYTHON_VERSION=3.9 ENV_FILE=ci/environment_pandas_0_25_3.yml
 
 before_install:
   - |
