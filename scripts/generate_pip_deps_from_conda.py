@@ -122,7 +122,9 @@ if __name__ == "__main__":
         help="compare whether the two files are equivalent",
     )
     argparser.add_argument(
-        "--azure", action="store_true", help="show the output in azure-pipelines format"
+        "--azure",
+        action="store_true",
+        help="show the output in azure-pipelines format",
     )
     args = argparser.parse_args()
 

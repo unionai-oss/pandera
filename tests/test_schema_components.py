@@ -36,7 +36,9 @@ def test_column():
     column_b = Column(Float, name="b")
     column_c = Column(String, name="c")
 
-    assert isinstance(data.pipe(column_a).pipe(column_b).pipe(column_c), pd.DataFrame)
+    assert isinstance(
+        data.pipe(column_a).pipe(column_b).pipe(column_c), pd.DataFrame
+    )
 
     with pytest.raises(errors.SchemaError):
         Column(Int)(data)
@@ -55,7 +57,10 @@ def test_coerce_nullable_object_column():
     assert pd.isna(validated_df["col"].iloc[-1])
     assert pd.isna(validated_df["col"].iloc[-2])
     for i in range(4):
-        isinstance(validated_df["col"].iloc[i], type(df_objects_with_na["col"].iloc[i]))
+        isinstance(
+            validated_df["col"].iloc[i],
+            type(df_objects_with_na["col"].iloc[i]),
+        )
 
 
 def test_column_in_dataframe_schema():
@@ -131,7 +136,11 @@ def test_multi_index_index():
         index=MultiIndex(
             indexes=[
                 Index(Int, Check(lambda s: (s < 5) & (s >= 0)), name="index0"),
-                Index(String, Check(lambda s: s.isin(["foo", "bar"])), name="index1"),
+                Index(
+                    String,
+                    Check(lambda s: s.isin(["foo", "bar"])),
+                    name="index1",
+                ),
             ]
         ),
     )
@@ -180,7 +189,8 @@ def test_multi_index_schema_coerce():
     validated_df = schema(df)
     for level_i in range(validated_df.index.nlevels):
         assert (
-            validated_df.index.get_level_values(level_i).dtype == indexes[level_i].dtype
+            validated_df.index.get_level_values(level_i).dtype
+            == indexes[level_i].dtype
         )
 
 
@@ -205,7 +215,9 @@ def tests_multi_index_subindex_coerce():
             )
         else:
             # dtype should be string representation of pandas strings
-            assert validated_df.index.get_level_values(level_i).dtype == "object"
+            assert (
+                validated_df.index.get_level_values(level_i).dtype == "object"
+            )
 
     # coerce=True in MultiIndex should override subindex coerce setting
     schema_override = DataFrameSchema(index=MultiIndex(indexes), coerce=True)
@@ -230,10 +242,14 @@ def test_schema_component_equality_operators():
     multi_index = MultiIndex(
         indexes=[
             Index(Int, Check(lambda s: (s < 5) & (s >= 0)), name="index0"),
-            Index(String, Check(lambda s: s.isin(["foo", "bar"])), name="index1"),
+            Index(
+                String, Check(lambda s: s.isin(["foo", "bar"])), name="index1"
+            ),
         ]
     )
-    not_equal_schema = DataFrameSchema({"col1": Column(Int, Check(lambda s: s >= 0))})
+    not_equal_schema = DataFrameSchema(
+        {"col1": Column(Int, Check(lambda s: s >= 0))}
+    )
 
     assert column == copy.deepcopy(column)
     assert column != not_equal_schema
@@ -245,7 +261,9 @@ def test_schema_component_equality_operators():
 
 def test_column_regex():
     """Test that column regex work on single-level column index."""
-    column_schema = Column(Int, Check(lambda s: s >= 0), name="foo_*", regex=True)
+    column_schema = Column(
+        Int, Check(lambda s: s >= 0), name="foo_*", regex=True
+    )
 
     dataframe_schema = DataFrameSchema(
         {
@@ -293,7 +311,9 @@ def test_column_regex_multiindex():
     )
     dataframe_schema = DataFrameSchema(
         {
-            ("foo_*", "baz_*"): Column(Int, Check(lambda s: s >= 0), regex=True),
+            ("foo_*", "baz_*"): Column(
+                Int, Check(lambda s: s >= 0), regex=True
+            ),
         }
     )
 
@@ -390,7 +410,9 @@ def test_column_regex_strict():
             "foo_3": [1, 2, 3],
         }
     )
-    schema = DataFrameSchema(columns={"foo_*": Column(Int, regex=True)}, strict=True)
+    schema = DataFrameSchema(
+        columns={"foo_*": Column(Int, regex=True)}, strict=True
+    )
     assert isinstance(schema.validate(data), pd.DataFrame)
 
     # adding an extra column in the dataframe should cause error
@@ -400,9 +422,9 @@ def test_column_regex_strict():
 
     # adding an extra regex column to the schema should pass the strictness
     # test
-    validated_data = schema.add_columns({"bar_*": Column(Int, regex=True)}).validate(
-        data.assign(bar_1=[1, 2, 3])
-    )
+    validated_data = schema.add_columns(
+        {"bar_*": Column(Int, regex=True)}
+    ).validate(data.assign(bar_1=[1, 2, 3]))
     assert isinstance(validated_data, pd.DataFrame)
 
 

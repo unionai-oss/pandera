@@ -30,7 +30,9 @@ SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  
 
 
 # skip all tests in module if "io" depends aren't installed
-pytestmark = pytest.mark.skipif(not HAS_IO, reason='needs "io" module dependencies')
+pytestmark = pytest.mark.skipif(
+    not HAS_IO, reason='needs "io" module dependencies'
+)
 
 
 def _create_schema(index="single"):
@@ -373,7 +375,8 @@ def test_to_script_lambda_check():
     schema = pa.DataFrameSchema(
         {
             "a": pa.Column(
-                pa.Int, checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
+                pa.Int,
+                checks=pa.Check(lambda s: s.mean() > 5, element_wise=False),
             ),
         }
     )
@@ -387,7 +390,8 @@ def test_to_yaml_lambda_check():
     schema = pa.DataFrameSchema(
         {
             "a": pa.Column(
-                pa.Int, checks=pa.Check(lambda s: s.mean() > 5, element_wise=False)
+                pa.Int,
+                checks=pa.Check(lambda s: s.mean() > 5, element_wise=False),
             ),
         }
     )

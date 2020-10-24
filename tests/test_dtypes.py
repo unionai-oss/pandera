@@ -57,8 +57,12 @@ def test_default_numeric_dtypes():
 
     assert str(pd.Series([1.0]).dtype) == _DEFAULT_PANDAS_FLOAT_TYPE
     assert pa.Float.str_alias == _DEFAULT_PANDAS_FLOAT_TYPE
-    assert str(pd.Series([1.0], dtype=float).dtype) == _DEFAULT_NUMPY_FLOAT_TYPE
-    assert str(pd.Series([1.0], dtype="float").dtype) == _DEFAULT_NUMPY_FLOAT_TYPE
+    assert (
+        str(pd.Series([1.0], dtype=float).dtype) == _DEFAULT_NUMPY_FLOAT_TYPE
+    )
+    assert (
+        str(pd.Series([1.0], dtype="float").dtype) == _DEFAULT_NUMPY_FLOAT_TYPE
+    )
 
 
 def test_numeric_dtypes():
@@ -76,7 +80,9 @@ def test_numeric_dtypes():
             )
             for schema in [
                 DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema({"col": Column(dtype.str_alias, nullable=False)}),
+                DataFrameSchema(
+                    {"col": Column(dtype.str_alias, nullable=False)}
+                ),
             ]
         )
 
@@ -93,7 +99,9 @@ def test_numeric_dtypes():
             )
             for schema in [
                 DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema({"col": Column(dtype.str_alias, nullable=False)}),
+                DataFrameSchema(
+                    {"col": Column(dtype.str_alias, nullable=False)}
+                ),
             ]
         )
 
@@ -101,13 +109,17 @@ def test_numeric_dtypes():
         assert all(
             isinstance(
                 schema.validate(
-                    pd.DataFrame({"col": [1, 777, 5, 123, 9000]}, dtype=dtype.str_alias)
+                    pd.DataFrame(
+                        {"col": [1, 777, 5, 123, 9000]}, dtype=dtype.str_alias
+                    )
                 ),
                 pd.DataFrame,
             )
             for schema in [
                 DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema({"col": Column(dtype.str_alias, nullable=False)}),
+                DataFrameSchema(
+                    {"col": Column(dtype.str_alias, nullable=False)}
+                ),
             ]
         )
 
@@ -144,7 +156,9 @@ def test_pandas_nullable_int_dtype(dtype, coerce):
             pd.DataFrame,
         )
         for schema in [
-            DataFrameSchema({"col": Column(dtype, nullable=False)}, coerce=coerce),
+            DataFrameSchema(
+                {"col": Column(dtype, nullable=False)}, coerce=coerce
+            ),
             DataFrameSchema(
                 {"col": Column(dtype.str_alias, nullable=False)}, coerce=coerce
             ),
@@ -167,7 +181,9 @@ def test_category_dtype():
                 pa.Category,
                 checks=[
                     Check(lambda s: set(s) == {"A", "B", "C"}),
-                    Check(lambda s: s.cat.categories.tolist() == ["A", "B", "C"]),
+                    Check(
+                        lambda s: s.cat.categories.tolist() == ["A", "B", "C"]
+                    ),
                     Check(lambda s: s.isin(["A", "B", "C"])),
                 ],
                 nullable=False,
@@ -176,7 +192,9 @@ def test_category_dtype():
         coerce=False,
     )
     validated_df = schema.validate(
-        pd.DataFrame({"col": pd.Series(["A", "B", "A", "B", "C"], dtype="category")})
+        pd.DataFrame(
+            {"col": pd.Series(["A", "B", "A", "B", "C"], dtype="category")}
+        )
     )
     assert isinstance(validated_df, pd.DataFrame)
 
@@ -194,11 +212,15 @@ def test_category_dtype_coerce():
 
     with pytest.raises(SchemaError):
         DataFrameSchema(columns=columns, coerce=False).validate(
-            pd.DataFrame({"col": pd.Series(["A", "B", "A", "B", "C"], dtype="object")})
+            pd.DataFrame(
+                {"col": pd.Series(["A", "B", "A", "B", "C"], dtype="object")}
+            )
         )
 
     validated_df = DataFrameSchema(columns=columns, coerce=True).validate(
-        pd.DataFrame({"col": pd.Series(["A", "B", "A", "B", "C"], dtype="object")})
+        pd.DataFrame(
+            {"col": pd.Series(["A", "B", "A", "B", "C"], dtype="object")}
+        )
     )
     assert isinstance(validated_df, pd.DataFrame)
 
@@ -326,7 +348,11 @@ def test_pandas_extension_types():
             None,
         ),
         (pd.Int64Dtype(), pd.Series(range(10), dtype="Int64"), None),
-        (pd.StringDtype(), pd.Series(["foo", "bar", "baz"], dtype="string"), None),
+        (
+            pd.StringDtype(),
+            pd.Series(["foo", "bar", "baz"], dtype="string"),
+            None,
+        ),
         (
             pd.PeriodDtype(freq="D"),
             pd.Series(pd.period_range("1/1/2019", "1/1/2020", freq="D")),
@@ -425,7 +451,9 @@ def test_pandas_api_type_exception(invalid_pandas_api_type):
         PandasDtype.from_pandas_api_type(invalid_pandas_api_type)
 
 
-@pytest.mark.parametrize("pandas_dtype", (pandas_dtype for pandas_dtype in PandasDtype))
+@pytest.mark.parametrize(
+    "pandas_dtype", (pandas_dtype for pandas_dtype in PandasDtype)
+)
 def test_pandas_dtype_equality(pandas_dtype):
     """Test __eq__ implementation."""
     assert pandas_dtype != None  # pylint:disable=singleton-comparison

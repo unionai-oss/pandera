@@ -1,4 +1,5 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
+# pylint: disable=too-many-lines
 
 import copy
 from functools import partial
@@ -19,6 +20,7 @@ from pandera import (
     Int,
     MultiIndex,
     Object,
+    PandasDtype,
     SeriesSchema,
     String,
     Timedelta,
@@ -36,18 +38,27 @@ def test_dataframe_schema():
     schema = DataFrameSchema(
         {
             "a": Column(Int, Check(lambda x: x > 0, element_wise=True)),
-            "b": Column(Float, Check(lambda x: 0 <= x <= 10, element_wise=True)),
+            "b": Column(
+                Float, Check(lambda x: 0 <= x <= 10, element_wise=True)
+            ),
             "c": Column(String, Check(lambda x: set(x) == {"x", "y", "z"})),
             "d": Column(Bool, Check(lambda x: x.mean() > 0.5)),
-            "e": Column(Category, Check(lambda x: set(x) == {"c1", "c2", "c3"})),
+            "e": Column(
+                Category, Check(lambda x: set(x) == {"c1", "c2", "c3"})
+            ),
             "f": Column(Object, Check(lambda x: x.isin([(1,), (2,), (3,)]))),
             "g": Column(
                 DateTime,
-                Check(lambda x: x >= pd.Timestamp("2015-01-01"), element_wise=True),
+                Check(
+                    lambda x: x >= pd.Timestamp("2015-01-01"),
+                    element_wise=True,
+                ),
             ),
             "i": Column(
                 Timedelta,
-                Check(lambda x: x < pd.Timedelta(10, unit="D"), element_wise=True),
+                Check(
+                    lambda x: x < pd.Timedelta(10, unit="D"), element_wise=True
+                ),
             ),
         }
     )
@@ -110,7 +121,9 @@ def test_dataframe_schema_strict_regex():
     # Raise a SchemaError if schema is strict and a regex pattern yields
     # no matches
     with pytest.raises(errors.SchemaError):
-        schema.validate(pd.DataFrame({"bar_%d" % i: range(10) for i in range(5)}))
+        schema.validate(
+            pd.DataFrame({"bar_%d" % i: range(10) for i in range(5)})
+        )
 
 
 def test_series_schema():
@@ -120,8 +133,12 @@ def test_series_schema():
 
     SeriesSchema("int").validate(pd.Series([1, 2, 3]))
 
-    int_schema = SeriesSchema(Int, Check(lambda x: 0 <= x <= 100, element_wise=True))
-    assert isinstance(int_schema.validate(pd.Series([0, 30, 50, 100])), pd.Series)
+    int_schema = SeriesSchema(
+        Int, Check(lambda x: 0 <= x <= 100, element_wise=True)
+    )
+    assert isinstance(
+        int_schema.validate(pd.Series([0, 30, 50, 100])), pd.Series
+    )
 
     str_schema = SeriesSchema(
         String,
@@ -133,7 +150,8 @@ def test_series_schema():
         str_schema.validate(pd.Series(["foo", "bar", "baz", None])), pd.Series
     )
     assert isinstance(
-        str_schema.validate(pd.Series(["foo", "bar", "baz", np.nan])), pd.Series
+        str_schema.validate(pd.Series(["foo", "bar", "baz", np.nan])),
+        pd.Series,
     )
 
     # error cases
@@ -159,13 +177,18 @@ def test_series_schema():
         errors.SchemaError,
         match=r"^after dropping null values, expected values in series",
     ):
-        SeriesSchema(Int, nullable=True).validate(pd.Series([1.1, 2.3, 5.5, np.nan]))
+        SeriesSchema(Int, nullable=True).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan])
+        )
 
     # when series contains null values when schema is not nullable
     with pytest.raises(
-        errors.SchemaError, match=r"^non-nullable series .+ contains null values"
+        errors.SchemaError,
+        match=r"^non-nullable series .+ contains null values",
     ):
-        SeriesSchema(Float, nullable=False).validate(pd.Series([1.1, 2.3, 5.5, np.nan]))
+        SeriesSchema(Float, nullable=False).validate(
+            pd.Series([1.1, 2.3, 5.5, np.nan])
+        )
 
 
 def test_series_schema_multiple_validators():
@@ -348,7 +371,9 @@ def test_coerce_dtype_nullable_str():
                 {"col": Column(String, coerce=True, nullable=False)}
             ).validate(df)
 
-    schema = DataFrameSchema({"col": Column(String, coerce=True, nullable=True)})
+    schema = DataFrameSchema(
+        {"col": Column(String, coerce=True, nullable=True)}
+    )
 
     for df in [df_nans, df_nones]:
         validated_df = schema.validate(df)
@@ -433,9 +458,13 @@ def test_head_dataframe_schema():
     """Test that schema can validate head of dataframe, returns entire
     dataframe."""
 
-    df = pd.DataFrame({"col1": list(range(0, 100)) + list(range(-1, -1001, -1))})
+    df = pd.DataFrame(
+        {"col1": list(range(0, 100)) + list(range(-1, -1001, -1))}
+    )
 
-    schema = DataFrameSchema(columns={"col1": Column(Int, Check(lambda s: s >= 0))})
+    schema = DataFrameSchema(
+        columns={"col1": Column(Int, Check(lambda s: s >= 0))}
+    )
 
     # Validating with head of 100 should pass
     assert schema.validate(df, head=100).equals(df)
@@ -445,9 +474,13 @@ def test_head_dataframe_schema():
 
 def test_tail_dataframe_schema():
     """Checks that validating the tail of a dataframe validates correctly."""
-    df = pd.DataFrame({"col1": list(range(0, 100)) + list(range(-1, -1001, -1))})
+    df = pd.DataFrame(
+        {"col1": list(range(0, 100)) + list(range(-1, -1001, -1))}
+    )
 
-    schema = DataFrameSchema(columns={"col1": Column(Int, Check(lambda s: s < 0))})
+    schema = DataFrameSchema(
+        columns={"col1": Column(Int, Check(lambda s: s < 0))}
+    )
 
     # Validating with tail of 1000 should pass
     assert schema.validate(df, tail=1000).equals(df)
@@ -460,7 +493,9 @@ def test_sample_dataframe_schema():
     df = pd.DataFrame({"col1": range(1, 1001)})
 
     # assert all values -1
-    schema = DataFrameSchema(columns={"col1": Column(Int, Check(lambda s: s == -1))})
+    schema = DataFrameSchema(
+        columns={"col1": Column(Int, Check(lambda s: s == -1))}
+    )
 
     for seed in [11, 123456, 9000, 654]:
         sample_index = df.sample(100, random_state=seed).index
@@ -699,7 +734,9 @@ def _boolean_update_column_case(bool_kwarg):
         [Column(Int), "foobar", {}, ValueError],
     ],
 )
-def test_dataframe_schema_update_column(column, column_to_update, update, assertion_fn):
+def test_dataframe_schema_update_column(
+    column, column_to_update, update, assertion_fn
+):
     """Test that DataFrameSchema columns create updated copies."""
     schema = DataFrameSchema({"col": column})
     if assertion_fn is ValueError:
@@ -723,10 +760,15 @@ def test_rename_columns():
 
     # Check if new column names are indeed present in the new schema
     assert all(
-        [col_name in rename_dict.values() for col_name in schema_renamed.columns]
+        [
+            col_name in rename_dict.values()
+            for col_name in schema_renamed.columns
+        ]
     )
     # Check if original schema didn't change in the process
-    assert all([col_name in schema_original.columns for col_name in rename_dict])
+    assert all(
+        [col_name in schema_original.columns for col_name in rename_dict]
+    )
 
 
 @pytest.mark.parametrize(
@@ -859,10 +901,16 @@ def test_lazy_dataframe_validation_nullable():
         schema.validate(df, lazy=True)
     except errors.SchemaErrors as err:
         assert err.schema_errors.failure_case.isna().all()
-        for col, index in [("int_column", 1), ("float_column", 2), ("str_column", 0)]:
+        for col, index in [
+            ("int_column", 1),
+            ("float_column", 2),
+            ("str_column", 0),
+        ]:
             # pylint: disable=cell-var-from-loop
             assert (
-                err.schema_errors.loc[lambda df: df.column == col, "index"].iloc[0]
+                err.schema_errors.loc[
+                    lambda df: df.column == col, "index"
+                ].iloc[0]
                 == index
             )
 
@@ -882,7 +930,9 @@ def test_lazy_dataframe_validation_nullable():
 def test_lazy_dataframe_scalar_false_check(schema_cls, data):
     """Lazy validation handles checks returning scalar False values."""
     # define a check that always returns a scalare False value
-    check = Check(check_fn=lambda _: False, element_wise=False, error="failing check")
+    check = Check(
+        check_fn=lambda _: False, element_wise=False, error="failing check"
+    )
     schema = schema_cls(checks=check)
     with pytest.raises(errors.SchemaErrors):
         schema(data, lazy=True)
@@ -913,7 +963,9 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
         ],
         [
             Column(
-                Int, checks=[Check.greater_than(1), Check.less_than(3)], name="column"
+                Int,
+                checks=[Check.greater_than(1), Check.less_than(3)],
+                name="column",
             ),
             pd.DataFrame({"column": [1, 2, 3]}),
             {
@@ -979,7 +1031,9 @@ def test_lazy_series_validation_error(schema, data, expectation):
         assert err.data.equals(expectation["data"])
 
         # make sure all expected check errors are in schema errors
-        for schema_context, check_failure_cases in expectation["schema_errors"].items():
+        for schema_context, check_failure_cases in expectation[
+            "schema_errors"
+        ].items():
             assert schema_context in err.schema_errors.schema_context.values
             err_df = err.schema_errors.loc[
                 err.schema_errors.schema_context == schema_context
@@ -997,3 +1051,34 @@ def test_schema_transformer_deprecated():
     """Using the transformer argument should raise a deprecation warning."""
     with pytest.warns(DeprecationWarning):
         DataFrameSchema(transformer=lambda df: df)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize(
+    "from_dtype,to_dtype",
+    [
+        [float, int],
+        [int, float],
+        [object, int],
+        [object, float],
+        [int, object],
+        [float, object],
+    ],
+)
+def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
+    """Test coercion logic for validation when inplace is True and False"""
+
+    to_dtype = PandasDtype.from_python_type(to_dtype).str_alias
+    from_dtype = PandasDtype.from_python_type(from_dtype).str_alias
+
+    df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})
+    schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})
+    validated_df = schema.validate(df, inplace=inplace)
+
+    assert validated_df["column"].dtype == to_dtype
+    if inplace:
+        # inplace mutates original dataframe
+        assert df["column"].dtype == to_dtype
+    else:
+        # not inplace preserves original dataframe type
+        assert df["column"].dtype == from_dtype

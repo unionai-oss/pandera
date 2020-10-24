@@ -99,7 +99,11 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
     """Captures extra information about an annotation."""
 
     def __init__(
-        self, origin: Optional[Type], arg: Optional[Type], optional: bool, literal=False
+        self,
+        origin: Optional[Type],
+        arg: Optional[Type],
+        optional: bool,
+        literal=False,
     ) -> None:
         self.origin = origin
         self.arg = arg
@@ -136,12 +140,16 @@ def parse_annotation(raw_annotation: Type) -> AnnotationInfo:
     if literal:
         arg = typing_inspect.get_args(arg)[0]
 
-    return AnnotationInfo(origin=origin, arg=arg, optional=optional, literal=literal)
+    return AnnotationInfo(
+        origin=origin, arg=arg, optional=optional, literal=literal
+    )
 
 
 Bool = Literal[PandasDtype.Bool]  #: ``"bool"`` numpy dtype
 DateTime = Literal[PandasDtype.DateTime]  #: ``"datetime64[ns]"`` numpy dtype
-Timedelta = Literal[PandasDtype.Timedelta]  #: ``"timedelta64[ns]"`` numpy dtype
+Timedelta = Literal[
+    PandasDtype.Timedelta
+]  #: ``"timedelta64[ns]"`` numpy dtype
 Category = Literal[PandasDtype.Category]  #: pandas ``"categorical"`` datatype
 Float = Literal[PandasDtype.Float]  #: ``"float"`` numpy dtype
 Float16 = Literal[PandasDtype.Float16]  #: ``"float16"`` numpy dtype
@@ -160,10 +168,18 @@ INT8 = Literal[PandasDtype.INT8]  #: ``"Int8"`` pandas dtype:: pandas 0.24.0+
 INT16 = Literal[PandasDtype.INT16]  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
 INT32 = Literal[PandasDtype.INT32]  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
 INT64 = Literal[PandasDtype.INT64]  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
-UINT8 = Literal[PandasDtype.UINT8]  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
-UINT16 = Literal[PandasDtype.UINT16]  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
-UINT32 = Literal[PandasDtype.UINT32]  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
-UINT64 = Literal[PandasDtype.UINT64]  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
+UINT8 = Literal[
+    PandasDtype.UINT8
+]  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
+UINT16 = Literal[
+    PandasDtype.UINT16
+]  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
+UINT32 = Literal[
+    PandasDtype.UINT32
+]  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
+UINT64 = Literal[
+    PandasDtype.UINT64
+]  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
 Object = Literal[PandasDtype.Object]  #: ``"object"`` numpy dtype
 
 #: The string datatype doesn't map to the first-class pandas datatype and

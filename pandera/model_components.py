@@ -15,7 +15,12 @@ from typing import (
 )
 
 from .checks import Check
-from .schema_components import Column, Index, PandasDtypeInputTypes, SeriesSchemaBase
+from .schema_components import (
+    Column,
+    Index,
+    PandasDtypeInputTypes,
+    SeriesSchemaBase,
+)
 
 AnyCallable = Callable[..., Any]
 SchemaComponent = TypeVar("SchemaComponent", bound=SeriesSchemaBase)
@@ -194,7 +199,9 @@ class CheckInfo:  # pylint:disable=too-few-public-methods
         """Create a Check from metadata."""
         name = self.check_kwargs.pop("name", None)
         if not name:
-            name = getattr(self.check_fn, "__name__", self.check_fn.__class__.__name__)
+            name = getattr(
+                self.check_fn, "__name__", self.check_fn.__class__.__name__
+            )
 
         def _adapter(arg: Any) -> Union[bool, Iterable[bool]]:
             return self.check_fn(model_cls, arg)
@@ -272,7 +279,11 @@ def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
 
     def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
         check_fn, check_method = _to_function_and_classmethod(fn)
-        setattr(check_method, DATAFRAME_CHECK_KEY, CheckInfo(check_fn, **check_kwargs))
+        setattr(
+            check_method,
+            DATAFRAME_CHECK_KEY,
+            CheckInfo(check_fn, **check_kwargs),
+        )
         return check_method
 
     if _fn:

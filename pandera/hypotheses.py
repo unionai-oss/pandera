@@ -25,12 +25,16 @@ class Hypothesis(_CheckBase):
     #: Relationships available for built-in hypothesis tests.
     RELATIONSHIPS = {
         "greater_than": (
-            lambda stat, pvalue, alpha=DEFAULT_ALPHA: stat > 0 and pvalue / 2 < alpha
+            lambda stat, pvalue, alpha=DEFAULT_ALPHA: stat > 0
+            and pvalue / 2 < alpha
         ),
         "less_than": (
-            lambda stat, pvalue, alpha=DEFAULT_ALPHA: stat < 0 and pvalue / 2 < alpha
+            lambda stat, pvalue, alpha=DEFAULT_ALPHA: stat < 0
+            and pvalue / 2 < alpha
         ),
-        "not_equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue < alpha),
+        "not_equal": (
+            lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue < alpha
+        ),
         "equal": (lambda stat, pvalue, alpha=DEFAULT_ALPHA: pvalue >= alpha),
     }
 
@@ -172,7 +176,9 @@ class Hypothesis(_CheckBase):
         self.groups = self.samples
         return super()._prepare_series_input(series, dataframe_context)
 
-    def _prepare_dataframe_input(self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
+    def _prepare_dataframe_input(
+        self, dataframe: pd.DataFrame
+    ) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema Hypothesis check."""
         if self.groupby is not None:
             raise errors.SchemaDefinitionError(
@@ -197,7 +203,8 @@ class Hypothesis(_CheckBase):
         if isinstance(relationship, str):
             if relationship not in self.RELATIONSHIPS:
                 raise errors.SchemaInitError(
-                    "The relationship %s isn't a built in method" % relationship
+                    "The relationship %s isn't a built in method"
+                    % relationship
                 )
             relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
@@ -207,7 +214,9 @@ class Hypothesis(_CheckBase):
             )
         return relationship
 
-    def _hypothesis_check(self, check_obj: Union[pd.Series, Dict[str, pd.Series]]):
+    def _hypothesis_check(
+        self, check_obj: Union[pd.Series, Dict[str, pd.Series]]
+    ):
         """Create a function fn which is checked via the Check parent class.
 
         :param dict check_obj: a dictionary of pd.Series to be used by
@@ -216,7 +225,9 @@ class Hypothesis(_CheckBase):
         """
         if isinstance(check_obj, pd.Series):
             return self.relationship(*self.test(check_obj))
-        return self.relationship(*self.test(*[check_obj.get(s) for s in self.samples]))
+        return self.relationship(
+            *self.test(*[check_obj.get(s) for s in self.samples])
+        )
 
     @classmethod
     def two_sample_ttest(
@@ -333,7 +344,8 @@ class Hypothesis(_CheckBase):
             test_kwargs={"equal_var": equal_var, "nan_policy": nan_policy},
             relationship_kwargs={"alpha": alpha},
             name="two_sample_ttest",
-            error="failed two sample ttest between '%s' and '%s'" % (sample1, sample2),
+            error="failed two sample ttest between '%s' and '%s'"
+            % (sample1, sample2),
             raise_warning=raise_warning,
         )
 

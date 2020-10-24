@@ -22,7 +22,9 @@ CheckResult = namedtuple(
 )
 
 
-GroupbyObject = Union[pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy]
+GroupbyObject = Union[
+    pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy
+]
 
 SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
@@ -177,7 +179,9 @@ class _CheckBase:
         """
 
         if element_wise and groupby is not None:
-            raise errors.SchemaInitError("Cannot use groupby when element_wise=True.")
+            raise errors.SchemaInitError(
+                "Cannot use groupby when element_wise=True."
+            )
         self._check_fn = check_fn
         self._check_kwargs = check_kwargs
         self.element_wise = element_wise
@@ -236,11 +240,15 @@ class _CheckBase:
                 "key. Valid group keys: %s" % (invalid_groups, group_keys)
             )
         return {
-            group_key: group for group_key, group in groupby_obj if group_key in groups
+            group_key: group
+            for group_key, group in groupby_obj
+            if group_key in groups
         }
 
     def _prepare_series_input(
-        self, series: pd.Series, dataframe_context: Optional[pd.DataFrame] = None
+        self,
+        series: pd.Series,
+        dataframe_context: Optional[pd.DataFrame] = None,
     ) -> SeriesCheckObj:
         """Prepare input for Column check.
 
@@ -260,13 +268,15 @@ class _CheckBase:
             ).groupby(self.groupby)[series.name]
             return self._format_groupby_input(groupby_obj, self.groups)
         if callable(self.groupby):
-            groupby_obj = self.groupby(pd.concat([series, dataframe_context], axis=1))[
-                series.name
-            ]
+            groupby_obj = self.groupby(
+                pd.concat([series, dataframe_context], axis=1)
+            )[series.name]
             return self._format_groupby_input(groupby_obj, self.groups)
         raise TypeError("Type %s not recognized for `groupby` argument.")
 
-    def _prepare_dataframe_input(self, dataframe: pd.DataFrame) -> DataFrameCheckObj:
+    def _prepare_dataframe_input(
+        self, dataframe: pd.DataFrame
+    ) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema check.
 
         :param dataframe: dataframe to validate.
@@ -279,7 +289,9 @@ class _CheckBase:
         return self._format_groupby_input(groupby_obj, self.groups)
 
     def _handle_na(
-        self, df_or_series: Union[pd.DataFrame, pd.Series], column: Optional[str] = None
+        self,
+        df_or_series: Union[pd.DataFrame, pd.Series],
+        column: Optional[str] = None,
     ):
         """Handle nan values before passing object to check function."""
         if not self.ignore_na:
@@ -294,14 +306,19 @@ class _CheckBase:
             for col in self.groupby:
                 # raise schema definition error if column is not in the
                 # validated dataframe
-                if isinstance(df_or_series, pd.DataFrame) and col not in df_or_series:
+                if (
+                    isinstance(df_or_series, pd.DataFrame)
+                    and col not in df_or_series
+                ):
                     raise errors.SchemaDefinitionError(
                         "`groupby` column '%s' not found" % col
                     )
             drop_na_columns.extend(self.groupby)
 
         if drop_na_columns:
-            return df_or_series.loc[df_or_series[drop_na_columns].dropna().index]
+            return df_or_series.loc[
+                df_or_series[drop_na_columns].dropna().index
+            ]
         return df_or_series.dropna()
 
     def __call__(
@@ -335,7 +352,9 @@ class _CheckBase:
 
         column_dataframe_context = None
         if column is not None and isinstance(df_or_series, pd.DataFrame):
-            column_dataframe_context = df_or_series.drop(column, axis="columns")
+            column_dataframe_context = df_or_series.drop(
+                column, axis="columns"
+            )
             df_or_series = df_or_series[column].copy()
 
         # prepare check object
@@ -389,7 +408,8 @@ class _CheckBase:
             )
         else:
             raise TypeError(
-                "output type of check_fn not recognized: %s" % type(check_output)
+                "output type of check_fn not recognized: %s"
+                % type(check_output)
             )
 
         check_passed = (
@@ -400,7 +420,9 @@ class _CheckBase:
             else check_output
         )
 
-        return CheckResult(check_output, check_passed, check_obj, failure_cases)
+        return CheckResult(
+            check_output, check_passed, check_obj, failure_cases
+        )
 
     def __eq__(self, other):
         are_fn_objects_equal = (
@@ -609,7 +631,9 @@ class Check(_CheckBase):
     le = less_than_or_equal_to
 
     @classmethod
-    @register_check_statistics(["min_value", "max_value", "include_min", "include_max"])
+    @register_check_statistics(
+        ["min_value", "max_value", "include_min", "include_max"]
+    )
     def in_range(
         cls, min_value, max_value, include_min=True, include_max=True, **kwargs
     ) -> "Check":
@@ -683,7 +707,8 @@ class Check(_CheckBase):
             allowed_values = frozenset(allowed_values)
         except TypeError as exc:
             raise ValueError(
-                "Argument allowed_values must be iterable. Got %s" % allowed_values
+                "Argument allowed_values must be iterable. Got %s"
+                % allowed_values
             ) from exc
 
         def _isin(series: pd.Series) -> pd.Series:
@@ -722,7 +747,8 @@ class Check(_CheckBase):
             forbidden_values = frozenset(forbidden_values)
         except TypeError as exc:
             raise ValueError(
-                "Argument forbidden_values must be iterable. Got %s" % forbidden_values
+                "Argument forbidden_values must be iterable. Got %s"
+                % forbidden_values
             ) from exc
 
         def _notin(series: pd.Series) -> pd.Series:
@@ -753,7 +779,8 @@ class Check(_CheckBase):
             regex = re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
-                'pattern="%s" cannot be compiled as regular expression' % pattern
+                'pattern="%s" cannot be compiled as regular expression'
+                % pattern
             ) from exc
 
         def _match(series: pd.Series) -> pd.Series:
@@ -786,7 +813,8 @@ class Check(_CheckBase):
             regex = re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
-                'pattern="%s" cannot be compiled as regular expression' % pattern
+                'pattern="%s" cannot be compiled as regular expression'
+                % pattern
             ) from exc
 
         def _contains(series: pd.Series) -> pd.Series:
@@ -859,7 +887,8 @@ class Check(_CheckBase):
         """
         if min_value is None and max_value is None:
             raise ValueError(
-                "At least a minimum or a maximum need to be specified. Got " "None."
+                "At least a minimum or a maximum need to be specified. Got "
+                "None."
             )
         if max_value is None:
 
@@ -877,7 +906,9 @@ class Check(_CheckBase):
 
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for both, minimum and maximum string length"""
-                return (series.str.len() <= max_value) & (series.str.len() >= min_value)
+                return (series.str.len() <= max_value) & (
+                    series.str.len() >= min_value
+                )
 
         return cls(
             _str_length,
