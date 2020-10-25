@@ -6,6 +6,52 @@ Statistical Data Validation for Pandas
 *A data validation library for scientists, engineers, and analysts seeking
 correctness.*
 
+.. image:: https://travis-ci.org/pandera-dev/pandera.svg?branch=master
+    :target: https://travis-ci.org/pandera-dev/pandera
+    :alt: CI Build
+
+.. image:: https://readthedocs.org/projects/pandera/badge/?version=stable
+    :target: https://pandera.readthedocs.io/en/stable/?badge=stable
+    :alt: Documentation Stable Status
+
+.. image:: https://img.shields.io/pypi/v/pandera.svg
+    :target: https://pypi.org/project/pandera/
+    :alt: pypi
+
+.. image:: https://img.shields.io/pypi/l/pandera.svg
+    :target: https://pypi.python.org/pypi/
+    :alt: pypi versions
+
+.. image:: https://tinyurl.com/y22nb8up
+    :target: https://github.com/pyOpenSci/software-review/issues/12
+    :alt: pyOpenSci Review
+
+.. image:: https://www.repostatus.org/badges/latest/active.svg
+    :target: https://www.repostatus.org/#active
+    :alt: Project Status: Active – The project has reached a stable, usable state and is being actively developed.
+
+.. image:: https://readthedocs.org/projects/pandera/badge/?version=latest
+    :target: https://pandera.readthedocs.io/en/stable/?badge=latest
+    :alt: Documentation Latest Status
+
+.. image:: https://codecov.io/gh/pandera-dev/pandera/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/pandera-dev/pandera
+    :alt: Code Coverage
+
+.. image:: https://img.shields.io/pypi/pyversions/pandera.svg
+    :target: https://pypi.python.org/pypi/pandera/
+    :alt: PyPI pyversions
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg
+    :target: https://doi.org/10.5281/zenodo.3385265
+    :alt: DOI
+
+.. image:: http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat
+    :target: https://pandera-dev.github.io/pandera-asv-logs/
+    :alt: asv
+
+|
+
 ``pandera`` provides a flexible and expressive API for performing data
 validation on tidy (long-form) and wide data to make data processing pipelines
 more readable and robust.

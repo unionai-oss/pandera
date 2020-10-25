@@ -53,6 +53,10 @@ a {
   color: #dedede;
 }
 
+.rst-content .section>img, .rst-content .section>a>img {
+  margin-bottom: 5px;
+}
+
 @media screen and (max-width: 768px) {
   .wy-nav-side {
     left: -375px;
