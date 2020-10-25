@@ -166,7 +166,7 @@ however, a couple of gotchas:
 
 :green:`✔` Good:
 
-.. code-block::
+.. testcode:: dataframe_schema_model
     :skipif: SKIP_PANDAS_LT_V1
 
     import pandas as pd
