@@ -22,14 +22,13 @@ dependencies:
   # packaging
   - twine
 
-# performance testing
+  # performance testing
   - asv
 
   # optional
   - pre_commit
 
   # pandera dependencies
-  - black
   - numpy
   - pandas
   - scipy
