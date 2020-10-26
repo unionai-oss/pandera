@@ -283,7 +283,7 @@ class DataFrameSchema:
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
         :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            checks and raises a ``SchemaErrors``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
@@ -490,7 +490,7 @@ class DataFrameSchema:
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
         :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            checks and raises a ``SchemaErrors``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
@@ -911,7 +911,7 @@ class SeriesSchemaBase:
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
         :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            checks and raises a ``SchemaErrors``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
@@ -1170,7 +1170,7 @@ class SeriesSchema(SeriesSchemaBase):
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
         :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrorReport``. Otherwise, raise
+            checks and raises a ``SchemaErrors``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
