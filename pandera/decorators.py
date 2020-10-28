@@ -104,7 +104,7 @@ def check_input(
         with `head` or `tail` are de-duplicated.
     :param random_state: random seed for the ``sample`` argument.
     :param lazy: if True, lazily evaluates dataframe against all validation
-        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        checks and raises a ``SchemaErrors``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
     :param inplace: if True, applies coercion to the object of validation,
         otherwise creates a copy of the data.
@@ -249,7 +249,7 @@ def check_output(
         with `head` or `tail` are de-duplicated.
     :param random_state: random seed for the ``sample`` argument.
     :param lazy: if True, lazily evaluates dataframe against all validation
-        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        checks and raises a ``SchemaErrors``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
     :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
@@ -355,7 +355,7 @@ def check_io(
         with `head` or `tail` are de-duplicated.
     :param random_state: random seed for the ``sample`` argument.
     :param lazy: if True, lazily evaluates dataframe against all validation
-        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        checks and raises a ``SchemaErrors``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
     :param inplace: if True, applies coercion to the object of validation,
         otherwise creates a copy of the data.
@@ -441,7 +441,7 @@ def check_types(
         with `head` or `tail` are de-duplicated.
     :param random_state: random seed for the ``sample`` argument.
     :param lazy: if True, lazily evaluates dataframe against all validation
-        checks and raises a ``SchemaErrorReport``. Otherwise, raise
+        checks and raises a ``SchemaErrors``. Otherwise, raise
         ``SchemaError`` as soon as one occurs.
     :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
