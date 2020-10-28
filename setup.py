@@ -1,7 +1,6 @@
-
 from setuptools import setup
 
-with open('README.md') as f:
+with open("README.md") as f:
     long_description = f.read()
 
 version = {}
@@ -24,20 +23,18 @@ setup(
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
     description="A light-weight and flexible validation package for pandas "
-                "data structures.",
+    "data structures.",
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     url="https://github.com/pandera-dev/pandera",
     project_urls={
-          'Documentation': 'https://pandera.readthedocs.io',
-          'Issue Tracker': 'https://github.com/pandera-dev/pandera/issues'
-      },
+        "Documentation": "https://pandera.readthedocs.io",
+        "Issue Tracker": "https://github.com/pandera-dev/pandera/issues",
+    },
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
     data_files=[("", ["LICENSE.txt"])],
-    packages=[
-        "pandera",
-    ],
+    packages=["pandera",],
     install_requires=[
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
@@ -46,8 +43,8 @@ setup(
         "wrapt",
     ],
     extras_require=extras_require,
-    python_requires='>=3.6',
-    platforms='any',
+    python_requires=">=3.6",
+    platforms="any",
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Operating System :: OS Independent',
@@ -61,5 +58,4 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering'
         ],
-
 )

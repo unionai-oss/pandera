@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from . import constants, errors
+from . import constants, errors, generators
 
 CheckResult = namedtuple(
     "CheckResult",

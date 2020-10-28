@@ -282,3 +282,58 @@ class PandasDtype(Enum):
         else:
             hash_obj = self.str_alias
         return id(hash_obj)
+
+    @property
+    def numpy_dtype(self):
+
+        if self is PandasDtype.Category:
+            raise TypeError(
+                "the pandas Categorical data type doesn't have a numpy "
+                "equivalent."
+            )
+
+        if self.value == "string":
+            dtype = np.dtype("str")
+        else:
+            dtype = np.dtype(self.value.lower())
+        return dtype
+
+    @property
+    def is_int(self):
+        return self.value.lower().startswith("int")
+
+    @property
+    def is_uint(self):
+        return self.value.lower().startswith("uint")
+
+    @property
+    def is_float(self):
+        return self.value.startswith("float")
+
+    @property
+    def is_complex(self):
+        return self.value.startswith("complex")
+
+    @property
+    def is_bool(self):
+        return self is PandasDtype.Bool
+
+    @property
+    def is_string(self):
+        return self is PandasDtype.String
+
+    @property
+    def is_category(self):
+        return self is PandasDtype.Category
+
+    @property
+    def is_datetime(self):
+        return self is PandasDtype.DateTime
+
+    @property
+    def is_timedelta(self):
+        return self is PandasDtype.Timedelta
+
+    @property
+    def is_object(self):
+        return self is PandasDtype.Object
