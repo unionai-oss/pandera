@@ -6,8 +6,10 @@ constraints specified in a ``pandera`` schema. It's built on top of the
 to compose strategies given multiple checks specified in a schema.
 """
 
+import inspect
 import operator
-from typing import Any, Union
+from functools import partial, wraps
+from typing import Any, Callable, Optional, Tuple, Union
 
 import hypothesis.extra.numpy as numpy_st
 import hypothesis.extra.pandas as pandas_st
@@ -19,8 +21,43 @@ from hypothesis.strategies import SearchStrategy
 from .dtypes import PandasDtype
 
 
+StrategyFn = Callable[
+    [PandasDtype, Optional[SearchStrategy], Any], SearchStrategy
+]
+
+
+def register_check_strategy(strategy_fn: StrategyFn):
+    """Decorate a Check method with a strategy.
+
+    This should be applied to a built-in Check method.
+    """
+
+    def register_check_strategy_decorator(class_method):
+        @wraps(class_method)
+        def _wrapper(cls, *args, **kwargs):
+            check = class_method(cls, *args, **kwargs)
+            if not hasattr(check, "statistics"):
+                raise AttributeError(
+                    "check object doesn't have a statistics property"
+                )
+            strategy_kwargs = {
+                arg: stat
+                for arg, stat in check.statistics.items()
+                if stat is not None
+            }
+
+            check.strategy = partial(strategy_fn, **strategy_kwargs)
+            return check
+
+        return _wrapper
+
+    return register_check_strategy_decorator
+
+
 def pandas_dtype_strategy(
-    pandas_dtype: PandasDtype, strategy: SearchStrategy = None, **kwargs
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    **kwargs,
 ):
 
     if pandas_dtype is PandasDtype.Category:
@@ -42,13 +79,11 @@ def pandas_dtype_strategy(
     return numpy_st.from_dtype(dtype, **kwargs)
 
 
-def resolve_strategies():
-    """Wrapper function"""
-    pass
-
-
 def eq_strategy(
-    pandas_dtype: PandasDtype, strategy: SearchStrategy = None, *, value: Any,
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    value: Any,
 ):
     # override strategy preceding this one and generate value of the same type
     if strategy is None:
@@ -57,7 +92,10 @@ def eq_strategy(
 
 
 def ne_strategy(
-    pandas_dtype: PandasDtype, strategy: SearchStrategy = None, *, value: Any,
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    value: Any,
 ):
     if strategy is None:
         strategy = pandas_dtype_strategy(pandas_dtype)
@@ -66,7 +104,7 @@ def ne_strategy(
 
 def gt_strategy(
     pandas_dtype: PandasDtype,
-    strategy: SearchStrategy = None,
+    strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
 ):
@@ -81,7 +119,7 @@ def gt_strategy(
 
 def ge_strategy(
     pandas_dtype: PandasDtype,
-    strategy: SearchStrategy = None,
+    strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
 ):
@@ -96,7 +134,7 @@ def ge_strategy(
 
 def lt_strategy(
     pandas_dtype: PandasDtype,
-    strategy: SearchStrategy = None,
+    strategy: Optional[SearchStrategy] = None,
     *,
     max_value: Union[int, float],
 ):
@@ -111,7 +149,7 @@ def lt_strategy(
 
 def le_strategy(
     pandas_dtype: PandasDtype,
-    strategy: SearchStrategy = None,
+    strategy: Optional[SearchStrategy] = None,
     *,
     max_value: Union[int, float],
 ):
@@ -126,7 +164,7 @@ def le_strategy(
 
 def in_range_strategy(
     pandas_dtype: PandasDtype,
-    strategy: SearchStrategy = None,
+    strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
     max_value: Union[int, float],

@@ -1,3 +1,5 @@
+from typing import Any
+
 import hypothesis
 import hypothesis.extra.numpy as numpy_st
 import hypothesis.extra.pandas as pandas_st
@@ -7,6 +9,7 @@ import pytest
 
 import pandera as pa
 import pandera.generators as generators
+from pandera.checks import _CheckBase, register_check_statistics
 
 
 @pytest.mark.parametrize(
@@ -59,6 +62,39 @@ def test_check_strategy(data):
 def test_check_in_range_strategy_chained(data):
     # TODO: test when in_range_strategy is a second check in a series
     pass
+
+
+@hypothesis.given(st.data())
+def test_register_check_strategy(data):
+    def custom_eq_strategy(
+        pandas_dtype: pa.PandasDtype,
+        strategy: st.SearchStrategy = None,
+        *,
+        value: Any,
+    ):
+        return st.just(value).map(pandas_dtype.numpy_dtype.type)
+
+    class CustomCheck(_CheckBase):
+        @classmethod
+        @generators.register_check_strategy(custom_eq_strategy)
+        @register_check_statistics(["value"])
+        def custom_equals(cls, value, **kwargs) -> "CustomCheck":
+            """Define a built-in check."""
+
+            def _custom_equals(series: pd.Series) -> pd.Series:
+                """Comparison function for check"""
+                return series == value
+
+            return cls(
+                _custom_equals,
+                name=cls.custom_equals.__name__,
+                error="equal_to(%s)" % value,
+                **kwargs,
+            )
+
+    check = CustomCheck.custom_equals(100)
+    result = data.draw(check.strategy(pa.Int))
+    assert result == 100
 
 
 def test_column_generate():
