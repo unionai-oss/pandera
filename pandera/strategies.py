@@ -8,22 +8,27 @@ to compose strategies given multiple checks specified in a schema.
 
 import inspect
 import operator
+import re
 from functools import partial, wraps
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
-import hypothesis.extra.numpy as numpy_st
-import hypothesis.extra.pandas as pandas_st
-import hypothesis.strategies as st
 import numpy as np
-from hypothesis import assume
-from hypothesis.strategies import SearchStrategy
 
 from .dtypes import PandasDtype
 
+try:
+    import hypothesis.extra.numpy as numpy_st
+    import hypothesis.extra.pandas as pandas_st
+    import hypothesis.strategies as st
+    from hypothesis import assume
+    from hypothesis.strategies import SearchStrategy
+except ImportError:
+    HAS_HYPOTHESIS = False
+else:
+    HAS_HYPOTHESIS = True
 
-StrategyFn = Callable[
-    [PandasDtype, Optional[SearchStrategy], Any], SearchStrategy
-]
+
+StrategyFn = Callable[..., SearchStrategy]
 
 
 def register_check_strategy(strategy_fn: StrategyFn):
@@ -33,6 +38,10 @@ def register_check_strategy(strategy_fn: StrategyFn):
     """
 
     def register_check_strategy_decorator(class_method):
+
+        if not HAS_HYPOTHESIS:
+            return class_method
+
         @wraps(class_method)
         def _wrapper(cls, *args, **kwargs):
             check = class_method(cls, *args, **kwargs)
@@ -58,7 +67,7 @@ def pandas_dtype_strategy(
     pandas_dtype: PandasDtype,
     strategy: Optional[SearchStrategy] = None,
     **kwargs,
-):
+) -> SearchStrategy:
 
     if pandas_dtype is PandasDtype.Category:
         # hypothesis doesn't support categoricals, so will need to build a
@@ -84,7 +93,7 @@ def eq_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     value: Any,
-):
+) -> SearchStrategy:
     # override strategy preceding this one and generate value of the same type
     if strategy is None:
         strategy = pandas_dtype_strategy(pandas_dtype)
@@ -96,7 +105,7 @@ def ne_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     value: Any,
-):
+) -> SearchStrategy:
     if strategy is None:
         strategy = pandas_dtype_strategy(pandas_dtype)
     return strategy.filter(lambda x: x != value)
@@ -107,7 +116,7 @@ def gt_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
-):
+) -> SearchStrategy:
     if strategy is None:
         strategy = pandas_dtype_strategy(
             pandas_dtype,
@@ -122,7 +131,7 @@ def ge_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
-):
+) -> SearchStrategy:
     if strategy is None:
         return pandas_dtype_strategy(
             pandas_dtype,
@@ -137,7 +146,7 @@ def lt_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     max_value: Union[int, float],
-):
+) -> SearchStrategy:
     if strategy is None:
         strategy = pandas_dtype_strategy(
             pandas_dtype,
@@ -152,7 +161,7 @@ def le_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     max_value: Union[int, float],
-):
+) -> SearchStrategy:
     if strategy is None:
         return pandas_dtype_strategy(
             pandas_dtype,
@@ -170,7 +179,7 @@ def in_range_strategy(
     max_value: Union[int, float],
     include_min: bool = True,
     include_max: bool = True,
-):
+) -> SearchStrategy:
     if strategy is None:
         return pandas_dtype_strategy(
             pandas_dtype,
@@ -186,28 +195,103 @@ def in_range_strategy(
     )
 
 
-def isin_strategy():
-    pass
+def isin_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    allowed_values: Sequence[Any],
+):
+    if strategy is None:
+        return st.sampled_from(allowed_values).map(pandas_dtype.numpy_dtype)
+    return strategy.filter(lambda x: x in allowed_values)
 
 
-def notin_strategy():
-    pass
+def notin_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    forbidden_values: Sequence[Any],
+):
+    if strategy is None:
+        strategy = pandas_dtype_strategy(pandas_dtype)
+    return strategy.filter(lambda x: x not in forbidden_values)
 
 
-def str_matches_strategy():
-    pass
+def str_matches_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    pattern: str,
+):
+    if strategy is None:
+        return st.from_regex(pattern, fullmatch=True).map(
+            pandas_dtype.numpy_dtype
+        )
+
+    def matches(x):
+        return re.match(x)
+
+    return strategy.filter(matches)
 
 
-def str_contains_strategy():
-    pass
+def str_contains_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    pattern: str,
+):
+    if strategy is None:
+        return st.from_regex(pattern, fullmatch=False).map(
+            pandas_dtype.numpy_dtype
+        )
+
+    def contains(x):
+        return re.search(x)
+
+    return strategy.filter(contains)
 
 
-def str_startswith_strategy():
-    pass
+def str_startswith_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    string: str,
+):
+    if strategy is None:
+        return st.from_regex(f"^{string}", fullmatch=False).map(
+            pandas_dtype.numpy_dtype
+        )
+
+    return strategy.filter(lambda x: x.startswith(string))
 
 
-def str_length_strategy():
-    pass
+def str_endswith_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    string: str,
+):
+    if strategy is None:
+        return st.from_regex(f"{string}$", fullmatch=False).map(
+            pandas_dtype.numpy_dtype
+        )
+
+    return strategy.filter(lambda x: x.endswith(string))
+
+
+def str_length_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    min_value: int,
+    max_value: int,
+):
+    if strategy is None:
+        return st.text(min_size=min_value, max_size=max_value).map(
+            pandas_dtype.numpy_dtype
+        )
+
+    return strategy.filter(lambda x: min_value <= len(x) <= max_value)
 
 
 def strategy_from_column():

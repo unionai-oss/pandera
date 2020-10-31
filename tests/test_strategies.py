@@ -8,12 +8,13 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-import pandera.generators as generators
+import pandera.strategies as strategies
 from pandera.checks import _CheckBase, register_check_statistics
 
 
 @pytest.mark.parametrize(
-    "pdtype", [pdtype for pdtype in pa.PandasDtype],
+    "pdtype",
+    [pdtype for pdtype in pa.PandasDtype],
 )
 @hypothesis.given(st.data())
 def test_pandas_dtype_strategy(pdtype, data):
@@ -22,10 +23,10 @@ def test_pandas_dtype_strategy(pdtype, data):
         with pytest.raises(
             TypeError, match="Categorical dtype is currently unsupported"
         ):
-            generators.pandas_dtype_strategy(pdtype)
+            strategies.pandas_dtype_strategy(pdtype)
         return
 
-    strategy = generators.pandas_dtype_strategy(pdtype)
+    strategy = strategies.pandas_dtype_strategy(pdtype)
     pd.Series([data.draw(strategy)], dtype=pdtype.str_alias)
 
 
@@ -35,16 +36,16 @@ def test_check_strategy(data):
     value = data.draw(numpy_st.from_dtype(pdtype.numpy_dtype))
     min_value, max_value = value - 10, value + 10
 
-    assert data.draw(generators.ne_strategy(pdtype, value=value)) != value
-    assert data.draw(generators.eq_strategy(pdtype, value=value)) == value
-    assert data.draw(generators.gt_strategy(pdtype, min_value=value)) > value
-    assert data.draw(generators.ge_strategy(pdtype, min_value=value)) >= value
-    assert data.draw(generators.lt_strategy(pdtype, max_value=value)) < value
-    assert data.draw(generators.le_strategy(pdtype, max_value=value)) <= value
+    assert data.draw(strategies.ne_strategy(pdtype, value=value)) != value
+    assert data.draw(strategies.eq_strategy(pdtype, value=value)) == value
+    assert data.draw(strategies.gt_strategy(pdtype, min_value=value)) > value
+    assert data.draw(strategies.ge_strategy(pdtype, min_value=value)) >= value
+    assert data.draw(strategies.lt_strategy(pdtype, max_value=value)) < value
+    assert data.draw(strategies.le_strategy(pdtype, max_value=value)) <= value
     assert (
         min_value
         <= data.draw(
-            generators.in_range_strategy(
+            strategies.in_range_strategy(
                 pdtype, min_value=min_value, max_value=max_value
             )
         )
@@ -76,7 +77,7 @@ def test_register_check_strategy(data):
 
     class CustomCheck(_CheckBase):
         @classmethod
-        @generators.register_check_strategy(custom_eq_strategy)
+        @strategies.register_check_strategy(custom_eq_strategy)
         @register_check_statistics(["value"])
         def custom_equals(cls, value, **kwargs) -> "CustomCheck":
             """Define a built-in check."""
@@ -95,6 +96,15 @@ def test_register_check_strategy(data):
     check = CustomCheck.custom_equals(100)
     result = data.draw(check.strategy(pa.Int))
     assert result == 100
+
+
+@hypothesis.given(st.data())
+def test_builtin_check_strategies(data):
+    pdtype = pa.Int8
+    value = data.draw(numpy_st.from_dtype(pdtype.numpy_dtype))
+    check = pa.Check.equal_to(value)
+    strategy = check.strategy(pdtype)
+    assert data.draw(strategy) == value
 
 
 def test_column_generate():
