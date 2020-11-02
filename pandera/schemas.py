@@ -12,6 +12,7 @@ import pandas as pd
 from packaging import version
 
 from . import constants, dtypes, errors
+from . import strategies as st
 from .checks import Check
 from .dtypes import PandasDtype, PandasExtensionType
 from .error_formatters import (
@@ -557,9 +558,13 @@ class DataFrameSchema:
                 k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
             }
 
-        # if _compare_dict(self) != _compare_dict(other):
-        #     import ipdb; ipdb.set_trace()
         return _compare_dict(self) == _compare_dict(other)
+
+    def strategy(self, *, size=None):
+        return st.dataframe_strategy(columns=self.columns, size=size)
+
+    def example(self, size=None):
+        return self.strategy(size=size).example()
 
     @_inferred_schema_guard
     def add_columns(
@@ -850,6 +855,15 @@ class SeriesSchemaBase:
             "string alias" % type(self._pandas_dtype)
         )
 
+    @property
+    def pdtype(self) -> Optional[PandasDtype]:
+        """PandasDtype of the series."""
+        if self.dtype is None:
+            return None
+        if isinstance(self.pandas_dtype, PandasDtype):
+            return self.pandas_dtype
+        return PandasDtype.from_str_alias(self.dtype)
+
     def coerce_dtype(
         self, series_or_index: Union[pd.Series, pd.Index]
     ) -> pd.Series:
@@ -1105,6 +1119,19 @@ class SeriesSchemaBase:
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+    def strategy(self, *, size=None):
+        return st.series_strategy(
+            self.pdtype,
+            checks=self.checks,
+            nullable=self.nullable,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+            size=size,
+        )
+
+    def example(self, size=None):
+        return self.strategy(size=size).example()
 
 
 class SeriesSchema(SeriesSchemaBase):

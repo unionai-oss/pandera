@@ -285,12 +285,13 @@ class PandasDtype(Enum):
 
     @property
     def numpy_dtype(self):
-
         if self is PandasDtype.Category:
             raise TypeError(
                 "the pandas Categorical data type doesn't have a numpy "
                 "equivalent."
             )
+
+        dtype = {"string": np.dtype("str")}.get(self.value)
 
         if self.value == "string":
             dtype = np.dtype("str")
@@ -303,8 +304,16 @@ class PandasDtype(Enum):
         return self.value.lower().startswith("int")
 
     @property
+    def is_nullable_int(self):
+        return self.value.startswith("Int")
+
+    @property
     def is_uint(self):
         return self.value.lower().startswith("uint")
+
+    @property
+    def is_nullable_uint(self):
+        return self.value.startswith("UInt")
 
     @property
     def is_float(self):

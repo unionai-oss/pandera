@@ -1,8 +1,8 @@
 from typing import Any
 
 import hypothesis
-import hypothesis.extra.numpy as numpy_st
-import hypothesis.extra.pandas as pandas_st
+import hypothesis.extra.numpy as npst
+import hypothesis.extra.pandas as pdst
 import hypothesis.strategies as st
 import pandas as pd
 import pytest
@@ -13,8 +13,7 @@ from pandera.checks import _CheckBase, register_check_statistics
 
 
 @pytest.mark.parametrize(
-    "pdtype",
-    [pdtype for pdtype in pa.PandasDtype],
+    "pdtype", [pdtype for pdtype in pa.PandasDtype],
 )
 @hypothesis.given(st.data())
 def test_pandas_dtype_strategy(pdtype, data):
@@ -33,7 +32,7 @@ def test_pandas_dtype_strategy(pdtype, data):
 @hypothesis.given(st.data())
 def test_check_strategy(data):
     pdtype = pa.PandasDtype.Int
-    value = data.draw(numpy_st.from_dtype(pdtype.numpy_dtype))
+    value = data.draw(npst.from_dtype(pdtype.numpy_dtype))
     min_value, max_value = value - 10, value + 10
 
     assert data.draw(strategies.ne_strategy(pdtype, value=value)) != value
@@ -101,15 +100,58 @@ def test_register_check_strategy(data):
 @hypothesis.given(st.data())
 def test_builtin_check_strategies(data):
     pdtype = pa.Int8
-    value = data.draw(numpy_st.from_dtype(pdtype.numpy_dtype))
+    value = data.draw(npst.from_dtype(pdtype.numpy_dtype))
     check = pa.Check.equal_to(value)
     strategy = check.strategy(pdtype)
     assert data.draw(strategy) == value
 
 
-def test_column_generate():
+# TODO: test the rest of the built-in check strategies
+
+
+@hypothesis.given(st.data())
+def test_series_strategy(data):
+    series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
+    series_schema(data.draw(series_schema.strategy()))
+
+
+@hypothesis.given(st.data())
+def test_column_strategy(data):
+    column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
+    column_schema(data.draw(column_schema.strategy(as_component=False)))
+
+
+@pytest.mark.parametrize(
+    "pdtype",
+    [
+        pdtype
+        for pdtype in pa.PandasDtype
+        if not pdtype.is_category and not pdtype.is_complex
+    ],
+)
+@hypothesis.given(st.data())
+def test_dataframe_strategy(pdtype, data):
+    dataframe_schema = pa.DataFrameSchema(
+        {f"{pdtype.value}_col": pa.Column(pdtype)}
+    )
+    dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
+
+
+@pytest.mark.parametrize(
+    "pdtype", [pdtype for pdtype in pa.PandasDtype if pdtype.is_complex],
+)
+@pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
+@hypothesis.given(st.data())
+def test_dataframe_strategy_complex_numbers(pdtype, data):
+    dataframe_schema = pa.DataFrameSchema(
+        {f"{pdtype.value}_col": pa.Column(pdtype)}
+    )
+    dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
+
+
+def test_index_strategy():
     pass
 
 
-def test_schema_generate():
+def test_multiindex_strategy():
     pass

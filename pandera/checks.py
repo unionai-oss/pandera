@@ -217,8 +217,7 @@ class _CheckBase:
 
     @staticmethod
     def _format_groupby_input(
-        groupby_obj: GroupbyObject,
-        groups: Optional[List[str]],
+        groupby_obj: GroupbyObject, groups: Optional[List[str]],
     ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
         """Format groupby object into dict of groups to Series or DataFrame.
 
@@ -421,16 +420,35 @@ class _CheckBase:
         )
 
     def __eq__(self, other):
-        are_fn_objects_equal = (
+        are_check_fn_objects_equal = (
             self.__dict__["_check_fn"].__code__.co_code
             == other.__dict__["_check_fn"].__code__.co_code
         )
 
-        are_all_other_check_attributes_equal = {
-            i: self.__dict__[i] for i in self.__dict__ if i != "_check_fn"
-        } == {i: other.__dict__[i] for i in other.__dict__ if i != "_check_fn"}
+        try:
+            are_strategy_fn_objects_equal = all(
+                getattr(self.__dict__.get("strategy"), attr)
+                == getattr(other.__dict__.get("strategy"), attr)
+                for attr in ["func", "args", "keywords"]
+            )
+        except AttributeError:
+            are_strategy_fn_objects_equal = True
 
-        return are_fn_objects_equal and are_all_other_check_attributes_equal
+        are_all_other_check_attributes_equal = {
+            i: self.__dict__[i]
+            for i in self.__dict__
+            if i not in ["_check_fn", "strategy"]
+        } == {
+            i: other.__dict__[i]
+            for i in other.__dict__
+            if i not in ["_check_fn", "strategy"]
+        }
+
+        return (
+            are_check_fn_objects_equal
+            and are_strategy_fn_objects_equal
+            and are_all_other_check_attributes_equal
+        )
 
     def __hash__(self):
         return hash(self.__dict__["_check_fn"].__code__.co_code)

@@ -10,15 +10,16 @@ import inspect
 import operator
 import re
 from functools import partial, wraps
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
+import pandas as pd
 
 from .dtypes import PandasDtype
 
 try:
-    import hypothesis.extra.numpy as numpy_st
-    import hypothesis.extra.pandas as pandas_st
+    import hypothesis.extra.numpy as npst
+    import hypothesis.extra.pandas as pdst
     import hypothesis.strategies as st
     from hypothesis import assume
     from hypothesis.strategies import SearchStrategy
@@ -29,6 +30,12 @@ else:
 
 
 StrategyFn = Callable[..., SearchStrategy]
+
+
+class BaseStrategyOnlyError(Exception):
+    """Custom error for reporting strategies that must be base strategies."""
+
+    pass
 
 
 def register_check_strategy(strategy_fn: StrategyFn):
@@ -85,7 +92,7 @@ def pandas_dtype_strategy(
 
     if strategy:
         return strategy.map(dtype)
-    return numpy_st.from_dtype(dtype, **kwargs)
+    return npst.from_dtype(dtype, **kwargs)
 
 
 def eq_strategy(
@@ -294,13 +301,101 @@ def str_length_strategy(
     return strategy.filter(lambda x: min_value <= len(x) <= max_value)
 
 
-def strategy_from_column():
+def series_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    checks: Optional[Sequence] = None,
+    nullable: Optional[bool] = False,
+    allow_duplicates: Optional[bool] = True,
+    name: Optional[str] = None,
+    size: Optional[int] = None,
+):
+    if strategy:
+        raise BaseStrategyOnlyError(
+            "The series strategy is a base strategy. You cannot specify the "
+            "strategy argument to chain it to a parent strategy."
+        )
+    checks = [] if checks is None else checks
+    elements = None
+    for check in checks:
+        elements = check.strategy(pandas_dtype, elements)
+    if elements is None:
+        elements = pandas_dtype_strategy(pandas_dtype)
+    if not nullable:
+        elements = elements.filter(lambda x: pd.notna(x))
+    return (
+        pdst.series(
+            elements=elements,
+            dtype=pandas_dtype.numpy_dtype,
+            index=pdst.range_indexes(
+                min_size=0 if size is None else size, max_size=size
+            ),
+            unique=not allow_duplicates,
+        )
+        .filter(lambda x: x.shape[0] > 0)
+        .map(lambda x: x.rename(name))
+    )
+
+
+def column_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    checks: Optional[Sequence] = None,
+    nullable: Optional[bool] = False,
+    allow_duplicates: Optional[bool] = True,
+    name: Optional[str] = None,
+):
+    if strategy:
+        raise BaseStrategyOnlyError(
+            "The column strategy is a base strategy. You cannot specify the "
+            "strategy argument to chain it to a parent strategy."
+        )
+    checks = [] if checks is None else checks
+    elements = None
+    for check in checks:
+        elements = check.strategy(pandas_dtype, elements)
+    if elements is None:
+        elements = pandas_dtype_strategy(pandas_dtype)
+    if not nullable:
+        elements = elements.filter(lambda x: pd.notna(x))
+
+    return pdst.column(
+        name=name,
+        elements=elements,
+        dtype=pandas_dtype.numpy_dtype,
+        unique=not allow_duplicates,
+    )
+
+
+def dataframe_strategy(
+    pandas_dtype: Optional[PandasDtype] = None,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    columns: Optional[Dict] = None,
+    size: Optional[int] = None,
+):
+    if strategy:
+        raise BaseStrategyOnlyError(
+            "The dataframe strategy is a base strategy. You cannot specify "
+            "the strategy argument to chain it to a parent strategy."
+        )
+    # TODO: handle pandas_dtype being specified at the dataframe level
+    # TODO: handle checks being defined at the dataframe level
+    columns = {} if columns is None else columns
+    col_dtypes = {col_name: col.dtype for col_name, col in columns.items()}
+    return pdst.data_frames(
+        [column.strategy() for column in columns.values()],
+        index=pdst.range_indexes(
+            min_size=0 if size is None else size, max_size=size
+        ),
+    ).map(lambda x: x.astype(col_dtypes))
+
+
+def index_strategy():
     pass
 
 
-def strategy_from_series_schema():
-    pass
-
-
-def strategy_from_dataframe_schema():
+def multiindex_strategy():
     pass

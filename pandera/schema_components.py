@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from . import errors
+from . import strategies as st
 from .dtypes import PandasDtype
 from .schemas import (
     CheckList,
@@ -241,6 +242,22 @@ class Column(SeriesSchemaBase):
                 "least one column:\n%s" % (self.name, columns.tolist()),
             )
         return column_keys_to_check
+
+    def strategy(self, *, size=None, as_component=True):
+        if as_component:
+            return st.column_strategy(
+                self.pdtype,
+                checks=self.checks,
+                nullable=self.nullable,
+                allow_duplicates=self.allow_duplicates,
+                name=self.name,
+            )
+        return super().strategy(size=size).map(lambda x: x.to_frame())
+
+    def example(self, size=None):
+        return (
+            super().strategy(size=size).example().rename(self.name).to_frame()
+        )
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
