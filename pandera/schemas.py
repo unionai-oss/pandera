@@ -689,6 +689,65 @@ class DataFrameSchema:
 
         return pandera.io.to_yaml(self, fp)
 
+    def set_index(self, keys: List[str], drop: bool = True, append: bool = False, inplace: bool = False):
+        """
+        A method for setting the :class:`Index` of a :class:`DataFrameSchema`,
+        via an existing :class:`Column` or list of :class:`Column`s.
+
+        :param keys: list of labels
+        :param drop: bool, default True
+        :param append: bool, default False
+        :param inplace: bool, default False
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the index.
+        """
+
+        # first check if should be done to self or make copy
+        if inplace:
+            new_schema = self
+        else:
+            new_schema = copy.deepcopy(self)
+
+        # ensure all specified keys are present in the columns
+        try:
+            not_in_cols: List[str] = [x for x in keys if x not in new_schema.columns.keys()]
+            assert not_in_cols == []
+        except AssertionError:
+            raise Exception(f"Keys {not_in_cols} not found in schema columns!")
+        # ensure no duplicates
+        try:
+            dup_cols:List[str] = [x for x in set(keys) if keys.count(x) > 1]
+            assert dup_cols == []
+        except AssertionError:
+            raise Exception(f"Keys {dup_cols} are duplicated!")
+
+
+        # if there is already an index, append or replace according to parameters
+        if self.index is not None:
+            if isinstance(self.index, MultiIndex) and append:
+                ind_list: List = list(self.index.columns.values())
+            elif isinstance(self.index, Index) and append:
+                ind_list: List = [self.index]
+            else:
+                ind_list: List = []
+        # if there is no index, then create from columns
+        else:
+            ind_list: List = []
+
+        for col in keys:
+            ind_list.append(Index(self.columns[col].dtype,name=col))
+
+
+        if len(ind_list) == 1:
+            new_schema.index = ind_list[0]
+        elif len(ind_list) > 1:
+            new_schema.index = MultiIndex(ind_list)
+
+        # if drop is True as defaulted, drop the columns moved into the index
+        if drop:
+            new_schema = new_schema.remove_columns(keys)
+
+        return new_schema
+
 
 class SeriesSchemaBase:
     """Base series validator object."""
