@@ -346,3 +346,14 @@ class PandasDtype(Enum):
     @property
     def is_object(self):
         return self is PandasDtype.Object
+
+    @property
+    def is_continuous(self):
+        return (
+            self.is_int
+            or self.is_uint
+            or self.is_float
+            or self.is_complex
+            or self.is_datetime
+            or self.is_timedelta
+        )

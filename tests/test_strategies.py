@@ -4,6 +4,7 @@ import hypothesis
 import hypothesis.extra.numpy as npst
 import hypothesis.extra.pandas as pdst
 import hypothesis.strategies as st
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -11,17 +12,35 @@ import pandera as pa
 import pandera.strategies as strategies
 from pandera.checks import _CheckBase, register_check_statistics
 
+TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
+
+SUPPORTED_TYPES = [
+    x for x in pa.PandasDtype if x not in {pa.Object, pa.Category}
+]
+
+NUMERIC_RANGE_CONSTANT = 10
+DATE_RANGE_CONSTANT = np.timedelta64(NUMERIC_RANGE_CONSTANT, "D")
+COMPLEX_RANGE_CONSTANT = np.complex64(
+    complex(NUMERIC_RANGE_CONSTANT, NUMERIC_RANGE_CONSTANT)
+)
+
 
 @pytest.mark.parametrize(
-    "pdtype", [pdtype for pdtype in pa.PandasDtype],
+    "pdtype",
+    [pdtype for pdtype in pa.PandasDtype],
 )
 @hypothesis.given(st.data())
 def test_pandas_dtype_strategy(pdtype, data):
     """Test that series can be constructed from pandas dtype."""
     if pdtype is pa.PandasDtype.Category:
         with pytest.raises(
-            TypeError, match="Categorical dtype is currently unsupported"
+            TypeError,
+            match=TYPE_ERROR_FMT.format("Categorical"),
         ):
+            strategies.pandas_dtype_strategy(pdtype)
+        return
+    elif pdtype is pa.PandasDtype.Object:
+        with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format("Object")):
             strategies.pandas_dtype_strategy(pdtype)
         return
 
@@ -29,39 +48,182 @@ def test_pandas_dtype_strategy(pdtype, data):
     pd.Series([data.draw(strategy)], dtype=pdtype.str_alias)
 
 
+@pytest.mark.parametrize(
+    "pdtype", [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous]
+)
 @hypothesis.given(st.data())
-def test_check_strategy(data):
+def test_check_strategy_continuous(pdtype, data):
+    value = data.draw(
+        npst.from_dtype(
+            pdtype.numpy_dtype,
+            allow_nan=False,
+            allow_infinity=False,
+        )
+    )
     pdtype = pa.PandasDtype.Int
     value = data.draw(npst.from_dtype(pdtype.numpy_dtype))
-    min_value, max_value = value - 10, value + 10
-
     assert data.draw(strategies.ne_strategy(pdtype, value=value)) != value
     assert data.draw(strategies.eq_strategy(pdtype, value=value)) == value
     assert data.draw(strategies.gt_strategy(pdtype, min_value=value)) > value
     assert data.draw(strategies.ge_strategy(pdtype, min_value=value)) >= value
     assert data.draw(strategies.lt_strategy(pdtype, max_value=value)) < value
     assert data.draw(strategies.le_strategy(pdtype, max_value=value)) <= value
+
+
+def _get_min_max_values(pdtype, min_value):
+    dtype = type(min_value)
+    if pdtype.is_datetime or pdtype.is_timedelta:
+        constant = DATE_RANGE_CONSTANT
+    elif pdtype.is_complex:
+        constant = COMPLEX_RANGE_CONSTANT
+    else:
+        constant = NUMERIC_RANGE_CONSTANT
+
+    if pdtype.is_int or pdtype.is_uint:
+        max_value = min_value + constant
+        max_value = (
+            np.iinfo(pdtype.numpy_dtype).max
+            if max_value != dtype(max_value)
+            else max_value
+        )
+    elif pdtype.is_complex:
+        # make sure max value for complex numbers stays within bounds of the
+        # underlying float
+        max_value = dtype(min_value + constant)
+        max_possible = np.finfo(type(min_value.real)).max
+        max_value = dtype(
+            complex(
+                min(max_value.real, max_possible),
+                min(max_value.imag, max_possible),
+            )
+        )
+    else:
+        max_value = dtype(min_value + constant)
+    return min_value, max_value
+
+
+@pytest.mark.parametrize(
+    "pdtype", [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous]
+)
+@hypothesis.given(st.data())
+def test_check_strategy_chained_continuous(pdtype, data):
+    value = data.draw(
+        npst.from_dtype(
+            pdtype.numpy_dtype,
+            allow_nan=False,
+            allow_infinity=False,
+        )
+    )
+    min_value, max_value = _get_min_max_values(pdtype, value)
+    hypothesis.assume(min_value < max_value)
+    base_st = strategies.pandas_dtype_strategy(
+        pdtype, allow_nan=False, allow_infinity=False
+    )
+    base_st_ltgt_ops = strategies.pandas_dtype_strategy(
+        pdtype,
+        min_value=min_value,
+        max_value=max_value,
+        allow_nan=False,
+        allow_infinity=False,
+    )
+
     assert (
-        min_value
-        <= data.draw(
-            strategies.in_range_strategy(
-                pdtype, min_value=min_value, max_value=max_value
+        data.draw(strategies.ne_strategy(pdtype, base_st, value=value))
+        != value
+    )
+    assert (
+        data.draw(
+            strategies.eq_strategy(
+                pdtype,
+                # constraining the strategy this way makes testing more
+                # efficient
+                strategy=st.just(value),
+                value=value,
+            )
+        )
+        == value
+    )
+    assert (
+        data.draw(
+            strategies.gt_strategy(
+                pdtype, base_st_ltgt_ops, min_value=min_value
+            )
+        )
+        > min_value
+    )
+    assert (
+        data.draw(
+            strategies.ge_strategy(
+                pdtype, base_st_ltgt_ops, min_value=min_value
+            )
+        )
+        >= min_value
+    )
+    assert (
+        data.draw(
+            strategies.lt_strategy(
+                pdtype, base_st_ltgt_ops, max_value=max_value
+            )
+        )
+        < max_value
+    )
+    assert (
+        data.draw(
+            strategies.le_strategy(
+                pdtype, base_st_ltgt_ops, max_value=max_value
             )
         )
         <= max_value
     )
 
 
-@hypothesis.settings(
-    suppress_health_check=[
-        hypothesis.HealthCheck.filter_too_much,
-        hypothesis.HealthCheck.too_slow,
-    ]
+@pytest.mark.parametrize(
+    "pdtype",
+    [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous],
 )
 @hypothesis.given(st.data())
-def test_check_in_range_strategy_chained(data):
-    # TODO: test when in_range_strategy is a second check in a series
-    pass
+def test_in_range_strategy(pdtype, data):
+    min_value = data.draw(
+        npst.from_dtype(
+            pdtype.numpy_dtype,
+            allow_nan=False,
+            allow_infinity=False,
+        )
+    )
+
+    min_value, max_value = _get_min_max_values(pdtype, min_value)
+    hypothesis.assume(min_value < max_value)
+
+    example = data.draw(
+        strategies.in_range_strategy(
+            pdtype, min_value=min_value, max_value=max_value
+        )
+    )
+    assert min_value <= example <= max_value
+
+    if pdtype.is_float:
+        base_st_kwargs = {
+            "exclude_min": False,
+            "exclude_max": False,
+        }
+    else:
+        base_st_kwargs = {}
+
+    # constraining the strategy this way makes testing more efficient
+    base_st_in_range = strategies.pandas_dtype_strategy(
+        pdtype,
+        min_value=min_value,
+        max_value=max_value,
+        **base_st_kwargs,
+    )
+    strat = strategies.in_range_strategy(
+        pdtype,
+        base_st_in_range,
+        min_value=min_value,
+        max_value=max_value,
+    )
+
+    assert min_value <= data.draw(strat) <= max_value
 
 
 @hypothesis.given(st.data())
@@ -97,16 +259,18 @@ def test_register_check_strategy(data):
     assert result == 100
 
 
+@pytest.mark.parametrize("pdtype", SUPPORTED_TYPES)
+# for complex numbers warning
+@pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
 @hypothesis.given(st.data())
-def test_builtin_check_strategies(data):
-    pdtype = pa.Int8
+def test_builtin_check_strategies(pdtype, data):
     value = data.draw(npst.from_dtype(pdtype.numpy_dtype))
     check = pa.Check.equal_to(value)
-    strategy = check.strategy(pdtype)
-    assert data.draw(strategy) == value
-
-
-# TODO: test the rest of the built-in check strategies
+    sample = data.draw(check.strategy(pdtype))
+    if pd.isna(sample):
+        assert pd.isna(value)
+    else:
+        assert sample == value
 
 
 @hypothesis.given(st.data())
@@ -123,29 +287,18 @@ def test_column_strategy(data):
 
 @pytest.mark.parametrize(
     "pdtype",
-    [
-        pdtype
-        for pdtype in pa.PandasDtype
-        if not pdtype.is_category and not pdtype.is_complex
-    ],
+    [pdtype for pdtype in pa.PandasDtype if not pdtype.is_category],
 )
+@pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
 @hypothesis.given(st.data())
 def test_dataframe_strategy(pdtype, data):
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype)}
     )
-    dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
-
-
-@pytest.mark.parametrize(
-    "pdtype", [pdtype for pdtype in pa.PandasDtype if pdtype.is_complex],
-)
-@pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
-@hypothesis.given(st.data())
-def test_dataframe_strategy_complex_numbers(pdtype, data):
-    dataframe_schema = pa.DataFrameSchema(
-        {f"{pdtype.value}_col": pa.Column(pdtype)}
-    )
+    if pdtype is pa.PandasDtype.Object:
+        with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format("Object")):
+            dataframe_schema.strategy()
+        return
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
 
 

@@ -21,7 +21,6 @@ try:
     import hypothesis.extra.numpy as npst
     import hypothesis.extra.pandas as pdst
     import hypothesis.strategies as st
-    from hypothesis import assume
     from hypothesis.strategies import SearchStrategy
 except ImportError:
     HAS_HYPOTHESIS = False
@@ -70,28 +69,100 @@ def register_check_strategy(strategy_fn: StrategyFn):
     return register_check_strategy_decorator
 
 
+# Values taken from
+# https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
+MIN_DT_VALUE = -(2 ** 63)
+MAX_DT_VALUE = 2 ** 63 - 1
+
+
+def numpy_time_dtypes(dtype, min_value=None, max_value=None):
+    """Create numpy strategy for datetime and timedelta data types."""
+    res = (
+        st.just(dtype.str.split("[")[-1][:-1])
+        if "[" in dtype.str
+        else st.sampled_from(npst.TIME_RESOLUTIONS)
+    )
+    return st.builds(
+        dtype.type,
+        st.integers(
+            MIN_DT_VALUE if min_value is None else min_value.astype(np.int64),
+            MAX_DT_VALUE if max_value is None else max_value.astype(np.int64),
+        ),
+        res,
+    )
+
+
+def numpy_complex_dtypes(
+    dtype,
+    min_value=complex(0, 0),
+    max_value=None,
+    allow_infinity=None,
+    allow_nan=None,
+):
+    if max_value:
+        max_real = max_value.real
+        max_imag = max_value.imag
+    else:
+        max_real = max_imag = None
+    if dtype.itemsize == 8:
+        width = 32
+    else:
+        width = 64
+    return st.builds(
+        complex,
+        st.floats(
+            min_value=min_value.real,
+            max_value=max_real,
+            width=width,
+            allow_infinity=allow_infinity,
+            allow_nan=allow_nan,
+        ),
+        st.floats(
+            min_value=min_value.imag,
+            max_value=max_imag,
+            width=width,
+            allow_infinity=allow_infinity,
+            allow_nan=allow_nan,
+        ),
+    ).map(dtype.type)
+
+
 def pandas_dtype_strategy(
     pandas_dtype: PandasDtype,
     strategy: Optional[SearchStrategy] = None,
     **kwargs,
 ) -> SearchStrategy:
+    def compat_kwargs(*args):
+        return {k: v for k, v in kwargs.items() if k in args}
 
+    # hypothesis doesn't support categoricals or objects, so we'll will need to
+    # build a pandera-specific solution.
     if pandas_dtype is PandasDtype.Category:
-        # hypothesis doesn't support categoricals, so will need to build a
-        # solution for pandera.
         raise TypeError(
-            "Categorical dtype is currently unsupported. Consider using "
-            "a string or int dtype and Check.isin(values) to ensure a finite "
-            "set of values."
+            "data generation for the Categorical dtype is currently "
+            "unsupported. Consider using a string or int dtype and "
+            "Check.isin(values) to ensure a finite set of values."
+        )
+    elif pandas_dtype is PandasDtype.Object:
+        raise TypeError(
+            "data generation for the Object dtype is currently unsupported."
         )
 
     dtype = pandas_dtype.numpy_dtype
-    if pandas_dtype is PandasDtype.Object:
-        # default to generating strings for generating objects
-        dtype = np.dtype("str")
+    if pandas_dtype.is_datetime or pandas_dtype.is_timedelta:
+        return numpy_time_dtypes(
+            dtype, **compat_kwargs("min_value", "max_value"),
+        )
+    elif pandas_dtype.is_complex:
+        return numpy_complex_dtypes(
+            dtype,
+            **compat_kwargs(
+                "min_value", "max_value", "allow_infinity", "allow_nan"
+            ),
+        )
 
     if strategy:
-        return strategy.map(dtype)
+        return strategy.map(dtype.type)
     return npst.from_dtype(dtype, **kwargs)
 
 
@@ -195,8 +266,8 @@ def in_range_strategy(
             exclude_min=not include_min,
             exclude_max=not include_max,
         )
-    max_op = operator.lt if include_max else operator.le
-    min_op = operator.gt if include_max else operator.gt
+    min_op = operator.ge if include_min else operator.gt
+    max_op = operator.le if include_max else operator.lt
     return strategy.filter(
         lambda x: min_op(x, min_value) and max_op(x, max_value)
     )
@@ -335,6 +406,7 @@ def series_strategy(
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
+        .map(lambda x: x.astype(pandas_dtype.str_alias))
     )
 
 
