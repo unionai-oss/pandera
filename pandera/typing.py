@@ -73,16 +73,15 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    # pylint:disable=too-few-public-methods
-    class DataFrame(pd.DataFrame):
+    # pylint:disable=too-few-public-methods,invalid-name
+    T = TypeVar("T")
+
+    class DataFrame(pd.DataFrame, Generic[T]):
         """
         Representation of pandas.DataFrame, only used for type annotation.
 
         *new in 0.5.0*
         """
-
-        def __class_getitem__(cls, item):
-            pass
 
 
 else:
