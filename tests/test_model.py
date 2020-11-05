@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.typing import Index, Series
+from pandera.typing import DataFrame, Index, Series
 
 
 def test_to_schema():
@@ -415,3 +415,32 @@ def test_config():
     )
 
     assert expected == Child.to_schema()
+
+
+def test_check_types():
+    class Input(pa.SchemaModel):
+        a: Series[int]
+        b: Series[int]
+        idx: Index[str]
+
+    class Output(Input):
+        c: Series[int]
+
+    @pa.check_types
+    def transform(df: DataFrame[Input]) -> DataFrame[Output]:
+        return df.assign(c=lambda x: x.a + x.b)
+
+    data = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6]}, index=pd.Index(["a", "b", "c"])
+    )
+    assert isinstance(transform(data), pd.DataFrame)
+
+    for invalid_data in [
+        data.drop("a", axis="columns"),
+        data.drop("b", axis="columns"),
+        data.assign(a=["a", "b", "c"]),
+        data.assign(b=["a", "b", "c"]),
+        data.reset_index(drop=True),
+    ]:
+        with pytest.raises(pa.errors.SchemaError):
+            transform(invalid_data)
