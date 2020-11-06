@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 import hypothesis
@@ -226,6 +227,103 @@ def test_in_range_strategy(pdtype, data):
     assert min_value <= data.draw(strat) <= max_value
 
 
+@pytest.mark.parametrize(
+    "pdtype",
+    [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous],
+)
+@pytest.mark.parametrize("chained", [True, False])
+@hypothesis.given(st.data())
+def test_isin_notin(pdtype, chained, data):
+    value_st = strategies.pandas_dtype_strategy(
+        pdtype,
+        allow_nan=False,
+        allow_infinity=False,
+        exclude_min=False,
+        exclude_max=False,
+    )
+    values = [data.draw(value_st) for _ in range(10)]
+
+    isin_base_st = None
+    if chained:
+        base_values = values + [data.draw(value_st) for _ in range(10)]
+        isin_base_st = strategies.isin_strategy(
+            pdtype, allowed_values=base_values
+        )
+
+    isin_st = strategies.isin_strategy(
+        pdtype, isin_base_st, allowed_values=values
+    )
+    notin_st = strategies.notin_strategy(
+        pdtype, value_st, forbidden_values=values
+    )
+    assert data.draw(isin_st) in values
+    assert data.draw(notin_st) not in values
+
+
+@pytest.mark.parametrize(
+    "str_strat, valid_data_fn, pattern_fn",
+    [
+        [
+            strategies.str_matches_strategy,
+            lambda patt, extra: patt,
+            lambda patt: f"^{patt}$",
+        ],
+        [
+            strategies.str_contains_strategy,
+            lambda patt, extra: extra + patt + extra,
+            lambda patt: patt,
+        ],
+        [
+            strategies.str_startswith_strategy,
+            lambda patt, extra: patt + extra,
+            lambda patt: f"^{patt}",
+        ],
+        [
+            strategies.str_endswith_strategy,
+            lambda patt, extra: extra + patt,
+            lambda patt: f"{patt}$",
+        ],
+    ],
+)
+@hypothesis.given(st.data(), st.text(), st.text())
+def test_str_pattern_checks(
+    str_strat, valid_data_fn, pattern_fn, data, pattern, extra
+):
+    try:
+        re.compile(pattern)
+        re_compiles = True
+    except re.error:
+        re_compiles = False
+    hypothesis.assume(re_compiles)
+
+    try:
+        st = str_strat(pa.String, pattern=pattern)
+    except TypeError:
+        st = str_strat(pa.String, string=pattern)
+    example = data.draw(st)
+    assert re.search(pattern, example)
+
+
+@hypothesis.given(
+    st.data(),
+    (
+        st.tuples(
+            st.integers(min_value=0, max_value=1000),
+            st.integers(min_value=0, max_value=1000),
+        )
+        .map(sorted)
+        .filter(lambda x: x[0] < x[1])  # type: ignore
+    ),
+)
+def test_str_length_checks(data, value_range):
+    min_value, max_value = value_range
+    str_length_st = strategies.str_length_strategy(
+        pa.String, min_value=min_value, max_value=max_value
+    )
+    example = data.draw(str_length_st)
+    assert min_value <= len(example) <= max_value
+
+
 @hypothesis.given(st.data())
 def test_register_check_strategy(data):
     def custom_eq_strategy(
@@ -302,9 +400,24 @@ def test_dataframe_strategy(pdtype, data):
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
 
 
-def test_index_strategy():
-    pass
+@hypothesis.given(st.data())
+def test_index_strategy(data):
+    index = pa.Index(int, allow_duplicates=False)
+    strat = index.strategy(size=10)
+    example = data.draw(strat)
+    assert (~example.duplicated()).all()
 
 
-def test_multiindex_strategy():
-    pass
+@hypothesis.given(st.data())
+def test_multiindex_strategy(data):
+    multiindex = pa.MultiIndex(
+        indexes=[
+            pa.Index(int, allow_duplicates=False, name="level_0"),
+            pa.Index(int),
+            pa.Index(int),
+        ]
+    )
+    strat = multiindex.strategy(size=10)
+    example = data.draw(strat)
+    for i in range(example.nlevels):
+        assert example.get_level_values(i).dtype == int

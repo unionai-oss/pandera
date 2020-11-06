@@ -347,6 +347,27 @@ class Index(SeriesSchemaBase):
         )
         return check_obj
 
+    def strategy(self, *, size=None, as_multiindex_component=False):
+        if as_multiindex_component:
+            return st.column_strategy(
+                self.pdtype,
+                checks=self.checks,
+                nullable=self.nullable,
+                allow_duplicates=self.allow_duplicates,
+                name=self.name,
+            )
+        return st.index_strategy(
+            self.pdtype,
+            checks=self.checks,
+            nullable=self.nullable,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+            size=size,
+        )
+
+    def example(self, size=None):
+        return self.strategy(size=size).example()
+
     def __repr__(self):
         if self._name is None:
             return "<Schema Index>"
@@ -527,6 +548,12 @@ class MultiIndex(DataFrameSchema):
 
         assert isinstance(validation_result, pd.DataFrame)
         return check_obj
+
+    def strategy(self, *, size=None):
+        return st.multiindex_strategy(indexes=self.indexes, size=size)
+
+    def example(self, size=None):
+        return self.strategy(size=size).example()
 
     def __repr__(self):
         return "<Schema MultiIndex: '%s'>" % list(self.columns)

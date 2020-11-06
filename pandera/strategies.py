@@ -10,7 +10,7 @@ import inspect
 import operator
 import re
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -151,7 +151,8 @@ def pandas_dtype_strategy(
     dtype = pandas_dtype.numpy_dtype
     if pandas_dtype.is_datetime or pandas_dtype.is_timedelta:
         return numpy_time_dtypes(
-            dtype, **compat_kwargs("min_value", "max_value"),
+            dtype,
+            **compat_kwargs("min_value", "max_value"),
         )
     elif pandas_dtype.is_complex:
         return numpy_complex_dtypes(
@@ -280,7 +281,9 @@ def isin_strategy(
     allowed_values: Sequence[Any],
 ):
     if strategy is None:
-        return st.sampled_from(allowed_values).map(pandas_dtype.numpy_dtype)
+        return st.sampled_from(allowed_values).map(
+            pandas_dtype.numpy_dtype.type
+        )
     return strategy.filter(lambda x: x in allowed_values)
 
 
@@ -303,7 +306,7 @@ def str_matches_strategy(
 ):
     if strategy is None:
         return st.from_regex(pattern, fullmatch=True).map(
-            pandas_dtype.numpy_dtype
+            pandas_dtype.numpy_dtype.type
         )
 
     def matches(x):
@@ -320,7 +323,7 @@ def str_contains_strategy(
 ):
     if strategy is None:
         return st.from_regex(pattern, fullmatch=False).map(
-            pandas_dtype.numpy_dtype
+            pandas_dtype.numpy_dtype.type
         )
 
     def contains(x):
@@ -337,7 +340,7 @@ def str_startswith_strategy(
 ):
     if strategy is None:
         return st.from_regex(f"^{string}", fullmatch=False).map(
-            pandas_dtype.numpy_dtype
+            pandas_dtype.numpy_dtype.type
         )
 
     return strategy.filter(lambda x: x.startswith(string))
@@ -351,7 +354,7 @@ def str_endswith_strategy(
 ):
     if strategy is None:
         return st.from_regex(f"{string}$", fullmatch=False).map(
-            pandas_dtype.numpy_dtype
+            pandas_dtype.numpy_dtype.type
         )
 
     return strategy.filter(lambda x: x.endswith(string))
@@ -366,7 +369,7 @@ def str_length_strategy(
 ):
     if strategy is None:
         return st.text(min_size=min_value, max_size=max_value).map(
-            pandas_dtype.numpy_dtype
+            pandas_dtype.numpy_dtype.type
         )
 
     return strategy.filter(lambda x: min_value <= len(x) <= max_value)
@@ -465,9 +468,69 @@ def dataframe_strategy(
     ).map(lambda x: x.astype(col_dtypes))
 
 
-def index_strategy():
-    pass
+def index_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    checks: Optional[Sequence] = None,
+    nullable: Optional[bool] = False,
+    allow_duplicates: Optional[bool] = True,
+    name: Optional[str] = None,
+    size: Optional[int] = None,
+):
+    if strategy:
+        raise BaseStrategyOnlyError(
+            "The column strategy is a base strategy. You cannot specify the "
+            "strategy argument to chain it to a parent strategy."
+        )
+    checks = [] if checks is None else checks
+    elements = None
+    for check in checks:
+        elements = check.strategy(pandas_dtype, elements)
+    if elements is None:
+        elements = pandas_dtype_strategy(pandas_dtype)
+    if not nullable:
+        elements = elements.filter(lambda x: pd.notna(x))
+
+    strategy = pdst.indexes(
+        elements=elements,
+        dtype=pandas_dtype.numpy_dtype,
+        min_size=0 if size is None else size,
+        max_size=size,
+        unique=not allow_duplicates,
+    )
+    if name is not None:
+        strategy = strategy.map(lambda index: index.rename(name))
+    return strategy
 
 
-def multiindex_strategy():
-    pass
+def multiindex_strategy(
+    pandas_dtype: Optional[PandasDtype] = None,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    indexes: Optional[List] = None,
+    size: Optional[int] = None,
+):
+    if strategy:
+        raise BaseStrategyOnlyError(
+            "The dataframe strategy is a base strategy. You cannot specify "
+            "the strategy argument to chain it to a parent strategy."
+        )
+    indexes = [] if indexes is None else indexes
+    index_dtypes = {
+        index.name if index.name is not None else i: index.dtype
+        for i, index in enumerate(indexes)
+    }
+    return (
+        pdst.data_frames(
+            [
+                index.strategy(as_multiindex_component=True)
+                for index in indexes
+            ],
+            index=pdst.range_indexes(
+                min_size=0 if size is None else size, max_size=size
+            ),
+        )
+        .map(lambda x: x.astype(index_dtypes))
+        .map(lambda x: pd.MultiIndex.from_frame(x))
+    )
