@@ -1,3 +1,4 @@
+import operator
 import re
 from typing import Any
 
@@ -46,7 +47,9 @@ def test_pandas_dtype_strategy(pdtype, data):
         return
 
     strategy = strategies.pandas_dtype_strategy(pdtype)
-    pd.Series([data.draw(strategy)], dtype=pdtype.str_alias)
+    example = data.draw(strategy)
+    assert example.dtype.type == pdtype.numpy_dtype.type
+    pd.Series([data.draw(strategy) for _ in range(10)], dtype=pdtype.str_alias)
 
 
 @pytest.mark.parametrize(
@@ -106,8 +109,21 @@ def _get_min_max_values(pdtype, min_value):
 @pytest.mark.parametrize(
     "pdtype", [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous]
 )
+@pytest.mark.parametrize(
+    "strat_fn, arg_name, base_st_type, compare_op",
+    [
+        [strategies.ne_strategy, "value", "type", operator.ne],
+        [strategies.eq_strategy, "value", "just", operator.eq],
+        [strategies.gt_strategy, "min_value", "limit", operator.gt],
+        [strategies.ge_strategy, "min_value", "limit", operator.ge],
+        [strategies.lt_strategy, "max_value", "limit", operator.lt],
+        [strategies.le_strategy, "max_value", "limit", operator.le],
+    ],
+)
 @hypothesis.given(st.data())
-def test_check_strategy_chained_continuous(pdtype, data):
+def test_check_strategy_chained_continuous(
+    pdtype, strat_fn, arg_name, base_st_type, compare_op, data
+):
     value = data.draw(
         npst.from_dtype(
             pdtype.numpy_dtype,
@@ -120,62 +136,27 @@ def test_check_strategy_chained_continuous(pdtype, data):
     base_st = strategies.pandas_dtype_strategy(
         pdtype, allow_nan=False, allow_infinity=False
     )
-    base_st_ltgt_ops = strategies.pandas_dtype_strategy(
-        pdtype,
-        min_value=min_value,
-        max_value=max_value,
-        allow_nan=False,
-        allow_infinity=False,
-    )
+    if base_st_type == "type":
+        assert_base_st = base_st
+    elif base_st_type == "just":
+        assert_base_st = st.just(value)
+    elif base_st_type == "limit":
+        assert_base_st = strategies.pandas_dtype_strategy(
+            pdtype,
+            min_value=min_value,
+            max_value=max_value,
+            allow_nan=False,
+            allow_infinity=False,
+        )
+    else:
+        raise RuntimeError(f"base_st_type {base_st_type} not recognized")
 
-    assert (
-        data.draw(strategies.ne_strategy(pdtype, base_st, value=value))
-        != value
+    local_vars = locals()
+    assert_value = local_vars[arg_name]
+    example = data.draw(
+        strat_fn(pdtype, assert_base_st, **{arg_name: assert_value})
     )
-    assert (
-        data.draw(
-            strategies.eq_strategy(
-                pdtype,
-                # constraining the strategy this way makes testing more
-                # efficient
-                strategy=st.just(value),
-                value=value,
-            )
-        )
-        == value
-    )
-    assert (
-        data.draw(
-            strategies.gt_strategy(
-                pdtype, base_st_ltgt_ops, min_value=min_value
-            )
-        )
-        > min_value
-    )
-    assert (
-        data.draw(
-            strategies.ge_strategy(
-                pdtype, base_st_ltgt_ops, min_value=min_value
-            )
-        )
-        >= min_value
-    )
-    assert (
-        data.draw(
-            strategies.lt_strategy(
-                pdtype, base_st_ltgt_ops, max_value=max_value
-            )
-        )
-        < max_value
-    )
-    assert (
-        data.draw(
-            strategies.le_strategy(
-                pdtype, base_st_ltgt_ops, max_value=max_value
-            )
-        )
-        <= max_value
-    )
+    assert compare_op(example, assert_value)
 
 
 @pytest.mark.parametrize(
