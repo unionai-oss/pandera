@@ -22,6 +22,7 @@ from .error_formatters import (
 )
 from .error_handlers import SchemaErrorHandler
 from .hypotheses import Hypothesis
+from .schema_components import MultiIndex, Index, Column
 
 N_INDENT_SPACES = 4
 
@@ -707,12 +708,16 @@ class DataFrameSchema:
         else:
             new_schema = copy.deepcopy(self)
 
+        if not isinstance(keys, list):
+            keys = [keys]
+
         # ensure all specified keys are present in the columns
         try:
             not_in_cols: List[str] = [x for x in keys if x not in new_schema.columns.keys()]
             assert not_in_cols == []
         except AssertionError:
             raise Exception(f"Keys {not_in_cols} not found in schema columns!")
+        
         # ensure no duplicates
         try:
             dup_cols:List[str] = [x for x in set(keys) if keys.count(x) > 1]
@@ -720,21 +725,30 @@ class DataFrameSchema:
         except AssertionError:
             raise Exception(f"Keys {dup_cols} are duplicated!")
 
+        # make a list if not None
+        if (keys is not None) and (isinstance(keys, list) is False):
+            keys = list(keys)
+
 
         # if there is already an index, append or replace according to parameters
-        if self.index is not None:
-            if isinstance(self.index, MultiIndex) and append:
-                ind_list: List = list(self.index.columns.values())
-            elif isinstance(self.index, Index) and append:
-                ind_list: List = [self.index]
+        if new_schema.index is not None:
+            if isinstance(new_schema.index, MultiIndex) and append:
+                ind_list: List = list(new_schema.index.columns.values())
+            elif isinstance(new_schema.index, Index) and append:
+                ind_list: List = [new_schema.index]
             else:
-                ind_list: List = []
+                ind_list: list = []
         # if there is no index, then create from columns
         else:
-            ind_list: List = []
+            ind_list: list = []
 
         for col in keys:
-            ind_list.append(Index(self.columns[col].dtype,name=col))
+            ind_list.append(Index(pandas_dtype = new_schema.columns[col].dtype,
+                                  name = col,
+                                  checks = new_schema.columns[col].checks,
+                                  nullable = new_schema.columns[col].nullable,
+                                  allow_duplicates = new_schema.columns[col].allow_duplicates,
+                                  coerce = new_schema.columns[col].coerce))
 
 
         if len(ind_list) == 1:
@@ -744,9 +758,112 @@ class DataFrameSchema:
 
         # if drop is True as defaulted, drop the columns moved into the index
         if drop:
-            new_schema = new_schema.remove_columns(keys)
+            new_schema.columns = new_schema.remove_columns(keys).columns
 
-        return new_schema
+        if not inplace:
+            return new_schema
+        else:
+            self.columns = new_schema.columns
+            self.index = new_schema.index
+
+    def reset_index(self, level: List[str] = None, drop: bool = False, inplace: bool = False):
+        """
+        A method for reseting the :class:`Index` of a :class:`DataFrameSchema`.
+
+        :param level: list of labels
+        :param drop: bool, default True
+        :param append: bool, default False
+        :param inplace: bool, default False
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the index.        
+        
+        """
+        # first check if should be done to self or make copy
+        if inplace:
+            new_schema = self
+        else:
+            new_schema = copy.deepcopy(self)
+        try:
+            assert new_schema.index is not None
+        except AssertionError:
+            raise Exception('There is currently no index set for this schema.')
+
+        # ensure all specified keys are present in the index
+        try:
+            if isinstance(new_schema.index, MultiIndex) and (level is not None):
+                not_in_cols: List[str] = [x for x in level if x not in list(new_schema.index.columns.keys())]
+            elif isinstance(new_schema.index, Index) and (level is not None):
+                not_in_cols: List[str] = [] if ([new_schema.index.name] == level) else level
+            else:
+                not_in_cols:list = []
+            assert not_in_cols == []
+        except AssertionError:
+            raise Exception(f"Keys {not_in_cols} not found in schema columns!")
+
+        # make a list if not None
+        if (level is not None) and (isinstance(level, list) is False):
+            level = list(level)
+        
+        # ensure no duplicates
+        if level is not None:
+            try:
+                dup_cols:List[str] = [x for x in set(level) if level.count(x) > 1]
+                assert dup_cols == []
+            except AssertionError:
+                raise Exception(f"Keys {dup_cols} are duplicated!")
+
+        #
+        additional_columns: list = []
+        new_index = new_schema.index
+        if level is None:
+            new_index = None
+            print(new_index)
+            if not drop:
+                if isinstance(new_schema.index, MultiIndex):
+                    additional_columns: List[str] = additional_columns + [ind for ind in list(new_schema.index.columns.keys())]
+                else:
+                    additional_columns.append(new_schema.index.name)
+        else:
+            if isinstance(new_schema.index, MultiIndex):
+                new_index = new_schema.index.remove_columns(level)
+                if len(list(new_index.columns.keys())) == 1:
+                    ind_key = list(new_index.columns.keys())[0]
+                    ind_obj = new_index.columns[ind_key]
+                    new_index:Index = Index(pandas_dtype=ind_obj.dtype,
+                                            checks=ind_obj.checks,
+                                            nullable=ind_obj.nullable,
+                                            allow_duplicates=ind_obj.allow_duplicates,
+                                            coerce=ind_obj.coerce,
+                                            name=ind_obj.name)
+                elif len(list(new_index.columns.keys())) == 0:
+                    new_index: list = None
+
+                if not drop:
+                    additional_columns = additional_columns + [ind for ind in level]
+
+            else:
+                new_index = None
+                if not drop:
+                    additional_columns.append(level)
+
+        if not drop:
+            additional_columns: dict = {col: new_schema.index.columns.get(col) for col in additional_columns} \
+                if isinstance(new_schema.index, MultiIndex) \
+                else {additional_columns[0]: new_schema.index}
+
+            new_schema = new_schema.add_columns(
+                {k: Column(pandas_dtype=v.dtype,
+                           checks=v.checks,
+                           nullable=v.nullable,
+                           allow_duplicates=v.allow_duplicates,
+                           coerce=v.coerce,
+                           name=v.name) for (k, v) in additional_columns.items()})
+
+        new_schema.index:Index = new_index
+        if not inplace:
+            return new_schema
+        else:
+            self.columns = new_schema.columns
+            self.index = new_schema.index
 
 
 class SeriesSchemaBase:
