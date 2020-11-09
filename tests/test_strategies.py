@@ -4,7 +4,6 @@ from typing import Any
 
 import hypothesis
 import hypothesis.extra.numpy as npst
-import hypothesis.extra.pandas as pdst
 import hypothesis.strategies as st
 import numpy as np
 import pandas as pd
@@ -18,6 +17,13 @@ TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
 
 SUPPORTED_TYPES = [
     x for x in pa.PandasDtype if x not in {pa.Object, pa.Category}
+]
+NULLABLE_DTYPES = [
+    pdtype
+    for pdtype in pa.PandasDtype
+    if not pdtype.is_complex
+    and not pdtype.is_category
+    and not pdtype.is_object
 ]
 
 NUMERIC_RANGE_CONSTANT = 10
@@ -402,3 +408,49 @@ def test_multiindex_strategy(data):
     example = data.draw(strat)
     for i in range(example.nlevels):
         assert example.get_level_values(i).dtype == int
+
+
+@pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
+@hypothesis.given(st.data())
+def test_field_element_strategy(pdtype, data):
+    strategy = strategies.field_element_strategy(pdtype)
+    element = data.draw(strategy)
+    assert element.dtype.type == pdtype.numpy_dtype.type
+
+
+@pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
+@pytest.mark.parametrize(
+    "field_strategy",
+    [strategies.index_strategy],
+)
+@pytest.mark.parametrize("nullable", [True, False])
+@hypothesis.given(st.data())
+def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
+    size = 10
+    strat = field_strategy(pdtype, nullable=nullable, size=size)
+    example = data.draw(strat)
+
+    if nullable:
+        assert example.isna().any()
+    else:
+        assert example.notna().all()
+
+
+@pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
+@pytest.mark.parametrize("nullable", [True, False])
+@hypothesis.given(st.data())
+def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
+    size = 10
+    strat = strategies.dataframe_strategy(
+        columns={
+            "col": pa.Column(
+                pandas_dtype=pdtype, nullable=nullable, name="col"
+            )
+        },
+        size=size,
+    )
+    example = data.draw(strat)
+    if nullable:
+        assert example.isna().any(axis=None)
+    else:
+        assert example.notna().all(axis=None)

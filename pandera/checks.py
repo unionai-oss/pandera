@@ -217,7 +217,8 @@ class _CheckBase:
 
     @staticmethod
     def _format_groupby_input(
-        groupby_obj: GroupbyObject, groups: Optional[List[str]],
+        groupby_obj: GroupbyObject,
+        groups: Optional[List[str]],
     ) -> Union[Dict[str, Union[pd.Series, pd.DataFrame]]]:
         """Format groupby object into dict of groups to Series or DataFrame.
 

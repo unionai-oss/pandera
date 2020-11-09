@@ -18,6 +18,7 @@ import pandas as pd
 from .dtypes import PandasDtype
 
 try:
+    import hypothesis
     import hypothesis.extra.numpy as npst
     import hypothesis.extra.pandas as pdst
     import hypothesis.strategies as st
@@ -164,6 +165,7 @@ def pandas_dtype_strategy(
 
     if strategy:
         return strategy.map(dtype.type)
+    kwargs = {"allow_nan": False, "allow_infinity": False, **kwargs}
     return npst.from_dtype(dtype, **kwargs)
 
 
@@ -375,15 +377,11 @@ def str_length_strategy(
     return strategy.filter(lambda x: min_value <= len(x) <= max_value)
 
 
-def series_strategy(
+def field_element_strategy(
     pandas_dtype: PandasDtype,
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    nullable: Optional[bool] = False,
-    allow_duplicates: Optional[bool] = True,
-    name: Optional[str] = None,
-    size: Optional[int] = None,
 ):
     if strategy:
         raise BaseStrategyOnlyError(
@@ -396,9 +394,36 @@ def series_strategy(
         elements = check.strategy(pandas_dtype, elements)
     if elements is None:
         elements = pandas_dtype_strategy(pandas_dtype)
-    if not nullable:
-        elements = elements.filter(lambda x: pd.notna(x))
-    return (
+    return elements
+
+
+@st.composite
+def null_field_masks(draw, strategy: Optional[SearchStrategy]):
+    val = draw(strategy)
+    size = val.shape[0]
+    null_mask = draw(st.lists(st.booleans(), min_size=size, max_size=size))
+    # assume that there is at least one masked value
+    hypothesis.assume(any(null_mask))
+    hypothesis.assume(not all(null_mask))
+    if isinstance(val, pd.Index):
+        val = val.to_series()
+        val = val.mask(null_mask)
+        return pd.Index(val)
+    return val.mask(null_mask)
+
+
+def series_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    checks: Optional[Sequence] = None,
+    nullable: Optional[bool] = False,
+    allow_duplicates: Optional[bool] = True,
+    name: Optional[str] = None,
+    size: Optional[int] = None,
+):
+    elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
+    strategy = (
         pdst.series(
             elements=elements,
             dtype=pandas_dtype.numpy_dtype,
@@ -411,6 +436,9 @@ def series_strategy(
         .map(lambda x: x.rename(name))
         .map(lambda x: x.astype(pandas_dtype.str_alias))
     )
+    if nullable:
+        strategy = null_field_masks(strategy)
+    return strategy
 
 
 def column_strategy(
@@ -418,30 +446,64 @@ def column_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    nullable: Optional[bool] = False,
     allow_duplicates: Optional[bool] = True,
     name: Optional[str] = None,
 ):
-    if strategy:
-        raise BaseStrategyOnlyError(
-            "The column strategy is a base strategy. You cannot specify the "
-            "strategy argument to chain it to a parent strategy."
-        )
-    checks = [] if checks is None else checks
-    elements = None
-    for check in checks:
-        elements = check.strategy(pandas_dtype, elements)
-    if elements is None:
-        elements = pandas_dtype_strategy(pandas_dtype)
-    if not nullable:
-        elements = elements.filter(lambda x: pd.notna(x))
-
+    elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
     return pdst.column(
         name=name,
         elements=elements,
         dtype=pandas_dtype.numpy_dtype,
         unique=not allow_duplicates,
     )
+
+
+def index_strategy(
+    pandas_dtype: PandasDtype,
+    strategy: Optional[SearchStrategy] = None,
+    *,
+    checks: Optional[Sequence] = None,
+    nullable: Optional[bool] = False,
+    allow_duplicates: Optional[bool] = True,
+    name: Optional[str] = None,
+    size: Optional[int] = None,
+):
+    elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
+    strategy = pdst.indexes(
+        elements=elements,
+        dtype=pandas_dtype.numpy_dtype,
+        min_size=0 if size is None else size,
+        max_size=size,
+        unique=not allow_duplicates,
+    )
+    if name is not None:
+        strategy = strategy.map(lambda index: index.rename(name))
+    if nullable:
+        strategy = null_field_masks(strategy)
+    return strategy
+
+
+@st.composite
+def null_dataframe_masks(
+    draw, strategy: Optional[SearchStrategy], nullable_columns: Dict[str, bool]
+):
+    val = draw(strategy)
+    size = val.shape[0]
+    columns_strat = []
+    for col_name, nullable in nullable_columns.items():
+        element_st = st.booleans() if nullable else st.just(False)
+        columns_strat.append(
+            pdst.column(elements=element_st, dtype=bool, fill=st.just(False))
+        )
+    mask_st = pdst.data_frames(
+        columns=columns_strat,
+        index=pdst.range_indexes(min_size=size, max_size=size),
+    )
+    null_mask = draw(mask_st)
+    # assume that there is at least one masked value
+    hypothesis.assume(null_mask.any(axis=None))
+    hypothesis.assume(not null_mask.all(axis=None))
+    return val.mask(null_mask)
 
 
 def dataframe_strategy(
@@ -460,47 +522,17 @@ def dataframe_strategy(
     # TODO: handle checks being defined at the dataframe level
     columns = {} if columns is None else columns
     col_dtypes = {col_name: col.dtype for col_name, col in columns.items()}
-    return pdst.data_frames(
-        [column.strategy() for column in columns.values()],
+    nullable_columns = {
+        col_name: col.nullable for col_name, col in columns.items()
+    }
+    strategy = pdst.data_frames(
+        columns=[column.strategy() for column in columns.values()],
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
     ).map(lambda x: x.astype(col_dtypes))
-
-
-def index_strategy(
-    pandas_dtype: PandasDtype,
-    strategy: Optional[SearchStrategy] = None,
-    *,
-    checks: Optional[Sequence] = None,
-    nullable: Optional[bool] = False,
-    allow_duplicates: Optional[bool] = True,
-    name: Optional[str] = None,
-    size: Optional[int] = None,
-):
-    if strategy:
-        raise BaseStrategyOnlyError(
-            "The column strategy is a base strategy. You cannot specify the "
-            "strategy argument to chain it to a parent strategy."
-        )
-    checks = [] if checks is None else checks
-    elements = None
-    for check in checks:
-        elements = check.strategy(pandas_dtype, elements)
-    if elements is None:
-        elements = pandas_dtype_strategy(pandas_dtype)
-    if not nullable:
-        elements = elements.filter(lambda x: pd.notna(x))
-
-    strategy = pdst.indexes(
-        elements=elements,
-        dtype=pandas_dtype.numpy_dtype,
-        min_size=0 if size is None else size,
-        max_size=size,
-        unique=not allow_duplicates,
-    )
-    if name is not None:
-        strategy = strategy.map(lambda index: index.rename(name))
+    if any(nullable_columns.values()):
+        strategy = null_dataframe_masks(strategy, nullable_columns)
     return strategy
 
 
@@ -521,7 +553,8 @@ def multiindex_strategy(
         index.name if index.name is not None else i: index.dtype
         for i, index in enumerate(indexes)
     }
-    return (
+    nullable_index = {index.name: index.nullable for index in indexes}
+    strategy = (
         pdst.data_frames(
             [
                 index.strategy(as_multiindex_component=True)
@@ -534,3 +567,6 @@ def multiindex_strategy(
         .map(lambda x: x.astype(index_dtypes))
         .map(lambda x: pd.MultiIndex.from_frame(x))
     )
+    if any(nullable_index.values()):
+        strategy = null_dataframe_masks(strategy, nullable_index)
+    return strategy

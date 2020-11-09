@@ -308,12 +308,20 @@ class PandasDtype(Enum):
         return self.value.startswith("Int")
 
     @property
+    def is_nonnullable_int(self):
+        return self.value.startswith("int")
+
+    @property
     def is_uint(self):
         return self.value.lower().startswith("uint")
 
     @property
     def is_nullable_uint(self):
         return self.value.startswith("UInt")
+
+    @property
+    def is_nonnullable_uint(self):
+        return self.value.startswith("uint")
 
     @property
     def is_float(self):

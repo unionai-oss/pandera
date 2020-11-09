@@ -248,7 +248,6 @@ class Column(SeriesSchemaBase):
             return st.column_strategy(
                 self.pdtype,
                 checks=self.checks,
-                nullable=self.nullable,
                 allow_duplicates=self.allow_duplicates,
                 name=self.name,
             )
@@ -352,7 +351,6 @@ class Index(SeriesSchemaBase):
             return st.column_strategy(
                 self.pdtype,
                 checks=self.checks,
-                nullable=self.nullable,
                 allow_duplicates=self.allow_duplicates,
                 name=self.name,
             )
