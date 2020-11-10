@@ -561,9 +561,19 @@ class DataFrameSchema:
         return _compare_dict(self) == _compare_dict(other)
 
     def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a DataFrame.
+
+        :param size: number of elements to generate
+        :returns: a strategy that generates pandas DataFrame objects.
+        """
         return st.dataframe_strategy(columns=self.columns, size=size)
 
-    def example(self, size=None):
+    def example(self, size=None) -> pd.DataFrame:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated DataFrame.
+        :returns: pandas DataFrame object.
+        """
         return self.strategy(size=size).example()
 
     @_inferred_schema_guard
@@ -1121,6 +1131,11 @@ class SeriesSchemaBase:
         return self.__dict__ == other.__dict__
 
     def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Series.
+
+        :param size: number of elements to generate
+        :returns: a strategy that generates pandas Series objects.
+        """
         return st.series_strategy(
             self.pdtype,
             checks=self.checks,
@@ -1130,7 +1145,12 @@ class SeriesSchemaBase:
             size=size,
         )
 
-    def example(self, size=None):
+    def example(self, size=None) -> pd.Series:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Series.
+        :returns: pandas Series object.
+        """
         return self.strategy(size=size).example()
 
 

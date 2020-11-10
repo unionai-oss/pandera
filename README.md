@@ -52,6 +52,7 @@ Installing optional functionality:
 ```
 pip install pandera[hypotheses]  # hypothesis checks
 pip install pandera[io]          # yaml/script schema io utilities
+pip install pandera[generator]   # schema data generators
 pip install pandera[all]         # all packages
 ```
 

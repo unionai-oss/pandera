@@ -243,17 +243,29 @@ class Column(SeriesSchemaBase):
             )
         return column_keys_to_check
 
-    def strategy(self, *, size=None, as_component=True):
-        if as_component:
-            return st.column_strategy(
-                self.pdtype,
-                checks=self.checks,
-                allow_duplicates=self.allow_duplicates,
-                name=self.name,
-            )
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Column.
+
+        :param size: number of elements to generate
+        :returns: a dataframe strategy for a single column.
+        """
         return super().strategy(size=size).map(lambda x: x.to_frame())
 
-    def example(self, size=None):
+    def strategy_component(self):
+        """Generate column data object for use by DataFrame strategy."""
+        return st.column_strategy(
+            self.pdtype,
+            checks=self.checks,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+        )
+
+    def example(self, size=None) -> pd.DataFrame:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas DataFrame object.
+        """
         return (
             super().strategy(size=size).example().rename(self.name).to_frame()
         )
@@ -346,16 +358,14 @@ class Index(SeriesSchemaBase):
         )
         return check_obj
 
-    def strategy(self, *, size=None, as_multiindex_component=False):
-        if as_multiindex_component:
-            return st.column_strategy(
-                self.pdtype,
-                checks=self.checks,
-                allow_duplicates=self.allow_duplicates,
-                name=self.name,
-            )
+    def strategy(self, *, size: int = None):
+        """Create a ``hypothesis`` strategy for generating an Index.
+
+        :param size: number of elements to generate.
+        :returns: index strategy.
+        """
         return st.index_strategy(
-            self.pdtype,
+            self.pdtype,  # type: ignore
             checks=self.checks,
             nullable=self.nullable,
             allow_duplicates=self.allow_duplicates,
@@ -363,7 +373,21 @@ class Index(SeriesSchemaBase):
             size=size,
         )
 
-    def example(self, size=None):
+    def strategy_component(self):
+        """Generate column data object for use by MultiIndex strategy."""
+        return st.column_strategy(
+            self.pdtype,
+            checks=self.checks,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+        )
+
+    def example(self, size: int = None) -> pd.Index:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas Index object.
+        """
         return self.strategy(size=size).example()
 
     def __repr__(self):
@@ -550,7 +574,7 @@ class MultiIndex(DataFrameSchema):
     def strategy(self, *, size=None):
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 
-    def example(self, size=None):
+    def example(self, size=None) -> pd.MultiIndex:
         return self.strategy(size=size).example()
 
     def __repr__(self):

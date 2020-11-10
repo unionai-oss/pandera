@@ -34,7 +34,7 @@ setup(
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
     data_files=[("", ["LICENSE.txt"])],
-    packages=["pandera",],
+    packages=["pandera"],
     install_requires=[
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",

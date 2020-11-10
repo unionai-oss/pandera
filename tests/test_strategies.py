@@ -1,10 +1,10 @@
+# pylint: disable=undefined-variable,redefined-outer-name,invalid-name
+"""Unit tests for pandera data generating strategies."""
+
 import operator
 import re
 from typing import Any
 
-import hypothesis
-import hypothesis.extra.numpy as npst
-import hypothesis.strategies as st
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,6 +12,22 @@ import pytest
 import pandera as pa
 import pandera.strategies as strategies
 from pandera.checks import _CheckBase, register_check_statistics
+
+try:
+    import hypothesis
+    import hypothesis.extra.numpy as npst
+    import hypothesis.strategies as st
+except ImportError:
+    HAS_HYPOTHESIS = False
+else:
+    HAS_HYPOTHESIS = True
+
+
+# skip all tests in module if "strategies" dependencies aren't installed
+pytestmark = pytest.mark.skipif(
+    not HAS_HYPOTHESIS, reason='needs "strategies" module dependencies'
+)
+
 
 TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
 
@@ -33,10 +49,7 @@ COMPLEX_RANGE_CONSTANT = np.complex64(
 )
 
 
-@pytest.mark.parametrize(
-    "pdtype",
-    [pdtype for pdtype in pa.PandasDtype],
-)
+@pytest.mark.parametrize("pdtype", pa.PandasDtype)
 @hypothesis.given(st.data())
 def test_pandas_dtype_strategy(pdtype, data):
     """Test that series can be constructed from pandas dtype."""
@@ -63,6 +76,7 @@ def test_pandas_dtype_strategy(pdtype, data):
 )
 @hypothesis.given(st.data())
 def test_check_strategy_continuous(pdtype, data):
+    """Test built-in check strategies can generate continuous data."""
     value = data.draw(
         npst.from_dtype(
             pdtype.numpy_dtype,
@@ -130,6 +144,10 @@ def _get_min_max_values(pdtype, min_value):
 def test_check_strategy_chained_continuous(
     pdtype, strat_fn, arg_name, base_st_type, compare_op, data
 ):
+    """
+    Test built-in check strategies can generate continuous data building off
+    of a parent strategy.
+    """
     value = data.draw(
         npst.from_dtype(
             pdtype.numpy_dtype,
@@ -171,6 +189,7 @@ def test_check_strategy_chained_continuous(
 )
 @hypothesis.given(st.data())
 def test_in_range_strategy(pdtype, data):
+    """Test the built-in in-range strategy can correctly generate data."""
     min_value = data.draw(
         npst.from_dtype(
             pdtype.numpy_dtype,
@@ -220,7 +239,8 @@ def test_in_range_strategy(pdtype, data):
 )
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
-def test_isin_notin(pdtype, chained, data):
+def test_isin_notin_strategies(pdtype, chained, data):
+    """Test built-in check strategies that rely on discrete values."""
     value_st = strategies.pandas_dtype_strategy(
         pdtype,
         allow_nan=False,
@@ -248,34 +268,29 @@ def test_isin_notin(pdtype, chained, data):
 
 
 @pytest.mark.parametrize(
-    "str_strat, valid_data_fn, pattern_fn",
+    "str_strat, pattern_fn",
     [
         [
             strategies.str_matches_strategy,
-            lambda patt, extra: patt,
             lambda patt: f"^{patt}$",
         ],
         [
             strategies.str_contains_strategy,
-            lambda patt, extra: extra + patt + extra,
             lambda patt: patt,
         ],
         [
             strategies.str_startswith_strategy,
-            lambda patt, extra: patt + extra,
             lambda patt: f"^{patt}",
         ],
         [
             strategies.str_endswith_strategy,
-            lambda patt, extra: extra + patt,
             lambda patt: f"{patt}$",
         ],
     ],
 )
-@hypothesis.given(st.data(), st.text(), st.text())
-def test_str_pattern_checks(
-    str_strat, valid_data_fn, pattern_fn, data, pattern, extra
-):
+@hypothesis.given(st.data(), st.text())
+def test_str_pattern_checks(str_strat, pattern_fn, data, pattern):
+    """Test built-in check strategies for string pattern checks."""
     try:
         re.compile(pattern)
         re_compiles = True
@@ -283,11 +298,14 @@ def test_str_pattern_checks(
         re_compiles = False
     hypothesis.assume(re_compiles)
 
+    pattern = pattern_fn(pattern)
+
     try:
         st = str_strat(pa.String, pattern=pattern)
     except TypeError:
         st = str_strat(pa.String, string=pattern)
     example = data.draw(st)
+
     assert re.search(pattern, example)
 
 
@@ -303,6 +321,7 @@ def test_str_pattern_checks(
     ),
 )
 def test_str_length_checks(data, value_range):
+    """Test built-in check strategies for string length."""
     min_value, max_value = value_range
     str_length_st = strategies.str_length_strategy(
         pa.String, min_value=min_value, max_value=max_value
@@ -313,6 +332,9 @@ def test_str_length_checks(data, value_range):
 
 @hypothesis.given(st.data())
 def test_register_check_strategy(data):
+    """Test registering check strategy on a custom check."""
+
+    # pylint: disable=unused-argument
     def custom_eq_strategy(
         pandas_dtype: pa.PandasDtype,
         strategy: st.SearchStrategy = None,
@@ -321,7 +343,10 @@ def test_register_check_strategy(data):
     ):
         return st.just(value).map(pandas_dtype.numpy_dtype.type)
 
+    # pylint: disable=no-member
     class CustomCheck(_CheckBase):
+        """Custom check class."""
+
         @classmethod
         @strategies.register_check_strategy(custom_eq_strategy)
         @register_check_statistics(["value"])
@@ -344,30 +369,18 @@ def test_register_check_strategy(data):
     assert result == 100
 
 
-@pytest.mark.parametrize("pdtype", SUPPORTED_TYPES)
-# for complex numbers warning
-@pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
-@hypothesis.given(st.data())
-def test_builtin_check_strategies(pdtype, data):
-    value = data.draw(npst.from_dtype(pdtype.numpy_dtype))
-    check = pa.Check.equal_to(value)
-    sample = data.draw(check.strategy(pdtype))
-    if pd.isna(sample):
-        assert pd.isna(value)
-    else:
-        assert sample == value
-
-
 @hypothesis.given(st.data())
 def test_series_strategy(data):
+    """Test SeriesSchema strategy."""
     series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
     series_schema(data.draw(series_schema.strategy()))
 
 
 @hypothesis.given(st.data())
 def test_column_strategy(data):
+    """Test Column schema strategy."""
     column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
-    column_schema(data.draw(column_schema.strategy(as_component=False)))
+    column_schema(data.draw(column_schema.strategy()))
 
 
 @pytest.mark.parametrize(
@@ -377,6 +390,7 @@ def test_column_strategy(data):
 @pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
 @hypothesis.given(st.data())
 def test_dataframe_strategy(pdtype, data):
+    """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype)}
     )
@@ -389,6 +403,7 @@ def test_dataframe_strategy(pdtype, data):
 
 @hypothesis.given(st.data())
 def test_index_strategy(data):
+    """Test Index schema component strategy."""
     index = pa.Index(int, allow_duplicates=False)
     strat = index.strategy(size=10)
     example = data.draw(strat)
@@ -397,6 +412,7 @@ def test_index_strategy(data):
 
 @hypothesis.given(st.data())
 def test_multiindex_strategy(data):
+    """Test MultiIndex schema component strategy."""
     multiindex = pa.MultiIndex(
         indexes=[
             pa.Index(int, allow_duplicates=False, name="level_0"),
@@ -413,6 +429,7 @@ def test_multiindex_strategy(data):
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
 @hypothesis.given(st.data())
 def test_field_element_strategy(pdtype, data):
+    """Test strategy for generating elements in columns/indexes."""
     strategy = strategies.field_element_strategy(pdtype)
     element = data.draw(strategy)
     assert element.dtype.type == pdtype.numpy_dtype.type
@@ -426,6 +443,7 @@ def test_field_element_strategy(pdtype, data):
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
+    """Test strategies for generating nullable column/index data."""
     size = 10
     strat = field_strategy(pdtype, nullable=nullable, size=size)
     example = data.draw(strat)
@@ -440,6 +458,7 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
+    """Test strategies for generating nullable DataFrame data."""
     size = 10
     strat = strategies.dataframe_strategy(
         columns={
