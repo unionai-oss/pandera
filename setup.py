@@ -8,7 +8,7 @@ with open("pandera/version.py") as fp:
     exec(fp.read(), version)
 
 _extras_require = {
-    "generator": ["hypothesis"],
+    "strategies": ["hypothesis >= 5.41.1"],
     "hypotheses": ["scipy"],
     "io": ["pyyaml >= 5.1", "black"],
 }

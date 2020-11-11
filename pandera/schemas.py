@@ -560,6 +560,7 @@ class DataFrameSchema:
 
         return _compare_dict(self) == _compare_dict(other)
 
+    @st.strategy_import_error
     def strategy(self, *, size=None):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
@@ -1130,6 +1131,7 @@ class SeriesSchemaBase:
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    @st.strategy_import_error
     def strategy(self, *, size=None):
         """Create a ``hypothesis`` strategy for generating a Series.
 

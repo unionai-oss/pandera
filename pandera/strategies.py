@@ -23,6 +23,60 @@ try:
     import hypothesis.extra.pandas as pdst
     import hypothesis.strategies as st
     from hypothesis.strategies import SearchStrategy
+
+    @st.composite
+    def null_field_masks(draw, strategy: Optional[SearchStrategy]):
+        """Strategy for masking a column/index with null values.
+
+        :param strategy: an optional hypothesis strategy. If specified, the
+            pandas dtype strategy will be chained onto this strategy.
+        """
+        val = draw(strategy)
+        size = val.shape[0]
+        null_mask = draw(st.lists(st.booleans(), min_size=size, max_size=size))
+        # assume that there is at least one masked value
+        hypothesis.assume(any(null_mask))
+        hypothesis.assume(not all(null_mask))
+        if isinstance(val, pd.Index):
+            val = val.to_series()
+            val = val.mask(null_mask)
+            return pd.Index(val)
+        return val.mask(null_mask)
+
+    @st.composite
+    def null_dataframe_masks(
+        draw,
+        strategy: Optional[SearchStrategy],
+        nullable_columns: Dict[str, bool],
+    ):
+        """Strategy for masking a values in a pandas DataFrame.
+
+        :param strategy: an optional hypothesis strategy. If specified, the
+            pandas dtype strategy will be chained onto this strategy.
+        :param nullable_columns: dictionary where keys are column names and
+            values indicate whether that column is nullable.
+        """
+        val = draw(strategy)
+        size = val.shape[0]
+        columns_strat = []
+        for nullable in nullable_columns.values():
+            element_st = st.booleans() if nullable else st.just(False)
+            columns_strat.append(
+                pdst.column(
+                    elements=element_st, dtype=bool, fill=st.just(False)
+                )
+            )
+        mask_st = pdst.data_frames(
+            columns=columns_strat,
+            index=pdst.range_indexes(min_size=size, max_size=size),
+        )
+        null_mask = draw(mask_st)
+        # assume that there is at least one masked value
+        hypothesis.assume(null_mask.any(axis=None))
+        hypothesis.assume(not null_mask.all(axis=None))
+        return val.mask(null_mask)
+
+
 except ImportError:
 
     # pylint: disable=too-few-public-methods
@@ -35,6 +89,23 @@ else:
 
 
 StrategyFn = Callable[..., SearchStrategy]
+
+
+def strategy_import_error(fn):
+    """Decorator to generate input error if dependency is missing."""
+
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if not HAS_HYPOTHESIS:
+            raise ImportError(
+                'Strategies for generating data requires "hypothesis" to be \n'
+                "installed. You can install pandera together with the IO \n"
+                "dependencies with:\n"
+                "pip install pandera[strategies]"
+            )
+        return fn(*args, **kwargs)
+
+    return _wrapper
 
 
 class BaseStrategyOnlyError(Exception):
@@ -52,9 +123,6 @@ def register_check_strategy(strategy_fn: StrategyFn):
 
     def register_check_strategy_decorator(class_method):
         """Decorator that wraps Check class method."""
-
-        if not HAS_HYPOTHESIS:
-            return class_method
 
         @wraps(class_method)
         def _wrapper(cls, *args, **kwargs):
@@ -132,7 +200,15 @@ def numpy_complex_dtypes(
         width = 32
     else:
         width = 64
-    return st.builds(
+
+    # switch min and max values for imaginary if min value > max value
+    if max_imag is not None and min_value.imag > max_imag:
+        min_imag = max_imag
+        max_imag = min_value.imag
+    else:
+        min_imag = min_value.imag
+
+    strategy = st.builds(
         complex,
         st.floats(
             min_value=min_value.real,
@@ -142,13 +218,23 @@ def numpy_complex_dtypes(
             allow_nan=allow_nan,
         ),
         st.floats(
-            min_value=min_value.imag,
+            min_value=min_imag,
             max_value=max_imag,
             width=width,
             allow_infinity=allow_infinity,
             allow_nan=allow_nan,
         ),
     ).map(dtype.type)
+
+    @st.composite
+    def build_complex(draw):
+        value = draw(strategy)
+        hypothesis.assume(min_value <= value)
+        if max_value is not None:
+            hypothesis.assume(max_value >= value)
+        return value
+
+    return build_complex()
 
 
 def pandas_dtype_strategy(
@@ -558,26 +644,6 @@ def field_element_strategy(
     return elements
 
 
-@st.composite
-def null_field_masks(draw, strategy: Optional[SearchStrategy]):
-    """Strategy for masking a column/index with null values.
-
-    :param strategy: an optional hypothesis strategy. If specified, the
-        pandas dtype strategy will be chained onto this strategy.
-    """
-    val = draw(strategy)
-    size = val.shape[0]
-    null_mask = draw(st.lists(st.booleans(), min_size=size, max_size=size))
-    # assume that there is at least one masked value
-    hypothesis.assume(any(null_mask))
-    hypothesis.assume(not all(null_mask))
-    if isinstance(val, pd.Index):
-        val = val.to_series()
-        val = val.mask(null_mask)
-        return pd.Index(val)
-    return val.mask(null_mask)
-
-
 def series_strategy(
     pandas_dtype: PandasDtype,
     strategy: Optional[SearchStrategy] = None,
@@ -689,36 +755,6 @@ def index_strategy(
     if nullable:
         strategy = null_field_masks(strategy)
     return strategy
-
-
-@st.composite
-def null_dataframe_masks(
-    draw, strategy: Optional[SearchStrategy], nullable_columns: Dict[str, bool]
-):
-    """Strategy for masking a values in a pandas DataFrame.
-
-    :param strategy: an optional hypothesis strategy. If specified, the
-        pandas dtype strategy will be chained onto this strategy.
-    :param nullable_columns: dictionary where keys are column names and
-        values indicate whether that column is nullable.
-    """
-    val = draw(strategy)
-    size = val.shape[0]
-    columns_strat = []
-    for nullable in nullable_columns.values():
-        element_st = st.booleans() if nullable else st.just(False)
-        columns_strat.append(
-            pdst.column(elements=element_st, dtype=bool, fill=st.just(False))
-        )
-    mask_st = pdst.data_frames(
-        columns=columns_strat,
-        index=pdst.range_indexes(min_size=size, max_size=size),
-    )
-    null_mask = draw(mask_st)
-    # assume that there is at least one masked value
-    hypothesis.assume(null_mask.any(axis=None))
-    hypothesis.assume(not null_mask.all(axis=None))
-    return val.mask(null_mask)
 
 
 def dataframe_strategy(

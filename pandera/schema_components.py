@@ -243,6 +243,7 @@ class Column(SeriesSchemaBase):
             )
         return column_keys_to_check
 
+    @st.strategy_import_error
     def strategy(self, *, size=None):
         """Create a ``hypothesis`` strategy for generating a Column.
 
@@ -251,6 +252,7 @@ class Column(SeriesSchemaBase):
         """
         return super().strategy(size=size).map(lambda x: x.to_frame())
 
+    @st.strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by DataFrame strategy."""
         return st.column_strategy(
@@ -358,6 +360,7 @@ class Index(SeriesSchemaBase):
         )
         return check_obj
 
+    @st.strategy_import_error
     def strategy(self, *, size: int = None):
         """Create a ``hypothesis`` strategy for generating an Index.
 
@@ -373,6 +376,7 @@ class Index(SeriesSchemaBase):
             size=size,
         )
 
+    @st.strategy_import_error
     def strategy_component(self):
         """Generate column data object for use by MultiIndex strategy."""
         return st.column_strategy(
@@ -571,6 +575,7 @@ class MultiIndex(DataFrameSchema):
         assert isinstance(validation_result, pd.DataFrame)
         return check_obj
 
+    @st.strategy_import_error
     def strategy(self, *, size=None):
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 

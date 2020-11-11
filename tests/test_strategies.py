@@ -4,6 +4,7 @@
 import operator
 import re
 from typing import Any
+from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
@@ -19,12 +20,14 @@ try:
     import hypothesis.strategies as st
 except ImportError:
     HAS_HYPOTHESIS = False
+    hypothesis = MagicMock()
+    st = MagicMock()
 else:
     HAS_HYPOTHESIS = True
 
 
 # skip all tests in module if "strategies" dependencies aren't installed
-pytestmark = pytest.mark.skipif(
+no_hypothesis_dep = pytest.mark.skipif(
     not HAS_HYPOTHESIS, reason='needs "strategies" module dependencies'
 )
 
@@ -94,36 +97,22 @@ def test_check_strategy_continuous(pdtype, data):
     assert data.draw(strategies.le_strategy(pdtype, max_value=value)) <= value
 
 
-def _get_min_max_values(pdtype, min_value):
-    dtype = type(min_value)
-    if pdtype.is_datetime or pdtype.is_timedelta:
-        constant = DATE_RANGE_CONSTANT
-    elif pdtype.is_complex:
-        constant = COMPLEX_RANGE_CONSTANT
-    else:
-        constant = NUMERIC_RANGE_CONSTANT
-
-    if pdtype.is_int or pdtype.is_uint:
-        max_value = min_value + constant
-        max_value = (
-            np.iinfo(pdtype.numpy_dtype).max
-            if max_value != dtype(max_value)
-            else max_value
+def value_ranges(pdtype: pa.PandasDtype):
+    """Strategy to generate value range based on PandasDtype"""
+    kwargs = dict(
+        allow_nan=False,
+        allow_infinity=False,
+        exclude_min=False,
+        exclude_max=False,
+    )
+    return (
+        st.tuples(
+            strategies.pandas_dtype_strategy(pdtype, **kwargs),
+            strategies.pandas_dtype_strategy(pdtype, **kwargs),
         )
-    elif pdtype.is_complex:
-        # make sure max value for complex numbers stays within bounds of the
-        # underlying float
-        max_value = dtype(min_value + constant)
-        max_possible = np.finfo(type(min_value.real)).max
-        max_value = dtype(
-            complex(
-                min(max_value.real, max_possible),
-                min(max_value.imag, max_possible),
-            )
-        )
-    else:
-        max_value = dtype(min_value + constant)
-    return min_value, max_value
+        .map(sorted)
+        .filter(lambda x: x[0] < x[1])
+    )
 
 
 @pytest.mark.parametrize(
@@ -148,17 +137,15 @@ def test_check_strategy_chained_continuous(
     Test built-in check strategies can generate continuous data building off
     of a parent strategy.
     """
-    value = data.draw(
-        npst.from_dtype(
-            pdtype.numpy_dtype,
-            allow_nan=False,
-            allow_infinity=False,
-        )
-    )
-    min_value, max_value = _get_min_max_values(pdtype, value)
+    min_value, max_value = data.draw(value_ranges(pdtype))
     hypothesis.assume(min_value < max_value)
+    value = min_value
     base_st = strategies.pandas_dtype_strategy(
-        pdtype, allow_nan=False, allow_infinity=False
+        pdtype,
+        min_value=min_value,
+        max_value=max_value,
+        allow_nan=False,
+        allow_infinity=False,
     )
     if base_st_type == "type":
         assert_base_st = base_st
@@ -185,25 +172,19 @@ def test_check_strategy_chained_continuous(
 
 @pytest.mark.parametrize(
     "pdtype",
-    [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous],
+    [pdtype for pdtype in pa.PandasDtype if pdtype.is_complex],
 )
 @hypothesis.given(st.data())
 def test_in_range_strategy(pdtype, data):
     """Test the built-in in-range strategy can correctly generate data."""
-    min_value = data.draw(
-        npst.from_dtype(
-            pdtype.numpy_dtype,
-            allow_nan=False,
-            allow_infinity=False,
-        )
-    )
-
-    min_value, max_value = _get_min_max_values(pdtype, min_value)
+    min_value, max_value = data.draw(value_ranges(pdtype))
     hypothesis.assume(min_value < max_value)
 
     example = data.draw(
         strategies.in_range_strategy(
-            pdtype, min_value=min_value, max_value=max_value
+            pdtype,
+            min_value=min_value,
+            max_value=max_value,
         )
     )
     assert min_value <= example <= max_value
