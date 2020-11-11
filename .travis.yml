@@ -74,7 +74,7 @@ install:
     conda info -a || exit 1
   # Setup Conda Envs
   - |
-    conda create -n pandera -c conda-forge python=$PYTHON_VERSION || exit 1
+    conda create -n pandera python=$PYTHON_VERSION || exit 1
     conda env update -n pandera -f $ENV_FILE
     conda create -n pandera-core python=$PYTHON_VERSION pytest
     conda list
