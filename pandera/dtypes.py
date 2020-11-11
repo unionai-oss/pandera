@@ -4,6 +4,7 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
+from packaging import version
 
 # pylint: disable=invalid-name
 try:
@@ -12,6 +13,7 @@ except AttributeError:
     PandasExtensionType = "pd.core.dtypes.base.ExtensionDtype"
 
 
+LEGACY_PANDAS = version.parse(pd.__version__).major < 1  # type: ignore
 NUMPY_NONNULLABLE_INT_DTYPES = [
     "int",
     "int_",
@@ -126,7 +128,7 @@ class PandasDtype(Enum):
     INT16 = "Int16"  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
     INT32 = "Int32"  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
     INT64 = "Int64"  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
-    UINT8 = "UInt8"  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
+    UINT8 = "UInt8"  #: ``"UInt8"`` pandas dtype: pandas 0.24.0+
     UINT16 = "UInt16"  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
     UINT32 = "UInt32"  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
     UINT64 = "UInt64"  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
@@ -135,12 +137,10 @@ class PandasDtype(Enum):
     Complex64 = "complex64"  #: ``"complex"`` numpy dtype
     Complex128 = "complex128"  #: ``"complex"`` numpy dtype
     Complex256 = "complex256"  #: ``"complex"`` numpy dtype
+    Str = "str"  #: ``"str"`` numpy dtype
 
-    #: The string datatype doesn't map to the first-class pandas datatype and
-    #: is represented as a numpy ``"object"`` array. This will change after
-    #: pandera only supports pandas 1.0+ and is currently handled
-    #: internally by pandera as a special case. To use the pandas ``string``
-    #: data type, you must explicitly use ``pd.StringDtype()``.
+    #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
+    #: fall back on the str-as-object-array representation.
     String = "string"
 
     @property
@@ -150,7 +150,8 @@ class PandasDtype(Enum):
             "int": _DEFAULT_PANDAS_INT_TYPE,
             "float": _DEFAULT_PANDAS_FLOAT_TYPE,
             "complex": _DEFAULT_PANDAS_COMPLEX_TYPE,
-            "string": "object",
+            "str": "object",
+            "string": "object" if LEGACY_PANDAS else "string",
         }.get(self.value, self.value)
 
     @classmethod
@@ -188,12 +189,12 @@ class PandasDtype(Enum):
             "UInt32": cls.UINT32,
             "UInt64": cls.UINT64,
             "object": cls.Object,
-            "string": cls.String,
-            "str": cls.String,
             "complex": cls.Complex,
             "complex64": cls.Complex64,
             "complex128": cls.Complex128,
             "complex256": cls.Complex256,
+            "str": cls.Str,
+            "string": cls.Str if LEGACY_PANDAS else cls.String,
         }.get(str_alias)
 
         if pandas_dtype is None:
@@ -215,7 +216,7 @@ class PandasDtype(Enum):
             return cls.Object
 
         pandas_dtype = {
-            "string": cls.String,
+            "string": cls.Str,
             "floating": cls.Float,
             "integer": cls.Int,
             "categorical": cls.Category,
@@ -242,7 +243,7 @@ class PandasDtype(Enum):
         """
         pandas_dtype = {
             bool: cls.Bool,
-            str: cls.String,
+            str: cls.Str,
             int: cls.Int,
             float: cls.Float,
             object: cls.Object,
@@ -272,7 +273,9 @@ class PandasDtype(Enum):
             return False
         if isinstance(other, str):
             other = self.from_str_alias(other)
-        if self.value == "string":
+        if self.value == "string" and LEGACY_PANDAS:
+            return PandasDtype.Str.value == other.value
+        elif self.value == "string":
             return self.value == other.value
         return self.str_alias == other.str_alias
 

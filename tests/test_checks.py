@@ -14,7 +14,7 @@ from pandera import (
     Index,
     Int,
     SeriesSchema,
-    String,
+    Str,
     error_formatters,
     errors,
 )
@@ -53,7 +53,7 @@ def test_check_groupby():
                     ),
                 ],
             ),
-            "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+            "col2": Column(Str, Check(lambda s: s.isin(["foo", "bar"]))),
         },
         index=Index(Int, name="data_id"),
     )
@@ -113,7 +113,7 @@ def test_check_groupby_multiple_columns():
                     ),
                 ],
             ),
-            "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+            "col2": Column(Str, Check(lambda s: s.isin(["foo", "bar"]))),
             "col3": Column(Bool),
         }
     )
@@ -147,7 +147,7 @@ def test_check_groups():
                     ),
                 ],
             ),
-            "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+            "col2": Column(Str, Check(lambda s: s.isin(["foo", "bar"]))),
         }
     )
 
@@ -174,7 +174,7 @@ def test_check_groups():
                     ),
                 ],
             ),
-            "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+            "col2": Column(Str, Check(lambda s: s.isin(["foo", "bar"]))),
         }
     )
     with pytest.raises(
@@ -195,7 +195,7 @@ def test_check_groups():
                     ),
                 ],
             ),
-            "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+            "col2": Column(Str, Check(lambda s: s.isin(["foo", "bar"]))),
         }
     )
     with pytest.raises(
@@ -215,7 +215,7 @@ def test_check_groups():
                     ),
                 ],
             ),
-            "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+            "col2": Column(Str, Check(lambda s: s.isin(["foo", "bar"]))),
         }
     )
     with pytest.raises(errors.SchemaError):
@@ -239,9 +239,7 @@ def test_groupby_init_exceptions():
                         ),
                     ],
                 ),
-                "col2": Column(
-                    String, Check(lambda s: s.isin(["foo", "bar"]))
-                ),
+                "col2": Column(Str, Check(lambda s: s.isin(["foo", "bar"]))),
             }
         )
 
@@ -285,8 +283,8 @@ def test_dataframe_checks():
         columns={
             "col1": Column(Int),
             "col2": Column(Float),
-            "col3": Column(String),
-            "col4": Column(String),
+            "col3": Column(Str),
+            "col4": Column(Str),
         },
         checks=[
             Check(lambda df: df["col1"] < df["col2"]),
@@ -315,7 +313,7 @@ def test_dataframe_checks():
     groupby_check_schema = DataFrameSchema(
         columns={
             "col1": Column(Int),
-            "col3": Column(String),
+            "col3": Column(Str),
         },
         checks=[
             Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3"),

@@ -9,7 +9,7 @@ from pandera import (
     Float,
     Hypothesis,
     Int,
-    String,
+    Str,
     errors,
 )
 from pandera.hypotheses import HAS_SCIPY
@@ -114,7 +114,7 @@ def test_hypothesis():
                     ),
                 ],
             ),
-            "sex": Column(String),
+            "sex": Column(Str),
         }
     )
 
@@ -132,7 +132,7 @@ def test_hypothesis():
                     ),
                 ],
             ),
-            "sex": Column(String),
+            "sex": Column(Str),
         }
     )
 
@@ -150,7 +150,7 @@ def test_hypothesis():
                     ),
                 ],
             ),
-            "sex": Column(String),
+            "sex": Column(Str),
         }
     )
 
@@ -170,7 +170,7 @@ def test_hypothesis():
                     )
                 ],
             ),
-            "sex": Column(String),
+            "sex": Column(Str),
         }
     )
 
@@ -194,7 +194,7 @@ def test_hypothesis():
                     ),
                 ],
             ),
-            "sex": Column(String),
+            "sex": Column(Str),
         }
     )
 
@@ -212,7 +212,7 @@ def test_hypothesis():
                     ),
                 ],
             ),
-            "sex": Column(String),
+            "sex": Column(Str),
         }
     )
 
@@ -230,7 +230,7 @@ def test_hypothesis():
                     ),
                 ],
             ),
-            "sex": Column(String),
+            "sex": Column(Str),
         }
     )
 
@@ -259,7 +259,7 @@ def test_two_sample_ttest_hypothesis_relationships():
                         ),
                     ],
                 ),
-                "sex": Column(String),
+                "sex": Column(Str),
             }
         )
         assert isinstance(schema, DataFrameSchema)
@@ -280,7 +280,7 @@ def test_two_sample_ttest_hypothesis_relationships():
                             ),
                         ],
                     ),
-                    "sex": Column(String),
+                    "sex": Column(Str),
                 }
             )
 
@@ -302,7 +302,7 @@ def test_one_sample_hypothesis():
 
     subset_schema = DataFrameSchema(
         {
-            "group": Column(String),
+            "group": Column(Str),
             "height_in_feet": Column(
                 Float,
                 [
