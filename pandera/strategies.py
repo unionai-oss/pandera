@@ -754,7 +754,7 @@ def index_strategy(
         strategy = strategy.map(lambda index: index.rename(name))
     if nullable:
         strategy = null_field_masks(strategy)
-    return strategy
+    return strategy.map(lambda x: x.astype(pandas_dtype.str_alias))
 
 
 def dataframe_strategy(

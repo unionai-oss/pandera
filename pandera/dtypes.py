@@ -1,3 +1,4 @@
+# pylint: disable=no-member,too-many-public-methods
 """Schema datatypes."""
 
 from enum import Enum
@@ -285,6 +286,7 @@ class PandasDtype(Enum):
 
     @property
     def numpy_dtype(self):
+        """Get numpy data type."""
         if self is PandasDtype.Category:
             raise TypeError(
                 "the pandas Categorical data type doesn't have a numpy "
@@ -293,6 +295,7 @@ class PandasDtype(Enum):
 
         dtype = {"string": np.dtype("str")}.get(self.value)
 
+        # pylint: disable=comparison-with-callable
         if self.value == "string":
             dtype = np.dtype("str")
         else:
@@ -300,63 +303,78 @@ class PandasDtype(Enum):
         return dtype
 
     @property
-    def is_int(self):
+    def is_int(self) -> bool:
+        """Return True if PandasDtype is an integer."""
         return self.value.lower().startswith("int")
 
     @property
-    def is_nullable_int(self):
+    def is_nullable_int(self) -> bool:
+        """Return True if PandasDtype is a nullable integer."""
         return self.value.startswith("Int")
 
     @property
-    def is_nonnullable_int(self):
+    def is_nonnullable_int(self) -> bool:
+        """Return True if PandasDtype is a non-nullable integer."""
         return self.value.startswith("int")
 
     @property
-    def is_uint(self):
+    def is_uint(self) -> bool:
+        """Return True if PandasDtype is an unsigned integer."""
         return self.value.lower().startswith("uint")
 
     @property
-    def is_nullable_uint(self):
+    def is_nullable_uint(self) -> bool:
+        """Return True if PandasDtype is a nullable unsigned integer."""
         return self.value.startswith("UInt")
 
     @property
-    def is_nonnullable_uint(self):
+    def is_nonnullable_uint(self) -> bool:
+        """Return True if PandasDtype is a non-nullable unsigned integer."""
         return self.value.startswith("uint")
 
     @property
-    def is_float(self):
+    def is_float(self) -> bool:
+        """Return True if PandasDtype is a float."""
         return self.value.startswith("float")
 
     @property
-    def is_complex(self):
+    def is_complex(self) -> bool:
+        """Return True if PandasDtype is a complex number."""
         return self.value.startswith("complex")
 
     @property
-    def is_bool(self):
+    def is_bool(self) -> bool:
+        """Return True if PandasDtype is a boolean."""
         return self is PandasDtype.Bool
 
     @property
-    def is_string(self):
+    def is_string(self) -> bool:
+        """Return True if PandasDtype is a string."""
         return self is PandasDtype.String
 
     @property
-    def is_category(self):
+    def is_category(self) -> bool:
+        """Return True if PandasDtype is a category."""
         return self is PandasDtype.Category
 
     @property
-    def is_datetime(self):
+    def is_datetime(self) -> bool:
+        """Return True if PandasDtype is a datetime."""
         return self is PandasDtype.DateTime
 
     @property
-    def is_timedelta(self):
+    def is_timedelta(self) -> bool:
+        """Return True if PandasDtype is a timedelta."""
         return self is PandasDtype.Timedelta
 
     @property
-    def is_object(self):
+    def is_object(self) -> bool:
+        """Return True if PandasDtype is an object."""
         return self is PandasDtype.Object
 
     @property
-    def is_continuous(self):
+    def is_continuous(self) -> bool:
+        """Return True if PandasDtype is a continuous datatype."""
         return (
             self.is_int
             or self.is_uint
