@@ -41,7 +41,7 @@ is a simple example:
     DataFrameSchema(
         columns={
             "column1": "<Schema Column: 'column1' type=int64>",
-            "column2": "<Schema Column: 'column2' type=string>",
+            "column2": "<Schema Column: 'column2' type=str>",
             "column3": "<Schema Column: 'column3' type=datetime64[ns]>"
         },
         checks=[],
@@ -119,7 +119,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 regex=False,
             ),
             "column2": Column(
-                pandas_dtype=PandasDtype.String,
+                pandas_dtype=PandasDtype.Str,
                 checks=None,
                 nullable=False,
                 allow_duplicates=True,
@@ -196,7 +196,7 @@ is a convenience method for this functionality.
         required: true
         regex: false
       column2:
-        pandas_dtype: string
+        pandas_dtype: str
         nullable: false
         checks: null
         allow_duplicates: true
