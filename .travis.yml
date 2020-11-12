@@ -94,7 +94,13 @@ script:
   - isort --check-only pandera tests
   - black --check pandera tests
   # Linting
-  - pylint pandera tests
+  - |
+    if [ "${PYTHON_VERSION}" == "3.9" ]; then
+        # https://github.com/PyCQA/pylint/issues/776
+        pylint pandera tests --disable=unsubscriptable-object
+    else
+        pylint pandera tests
+    fi
   # Type checking
   - mypy pandera tests
   # Tests
