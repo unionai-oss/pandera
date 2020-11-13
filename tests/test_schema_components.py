@@ -17,6 +17,7 @@ from pandera import (
     MultiIndex,
     Object,
     Str,
+    String,
     errors,
 )
 from tests.test_dtypes import TESTABLE_DTYPES
@@ -91,12 +92,18 @@ def test_index_schema():
         schema.validate(pd.DataFrame(index=range(1, 20)))
 
 
-def test_index_schema_coerce():
+@pytest.mark.parametrize("pdtype", [Float, Int, Str, String])
+def test_index_schema_coerce(pdtype):
     """Test that index can be type-coerced."""
-    schema = DataFrameSchema(index=Index(Float, coerce=True))
+    schema = DataFrameSchema(index=Index(pdtype, coerce=True))
     df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
     validated_df = schema(df)
-    assert validated_df.index.dtype == Float.value
+    # pandas-native "string" dtype doesn't apply to indexes
+    assert (
+        validated_df.index.dtype == "object"
+        if pdtype is String
+        else pdtype.str_alias
+    )
 
 
 def test_multi_index_columns():

@@ -985,7 +985,7 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                 # into a Series
                 "data": pd.Series(["a", "b", "d"]),
                 "schema_errors": {
-                    "Index": {"isin(%s)" % {"a", "b", "c"}: ["d"]},
+                    "Index": {"isin(%s)" % set(["a", "b", "c"]): ["d"]},
                 },
             },
         ],
