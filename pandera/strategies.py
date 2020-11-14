@@ -36,7 +36,6 @@ try:
         null_mask = draw(st.lists(st.booleans(), min_size=size, max_size=size))
         # assume that there is at least one masked value
         hypothesis.assume(any(null_mask))
-        hypothesis.assume(not all(null_mask))
         if isinstance(val, pd.Index):
             val = val.to_series()
             val = val.mask(null_mask)
@@ -73,7 +72,6 @@ try:
         null_mask = draw(mask_st)
         # assume that there is at least one masked value
         hypothesis.assume(null_mask.any(axis=None))
-        hypothesis.assume(not null_mask.all(axis=None))
         return val.mask(null_mask)
 
 

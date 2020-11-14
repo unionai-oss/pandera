@@ -437,7 +437,13 @@ def test_pandas_api_types(pandas_api_type, pandas_dtype):
 
 
 @pytest.mark.parametrize(
-    "invalid_pandas_api_type", ["foo", "bar", "baz", "this is not a type",],
+    "invalid_pandas_api_type",
+    [
+        "foo",
+        "bar",
+        "baz",
+        "this is not a type",
+    ],
 )
 def test_pandas_api_type_exception(invalid_pandas_api_type):
     """Test unsupported values for pandas api type conversion."""

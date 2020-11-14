@@ -75,9 +75,10 @@ install:
   - |
     conda create -n pandera python=$PYTHON_VERSION || exit 1
     conda env update -n pandera -f $ENV_FILE
+    conda list -n pandera
     conda create -n pandera-core python=$PYTHON_VERSION || exit 1
     conda env update -n pandera-core -f $ENV_FILE
-    conda list
+    conda list -n pandera-core
   - source activate pandera && pip install .[all]
   - source activate pandera-core && pip install .
 

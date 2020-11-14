@@ -109,8 +109,8 @@ def value_ranges(pdtype: pa.PandasDtype):
     )
     return (
         st.tuples(
-            strategies.pandas_dtype_strategy(pdtype, **kwargs),
-            strategies.pandas_dtype_strategy(pdtype, **kwargs),
+            strategies.pandas_dtype_strategy(pdtype, strategy=None, **kwargs),
+            strategies.pandas_dtype_strategy(pdtype, strategy=None, **kwargs),
         )
         .map(sorted)
         .filter(lambda x: x[0] < x[1])
