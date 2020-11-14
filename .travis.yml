@@ -20,6 +20,7 @@ env:
   - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_latest.yml
   - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_latest.yml
   - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_latest.yml
+  - PYTHON_VERSION=3.9 ENV_FILE=ci/environment_pandas_latest.yml
   - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_0_25_3.yml
   - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_0_25_3.yml
   - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_0_25_3.yml
@@ -74,7 +75,8 @@ install:
   - |
     conda create -n pandera python=$PYTHON_VERSION || exit 1
     conda env update -n pandera -f $ENV_FILE
-    conda create -n pandera-core python=$PYTHON_VERSION pytest
+    conda create -n pandera-core python=$PYTHON_VERSION || exit 1
+    conda env update -n pandera-core -f $ENV_FILE
     conda list
   - source activate pandera && pip install .[all]
   - source activate pandera-core && pip install .
@@ -91,7 +93,13 @@ script:
   - isort --line-length=79 --check-only pandera tests
   - black --line-length=79 --check pandera tests
   # Linting
-  - pylint pandera tests
+  - |
+    if [ "${PYTHON_VERSION}" == "3.9" ]; then
+        # https://github.com/PyCQA/pylint/issues/776
+        pylint pandera tests --disable=unsubscriptable-object
+    else
+        pylint pandera tests
+    fi
   # Type checking
   - mypy pandera tests
   # Tests
