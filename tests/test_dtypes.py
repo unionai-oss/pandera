@@ -458,3 +458,9 @@ def test_pandas_dtype_equality(pandas_dtype):
     """Test __eq__ implementation."""
     assert pandas_dtype is not None
     assert pandas_dtype == pandas_dtype.value
+
+
+@pytest.mark.parametrize("pdtype", PandasDtype)
+def test_dtype_none_comparison(pdtype):
+    """Test that comparing PandasDtype to None is False."""
+    assert pdtype != None  # noqa E711  # pylint: disable=singleton-comparison

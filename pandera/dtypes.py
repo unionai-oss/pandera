@@ -6,12 +6,7 @@ import numpy as np
 import pandas as pd
 from packaging import version
 
-# pylint: disable=invalid-name
-try:
-    PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
-except AttributeError:
-    PandasExtensionType = "pd.core.dtypes.base.ExtensionDtype"
-
+PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
 
 LEGACY_PANDAS = version.parse(pd.__version__).major < 1  # type: ignore
 NUMPY_NONNULLABLE_INT_DTYPES = [
