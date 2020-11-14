@@ -749,12 +749,12 @@ def index_strategy(
         min_size=0 if size is None else size,
         max_size=size,
         unique=not allow_duplicates,
-    )
+    ).map(lambda x: x.astype(pandas_dtype.str_alias))
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
     if nullable:
         strategy = null_field_masks(strategy)
-    return strategy.map(lambda x: x.astype(pandas_dtype.str_alias))
+    return strategy
 
 
 def dataframe_strategy(

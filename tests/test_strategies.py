@@ -43,6 +43,8 @@ NULLABLE_DTYPES = [
     if not pdtype.is_complex
     and not pdtype.is_category
     and not pdtype.is_object
+    # and not pdtype.is_nonnullable_int
+    # and not pdtype.is_nonnullable_uint
 ]
 
 NUMERIC_RANGE_CONSTANT = 10
@@ -419,13 +421,13 @@ def test_field_element_strategy(pdtype, data):
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
 @pytest.mark.parametrize(
     "field_strategy",
-    [strategies.index_strategy],
+    [strategies.index_strategy, strategies.series_strategy],
 )
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
     """Test strategies for generating nullable column/index data."""
-    size = 10
+    size = 5
     strat = field_strategy(pdtype, nullable=nullable, size=size)
     example = data.draw(strat)
 
@@ -440,7 +442,7 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
 @hypothesis.given(st.data())
 def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     """Test strategies for generating nullable DataFrame data."""
-    size = 10
+    size = 5
     strat = strategies.dataframe_strategy(
         columns={
             "col": pa.Column(
