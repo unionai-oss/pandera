@@ -269,11 +269,11 @@ class Index(SeriesSchemaBase):
             (including time series).
         :returns: ``Index`` with coerced data type
         """
-        if self._pandas_dtype is PandasDtype.String:
+        if self._pandas_dtype is PandasDtype.Str:
+            # only coerce non-null elements to string
             return series_or_index.where(
                 series_or_index.isna(), series_or_index.astype(str)
             )
-            # only coerce non-null elements to string
         return series_or_index.astype(self.dtype)
 
     @property
@@ -308,13 +308,17 @@ class Index(SeriesSchemaBase):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
+            # handles case where pandas native string type is not supported
+            # by index.
+            obj_to_validate = pd.Series(check_obj.index).astype(self.dtype)
+        else:
+            obj_to_validate = pd.Series(check_obj.index)
 
         assert isinstance(
             super().validate(
-                pd.Series(check_obj.index),
+                obj_to_validate,
                 head,
                 tail,
                 sample,

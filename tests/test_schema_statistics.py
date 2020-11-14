@@ -61,13 +61,13 @@ def test_infer_dataframe_statistics(multi_index, nullable):
         assert stat_columns["boolean"]["pandas_dtype"] is pa.Bool
 
     assert stat_columns["float"]["pandas_dtype"] is DEFAULT_FLOAT
-    assert stat_columns["string"]["pandas_dtype"] is pa.String
+    assert stat_columns["string"]["pandas_dtype"] is pa.Str
     assert stat_columns["datetime"]["pandas_dtype"] is pa.DateTime
 
     if multi_index:
         stat_indices = statistics["index"]
         for stat_index, name, dtype in zip(
-            stat_indices, ["int_index", "str_index"], [DEFAULT_INT, pa.String]
+            stat_indices, ["int_index", "str_index"], [DEFAULT_INT, pa.Str]
         ):
             assert stat_index["name"] == name
             assert stat_index["pandas_dtype"] is dtype
@@ -157,7 +157,7 @@ def test_parse_check_statistics(check_stats, expectation):
         [
             pd.Series(["a", "b", "c", "a"], name="str_series"),
             {
-                "pandas_dtype": pa.String,
+                "pandas_dtype": pa.Str,
                 "nullable": False,
                 "checks": None,
                 "name": "str_series",
@@ -244,7 +244,7 @@ INTEGER_TYPES = [
             0,
             pd.Series(["a", "b", "c", "a"], name="str_series"),
             {
-                "pandas_dtype": pa.String,
+                "pandas_dtype": pa.Str,
                 "nullable": True,
                 "checks": None,
                 "name": "str_series",
@@ -310,7 +310,7 @@ def test_infer_nullable_series_schema_statistics(
             [
                 {
                     "name": "str_index",
-                    "pandas_dtype": PandasDtype.String,
+                    "pandas_dtype": PandasDtype.Str,
                     "nullable": False,
                     "checks": None,
                 },
@@ -377,7 +377,7 @@ def test_get_dataframe_schema_statistics():
                 ],
             ),
             "str": pa.Column(
-                pa.String, checks=[pa.Check.isin(["foo", "bar", "baz"])]
+                pa.Str, checks=[pa.Check.isin(["foo", "bar", "baz"])]
             ),
         },
         index=pa.Index(
@@ -414,7 +414,7 @@ def test_get_dataframe_schema_statistics():
                 "regex": False,
             },
             "str": {
-                "pandas_dtype": pa.String,
+                "pandas_dtype": pa.Str,
                 "checks": {"isin": {"allowed_values": ["foo", "bar", "baz"]}},
                 "nullable": False,
                 "allow_duplicates": True,

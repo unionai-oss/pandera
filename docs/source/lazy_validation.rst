@@ -59,7 +59,7 @@ of all schemas and schema components gives you the option of doing just this:
         columns={
             "int_column": Column(pa.Int),
             "float_column": Column(pa.Float, Check.greater_than(0)),
-            "str_column": Column(pa.String, Check.equal_to("a")),
+            "str_column": Column(pa.Str, Check.equal_to("a")),
             "date_column": Column(pa.DateTime),
         },
         strict=True

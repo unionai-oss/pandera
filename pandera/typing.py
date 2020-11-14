@@ -49,6 +49,7 @@ GenericDtype = TypeVar(  # type: ignore
     Literal[PandasDtype.UINT32],
     Literal[PandasDtype.UINT64],
     Literal[PandasDtype.Object],
+    Literal[PandasDtype.Str],
     Literal[PandasDtype.String],
     Literal[PandasDtype.Timedelta],
     covariant=True,
@@ -181,9 +182,8 @@ UINT64 = Literal[
 ]  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
 Object = Literal[PandasDtype.Object]  #: ``"object"`` numpy dtype
 
-#: The string datatype doesn't map to the first-class pandas datatype and
-#: is represented as a numpy ``"object"`` array. This will change after
-#: pandera only supports pandas 1.0+ and is currently handled
-#: internally by pandera as a special case. To use the pandas ``string``
-#: data type, you must explicitly use ``pd.StringDtype()``.
+Str = Literal[PandasDtype.Str]  #: ``"str"`` numpy dtype
+
+#: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
+#: fall back on the str-as-object-array representation.
 String = Literal[PandasDtype.String]

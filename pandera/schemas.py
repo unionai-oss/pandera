@@ -859,7 +859,7 @@ class SeriesSchemaBase:
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if self._pandas_dtype is dtypes.PandasDtype.String:
+        if self._pandas_dtype is dtypes.PandasDtype.Str:
             # only coerce non-null elements to string
             return series_or_index.where(
                 series_or_index.isna(), series_or_index.astype(str)

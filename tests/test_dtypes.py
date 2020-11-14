@@ -403,7 +403,7 @@ def test_python_builtin_types():
     assert isinstance(schema(df), pd.DataFrame)
     assert schema.dtype["int_col"] == PandasDtype.Int.str_alias
     assert schema.dtype["float_col"] == PandasDtype.Float.str_alias
-    assert schema.dtype["str_col"] == PandasDtype.String.str_alias
+    assert schema.dtype["str_col"] == PandasDtype.Str.str_alias
     assert schema.dtype["bool_col"] == PandasDtype.Bool.str_alias
     assert schema.dtype["object_col"] == PandasDtype.Object.str_alias
     assert schema.dtype["complex_col"] == PandasDtype.Complex.str_alias
@@ -419,7 +419,7 @@ def test_python_builtin_types_not_supported(python_type):
 @pytest.mark.parametrize(
     "pandas_api_type,pandas_dtype",
     [
-        ["string", PandasDtype.String],
+        ["string", PandasDtype.Str],
         ["floating", PandasDtype.Float],
         ["integer", PandasDtype.Int],
         ["categorical", PandasDtype.Category],
@@ -456,5 +456,11 @@ def test_pandas_api_type_exception(invalid_pandas_api_type):
 )
 def test_pandas_dtype_equality(pandas_dtype):
     """Test __eq__ implementation."""
-    assert pandas_dtype != None  # pylint:disable=singleton-comparison
+    assert pandas_dtype is not None
     assert pandas_dtype == pandas_dtype.value
+
+
+@pytest.mark.parametrize("pdtype", PandasDtype)
+def test_dtype_none_comparison(pdtype):
+    """Test that comparing PandasDtype to None is False."""
+    assert pdtype != None  # noqa E711  # pylint: disable=singleton-comparison

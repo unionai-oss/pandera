@@ -16,6 +16,7 @@ from pandera import (
     Int,
     MultiIndex,
     Object,
+    Str,
     String,
     errors,
 )
@@ -34,7 +35,7 @@ def test_column():
 
     column_a = Column(Int, name="a")
     column_b = Column(Float, name="b")
-    column_c = Column(String, name="c")
+    column_c = Column(Str, name="c")
 
     assert isinstance(
         data.pipe(column_a).pipe(column_b).pipe(column_c), pd.DataFrame
@@ -91,12 +92,18 @@ def test_index_schema():
         schema.validate(pd.DataFrame(index=range(1, 20)))
 
 
-def test_index_schema_coerce():
+@pytest.mark.parametrize("pdtype", [Float, Int, Str, String])
+def test_index_schema_coerce(pdtype):
     """Test that index can be type-coerced."""
-    schema = DataFrameSchema(index=Index(Float, coerce=True))
+    schema = DataFrameSchema(index=Index(pdtype, coerce=True))
     df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
     validated_df = schema(df)
-    assert validated_df.index.dtype == Float.value
+    # pandas-native "string" dtype doesn't apply to indexes
+    assert (
+        validated_df.index.dtype == "object"
+        if pdtype is String
+        else pdtype.str_alias
+    )
 
 
 def test_multi_index_columns():
@@ -105,7 +112,7 @@ def test_multi_index_columns():
         {
             ("zero", "foo"): Column(Float, Check(lambda s: (s > 0) & (s < 1))),
             ("zero", "bar"): Column(
-                String, Check(lambda s: s.isin(["a", "b", "c", "d"]))
+                Str, Check(lambda s: s.isin(["a", "b", "c", "d"]))
             ),
             ("one", "foo"): Column(Int, Check(lambda s: (s > 0) & (s < 10))),
             ("one", "bar"): Column(
@@ -137,7 +144,7 @@ def test_multi_index_index():
             indexes=[
                 Index(Int, Check(lambda s: (s < 5) & (s >= 0)), name="index0"),
                 Index(
-                    String,
+                    Str,
                     Check(lambda s: s.isin(["foo", "bar"])),
                     name="index1",
                 ),
@@ -174,7 +181,7 @@ def test_multi_index_schema_coerce():
     indexes = [
         Index(Float),
         Index(Int),
-        Index(String),
+        Index(Str),
     ]
     schema = DataFrameSchema(index=MultiIndex(indexes=indexes))
     df = pd.DataFrame(
@@ -197,10 +204,10 @@ def test_multi_index_schema_coerce():
 def tests_multi_index_subindex_coerce():
     """MultIndex component should override sub indexes."""
     indexes = [
-        Index(String, coerce=True),
-        Index(String, coerce=False),
-        Index(String, coerce=True),
-        Index(String, coerce=False),
+        Index(Str, coerce=True),
+        Index(Str, coerce=False),
+        Index(Str, coerce=True),
+        Index(Str, coerce=False),
     ]
 
     data = pd.DataFrame(index=pd.MultiIndex.from_arrays([[1, 2, 3, 4]] * 4))
@@ -242,9 +249,7 @@ def test_schema_component_equality_operators():
     multi_index = MultiIndex(
         indexes=[
             Index(Int, Check(lambda s: (s < 5) & (s >= 0)), name="index0"),
-            Index(
-                String, Check(lambda s: s.isin(["foo", "bar"])), name="index1"
-            ),
+            Index(Str, Check(lambda s: s.isin(["foo", "bar"])), name="index1"),
         ]
     )
     not_equal_schema = DataFrameSchema(
