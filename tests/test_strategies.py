@@ -1,4 +1,4 @@
-# pylint: disable=undefined-variable,redefined-outer-name,invalid-name
+# pylint: disable=undefined-variable,redefined-outer-name,invalid-name,undefined-loop-variable  # noqa
 """Unit tests for pandera data generating strategies."""
 
 import operator
@@ -35,17 +35,18 @@ no_hypothesis_dep = pytest.mark.skipif(
 
 TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
 
-SUPPORTED_TYPES = [
-    x for x in pa.PandasDtype if x not in {pa.Object, pa.Category}
-]
+SUPPORTED_DTYPES = []
+for pdtype in pa.PandasDtype:
+    if pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows":
+        continue
+    SUPPORTED_DTYPES.append(pdtype)
+
 NULLABLE_DTYPES = [
     pdtype
-    for pdtype in pa.PandasDtype
+    for pdtype in SUPPORTED_DTYPES
     if not pdtype.is_complex
     and not pdtype.is_category
     and not pdtype.is_object
-    # and not pdtype.is_nonnullable_int
-    # and not pdtype.is_nonnullable_uint
 ]
 
 NUMERIC_RANGE_CONSTANT = 10
@@ -55,7 +56,7 @@ COMPLEX_RANGE_CONSTANT = np.complex64(
 )
 
 
-@pytest.mark.parametrize("pdtype", pa.PandasDtype)
+@pytest.mark.parametrize("pdtype", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
 def test_pandas_dtype_strategy(pdtype, data):
     """Test that series can be constructed from pandas dtype."""
@@ -78,7 +79,7 @@ def test_pandas_dtype_strategy(pdtype, data):
 
 
 @pytest.mark.parametrize(
-    "pdtype", [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous]
+    "pdtype", [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous]
 )
 @hypothesis.given(st.data())
 def test_check_strategy_continuous(pdtype, data):
@@ -119,7 +120,7 @@ def value_ranges(pdtype: pa.PandasDtype):
 
 
 @pytest.mark.parametrize(
-    "pdtype", [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous]
+    "pdtype", [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous]
 )
 @pytest.mark.parametrize(
     "strat_fn, arg_name, base_st_type, compare_op",
@@ -175,7 +176,7 @@ def test_check_strategy_chained_continuous(
 
 @pytest.mark.parametrize(
     "pdtype",
-    [pdtype for pdtype in pa.PandasDtype if pdtype.is_complex],
+    [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_complex],
 )
 @hypothesis.given(st.data())
 def test_in_range_strategy(pdtype, data):
@@ -219,7 +220,7 @@ def test_in_range_strategy(pdtype, data):
 
 @pytest.mark.parametrize(
     "pdtype",
-    [pdtype for pdtype in pa.PandasDtype if pdtype.is_continuous],
+    [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous],
 )
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
@@ -369,7 +370,7 @@ def test_column_strategy(data):
 
 @pytest.mark.parametrize(
     "pdtype",
-    [pdtype for pdtype in pa.PandasDtype if not pdtype.is_category],
+    [pdtype for pdtype in SUPPORTED_DTYPES if not pdtype.is_category],
 )
 @pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
 @hypothesis.given(st.data())
@@ -437,9 +438,6 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
         pytest.skip(
             "pandas version<1 does not handle nullable integer indexes"
         )
-
-    if pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows":
-        pytest.skip("Windows does not support complex256 numpy type")
 
     size = 5
     strat = field_strategy(pdtype, nullable=nullable, size=size)
