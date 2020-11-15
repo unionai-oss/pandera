@@ -427,6 +427,16 @@ def test_field_element_strategy(pdtype, data):
 @hypothesis.given(st.data())
 def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
     """Test strategies for generating nullable column/index data."""
+
+    if (
+        pa.LEGACY_PANDAS
+        and field_strategy is strategies.index_strategy
+        and (pdtype.is_nullable_int or pdtype.is_nullable_uint)
+    ):
+        pytest.skip(
+            "pandas version<1 does not handle nullable integer indexes"
+        )
+
     size = 5
     strat = field_strategy(pdtype, nullable=nullable, size=size)
     example = data.draw(strat)
