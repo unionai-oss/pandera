@@ -2,6 +2,7 @@
 """Unit tests for pandera data generating strategies."""
 
 import operator
+import platform
 import re
 from typing import Any
 from unittest.mock import MagicMock
@@ -436,6 +437,9 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
         pytest.skip(
             "pandas version<1 does not handle nullable integer indexes"
         )
+
+    if pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows":
+        pytest.skip("Windows does not support complex256 numpy type")
 
     size = 5
     strat = field_strategy(pdtype, nullable=nullable, size=size)
