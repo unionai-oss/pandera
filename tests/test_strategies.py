@@ -389,27 +389,29 @@ def test_dataframe_strategy(pdtype, data):
 @hypothesis.given(st.data())
 def test_index_strategy(data):
     """Test Index schema component strategy."""
-    index = pa.Index(int, allow_duplicates=False)
+    pdtype = pa.PandasDtype.Int
+    index = pa.Index(pdtype, allow_duplicates=False)
     strat = index.strategy(size=10)
     example = data.draw(strat)
     assert (~example.duplicated()).all()
-    assert example.dtype == np.dtype(int)
+    assert example.dtype == pdtype.str_alias
 
 
 @hypothesis.given(st.data())
 def test_multiindex_strategy(data):
     """Test MultiIndex schema component strategy."""
+    pdtype = pa.PandasDtype.Int
     multiindex = pa.MultiIndex(
         indexes=[
-            pa.Index(int, allow_duplicates=False, name="level_0"),
-            pa.Index(int),
-            pa.Index(int),
+            pa.Index(pdtype, allow_duplicates=False, name="level_0"),
+            pa.Index(pdtype),
+            pa.Index(pdtype),
         ]
     )
     strat = multiindex.strategy(size=10)
     example = data.draw(strat)
     for i in range(example.nlevels):
-        assert example.get_level_values(i).dtype == np.dtype(int)
+        assert example.get_level_values(i).dtype == pdtype.str_alias
 
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
