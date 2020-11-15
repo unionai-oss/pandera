@@ -393,6 +393,7 @@ def test_index_strategy(data):
     strat = index.strategy(size=10)
     example = data.draw(strat)
     assert (~example.duplicated()).all()
+    assert example.dtype == np.dtype(int)
 
 
 @hypothesis.given(st.data())
@@ -408,7 +409,7 @@ def test_multiindex_strategy(data):
     strat = multiindex.strategy(size=10)
     example = data.draw(strat)
     for i in range(example.nlevels):
-        assert example.get_level_values(i).dtype == int
+        assert example.get_level_values(i).dtype == np.dtype(int)
 
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)

@@ -12,8 +12,8 @@ before_cache:
   - touch $CONDA_DIR/conda-meta/history
 
 os:
-  - linux
-  - osx
+  # - linux
+  # - osx
   - windows
 
 env:
