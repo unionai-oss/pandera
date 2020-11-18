@@ -11,17 +11,17 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import pandas as pd
 from packaging import version
 
-from pandera import constants, dtypes, errors
-from pandera.checks import Check
-from pandera.dtypes import PandasDtype, PandasExtensionType
-from pandera.error_formatters import (
+from . import constants, dtypes, errors
+from .checks import Check
+from .dtypes import PandasDtype, PandasExtensionType
+from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.error_handlers import SchemaErrorHandler
-from pandera.hypotheses import Hypothesis
+from .error_handlers import SchemaErrorHandler
+from .hypotheses import Hypothesis
 
 N_INDENT_SPACES = 4
 
