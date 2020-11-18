@@ -45,6 +45,10 @@ class SchemaError(Exception):
         self.check_index = check_index
 
 
+class BaseStrategyOnlyError(Exception):
+    """Custom error for reporting strategies that must be base strategies."""
+
+
 SCHEMA_ERRORS_SUFFIX = """
 
 Usage Tip

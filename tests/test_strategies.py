@@ -75,7 +75,10 @@ def test_pandas_dtype_strategy(pdtype, data):
     strategy = strategies.pandas_dtype_strategy(pdtype)
     example = data.draw(strategy)
     assert example.dtype.type == pdtype.numpy_dtype.type
-    pd.Series([data.draw(strategy) for _ in range(10)], dtype=pdtype.str_alias)
+
+    chained_strategy = strategies.pandas_dtype_strategy(pdtype, strategy)
+    chained_example = data.draw(chained_strategy)
+    assert chained_example.dtype.type == pdtype.numpy_dtype.type
 
 
 @pytest.mark.parametrize(
@@ -236,17 +239,21 @@ def test_isin_notin_strategies(pdtype, chained, data):
     values = [data.draw(value_st) for _ in range(10)]
 
     isin_base_st = None
+    notin_base_st = None
     if chained:
         base_values = values + [data.draw(value_st) for _ in range(10)]
         isin_base_st = strategies.isin_strategy(
             pdtype, allowed_values=base_values
+        )
+        notin_base_st = strategies.notin_strategy(
+            pdtype, forbidden_values=base_values
         )
 
     isin_st = strategies.isin_strategy(
         pdtype, isin_base_st, allowed_values=values
     )
     notin_st = strategies.notin_strategy(
-        pdtype, value_st, forbidden_values=values
+        pdtype, notin_base_st, forbidden_values=values
     )
     assert data.draw(isin_st) in values
     assert data.draw(notin_st) not in values
@@ -259,22 +266,14 @@ def test_isin_notin_strategies(pdtype, chained, data):
             strategies.str_matches_strategy,
             lambda patt: f"^{patt}$",
         ],
-        [
-            strategies.str_contains_strategy,
-            lambda patt: patt,
-        ],
-        [
-            strategies.str_startswith_strategy,
-            lambda patt: f"^{patt}",
-        ],
-        [
-            strategies.str_endswith_strategy,
-            lambda patt: f"{patt}$",
-        ],
+        [strategies.str_contains_strategy, None],
+        [strategies.str_startswith_strategy, None],
+        [strategies.str_endswith_strategy, None],
     ],
 )
+@pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data(), st.text())
-def test_str_pattern_checks(str_strat, pattern_fn, data, pattern):
+def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
     """Test built-in check strategies for string pattern checks."""
     try:
         re.compile(pattern)
@@ -283,12 +282,19 @@ def test_str_pattern_checks(str_strat, pattern_fn, data, pattern):
         re_compiles = False
     hypothesis.assume(re_compiles)
 
-    pattern = pattern_fn(pattern)
+    pattern = pattern if pattern_fn is None else pattern_fn(pattern)
+
+    base_st = None
+    if chained:
+        try:
+            base_st = str_strat(pa.String, pattern=pattern)
+        except TypeError:
+            base_st = str_strat(pa.String, string=pattern)
 
     try:
-        st = str_strat(pa.String, pattern=pattern)
+        st = str_strat(pa.String, base_st, pattern=pattern)
     except TypeError:
-        st = str_strat(pa.String, string=pattern)
+        st = str_strat(pa.String, base_st, string=pattern)
     example = data.draw(st)
 
     assert re.search(pattern, example)
@@ -354,6 +360,37 @@ def test_register_check_strategy(data):
     assert result == 100
 
 
+def test_register_check_strategy_exception():
+    """Check method needs statistics attr to register a strategy."""
+
+    def custom_strat():
+        pass
+
+    class CustomCheck(_CheckBase):
+        """Custom check class."""
+
+        @classmethod
+        @strategies.register_check_strategy(custom_strat)
+        def custom_check(cls, **kwargs) -> "CustomCheck":
+            """Built-in check with no statistics."""
+
+            def _custom_check(series: pd.Series) -> pd.Series:
+                """Some check function."""
+                return series
+
+            return cls(
+                _custom_check,
+                name=cls.custom_check.__name__,
+                **kwargs,
+            )
+
+    with pytest.raises(
+        AttributeError,
+        match="check object doesn't have a defined statistics property",
+    ):
+        CustomCheck.custom_check()
+
+
 @hypothesis.given(st.data())
 def test_series_strategy(data):
     """Test SeriesSchema strategy."""
@@ -361,11 +398,27 @@ def test_series_strategy(data):
     series_schema(data.draw(series_schema.strategy()))
 
 
+def test_series_example():
+    """Test SeriesSchema example method generate examples that pass."""
+    series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
+    for _ in range(10):
+        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
+            series_schema(series_schema.example())
+
+
 @hypothesis.given(st.data())
 def test_column_strategy(data):
     """Test Column schema strategy."""
     column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
     column_schema(data.draw(column_schema.strategy()))
+
+
+def test_column_example():
+    """Test Column schema example method generate examples that pass."""
+    column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
+    for _ in range(10):
+        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
+            column_schema(column_schema.example())
 
 
 @pytest.mark.parametrize(
@@ -386,6 +439,14 @@ def test_dataframe_strategy(pdtype, data):
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
 
 
+def test_dataframe_example():
+    """Test DataFrameSchema example method generate examples that pass."""
+    schema = pa.DataFrameSchema({"column": pa.Column(pa.Int, pa.Check.gt(0))})
+    for _ in range(10):
+        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
+            schema(schema.example())
+
+
 @hypothesis.given(st.data())
 def test_index_strategy(data):
     """Test Index schema component strategy."""
@@ -395,6 +456,17 @@ def test_index_strategy(data):
     example = data.draw(strat)
     assert (~example.duplicated()).all()
     assert example.dtype == pdtype.str_alias
+
+
+def test_index_example():
+    """
+    Test Index schema component example method generates examples that pass.
+    """
+    pdtype = pa.PandasDtype.Int
+    index_schema = pa.Index(pdtype, allow_duplicates=False)
+    for _ in range(10):
+        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
+            index_schema(pd.DataFrame(index=index_schema.example()))
 
 
 @hypothesis.given(st.data())
@@ -412,6 +484,24 @@ def test_multiindex_strategy(data):
     example = data.draw(strat)
     for i in range(example.nlevels):
         assert example.get_level_values(i).dtype == pdtype.str_alias
+
+
+def test_multiindex_example():
+    """
+    Test MultiIndex schema component example method generates examples that
+    pass.
+    """
+    pdtype = pa.PandasDtype.Int
+    multiindex = pa.MultiIndex(
+        indexes=[
+            pa.Index(pdtype, allow_duplicates=False, name="level_0"),
+            pa.Index(pdtype),
+            pa.Index(pdtype),
+        ]
+    )
+    for _ in range(10):
+        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
+            multiindex(pd.DataFrame(index=multiindex.example()))
 
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)

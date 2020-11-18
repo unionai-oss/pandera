@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from .dtypes import PandasDtype
+from .errors import BaseStrategyOnlyError
 
 try:
     import hypothesis
@@ -106,10 +107,6 @@ def strategy_import_error(fn):
     return _wrapper
 
 
-class BaseStrategyOnlyError(Exception):
-    """Custom error for reporting strategies that must be base strategies."""
-
-
 def register_check_strategy(strategy_fn: StrategyFn):
     """Decorate a Check method with a strategy.
 
@@ -125,9 +122,12 @@ def register_check_strategy(strategy_fn: StrategyFn):
         @wraps(class_method)
         def _wrapper(cls, *args, **kwargs):
             check = class_method(cls, *args, **kwargs)
-            if not hasattr(check, "statistics"):
+            if check.statistics is None:
                 raise AttributeError(
-                    "check object doesn't have a statistics property"
+                    "check object doesn't have a defined statistics property. "
+                    "Use the checks.register_check_statistics decorator to "
+                    f"specify the statistics for the {class_method.__name__} "
+                    "method."
                 )
             strategy_kwargs = {
                 arg: stat
@@ -515,7 +515,7 @@ def str_matches_strategy(
         )
 
     def matches(x):
-        return re.match(x)
+        return re.match(pattern, x)
 
     return strategy.filter(matches)
 
@@ -540,7 +540,7 @@ def str_contains_strategy(
         )
 
     def contains(x):
-        return re.search(x)
+        return re.search(pattern, x)
 
     return strategy.filter(contains)
 
@@ -560,7 +560,7 @@ def str_startswith_strategy(
     :returns: ``hypothesis`` strategy
     """
     if strategy is None:
-        return st.from_regex(f"^{string}", fullmatch=False).map(
+        return st.from_regex(f"\\A{string}", fullmatch=False).map(
             pandas_dtype.numpy_dtype.type
         )
 
@@ -582,7 +582,7 @@ def str_endswith_strategy(
     :returns: ``hypothesis`` strategy
     """
     if strategy is None:
-        return st.from_regex(f"{string}$", fullmatch=False).map(
+        return st.from_regex(f"{string}\\Z", fullmatch=False).map(
             pandas_dtype.numpy_dtype.type
         )
 
