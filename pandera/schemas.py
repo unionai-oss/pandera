@@ -699,14 +699,16 @@ class DataFrameSchema:
         :param keys: list of labels
         :param drop: bool, default True
         :param append: bool, default False
-        :return: a new :class:`DataFrameSchema` with specified column(s) in the index.
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the
+            index.
         """
+        # pylint: disable=import-outside-toplevel,cyclic-import
         from pandera.schema_components import Index, MultiIndex
 
         new_schema = copy.deepcopy(self)
 
         keys_temp: List = (
-            list(set(keys)) if not isinstance(keys, List) else keys
+            list(set(keys)) if not isinstance(keys, list) else keys
         )
 
         # ensure all specified keys are present in the columns
@@ -718,7 +720,8 @@ class DataFrameSchema:
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
-        # if there is already an index, append or replace according to parameters
+        # if there is already an index, append or replace according to
+        # parameters
         ind_list: List = (
             []
             if new_schema.index is None or not append
@@ -755,9 +758,11 @@ class DataFrameSchema:
 
         :param level: list of labels
         :param drop: bool, default True
-        :return: a new :class:`DataFrameSchema` with specified column(s) in the index.
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the
+            index.
 
         """
+        # pylint: disable=import-outside-toplevel,cyclic-import
         from pandera.schema_components import Column, Index, MultiIndex
 
         new_schema = copy.deepcopy(self)
@@ -779,8 +784,7 @@ class DataFrameSchema:
                 for x in level_temp
                 if x not in list(new_schema.index.columns.keys())
             ]
-            if isinstance(new_schema.index, MultiIndex)
-            and (level_temp is not [])
+            if isinstance(new_schema.index, MultiIndex) and level_temp
             else []
             if isinstance(new_schema.index, Index)
             and (level_temp == [new_schema.index.name])
