@@ -6,7 +6,7 @@ import json
 import warnings
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from packaging import version
@@ -705,23 +705,18 @@ class DataFrameSchema:
 
         new_schema = copy.deepcopy(self)
 
-        keys_temp: List = list(keys) if not isinstance(keys, List) else keys
+        keys_temp: List = (
+            list(set(keys)) if not isinstance(keys, List) else keys
+        )
 
         # ensure all specified keys are present in the columns
-        try:
-            not_in_cols: List[str] = [
-                x for x in keys_temp if x not in new_schema.columns.keys()
-            ]
-            assert not_in_cols == []
-        except AssertionError:
-            raise Exception(f"Keys {not_in_cols} not found in schema columns!")
-
-        # ensure no duplicates
-        try:
-            dup_cols: List[str] = [x for x in set(keys_temp) if keys_temp.count(x) > 1]
-            assert dup_cols == []
-        except AssertionError:
-            raise Exception(f"Keys {dup_cols} are duplicated!")
+        not_in_cols: List[str] = [
+            x for x in keys_temp if x not in new_schema.columns.keys()
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema columns!"
+            )
 
         # if there is already an index, append or replace according to parameters
         ind_list: List = (
@@ -767,32 +762,32 @@ class DataFrameSchema:
 
         new_schema = copy.deepcopy(self)
 
-        try:
-            assert new_schema.index is not None
-        except AssertionError:
-            raise Exception("There is currently no index set for this schema.")
+        if new_schema.index is None:
+            raise errors.SchemaInitError(
+                "There is currently no index set for this schema."
+            )
 
-
-        # ensure no duplicates and tuple type
-        level_temp: Union[List[Any], List[str], None] = list(set(level)) if level is not None else []
+        # ensure no duplicates
+        level_temp: Union[List[Any], List[str]] = (
+            list(set(level)) if level is not None else []
+        )
 
         # ensure all specified keys are present in the index
-        level_not_in_index: List[str] = (
+        level_not_in_index: Union[List[Any], List[str], None] = (
             [
                 x
                 for x in level_temp
                 if x not in list(new_schema.index.columns.keys())
             ]
-            if isinstance(new_schema.index, MultiIndex) and (level_temp is not [])
+            if isinstance(new_schema.index, MultiIndex)
+            and (level_temp is not [])
             else []
             if isinstance(new_schema.index, Index)
-            and (level_temp == list(new_schema.index.name))
+            and (level_temp == [new_schema.index.name])
             else level_temp
         )
-        try:
-            assert level_not_in_index == []
-        except AssertionError:
-            raise Exception(
+        if level_not_in_index:
+            raise errors.SchemaInitError(
                 f"Keys {level_not_in_index} not found in schema columns!"
             )
 
@@ -824,15 +819,12 @@ class DataFrameSchema:
             else new_index
         )
 
-        additional_columns: Dict = (
-            None
-            if drop
-            else {col: new_schema.index.columns.get(col) for col in level_temp}
-            if isinstance(new_schema.index, MultiIndex)
-            else {new_schema.index.name: new_schema.index}
-        )
-
         if not drop:
+            additional_columns: Dict[str, Any] = (
+                {col: new_schema.index.columns.get(col) for col in level_temp}
+                if isinstance(new_schema.index, MultiIndex)
+                else {new_schema.index.name: new_schema.index}
+            )
             new_schema = new_schema.add_columns(
                 {
                     k: Column(
