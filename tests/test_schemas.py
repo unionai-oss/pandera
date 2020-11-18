@@ -1083,80 +1083,97 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
         # not inplace preserves original dataframe type
         assert df["column"].dtype == from_dtype
 
-
-
-
+@pytest.fixture
 def get_schema_simple():
     schema = DataFrameSchema(
-        columns = {'col1': Column(pandas_dtype = Int), 'col2': Column(pandas_dtype = Float)},
-        index = Index(pandas_dtype = String, name = 'ind0'))
+        columns={
+            "col1": Column(pandas_dtype=Int),
+            "col2": Column(pandas_dtype=Float),
+        },
+        index=Index(pandas_dtype=String, name="ind0"),
+    )
     return schema
 
+@pytest.fixture
 def get_schema_multi():
     schema = DataFrameSchema(
-        columns={'col1': Column(pandas_dtype=Int), 'col2': Column(pandas_dtype=Float)},
-        index=MultiIndex([Index(pandas_dtype=String, name='ind0'),Index(pandas_dtype=String, name='ind1')]))
+        columns={
+            "col1": Column(pandas_dtype=Int),
+            "col2": Column(pandas_dtype=Float),
+        },
+        index=MultiIndex(
+            [
+                Index(pandas_dtype=String, name="ind0"),
+                Index(pandas_dtype=String, name="ind1"),
+            ]
+        ),
+    )
     return schema
 
 
 @pytest.mark.parametrize("drop", [True, False])
-def test_set_index_drop(drop):
-    test_schema = get_schema_simple()
-    test_schema = test_schema.set_index(keys=['col1'], drop=drop)
+def test_set_index_drop(drop, get_schema_simple):
+    test_schema = get_schema_simple
+    test_schema = test_schema.set_index(keys=["col1"], drop=drop)
     if drop is True:
         assert len(test_schema.columns) == 1
-        assert list(test_schema.columns.keys()) == ['col2']
+        assert list(test_schema.columns.keys()) == ["col2"]
     else:
         assert len(test_schema.columns) == 2
-        assert list(test_schema.columns.keys()) == ['col1', 'col2']
-        assert test_schema.index.name == 'col1'
+        assert list(test_schema.columns.keys()) == ["col1", "col2"]
+        assert test_schema.index.name == "col1"
 
 
 @pytest.mark.parametrize("append", [True, False])
-def test_set_index_append(append):
-    temp_schema = get_schema_simple()
-    test_schema = temp_schema.set_index(keys=['col1'], append = append)
+def test_set_index_append(append, get_schema_simple):
+    temp_schema = get_schema_simple
+    test_schema = temp_schema.set_index(keys=["col1"], append=append)
     if append is True:
         assert isinstance(test_schema.index, MultiIndex)
-        assert list(test_schema.index.columns.keys()) == ['ind0', 'col1']
-        assert test_schema.index.columns['col1'].dtype == temp_schema.columns['col1'].dtype
+        assert list(test_schema.index.columns.keys()) == ["ind0", "col1"]
+        assert (
+            test_schema.index.columns["col1"].dtype
+            == temp_schema.columns["col1"].dtype
+        )
     else:
         assert isinstance(test_schema.index, Index)
-        assert test_schema.index.name == 'col1'
+        assert test_schema.index.name == "col1"
 
 
 # reset_index tests
 @pytest.mark.parametrize("drop", [True, False])
-def test_reset_index_drop(drop):
-    test_schema = get_schema_simple()
+def test_reset_index_drop(drop, get_schema_simple):
+    test_schema = get_schema_simple
     test_schema = test_schema.reset_index(drop=drop)
     if drop:
         assert len(test_schema.columns) == 2
-        assert list(test_schema.columns.keys()) == ['col1', 'col2']
+        assert list(test_schema.columns.keys()) == ["col1", "col2"]
     else:
         assert len(test_schema.columns) == 3
-        assert list(test_schema.columns.keys()) == ['col1', 'col2', 'ind0']
+        assert list(test_schema.columns.keys()) == ["col1", "col2", "ind0"]
         assert test_schema.index is None
 
 
-def test_reset_index_level():
-    temp_schema = get_schema_multi()
+def test_reset_index_level(get_schema_multi):
+    temp_schema = get_schema_multi
 
-    test_schema = temp_schema.reset_index(level=['ind0'])
-    assert test_schema.index.name == 'ind1'
+    test_schema = temp_schema.reset_index(level=["ind0"])
+    assert test_schema.index.name == "ind1"
     assert isinstance(test_schema.index, Index)
 
-    test_schema = temp_schema.reset_index(level=['ind0', 'ind1'])
+    test_schema = temp_schema.reset_index(level=["ind0", "ind1"])
     assert test_schema.index is None
-    assert set(list(test_schema.columns.keys())) == set(['col1', 'col2', 'ind0', 'ind1'])
+    assert set(list(test_schema.columns.keys())) == set(
+        ["col1", "col2", "ind0", "ind1"]
+    )
 
 
 # general functionality
-def test_invalid_keys():
-    test_schema = get_schema_simple()
+def test_invalid_keys(get_schema_simple):
+    test_schema = get_schema_simple
     with pytest.raises(Exception):
-        test_schema.set_index(['foo', 'bar'])
+        test_schema.set_index(["foo", "bar"])
     with pytest.raises(Exception):
         test_schema.set_index()
     with pytest.raises(Exception):
-        test_schema.reset_index(['foo', 'bar'])
+        test_schema.reset_index(["foo", "bar"])
