@@ -943,7 +943,7 @@ class SeriesSchemaBase:
         if not inplace:
             series = series.copy()
 
-        if series.name != self._name:
+        if self.name is not None and series.name != self._name:
             msg = "Expected %s to have name '%s', found '%s'" % (
                 type(self),
                 self._name,

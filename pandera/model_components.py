@@ -44,7 +44,14 @@ class FieldInfo:
     *new in 0.5.0*
     """
 
-    __slots__ = ("checks", "nullable", "allow_duplicates", "coerce", "regex")
+    __slots__ = (
+        "checks",
+        "nullable",
+        "allow_duplicates",
+        "coerce",
+        "regex",
+        "check_name",
+    )
 
     def __init__(
         self,
@@ -53,12 +60,14 @@ class FieldInfo:
         allow_duplicates: bool = True,
         coerce: bool = False,
         regex: bool = False,
+        check_name: bool = None,
     ) -> None:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
         self.allow_duplicates = allow_duplicates
         self.coerce = coerce
         self.regex = regex
+        self.check_name = check_name
 
     def _to_schema_component(
         self,
@@ -131,6 +140,7 @@ def Field(
     ignore_na: bool = True,
     raise_warning: bool = False,
     n_failure_cases: int = 10,
+    check_name: bool = None,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
 
@@ -138,6 +148,10 @@ def Field(
 
     Some arguments apply only to number dtypes and some apply only to ``str``.
     See the :ref:`User Guide <schema_models>` for more.
+
+    :param check_name: Whether to check the name of the column/index during validation.
+        `None` is the default behavior, which translates to `True` for columns and
+        multi-index, and to `False` for a single index.
     """
     # pylint:disable=C0103,W0613,R0914
     check_kwargs = {
@@ -163,6 +177,7 @@ def Field(
         allow_duplicates=allow_duplicates,
         coerce=coerce,
         regex=regex,
+        check_name=check_name,
     )
 
 
