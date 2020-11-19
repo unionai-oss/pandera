@@ -59,11 +59,14 @@ try:
         val = draw(strategy)
         size = val.shape[0]
         columns_strat = []
-        for nullable in nullable_columns.values():
+        for name, nullable in nullable_columns.items():
             element_st = st.booleans() if nullable else st.just(False)
             columns_strat.append(
                 pdst.column(
-                    elements=element_st, dtype=bool, fill=st.just(False)
+                    name=name,
+                    elements=element_st,
+                    dtype=bool,
+                    fill=st.just(False),
                 )
             )
         mask_st = pdst.data_frames(
@@ -830,7 +833,10 @@ def multiindex_strategy(
         index.name if index.name is not None else i: index.dtype
         for i, index in enumerate(indexes)
     }
-    nullable_index = {index.name: index.nullable for index in indexes}
+    nullable_index = {
+        index.name if index.name is not None else i: index.nullable
+        for i, index in enumerate(indexes)
+    }
     strategy = pdst.data_frames(
         [index.strategy_component() for index in indexes],
         index=pdst.range_indexes(
@@ -839,4 +845,4 @@ def multiindex_strategy(
     ).map(lambda x: x.astype(index_dtypes))
     if any(nullable_index.values()):
         strategy = null_dataframe_masks(strategy, nullable_index)
-    return strategy.map(lambda x: pd.MultiIndex.from_frame(x))
+    return strategy.map(pd.MultiIndex.from_frame)

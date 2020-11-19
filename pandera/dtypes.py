@@ -350,7 +350,7 @@ class PandasDtype(Enum):
     @property
     def is_string(self) -> bool:
         """Return True if PandasDtype is a string."""
-        return self is PandasDtype.String
+        return self in [PandasDtype.Str, PandasDtype.String]
 
     @property
     def is_category(self) -> bool:

@@ -464,3 +464,134 @@ def test_pandas_dtype_equality(pandas_dtype):
 def test_dtype_none_comparison(pdtype):
     """Test that comparing PandasDtype to None is False."""
     assert pdtype != None  # noqa E711  # pylint: disable=singleton-comparison
+
+
+@pytest.mark.parametrize(
+    "property_fn, pdtypes",
+    [
+        [
+            lambda x: x.is_int,
+            [
+                PandasDtype.Int,
+                PandasDtype.Int8,
+                PandasDtype.Int16,
+                PandasDtype.Int32,
+                PandasDtype.Int64,
+                PandasDtype.INT8,
+                PandasDtype.INT16,
+                PandasDtype.INT32,
+                PandasDtype.INT64,
+            ],
+        ],
+        [
+            lambda x: x.is_nullable_int,
+            [
+                PandasDtype.INT8,
+                PandasDtype.INT16,
+                PandasDtype.INT32,
+                PandasDtype.INT64,
+            ],
+        ],
+        [
+            lambda x: x.is_nonnullable_int,
+            [
+                PandasDtype.Int,
+                PandasDtype.Int8,
+                PandasDtype.Int16,
+                PandasDtype.Int32,
+                PandasDtype.Int64,
+            ],
+        ],
+        [
+            lambda x: x.is_uint,
+            [
+                PandasDtype.UInt8,
+                PandasDtype.UInt16,
+                PandasDtype.UInt32,
+                PandasDtype.UInt64,
+                PandasDtype.UINT8,
+                PandasDtype.UINT16,
+                PandasDtype.UINT32,
+                PandasDtype.UINT64,
+            ],
+        ],
+        [
+            lambda x: x.is_nullable_uint,
+            [
+                PandasDtype.UINT8,
+                PandasDtype.UINT16,
+                PandasDtype.UINT32,
+                PandasDtype.UINT64,
+            ],
+        ],
+        [
+            lambda x: x.is_nonnullable_uint,
+            [
+                PandasDtype.UInt8,
+                PandasDtype.UInt16,
+                PandasDtype.UInt32,
+                PandasDtype.UInt64,
+            ],
+        ],
+        [
+            lambda x: x.is_float,
+            [
+                PandasDtype.Float,
+                PandasDtype.Float16,
+                PandasDtype.Float32,
+                PandasDtype.Float64,
+            ],
+        ],
+        [
+            lambda x: x.is_complex,
+            [
+                PandasDtype.Complex,
+                PandasDtype.Complex64,
+                PandasDtype.Complex128,
+                PandasDtype.Complex256,
+            ],
+        ],
+        [lambda x: x.is_bool, [PandasDtype.Bool]],
+        [lambda x: x.is_string, [PandasDtype.Str, PandasDtype.String]],
+        [lambda x: x.is_category, [PandasDtype.Category]],
+        [lambda x: x.is_datetime, [PandasDtype.DateTime]],
+        [lambda x: x.is_timedelta, [PandasDtype.Timedelta]],
+        [lambda x: x.is_object, [PandasDtype.Object]],
+        [
+            lambda x: x.is_continuous,
+            [
+                PandasDtype.Int,
+                PandasDtype.Int8,
+                PandasDtype.Int16,
+                PandasDtype.Int32,
+                PandasDtype.Int64,
+                PandasDtype.INT8,
+                PandasDtype.INT16,
+                PandasDtype.INT32,
+                PandasDtype.INT64,
+                PandasDtype.UInt8,
+                PandasDtype.UInt16,
+                PandasDtype.UInt32,
+                PandasDtype.UInt64,
+                PandasDtype.UINT8,
+                PandasDtype.UINT16,
+                PandasDtype.UINT32,
+                PandasDtype.UINT64,
+                PandasDtype.Float,
+                PandasDtype.Float16,
+                PandasDtype.Float32,
+                PandasDtype.Float64,
+                PandasDtype.Complex,
+                PandasDtype.Complex64,
+                PandasDtype.Complex128,
+                PandasDtype.Complex256,
+                PandasDtype.DateTime,
+                PandasDtype.Timedelta,
+            ],
+        ],
+    ],
+)
+def test_dtype_is_checks(property_fn, pdtypes):
+    """Test all the pandas dtype is_* properties."""
+    for pdtype in pdtypes:
+        assert property_fn(pdtype)

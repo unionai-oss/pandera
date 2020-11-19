@@ -300,6 +300,7 @@ def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
     assert re.search(pattern, example)
 
 
+@pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(
     st.data(),
     (
@@ -311,11 +312,18 @@ def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
         .filter(lambda x: x[0] < x[1])  # type: ignore
     ),
 )
-def test_str_length_checks(data, value_range):
+def test_str_length_checks(chained, data, value_range):
     """Test built-in check strategies for string length."""
     min_value, max_value = value_range
+    base_st = None
+    if chained:
+        base_st = strategies.str_length_strategy(
+            pa.String,
+            min_value=max(0, min_value - 5),
+            max_value=max_value + 5,
+        )
     str_length_st = strategies.str_length_strategy(
-        pa.String, min_value=min_value, max_value=max_value
+        pa.String, base_st, min_value=min_value, max_value=max_value
     )
     example = data.draw(str_length_st)
     assert min_value <= len(example) <= max_value
@@ -438,6 +446,11 @@ def test_dataframe_strategy(pdtype, data):
         return
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
 
+    with pytest.raises(pa.errors.BaseStrategyOnlyError):
+        strategies.dataframe_strategy(
+            pdtype, strategies.pandas_dtype_strategy(pdtype)
+        )
+
 
 def test_dataframe_example():
     """Test DataFrameSchema example method generate examples that pass."""
@@ -451,11 +464,12 @@ def test_dataframe_example():
 def test_index_strategy(data):
     """Test Index schema component strategy."""
     pdtype = pa.PandasDtype.Int
-    index = pa.Index(pdtype, allow_duplicates=False)
-    strat = index.strategy(size=10)
+    index_schema = pa.Index(pdtype, allow_duplicates=False, name="index")
+    strat = index_schema.strategy(size=10)
     example = data.draw(strat)
     assert (~example.duplicated()).all()
     assert example.dtype == pdtype.str_alias
+    index_schema(pd.DataFrame(index=example))
 
 
 def test_index_example():
@@ -472,11 +486,11 @@ def test_index_example():
 @hypothesis.given(st.data())
 def test_multiindex_strategy(data):
     """Test MultiIndex schema component strategy."""
-    pdtype = pa.PandasDtype.Int
+    pdtype = pa.PandasDtype.Float
     multiindex = pa.MultiIndex(
         indexes=[
             pa.Index(pdtype, allow_duplicates=False, name="level_0"),
-            pa.Index(pdtype),
+            pa.Index(pdtype, nullable=True),
             pa.Index(pdtype),
         ]
     )
@@ -485,23 +499,29 @@ def test_multiindex_strategy(data):
     for i in range(example.nlevels):
         assert example.get_level_values(i).dtype == pdtype.str_alias
 
+    with pytest.raises(pa.errors.BaseStrategyOnlyError):
+        strategies.multiindex_strategy(
+            pdtype, strategies.pandas_dtype_strategy(pdtype)
+        )
+
 
 def test_multiindex_example():
     """
     Test MultiIndex schema component example method generates examples that
     pass.
     """
-    pdtype = pa.PandasDtype.Int
+    pdtype = pa.PandasDtype.Float
     multiindex = pa.MultiIndex(
         indexes=[
             pa.Index(pdtype, allow_duplicates=False, name="level_0"),
-            pa.Index(pdtype),
+            pa.Index(pdtype, nullable=True),
             pa.Index(pdtype),
         ]
     )
     for _ in range(10):
         with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
-            multiindex(pd.DataFrame(index=multiindex.example()))
+            example = multiindex.example()
+            multiindex(pd.DataFrame(index=example))
 
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
@@ -511,6 +531,11 @@ def test_field_element_strategy(pdtype, data):
     strategy = strategies.field_element_strategy(pdtype)
     element = data.draw(strategy)
     assert element.dtype.type == pdtype.numpy_dtype.type
+
+    with pytest.raises(pa.errors.BaseStrategyOnlyError):
+        strategies.field_element_strategy(
+            pdtype, strategies.pandas_dtype_strategy(pdtype)
+        )
 
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
