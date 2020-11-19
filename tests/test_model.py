@@ -135,6 +135,16 @@ def test_multiindex():
     assert expected == Schema.to_schema()
 
 
+def test_column_check_name():
+    """Test that column name is mandatory."""
+
+    class Schema(pa.SchemaModel):
+        a: Series[int] = pa.Field(check_name=False)
+
+    with pytest.raises(pa.errors.SchemaInitError):
+        Schema.to_schema()
+
+
 def test_single_index_check_name():
     """Test single index name."""
     df = pd.DataFrame(index=pd.Index(["cat", "dog"], name="animal"))
