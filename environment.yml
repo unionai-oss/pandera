@@ -18,6 +18,7 @@ dependencies:
   - pylint>=2.4.4
   - pytest
   - pytest-cov
+  - flynt
 
   # packaging
   - twine

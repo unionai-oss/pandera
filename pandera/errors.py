@@ -78,9 +78,7 @@ class SchemaErrors(Exception):
     @staticmethod
     def _message(error_counts, schema_errors):
         """Format error message."""
-        msg = "A total of %s schema errors were found.\n" % sum(
-            error_counts.values()
-        )
+        msg = f"A total of {sum(error_counts.values())} schema errors were found.\n"
 
         msg += "\nError Counts"
         msg += "\n------------\n"

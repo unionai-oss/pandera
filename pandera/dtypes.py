@@ -198,7 +198,7 @@ class PandasDtype(Enum):
 
         if pandas_dtype is None:
             raise TypeError(
-                "pandas dtype string alias '%s' not recognized" % str_alias
+                f"pandas dtype string alias '{str_alias}' not recognized"
             )
 
         return pandas_dtype
@@ -228,7 +228,7 @@ class PandasDtype(Enum):
 
         if pandas_dtype is None:
             raise TypeError(
-                "pandas api type '%s' not recognized" % pandas_api_type
+                f"pandas api type '{pandas_api_type}' not recognized"
             )
 
         return pandas_dtype
@@ -251,8 +251,7 @@ class PandasDtype(Enum):
 
         if pandas_dtype is None:
             raise TypeError(
-                "python type '%s' not recognized as pandas data type"
-                % python_type
+                f"python type '{python_type}' not recognized as pandas data type"
             )
 
         return pandas_dtype

@@ -50,3 +50,8 @@ repos:
         files: (^pandera/|^tests)
         exclude: (^docs/|^scripts)
         pass_filenames: false
+
+  - repo: https://github.com/ikamensh/flynt/
+    rev: ''
+    hooks:
+      - id: flynt

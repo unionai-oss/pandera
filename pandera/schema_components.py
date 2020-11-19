@@ -247,7 +247,7 @@ class Column(SeriesSchemaBase):
             dtype = self._pandas_dtype.value
         else:
             dtype = self._pandas_dtype
-        return "<Schema Column: '%s' type=%s>" % (self._name, dtype)
+        return f"<Schema Column: '{self._name}' type={dtype}>"
 
     def __eq__(self, other):
         def _compare_dict(obj):
@@ -329,7 +329,7 @@ class Index(SeriesSchemaBase):
     def __repr__(self):
         if self._name is None:
             return "<Schema Index>"
-        return "<Schema Index: '%s'>" % self._name
+        return f"<Schema Index: '{self._name}'>"
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -508,7 +508,7 @@ class MultiIndex(DataFrameSchema):
         return check_obj
 
     def __repr__(self):
-        return "<Schema MultiIndex: '%s'>" % list(self.columns)
+        return f"<Schema MultiIndex: '{list(self.columns)}'>"
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

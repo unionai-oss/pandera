@@ -286,17 +286,15 @@ def _format_checks(checks_dict):
                 "{}={}".format(k, v.__repr__())
                 for k, v in check_kwargs.items()
             )
-            checks.append("Check.{}({})".format(check_name, args))
-    return "[{}]".format(", ".join(checks))
+            checks.append(f"Check.{check_name}({args})")
+    return f"[{', '.join(checks)}]"
 
 
 def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
         index_code = INDEX_TEMPLATE.format(
-            pandas_dtype="PandasDtype.{}".format(
-                properties["pandas_dtype"].name
-            ),
+            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
             checks=(
                 "None"
                 if properties["checks"] is None
@@ -307,7 +305,7 @@ def _format_index(index_statistics):
             name=(
                 "None"
                 if properties["name"] is None
-                else '"{}"'.format(properties["name"])
+                else f"\"{properties['name']}\""
             ),
         )
         index.append(index_code.strip())
@@ -336,9 +334,7 @@ def to_script(dataframe_schema, path_or_buf=None):
     columns = {}
     for colname, properties in statistics["columns"].items():
         column_code = COLUMN_TEMPLATE.format(
-            pandas_dtype="PandasDtype.{}".format(
-                properties["pandas_dtype"].name
-            ),
+            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
             allow_duplicates=properties["allow_duplicates"],

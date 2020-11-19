@@ -106,9 +106,9 @@ def _create_schema(index="single"):
     )
 
 
-YAML_SCHEMA = """
+YAML_SCHEMA = f"""
 schema_type: dataframe
-version: {version}
+version: {pa.__version__}
 columns:
   int_column:
     pandas_dtype: int
@@ -191,9 +191,7 @@ index:
   coerce: false
 coerce: false
 strict: true
-""".format(
-    version=pa.__version__
-)
+"""
 
 
 def _create_schema_null_index():
@@ -220,9 +218,9 @@ def _create_schema_null_index():
     )
 
 
-YAML_SCHEMA_NULL_INDEX = """
+YAML_SCHEMA_NULL_INDEX = f"""
 schema_type: dataframe
-version: {version}
+version: {pa.__version__}
 columns:
   float_column:
     pandas_dtype: float
@@ -248,9 +246,7 @@ columns:
 index: null
 coerce: false
 strict: false
-""".format(
-    version=pa.__version__
-)
+"""
 
 YAML_VALIDATION_PAIRS = [
     # [YAML_SCHEMA, _create_schema],

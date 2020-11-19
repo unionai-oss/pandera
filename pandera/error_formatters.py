@@ -112,8 +112,7 @@ def reshape_failure_cases(
         )
     else:
         raise TypeError(
-            "type of failure_cases argument not understood: %s"
-            % type(failure_cases)
+            f"type of failure_cases argument not understood: {type(failure_cases)}"
         )
 
     return (

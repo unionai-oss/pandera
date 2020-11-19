@@ -203,8 +203,7 @@ class Hypothesis(_CheckBase):
         if isinstance(relationship, str):
             if relationship not in self.RELATIONSHIPS:
                 raise errors.SchemaInitError(
-                    "The relationship %s isn't a built in method"
-                    % relationship
+                    f"The relationship {relationship} isn't a built in method"
                 )
             relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
@@ -334,7 +333,7 @@ class Hypothesis(_CheckBase):
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
-                "relationship must be one of %s" % set(cls.RELATIONSHIPS)
+                f"relationship must be one of {set(cls.RELATIONSHIPS)}"
             )
         return cls(
             test=stats.ttest_ind,
@@ -344,8 +343,7 @@ class Hypothesis(_CheckBase):
             test_kwargs={"equal_var": equal_var, "nan_policy": nan_policy},
             relationship_kwargs={"alpha": alpha},
             name="two_sample_ttest",
-            error="failed two sample ttest between '%s' and '%s'"
-            % (sample1, sample2),
+            error=f"failed two sample ttest between '{sample1}' and '{sample2}'",
             raise_warning=raise_warning,
         )
 
@@ -434,7 +432,7 @@ class Hypothesis(_CheckBase):
 
         if relationship not in cls.RELATIONSHIPS:
             raise errors.SchemaInitError(
-                "relationship must be one of %s" % set(cls.RELATIONSHIPS)
+                f"relationship must be one of {set(cls.RELATIONSHIPS)}"
             )
         return cls(
             test=stats.ttest_1samp,
@@ -444,6 +442,6 @@ class Hypothesis(_CheckBase):
             test_kwargs={"popmean": popmean},
             relationship_kwargs={"alpha": alpha},
             name="one_sample_ttest",
-            error="failed one sample ttest for column '%s'" % (sample),
+            error=f"failed one sample ttest for column '{sample}'",
             raise_warning=raise_warning,
         )

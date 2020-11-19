@@ -333,9 +333,9 @@ def test_column_regex_multiindex():
     # Raise an error if tuple column name is applied to a dataframe with a
     # flat pd.Index object.
     failure_column_cases = (
-        ["foo_%s" % i for i in range(6)],
+        [f"foo_{i}" for i in range(6)],
         pd.MultiIndex.from_tuples(
-            [("foo_%s" % i, "bar_%s" % i, "baz_%s" % i) for i in range(6)]
+            [(f"foo_{i}", f"bar_{i}", f"baz_{i}") for i in range(6)]
         ),
     )
     for columns in failure_column_cases:
