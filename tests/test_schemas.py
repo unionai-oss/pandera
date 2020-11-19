@@ -1180,3 +1180,7 @@ def test_invalid_keys(schema_simple):
         schema_simple.set_index()
     with pytest.raises(errors.SchemaInitError):
         schema_simple.reset_index(["foo", "bar"])
+
+    schema_simple.index = None
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.reset_index()
