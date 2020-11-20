@@ -1,5 +1,5 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines,redefined-outer-name
 
 import copy
 from functools import partial
@@ -1084,3 +1084,105 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     else:
         # not inplace preserves original dataframe type
         assert df["column"].dtype == from_dtype
+
+
+@pytest.fixture
+def schema_simple():
+    """Simple schema fixture."""
+    schema = DataFrameSchema(
+        columns={
+            "col1": Column(pandas_dtype=Int),
+            "col2": Column(pandas_dtype=Float),
+        },
+        index=Index(pandas_dtype=String, name="ind0"),
+    )
+    return schema
+
+
+@pytest.fixture
+def schema_multiindex():
+    """Fixture for schema with MultiIndex."""
+    schema = DataFrameSchema(
+        columns={
+            "col1": Column(pandas_dtype=Int),
+            "col2": Column(pandas_dtype=Float),
+        },
+        index=MultiIndex(
+            [
+                Index(pandas_dtype=String, name="ind0"),
+                Index(pandas_dtype=String, name="ind1"),
+            ]
+        ),
+    )
+    return schema
+
+
+@pytest.mark.parametrize("drop", [True, False])
+def test_set_index_drop(drop, schema_simple):
+    """Test that setting index correctly handles column dropping."""
+    test_schema = schema_simple.set_index(keys=["col1"], drop=drop)
+    if drop is True:
+        assert len(test_schema.columns) == 1
+        assert list(test_schema.columns.keys()) == ["col2"]
+    else:
+        assert len(test_schema.columns) == 2
+        assert list(test_schema.columns.keys()) == ["col1", "col2"]
+        assert test_schema.index.name == "col1"
+
+
+@pytest.mark.parametrize("append", [True, False])
+def test_set_index_append(append, schema_simple):
+    """
+    Test that setting index correctly handles appending to existing index.
+    """
+    test_schema = schema_simple.set_index(keys=["col1"], append=append)
+    if append is True:
+        assert isinstance(test_schema.index, MultiIndex)
+        assert list(test_schema.index.columns.keys()) == ["ind0", "col1"]
+        assert (
+            test_schema.index.columns["col1"].dtype
+            == schema_simple.columns["col1"].dtype
+        )
+    else:
+        assert isinstance(test_schema.index, Index)
+        assert test_schema.index.name == "col1"
+
+
+@pytest.mark.parametrize("drop", [True, False])
+def test_reset_index_drop(drop, schema_simple):
+    """Test that resetting index correctly handles dropping index levels."""
+    test_schema = schema_simple.reset_index(drop=drop)
+    if drop:
+        assert len(test_schema.columns) == 2
+        assert list(test_schema.columns.keys()) == ["col1", "col2"]
+    else:
+        assert len(test_schema.columns) == 3
+        assert list(test_schema.columns.keys()) == ["col1", "col2", "ind0"]
+        assert test_schema.index is None
+
+
+def test_reset_index_level(schema_multiindex):
+    """Test that resetting index correctly handles specifying level."""
+    test_schema = schema_multiindex.reset_index(level=["ind0"])
+    assert test_schema.index.name == "ind1"
+    assert isinstance(test_schema.index, Index)
+
+    test_schema = schema_multiindex.reset_index(level=["ind0", "ind1"])
+    assert test_schema.index is None
+    assert set(list(test_schema.columns.keys())) == set(
+        ["col1", "col2", "ind0", "ind1"]
+    )
+
+
+def test_invalid_keys(schema_simple):
+    """Test that re/set_index raises expected exceptions."""
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.set_index(["foo", "bar"])
+    with pytest.raises(TypeError):
+        schema_simple.set_index()
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.reset_index(["foo", "bar"])
+
+    schema_simple.index = None
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.reset_index()

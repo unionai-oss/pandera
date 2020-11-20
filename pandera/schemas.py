@@ -689,6 +689,164 @@ class DataFrameSchema:
 
         return pandera.io.to_yaml(self, fp)
 
+    def set_index(
+        self, keys: List[str], drop: bool = True, append: bool = False
+    ):
+        """
+        A method for setting the :class:`Index` of a :class:`DataFrameSchema`,
+        via an existing :class:`Column` or list of :class:`Column`s.
+
+        :param keys: list of labels
+        :param drop: bool, default True
+        :param append: bool, default False
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the
+            index.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        from pandera.schema_components import Index, MultiIndex
+
+        new_schema = copy.deepcopy(self)
+
+        keys_temp: List = (
+            list(set(keys)) if not isinstance(keys, list) else keys
+        )
+
+        # ensure all specified keys are present in the columns
+        not_in_cols: List[str] = [
+            x for x in keys_temp if x not in new_schema.columns.keys()
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema columns!"
+            )
+
+        # if there is already an index, append or replace according to
+        # parameters
+        ind_list: List = (
+            []
+            if new_schema.index is None or not append
+            else list(new_schema.index.columns.values())
+            if isinstance(new_schema.index, MultiIndex) and append
+            else [new_schema.index]
+        )
+
+        for col in keys_temp:
+            ind_list.append(
+                Index(
+                    pandas_dtype=new_schema.columns[col].pandas_dtype,
+                    name=col,
+                    checks=new_schema.columns[col].checks,
+                    nullable=new_schema.columns[col].nullable,
+                    allow_duplicates=new_schema.columns[col].allow_duplicates,
+                    coerce=new_schema.columns[col].coerce,
+                )
+            )
+
+        new_schema.index = (
+            ind_list[0] if len(ind_list) == 1 else MultiIndex(ind_list)
+        )
+
+        # if drop is True as defaulted, drop the columns moved into the index
+        if drop:
+            new_schema = new_schema.remove_columns(keys_temp)
+
+        return new_schema
+
+    def reset_index(self, level: List[str] = None, drop: bool = False):
+        """
+        A method for reseting the :class:`Index` of a :class:`DataFrameSchema`.
+
+        :param level: list of labels
+        :param drop: bool, default True
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the
+            index.
+
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        from pandera.schema_components import Column, Index, MultiIndex
+
+        new_schema = copy.deepcopy(self)
+
+        if new_schema.index is None:
+            raise errors.SchemaInitError(
+                "There is currently no index set for this schema."
+            )
+
+        # ensure no duplicates
+        level_temp: Union[List[Any], List[str]] = (
+            list(set(level)) if level is not None else []
+        )
+
+        # ensure all specified keys are present in the index
+        level_not_in_index: Union[List[Any], List[str], None] = (
+            [
+                x
+                for x in level_temp
+                if x not in list(new_schema.index.columns.keys())
+            ]
+            if isinstance(new_schema.index, MultiIndex) and level_temp
+            else []
+            if isinstance(new_schema.index, Index)
+            and (level_temp == [new_schema.index.name])
+            else level_temp
+        )
+        if level_not_in_index:
+            raise errors.SchemaInitError(
+                f"Keys {level_not_in_index} not found in schema columns!"
+            )
+
+        new_index = (
+            None
+            if (level_temp == []) or isinstance(new_schema.index, Index)
+            else new_schema.index.remove_columns(level_temp)
+        )
+        new_index = (
+            new_index
+            if new_index is None
+            else Index(
+                pandas_dtype=new_index.columns[
+                    list(new_index.columns)[0]
+                ].pandas_dtype,
+                checks=new_index.columns[list(new_index.columns)[0]].checks,
+                nullable=new_index.columns[
+                    list(new_index.columns)[0]
+                ].nullable,
+                allow_duplicates=new_index.columns[
+                    list(new_index.columns)[0]
+                ].allow_duplicates,
+                coerce=new_index.columns[list(new_index.columns)[0]].coerce,
+                name=new_index.columns[list(new_index.columns)[0]].name,
+            )
+            if (len(list(new_index.columns)) == 1) and (new_index is not None)
+            else None
+            if (len(list(new_index.columns)) == 0) and (new_index is not None)
+            else new_index
+        )
+
+        if not drop:
+            additional_columns: Dict[str, Any] = (
+                {col: new_schema.index.columns.get(col) for col in level_temp}
+                if isinstance(new_schema.index, MultiIndex)
+                else {new_schema.index.name: new_schema.index}
+            )
+            new_schema = new_schema.add_columns(
+                {
+                    k: Column(
+                        pandas_dtype=v.dtype,
+                        checks=v.checks,
+                        nullable=v.nullable,
+                        allow_duplicates=v.allow_duplicates,
+                        coerce=v.coerce,
+                        name=v.name,
+                    )
+                    for (k, v) in additional_columns.items()
+                }
+            )
+
+        new_schema.index = new_index
+
+        return new_schema
+
 
 class SeriesSchemaBase:
     """Base series validator object."""
