@@ -1122,4 +1122,7 @@ def test_series_schema_pdtype(pdtype):
         pdtype.value,
     ]:
         series_schema = SeriesSchema(pandas_dtype_input)
-        assert series_schema.pdtype == pdtype
+        if pdtype is PandasDtype.String and LEGACY_PANDAS:
+            assert series_schema.pdtype == PandasDtype.Str
+        else:
+            assert series_schema.pdtype == pdtype
