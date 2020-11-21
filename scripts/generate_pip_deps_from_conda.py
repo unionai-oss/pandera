@@ -140,8 +140,6 @@ if __name__ == "__main__":
             "`environment.yml` is modified.\n" % sys.argv[0]
         )
         if args.azure:
-            msg = (
-                f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
-            )
+            msg = f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
         sys.stderr.write(msg)
     sys.exit(res)

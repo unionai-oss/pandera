@@ -148,7 +148,7 @@ class Hypothesis(_CheckBase):
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
         self.relationship = partial(
             self._relationships(relationship),
-            **{} if relationship_kwargs is None else relationship_kwargs
+            **{} if relationship_kwargs is None else relationship_kwargs,
         )
         if isinstance(samples, str):
             samples = [samples]

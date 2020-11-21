@@ -400,7 +400,9 @@ class DataFrameSchema:
                     # error_handler and should raise a SchemaErrors exception
                     # at the end of the `validate` method.
                     lazy_exclude_columns.append(colname)
-                msg = f"column '{colname}' not in dataframe\n{check_obj.head()}"
+                msg = (
+                    f"column '{colname}' not in dataframe\n{check_obj.head()}"
+                )
                 error_handler.collect_error(
                     "column_not_in_dataframe",
                     errors.SchemaError(
@@ -1188,9 +1190,7 @@ class SeriesSchema(SeriesSchemaBase):
 
         """
         if not isinstance(check_obj, pd.Series):
-            raise TypeError(
-                f"expected {pd.Series}, got {type(check_obj)}"
-            )
+            raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
 
         if self.coerce:
             check_obj = self.coerce_dtype(check_obj)

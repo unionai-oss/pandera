@@ -67,7 +67,7 @@ class _CheckBase:
         error: Optional[str] = None,
         raise_warning: bool = False,
         n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
-        **check_kwargs
+        **check_kwargs,
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
