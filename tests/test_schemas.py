@@ -192,6 +192,33 @@ def test_series_schema():
             pd.Series([1.1, 2.3, 5.5, np.nan])
         )
 
+    # when series can't be coerced
+    with pytest.raises(
+        errors.SchemaError,
+        match="Error while coercing",
+    ):
+        SeriesSchema(Float, coerce=True).validate(pd.Series(list("abcdefg")))
+
+
+def test_series_schema_checks():
+    """Test SeriesSchema check property."""
+    series_schema_no_checks = SeriesSchema()
+    series_schema_one_check = SeriesSchema(checks=Check.eq(0))
+    series_schema_multiple_checks = SeriesSchema(
+        checks=[Check.gt(0), Check.lt(100)]
+    )
+
+    for schema in [
+        series_schema_no_checks,
+        series_schema_one_check,
+        series_schema_multiple_checks,
+    ]:
+        assert isinstance(schema.checks, list)
+
+    assert len(series_schema_no_checks.checks) == 0
+    assert len(series_schema_one_check.checks) == 1
+    assert len(series_schema_multiple_checks.checks) == 2
+
 
 def test_series_schema_multiple_validators():
     """Tests how multiple Checks on a Series Schema are handled both
@@ -1084,3 +1111,22 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     else:
         # not inplace preserves original dataframe type
         assert df["column"].dtype == from_dtype
+
+
+@pytest.mark.parametrize("pdtype", list(PandasDtype) + [None])  # type: ignore
+def test_series_schema_pdtype(pdtype):
+    """Series schema pdtype property should return PandasDtype."""
+    if pdtype is None:
+        series_schema = SeriesSchema(pdtype)
+        assert series_schema.pdtype is None
+        return
+    for pandas_dtype_input in [
+        pdtype,
+        pdtype.str_alias,
+        pdtype.value,
+    ]:
+        series_schema = SeriesSchema(pandas_dtype_input)
+        if pdtype is PandasDtype.String and LEGACY_PANDAS:
+            assert series_schema.pdtype == PandasDtype.Str
+        else:
+            assert series_schema.pdtype == pdtype

@@ -2,18 +2,7 @@
 # See that file for comments about the need/usage of each dependency.
 
 pip
-sphinx >= 3.2.0
-sphinx_rtd_theme
-black >= 20.8b1
-isort >= 5.6.4
-codecov
-mypy
-pylint>=2.4.4
-pytest
-pytest-cov
-twine
-asv
-pre_commit
+hypothesis
 numpy
 pandas
 scipy
@@ -21,4 +10,16 @@ wrapt
 pyyaml
 typing_inspect
 typing_extensions
+black >= 20.8b1
+isort >= 5.6.4
+codecov
+mypy
+pylint>=2.4.4
+pytest
+pytest-cov
+sphinx >= 3.2.0
+sphinx_rtd_theme
+twine
+asv
+pre_commit
 sphinx_autodoc_typehints

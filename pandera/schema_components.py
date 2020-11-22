@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from . import errors
+from . import strategies as st
 from .dtypes import PandasDtype
 from .schemas import (
     CheckList,
@@ -242,6 +243,35 @@ class Column(SeriesSchemaBase):
             )
         return column_keys_to_check
 
+    @st.strategy_import_error
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Column.
+
+        :param size: number of elements to generate
+        :returns: a dataframe strategy for a single column.
+        """
+        return super().strategy(size=size).map(lambda x: x.to_frame())
+
+    @st.strategy_import_error
+    def strategy_component(self):
+        """Generate column data object for use by DataFrame strategy."""
+        return st.column_strategy(
+            self.pdtype,
+            checks=self.checks,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+        )
+
+    def example(self, size=None) -> pd.DataFrame:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas DataFrame object.
+        """
+        return (
+            super().strategy(size=size).example().rename(self.name).to_frame()
+        )
+
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
             dtype = self._pandas_dtype.value
@@ -329,6 +359,40 @@ class Index(SeriesSchemaBase):
             pd.Series,
         )
         return check_obj
+
+    @st.strategy_import_error
+    def strategy(self, *, size: int = None):
+        """Create a ``hypothesis`` strategy for generating an Index.
+
+        :param size: number of elements to generate.
+        :returns: index strategy.
+        """
+        return st.index_strategy(
+            self.pdtype,  # type: ignore
+            checks=self.checks,
+            nullable=self.nullable,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+            size=size,
+        )
+
+    @st.strategy_import_error
+    def strategy_component(self):
+        """Generate column data object for use by MultiIndex strategy."""
+        return st.column_strategy(
+            self.pdtype,
+            checks=self.checks,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+        )
+
+    def example(self, size: int = None) -> pd.Index:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas Index object.
+        """
+        return self.strategy(size=size).example()
 
     def __repr__(self):
         if self._name is None:
@@ -510,6 +574,13 @@ class MultiIndex(DataFrameSchema):
 
         assert isinstance(validation_result, pd.DataFrame)
         return check_obj
+
+    @st.strategy_import_error
+    def strategy(self, *, size=None):
+        return st.multiindex_strategy(indexes=self.indexes, size=size)
+
+    def example(self, size=None) -> pd.MultiIndex:
+        return self.strategy(size=size).example()
 
     def __repr__(self):
         return "<Schema MultiIndex: '%s'>" % list(self.columns)
