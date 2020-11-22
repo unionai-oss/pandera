@@ -463,7 +463,7 @@ def test_pandas_dtype_equality(pandas_dtype):
 @pytest.mark.parametrize("pdtype", PandasDtype)
 def test_dtype_none_comparison(pdtype):
     """Test that comparing PandasDtype to None is False."""
-    assert pdtype != None  # noqa E711  # pylint: disable=singleton-comparison
+    assert pdtype is not None
 
 
 @pytest.mark.parametrize(
@@ -595,3 +595,10 @@ def test_dtype_is_checks(property_fn, pdtypes):
     """Test all the pandas dtype is_* properties."""
     for pdtype in pdtypes:
         assert property_fn(pdtype)
+
+
+def test_category_dtype_exception():
+    """Test that category dtype has no numpy dtype equivalent."""
+    with pytest.raises(TypeError):
+        # pylint: disable=pointless-statement
+        PandasDtype.Category.numpy_dtype

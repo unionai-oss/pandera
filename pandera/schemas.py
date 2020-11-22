@@ -892,13 +892,7 @@ class SeriesSchemaBase:
 
         try:
             return series_or_index.astype(self.dtype)
-        except TypeError as exc:
-            msg = "Error while coercing '%s' to type %s" % (
-                self.name,
-                self.dtype,
-            )
-            raise TypeError(msg) from exc
-        except ValueError as exc:
+        except (ValueError, TypeError) as exc:
             msg = "Error while coercing '%s' to type %s: %s" % (
                 self.name,
                 self.dtype,

@@ -1113,9 +1113,13 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
         assert df["column"].dtype == from_dtype
 
 
-@pytest.mark.parametrize("pdtype", PandasDtype)
+@pytest.mark.parametrize("pdtype", list(PandasDtype) + [None])  # type: ignore
 def test_series_schema_pdtype(pdtype):
     """Series schema pdtype property should return PandasDtype."""
+    if pdtype is None:
+        series_schema = SeriesSchema(pdtype)
+        assert series_schema.pdtype is None
+        return
     for pandas_dtype_input in [
         pdtype,
         pdtype.str_alias,
