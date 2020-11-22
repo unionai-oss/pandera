@@ -1497,6 +1497,15 @@ class SeriesSchemaBase:
             return self.pandas_dtype
         return PandasDtype.from_str_alias(self.dtype)
 
+    @property
+    def pdtype(self) -> Optional[PandasDtype]:
+        """PandasDtype of the series."""
+        if self.dtype is None:
+            return None
+        if isinstance(self.pandas_dtype, PandasDtype):
+            return self.pandas_dtype
+        return PandasDtype.from_str_alias(self.dtype)
+
     def coerce_dtype(
         self, series_or_index: Union[pd.Series, pd.Index]
     ) -> pd.Series:
