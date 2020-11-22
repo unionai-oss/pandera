@@ -3,7 +3,7 @@
 from . import constants, errors
 from .checks import Check
 from .decorators import check_input, check_io, check_output, check_types
-from .dtypes import PandasDtype
+from .dtypes import LEGACY_PANDAS, PandasDtype
 from .hypotheses import Hypothesis
 from .model import SchemaModel
 from .model_components import Field, check, dataframe_check
