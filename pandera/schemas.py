@@ -209,7 +209,7 @@ class DataFrameSchema:
         def _set_column_handler(column, column_name):
             if column.name is not None and column.name != column_name:
                 warnings.warn(
-                    "resetting column for %s to '%s'." % (column, column_name)
+                    f"resetting column for {column} to '{column_name}'."
                 )
             elif column.name == column_name:
                 return column
@@ -364,10 +364,7 @@ class DataFrameSchema:
 
             for column in check_obj:
                 if column not in expanded_column_names:
-                    msg = "column '%s' not in DataFrameSchema %s" % (
-                        column,
-                        self.columns,
-                    )
+                    msg = f"column '{column}' not in DataFrameSchema {self.columns}"
                     error_handler.collect_error(
                         "column_not_in_schema",
                         errors.SchemaError(
@@ -403,9 +400,8 @@ class DataFrameSchema:
                     # error_handler and should raise a SchemaErrors exception
                     # at the end of the `validate` method.
                     lazy_exclude_columns.append(colname)
-                msg = "column '%s' not in dataframe\n%s" % (
-                    colname,
-                    check_obj.head(),
+                msg = (
+                    f"column '{colname}' not in dataframe\n{check_obj.head()}"
                 )
                 error_handler.collect_error(
                     "column_not_in_dataframe",
@@ -606,7 +602,7 @@ class DataFrameSchema:
         if "name" in kwargs:
             raise ValueError("cannot update 'name' of the column.")
         if column_name not in self.columns:
-            raise ValueError("column '%s' not in %s" % (column_name, self))
+            raise ValueError(f"column '{column_name}' not in {self}")
         schema_copy = copy.deepcopy(self)
         column_copy = copy.deepcopy(self.columns[column_name])
         new_column = column_copy.__class__(
@@ -892,7 +888,7 @@ class SeriesSchemaBase:
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
                 raise errors.SchemaInitError(
-                    "Cannot use groupby checks with type %s" % type(self)
+                    f"Cannot use groupby checks with type {type(self)}"
                 )
 
         # make sure pandas dtype is valid
@@ -1026,17 +1022,10 @@ class SeriesSchemaBase:
         try:
             return series_or_index.astype(self.dtype)
         except TypeError as exc:
-            msg = "Error while coercing '%s' to type %s" % (
-                self.name,
-                self.dtype,
-            )
+            msg = f"Error while coercing '{self.name}' to type {self.dtype}"
             raise TypeError(msg) from exc
         except ValueError as exc:
-            msg = "Error while coercing '%s' to type %s: %s" % (
-                self.name,
-                self.dtype,
-                exc,
-            )
+            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
             raise errors.SchemaError(self, None, msg) from exc
 
     @property
@@ -1112,7 +1101,7 @@ class SeriesSchemaBase:
                 check_obj,
                 msg,
                 failure_cases=scalar_failure_case(series.name),
-                check="column_name('%s')" % self._name,
+                check=f"column_name('{self._name}')",
             )
 
         series_dtype = series.dtype
@@ -1197,7 +1186,7 @@ class SeriesSchemaBase:
                     check_obj,
                     msg,
                     failure_cases=scalar_failure_case(str(series_dtype)),
-                    check="pandas_dtype('%s')" % self.dtype,
+                    check=f"pandas_dtype('{self.dtype}')",
                 ),
             )
 
@@ -1223,8 +1212,8 @@ class SeriesSchemaBase:
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the
                 # Check
-                err_str = '%s("%s")' % (err.__class__.__name__, err.args[0])
-                msg = "Error while executing check function: %s" % err_str
+                err_str = f'{err.__class__.__name__}("{err.args[0]}")'
+                msg = f"Error while executing check function: {err_str}"
                 error_handler.collect_error(
                     "check_error",
                     errors.SchemaError(
@@ -1359,9 +1348,7 @@ class SeriesSchema(SeriesSchemaBase):
 
         """
         if not isinstance(check_obj, pd.Series):
-            raise TypeError(
-                "expected %s, got %s" % (pd.Series, type(check_obj))
-            )
+            raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
 
         if self.coerce:
             check_obj = self.coerce_dtype(check_obj)

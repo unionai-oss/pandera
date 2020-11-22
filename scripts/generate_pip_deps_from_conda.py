@@ -93,7 +93,7 @@ def main(conda_fname, pip_fname, compare=False):
         elif isinstance(dep, dict) and len(dep) == 1 and "pip" in dep:
             pip_deps += dep["pip"]
         else:
-            raise ValueError("Unexpected dependency %s" % dep)
+            raise ValueError(f"Unexpected dependency {dep}")
 
     fname = os.path.split(conda_fname)[1]
     header = (
@@ -140,9 +140,6 @@ if __name__ == "__main__":
             "`environment.yml` is modified.\n" % sys.argv[0]
         )
         if args.azure:
-            msg = (
-                "##vso[task.logissue type=error;"
-                "sourcepath=requirements-dev.txt]%s" % msg
-            )
+            msg = f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
         sys.stderr.write(msg)
     sys.exit(res)

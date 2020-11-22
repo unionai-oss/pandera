@@ -210,7 +210,7 @@ def check_input(
                 )
         else:
             raise TypeError(
-                "obj_getter is unrecognized type: %s" % type(obj_getter)
+                f"obj_getter is unrecognized type: {type(obj_getter)}"
             )
         return fn(*args, **kwargs)
 
@@ -315,7 +315,7 @@ def check_output(
             obj = obj_getter(out)
         else:
             raise TypeError(
-                "obj_getter is unrecognized type: %s" % type(obj_getter)
+                f"obj_getter is unrecognized type: {type(obj_getter)}"
             )
         try:
             schema.validate(

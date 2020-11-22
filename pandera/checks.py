@@ -67,7 +67,7 @@ class _CheckBase:
         error: Optional[str] = None,
         raise_warning: bool = False,
         n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
-        **check_kwargs
+        **check_kwargs,
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
@@ -311,7 +311,7 @@ class _CheckBase:
                     and col not in df_or_series
                 ):
                     raise errors.SchemaDefinitionError(
-                        "`groupby` column '%s' not found" % col
+                        f"`groupby` column '{col}' not found"
                     )
             drop_na_columns.extend(self.groupby)
 
@@ -408,8 +408,7 @@ class _CheckBase:
             )
         else:
             raise TypeError(
-                "output type of check_fn not recognized: %s"
-                % type(check_output)
+                f"output type of check_fn not recognized: {type(check_output)}"
             )
 
         check_passed = (
@@ -441,9 +440,9 @@ class _CheckBase:
 
     def __repr__(self):
         return (
-            "<Check %s: %s>" % (self.name, self.error)
+            f"<Check {self.name}: {self.error}>"
             if self.error is not None
-            else "<Check %s>" % self.name
+            else f"<Check {self.name}>"
         )
 
 
@@ -472,7 +471,7 @@ class Check(_CheckBase):
         return cls(
             _equal,
             name=cls.equal_to.__name__,
-            error="equal_to(%s)" % value,
+            error=f"equal_to({value})",
             **kwargs,
         )
 
@@ -500,7 +499,7 @@ class Check(_CheckBase):
         return cls(
             _not_equal,
             name=cls.not_equal_to.__name__,
-            error="not_equal_to(%s)" % value,
+            error=f"not_equal_to({value})",
             **kwargs,
         )
 
@@ -531,7 +530,7 @@ class Check(_CheckBase):
         return cls(
             _greater_than,
             name=cls.greater_than.__name__,
-            error="greater_than(%s)" % min_value,
+            error=f"greater_than({min_value})",
             **kwargs,
         )
 
@@ -562,7 +561,7 @@ class Check(_CheckBase):
         return cls(
             _greater_or_equal,
             name=cls.greater_than_or_equal_to.__name__,
-            error="greater_than_or_equal_to(%s)" % min_value,
+            error=f"greater_than_or_equal_to({min_value})",
             **kwargs,
         )
 
@@ -593,7 +592,7 @@ class Check(_CheckBase):
         return cls(
             _less_than,
             name=cls.less_than.__name__,
-            error="less_than(%s)" % max_value,
+            error=f"less_than({max_value})",
             **kwargs,
         )
 
@@ -624,7 +623,7 @@ class Check(_CheckBase):
         return cls(
             _less_or_equal,
             name=cls.less_than_or_equal_to.__name__,
-            error="less_than_or_equal_to(%s)" % max_value,
+            error=f"less_than_or_equal_to({max_value})",
             **kwargs,
         )
 
@@ -678,7 +677,7 @@ class Check(_CheckBase):
         return cls(
             _in_range,
             name=cls.in_range.__name__,
-            error="in_range(%s, %s)" % (min_value, max_value),
+            error=f"in_range({min_value}, {max_value})",
             **kwargs,
         )
 
@@ -707,8 +706,7 @@ class Check(_CheckBase):
             allowed_values = frozenset(allowed_values)
         except TypeError as exc:
             raise ValueError(
-                "Argument allowed_values must be iterable. Got %s"
-                % allowed_values
+                f"Argument allowed_values must be iterable. Got {allowed_values}"
             ) from exc
 
         def _isin(series: pd.Series) -> pd.Series:
@@ -718,7 +716,7 @@ class Check(_CheckBase):
         return cls(
             _isin,
             name=cls.isin.__name__,
-            error="isin(%s)" % set(allowed_values),
+            error=f"isin({set(allowed_values)})",
             **kwargs,
         )
 
@@ -747,8 +745,7 @@ class Check(_CheckBase):
             forbidden_values = frozenset(forbidden_values)
         except TypeError as exc:
             raise ValueError(
-                "Argument forbidden_values must be iterable. Got %s"
-                % forbidden_values
+                f"Argument forbidden_values must be iterable. Got {forbidden_values}"
             ) from exc
 
         def _notin(series: pd.Series) -> pd.Series:
@@ -758,7 +755,7 @@ class Check(_CheckBase):
         return cls(
             _notin,
             name=cls.notin.__name__,
-            error="notin(%s)" % set(forbidden_values),
+            error=f"notin({set(forbidden_values)})",
             **kwargs,
         )
 
@@ -779,8 +776,7 @@ class Check(_CheckBase):
             regex = re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
-                'pattern="%s" cannot be compiled as regular expression'
-                % pattern
+                f'pattern="{pattern}" cannot be compiled as regular expression'
             ) from exc
 
         def _match(series: pd.Series) -> pd.Series:
@@ -792,7 +788,7 @@ class Check(_CheckBase):
         return cls(
             _match,
             name=cls.str_matches.__name__,
-            error="str_matches(%s)" % regex,
+            error=f"str_matches({regex})",
             **kwargs,
         )
 
@@ -813,8 +809,7 @@ class Check(_CheckBase):
             regex = re.compile(pattern)
         except TypeError as exc:
             raise ValueError(
-                'pattern="%s" cannot be compiled as regular expression'
-                % pattern
+                f'pattern="{pattern}" cannot be compiled as regular expression'
             ) from exc
 
         def _contains(series: pd.Series) -> pd.Series:
@@ -824,7 +819,7 @@ class Check(_CheckBase):
         return cls(
             _contains,
             name=cls.str_contains.__name__,
-            error="str_contains(%s)" % regex,
+            error=f"str_contains({regex})",
             **kwargs,
         )
 
@@ -846,7 +841,7 @@ class Check(_CheckBase):
         return cls(
             _startswith,
             name=cls.str_startswith.__name__,
-            error="str_startswith(%s)" % string,
+            error=f"str_startswith({string})",
             **kwargs,
         )
 
@@ -868,7 +863,7 @@ class Check(_CheckBase):
         return cls(
             _endswith,
             name=cls.str_endswith.__name__,
-            error="str_endswith(%s)" % string,
+            error=f"str_endswith({string})",
             **kwargs,
         )
 
@@ -913,6 +908,6 @@ class Check(_CheckBase):
         return cls(
             _str_length,
             name=cls.str_length.__name__,
-            error="str_length(%s, %s)" % (min_value, max_value),
+            error=f"str_length({min_value}, {max_value})",
             **kwargs,
         )

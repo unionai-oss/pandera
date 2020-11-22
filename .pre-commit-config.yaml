@@ -29,6 +29,11 @@ repos:
       - id: isort
         args: ["--line-length=79"]
 
+  - repo: https://github.com/ikamensh/flynt
+    rev: ''
+    hooks:
+        - id: flynt
+
   - repo: https://github.com/psf/black
     rev: 20.8b1
     hooks:
