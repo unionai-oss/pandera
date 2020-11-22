@@ -135,6 +135,74 @@ def test_multiindex():
     assert expected == Schema.to_schema()
 
 
+def test_column_check_name():
+    """Test that column name is mandatory."""
+
+    class Schema(pa.SchemaModel):
+        a: Series[int] = pa.Field(check_name=False)
+
+    with pytest.raises(pa.errors.SchemaInitError):
+        Schema.to_schema()
+
+
+def test_single_index_check_name():
+    """Test single index name."""
+    df = pd.DataFrame(index=pd.Index(["cat", "dog"], name="animal"))
+
+    class DefaultSchema(pa.SchemaModel):
+        a: Index[str]
+
+    assert isinstance(DefaultSchema.validate(df), pd.DataFrame)
+
+    class DefaultFieldSchema(pa.SchemaModel):
+        a: Index[str] = pa.Field(check_name=None)
+
+    assert isinstance(DefaultFieldSchema.validate(df), pd.DataFrame)
+
+    class NotCheckNameSchema(pa.SchemaModel):
+        a: Index[str] = pa.Field(check_name=False)
+
+    assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
+
+    class SchemaNamedIndex(pa.SchemaModel):
+        a: Index[str] = pa.Field(check_name=True)
+
+    err_msg = "name 'a', found 'animal'"
+    with pytest.raises(pa.errors.SchemaError, match=err_msg):
+        SchemaNamedIndex.validate(df)
+
+
+def test_multiindex_check_name():
+    """Test a MultiIndex name."""
+
+    df = pd.DataFrame(
+        index=pd.MultiIndex.from_arrays(
+            [["foo", "bar"], [0, 1]], names=["a", "b"]
+        )
+    )
+
+    class DefaultSchema(pa.SchemaModel):
+        a: Index[str]
+        b: Index[int]
+
+    assert isinstance(DefaultSchema.validate(df), pd.DataFrame)
+
+    class CheckNameSchema(pa.SchemaModel):
+        a: Index[str] = pa.Field(check_name=True)
+        b: Index[int] = pa.Field(check_name=True)
+
+    assert isinstance(CheckNameSchema.validate(df), pd.DataFrame)
+
+    class NotCheckNameSchema(pa.SchemaModel):
+        a: Index[str] = pa.Field(check_name=False)
+        b: Index[int] = pa.Field(check_name=False)
+
+    df = pd.DataFrame(
+        index=pd.MultiIndex.from_arrays([["foo", "bar"], [0, 1]])
+    )
+    assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
+
+
 def test_check_validate_method():
     """Test validate method on valid data."""
 

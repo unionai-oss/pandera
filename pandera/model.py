@@ -48,6 +48,7 @@ class BaseConfig:  # pylint:disable=R0903
     name: Optional[str] = None  #: name of schema
     coerce: bool = False  #: coerce types of all schema components
     strict: bool = False  #: make sure all specified columns are in dataframe
+    check_index_name: bool = False
     multiindex_name: Optional[str] = None  #: name of multiindex
 
     #: coerce types of all MultiIndex components
@@ -145,7 +146,7 @@ class SchemaModel:
         )
 
     @classmethod
-    def _build_columns_index(
+    def _build_columns_index(  # pylint:disable=too-many-locals
         cls,
         checks: Dict[str, List[Check]],
         annotations: Dict[str, Any],
@@ -154,39 +155,59 @@ class SchemaModel:
         Dict[str, schema_components.Column],
         Optional[Union[schema_components.Index, schema_components.MultiIndex]],
     ]:
+        annotations = {
+            field_name: (parse_annotation(raw_annotation), raw_annotation)
+            for field_name, raw_annotation in annotations.items()
+        }
+        index_count = sum(
+            annotation.origin is Index
+            for annotation, _ in annotations.values()
+        )
+
         columns: Dict[str, schema_components.Column] = {}
         indices: List[schema_components.Index] = []
-        for field_name, raw_annotation in annotations.items():
-            annotation_info = parse_annotation(raw_annotation)
+        for field_name, (annotation, raw_annotation) in annotations.items():
 
-            field = getattr(cls, field_name, None)
-            if field is not None and not isinstance(field, FieldInfo):
-                raise SchemaInitError(
-                    f"'{field_name}' can only be assigned a 'Field', "
-                    + f"not a '{field.__class__}.'"
-                )
+            field: FieldInfo = getattr(cls, field_name, None)
+            _check_fieldinfo(field, field_name)
 
             field_checks = checks.get(field_name, [])
-            if annotation_info.origin is Series:
+            check_name = getattr(field, "check_name", None)
+
+            if annotation.origin is Series:
                 col_constructor = (
                     field.to_column if field else schema_components.Column
                 )
+
+                if check_name is False:
+                    raise SchemaInitError(
+                        f"'check_name' is not supported for {field_name}."
+                    )
+
                 columns[field_name] = col_constructor(  # type: ignore
-                    annotation_info.arg,
-                    required=not annotation_info.optional,
+                    annotation.arg,
+                    required=not annotation.optional,
                     checks=field_checks,
                     name=field_name,
                 )
-            elif annotation_info.origin is Index:
-                if annotation_info.optional:
+            elif annotation.origin is Index:
+                if annotation.optional:
                     raise SchemaInitError(
                         f"Index '{field_name}' cannot be Optional."
                     )
+
+                if check_name is False or (
+                    # default single index
+                    check_name is None
+                    and index_count == 1
+                ):
+                    field_name = None  # type:ignore
+
                 index_constructor = (
                     field.to_index if field else schema_components.Index
                 )
                 index = index_constructor(  # type: ignore
-                    annotation_info.arg, checks=field_checks, name=field_name
+                    annotation.arg, checks=field_checks, name=field_name
                 )
                 indices.append(index)
             else:
@@ -293,15 +314,12 @@ def _get_field_annotations(model: Type[SchemaModel]) -> Dict[str, Any]:
 
 
 def _build_schema_index(
-    indices: List[schema_components.Index],
-    **multiindex_kwargs: Any,
+    indices: List[schema_components.Index], **multiindex_kwargs: Any
 ) -> Optional[SchemaIndex]:
     index: Optional[SchemaIndex] = None
     if indices:
         if len(indices) == 1:
             index = indices[0]
-            # don't force name on single index
-            index._name = None  # pylint:disable=W0212
         else:
             index = schema_components.MultiIndex(indices, **multiindex_kwargs)
     return index
@@ -314,3 +332,11 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
         pattern = re.compile(regex)
         matched.update(filter(pattern.match, seq))
     return matched
+
+
+def _check_fieldinfo(field: FieldInfo, field_name: str) -> None:
+    if field is not None and not isinstance(field, FieldInfo):
+        raise SchemaInitError(
+            f"'{field_name}' can only be assigned a 'Field', "
+            + f"not a '{field.__class__}.'"
+        )
