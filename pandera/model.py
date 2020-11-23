@@ -229,7 +229,6 @@ class SchemaModel:
         """Centralize publicly named fields and their corresponding annotations."""
         fields = {}
         for field_name, annotation in annotations.items():
-            print(field_name)
             field: Optional[FieldInfo] = getattr(cls, field_name, None)
             if field is not None and not isinstance(field, FieldInfo):
                 raise SchemaInitError(

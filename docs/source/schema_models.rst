@@ -489,7 +489,7 @@ Checks must reference the aliased names.
     df = pd.DataFrame({2020: [99]}, index=[0])
     df.index.name = "_idx"
 
-    Schema.validate(df)
+    print(Schema.validate(df))
 
 .. testoutput:: dataframe_schema_model
 
