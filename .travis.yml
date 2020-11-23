@@ -104,7 +104,7 @@ script:
   # Type checking
   - mypy pandera tests
   # Tests
-  - pytest -s --cov=pandera tests/
+  - pytest -s --hypothesis-profile ci --cov=pandera tests/
   # Coverage
   - codecov
   # Check docs can build, treating warnings as errors

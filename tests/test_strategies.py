@@ -39,7 +39,13 @@ SUPPORTED_DTYPES = []
 for pdtype in pa.PandasDtype:
     if pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows":
         continue
+    if pdtype in {pa.Category, pa.Object}:
+        continue
     SUPPORTED_DTYPES.append(pdtype)
+
+NUMERIC_DTYPES = [
+    pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous
+]
 
 NULLABLE_DTYPES = [
     pdtype
@@ -81,9 +87,7 @@ def test_pandas_dtype_strategy(pdtype, data):
     assert chained_example.dtype.type == pdtype.numpy_dtype.type
 
 
-@pytest.mark.parametrize(
-    "pdtype", [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous]
-)
+@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
 @hypothesis.given(st.data())
 def test_check_strategy_continuous(pdtype, data):
     """Test built-in check strategies can generate continuous data."""
@@ -122,9 +126,7 @@ def value_ranges(pdtype: pa.PandasDtype):
     )
 
 
-@pytest.mark.parametrize(
-    "pdtype", [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous]
-)
+@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
 @pytest.mark.parametrize(
     "strat_fn, arg_name, base_st_type, compare_op",
     [
@@ -177,10 +179,7 @@ def test_check_strategy_chained_continuous(
     assert compare_op(example, assert_value)
 
 
-@pytest.mark.parametrize(
-    "pdtype",
-    [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_complex],
-)
+@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
 @hypothesis.given(st.data())
 def test_in_range_strategy(pdtype, data):
     """Test the built-in in-range strategy can correctly generate data."""
@@ -433,7 +432,6 @@ def test_column_example():
     "pdtype",
     [pdtype for pdtype in SUPPORTED_DTYPES if not pdtype.is_category],
 )
-@pytest.mark.filterwarnings("ignore:overflow encountered in absolute")
 @hypothesis.given(st.data())
 def test_dataframe_strategy(pdtype, data):
     """Test DataFrameSchema strategy."""
@@ -458,6 +456,37 @@ def test_dataframe_example():
     for _ in range(10):
         with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
             schema(schema.example())
+
+
+@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@hypothesis.given(st.data())
+def test_dataframe_checks(pdtype, data):
+    """Test dataframe strategy with checks defined at the dataframe level."""
+    min_value, max_value = data.draw(value_ranges(pdtype))
+    dataframe_schema = pa.DataFrameSchema(
+        {f"{pdtype.value}_col": pa.Column(pdtype) for _ in range(5)},
+        checks=pa.Check.in_range(min_value, max_value),
+    )
+    strat = dataframe_schema.strategy(size=5)
+    example = data.draw(strat)
+    dataframe_schema(example)
+
+
+@pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.Str, pa.DateTime])
+@hypothesis.given(st.data())
+def test_dataframe_strategy_with_indexes(pdtype, data):
+    """Test dataframe strategy with index and multiindex components."""
+    dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(pdtype))
+    dataframe_schema_multiindex = pa.DataFrameSchema(
+        index=pa.MultiIndex(
+            [pa.Index(pdtype, name=f"index{i}") for i in range(3)]
+        )
+    )
+
+    dataframe_schema_index(data.draw(dataframe_schema_index.strategy(size=10)))
+    dataframe_schema_multiindex(
+        data.draw(dataframe_schema_multiindex.strategy(size=10))
+    )
 
 
 @hypothesis.given(st.data())

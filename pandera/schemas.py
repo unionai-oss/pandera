@@ -77,6 +77,7 @@ class DataFrameSchema:
         columns: Dict[Any, Any] = None,
         checks: CheckList = None,
         index=None,
+        pandas_dtype: PandasDtypeInputTypes = None,
         transformer: Callable = None,
         coerce: bool = False,
         strict=False,
@@ -90,6 +91,10 @@ class DataFrameSchema:
         :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
         :param index: specify the datatypes and properties of the index.
+        :param pandas_dtype: datatype of the dataframe. This overrides the data
+            types specified in any of the columns. If a string is specified,
+            then assumes one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes.
         :param transformer: a callable with signature:
             pandas.DataFrame -> pandas.DataFrame. If specified, calling
             `validate` will verify properties of the columns and return the
@@ -169,6 +174,7 @@ class DataFrameSchema:
         self.index = index
         self.strict = strict
         self.name = name
+        self._pandas_dtype = pandas_dtype
         self._coerce = coerce
         self._validate_schema()
         self._set_column_names()
@@ -261,6 +267,53 @@ class DataFrameSchema:
             **{n: c.dtype for n, c in self.columns.items() if not c.regex},
             **regex_dtype,
         }
+
+    @property
+    def pandas_dtype(
+        self,
+    ) -> Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]:
+        """Get the pandas dtype property."""
+        return self._pandas_dtype
+
+    @pandas_dtype.setter
+    def pandas_dtype(
+        self, value: Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]
+    ) -> None:
+        """Set the pandas dtype property."""
+        self._pandas_dtype = value
+        self.dtype  # pylint: disable=pointless-statement
+
+    @property
+    def pdtype(self) -> Optional[PandasDtype]:
+        """PandasDtype of the series."""
+        if self.pandas_dtype is None:
+            return None
+        if isinstance(self.pandas_dtype, str):
+            return PandasDtype.from_str_alias(self.pandas_dtype)
+        return self.pandas_dtype
+
+    def coerce_dtype(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Coerce type of a pd.Series by type specified in pandas_dtype.
+
+        :param pd.Series series: One-dimensional ndarray with axis labels
+            (including time series).
+        :returns: ``Series`` with coerced data type
+        """
+        if self._pandas_dtype is dtypes.PandasDtype.Str:
+            # only coerce non-null elements to string
+            return df.where(df.isna(), df.astype(str))
+
+        if self.pdtype is None:
+            return df
+        try:
+            return df.astype(self.pdtype.str_alias)
+        except (ValueError, TypeError) as exc:
+            msg = "Error while coercing '%s' to type %s: %s" % (
+                self.name,
+                self.dtype,
+                exc,
+            )
+            raise errors.SchemaError(self, None, msg) from exc
 
     def validate(
         self,
@@ -567,7 +620,13 @@ class DataFrameSchema:
         :param size: number of elements to generate
         :returns: a strategy that generates pandas DataFrame objects.
         """
-        return st.dataframe_strategy(columns=self.columns, size=size)
+        return st.dataframe_strategy(
+            self.pdtype,
+            columns=self.columns,
+            checks=self.checks,
+            index=self.index,
+            size=size,
+        )
 
     def example(self, size=None) -> pd.DataFrame:
         """Generate an example of a particular size.
