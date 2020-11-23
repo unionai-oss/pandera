@@ -226,7 +226,7 @@ class SchemaModel:
     def _collect_fields(
         cls, annotations: Dict[str, AnnotationInfo]
     ) -> Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]]:
-        """Collect inherited field annotations from bases."""
+        """Centralize publicly named fields and their corresponding annotations."""
         fields = {}
         for field_name, annotation in annotations.items():
             print(field_name)
