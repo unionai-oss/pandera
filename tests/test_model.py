@@ -512,3 +512,49 @@ def test_check_types():
     ]:
         with pytest.raises(pa.errors.SchemaError):
             transform(invalid_data)
+
+
+def test_alias():
+    """Test that columns and indices can be aliased."""
+
+    class Schema(pa.SchemaModel):
+        col_2020: Series[int] = pa.Field(alias=2020)
+        idx: Index[int] = pa.Field(alias="_idx", check_name=True)
+
+        @pa.check(2020)
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            return series < 100
+
+    schema = Schema.to_schema()
+    assert len(schema.columns) == 1
+    assert schema.columns.get(2020, None) is not None
+    assert schema.index.name == "_idx"
+
+    df = pd.DataFrame({2020: [99]}, index=[0])
+    df.index.name = "_idx"
+    assert isinstance(Schema.validate(df), pd.DataFrame)
+
+    # test multiindex
+    class MISchema(pa.SchemaModel):
+        idx1: Index[int] = pa.Field(alias="index0")
+        idx2: Index[int] = pa.Field(alias="index1")
+
+    actual = [index.name for index in MISchema.to_schema().index.indexes]
+    assert actual == ["index0", "index1"]
+
+
+def test_inherit_alias():
+    """Test that aliases are inherited and can be overwritten."""
+
+    class Base(pa.SchemaModel):
+        a: Series[int] = pa.Field(alias="_a")
+        b: Series[int] = pa.Field(alias="_b")
+
+    class Child(Base):
+        a: Series[int] = pa.Field(alias="_a_child")
+
+    schema = Child.to_schema()
+    assert len(schema.columns) == 2
+    assert schema.columns.get("_a_child", None) is not None
+    assert schema.columns.get("_b", None) is not None

@@ -20,7 +20,7 @@ import wrapt
 
 from . import errors, schemas
 from .model import SchemaModel
-from .typing import parse_annotation
+from .typing import AnnotationInfo
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
@@ -469,7 +469,7 @@ def check_types(
         arguments = sig.bind(*args, **kwargs).arguments
         for arg_name, arg_value in arguments.items():
             annotation = sig.parameters[arg_name].annotation
-            annotation_info = parse_annotation(annotation)
+            annotation_info = AnnotationInfo(annotation)
 
             if annotation_info.optional and arg_value is None:
                 continue
@@ -490,7 +490,7 @@ def check_types(
 
         out = wrapped(*args, **kwargs)
 
-        annotation_info = parse_annotation(sig.return_annotation)
+        annotation_info = AnnotationInfo(sig.return_annotation)
         if annotation_info.optional and out is None:
             return out
 
