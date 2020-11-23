@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
-from packaging import version
 
 from . import constants, dtypes, errors
 from . import strategies as st
@@ -31,22 +30,6 @@ CheckList = Optional[
 ]
 
 PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
-
-if version.parse(pd.__version__).major < 1:  # type: ignore
-    # pylint: disable=no-name-in-module
-    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
-
-    def is_extension_array_dtype(arr_or_dtype):
-        # pylint: disable=missing-function-docstring
-        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-        return (
-            isinstance(dtype, ExtensionDtype)
-            or registry.find(dtype) is not None
-        )
-
-
-else:
-    from pandas.api.types import is_extension_array_dtype  # type: ignore
 
 
 def _inferred_schema_guard(method):
@@ -287,10 +270,10 @@ class DataFrameSchema:
     def pdtype(self) -> Optional[PandasDtype]:
         """PandasDtype of the series."""
         if self.pandas_dtype is None:
-            return None
-        if isinstance(self.pandas_dtype, str):
-            return PandasDtype.from_str_alias(self.pandas_dtype)
-        return self.pandas_dtype
+            return self.pandas_dtype
+        return PandasDtype.from_str_alias(
+            PandasDtype.get_str_dtype(self.pandas_dtype)
+        )
 
     def coerce_dtype(self, df: pd.DataFrame) -> pd.DataFrame:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
@@ -299,12 +282,15 @@ class DataFrameSchema:
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if self._pandas_dtype is dtypes.PandasDtype.Str:
+        if self.pandas_dtype is dtypes.PandasDtype.Str:
             # only coerce non-null elements to string
             return df.where(df.isna(), df.astype(str))
 
         if self.pdtype is None:
-            return df
+            raise ValueError(
+                "pandas_dtype argument is None. Must specify this argument "
+                "to coerce dtype"
+            )
         try:
             return df.astype(self.pdtype.str_alias)
         except (ValueError, TypeError) as exc:
@@ -325,7 +311,7 @@ class DataFrameSchema:
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=too-many-locals,too-many-branches
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -472,17 +458,25 @@ class DataFrameSchema:
                     ),
                 )
 
-            elif col_schema.coerce or self.coerce:
+            elif (col_schema.coerce or self.coerce) and self.pdtype is None:
                 check_obj.loc[:, colname] = col_schema.coerce_dtype(
                     check_obj[colname]
                 )
 
-        schema_components = [
-            col
-            for col_name, col in self.columns.items()
-            if (col.required or col_name in check_obj)
-            and col_name not in lazy_exclude_columns
-        ]
+        if self.pdtype is not None:
+            check_obj = self.coerce_dtype(check_obj)
+
+        schema_components = []
+        for col_name, col in self.columns.items():
+            if (
+                col.required or col_name in check_obj
+            ) and col_name not in lazy_exclude_columns:
+                if self.pdtype is not None:
+                    # override column dtype with dataframe dtype
+                    col = copy.deepcopy(col)
+                    col.pandas_dtype = self.pdtype
+                schema_components.append(col)
+
         if self.index is not None:
             if self.index.coerce or self.coerce:
                 check_obj.index = self.index.coerce_dtype(check_obj.index)
@@ -890,40 +884,7 @@ class SeriesSchemaBase:
     @property
     def dtype(self) -> Optional[str]:
         """String representation of the dtype."""
-        dtype_ = self._pandas_dtype
-        if dtype_ is None:
-            return dtype_
-
-        if is_extension_array_dtype(dtype_):
-            if isinstance(dtype_, type):
-                try:
-                    # Convert to str here because some pandas dtypes allow
-                    # an empty constructor for compatatibility but fail on str().
-                    # e.g: PeriodDtype
-                    return str(dtype_())
-                except (TypeError, AttributeError) as err:
-                    raise TypeError(
-                        f"Pandas dtype {dtype_} cannot be instantiated: "
-                        f"{err}\n Usage Tip: Use an instance or a string "
-                        "representation."
-                    ) from err
-            return str(dtype_)
-
-        if dtype_ in dtypes.NUMPY_TYPES:
-            dtype_ = PandasDtype.from_numpy_type(dtype_)
-        elif isinstance(dtype_, str):
-            dtype_ = PandasDtype.from_str_alias(dtype_)
-        elif isinstance(dtype_, type):
-            dtype_ = PandasDtype.from_python_type(dtype_)
-
-        if isinstance(dtype_, dtypes.PandasDtype):
-            return dtype_.str_alias
-        raise TypeError(
-            "type of `pandas_dtype` argument not recognized: %s "
-            "Please specify a pandera PandasDtype enum, legal pandas data "
-            "type, pandas data type string alias, or numpy data type "
-            "string alias" % type(self._pandas_dtype)
-        )
+        return PandasDtype.get_str_dtype(self._pandas_dtype)
 
     @property
     def pdtype(self) -> Optional[PandasDtype]:

@@ -36,6 +36,22 @@ _DEFAULT_PANDAS_COMPLEX_TYPE = str(pd.Series([complex(1)]).dtype)
 _DEFAULT_NUMPY_INT_TYPE = str(np.dtype(int))
 _DEFAULT_NUMPY_FLOAT_TYPE = str(np.dtype(float))
 
+if version.parse(pd.__version__).major < 1:  # type: ignore
+    # pylint: disable=no-name-in-module
+    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
+
+    def is_extension_array_dtype(arr_or_dtype):
+        # pylint: disable=missing-function-docstring
+        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
+        return (
+            isinstance(dtype, ExtensionDtype)
+            or registry.find(dtype) is not None
+        )
+
+
+else:
+    from pandas.api.types import is_extension_array_dtype  # type: ignore
+
 
 class PandasDtype(Enum):
     # pylint: disable=line-too-long
@@ -262,6 +278,44 @@ class PandasDtype(Enum):
         """
         return cls.from_str_alias(numpy_type.__name__)
 
+    @classmethod
+    def get_str_dtype(cls, pandas_dtype_arg):
+        """Get pandas-compatible string representation of dtype."""
+        dtype_ = pandas_dtype_arg
+        if dtype_ is None:
+            return dtype_
+
+        if is_extension_array_dtype(dtype_):
+            if isinstance(dtype_, type):
+                try:
+                    # Convert to str here because some pandas dtypes allow
+                    # an empty constructor for compatatibility but fail on
+                    # str(). e.g: PeriodDtype
+                    return str(dtype_())
+                except (TypeError, AttributeError) as err:
+                    raise TypeError(
+                        f"Pandas dtype {dtype_} cannot be instantiated: "
+                        f"{err}\n Usage Tip: Use an instance or a string "
+                        "representation."
+                    ) from err
+            return str(dtype_)
+
+        if dtype_ in NUMPY_TYPES:
+            dtype_ = cls.from_numpy_type(dtype_)
+        elif isinstance(dtype_, str):
+            dtype_ = cls.from_str_alias(dtype_)
+        elif isinstance(dtype_, type):
+            dtype_ = cls.from_python_type(dtype_)
+
+        if isinstance(dtype_, cls):
+            return dtype_.str_alias
+        raise TypeError(
+            "type of `pandas_dtype` argument not recognized: %s "
+            "Please specify a pandera PandasDtype enum, legal pandas data "
+            "type, pandas data type string alias, or numpy data type "
+            "string alias" % type(pandas_dtype_arg)
+        )
+
     def __eq__(self, other):
         # pylint: disable=comparison-with-callable
         # see https://github.com/PyCQA/pylint/issues/2306
@@ -292,8 +346,6 @@ class PandasDtype(Enum):
                 "the pandas Categorical data type doesn't have a numpy "
                 "equivalent."
             )
-
-        dtype = {"string": np.dtype("str")}.get(self.value)
 
         # pylint: disable=comparison-with-callable
         if self.value == "string":
