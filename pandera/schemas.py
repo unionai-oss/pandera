@@ -568,6 +568,8 @@ class DataFrameSchema:
         :returns: a new ``DataFrameSchema`` with the extra_schema_cols added
         :example:
 
+        To add columns to the schema, pass a dictionary with column name and ``Column`` instance key-value pairs.
+
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
@@ -575,7 +577,12 @@ class DataFrameSchema:
         ...     "probability": pa.Column(pa.Float)})
         >>>
         >>> example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
-        DataFrameSchema(columns={'category': <Schema Column: 'category' type=string>, 'probability': <Schema Column: 'probability' type=float>, 'even_number': <Schema Column: 'even_number' type=bool>}, index=None, coerce=False)
+        DataFrameSchema(columns={'category': <Schema Column: 'category' type=string>,
+        'probability': <Schema Column: 'probability' type=float>,
+        'even_number': <Schema Column: 'even_number' type=bool>}, index=None, coerce=False)
+
+        .. seealso:: :func:`remove_columns`
+
         """
         schema_copy = copy.deepcopy(self)
         schema_copy.columns = {
@@ -591,8 +598,10 @@ class DataFrameSchema:
         :param cols_to_remove: Columns to be removed from the ``DataFrameSchema``
         :type cols_to_remove: List
         :returns: a new ``DataFrameSchema`` without the cols_to_remove
-        :raises SchemaInitError: if column not in schema.
+        :raises: SchemaInitError: if column not in schema.
         :example:
+
+        To remove a column or set of columns from a schema, pass a list of columns to be removed:
 
         >>> import pandera as pa
         >>>
@@ -602,6 +611,9 @@ class DataFrameSchema:
         >>>
         >>> example_schema.remove_columns(["category"])
         DataFrameSchema(columns={'probability': <Schema Column: 'probability' type=float>}, index=None, coerce=False)
+
+        .. seealso:: :func:`add_columns`
+
         """
         schema_copy = copy.deepcopy(self)
 
@@ -627,7 +639,7 @@ class DataFrameSchema:
         :param kwargs: key-word arguments supplied to
             :class:`~pandera.schema_components.Column`
         :returns: a new ``DataFrameSchema`` with updated column
-        :raises SchemaInitError: if column not in schema or you try to change the name.
+        :raises: SchemaInitError: if column not in schema or you try to change the name.
         :example:
 
         Calling ``schema.update_column`` returns the ``DataFrameSchema`` with the updated column.
@@ -639,15 +651,18 @@ class DataFrameSchema:
         ...     "probability": pa.Column(pa.Float)})
         >>>
         >>> example_schema.update_column("category", pandas_dtype = pa.Category)
-        DataFrameSchema(columns={'category': <Schema Column: 'category' type=category>, 'probability': <Schema Column: 'probability' type=float>}, index=None, coerce=False)
+        DataFrameSchema(columns={'category': <Schema Column: 'category' type=category>,
+        'probability': <Schema Column: 'probability' type=float>}, index=None, coerce=False)
+
+        .. seealso:: :func:`rename_columns`
 
         """
         # check that columns exist in schema
 
         if "name" in kwargs:
-            raise errors.SchemaInitError("cannot update 'name' of the column.")
+            raise ValueError("cannot update 'name' of the column.")
         if column_name not in self.columns:
-            raise errors.SchemaInitError(f"column '{column_name}' not in {self}")
+            raise ValueError(f"column '{column_name}' not in {self}")
         schema_copy = copy.deepcopy(self)
         column_copy = copy.deepcopy(self.columns[column_name])
         new_column = column_copy.__class__(
@@ -662,8 +677,11 @@ class DataFrameSchema:
         :param rename_dict: dictionary of 'old_name': 'new_name' key-value
             pairs.
         :returns: ``DataFrameSchema`` (copy of original)
-        :raises ``SchemaInitError`` if column not in the schema.
+        :raises: ``SchemaInitError`` if column not in the schema.
         :example:
+
+        To rename a column or set of columns, pass a dictionary of old column names and new column names,
+        similar to the ``pd.DataFrame`` method.
 
         >>> import pandera as pa
         >>>
@@ -672,7 +690,11 @@ class DataFrameSchema:
         ...     "probability": pa.Column(pa.Float)})
         >>>
         >>> example_schema.rename_columns({"category": "categories", "probability": "probabilities"})
-        DataFrameSchema(columns={'categories': <Schema Column: 'category' type=string>, 'probability': <Schema Column: 'probability' type=float>}, index=None, coerce=False)
+        DataFrameSchema(columns={'categories': <Schema Column: 'category' type=string>,
+        'probability': <Schema Column: 'probability' type=float>}, index=None, coerce=False)
+
+        .. seealso:: :func:`update_column`
+
         """
         new_schema = copy.deepcopy(self)
 
@@ -695,6 +717,7 @@ class DataFrameSchema:
         }
 
         new_schema.columns = new_columns
+
         return new_schema
 
     def select_columns(self, columns: List[str]) -> "DataFrameSchema":
@@ -704,8 +727,10 @@ class DataFrameSchema:
 
         :param columns: list of column names to select.
         :returns: ``DataFrameSchema`` (copy of original) with only the selected columns.
-        :raises ``SchemaInitError`` if column not in the schema.
+        :raises: ``SchemaInitError`` if column not in the schema.
         :example:
+
+        To subset a schema by column, and return a new schema:
 
         >>> import pandera as pa
         >>>
@@ -715,6 +740,9 @@ class DataFrameSchema:
         >>>
         >>> example_schema.select_columns(['category'])
         DataFrameSchema(columns={'category': <Schema Column: 'category' type=string>}, index=None, coerce=False)
+
+        .. note:: If an index is present in the schema, it will also be included in the new schema.
+
         """
 
         new_schema = copy.deepcopy(self)
@@ -774,7 +802,7 @@ class DataFrameSchema:
 
     def set_index(
         self, keys: List[str], drop: bool = True, append: bool = False
-    ):
+    ) -> "DataFrameSchema":
         """
         A method for setting the :class:`Index` of a :class:`DataFrameSchema`,
         via an existing :class:`Column` or list of :class:`Column`s.
@@ -784,8 +812,11 @@ class DataFrameSchema:
         :param append: bool, default False
         :return: a new :class:`DataFrameSchema` with specified column(s) in the
             index.
-        :raises ``SchemaInitError`` if column not in the schema.
-        :example:
+        :raises: ``SchemaInitError`` if column not in the schema.
+        :examples:
+
+        Just as you would set the index in a pandas DataFrame from an existing column, you can set an index within the
+        schema from an existing column in the schema.
 
         >>> import pandera as pa
         >>>
@@ -794,7 +825,22 @@ class DataFrameSchema:
         ...     "probability": pa.Column(pa.Float)})
         >>>
         >>> example_schema.set_index(['category'])
-        DataFrameSchema(columns={'probability': <Schema Column: 'probability' type=float>}, index=<Schema Index: 'category'>, coerce=False)
+        DataFrameSchema(columns={'probability': <Schema Column: 'probability' type=float>},
+        index=<Schema Index: 'category'>, coerce=False)
+
+        If you have an existing index in your schema, and you would like to append a new column as an index to it
+        (yielding a ``Multiindex``), just use set_index as you would in pandas.
+
+        >>> example_schema = pa.DataFrameSchema({"column1": pa.Column(pa.String),"column2": pa.Column(pa.Int)},
+        ...     index = Index(name = "column3", pandas_dtype = pa.Int))
+        >>> example_schema.set_index(["column2"], append = True)
+        DataFrameSchema(columns={'column1': <Schema Column: 'column1' type=string>},
+        index=MultiIndex(columns={"column3": "<Schema Column: 'column3' type=int>",
+        "column2": "<Schema Column: 'column2' type=int64>"},
+        checks=[],index=None,coerce=False,strict=False), coerce=False)
+
+        .. seealso:: :func:`reset_index`
+
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
         from pandera.schema_components import Index, MultiIndex
@@ -846,14 +892,52 @@ class DataFrameSchema:
 
         return new_schema
 
-    def reset_index(self, level: List[str] = None, drop: bool = False):
+    def reset_index(
+        self, level: List[str] = None, drop: bool = False
+    ) -> "DataFrameSchema":
         """
-        A method for reseting the :class:`Index` of a :class:`DataFrameSchema`.
+        A method for resetting the :class:`Index` of a :class:`DataFrameSchema`.
 
         :param level: list of labels
         :param drop: bool, default True
         :return: a new :class:`DataFrameSchema` with specified column(s) in the
             index.
+        :raises: ``SchemaInitError`` if no index set in schema.
+        :examples:
+
+        Similar to the pandas reset_index method on a pandas DataFrame,
+        indices of a schema can be fully or partially reset.
+
+        To remove the entire index from the schema, just call the reset_index method with default parameters.
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "probability" : pa.Column(pa.Float)},
+        ...     index = pa.Index(name = "unique_id", \
+        ...     pandas_dtype = pa.Int))
+        >>>
+        >>> example_schema.reset_index()
+        DataFrameSchema(columns={'probability': <Schema Column: 'probability' type=float>,
+        'unique_id': <Schema Column: 'unique_id' type=int64>}, index=None, coerce=False)
+
+        This reclassifies an index (or indices) as a column (or columns).
+
+        Similarly, to partially alter the index, pass the name of the column you would like to be removed to
+        the ``level`` parameter.
+
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String)},
+        ...     index = pa.MultiIndex([ \
+        ...         pa.Index(name = "unique_id1", pandas_dtype = pa.Int),\
+        ...         pa.Index(name = "unique_id2", pandas_dtype = pa.String)]))
+        >>>
+        >>> example_schema.reset_index(level = ["unique_id1"])
+        DataFrameSchema(columns={'category': <Schema Column: 'category' type=string>,
+        'unique_id1': <Schema Column: 'unique_id1' type=int64>}, index=<Schema Index: 'unique_id2'>, coerce=False)
+
+        .. seealso:: :func:`set_index`
+
 
         """
         # pylint: disable=import-outside-toplevel,cyclic-import

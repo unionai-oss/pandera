@@ -751,7 +751,7 @@ def test_dataframe_schema_update_column(
 
 
 def test_rename_columns():
-    """Check that DataFrameSchema.rename_columns() method does it's job"""
+    """Check that DataFrameSchema.rename_columns() method does its job"""
 
     rename_dict = {"col1": "col1_new_name", "col2": "col2_new_name"}
     schema_original = DataFrameSchema(
@@ -771,6 +771,9 @@ def test_rename_columns():
     assert all(
         [col_name in schema_original.columns for col_name in rename_dict]
     )
+
+    with pytest.raises(errors.SchemaInitError):
+        schema_original.rename_columns({"foo": "bar"})
 
 
 @pytest.mark.parametrize(
@@ -805,6 +808,9 @@ def test_select_columns(select_columns, schema):
     schema_selected = schema.select_columns(select_columns)
     assert all(x in select_columns for x in schema_selected.columns)
     assert all(x in original_columns for x in schema.columns)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.select_columns(["foo", "bar"])
 
 
 def test_lazy_dataframe_validation_error():
@@ -985,7 +991,7 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                 # into a Series
                 "data": pd.Series(["a", "b", "d"]),
                 "schema_errors": {
-                    "Index": {"isin(%s)" % set(["a", "b", "c"]): ["d"]},
+                    "Index": {f"isin({set(['a', 'b', 'c'])})": ["d"]},
                 },
             },
         ],
