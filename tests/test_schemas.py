@@ -161,10 +161,10 @@ def test_dataframe_pandas_dtype_coerce():
     schema.pandas_dtype = PandasDtype.Str
     assert (schema(df).dtypes == "object").all()
 
-    # raises ValueError if coerce_dtype is called when pandas_dtype is None
+    # raises ValueError if _coerce_dtype is called when pandas_dtype is None
     schema.pandas_dtype = None
     with pytest.raises(ValueError):
-        schema.coerce_dtype(df)
+        schema._coerce_dtype(df)
 
 
 def test_series_schema():

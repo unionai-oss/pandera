@@ -212,28 +212,25 @@ def tests_multi_index_subindex_coerce():
 
     data = pd.DataFrame(index=pd.MultiIndex.from_arrays([[1, 2, 3, 4]] * 4))
 
-    schema = DataFrameSchema(index=MultiIndex(indexes), coerce=False)
-    validated_df = schema(data)
-    for level_i in range(validated_df.index.nlevels):
-        if indexes[level_i].coerce:
+    # coerce=True in MultiIndex and DataFrameSchema should override subindex
+    # coerce setting
+    for schema_override in [
+        DataFrameSchema(index=MultiIndex(indexes, coerce=True)),
+        DataFrameSchema(index=MultiIndex(indexes), coerce=True),
+    ]:
+        validated_df_override = schema_override(data)
+        for level_i in range(validated_df_override.index.nlevels):
             assert (
-                validated_df.index.get_level_values(level_i).dtype
-                == indexes[level_i].dtype
-            )
-        else:
-            # dtype should be string representation of pandas strings
-            assert (
-                validated_df.index.get_level_values(level_i).dtype == "object"
+                validated_df_override.index.get_level_values(level_i).dtype
+                == "object"
             )
 
-    # coerce=True in MultiIndex should override subindex coerce setting
-    schema_override = DataFrameSchema(index=MultiIndex(indexes), coerce=True)
-    validated_df_override = schema_override(data)
-    for level_i in range(validated_df.index.nlevels):
-        assert (
-            validated_df_override.index.get_level_values(level_i).dtype
-            == indexes[level_i].dtype
-        )
+    # coerce=False at the MultiIndex level should result in two type errors
+    schema = DataFrameSchema(index=MultiIndex(indexes))
+    with pytest.raises(
+        errors.SchemaErrors, match="A total of 2 schema errors were found"
+    ):
+        schema(data, lazy=True)
 
 
 @pytest.mark.parametrize("pandas_dtype, expected", TESTABLE_DTYPES)
@@ -435,7 +432,6 @@ def test_column_regex_strict():
 
 def test_column_regex_non_str_types():
     """Check that column name regex matching excludes non-string types."""
-    # pylint: disable=protected-access
     data = pd.DataFrame(
         {
             1: [1, 2, 3],
