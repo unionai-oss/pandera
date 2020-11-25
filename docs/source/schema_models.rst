@@ -464,6 +464,40 @@ The custom checks are inherited and therefore can be overwritten by the subclass
     2      2             3
 
 
+Aliases
+-------
+
+:class:`~pandera.model.SchemaModel` supports columns which are not valid python variable names via the argument
+`alias` of :class:`~pandera.model_components.Field`.
+
+Checks must reference the aliased names.
+
+.. testcode:: dataframe_schema_model
+
+    import pandera as pa
+    import pandas as pd
+
+    class Schema(pa.SchemaModel):
+        col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
+        idx: pa.typing.Index[int] = pa.Field(alias="_idx", check_name=True)
+
+        @pa.check(2020)
+        def int_column_lt_100(cls, series):
+            return series < 100
+
+
+    df = pd.DataFrame({2020: [99]}, index=[0])
+    df.index.name = "_idx"
+
+    print(Schema.validate(df))
+
+.. testoutput:: dataframe_schema_model
+
+          2020
+    _idx
+    0       99
+
+
 Footnotes
 ---------
 

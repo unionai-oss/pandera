@@ -28,7 +28,7 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import Index, Series, parse_annotation
+from .typing import AnnotationInfo, Index, Series
 
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
 
@@ -82,7 +82,7 @@ class SchemaModel:
     Config: Type[BaseConfig] = BaseConfig
     __schema__: Optional[DataFrameSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
-    __field_annotations__: Dict[str, Type] = {}
+    __fields__: Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]] = {}
     __checks__: Dict[str, List[Check]] = {}
     __dataframe_checks__: List[Check] = []
 
@@ -95,13 +95,14 @@ class SchemaModel:
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
-        cls.__field_annotations__ = cls._collect_field_annotations()
-
+        annotations = cls._collect_field_annotations()
+        cls.__fields__ = cls._collect_fields(annotations)
         check_infos = cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
-        field_names = list(cls.__field_annotations__.keys())
-        cls.__checks__ = cls._extract_checks(check_infos, field_names)
+        cls.__checks__ = cls._extract_checks(
+            check_infos, field_names=list(cls.__fields__.keys())
+        )
 
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
         cls.__dataframe_checks__ = cls._extract_df_checks(df_check_infos)
@@ -113,9 +114,7 @@ class SchemaModel:
             if name.startswith("multiindex_")
         }
         columns, index = cls._build_columns_index(
-            cls.__checks__,
-            cls.__field_annotations__,
-            **mi_kwargs,
+            cls.__fields__, cls.__checks__, **mi_kwargs
         )
         cls.__schema__ = DataFrameSchema(
             columns,
@@ -148,30 +147,22 @@ class SchemaModel:
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals
         cls,
+        fields: Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]],
         checks: Dict[str, List[Check]],
-        annotations: Dict[str, Any],
         **multiindex_kwargs: Any,
     ) -> Tuple[
         Dict[str, schema_components.Column],
         Optional[Union[schema_components.Index, schema_components.MultiIndex]],
     ]:
-        annotations = {
-            field_name: (parse_annotation(raw_annotation), raw_annotation)
-            for field_name, raw_annotation in annotations.items()
-        }
         index_count = sum(
-            annotation.origin is Index
-            for annotation, _ in annotations.values()
+            annotation.origin is Index for annotation, _ in fields.values()
         )
 
         columns: Dict[str, schema_components.Column] = {}
         indices: List[schema_components.Index] = []
-        for field_name, (annotation, raw_annotation) in annotations.items():
-
-            field: FieldInfo = getattr(cls, field_name, None)
-            _check_fieldinfo(field, field_name)
-
+        for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
+            field_name = getattr(field, "alias", None) or field_name
             check_name = getattr(field, "check_name", None)
 
             if annotation.origin is Series:
@@ -212,21 +203,41 @@ class SchemaModel:
                 indices.append(index)
             else:
                 raise SchemaInitError(
-                    f"Invalid annotation '{field_name}: {raw_annotation}'"
+                    f"Invalid annotation '{field_name}: {annotation.raw_annotation}'"
                 )
 
         return columns, _build_schema_index(indices, **multiindex_kwargs)
 
     @classmethod
-    def _collect_field_annotations(cls) -> Dict[str, Any]:
+    def _collect_field_annotations(cls) -> Dict[str, AnnotationInfo]:
         """Collect inherited field annotations from bases."""
         bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
         bases = cast(Tuple[Type[SchemaModel]], bases)
-        annotations = {}
+        raw_annotations = {}
         for base in reversed(bases):
             base_annotations = _get_field_annotations(base)
-            annotations.update(base_annotations)
-        return annotations
+            raw_annotations.update(base_annotations)
+        return {
+            name: AnnotationInfo(annotation)
+            for name, annotation in raw_annotations.items()
+        }
+
+    @classmethod
+    def _collect_fields(
+        cls, annotations: Dict[str, AnnotationInfo]
+    ) -> Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]]:
+        """Centralize publicly named fields and their corresponding annotations."""
+        fields = {}
+        for field_name, annotation in annotations.items():
+            field: Optional[FieldInfo] = getattr(cls, field_name, None)
+            if field is not None and not isinstance(field, FieldInfo):
+                raise SchemaInitError(
+                    f"'{field_name}' can only be assigned a 'Field', "
+                    + f"not a '{type(field)}.'"
+                )
+            field_name = getattr(field, "alias", None) or field_name
+            fields[field_name] = (annotation, field)
+        return fields
 
     @classmethod
     def _collect_config(cls) -> Type[BaseConfig]:
@@ -266,20 +277,20 @@ class SchemaModel:
 
     @classmethod
     def _extract_checks(
-        cls, check_infos: List[FieldCheckInfo], fields: List[str]
+        cls, check_infos: List[FieldCheckInfo], field_names: List[str]
     ) -> Dict[str, List[Check]]:
         """Collect field annotations from bases in mro reverse order."""
         checks: Dict[str, List[Check]] = {}
         for check_info in check_infos:
             if check_info.regex:
-                matched = _regex_filter(fields, check_info.fields)
+                matched = _regex_filter(field_names, check_info.fields)
             else:
                 matched = check_info.fields
 
             check_ = check_info.to_check(cls)
 
             for field in matched:
-                if field not in fields:
+                if field not in field_names:
                     raise SchemaInitError(
                         f"Check {check_.name} is assigned to a non-existing field '{field}'."
                     )
@@ -332,11 +343,3 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
         pattern = re.compile(regex)
         matched.update(filter(pattern.match, seq))
     return matched
-
-
-def _check_fieldinfo(field: FieldInfo, field_name: str) -> None:
-    if field is not None and not isinstance(field, FieldInfo):
-        raise SchemaInitError(
-            f"'{field_name}' can only be assigned a 'Field', "
-            + f"not a '{field.__class__}.'"
-        )

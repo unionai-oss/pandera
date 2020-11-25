@@ -1,7 +1,7 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import sys
-from typing import TYPE_CHECKING, Generic, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Generic, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
@@ -96,53 +96,51 @@ else:
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
-    """Captures extra information about an annotation."""
+    """Captures extra information about an annotation.
 
-    def __init__(
-        self,
-        origin: Optional[Type],
-        arg: Optional[Type],
-        optional: bool,
-        literal=False,
-    ) -> None:
-        self.origin = origin
-        self.arg = arg
-        self.optional = optional
-        self.literal = literal
+    Attributes:
+        origin: The non-parameterized generic class.
+        arg: The first generic type (SchemaModel does not support more than 1 argument).
+        literal: Whether the annotation is a literal.
+        optional: Whether the annotation is optional.
+        raw_annotation: The raw annotation.
+    """
+
+    def __init__(self, raw_annotation: Type) -> None:
+        self._parse_annotation(raw_annotation)
 
     @property
     def is_generic_df(self) -> bool:
         """True if the annotation is a pandera.typing.DataFrame."""
         return self.origin is not None and issubclass(self.origin, DataFrame)
 
+    def _parse_annotation(self, raw_annotation: Type) -> None:
+        """Parse key information from annotation.
 
-def parse_annotation(raw_annotation: Type) -> AnnotationInfo:
-    """Parse key information from annotation.
+        :param annotation: A subscripted type.
+        :returns: Annotation
+        """
+        self.raw_annotation = raw_annotation
 
-    :param annotation: A subscripted type.
-    :returns: Annotation
-    """
-    optional = typing_inspect.is_optional_type(raw_annotation)
-    if optional:
-        # e.g: Typing.Union[pandera.typing.Index[str], NoneType]
-        if _LEGACY_TYPING:  # pragma: no cover
-            # get_args -> ((pandera.typing.Index, <class 'str'>), <class 'NoneType'>)
-            origin, arg = typing_inspect.get_args(raw_annotation)[0]
-            return AnnotationInfo(origin, arg, optional)
-        # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
-        raw_annotation = typing_inspect.get_args(raw_annotation)[0]
+        self.optional = typing_inspect.is_optional_type(raw_annotation)
+        if self.optional:
+            # e.g: Typing.Union[pandera.typing.Index[str], NoneType]
+            if _LEGACY_TYPING:  # pragma: no cover
+                # get_args -> ((pandera.typing.Index, <class 'str'>), <class 'NoneType'>)
+                self.origin, self.arg = typing_inspect.get_args(
+                    raw_annotation
+                )[0]
+                return
+            # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
+            raw_annotation = typing_inspect.get_args(raw_annotation)[0]
 
-    origin = typing_inspect.get_origin(raw_annotation)
-    args = typing_inspect.get_args(raw_annotation)
-    arg = args[0] if args else args
+        self.origin = typing_inspect.get_origin(raw_annotation)
+        args = typing_inspect.get_args(raw_annotation)
+        self.arg = args[0] if args else args
 
-    literal = typing_inspect.is_literal_type(arg)
-    if literal:
-        arg = typing_inspect.get_args(arg)[0]
-
-    return AnnotationInfo(
-        origin=origin, arg=arg, optional=optional, literal=literal
-    )
+        self.literal = typing_inspect.is_literal_type(self.arg)
+        if self.literal:
+            self.arg = typing_inspect.get_args(self.arg)[0]
 
 
 Bool = Literal[PandasDtype.Bool]  #: ``"bool"`` numpy dtype

@@ -51,6 +51,7 @@ class FieldInfo:
         "coerce",
         "regex",
         "check_name",
+        "alias",
     )
 
     def __init__(
@@ -60,6 +61,7 @@ class FieldInfo:
         allow_duplicates: bool = True,
         coerce: bool = False,
         regex: bool = False,
+        alias: str = None,
         check_name: bool = None,
     ) -> None:
         self.checks = _to_checklist(checks)
@@ -67,6 +69,7 @@ class FieldInfo:
         self.allow_duplicates = allow_duplicates
         self.coerce = coerce
         self.regex = regex
+        self.alias = alias
         self.check_name = check_name
 
     def _to_schema_component(
@@ -140,6 +143,7 @@ def Field(
     ignore_na: bool = True,
     raise_warning: bool = False,
     n_failure_cases: int = 10,
+    alias: str = None,
     check_name: bool = None,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
@@ -148,6 +152,8 @@ def Field(
 
     Some arguments apply only to number dtypes and some apply only to ``str``.
     See the :ref:`User Guide <schema_models>` for more.
+
+    :param alias: The public name of the column/index.
 
     :param check_name: Whether to check the name of the column/index during validation.
         `None` is the default behavior, which translates to `True` for columns and
@@ -178,6 +184,7 @@ def Field(
         coerce=coerce,
         regex=regex,
         check_name=check_name,
+        alias=alias,
     )
 
 
