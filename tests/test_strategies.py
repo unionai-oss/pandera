@@ -180,6 +180,7 @@ def test_check_strategy_chained_continuous(
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@hypothesis.settings(deadline=1000)
 @hypothesis.given(st.data())
 def test_in_range_strategy(pdtype, data):
     """Test the built-in in-range strategy can correctly generate data."""
