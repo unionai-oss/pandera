@@ -38,6 +38,7 @@ setup(
         "pandera",
     ],
     install_requires=[
+        "packaging >= 20.0",
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
         "typing_extensions ; python_version<'3.8'",

@@ -29,6 +29,7 @@ dependencies:
   - pre_commit
 
   # pandera dependencies
+  - packaging >= 20.0
   - numpy
   - pandas
   - scipy
