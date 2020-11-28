@@ -180,37 +180,30 @@ def test_check_strategy_chained_continuous(
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
-@hypothesis.settings(deadline=1000)
+@pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
-def test_in_range_strategy(pdtype, data):
+def test_in_range_strategy(pdtype, chained, data):
     """Test the built-in in-range strategy can correctly generate data."""
     min_value, max_value = data.draw(value_ranges(pdtype))
     hypothesis.assume(min_value < max_value)
 
-    example = data.draw(
-        strategies.in_range_strategy(
+    base_st_in_range = None
+    if chained:
+        if pdtype.is_float:
+            base_st_kwargs = {
+                "exclude_min": False,
+                "exclude_max": False,
+            }
+        else:
+            base_st_kwargs = {}
+
+        # constraining the strategy this way makes testing more efficient
+        base_st_in_range = strategies.pandas_dtype_strategy(
             pdtype,
             min_value=min_value,
             max_value=max_value,
+            **base_st_kwargs,
         )
-    )
-    assert min_value <= example <= max_value
-
-    if pdtype.is_float:
-        base_st_kwargs = {
-            "exclude_min": False,
-            "exclude_max": False,
-        }
-    else:
-        base_st_kwargs = {}
-
-    # constraining the strategy this way makes testing more efficient
-    base_st_in_range = strategies.pandas_dtype_strategy(
-        pdtype,
-        min_value=min_value,
-        max_value=max_value,
-        **base_st_kwargs,
-    )
     strat = strategies.in_range_strategy(
         pdtype,
         base_st_in_range,
