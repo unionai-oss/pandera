@@ -826,13 +826,20 @@ def dataframe_strategy(
             }
         )
 
+    def col_as_dtypes(df):
+        if df.empty:
+            return df
+        return df.astype(col_dtypes)
+
     strategy = pdst.data_frames(
-        columns=[column.strategy_component() for column in columns.values()],
+        columns=[
+            column.strategy_component(size=size) for column in columns.values()
+        ],
         rows=row_strategy,
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
-    ).map(lambda x: x.astype(col_dtypes))
+    ).map(col_as_dtypes)
 
     if any(nullable_columns.values()):
         strategy = null_dataframe_masks(strategy, nullable_columns)

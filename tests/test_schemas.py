@@ -141,7 +141,7 @@ def test_dataframe_pandas_dtype_coerce():
     df = pd.DataFrame({f"column_{i}": range(10) for i in range(5)}).astype(
         float
     )
-    assert (schema(df).dtypes == int).all()
+    assert (schema(df).dtypes == Int.str_alias).all()
 
     # test that pandas_dtype in columns are preserved
     for col in schema.columns.values():
@@ -152,7 +152,7 @@ def test_dataframe_pandas_dtype_coerce():
         schema.coerce_dtype(pd.DataFrame({"foo": list("abcdef")}))
 
     # test that original dataframe dtypes are preserved
-    assert (df.dtypes == float).all()
+    assert (df.dtypes == Float.str_alias).all()
 
     # test case where pandas_dtype is string
     schema.pandas_dtype = str

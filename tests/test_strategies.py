@@ -456,6 +456,11 @@ def test_dataframe_example():
 @hypothesis.given(st.data())
 def test_dataframe_checks(pdtype, data):
     """Test dataframe strategy with checks defined at the dataframe level."""
+    if pa.LEGACY_PANDAS and pdtype in {
+        pa.PandasDtype.UInt64,
+        pa.PandasDtype.UINT64,
+    }:
+        pytest.xfail("pandas<1.0.0 leads to OverflowError for these dtypes.")
     min_value, max_value = data.draw(value_ranges(pdtype))
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype) for _ in range(5)},
