@@ -1,6 +1,6 @@
 """A flexible and expressive pandas validation library."""
 
-from . import constants, errors
+from . import constants, errors, pandas_accessor
 from .checks import Check
 from .decorators import check_input, check_io, check_output, check_types
 from .dtypes import LEGACY_PANDAS, PandasDtype
