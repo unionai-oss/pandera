@@ -348,10 +348,10 @@ class PandasDtype(Enum):
             )
 
         # pylint: disable=comparison-with-callable
-        if self.value == "string":
+        if self.value in {"str", "string"}:
             dtype = np.dtype("str")
         else:
-            dtype = np.dtype(self.value.lower())
+            dtype = np.dtype(self.str_alias.lower())
         return dtype
 
     @property
