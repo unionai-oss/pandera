@@ -832,9 +832,7 @@ def dataframe_strategy(
         return df.astype(col_dtypes)
 
     strategy = pdst.data_frames(
-        columns=[
-            column.strategy_component(size=size) for column in columns.values()
-        ],
+        columns=[column.strategy_component() for column in columns.values()],
         rows=row_strategy,
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
