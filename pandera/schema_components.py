@@ -1,6 +1,6 @@
 """Components used in pandera schemas."""
 
-from copy import copy
+from copy import copy, deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -24,6 +24,8 @@ def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
 
 class Column(SeriesSchemaBase):
     """Validate types and properties of DataFrame columns."""
+
+    has_subcomponents = False
 
     def __init__(
         self,
@@ -292,6 +294,8 @@ class Column(SeriesSchemaBase):
 class Index(SeriesSchemaBase):
     """Validate types and properties of a DataFrame Index."""
 
+    has_subcomponents = False
+
     def coerce_dtype(self, series_or_index: pd.Index) -> pd.Index:
         """Coerce type of a pd.Index by type specified in pandas_dtype.
 
@@ -406,10 +410,11 @@ class Index(SeriesSchemaBase):
 class MultiIndex(DataFrameSchema):
     """Validate types and properties of a DataFrame MultiIndex.
 
-    Because `MultiIndex.__call__` converts the index to a dataframe via
-    `to_frame()`, each index is treated as a series and it makes sense to
-    inherit the `__call__` and `validate` methods from DataFrameSchema.
+    This class inherits from :class:`~pandera.schemas.DataFrameSchema` to
+    leverage its validation logic.
     """
+
+    has_subcomponents = True
 
     def __init__(
         self,
@@ -484,31 +489,29 @@ class MultiIndex(DataFrameSchema):
     def coerce(self):
         return self._coerce or any(index.coerce for index in self.indexes)
 
-    def coerce_dtype(self, multi_index: pd.MultiIndex) -> pd.MultiIndex:
+    def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
-        :param multi_index: multi-index to coerce.
+        :param obj: multi-index to coerce.
         :returns: ``MultiIndex`` with coerced data type
         """
-        _coerced_multi_index = []
-        if multi_index.nlevels != len(self.indexes):
+        if obj.nlevels != len(self.indexes):
             raise errors.SchemaError(
                 self,
-                multi_index,
+                obj,
                 "multi_index does not have equal number of levels as "
                 "MultiIndex schema %d != %d."
-                % (multi_index.nlevels, len(self.indexes)),
+                % (obj.nlevels, len(self.indexes)),
             )
 
+        _coerced_multi_index = []
         for level_i, index in enumerate(self.indexes):
-            index_array = multi_index.get_level_values(level_i)
-            if index.coerce or self.coerce:
+            index_array = obj.get_level_values(level_i)
+            if index.coerce or self._coerce:
                 index_array = index.coerce_dtype(index_array)
             _coerced_multi_index.append(index_array)
 
-        return pd.MultiIndex.from_arrays(
-            _coerced_multi_index, names=multi_index.names
-        )
+        return pd.MultiIndex.from_arrays(_coerced_multi_index, names=obj.names)
 
     def validate(
         self,
@@ -537,12 +540,22 @@ class MultiIndex(DataFrameSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-
         if self.coerce:
-            check_obj.index = self.coerce_dtype(check_obj.index)
+            check_obj.index = self.coerce_dtype(
+                check_obj.index if inplace else check_obj.index
+            )
+
+        # Prevent data type coercion when the validate method is called because
+        # it leads to some weird behavior when calling coerce_dtype within the
+        # DataFrameSchema.validate call. Need to fix this by having MultiIndex
+        # not inherit from DataFrameSchema.
+        self_copy = deepcopy(self)
+        self_copy._coerce = False
+        for index in self_copy.indexes:
+            index._coerce = False
 
         try:
-            validation_result = super().validate(
+            validation_result = super(MultiIndex, self_copy).validate(
                 check_obj.index.to_frame(),
                 head,
                 tail,
@@ -556,7 +569,6 @@ class MultiIndex(DataFrameSchema):
             # the schema context to MultiIndex. This should be fixed by with
             # a more principled schema class hierarchy.
             schema_error_dicts = []
-            # pylint: disable=protected-access
             for schema_error_dict in err._schema_error_dicts:
                 error = schema_error_dict["error"]
                 error = errors.SchemaError(

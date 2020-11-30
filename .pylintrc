@@ -20,4 +20,5 @@ disable=
     duplicate-code,
     too-many-instance-attributes,
     no-else-return,
-    inconsistent-return-statements
+    inconsistent-return-statements,
+    protected-access

@@ -128,6 +128,45 @@ def test_dataframe_schema_strict_regex():
         )
 
 
+def test_dataframe_pandas_dtype_coerce():
+    """
+    Test that pandas dtype specified at the dataframe level overrides
+    column data types.
+    """
+    schema = DataFrameSchema(
+        columns={f"column_{i}": Column(float) for i in range(5)},
+        pandas_dtype=int,
+        coerce=True,
+    )
+    df = pd.DataFrame({f"column_{i}": range(10) for i in range(5)}).astype(
+        float
+    )
+    assert (schema(df).dtypes == Int.str_alias).all()
+
+    # test that pandas_dtype in columns are preserved
+    for col in schema.columns.values():
+        assert col.pandas_dtype is float
+
+    # raises SchemeError if dataframe can't be coerced
+    with pytest.raises(errors.SchemaError):
+        schema.coerce_dtype(pd.DataFrame({"foo": list("abcdef")}))
+
+    # test that original dataframe dtypes are preserved
+    assert (df.dtypes == Float.str_alias).all()
+
+    # test case where pandas_dtype is string
+    schema.pandas_dtype = str
+    assert (schema(df).dtypes == "object").all()
+
+    schema.pandas_dtype = PandasDtype.Str
+    assert (schema(df).dtypes == "object").all()
+
+    # raises ValueError if _coerce_dtype is called when pandas_dtype is None
+    schema.pandas_dtype = None
+    with pytest.raises(ValueError):
+        schema._coerce_dtype(df)
+
+
 def test_series_schema():
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues

@@ -78,8 +78,20 @@ try:
         hypothesis.assume(null_mask.any(axis=None))
         return val.mask(null_mask)
 
+    @st.composite
+    def set_pandas_index(
+        draw,
+        df_or_series_strat: SearchStrategy,
+        index_strat: SearchStrategy,
+    ):
+        """Sets Index or MultiIndex object to pandas Series or DataFrame."""
+        df_or_series = draw(df_or_series_strat)
+        index = draw(index_strat)
+        df_or_series.index = index
+        return df_or_series
 
-except ImportError:
+
+except ImportError:  # pragma: no cover
 
     # pylint: disable=too-few-public-methods
     class SearchStrategy:  # type: ignore
@@ -91,6 +103,8 @@ else:
 
 
 StrategyFn = Callable[..., SearchStrategy]
+# Fix this when modules have been re-organized to avoid circular imports
+IndexComponent = Any
 
 
 def strategy_import_error(fn):
@@ -98,7 +112,7 @@ def strategy_import_error(fn):
 
     @wraps(fn)
     def _wrapper(*args, **kwargs):
-        if not HAS_HYPOTHESIS:
+        if not HAS_HYPOTHESIS:  # pragma: no cover
             raise ImportError(
                 'Strategies for generating data requires "hypothesis" to be \n'
                 "installed. You can install pandera together with the IO \n"
@@ -263,7 +277,7 @@ def pandas_dtype_strategy(
     # build a pandera-specific solution.
     if pandas_dtype is PandasDtype.Category:
         raise TypeError(
-            "data generation for the Categorical dtype is currently "
+            "data generation for the Category dtype is currently "
             "unsupported. Consider using a string or int dtype and "
             "Check.isin(values) to ensure a finite set of values."
         )
@@ -763,6 +777,8 @@ def dataframe_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     columns: Optional[Dict] = None,
+    checks: Optional[Sequence] = None,
+    index: Optional[IndexComponent] = None,
     size: Optional[int] = None,
 ):
     """Strategy to generate a pandas DataFrame.
@@ -772,6 +788,9 @@ def dataframe_strategy(
         pandas dtype strategy will be chained onto this strategy.
     :param columns: a dictionary where keys are column names and values
         are :class:`~pandera.schema_components.Column` objects.
+    :param checks: sequence of :class:`~pandera.checks.Check`s to constrain
+        the values of the data at the dataframe level.
+    :param index: Index or MultiIndex schema component.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
     """
@@ -780,23 +799,53 @@ def dataframe_strategy(
             "The dataframe strategy is a base strategy. You cannot specify "
             "the strategy argument to chain it to a parent strategy."
         )
-    # pylint: disable=fixme
-    # TODO: handle pandas_dtype being specified at the dataframe level
-    # TODO: handle checks being defined at the dataframe level
     columns = {} if columns is None else columns
-    col_dtypes = {col_name: col.dtype for col_name, col in columns.items()}
+    checks = [] if checks is None else checks
+
+    col_dtypes = {
+        col_name: col.dtype if pandas_dtype is None else pandas_dtype.str_alias
+        for col_name, col in columns.items()
+    }
+
     nullable_columns = {
         col_name: col.nullable for col_name, col in columns.items()
     }
+
+    def make_row_strategy(col):
+        strat = None
+        for check in checks:
+            strat = check.strategy(col.pdtype, strat)
+        return strat
+
+    row_strategy = None
+    if checks:
+        row_strategy = st.fixed_dictionaries(
+            {
+                col_name: make_row_strategy(col)
+                for col_name, col in columns.items()
+            }
+        )
+
+    def col_as_dtypes(df):
+        if df.empty:
+            return df
+        return df.astype(col_dtypes)
+
     strategy = pdst.data_frames(
         columns=[column.strategy_component() for column in columns.values()],
+        rows=row_strategy,
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
-    ).map(lambda x: x.astype(col_dtypes))
+    ).map(col_as_dtypes)
+
     if any(nullable_columns.values()):
         strategy = null_dataframe_masks(strategy, nullable_columns)
-    strategy = strategy.map(
+
+    if index is not None:
+        strategy = set_pandas_index(strategy, index.strategy(size=size))
+
+    strategy = strategy.map(  # type: ignore
         lambda x: x.astype(pandas_dtype.str_alias)
         if pandas_dtype is not None
         else x
