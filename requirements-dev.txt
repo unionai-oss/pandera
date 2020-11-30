@@ -2,6 +2,7 @@
 # See that file for comments about the need/usage of each dependency.
 
 pip
+packaging
 hypothesis
 numpy
 pandas

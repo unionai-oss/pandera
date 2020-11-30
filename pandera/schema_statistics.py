@@ -102,7 +102,6 @@ def parse_check_statistics(check_stats: Union[Dict[str, Any], None]):
 
 def get_dataframe_schema_statistics(dataframe_schema):
     """Get statistical properties from dataframe schema."""
-    # pylint: disable=protected-access
     statistics = {
         "columns": {
             col_name: {
@@ -127,7 +126,6 @@ def get_dataframe_schema_statistics(dataframe_schema):
 
 
 def _get_series_base_schema_statistics(series_schema_base):
-    # pylint: disable=protected-access
     return {
         "pandas_dtype": series_schema_base._pandas_dtype,
         "nullable": series_schema_base.nullable,

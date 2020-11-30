@@ -8,12 +8,9 @@ dependencies:
 
   # pandera dependencies
   - packaging
-  - hypothesis
   - numpy
-  - pandas
-  - scipy
+  - pandas==0.25.3
   - wrapt
-  - pyyaml
   - typing_inspect
   - typing_extensions
 

@@ -9,12 +9,11 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
-from packaging import version
 
 from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import PandasDtype, PandasExtensionType
+from .dtypes import PandasDtype, PandasExtensionType, is_extension_array_dtype
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -32,22 +31,6 @@ CheckList = Optional[
 
 PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
 
-if version.parse(pd.__version__).major < 1:  # type: ignore
-    # pylint: disable=no-name-in-module
-    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
-
-    def is_extension_array_dtype(arr_or_dtype):
-        # pylint: disable=missing-function-docstring
-        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-        return (
-            isinstance(dtype, ExtensionDtype)
-            or registry.find(dtype) is not None
-        )
-
-
-else:
-    from pandas.api.types import is_extension_array_dtype  # type: ignore
-
 
 def _inferred_schema_guard(method):
     """
@@ -62,9 +45,9 @@ def _inferred_schema_guard(method):
             # if method returns a copy of the schema object,
             # the original schema instance and the copy should be set to
             # not inferred.
-            new_schema._is_inferred = False  # pylint: disable=protected-access
+            new_schema._is_inferred = False
             return new_schema
-        schema._is_inferred = False  # pylint: disable=protected-access
+        schema._is_inferred = False
 
     return _wrapper
 
@@ -77,6 +60,7 @@ class DataFrameSchema:
         columns: Dict[Any, Any] = None,
         checks: CheckList = None,
         index=None,
+        pandas_dtype: PandasDtypeInputTypes = None,
         transformer: Callable = None,
         coerce: bool = False,
         strict=False,
@@ -90,6 +74,10 @@ class DataFrameSchema:
         :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
         :param index: specify the datatypes and properties of the index.
+        :param pandas_dtype: datatype of the dataframe. This overrides the data
+            types specified in any of the columns. If a string is specified,
+            then assumes one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes.
         :param transformer: a callable with signature:
             pandas.DataFrame -> pandas.DataFrame. If specified, calling
             `validate` will verify properties of the columns and return the
@@ -169,6 +157,7 @@ class DataFrameSchema:
         self.index = index
         self.strict = strict
         self.name = name
+        self._pandas_dtype = pandas_dtype
         self._coerce = coerce
         self._validate_schema()
         self._set_column_names()
@@ -262,6 +251,84 @@ class DataFrameSchema:
             **regex_dtype,
         }
 
+    @property
+    def pandas_dtype(
+        self,
+    ) -> Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]:
+        """Get the pandas dtype property."""
+        return self._pandas_dtype
+
+    @pandas_dtype.setter
+    def pandas_dtype(
+        self, value: Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]
+    ) -> None:
+        """Set the pandas dtype property."""
+        self._pandas_dtype = value
+        self.dtype  # pylint: disable=pointless-statement
+
+    @property
+    def pdtype(self) -> Optional[PandasDtype]:
+        """PandasDtype of the series."""
+        if self.pandas_dtype is None:
+            return self.pandas_dtype
+        return PandasDtype.from_str_alias(
+            PandasDtype.get_str_dtype(self.pandas_dtype)
+        )
+
+    def _coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
+        if self.pandas_dtype is dtypes.PandasDtype.Str:
+            # only coerce non-null elements to string
+            return obj.where(obj.isna(), obj.astype(str))
+
+        if self.pdtype is None:
+            raise ValueError(
+                "pandas_dtype argument is None. Must specify this argument "
+                "to coerce dtype"
+            )
+        try:
+            return obj.astype(self.pdtype.str_alias)
+        except (ValueError, TypeError) as exc:
+            msg = "Error while coercing '%s' to type %s: %s" % (
+                self.name,
+                self.dtype,
+                exc,
+            )
+            raise errors.SchemaError(self, None, msg) from exc
+
+    def coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
+        """Coerce dataframe to the type specified in pandas_dtype.
+
+        :param obj: dataframe to coerce.
+        :returns: dataframe with coerced dtypes
+        """
+        for colname, col_schema in self.columns.items():
+            if col_schema.regex:
+                try:
+                    matched_columns = col_schema.get_regex_columns(obj.columns)
+                except errors.SchemaError:
+                    matched_columns = pd.Index([])
+
+                for matched_colname in matched_columns:
+                    if col_schema.coerce or self.coerce:
+                        obj[matched_colname] = col_schema.coerce_dtype(
+                            obj[matched_colname]
+                        )
+            elif (col_schema.coerce or self.coerce) and self.pdtype is None:
+                obj.loc[:, colname] = col_schema.coerce_dtype(obj[colname])
+
+        if self.pdtype is not None:
+            obj = self._coerce_dtype(obj)
+
+        if self.index is not None and (self.index.coerce or self.coerce):
+            index = copy.deepcopy(self.index)
+            if self.coerce:
+                # coercing at the dataframe-level should apply index coercion
+                # for both single- and multi-indexes.
+                index._coerce = True
+            obj.index = index.coerce_dtype(obj.index)
+
+        return obj
+
     def validate(
         self,
         check_obj: pd.DataFrame,
@@ -272,7 +339,7 @@ class DataFrameSchema:
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=too-many-locals,too-many-branches
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -380,29 +447,17 @@ class DataFrameSchema:
                         ),
                     )
 
-        # column data-type coercion logic
+        # check for columns that are not in the dataframe and collect columns
+        # that are not in the dataframe that should be excluded for lazy
+        # validation
         lazy_exclude_columns = []
         for colname, col_schema in self.columns.items():
-            if col_schema.regex:
-                try:
-                    matched_columns = col_schema.get_regex_columns(
-                        check_obj.columns
-                    )
-                except errors.SchemaError:
-                    matched_columns = pd.Index([])
-
-                for matched_colname in matched_columns:
-                    if col_schema.coerce or self.coerce:
-                        check_obj[matched_colname] = col_schema.coerce_dtype(
-                            check_obj[matched_colname]
-                        )
-
-            elif colname not in check_obj and col_schema.required:
+            if (
+                not col_schema.regex
+                and colname not in check_obj
+                and col_schema.required
+            ):
                 if lazy:
-                    # exclude columns that are not present in the dataframe
-                    # for lazy validation, the error is collected by the
-                    # error_handler and should raise a SchemaErrors exception
-                    # at the end of the `validate` method.
                     lazy_exclude_columns.append(colname)
                 msg = (
                     f"column '{colname}' not in dataframe\n{check_obj.head()}"
@@ -418,20 +473,27 @@ class DataFrameSchema:
                     ),
                 )
 
-            elif col_schema.coerce or self.coerce:
-                check_obj.loc[:, colname] = col_schema.coerce_dtype(
-                    check_obj[colname]
-                )
+        # coerce data types
+        if (
+            self.coerce
+            or (self.index is not None and self.index.coerce)
+            or any(col.coerce for col in self.columns.values())
+        ):
+            check_obj = self.coerce_dtype(check_obj)
 
-        schema_components = [
-            col
-            for col_name, col in self.columns.items()
-            if (col.required or col_name in check_obj)
-            and col_name not in lazy_exclude_columns
-        ]
+        # collect schema components for validation
+        schema_components = []
+        for col_name, col in self.columns.items():
+            if (
+                col.required or col_name in check_obj
+            ) and col_name not in lazy_exclude_columns:
+                if self.pdtype is not None:
+                    # override column dtype with dataframe dtype
+                    col = copy.deepcopy(col)
+                    col.pandas_dtype = self.pdtype
+                schema_components.append(col)
+
         if self.index is not None:
-            if self.index.coerce or self.coerce:
-                check_obj.index = self.index.coerce_dtype(check_obj.index)
             schema_components.append(self.index)
 
         df_to_validate = _pandas_obj_to_validate(
@@ -442,11 +504,18 @@ class DataFrameSchema:
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                check_results.append(
-                    isinstance(schema_component(df_to_validate), pd.DataFrame)
+                result = schema_component(
+                    df_to_validate,
+                    lazy=lazy if schema_component.has_subcomponents else None,
                 )
+                check_results.append(isinstance(result, pd.DataFrame))
             except errors.SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
+            except errors.SchemaErrors as err:
+                for schema_error_dict in err._schema_error_dicts:
+                    error_handler.collect_error(
+                        "schema_component_check", schema_error_dict["error"]
+                    )
 
         # dataframe-level checks
         for check_index, check in enumerate(self.checks):
@@ -566,7 +635,13 @@ class DataFrameSchema:
         :param size: number of elements to generate
         :returns: a strategy that generates pandas DataFrame objects.
         """
-        return st.dataframe_strategy(columns=self.columns, size=size)
+        return st.dataframe_strategy(
+            self.pdtype,
+            columns=self.columns,
+            checks=self.checks,
+            index=self.index,
+            size=size,
+        )
 
     def example(self, size=None) -> pd.DataFrame:
         """Generate an example of a particular size.
@@ -1431,6 +1506,7 @@ class SeriesSchemaBase:
             "type, pandas data type string alias, or numpy data type "
             "string alias" % type(self._pandas_dtype)
         )
+        return PandasDtype.get_str_dtype(self._pandas_dtype)
 
     @property
     def pdtype(self) -> Optional[PandasDtype]:
