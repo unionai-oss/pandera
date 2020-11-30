@@ -91,7 +91,7 @@ try:
         return df_or_series
 
 
-except ImportError:
+except ImportError:  # pragma: no cover
 
     # pylint: disable=too-few-public-methods
     class SearchStrategy:  # type: ignore
@@ -112,7 +112,7 @@ def strategy_import_error(fn):
 
     @wraps(fn)
     def _wrapper(*args, **kwargs):
-        if not HAS_HYPOTHESIS:
+        if not HAS_HYPOTHESIS:  # pragma: no cover
             raise ImportError(
                 'Strategies for generating data requires "hypothesis" to be \n'
                 "installed. You can install pandera together with the IO \n"
@@ -277,7 +277,7 @@ def pandas_dtype_strategy(
     # build a pandera-specific solution.
     if pandas_dtype is PandasDtype.Category:
         raise TypeError(
-            "data generation for the Categorical dtype is currently "
+            "data generation for the Category dtype is currently "
             "unsupported. Consider using a string or int dtype and "
             "Check.isin(values) to ensure a finite set of values."
         )

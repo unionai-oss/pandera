@@ -62,21 +62,17 @@ COMPLEX_RANGE_CONSTANT = np.complex64(
 )
 
 
+@pytest.mark.parametrize("pdtype", [pa.Category, pa.Object])
+def test_unsupported_pandas_dtype_strategy(pdtype):
+    """Test unsupported pandas dtype strategy raises error."""
+    with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format(pdtype.name)):
+        strategies.pandas_dtype_strategy(pdtype)
+
+
 @pytest.mark.parametrize("pdtype", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
 def test_pandas_dtype_strategy(pdtype, data):
     """Test that series can be constructed from pandas dtype."""
-    if pdtype is pa.PandasDtype.Category:
-        with pytest.raises(
-            TypeError,
-            match=TYPE_ERROR_FMT.format("Categorical"),
-        ):
-            strategies.pandas_dtype_strategy(pdtype)
-        return
-    elif pdtype is pa.PandasDtype.Object:
-        with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format("Object")):
-            strategies.pandas_dtype_strategy(pdtype)
-        return
 
     strategy = strategies.pandas_dtype_strategy(pdtype)
     example = data.draw(strategy)
