@@ -138,7 +138,6 @@ def test_dataframe_pandas_dtype_coerce():
         pandas_dtype=int,
         coerce=True,
     )
-
     df = pd.DataFrame({f"column_{i}": range(10) for i in range(5)}).astype(
         float
     )

@@ -13,7 +13,7 @@ import pandas as pd
 from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import PandasDtype, PandasExtensionType
+from .dtypes import PandasDtype, PandasExtensionType, is_extension_array_dtype
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -1487,15 +1487,6 @@ class SeriesSchemaBase:
     def dtype(self) -> Optional[str]:
         """String representation of the dtype."""
         return PandasDtype.get_str_dtype(self._pandas_dtype)
-
-    @property
-    def pdtype(self) -> Optional[PandasDtype]:
-        """PandasDtype of the series."""
-        if self.dtype is None:
-            return None
-        if isinstance(self.pandas_dtype, PandasDtype):
-            return self.pandas_dtype
-        return PandasDtype.from_str_alias(self.dtype)
 
     @property
     def pdtype(self) -> Optional[PandasDtype]:

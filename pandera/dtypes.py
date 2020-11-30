@@ -401,11 +401,7 @@ class PandasDtype(Enum):
     @property
     def is_string(self) -> bool:
         """Return True if PandasDtype is a string."""
-<<<<<<< HEAD
         return self in [PandasDtype.String, PandasDtype.STRING]
-=======
-        return self in [PandasDtype.Str, PandasDtype.String]
->>>>>>> implement hypothesis strategies for generating synthetic data (#314)
 
     @property
     def is_category(self) -> bool:
