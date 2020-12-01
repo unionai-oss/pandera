@@ -148,7 +148,7 @@ def test_dataframe_pandas_dtype_coerce():
         assert col.pandas_dtype is float
 
     # raises SchemeError if dataframe can't be coerced
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         schema.coerce_dtype(pd.DataFrame({"foo": list("abcdef")}))
 
     # test that original dataframe dtypes are preserved

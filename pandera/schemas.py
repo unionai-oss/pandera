@@ -95,7 +95,7 @@ class DataFrameSchema:
         >>> import pandera as pa
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "str_column": pa.Column(pa.String),
+        ...     "str_column": pa.Column(pa.Str),
         ...     "float_column": pa.Column(pa.Float),
         ...     "int_column": pa.Column(pa.Int),
         ...     "date_column": pa.Column(pa.DateTime),
@@ -114,7 +114,7 @@ class DataFrameSchema:
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.String, [
+        ...         pa.Str, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
@@ -293,7 +293,13 @@ class DataFrameSchema:
                 self.dtype,
                 exc,
             )
-            raise errors.SchemaError(self, None, msg) from exc
+            raise errors.SchemaError(
+                self,
+                obj,
+                msg,
+                failure_cases=scalar_failure_case(str(obj.dtypes.to_dict())),
+                check=f"coerce_dtype({self.pdtype.str_alias})",
+            ) from exc
 
     def coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
         """Coerce dataframe to the type specified in pandas_dtype.
@@ -301,6 +307,15 @@ class DataFrameSchema:
         :param obj: dataframe to coerce.
         :returns: dataframe with coerced dtypes
         """
+
+        error_handler = SchemaErrorHandler(lazy=True)
+
+        def _try_coercion(coerce_fn, obj):
+            try:
+                return coerce_fn(obj)
+            except errors.SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
+
         for colname, col_schema in self.columns.items():
             if col_schema.regex:
                 try:
@@ -310,22 +325,26 @@ class DataFrameSchema:
 
                 for matched_colname in matched_columns:
                     if col_schema.coerce or self.coerce:
-                        obj[matched_colname] = col_schema.coerce_dtype(
-                            obj[matched_colname]
+                        obj[matched_colname] = _try_coercion(
+                            col_schema.coerce_dtype, obj[matched_colname]
                         )
             elif (col_schema.coerce or self.coerce) and self.pdtype is None:
-                obj.loc[:, colname] = col_schema.coerce_dtype(obj[colname])
+                obj.loc[:, colname] = _try_coercion(
+                    col_schema.coerce_dtype, obj[colname]
+                )
 
         if self.pdtype is not None:
-            obj = self._coerce_dtype(obj)
-
+            obj = _try_coercion(self._coerce_dtype, obj)
         if self.index is not None and (self.index.coerce or self.coerce):
             index = copy.deepcopy(self.index)
             if self.coerce:
                 # coercing at the dataframe-level should apply index coercion
                 # for both single- and multi-indexes.
                 index._coerce = True
-            obj.index = index.coerce_dtype(obj.index)
+            obj.index = _try_coercion(index.coerce_dtype, obj.index)
+
+        if error_handler.collected_errors:
+            raise errors.SchemaErrors(error_handler.collected_errors, obj)
 
         return obj
 
@@ -379,7 +398,7 @@ class DataFrameSchema:
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.String, [
+        ...         pa.Str, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
@@ -482,7 +501,17 @@ class DataFrameSchema:
             or (self.index is not None and self.index.coerce)
             or any(col.coerce for col in self.columns.values())
         ):
-            check_obj = self.coerce_dtype(check_obj)
+            try:
+                check_obj = self.coerce_dtype(check_obj)
+            except errors.SchemaErrors as err:
+                for schema_error_dict in err._schema_error_dicts:
+                    if not lazy:
+                        # raise the first error immediately if not doing lazy
+                        # validation
+                        raise schema_error_dict["error"]
+                    error_handler.collect_error(
+                        "schema_component_check", schema_error_dict["error"]
+                    )
 
         # collect schema components for validation
         schema_components = []
@@ -943,7 +972,13 @@ class SeriesSchemaBase:
                 self.dtype,
                 exc,
             )
-            raise errors.SchemaError(self, None, msg) from exc
+            raise errors.SchemaError(
+                self,
+                series_or_index,
+                msg,
+                failure_cases=scalar_failure_case(series_or_index.dtype),
+                check=f"coerce_dtype({self.dtype})",
+            ) from exc
 
     @property
     def _allow_groupby(self):
@@ -1297,25 +1332,39 @@ class SeriesSchema(SeriesSchemaBase):
             check_obj = check_obj.copy()
 
         check_obj = check_obj.pandera.add_schema(self)
+        error_handler = SchemaErrorHandler(lazy=lazy)
 
         if self.coerce:
-            check_obj = self.coerce_dtype(check_obj).pandera.add_schema(self)
+            try:
+                check_obj = self.coerce_dtype(
+                    check_obj
+                ).pandera.add_schema(self)
+            except errors.SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
 
         if self.index is not None and (self.index.coerce or self.coerce):
-            check_obj.index = self.index.coerce_dtype(check_obj.index)
+            try:
+                check_obj.index = self.index.coerce_dtype(check_obj.index)
+            except errors.SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
 
         # validate index
         if self.index:
             self.index(check_obj)
 
-        super().validate(
-            check_obj.copy(),
-            head,
-            tail,
-            sample,
-            random_state,
-            lazy,
-        )
+        try:
+            super().validate(check_obj, head, tail, sample, random_state, lazy)
+        except errors.SchemaErrors as err:
+            for schema_error_dict in err._schema_error_dicts:
+                error_handler.collect_error(
+                    "series_check", schema_error_dict["error"]
+                )
+
+        if error_handler.collected_errors:
+            raise errors.SchemaErrors(
+                error_handler.collected_errors, check_obj
+            )
+
         return check_obj
 
     def __call__(
