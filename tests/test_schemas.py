@@ -1192,3 +1192,35 @@ def test_invalid_keys(schema_simple):
     schema_simple.index = None
     with pytest.raises(errors.SchemaInitError):
         schema_simple.reset_index()
+
+
+def test_update_columns(schema_simple):
+    """ Catch-all test for update columns functionality """
+
+    # Basic function
+    test_schema = schema_simple.update_columns({"col2": {"pandas_dtype": Int}})
+    assert (
+        schema_simple.columns["col1"].properties
+        == test_schema.columns["col1"].properties
+    )
+    assert test_schema.columns["col2"].pandas_dtype == Int
+
+    # Multiple columns, multiple properties
+    test_schema = schema_simple.update_columns(
+        {
+            "col1": {"pandas_dtype": Category, "coerce": True},
+            "col2": {"pandas_dtype": Int, "allow_duplicates": False},
+        }
+    )
+    assert test_schema.columns["col1"].pandas_dtype == Category
+    assert test_schema.columns["col1"].coerce is True
+    assert test_schema.columns["col2"].pandas_dtype == Int
+    assert test_schema.columns["col2"].allow_duplicates is False
+
+    # Errors
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.update_columns({"col3": {"pandas_dtype": Int}})
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.update_columns({"col1": {"name": "foo"}})
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.update_columns({"ind0": {"pandas_dtype": Int}})

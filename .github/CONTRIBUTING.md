@@ -19,6 +19,21 @@ create a development environment that is separate from your existing Python
 environment so that you can make and test changes without compromising your
 own work environment.
 
+### Contributing documentation
+
+Maybe the easiest, fastest, and most useful way to contribute to this project
+(and any other project) is to contribute documentation. If you find an API
+within the project that doesn't have an example or description, or could be
+clearer in its explanation, contribute yours!
+
+This project uses Sphinx for auto-documentation and RST syntax for docstrings.
+Once you have the code downloaded and you find something that is in need of some
+TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/1.0/rest.html)
+documentation or well-documented [examples](https://pandera.readthedocs.io/en/stable/_modules/pandera/schemas.html#DataFrameSchema)
+within the codebase for guidance on contributing.
+
+
+
 ### Dataframe Schema Style Guides
 
 We have guidelines regarding dataframe and schema styles that are encouraged
