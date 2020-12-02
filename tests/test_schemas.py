@@ -138,6 +138,7 @@ def test_dataframe_pandas_dtype_coerce():
         pandas_dtype=int,
         coerce=True,
     )
+
     df = pd.DataFrame({f"column_{i}": range(10) for i in range(5)}).astype(
         float
     )
@@ -148,8 +149,12 @@ def test_dataframe_pandas_dtype_coerce():
         assert col.pandas_dtype is float
 
     # raises SchemeError if dataframe can't be coerced
-    with pytest.raises(errors.SchemaError):
+    with pytest.raises(errors.SchemaErrors):
         schema.coerce_dtype(pd.DataFrame({"foo": list("abcdef")}))
+
+    # raises SchemaErrors on lazy validation
+    with pytest.raises(errors.SchemaErrors):
+        schema(pd.DataFrame({"foo": list("abcdef")}), lazy=True)
 
     # test that original dataframe dtypes are preserved
     assert (df.dtypes == Float.str_alias).all()
@@ -165,6 +170,39 @@ def test_dataframe_pandas_dtype_coerce():
     schema.pandas_dtype = None
     with pytest.raises(ValueError):
         schema._coerce_dtype(df)
+
+
+def test_dataframe_coerce_regex():
+    """Test dataframe pandas dtype coercion for regex columns"""
+    schema = DataFrameSchema(
+        columns={"column_": Column(float, regex=True, required=False)},
+        pandas_dtype=int,
+        coerce=True,
+    )
+
+    no_match_df = pd.DataFrame({"foo": [1, 2, 3]})
+    match_valid_df = pd.DataFrame(
+        {
+            "column_1": [1, 2, 3],
+            "column_2": ["1", "2", "3"],
+        }
+    )
+
+    schema(no_match_df)
+    schema(match_valid_df)
+
+    # if the regex column is required, no matches should raise an error
+    schema_required = schema.update_column("column_", required=True)
+    with pytest.raises(
+        errors.SchemaError, match="Column regex name='column_' did not match"
+    ):
+        schema_required(no_match_df)
+
+
+def test_dataframe_reset_column_name():
+    """Test resetting column name at DataFrameSchema init on named column."""
+    with pytest.warns(UserWarning):
+        DataFrameSchema(columns={"new_name": Column(name="old_name")})
 
 
 def test_series_schema():
