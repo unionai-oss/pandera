@@ -9,6 +9,7 @@ import pandas as pd
 from . import errors
 from . import strategies as st
 from .dtypes import PandasDtype
+from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
     DataFrameSchema,
@@ -63,7 +64,7 @@ class Column(SeriesSchemaBase):
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "column": pa.Column(pa.String)
+        ...     "column": pa.Column(pa.Str)
         ... })
         >>>
         >>> schema.validate(pd.DataFrame({"column": ["foo", "bar"]}))
@@ -296,20 +297,6 @@ class Index(SeriesSchemaBase):
 
     has_subcomponents = False
 
-    def coerce_dtype(self, series_or_index: pd.Index) -> pd.Index:
-        """Coerce type of a pd.Index by type specified in pandas_dtype.
-
-        :param pd.Index series: One-dimensional ndarray with axis labels
-            (including time series).
-        :returns: ``Index`` with coerced data type
-        """
-        if self._pandas_dtype is PandasDtype.Str:
-            # only coerce non-null elements to string
-            return series_or_index.where(
-                series_or_index.isna(), series_or_index.astype(str)
-            )
-        return series_or_index.astype(self.dtype)
-
     @property
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
@@ -442,7 +429,7 @@ class MultiIndex(DataFrameSchema):
         >>> schema = pa.DataFrameSchema(
         ...     columns={"column": pa.Column(pa.Int)},
         ...     index=pa.MultiIndex([
-        ...         pa.Index(pa.String,
+        ...         pa.Index(pa.Str,
         ...               pa.Check(lambda s: s.isin(["foo", "bar"])),
         ...               name="index0"),
         ...         pa.Index(pa.Int, name="index1"),
@@ -495,6 +482,8 @@ class MultiIndex(DataFrameSchema):
         :param obj: multi-index to coerce.
         :returns: ``MultiIndex`` with coerced data type
         """
+        error_handler = SchemaErrorHandler(lazy=True)
+
         if obj.nlevels != len(self.indexes):
             raise errors.SchemaError(
                 self,
@@ -508,8 +497,14 @@ class MultiIndex(DataFrameSchema):
         for level_i, index in enumerate(self.indexes):
             index_array = obj.get_level_values(level_i)
             if index.coerce or self._coerce:
-                index_array = index.coerce_dtype(index_array)
+                try:
+                    index_array = index.coerce_dtype(index_array)
+                except errors.SchemaError as err:
+                    error_handler.collect_error("dtype_coercion_error", err)
             _coerced_multi_index.append(index_array)
+
+        if error_handler.collected_errors:
+            raise errors.SchemaErrors(error_handler.collected_errors, obj)
 
         return pd.MultiIndex.from_arrays(_coerced_multi_index, names=obj.names)
 

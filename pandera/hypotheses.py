@@ -126,7 +126,7 @@ class Hypothesis(_CheckBase):
         ...             relationship_kwargs={"alpha": 0.05}
         ...         )
         ...     ]),
-        ...     "group": pa.Column(pa.String),
+        ...     "group": pa.Column(pa.Str),
         ... })
         >>> df = (
         ...     pd.DataFrame({
@@ -307,7 +307,7 @@ class Hypothesis(_CheckBase):
         ...                 alpha=0.05,
         ...                 equal_var=True),
         ...     ]),
-        ...     "group": pa.Column(pa.String)
+        ...     "group": pa.Column(pa.Str)
         ... })
         >>> df = (
         ...     pd.DataFrame({
