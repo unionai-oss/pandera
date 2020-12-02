@@ -1331,9 +1331,9 @@ class SeriesSchema(SeriesSchemaBase):
 
         if self.coerce:
             try:
-                check_obj = self.coerce_dtype(
-                    check_obj
-                ).pandera.add_schema(self)
+                check_obj = self.coerce_dtype(check_obj).pandera.add_schema(
+                    self
+                )
             except errors.SchemaError as exc:
                 error_handler.collect_error("dtype_coercion_error", exc)
 
@@ -1345,8 +1345,15 @@ class SeriesSchema(SeriesSchemaBase):
 
         # validate index
         if self.index:
-            self.index(check_obj)
+            try:
+                self.index(check_obj, head, tail, sample, random_state, lazy)
+            except errors.SchemaErrors as err:
+                for schema_error_dict in err._schema_error_dicts:
+                    error_handler.collect_error(
+                        "index_check", schema_error_dict["error"]
+                    )
 
+        # validate series
         try:
             super().validate(check_obj, head, tail, sample, random_state, lazy)
         except errors.SchemaErrors as err:
