@@ -46,8 +46,7 @@ def _inferred_schema_guard(method):
             # the original schema instance and the copy should be set to
             # not inferred.
             new_schema._is_inferred = False
-            return new_schema
-        schema._is_inferred = False
+        return new_schema
 
     return _wrapper
 
@@ -878,10 +877,6 @@ class SeriesSchemaBase:
     @property
     def checks(self):
         """Return list of checks or hypotheses."""
-        if self._checks is None:
-            return []
-        if isinstance(self._checks, (Check, Hypothesis)):
-            return [self._checks]
         return self._checks
 
     @checks.setter
@@ -983,7 +978,7 @@ class SeriesSchemaBase:
     @property
     def _allow_groupby(self):
         """Whether the schema or schema component allows groupby operations."""
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "The _allow_groupby property must be implemented by subclasses "
             "of SeriesSchemaBase"
         )
