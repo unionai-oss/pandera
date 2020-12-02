@@ -670,7 +670,6 @@ the pipeline output.
 
 .. testcode:: set_index
 
-
     import pandera as pa
 
     from pandera import Column, DataFrameSchema, Check, Index
