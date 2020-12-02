@@ -15,7 +15,7 @@ from pandera import (
     Float,
     Int,
     SchemaModel,
-    Str,
+    String,
     check_input,
     check_io,
     check_output,
@@ -40,7 +40,7 @@ def test_check_function_decorators():
                 ],
             ),
             "b": Column(
-                Str,
+                String,
                 Check(lambda x: x in ["x", "y", "z"], element_wise=True),
             ),
             "c": Column(
@@ -59,9 +59,9 @@ def test_check_function_decorators():
     )
     out_schema = DataFrameSchema(
         {
-            "e": Column(Str, Check(lambda s: s == "foo")),
+            "e": Column(String, Check(lambda s: s == "foo")),
             "f": Column(
-                Str, Check(lambda x: x in ["a", "b"], element_wise=True)
+                String, Check(lambda x: x in ["a", "b"], element_wise=True)
             ),
         }
     )
@@ -189,7 +189,7 @@ def test_check_function_decorator_errors():
 def test_check_input_method_decorators():
     """Test the check_input and check_output decorator behaviours when the
     dataframe is changed within the function being checked"""
-    in_schema = DataFrameSchema({"column1": Column(Str)})
+    in_schema = DataFrameSchema({"column1": Column(String)})
     out_schema = DataFrameSchema({"column2": Column(Int)})
     dataframe = pd.DataFrame({"column1": ["a", "b", "c"]})
 

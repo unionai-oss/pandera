@@ -94,7 +94,7 @@ class DataFrameSchema:
         >>> import pandera as pa
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "str_column": pa.Column(pa.Str),
+        ...     "str_column": pa.Column(pa.String),
         ...     "float_column": pa.Column(pa.Float),
         ...     "int_column": pa.Column(pa.Int),
         ...     "date_column": pa.Column(pa.DateTime),
@@ -113,7 +113,7 @@ class DataFrameSchema:
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.Str, [
+        ...         pa.String, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
@@ -275,7 +275,7 @@ class DataFrameSchema:
         )
 
     def _coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
-        if self.pandas_dtype is dtypes.PandasDtype.Str:
+        if self.pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
             return obj.where(obj.isna(), obj.astype(str))
 
@@ -397,7 +397,7 @@ class DataFrameSchema:
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.Str, [
+        ...         pa.String, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
@@ -952,7 +952,7 @@ class SeriesSchemaBase:
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if self._pandas_dtype is dtypes.PandasDtype.Str:
+        if self._pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
             return series_or_index.where(
                 series_or_index.isna(),
