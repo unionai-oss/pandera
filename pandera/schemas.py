@@ -410,6 +410,8 @@ class DataFrameSchema:
         if not inplace:
             check_obj = check_obj.copy()
 
+        check_obj = check_obj.pandera.add_schema(self)
+
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
         if self.strict:
@@ -1529,7 +1531,8 @@ class SeriesSchemaBase:
         if self._pandas_dtype is dtypes.PandasDtype.Str:
             # only coerce non-null elements to string
             return series_or_index.where(
-                series_or_index.isna(), series_or_index.astype(str)
+                series_or_index.isna(),
+                series_or_index.astype(str),
             )
 
         try:
@@ -1591,9 +1594,8 @@ class SeriesSchemaBase:
 
         error_handler = SchemaErrorHandler(lazy)
 
-        check_obj = _pandas_obj_to_validate(
-            check_obj, head, tail, sample, random_state
-        )
+        if not inplace:
+            check_obj = check_obj.copy()
 
         series = (
             check_obj
@@ -1601,8 +1603,9 @@ class SeriesSchemaBase:
             else check_obj[self.name]
         )
 
-        if not inplace:
-            series = series.copy()
+        series = _pandas_obj_to_validate(
+            series, head, tail, sample, random_state
+        )
 
         if self.name is not None and series.name != self._name:
             msg = "Expected %s to have name '%s', found '%s'" % (
@@ -1888,8 +1891,13 @@ class SeriesSchema(SeriesSchemaBase):
         if not isinstance(check_obj, pd.Series):
             raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
 
+        if not inplace:
+            check_obj = check_obj.copy()
+
+        check_obj = check_obj.pandera.add_schema(self)
+
         if self.coerce:
-            check_obj = self.coerce_dtype(check_obj)
+            check_obj = self.coerce_dtype(check_obj).pandera.add_schema(self)
 
         if self.index is not None and (self.index.coerce or self.coerce):
             check_obj.index = self.index.coerce_dtype(check_obj.index)
@@ -1898,9 +1906,15 @@ class SeriesSchema(SeriesSchemaBase):
         if self.index:
             self.index(check_obj)
 
-        return super().validate(
-            check_obj, head, tail, sample, random_state, lazy
+        super().validate(
+            check_obj.copy(),
+            head,
+            tail,
+            sample,
+            random_state,
+            lazy,
         )
+        return check_obj
 
     def __call__(
         self,
@@ -1913,7 +1927,9 @@ class SeriesSchema(SeriesSchemaBase):
         inplace: bool = False,
     ) -> pd.Series:
         """Alias for :func:`SeriesSchema.validate` method."""
-        return self.validate(check_obj, head, tail, sample, random_state, lazy)
+        return self.validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
