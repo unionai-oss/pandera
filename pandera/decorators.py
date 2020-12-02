@@ -502,7 +502,7 @@ def check_types(
                     out, head, tail, sample, random_state, lazy, inplace
                 )
             except errors.SchemaError as e:
-                _handle_schema_error("check_types", wrapped, out, "return", e)
+                _handle_schema_error("check_types", wrapped, schema, out, e)
 
         return out
 

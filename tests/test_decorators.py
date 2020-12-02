@@ -507,6 +507,12 @@ def test_check_types_error_input():
     ):
         transform(df)
 
+    try:
+        transform(df)
+    except errors.SchemaError as exc:
+        assert exc.schema == InSchema.to_schema()
+        assert exc.data.equals(df)
+
 
 @pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
 def test_check_types_error_output(out_schema_cls):
@@ -522,6 +528,12 @@ def test_check_types_error_output(out_schema_cls):
         errors.SchemaError, match="column 'b' not in dataframe"
     ):
         transform(df)
+
+    try:
+        transform(df)
+    except errors.SchemaError as exc:
+        assert exc.schema == out_schema_cls.to_schema()
+        assert exc.data.equals(df)
 
 
 @pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
