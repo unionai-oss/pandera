@@ -94,7 +94,7 @@ class DataFrameSchema:
         >>> import pandera as pa
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "str_column": pa.Column(pa.String),
+        ...     "str_column": pa.Column(pa.Str),
         ...     "float_column": pa.Column(pa.Float),
         ...     "int_column": pa.Column(pa.Int),
         ...     "date_column": pa.Column(pa.DateTime),
@@ -111,7 +111,7 @@ class DataFrameSchema:
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.String, [
+        ...         pa.Str, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
@@ -391,7 +391,7 @@ class DataFrameSchema:
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.String, [
+        ...         pa.Str, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),

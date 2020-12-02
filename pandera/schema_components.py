@@ -64,7 +64,7 @@ class Column(SeriesSchemaBase):
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "column": pa.Column(pa.String)
+        ...     "column": pa.Column(pa.Str)
         ... })
         >>>
         >>> schema.validate(pd.DataFrame({"column": ["foo", "bar"]}))
@@ -429,7 +429,7 @@ class MultiIndex(DataFrameSchema):
         >>> schema = pa.DataFrameSchema(
         ...     columns={"column": pa.Column(pa.Int)},
         ...     index=pa.MultiIndex([
-        ...         pa.Index(pa.String,
+        ...         pa.Index(pa.Str,
         ...               pa.Check(lambda s: s.isin(["foo", "bar"])),
         ...               name="index0"),
         ...         pa.Index(pa.Int, name="index1"),
