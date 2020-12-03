@@ -324,7 +324,7 @@ class PandasDtype(Enum):
         if isinstance(other, str):
             other = self.from_str_alias(other)
         if self.value == "string" and LEGACY_PANDAS:
-            return PandasDtype.Str.value == other.value
+            return PandasDtype.String.value == other.value
         elif self.value == "string":
             return self.value == other.value
         return self.str_alias == other.str_alias
