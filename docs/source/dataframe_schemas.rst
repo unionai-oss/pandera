@@ -683,7 +683,7 @@ the pipeline output.
         strict=True,
         coerce=True,
     )
-    print(schema.set_index(["column1"], append = True)
+    print(schema.set_index(["column1"], append = True))
 
 .. testoutput:: set_index
     :options: +NORMALIZE_WHITESPACE
