@@ -396,6 +396,8 @@ def check_io(
             out_schemas = [(None, out)]  # type: ignore
         elif isinstance(out, tuple):
             out_schemas = [out]
+        elif out is None:
+            out_schemas = []
         else:
             raise TypeError(
                 f"type of out argument not recognized: {type(out)}"
