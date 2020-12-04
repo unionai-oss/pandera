@@ -272,6 +272,10 @@ def test_check_io():
     def simple_func(df1, df2):
         return df1.assign(col=df1["col"] + df2["col"])
 
+    @check_io(df1=schema, df2=schema)
+    def simple_func_no_out(df1, df2):
+        return df1.assign(col=df1["col"] + df2["col"])
+
     @check_io(out=(1, schema))
     def output_with_obj_getter(df):
         return None, df
@@ -313,6 +317,7 @@ def test_check_io():
 
     for fn, valid, invalid, out in [
         (simple_func, [df1, df2], [invalid_df, invalid_df], expected),
+        (simple_func_no_out, [df1, df2], [invalid_df, invalid_df], expected),
         (output_with_obj_getter, [df1], [invalid_df], (None, df1)),
         (multiple_outputs_tuple, [df1], [invalid_df], (df1, df1)),
         (
@@ -340,6 +345,16 @@ def test_check_io():
         )
         with pytest.raises(expected_error):
             fn(*invalid)
+
+    # invalid out schema types
+    for out_schema in [1, 5.0, "foo", {"foo": "bar"}, ["foo"]]:
+
+        @check_io(out=out_schema)
+        def invalid_out_schema_type(df):
+            return df
+
+        with pytest.raises((TypeError, ValueError)):
+            invalid_out_schema_type(df1)
 
 
 @pytest.mark.parametrize(
