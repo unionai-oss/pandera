@@ -751,7 +751,7 @@ def test_dataframe_schema_update_column(
 
 
 def test_rename_columns():
-    """Check that DataFrameSchema.rename_columns() method does it's job"""
+    """Check that DataFrameSchema.rename_columns() method does its job"""
 
     rename_dict = {"col1": "col1_new_name", "col2": "col2_new_name"}
     schema_original = DataFrameSchema(
@@ -771,6 +771,9 @@ def test_rename_columns():
     assert all(
         [col_name in schema_original.columns for col_name in rename_dict]
     )
+
+    with pytest.raises(errors.SchemaInitError):
+        schema_original.rename_columns({"foo": "bar"})
 
 
 @pytest.mark.parametrize(
@@ -805,6 +808,9 @@ def test_select_columns(select_columns, schema):
     schema_selected = schema.select_columns(select_columns)
     assert all(x in select_columns for x in schema_selected.columns)
     assert all(x in original_columns for x in schema.columns)
+
+    with pytest.raises(errors.SchemaInitError):
+        schema.select_columns(["foo", "bar"])
 
 
 def test_lazy_dataframe_validation_error():
@@ -1186,3 +1192,35 @@ def test_invalid_keys(schema_simple):
     schema_simple.index = None
     with pytest.raises(errors.SchemaInitError):
         schema_simple.reset_index()
+
+
+def test_update_columns(schema_simple):
+    """ Catch-all test for update columns functionality """
+
+    # Basic function
+    test_schema = schema_simple.update_columns({"col2": {"pandas_dtype": Int}})
+    assert (
+        schema_simple.columns["col1"].properties
+        == test_schema.columns["col1"].properties
+    )
+    assert test_schema.columns["col2"].pandas_dtype == Int
+
+    # Multiple columns, multiple properties
+    test_schema = schema_simple.update_columns(
+        {
+            "col1": {"pandas_dtype": Category, "coerce": True},
+            "col2": {"pandas_dtype": Int, "allow_duplicates": False},
+        }
+    )
+    assert test_schema.columns["col1"].pandas_dtype == Category
+    assert test_schema.columns["col1"].coerce is True
+    assert test_schema.columns["col2"].pandas_dtype == Int
+    assert test_schema.columns["col2"].allow_duplicates is False
+
+    # Errors
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.update_columns({"col3": {"pandas_dtype": Int}})
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.update_columns({"col1": {"name": "foo"}})
+    with pytest.raises(errors.SchemaInitError):
+        schema_simple.update_columns({"ind0": {"pandas_dtype": Int}})

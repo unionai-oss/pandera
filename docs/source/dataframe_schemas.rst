@@ -586,14 +586,13 @@ Some examples of where this can be provided to pandas are:
 DataFrameSchema Transformations
 -------------------------------
 
-Pandera supports transforming a schema using
-:func:`~pandera.schemas.DataFrameSchema.add_columns` and
-:func:`~pandera.schemas.DataFrameSchema.remove_columns`.
+Once you've defined a schema, you can then make modifications to it, both on
+the schema level -- such as adding or removing columns and setting or resetting
+the index -- or on the column level -- such as changing the data type or checks.
 
-Once you've defined a schema, you can add columns to the schema and to create
-a new schema object with the additional columns. This is useful for re-using
-schema objects in a data pipeline when additional computation has been done
-on a dataframe, therefore requiring additional checks.
+This is useful for re-using schema objects in a data pipeline when additional
+computation has been done on a dataframe, where the column objects may have
+changed or perhaps where additional checks may be required.
 
 .. testcode:: add_columns
 
@@ -663,3 +662,56 @@ data pipeline:
         coerce=False,
         strict=True
     )
+
+If during the course of a data pipeline one of your columns is moved into the
+index, you can simply update the initial input schema using the
+:func:`~pandera.schemas.DataFrameSchema.set_index` method to create a schema for
+the pipeline output.
+
+.. testcode:: set_index
+
+    import pandera as pa
+
+    from pandera import Column, DataFrameSchema, Check, Index
+
+    schema = DataFrameSchema(
+        {
+            "column1": Column(pa.Int),
+            "column2": Column(pa.Float)
+        },
+        index=Index(pa.Int, name = "column3"),
+        strict=True,
+        coerce=True,
+    )
+    print(schema.set_index(["column1"], append = True))
+
+.. testoutput:: set_index
+    :options: +NORMALIZE_WHITESPACE
+
+    DataFrameSchema(
+        columns={
+            "column2": "<Schema Column: 'column2' type=float>"
+        },
+        checks=[],
+        index=MultiIndex(
+        columns={
+            "column3": "<Schema Column: 'column3' type=int>",
+            "column1": "<Schema Column: 'column1' type=int>"
+        },
+        checks=[],
+        index=None,
+        coerce=False,
+        strict=False
+    ),
+        coerce=True,
+        strict=True
+    )
+
+
+The available methods for altering the schema are:
+:func:`~pandera.schemas.DataFrameSchema.add_columns` ,
+:func:`~pandera.schemas.DataFrameSchema.remove_columns`,
+:func:`~pandera.schemas.DataFrameSchema.update_columns`,
+:func:`~pandera.schemas.DataFrameSchema.rename_columns`,
+:func:`~pandera.schemas.DataFrameSchema.set_index`,
+and :func:`~pandera.schemas.DataFrameSchema.reset_index`.
