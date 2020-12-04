@@ -403,7 +403,7 @@ def test_python_builtin_types():
     assert isinstance(schema(df), pd.DataFrame)
     assert schema.dtype["int_col"] == PandasDtype.Int.str_alias
     assert schema.dtype["float_col"] == PandasDtype.Float.str_alias
-    assert schema.dtype["str_col"] == PandasDtype.Str.str_alias
+    assert schema.dtype["str_col"] == PandasDtype.String.str_alias
     assert schema.dtype["bool_col"] == PandasDtype.Bool.str_alias
     assert schema.dtype["object_col"] == PandasDtype.Object.str_alias
     assert schema.dtype["complex_col"] == PandasDtype.Complex.str_alias
@@ -419,7 +419,7 @@ def test_python_builtin_types_not_supported(python_type):
 @pytest.mark.parametrize(
     "pandas_api_type,pandas_dtype",
     [
-        ["string", PandasDtype.Str],
+        ["string", PandasDtype.String],
         ["floating", PandasDtype.Float],
         ["integer", PandasDtype.Int],
         ["categorical", PandasDtype.Category],
@@ -552,7 +552,7 @@ def test_dtype_none_comparison(pdtype):
             ],
         ],
         [lambda x: x.is_bool, [PandasDtype.Bool]],
-        [lambda x: x.is_string, [PandasDtype.Str, PandasDtype.String]],
+        [lambda x: x.is_string, [PandasDtype.String, PandasDtype.String]],
         [lambda x: x.is_category, [PandasDtype.Category]],
         [lambda x: x.is_datetime, [PandasDtype.DateTime]],
         [lambda x: x.is_timedelta, [PandasDtype.Timedelta]],

@@ -31,7 +31,7 @@ Multiple checks can be applied to a column:
 .. testcode:: checks
 
   schema = pa.DataFrameSchema({
-      "column2": pa.Column(pa.Str, [
+      "column2": pa.Column(pa.String, [
           pa.Check(lambda s: s.str.startswith("value")),
           pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
       ]),
@@ -50,7 +50,7 @@ For common validation tasks, built-in checks are available in ``pandera``.
   schema = DataFrameSchema({
       "small_values": Column(pa.Float, Check.less_than(100)),
       "one_to_three": Column(pa.Int, Check.isin([1, 2, 3])),
-      "phone_number": Column(pa.Str, Check.str_matches(r'^[a-z0-9-]+$')),
+      "phone_number": Column(pa.String, Check.str_matches(r'^[a-z0-9-]+$')),
   })
 
 See the :class:`~pandera.checks.Check` API reference for a complete list of built-in checks.
@@ -159,7 +159,7 @@ fly.
             ]),
         "age": pa.Column(pa.Int, pa.Check(lambda s: s > 0)),
         "age_less_than_20": pa.Column(pa.Bool),
-        "sex": pa.Column(pa.Str, pa.Check(lambda s: s.isin(["M", "F"])))
+        "sex": pa.Column(pa.String, pa.Check(lambda s: s.isin(["M", "F"])))
     })
 
     df = (
@@ -203,7 +203,7 @@ columns in a ``DataFrame``. For example, if you want to make assertions about
             pa.Float,
             pa.Check(lambda g: g["A"].mean() < g["B"].mean(), groupby="group")
         ),
-        "group": pa.Column(pa.Str)
+        "group": pa.Column(pa.String)
     })
 
     schema.validate(df)

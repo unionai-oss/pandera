@@ -467,7 +467,7 @@ def test_dataframe_checks(pdtype, data):
     dataframe_schema(example)
 
 
-@pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.Str, pa.DateTime])
+@pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.String, pa.DateTime])
 @hypothesis.given(st.data())
 def test_dataframe_strategy_with_indexes(pdtype, data):
     """Test dataframe strategy with index and multiindex components."""
