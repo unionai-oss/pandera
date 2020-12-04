@@ -152,7 +152,7 @@ class _CheckBase:
         ...     columns={
         ...         "measure_1": pa.Column(pa.Int, checks=measure_checks),
         ...         "measure_2": pa.Column(pa.Int, checks=measure_checks),
-        ...         "group": pa.Column(pa.Str),
+        ...         "group": pa.Column(pa.String),
         ...     },
         ...     checks=check_dataframe
         ... )

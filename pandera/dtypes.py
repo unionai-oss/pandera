@@ -82,7 +82,7 @@ class PandasDtype(Enum):
     1    2.3
     2    3.4
     dtype: float64
-    >>> pa.SeriesSchema(pa.Str).validate(pd.Series(["a", "b", "c"]))
+    >>> pa.SeriesSchema(pa.String).validate(pd.Series(["a", "b", "c"]))
         0    a
     1    b
     2    c
@@ -149,11 +149,11 @@ class PandasDtype(Enum):
     Complex64 = "complex64"  #: ``"complex"`` numpy dtype
     Complex128 = "complex128"  #: ``"complex"`` numpy dtype
     Complex256 = "complex256"  #: ``"complex"`` numpy dtype
-    Str = "str"  #: ``"str"`` numpy dtype
+    String = "str"  #: ``"str"`` numpy dtype
 
     #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
     #: fall back on the str-as-object-array representation.
-    String = "string"
+    STRING = "string"
 
     @property
     def str_alias(self):
@@ -205,8 +205,8 @@ class PandasDtype(Enum):
             "complex64": cls.Complex64,
             "complex128": cls.Complex128,
             "complex256": cls.Complex256,
-            "str": cls.Str,
-            "string": cls.Str if LEGACY_PANDAS else cls.String,
+            "str": cls.String,
+            "string": cls.String if LEGACY_PANDAS else cls.STRING,
         }.get(str_alias)
 
         if pandas_dtype is None:
@@ -228,7 +228,7 @@ class PandasDtype(Enum):
             return cls.Object
 
         pandas_dtype = {
-            "string": cls.Str,
+            "string": cls.String,
             "floating": cls.Float,
             "integer": cls.Int,
             "categorical": cls.Category,
@@ -255,7 +255,7 @@ class PandasDtype(Enum):
         """
         pandas_dtype = {
             bool: cls.Bool,
-            str: cls.Str,
+            str: cls.String,
             int: cls.Int,
             float: cls.Float,
             object: cls.Object,
@@ -323,7 +323,7 @@ class PandasDtype(Enum):
         if isinstance(other, str):
             other = self.from_str_alias(other)
         if self.value == "string" and LEGACY_PANDAS:
-            return PandasDtype.Str.value == other.value
+            return PandasDtype.String.value == other.value
         elif self.value == "string":
             return self.value == other.value
         return self.str_alias == other.str_alias
@@ -401,7 +401,7 @@ class PandasDtype(Enum):
     @property
     def is_string(self) -> bool:
         """Return True if PandasDtype is a string."""
-        return self in [PandasDtype.Str, PandasDtype.String]
+        return self in [PandasDtype.String, PandasDtype.STRING]
 
     @property
     def is_category(self) -> bool:

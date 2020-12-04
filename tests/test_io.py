@@ -137,7 +137,7 @@ columns:
     required: true
     regex: false
   str_column:
-    pandas_dtype: string
+    pandas_dtype: str
     nullable: false
     checks:
       isin:
@@ -173,7 +173,7 @@ columns:
     required: true
     regex: false
   optional_props_column:
-    pandas_dtype: string
+    pandas_dtype: str
     nullable: true
     checks:
       str_length:
@@ -232,7 +232,7 @@ columns:
         min_value: -10
         max_value: 20
   str_column:
-    pandas_dtype: string
+    pandas_dtype: str
     nullable: false
     checks:
       isin:

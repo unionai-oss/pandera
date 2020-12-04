@@ -48,7 +48,7 @@ which can be called as in this example of a two-sample t-test:
                     alpha=0.05,
                     equal_var=True),
         ]),
-        "sex": Column(pa.Str)
+        "sex": Column(pa.String)
     })
 
     schema.validate(df)
@@ -99,7 +99,7 @@ Here's an implementation of the two-sample t-test that uses the
                     relationship_kwargs={"alpha": 0.05}
                 )
         ]),
-        "sex": Column(pa.Str, checks=Check.isin(["M", "F"]))
+        "sex": Column(pa.String, checks=Check.isin(["M", "F"]))
     })
 
     schema.validate(df)
@@ -139,7 +139,7 @@ the tidy dataset and schema might look like this:
                 alpha=0.05
             )
         ),
-        "group": Column(pa.Str, Check(lambda s: s.isin(["A", "B"])))
+        "group": Column(pa.String, Check(lambda s: s.isin(["A", "B"])))
     })
 
     schema.validate(df)

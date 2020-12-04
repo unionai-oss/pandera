@@ -38,6 +38,6 @@ UINT16 = PandasDtype.UINT16
 UINT32 = PandasDtype.UINT32
 UINT64 = PandasDtype.UINT64
 Object = PandasDtype.Object
-Str = PandasDtype.Str
 String = PandasDtype.String
+STRING = PandasDtype.STRING
 Timedelta = PandasDtype.Timedelta
