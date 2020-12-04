@@ -82,7 +82,7 @@ class PandasDtype(Enum):
     1    2.3
     2    3.4
     dtype: float64
-    >>> pa.SeriesSchema(pa.Str).validate(pd.Series(["a", "b", "c"]))
+    >>> pa.SeriesSchema(pa.String).validate(pd.Series(["a", "b", "c"]))
         0    a
     1    b
     2    c
