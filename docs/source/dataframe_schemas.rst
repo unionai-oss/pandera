@@ -688,18 +688,24 @@ the pipeline output.
 .. testoutput:: set_index
     :options: +NORMALIZE_WHITESPACE
 
-    DataFrameSchema(columns={'column2': <Schema Column: 'column2' type=float>},
+    DataFrameSchema(
+        columns={
+            "column2": "<Schema Column: 'column2' type=float>"
+        },
+        checks=[],
         index=MultiIndex(
-            columns={
-                "column3": "<Schema Column: 'column3' type=int>",
-                "column1": "<Schema Column: 'column1' type=int>"
-            },
-            checks=[],
-            index=None,
-            coerce=False,
-            strict=False
-        ),
-        coerce=False)
+        columns={
+            "column3": "<Schema Column: 'column3' type=int>",
+            "column1": "<Schema Column: 'column1' type=int>"
+        },
+        checks=[],
+        index=None,
+        coerce=False,
+        strict=False
+    ),
+        coerce=True,
+        strict=True
+    )
 
 
 The available methods for altering the schema are:
