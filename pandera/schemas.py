@@ -13,7 +13,7 @@ import pandas as pd
 from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import PandasDtype, PandasExtensionType, is_extension_array_dtype
+from .dtypes import PandasDtype, PandasExtensionType
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
