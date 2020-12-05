@@ -13,7 +13,7 @@ import pandas as pd
 from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import PandasDtype, PandasExtensionType, is_extension_array_dtype
+from .dtypes import PandasDtype, PandasExtensionType
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -287,11 +287,7 @@ class DataFrameSchema:
         try:
             return obj.astype(self.pdtype.str_alias)
         except (ValueError, TypeError) as exc:
-            msg = "Error while coercing '%s' to type %s: %s" % (
-                self.name,
-                self.dtype,
-                exc,
-            )
+            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
             raise errors.SchemaError(
                 self,
                 obj,
@@ -1498,40 +1494,6 @@ class SeriesSchemaBase:
     @property
     def dtype(self) -> Optional[str]:
         """String representation of the dtype."""
-        dtype_ = self._pandas_dtype
-        if dtype_ is None:
-            return dtype_
-
-        if is_extension_array_dtype(dtype_):
-            if isinstance(dtype_, type):
-                try:
-                    # Convert to str here because some pandas dtypes allow
-                    # an empty constructor for compatatibility but fail on
-                    # str(). e.g: PeriodDtype
-                    return str(dtype_())
-                except (TypeError, AttributeError) as err:
-                    raise TypeError(
-                        f"Pandas dtype {dtype_} cannot be instantiated: "
-                        f"{err}\n Usage Tip: Use an instance or a string "
-                        "representation."
-                    ) from err
-            return str(dtype_)
-
-        if dtype_ in dtypes.NUMPY_TYPES:
-            dtype_ = PandasDtype.from_numpy_type(dtype_)
-        elif isinstance(dtype_, str):
-            dtype_ = PandasDtype.from_str_alias(dtype_)
-        elif isinstance(dtype_, type):
-            dtype_ = PandasDtype.from_python_type(dtype_)
-
-        if isinstance(dtype_, dtypes.PandasDtype):
-            return dtype_.str_alias
-        raise TypeError(
-            "type of `pandas_dtype` argument not recognized: %s "
-            "Please specify a pandera PandasDtype enum, legal pandas data "
-            "type, pandas data type string alias, or numpy data type "
-            "string alias" % type(self._pandas_dtype)
-        )
         return PandasDtype.get_str_dtype(self._pandas_dtype)
 
     @property
@@ -1562,11 +1524,7 @@ class SeriesSchemaBase:
         try:
             return series_or_index.astype(self.dtype)
         except (ValueError, TypeError) as exc:
-            msg = "Error while coercing '%s' to type %s: %s" % (
-                self.name,
-                self.dtype,
-                exc,
-            )
+            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
             raise errors.SchemaError(
                 self,
                 series_or_index,

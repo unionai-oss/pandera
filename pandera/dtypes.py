@@ -309,10 +309,10 @@ class PandasDtype(Enum):
         if isinstance(dtype_, cls):
             return dtype_.str_alias
         raise TypeError(
-            "type of `pandas_dtype` argument not recognized: %s "
-            "Please specify a pandera PandasDtype enum, legal pandas data "
-            "type, pandas data type string alias, or numpy data type "
-            "string alias" % type(pandas_dtype_arg)
+            "type of `pandas_dtype` argument not recognized: "
+            f"{type(pandas_dtype_arg)}. Please specify a pandera PandasDtype "
+            "enum, legal pandas data type, pandas data type string alias, or "
+            "numpy data type string alias"
         )
 
     def __eq__(self, other):
