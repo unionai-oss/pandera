@@ -9,6 +9,7 @@ to compose strategies given multiple checks specified in a schema.
 
 import operator
 import re
+import warnings
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
@@ -652,8 +653,25 @@ def field_element_strategy(
         )
     checks = [] if checks is None else checks
     elements = None
+
+    def undefined_check_strategy(elements, check):
+        """Strategy for checks with undefined strategies."""
+        warnings.warn(
+            "Element-wise check doesn't have a defined strategy."
+            "Falling back to filtering drawn values based on the check "
+            "definition. This can considerably slow down data-generation."
+        )
+        return (
+            pandas_dtype_strategy(pandas_dtype)
+            if elements is None
+            else elements
+        ).filter(lambda x: check._check_fn(x))
+
     for check in checks:
-        elements = check.strategy(pandas_dtype, elements)
+        if hasattr(check, "strategy"):
+            elements = check.strategy(pandas_dtype, elements)
+        elif check.element_wise:
+            elements = undefined_check_strategy(elements, check)
     if elements is None:
         elements = pandas_dtype_strategy(pandas_dtype)
     return elements
@@ -699,6 +717,24 @@ def series_strategy(
     )
     if nullable:
         strategy = null_field_masks(strategy)
+
+    def undefined_check_strategy(strategy, check):
+        """Strategy for checks with undefined strategies."""
+        warnings.warn(
+            "Vectorized check doesn't have a defined strategy."
+            "Falling back to filtering drawn values based on the check "
+            "definition. This can considerably slow down data-generation."
+        )
+
+        def _check_fn(series):
+            return check(series).check_passed
+
+        return strategy.filter(_check_fn)
+
+    for check in checks if checks is not None else []:
+        if not hasattr(check, "strategy") and not check.element_wise:
+            strategy = undefined_check_strategy(strategy, check)
+
     return strategy
 
 
@@ -811,17 +847,63 @@ def dataframe_strategy(
         col_name: col.nullable for col_name, col in columns.items()
     }
 
-    def make_row_strategy(col):
-        strat = None
+    def undefined_check_strategy(strategy, check):
+        """Strategy for checks with undefined strategies."""
+
+        def _element_wise_check_fn(element):
+            return check._check_fn(element)
+
+        def _dataframe_check_fn(dataframe):
+            return check(dataframe).check_passed
+
+        if check.element_wise:
+            check_fn = _element_wise_check_fn
+            warning_type = "Element-wise"
+        else:
+            check_fn = _dataframe_check_fn
+            warning_type = "Dataframe-level"
+
+        warnings.warn(
+            f"{warning_type} check doesn't have a defined strategy. "
+            "Falling back to filtering drawn values based on the check "
+            "definition. This can considerably slow down data-generation."
+        )
+
+        return strategy.filter(check_fn)
+
+    def make_row_strategy(col, checks):
+        strategy = None
         for check in checks:
-            strat = check.strategy(col.pdtype, strat)
-        return strat
+            if hasattr(check, "strategy"):
+                strategy = check.strategy(col.pdtype, strategy)
+            else:
+                strategy = undefined_check_strategy(
+                    strategy=(
+                        pandas_dtype_strategy(col.pdtype)
+                        if strategy is None
+                        else strategy
+                    ),
+                    check=check,
+                )
+        if strategy is None:
+            strategy = pandas_dtype_strategy(col.pdtype)
+        return strategy
+
+    row_strategy_checks = []
+    undefined_strat_df_checks = []
+    for check in checks:
+        if hasattr(check, "strategy") or check.element_wise:
+            # we can apply element-wise checks defined at the dataframe level
+            # to the row strategy
+            row_strategy_checks.append(check)
+        else:
+            undefined_strat_df_checks.append(check)
 
     row_strategy = None
     if checks:
         row_strategy = st.fixed_dictionaries(
             {
-                col_name: make_row_strategy(col)
+                col_name: make_row_strategy(col, row_strategy_checks)
                 for col_name, col in columns.items()
             }
         )
@@ -850,6 +932,10 @@ def dataframe_strategy(
         if pandas_dtype is not None
         else x
     )
+
+    for check in undefined_strat_df_checks:
+        strategy = undefined_check_strategy(strategy, check)
+
     return strategy
 
 

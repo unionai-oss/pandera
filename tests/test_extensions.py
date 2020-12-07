@@ -1,0 +1,226 @@
+"""Unit tests for pandera API extensions."""
+
+from typing import Any, Optional
+
+import pandas as pd
+import pytest
+
+import pandera as pa
+import pandera.strategies as st
+from pandera import PandasDtype, extensions
+from pandera.checks import Check
+
+
+@pytest.fixture(scope="function")
+def custom_check_teardown():
+    """Remove all custom checks after execution of each pytest function."""
+    yield
+    for check_name in list(pa.Check.REGISTERED_CUSTOM_CHECKS):
+        delattr(pa.Check, check_name)
+        del pa.Check.REGISTERED_CUSTOM_CHECKS[check_name]
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.Series([10, 10, 10]),
+        pd.DataFrame([[10, 10, 10], [10, 10, 10]]),
+    ],
+)
+def test_register_vectorized_custom_check(custom_check_teardown, data):
+    """Test registering a vectorized custom check."""
+
+    @extensions.register_check_method(
+        statistics=["val"],
+        supported_types=(pd.Series, pd.DataFrame),
+        check_type="vectorized",
+    )
+    def custom_check(pandas_obj, *, val):
+        return pandas_obj == val
+
+    check = Check.custom_check(val=10)
+    check_result = check(data)
+    assert check_result.check_passed
+
+    for kwargs in [
+        {"element_wise": True},
+        {"element_wise": False},
+        {"groupby": "column"},
+        {"groups": ["group1", "group2"]},
+    ]:
+        with pytest.warns(UserWarning):
+            Check.custom_check(val=10, **kwargs)
+
+    with pytest.raises(
+        ValueError,
+        match="method with name 'custom_check' already defined",
+    ):
+
+        @extensions.register_check_method(statistics=["val"])
+        def custom_check(pandas_obj, val):  # noqa
+            return pandas_obj != val
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.Series([10, 10, 10]),
+        pd.DataFrame([[10, 10, 10], [10, 10, 10]]),
+    ],
+)
+def test_register_element_wise_custom_check(custom_check_teardown, data):
+    @extensions.register_check_method(
+        statistics=["val"],
+        supported_types=(pd.Series, pd.DataFrame),
+        check_type="element_wise",
+    )
+    def custom_check(element, *, val):
+        return element == val
+
+    check = Check.custom_check(val=10)
+    check_result = check(data)
+    assert check_result.check_passed
+
+    for kwargs in [
+        {"element_wise": True},
+        {"element_wise": False},
+        {"groupby": "column"},
+        {"groups": ["group1", "group2"]},
+    ]:
+        with pytest.warns(UserWarning):
+            Check.custom_check(val=10, **kwargs)
+
+    with pytest.raises(
+        ValueError,
+        match="Element-wise checks should support DataFrame and Series "
+        "validation",
+    ):
+
+        @extensions.register_check_method(
+            supported_types=pd.Series,
+            check_type="element_wise",
+        )
+        def invalid_custom_check(*args):
+            pass
+
+
+def test_register_custom_groupby_check(custom_check_teardown):
+    """Test registering a custom groupby check."""
+
+    @extensions.register_check_method(
+        statistics=["group_A", "group_B"],
+        supported_types=(pd.Series, pd.DataFrame),
+        check_type="groupby",
+    )
+    def custom_check(dict_groups, *, group_A, group_B):
+        """
+        Test that the mean values in group A is larger than that of group B.
+
+        Note that this function can handle groups of both dataframes and
+        series.
+        """
+        return (
+            dict_groups[group_A].values.mean()
+            > dict_groups[group_B].values.mean()
+        )
+
+    # column groupby check
+    data_column_check = pd.DataFrame(
+        {
+            "col1": [20, 20, 10, 10],
+            "col2": list("aabb"),
+        }
+    )
+
+    schema_column_check = pa.DataFrameSchema(
+        {
+            "col1": pa.Column(
+                int,
+                Check.custom_check(group_A="a", group_B="b", groupby="col2"),
+            ),
+            "col2": pa.Column(str),
+        }
+    )
+    assert isinstance(schema_column_check(data_column_check), pd.DataFrame)
+
+    # dataframe groupby check
+    data_df_check = pd.DataFrame(
+        {
+            "col1": [20, 20, 10, 10],
+            "col2": [30, 30, 5, 5],
+            "col3": [10, 10, 1, 1],
+        },
+        index=pd.Index(list("aabb"), name="my_index"),
+    )
+    schema_df_check = pa.DataFrameSchema(
+        columns={
+            "col1": pa.Column(int),
+            "col2": pa.Column(int),
+            "col3": pa.Column(int),
+        },
+        index=pa.Index(str, name="my_index"),
+        checks=Check.custom_check(
+            group_A="a", group_B="b", groupby="my_index"
+        ),
+    )
+    assert isinstance(schema_df_check(data_df_check), pd.DataFrame)
+
+    for kwargs in [{"element_wise": True}, {"element_wise": False}]:
+        with pytest.warns(UserWarning):
+            Check.custom_check(val=10, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "supported_types",
+    [
+        1,
+        10.0,
+        "foo",
+        {"foo": "bar"},
+        {1: 10},
+        ["foo", "bar"],
+        [1, 10],
+        ("foo", "bar"),
+        (1, 10),
+    ],
+)
+def test_register_check_invalid_supported_types(supported_types):
+    with pytest.raises(TypeError):
+
+        @extensions.register_check_method(supported_types=supported_types)
+        def custom_check(*args, **kwargs):
+            pass
+
+
+@pytest.mark.skipif(
+    not st.HAS_HYPOTHESIS, reason='needs "strategies" module dependencies'
+)
+def test_register_check_with_strategy(custom_check_teardown):
+    """Test registering a custom check with a data generation strategy."""
+
+    import hypothesis  # pylint: disable=import-outside-toplevel
+
+    def custom_ge_strategy(
+        pandas_dtype: PandasDtype,
+        strategy: Optional[st.SearchStrategy] = None,
+        *,
+        min_value: Any,
+    ) -> st.SearchStrategy:
+        if strategy is None:
+            return st.pandas_dtype_strategy(
+                pandas_dtype,
+                min_value=min_value,
+                exclude_min=False,
+            )
+        return strategy.filter(lambda x: x > min_value)
+
+    @extensions.register_check_method(
+        statistics=["min_value"], strategy=custom_ge_strategy
+    )
+    def custom_ge_check(pandas_obj, *, min_value):
+        return pandas_obj >= min_value
+
+    check = Check.custom_ge_check(min_value=0)
+    strat = check.strategy(PandasDtype.Int)
+    with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
+        assert strat.example() >= 0

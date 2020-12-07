@@ -145,6 +145,7 @@ def Field(
     n_failure_cases: int = 10,
     alias: str = None,
     check_name: bool = None,
+    **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
 
@@ -203,6 +204,7 @@ _check_dispatch = {
     "str_matches": Check.str_matches,
     "str_length": Check.str_length,
     "str_startswith": Check.str_startswith,
+    **Check.REGISTERED_CUSTOM_CHECKS,
 }
 
 

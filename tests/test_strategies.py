@@ -27,12 +27,6 @@ else:
     HAS_HYPOTHESIS = True
 
 
-# skip all tests in module if "strategies" dependencies aren't installed
-no_hypothesis_dep = pytest.mark.skipif(
-    not HAS_HYPOTHESIS, reason='needs "strategies" module dependencies'
-)
-
-
 TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
 
 SUPPORTED_DTYPES = []
@@ -348,7 +342,7 @@ def test_register_check_strategy(data):
             return cls(
                 _custom_equals,
                 name=cls.custom_equals.__name__,
-                error="equal_to(%s)" % value,
+                error=f"equal_to({value})",
                 **kwargs,
             )
 
@@ -449,6 +443,7 @@ def test_dataframe_example():
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@hypothesis.settings(deadline=None)
 @hypothesis.given(st.data())
 def test_dataframe_checks(pdtype, data):
     """Test dataframe strategy with checks defined at the dataframe level."""
@@ -610,3 +605,85 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
         assert example.isna().any(axis=None)
     else:
         assert example.notna().all(axis=None)
+
+
+@pytest.mark.parametrize(
+    "schema, warning",
+    [
+        [
+            pa.SeriesSchema(
+                pa.Int,
+                checks=[
+                    pa.Check(lambda x: x > 0, element_wise=True),
+                    pa.Check(lambda x: x > -10, element_wise=True),
+                ],
+            ),
+            "Element-wise",
+        ],
+        [
+            pa.SeriesSchema(
+                pa.Int,
+                checks=[
+                    pa.Check(lambda s: s > -10000),
+                    pa.Check(lambda s: s > -9999),
+                ],
+            ),
+            "Vectorized",
+        ],
+    ],
+)
+@hypothesis.settings(
+    suppress_health_check=[
+        hypothesis.HealthCheck.filter_too_much,
+        hypothesis.HealthCheck.too_slow,
+    ],
+)
+@hypothesis.given(st.data())
+def test_series_strategy_undefined_check_strategy(schema, warning, data):
+    with pytest.warns(
+        UserWarning, match=f"{warning} check doesn't have a defined strategy"
+    ):
+        strat = schema.strategy(size=5)
+    example = data.draw(strat)
+    schema(example)
+
+
+@pytest.mark.parametrize(
+    "schema, warning",
+    [
+        [
+            pa.DataFrameSchema(
+                columns={"column": pa.Column(pa.Int)},
+                checks=[
+                    pa.Check(lambda x: x > 0, element_wise=True),
+                    pa.Check(lambda x: x > -10, element_wise=True),
+                ],
+            ),
+            "Element-wise",
+        ],
+        [
+            pa.DataFrameSchema(
+                columns={"column": pa.Column(pa.Int)},
+                checks=[
+                    pa.Check(lambda s: s > -10000),
+                    pa.Check(lambda s: s > -9999),
+                ],
+            ),
+            "Dataframe-level",
+        ],
+    ],
+)
+@hypothesis.settings(
+    suppress_health_check=[
+        hypothesis.HealthCheck.filter_too_much,
+        hypothesis.HealthCheck.too_slow,
+    ],
+)
+@hypothesis.given(st.data())
+def test_dataframe_strategy_undefined_check_strategy(schema, warning, data):
+    with pytest.warns(
+        UserWarning, match=f"{warning} check doesn't have a defined strategy"
+    ):
+        strat = schema.strategy(size=5)
+    example = data.draw(strat)
+    schema(example)

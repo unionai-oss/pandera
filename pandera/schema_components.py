@@ -333,9 +333,13 @@ class Index(SeriesSchemaBase):
             check_obj.index = self.coerce_dtype(check_obj.index)
             # handles case where pandas native string type is not supported
             # by index.
-            obj_to_validate = pd.Series(check_obj.index).astype(self.dtype)
+            obj_to_validate = pd.Series(
+                check_obj.index, name=check_obj.index.name
+            ).astype(self.dtype)
         else:
-            obj_to_validate = pd.Series(check_obj.index)
+            obj_to_validate = pd.Series(
+                check_obj.index, name=check_obj.index.name
+            )
 
         assert isinstance(
             super().validate(
