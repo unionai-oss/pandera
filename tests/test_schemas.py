@@ -1349,3 +1349,37 @@ def test_series_schema_pdtype(pdtype):
             assert series_schema.pdtype == PandasDtype.String
         else:
             assert series_schema.pdtype == pdtype
+
+
+@pytest.mark.parametrize(
+    "data, error",
+    [
+        [
+            pd.DataFrame(
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "a", "b"]
+            ),
+            None,
+        ],
+        [
+            pd.DataFrame(
+                [[1, 2, 3], list("xyz"), [7, 8, 9]], columns=["a", "a", "b"]
+            ),
+            errors.SchemaError,
+        ],
+    ],
+)
+@pytest.mark.parametrize(
+    "schema",
+    [
+        DataFrameSchema({"a": Column(int), "b": Column(int)}),
+        DataFrameSchema({"a": Column(int, coerce=True), "b": Column(int)}),
+        DataFrameSchema({"a": Column(int, regex=True), "b": Column(int)}),
+    ],
+)
+def test_dataframe_duplicated_columns(data, error, schema):
+    """Test that schema can handle dataframes with duplicated columns."""
+    if error is None:
+        assert isinstance(schema(data), pd.DataFrame)
+    else:
+        with pytest.raises(error):
+            schema(data)

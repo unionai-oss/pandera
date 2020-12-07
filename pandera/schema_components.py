@@ -136,6 +136,15 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
+    def coerce_dtype(self, obj: Union[pd.DataFrame, pd.Series, pd.Index]):
+        """Coerce dtype of a column, handling duplicate column names."""
+        # pylint: disable=super-with-arguments
+        if isinstance(obj, (pd.Series, pd.Index)):
+            return super(Column, self).coerce_dtype(obj)
+        return obj.apply(
+            lambda x: super(Column, self).coerce_dtype(x), axis="columns"
+        )
+
     def validate(
         self,
         check_obj: pd.DataFrame,
@@ -175,28 +184,28 @@ class Column(SeriesSchemaBase):
                 "method.",
             )
 
+        def validate_column(check_obj):
+            super(Column, copy(self).set_name(column_name)).validate(
+                check_obj, head, tail, sample, random_state, lazy
+            )
+
         column_keys_to_check = (
             self.get_regex_columns(check_obj.columns)
             if self._regex
             else [self._name]
         )
 
-        check_results = []
         for column_name in column_keys_to_check:
             if self.coerce:
-                check_obj[column_name] = self.coerce_dtype(
-                    check_obj[column_name]
+                check_obj.loc[:, column_name] = self.coerce_dtype(
+                    check_obj.loc[:, column_name]
                 )
-            check_results.append(
-                isinstance(
-                    super(Column, copy(self).set_name(column_name)).validate(
-                        check_obj, head, tail, sample, random_state, lazy
-                    ),
-                    pd.DataFrame,
-                )
-            )
+            if isinstance(check_obj[column_name], pd.DataFrame):
+                for i in range(check_obj[column_name].shape[1]):
+                    validate_column(check_obj[column_name].iloc[:, [i]])
+            else:
+                validate_column(check_obj)
 
-        assert all(check_results)
         return check_obj
 
     def get_regex_columns(
@@ -244,7 +253,9 @@ class Column(SeriesSchemaBase):
                 "dataframe. Update the regex pattern so that it matches at "
                 "least one column:\n%s" % (self.name, columns.tolist()),
             )
-        return column_keys_to_check
+        # drop duplicates to account for potential duplicated columns in the
+        # dataframe.
+        return column_keys_to_check.drop_duplicates()
 
     @st.strategy_import_error
     def strategy(self, *, size=None):

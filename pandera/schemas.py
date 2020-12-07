@@ -1505,9 +1505,7 @@ class SeriesSchemaBase:
             return self.pandas_dtype
         return PandasDtype.from_str_alias(self.dtype)
 
-    def coerce_dtype(
-        self, series_or_index: Union[pd.Series, pd.Index]
-    ) -> pd.Series:
+    def coerce_dtype(self, obj: Union[pd.Series, pd.Index]) -> pd.Series:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
@@ -1516,20 +1514,23 @@ class SeriesSchemaBase:
         """
         if self._pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
-            return series_or_index.where(
-                series_or_index.isna(),
-                series_or_index.astype(str),
+            return obj.where(
+                obj.isna(),
+                obj.astype(str),
             )
 
         try:
-            return series_or_index.astype(self.dtype)
+            return obj.astype(self.dtype)
         except (ValueError, TypeError) as exc:
-            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
+            msg = (
+                f"Error while coercing '{self.name}' to type "
+                f"{self.dtype}: {exc}"
+            )
             raise errors.SchemaError(
                 self,
-                series_or_index,
+                obj,
                 msg,
-                failure_cases=scalar_failure_case(series_or_index.dtype),
+                failure_cases=scalar_failure_case(obj.dtype),
                 check=f"coerce_dtype({self.dtype})",
             ) from exc
 
