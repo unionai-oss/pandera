@@ -27,6 +27,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
           environment-file: ${{ matrix.env-file }}
           auto-activate-base: false
+      - name: Cache conda
+        uses: actions/cache@v1
+        env:
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACH_NUMBER }}-${{
+            hashFiles('${{ matrix.env-file }}') }}
       - name: Conda info
         run: |
           conda info
