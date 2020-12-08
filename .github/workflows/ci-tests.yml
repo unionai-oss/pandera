@@ -3,18 +3,19 @@ on: push
 
 jobs:
   ci-tests:
-    name: CI Tests (${{ matrix.python-version }}, ${{ matrix.os }})
+    name:
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}),
+      Pandera [${{ matrix.env-infix }}[], Pandas ${{ matrix.env-suffix }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.6", "3.7", "3.8", "3.9"]
-        env-file:
-          - ./ci/environment_pandas_latest.yml
-          - ./ci/environment_pandas_0_25_3.yml
-          - ./ci/environment_core_pandas_latest.yml
-          - ./ci/environment_core_pandas_0_25_3.yml
+        env-suffix: ["latest", "0_25_3"]
+        env-infix:
+          - 'core'
+          - 'all'
     defaults:
       run:
         shell: bash -l {0}
@@ -25,7 +26,7 @@ jobs:
           activate-environment: pandera-dev
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          environment-file: ${{ matrix.env-file }}
+          environment-file: ./ci/environment_${{ matrix.env-infix }}_pandas_${{ matrix.env-suffix }}.yml
           auto-activate-base: false
       - name: Cache conda
         uses: actions/cache@v1
@@ -35,7 +36,7 @@ jobs:
           path: ~/conda_pkgs_dir
           key:
             ${{ runner.os }}-conda-${{ env.CACH_NUMBER }}-${{
-            hashFiles('${{ matrix.env-file }}') }}
+            hashFiles('./ci/environment_${{ matrix.env-infix }}_pandas_${{ matrix.env-suffix }}.yml') }}
       - name: Conda info
         run: |
           conda info
@@ -46,17 +47,20 @@ jobs:
         run: |
           isort --line-length=79 --check-only pandera tests
           black --line-length=79 --check pandera tests
-      - name: Pylint
-        run: |
-          if [ "${{ matrix.python-version }}" == "3.9" ]; then
-            # https://github.com/PyCQA/pylint/issues/776
-            pylint pandera tests --disable=unsubscriptable-object
-          else
-            pylint pandera tests
-          fi
+      - name: Pylint python 3.9
+        if: ${{ matrix.python-version }} == "3.9"
+        # https://github.com/PyCQA/pylint/issues/776
+        run: pylint pandera tests --disable=unsubscriptable-object
+      - name: Pylint python < 3.9
+        if: ${{ matrix.python-version }} != "3.9"
+        run: pylint pandera tests
       - name: Mypy Type Checking
         run: mypy pandera tests
-      - name: Unit Tests
+      - name: Unit Tests Core
+        if: ${{ matrix.env-infix == 'core' }}
+        run: pytest --cov=pandera tests/
+      - name: Unit Tests All
+        if: ${{ matrix.env-infix == 'all' }}
         run: pytest --hypothesis-profile ci --cov=pandera tests/
       - name: Code Coverage
         run: codecov
