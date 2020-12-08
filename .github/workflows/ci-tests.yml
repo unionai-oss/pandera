@@ -65,7 +65,7 @@ jobs:
         run: pytest --cov=pandera tests/
       - name: Unit Tests All
         if: ${{ matrix.env-infix == 'all' }}
-        run: pytest --hypothesis-profile ci --cov=pandera tests/
+        run: pytest --hypothesis-profile ci --cov=pandera --cov-append tests/
       - name: Code Coverage
         run: codecov
       - name: Check Docs
