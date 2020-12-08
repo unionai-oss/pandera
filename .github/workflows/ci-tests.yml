@@ -23,16 +23,20 @@ jobs:
           environment-file: ${{ matrix.env-file }}
           auto-activate-base: false
       - name: Conda info
+        shell: bash -l {0}
         run: |
           conda info
           conda list
       - name: Check requirements-dev.txt
+        shell: bash -l {0}
         run: python ./scripts/generate_pip_deps_from_conda.py --compare
       - name: Check isort and black formatting
+        shell: bash -l {0}
         run: |
           isort --line-length=79 --check-only pandera tests
           black --line-length=79 --check pandera tests
       - name: Pylint
+        shell: bash -l {0}
         run: |
           if [ "${{ matrix.python-version }}" == "3.9" ]; then
             # https://github.com/PyCQA/pylint/issues/776
@@ -41,10 +45,14 @@ jobs:
             pylint pandera tests
           fi
       - name: Mypy Type Checking
+        shell: bash -l {0}
         run: mypy pandera tests
       - name: Unit Tests
+        shell: bash -l {0}
         run: pytest --hypothesis-profile ci --cov=pandera tests/
       - name: Code Coverage
+        shell: bash -l {0}
         run: codecov
       - name: Check Docs
+        shell: bash -l {0}
         run: python -m sphinx -E -b=doctest "docs/source" "docs/_build"
