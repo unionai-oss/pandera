@@ -547,9 +547,14 @@ class MultiIndex(DataFrameSchema):
         :returns: validated DataFrame or Series.
         """
         if self.coerce:
-            check_obj.index = self.coerce_dtype(
-                check_obj.index if inplace else check_obj.index
-            )
+            try:
+                check_obj.index = self.coerce_dtype(
+                    check_obj.index if inplace else check_obj.index
+                )
+            except errors.SchemaErrors as err:
+                if lazy:
+                    raise
+                raise err._schema_error_dicts[0]["error"]
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the

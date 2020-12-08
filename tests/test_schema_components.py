@@ -502,3 +502,36 @@ def test_column_type_can_be_set():
     for invalid_dtype in (1, 2.2, ["foo", 1, 1.1], {"b": 1}):
         with pytest.raises(TypeError):
             column_a.pandas_dtype = invalid_dtype
+
+
+@pytest.mark.parametrize(
+    "multiindex, error",
+    [
+        [
+            pd.MultiIndex.from_arrays(
+                [[1, 2, 3], [1, 2, 3]], names=["a", "a"]
+            ),
+            None,
+        ],
+        [
+            pd.MultiIndex.from_arrays(
+                [[1, 2, 3], ["a", "b", "c"]], names=["a", "a"]
+            ),
+            errors.SchemaError,
+        ],
+    ],
+)
+@pytest.mark.parametrize(
+    "schema",
+    [
+        MultiIndex([Index(int, name="a"), Index(int, name="a")]),
+        MultiIndex([Index(int, name="a"), Index(int, name="a")], coerce=True),
+    ],
+)
+def test_multiindex_duplicate_index_names(multiindex, error, schema):
+    """Test MultiIndex schema component can handle duplicate index names."""
+    if error is None:
+        assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
+    else:
+        with pytest.raises(error):
+            schema(pd.DataFrame(index=multiindex))
