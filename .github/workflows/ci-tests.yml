@@ -15,6 +15,9 @@ jobs:
           - ./ci/environment_pandas_0_25_3.yml
           - ./ci/environment_core_pandas_latest.yml
           - ./ci/environment_core_pandas_0_25_3.yml
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
@@ -25,20 +28,16 @@ jobs:
           environment-file: ${{ matrix.env-file }}
           auto-activate-base: false
       - name: Conda info
-        shell: bash
         run: |
           conda info
           conda list
       - name: Check requirements-dev.txt
-        shell: bash
         run: python ./scripts/generate_pip_deps_from_conda.py --compare
       - name: Check isort and black formatting
-        shell: bash
         run: |
           isort --line-length=79 --check-only pandera tests
           black --line-length=79 --check pandera tests
       - name: Pylint
-        shell: bash
         run: |
           if [ "${{ matrix.python-version }}" == "3.9" ]; then
             # https://github.com/PyCQA/pylint/issues/776
@@ -47,14 +46,10 @@ jobs:
             pylint pandera tests
           fi
       - name: Mypy Type Checking
-        shell: bash
         run: mypy pandera tests
       - name: Unit Tests
-        shell: bash
         run: pytest --hypothesis-profile ci --cov=pandera tests/
       - name: Code Coverage
-        shell: bash
         run: codecov
       - name: Check Docs
-        shell: bash
         run: python -m sphinx -E -b=doctest "docs/source" "docs/_build"
