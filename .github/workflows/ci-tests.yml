@@ -48,11 +48,11 @@ jobs:
           isort --line-length=79 --check-only pandera tests
           black --line-length=79 --check pandera tests
       - name: Pylint python 3.9
-        if: ${{ matrix.python-version == "3.9" }}
+        if: ${{ matrix.python-version == '3.9' }}
         # https://github.com/PyCQA/pylint/issues/776
         run: pylint pandera tests --disable=unsubscriptable-object
       - name: Pylint python < 3.9
-        if: ${{ matrix.python-version != "3.9" }}
+        if: ${{ matrix.python-version != '3.9' }}
         run: pylint pandera tests
       - name: Mypy Type Checking
         run: mypy pandera tests
