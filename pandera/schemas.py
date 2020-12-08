@@ -104,8 +104,6 @@ class DataFrameSchema:
         the signature: ``pd.Series -> Union[bool, pd.Series]`` where the
         output series contains boolean values.
 
-        >>> from pandera import Check
-        >>>
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
         ...         pa.Float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
@@ -687,34 +685,34 @@ class DataFrameSchema:
         :type extra_schema_cols: DataFrameSchema
         :returns: a new :class:`DataFrameSchema` with the extra_schema_cols
             added.
+
         :example:
 
         To add columns to the schema, pass a dictionary with column name and
         ``Column`` instance key-value pairs.
 
-        .. testcode:: add_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema(
-                {
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
-
-        .. testoutput:: add_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type = string>,
-                    'probability': <Schema Column: 'probability' type = float>,
-                    'even_number': <Schema Column: 'even_number' type = bool>
-                },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...    {
+        ...        "category": pa.Column(pa.String),
+        ...        "probability": pa.Column(pa.Float),
+        ...    }
+        ... )
+        >>> print(
+        ...     example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
+        ... )
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=str>",
+                "probability": "<Schema Column: 'probability' type=float>",
+                "even_number": "<Schema Column: 'even_number' type=bool>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`remove_columns`
 
@@ -737,31 +735,31 @@ class DataFrameSchema:
         :returns: a new :class:`DataFrameSchema` without the cols_to_remove
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema.
+
         :example:
 
         To remove a column or set of columns from a schema, pass a list of
         columns to be removed:
 
-        .. testcode:: remove_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema(
-                {
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.remove_columns(["category"])
-
-        .. testoutput:: remove_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'probability': <Schema Column: 'probability' type=float>},
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {
+        ...         "category" : pa.Column(pa.String),
+        ...         "probability": pa.Column(pa.Float)
+        ...     }
+        ... )
+        >>>
+        >>> print(example_schema.remove_columns(["category"]))
+        DataFrameSchema(
+            columns={
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`add_columns`
 
@@ -784,8 +782,8 @@ class DataFrameSchema:
 
     @_inferred_schema_guard
     def update_column(self, column_name: str, **kwargs) -> "DataFrameSchema":
-        """Create copy of a :class:`DataFrameSchema` with
-        updated column properties.
+        """Create copy of a :class:`DataFrameSchema` with updated column
+        properties.
 
         :param column_name:
         :param kwargs: key-word arguments supplied to
@@ -793,36 +791,35 @@ class DataFrameSchema:
         :returns: a new :class:`DataFrameSchema` with updated column
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.
+
         :example:
 
         Calling ``schema.update_column`` returns the :class:`DataFrameSchema`
         with the updated column.
 
-        .. testcode:: update_column_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.update_column('category', pandas_dtype=pa.Category)
-
-        .. testoutput:: update_column_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type=category>,
-                    'probability': <Schema Column: 'probability' type=float>},
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>> print(
+        ...     example_schema.update_column(
+        ...         'category', pandas_dtype=pa.Category
+        ...     )
+        ... )
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=category>",
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`rename_columns`
-
-        .. warning:: This method will be deprecated; it is
-            recommended to use the :func:`update_columns` method instead.
 
         """
         # check that columns exist in schema
@@ -850,40 +847,37 @@ class DataFrameSchema:
         :return: a new :class:`DataFrameSchema` with updated columns
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.
+
         :example:
 
         Calling ``schema.update_columns`` returns the :class:`DataFrameSchema`
         with the updated columns.
 
-        .. testcode:: update_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.update_columns(
-                {
-                    "category": {"pandas_dtype":pa.Category}
-                }
-            )
-
-        .. testoutput:: update_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type = category>,
-                    'probability': <Schema Column: 'probability' type = float>
-                    },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>>
+        >>> print(
+        ...     example_schema.update_columns(
+        ...         {"category": {"pandas_dtype":pa.Category}}
+        ...     )
+        ... )
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=category>",
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. note:: This is the successor to the ``update_column`` method, which
             will be deprecated.
-
 
         """
 
@@ -931,36 +925,35 @@ class DataFrameSchema:
         :returns: :class:`DataFrameSchema` (copy of original)
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
+
         :example:
 
         To rename a column or set of columns, pass a dictionary of old column
         names and new column names, similar to the pandas DataFrame method.
 
-        .. testcode:: rename_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.rename_columns({
-                    "category": "categories",
-                    "probability": "probabilities"
-                }
-            )
-
-        .. testoutput:: rename_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'categories': <Schema Column: 'categories' type = string>,
-                    'probabilities': <Schema Column: 'probabilities' type = float>
-                },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>>
+        >>> print(
+        ...     example_schema.rename_columns({
+        ...         "category": "categories",
+        ...         "probability": "probabilities"
+        ...     })
+        ... )
+        DataFrameSchema(
+            columns={
+                "categories": "<Schema Column: 'categories' type=str>",
+                "probabilities": "<Schema Column: 'probabilities' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`update_column`
 
@@ -1011,30 +1004,28 @@ class DataFrameSchema:
             the selected columns.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
+
         :example:
 
         To subset a schema by column, and return a new schema:
 
-        .. testcode:: select_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.select_columns(['category'])
-
-        .. testoutput:: select_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type = string>
-                    },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>>
+        >>> print(example_schema.select_columns(['category']))
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=str>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. note:: If an index is present in the schema, it will also be
             included in the new schema.
@@ -1110,56 +1101,61 @@ class DataFrameSchema:
             index.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
+
         :examples:
 
         Just as you would set the index in a ``pandas`` DataFrame from an
         existing column, you can set an index within the schema from an
         existing column in the schema.
 
-        .. testcode:: set_index_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                "category" : pa.Column(pa.String),
-                "probability": pa.Column(pa.Float)})
-
-            example_schema.set_index(['category'])
-
-        .. testoutput:: set_index_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'probability': <Schema Column:'probability' type = float>},
-                index = <Schema Index: 'category'>,
-                coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)})
+        >>>
+        >>> print(example_schema.set_index(['category']))
+        DataFrameSchema(
+            columns={
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=<Schema Index: 'category'>,
+            coerce=False,
+            strict=False
+        )
 
         If you have an existing index in your schema, and you would like to
         append a new column as an index to it (yielding a :class:`Multiindex`),
         just use set_index as you would in pandas.
 
-        .. testcode:: set_index_example2
-
-            example_schema = pa.DataFrameSchema({
-                "column1": pa.Column(pa.String),
-                "column2": pa.Column(pa.Int)},
-                index = Index(name = "column3", pandas_dtype = pa.Int))
-
-            example_schema.set_index(["column2"], append = True)
-
-        .. testoutput:: set_index_example2
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(columns = {
-                    'column1': <Schema Column: 'column1' type = string>
-                },
-                index = MultiIndex(columns = {
-                        "column3": "<Schema Column: 'column3' type = int>",
-                        "column2": "<Schema Column: 'column2' type = int64>"
-                        },
-                    checks = [], index = None, coerce = False, strict = False),
-                coerce = False)
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {
+        ...         "column1": pa.Column(pa.String),
+        ...         "column2": pa.Column(pa.Int)
+        ...     },
+        ...     index=pa.Index(name = "column3", pandas_dtype = pa.Int)
+        ... )
+        >>>
+        >>> print(example_schema.set_index(["column2"], append = True))
+        DataFrameSchema(
+            columns={
+                "column1": "<Schema Column: 'column1' type=str>"
+            },
+            checks=[],
+            index=MultiIndex(
+            columns={
+                "column3": "<Schema Column: 'column3' type=int>",
+                "column2": "<Schema Column: 'column2' type=int>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        ),
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`reset_index`
 
@@ -1235,26 +1231,24 @@ class DataFrameSchema:
         To remove the entire index from the schema, just call the reset_index
         method with default parameters.
 
-
-        .. testcode:: reset_index_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                "probability" : pa.Column(pa.Float)},
-                index = pa.Index(name = "unique_id",
-                pandas_dtype = pa.Int))
-
-            example_schema.reset_index()
-
-
-        .. testoutput:: reset_index_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(columns={
-                'probability': <Schema Column: 'probability' type = float>,
-                'unique_id': <Schema Column: 'unique_id' type = int64>},
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {"probability" : pa.Column(pa.Float)},
+        ...     index = pa.Index(name="unique_id", pandas_dtype=pa.Int)
+        ... )
+        >>>
+        >>> print(example_schema.reset_index())
+        DataFrameSchema(
+            columns={
+                "probability": "<Schema Column: 'probability' type=float>",
+                "unique_id": "<Schema Column: 'unique_id' type=int64>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         This reclassifies an index (or indices) as a column (or columns).
 
@@ -1262,27 +1256,25 @@ class DataFrameSchema:
         you would like to be removed to the ``level`` parameter, and you may
         also decide whether to drop the levels with the ``drop`` parameter.
 
-
-        .. testcode:: reset_index_example2
-
-            example_schema = pa.DataFrameSchema({
-                "category" : pa.Column(pa.String)},
-                index = pa.MultiIndex([
-                    pa.Index(name = "unique_id1", pandas_dtype = pa.Int),
-                    pa.Index(name = "unique_id2", pandas_dtype = pa.String)
-                    ]
-                )
-            )
-            example_schema.reset_index(level = ["unique_id1"])
-
-        .. testoutput:: reset_index_example2
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(columns = {
-                'category': <Schema Column: 'category' type = string>,
-                'unique_id1': <Schema Column: 'unique_id1' type = int64>
-                },
-                index=<Schema Index: 'unique_id2'>, coerce = False)
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String)},
+        ...     index = pa.MultiIndex([
+        ...         pa.Index(name = "unique_id1", pandas_dtype = pa.Int),
+        ...         pa.Index(name = "unique_id2", pandas_dtype = pa.String)
+        ...         ]
+        ...     )
+        ... )
+        >>> print(example_schema.reset_index(level = ["unique_id1"]))
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=str>",
+                "unique_id1": "<Schema Column: 'unique_id1' type=int64>"
+            },
+            checks=[],
+            index=<Schema Index: 'unique_id2'>,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`set_index`
 
