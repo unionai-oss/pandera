@@ -62,7 +62,7 @@ jobs:
         run: mypy pandera tests
       - name: Unit Tests Core
         if: ${{ matrix.env-infix == 'core' }}
-        run: pytest --cov=pandera tests/
+        run: pytest --cov=pandera --cov-append tests/
       - name: Unit Tests All
         if: ${{ matrix.env-infix == 'all' }}
         run: pytest --hypothesis-profile ci --cov=pandera --cov-append tests/
