@@ -26,3 +26,25 @@ jobs:
         run: |
           conda info
           conda list
+      - name: Check requirements-dev.txt
+        run: python ./scripts/generate_pip_deps_from_conda.py --compare
+      - name: Check isort and black formatting
+        run: |
+          isort --line-length=79 --check-only pandera tests
+          black --line-length=79 --check pandera tests
+      - name: Pylint
+        run: |
+          if [ "${{ matrix.python-version }}" == "3.9" ]; then
+            # https://github.com/PyCQA/pylint/issues/776
+            pylint pandera tests --disable=unsubscriptable-object
+          else
+            pylint pandera tests
+          fi
+      - name: Mypy Type Checking
+        run: mypy pandera tests
+      - name: Unit Tests
+        run: pytest --hypothesis-profile ci --cov=pandera tests/
+      - name: Code Coverage
+        run: codecov
+      - name: Check Docs
+        run: python -m sphinx -E -b=doctest "docs/source" "docs/_build"
