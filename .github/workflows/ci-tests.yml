@@ -10,7 +10,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest"]
         python-version: ["3.8"]
-        env-file: ["../ci/environment_pandas_latest.yml"]
+        env-file: ["./ci/environment_pandas_latest.yml"]
         # os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         # python-version: ["3.6", "3.7", "3.8", "3.9"]
     steps:
