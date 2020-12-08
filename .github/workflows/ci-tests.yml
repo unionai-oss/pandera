@@ -65,4 +65,5 @@ jobs:
       - name: Code Coverage
         run: codecov
       - name: Check Docs
+        if: ${{ matrix.env-infix == 'all' }}
         run: python -m sphinx -E -b=doctest "docs/source" "docs/_build"
