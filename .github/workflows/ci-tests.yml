@@ -8,10 +8,13 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.6", "3.7", "3.8", "3.9"]
-        env-file: ["./ci/environment_pandas_latest.yml"]
-        # os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        env-file:
+          - ./ci/environment_pandas_latest.yml
+          - ./ci/environment_pandas_0_25_3.yml
+          - ./ci/environment_core_pandas_latest.yml
+          - ./ci/environment_core_pandas_0_25_3.yml
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
