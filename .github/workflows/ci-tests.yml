@@ -5,7 +5,7 @@ jobs:
   ci-tests:
     name:
       CI Tests (${{ matrix.python-version }}, ${{ matrix.os }},
-      pandera [${{ matrix.env-infix }}, Pandas ${{ matrix.env-suffix }})
+      pandera [${{ matrix.env-infix }}], pandas ${{ matrix.env-suffix }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -16,6 +16,10 @@ jobs:
         env-infix:
           - 'core'
           - 'all'
+        exclude:
+          # pandas 0.25.3 not supported by python 3.9
+          - python-version: "3.9"
+          - env-suffix: "0_25_3"
     defaults:
       run:
         shell: bash -l {0}
