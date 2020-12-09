@@ -10,9 +10,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.6", "3.7", "3.8", "3.9"]
-        env-suffix: ["latest", "0_25_3"]
+        # os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        # python-version: ["3.6", "3.7", "3.8", "3.9"]
+        os: ["macos-latest"]
+        python-version: ["3.9"]
+        # env-suffix: ["latest", "0_25_3"]
+        env-suffix: ["latest"]
         env-infix:
           - 'core'
           - 'all'
@@ -29,6 +32,7 @@ jobs:
         with:
           activate-environment: pandera-dev
           auto-update-conda: true
+          channels: conda-forge
           python-version: ${{ matrix.python-version }}
           environment-file: ./ci/environment_${{ matrix.env-infix }}_pandas_${{ matrix.env-suffix }}.yml
           auto-activate-base: false
