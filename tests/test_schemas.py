@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from pandera import (
+    STRING,
     Bool,
     Category,
     Check,
@@ -22,7 +23,6 @@ from pandera import (
     Object,
     PandasDtype,
     SeriesSchema,
-    Str,
     String,
     Timedelta,
     errors,
@@ -43,7 +43,7 @@ def test_dataframe_schema():
             "b": Column(
                 Float, Check(lambda x: 0 <= x <= 10, element_wise=True)
             ),
-            "c": Column(Str, Check(lambda x: set(x) == {"x", "y", "z"})),
+            "c": Column(String, Check(lambda x: set(x) == {"x", "y", "z"})),
             "d": Column(Bool, Check(lambda x: x.mean() > 0.5)),
             "e": Column(
                 Category, Check(lambda x: set(x) == {"c1", "c2", "c3"})
@@ -128,6 +128,83 @@ def test_dataframe_schema_strict_regex():
         )
 
 
+def test_dataframe_pandas_dtype_coerce():
+    """
+    Test that pandas dtype specified at the dataframe level overrides
+    column data types.
+    """
+    schema = DataFrameSchema(
+        columns={f"column_{i}": Column(float) for i in range(5)},
+        pandas_dtype=int,
+        coerce=True,
+    )
+
+    df = pd.DataFrame({f"column_{i}": range(10) for i in range(5)}).astype(
+        float
+    )
+    assert (schema(df).dtypes == Int.str_alias).all()
+
+    # test that pandas_dtype in columns are preserved
+    for col in schema.columns.values():
+        assert col.pandas_dtype is float
+
+    # raises SchemeError if dataframe can't be coerced
+    with pytest.raises(errors.SchemaErrors):
+        schema.coerce_dtype(pd.DataFrame({"foo": list("abcdef")}))
+
+    # raises SchemaErrors on lazy validation
+    with pytest.raises(errors.SchemaErrors):
+        schema(pd.DataFrame({"foo": list("abcdef")}), lazy=True)
+
+    # test that original dataframe dtypes are preserved
+    assert (df.dtypes == Float.str_alias).all()
+
+    # test case where pandas_dtype is string
+    schema.pandas_dtype = str
+    assert (schema(df).dtypes == "object").all()
+
+    schema.pandas_dtype = PandasDtype.String
+    assert (schema(df).dtypes == "object").all()
+
+    # raises ValueError if _coerce_dtype is called when pandas_dtype is None
+    schema.pandas_dtype = None
+    with pytest.raises(ValueError):
+        schema._coerce_dtype(df)
+
+
+def test_dataframe_coerce_regex():
+    """Test dataframe pandas dtype coercion for regex columns"""
+    schema = DataFrameSchema(
+        columns={"column_": Column(float, regex=True, required=False)},
+        pandas_dtype=int,
+        coerce=True,
+    )
+
+    no_match_df = pd.DataFrame({"foo": [1, 2, 3]})
+    match_valid_df = pd.DataFrame(
+        {
+            "column_1": [1, 2, 3],
+            "column_2": ["1", "2", "3"],
+        }
+    )
+
+    schema(no_match_df)
+    schema(match_valid_df)
+
+    # if the regex column is required, no matches should raise an error
+    schema_required = schema.update_column("column_", required=True)
+    with pytest.raises(
+        errors.SchemaError, match="Column regex name='column_' did not match"
+    ):
+        schema_required(no_match_df)
+
+
+def test_dataframe_reset_column_name():
+    """Test resetting column name at DataFrameSchema init on named column."""
+    with pytest.warns(UserWarning):
+        DataFrameSchema(columns={"new_name": Column(name="old_name")})
+
+
 def test_series_schema():
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues
@@ -143,7 +220,7 @@ def test_series_schema():
     )
 
     str_schema = SeriesSchema(
-        Str,
+        String,
         Check(lambda s: s.isin(["foo", "bar", "baz"])),
         nullable=True,
         coerce=True,
@@ -192,6 +269,33 @@ def test_series_schema():
             pd.Series([1.1, 2.3, 5.5, np.nan])
         )
 
+    # when series can't be coerced
+    with pytest.raises(
+        errors.SchemaError,
+        match="Error while coercing",
+    ):
+        SeriesSchema(Float, coerce=True).validate(pd.Series(list("abcdefg")))
+
+
+def test_series_schema_checks():
+    """Test SeriesSchema check property."""
+    series_schema_no_checks = SeriesSchema()
+    series_schema_one_check = SeriesSchema(checks=Check.eq(0))
+    series_schema_multiple_checks = SeriesSchema(
+        checks=[Check.gt(0), Check.lt(100)]
+    )
+
+    for schema in [
+        series_schema_no_checks,
+        series_schema_one_check,
+        series_schema_multiple_checks,
+    ]:
+        assert isinstance(schema.checks, list)
+
+    assert len(series_schema_no_checks.checks) == 0
+    assert len(series_schema_one_check.checks) == 1
+    assert len(series_schema_multiple_checks.checks) == 2
+
 
 def test_series_schema_multiple_validators():
     """Tests how multiple Checks on a Series Schema are handled both
@@ -226,7 +330,7 @@ def test_series_schema_with_index(coerce):
         index=MultiIndex(
             [
                 Index(Int, coerce=coerce),
-                Index(Str, coerce=coerce),
+                Index(String, coerce=coerce),
             ]
         ),
     )
@@ -322,7 +426,7 @@ def test_coerce_dtype_in_dataframe():
         {
             "column1": Column(Int, Check(lambda x: x > 0), coerce=True),
             "column2": Column(DateTime, coerce=True),
-            "column3": Column(Str, coerce=True, nullable=True),
+            "column3": Column(String, coerce=True, nullable=True),
         }
     )
     # specify `coerce` at the DataFrameSchema level
@@ -330,7 +434,7 @@ def test_coerce_dtype_in_dataframe():
         {
             "column1": Column(Int, Check(lambda x: x > 0)),
             "column2": Column(DateTime),
-            "column3": Column(Str, nullable=True),
+            "column3": Column(String, nullable=True),
         },
         coerce=True,
     )
@@ -370,10 +474,12 @@ def test_coerce_dtype_nullable_str():
     with pytest.raises(errors.SchemaError):
         for df in [df_nans, df_nones]:
             DataFrameSchema(
-                {"col": Column(Str, coerce=True, nullable=False)}
+                {"col": Column(String, coerce=True, nullable=False)}
             ).validate(df)
 
-    schema = DataFrameSchema({"col": Column(Str, coerce=True, nullable=True)})
+    schema = DataFrameSchema(
+        {"col": Column(String, coerce=True, nullable=True)}
+    )
 
     for df in [df_nans, df_nones]:
         validated_df = schema.validate(df)
@@ -431,7 +537,7 @@ def test_required():
     and then not specified and a second column which is implicitly required
     isn't available."""
     schema = DataFrameSchema(
-        {"col1": Column(Int, required=False), "col2": Column(Str)}
+        {"col1": Column(Int, required=False), "col2": Column(String)}
     )
 
     df_ok_1 = pd.DataFrame({"col2": ["hello", "world"]})
@@ -509,7 +615,7 @@ def test_dataframe_schema_str_repr():
     schema = DataFrameSchema(
         columns={
             "col1": Column(Int),
-            "col2": Column(Str),
+            "col2": Column(String),
             "col3": Column(DateTime),
         },
         index=Index(Int, name="my_index"),
@@ -527,8 +633,8 @@ def test_dataframe_schema_dtype_property():
     schema = DataFrameSchema(
         columns={
             "col1": Column(Int),
-            "col2": Column(Str),
-            "col3": Column(String),
+            "col2": Column(String),
+            "col3": Column(STRING),
             "col4": Column(DateTime),
             "col5": Column("uint16"),
         }
@@ -554,32 +660,32 @@ def test_schema_equality_operators():
     df_schema = DataFrameSchema(
         {
             "col1": Column(Int, Check(lambda s: s >= 0)),
-            "col2": Column(Str, Check(lambda s: s >= 2)),
+            "col2": Column(String, Check(lambda s: s >= 2)),
         },
         strict=True,
     )
     df_schema_columns_in_different_order = DataFrameSchema(
         {
-            "col2": Column(Str, Check(lambda s: s >= 2)),
+            "col2": Column(String, Check(lambda s: s >= 2)),
             "col1": Column(Int, Check(lambda s: s >= 0)),
         },
         strict=True,
     )
     series_schema = SeriesSchema(
-        Str,
+        String,
         checks=[Check(lambda s: s.str.startswith("foo"))],
         nullable=False,
         allow_duplicates=True,
         name="my_series",
     )
     series_schema_base = SeriesSchemaBase(
-        Str,
+        String,
         checks=[Check(lambda s: s.str.startswith("foo"))],
         nullable=False,
         allow_duplicates=True,
         name="my_series",
     )
-    not_equal_schema = DataFrameSchema({"col1": Column(Str)}, strict=False)
+    not_equal_schema = DataFrameSchema({"col1": Column(String)}, strict=False)
 
     assert df_schema == copy.deepcopy(df_schema)
     assert df_schema != not_equal_schema
@@ -605,7 +711,7 @@ def test_add_and_remove_columns():
     # test that add_columns doesn't modify schema1 after add_columns:
     schema2 = schema1.add_columns(
         {
-            "col2": Column(Str, Check(lambda x: x <= 0)),
+            "col2": Column(String, Check(lambda x: x <= 0)),
             "col3": Column(Object, Check(lambda x: x == 0)),
         }
     )
@@ -618,7 +724,7 @@ def test_add_and_remove_columns():
     expected_schema_2 = DataFrameSchema(
         {
             "col1": Column(Int, Check(lambda s: s >= 0)),
-            "col2": Column(Str, Check(lambda x: x <= 0)),
+            "col2": Column(String, Check(lambda x: x <= 0)),
             "col3": Column(Object, Check(lambda x: x == 0)),
         },
         strict=True,
@@ -706,10 +812,10 @@ def _boolean_update_column_case(bool_kwarg):
         [
             Column(Int),
             "col",
-            {"pandas_dtype": Str},
+            {"pandas_dtype": String},
             lambda old, new: [
                 old.columns["col"].pandas_dtype is Int,
-                new.columns["col"].pandas_dtype is Str,
+                new.columns["col"].pandas_dtype is String,
             ],
         ],
         *[
@@ -820,13 +926,13 @@ def test_lazy_dataframe_validation_error():
             "int_col": Column(Int, Check.greater_than(5)),
             "int_col2": Column(Int),
             "float_col": Column(Float, Check.less_than(0)),
-            "str_col": Column(Str, Check.isin(["foo", "bar"])),
+            "str_col": Column(String, Check.isin(["foo", "bar"])),
             "not_in_dataframe": Column(Int),
         },
         checks=Check(
             lambda df: df != 1, error="dataframe_not_equal_1", ignore_na=False
         ),
-        index=Index(Str, name="str_index"),
+        index=Index(String, name="str_index"),
         strict=True,
     )
 
@@ -892,7 +998,7 @@ def test_lazy_dataframe_validation_nullable():
         columns={
             "int_column": Column(Int, nullable=False),
             "float_column": Column(Float, nullable=False),
-            "str_column": Column(Str, nullable=False),
+            "str_column": Column(String, nullable=False),
         },
         strict=True,
     )
@@ -984,7 +1090,7 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
             },
         ],
         [
-            Index(Str, checks=Check.isin(["a", "b", "c"])),
+            Index(String, checks=Check.isin(["a", "b", "c"])),
             pd.DataFrame({"col": [1, 2, 3]}, index=["a", "b", "d"]),
             {
                 # expect that the data in the SchemaError is the pd.Index cast
@@ -1224,3 +1330,22 @@ def test_update_columns(schema_simple):
         schema_simple.update_columns({"col1": {"name": "foo"}})
     with pytest.raises(errors.SchemaInitError):
         schema_simple.update_columns({"ind0": {"pandas_dtype": Int}})
+
+
+@pytest.mark.parametrize("pdtype", list(PandasDtype) + [None])  # type: ignore
+def test_series_schema_pdtype(pdtype):
+    """Series schema pdtype property should return PandasDtype."""
+    if pdtype is None:
+        series_schema = SeriesSchema(pdtype)
+        assert series_schema.pdtype is None
+        return
+    for pandas_dtype_input in [
+        pdtype,
+        pdtype.str_alias,
+        pdtype.value,
+    ]:
+        series_schema = SeriesSchema(pandas_dtype_input)
+        if pdtype is PandasDtype.STRING and LEGACY_PANDAS:
+            assert series_schema.pdtype == PandasDtype.String
+        else:
+            assert series_schema.pdtype == pdtype

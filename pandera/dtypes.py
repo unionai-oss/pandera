@@ -1,3 +1,4 @@
+# pylint: disable=no-member,too-many-public-methods
 """Schema datatypes."""
 
 from enum import Enum
@@ -34,6 +35,22 @@ _DEFAULT_PANDAS_FLOAT_TYPE = str(pd.Series([1.0]).dtype)
 _DEFAULT_PANDAS_COMPLEX_TYPE = str(pd.Series([complex(1)]).dtype)
 _DEFAULT_NUMPY_INT_TYPE = str(np.dtype(int))
 _DEFAULT_NUMPY_FLOAT_TYPE = str(np.dtype(float))
+
+if version.parse(pd.__version__).major < 1:  # type: ignore
+    # pylint: disable=no-name-in-module
+    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
+
+    def is_extension_array_dtype(arr_or_dtype):
+        # pylint: disable=missing-function-docstring
+        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
+        return (
+            isinstance(dtype, ExtensionDtype)
+            or registry.find(dtype) is not None
+        )
+
+
+else:
+    from pandas.api.types import is_extension_array_dtype  # type: ignore
 
 
 class PandasDtype(Enum):
@@ -132,11 +149,11 @@ class PandasDtype(Enum):
     Complex64 = "complex64"  #: ``"complex"`` numpy dtype
     Complex128 = "complex128"  #: ``"complex"`` numpy dtype
     Complex256 = "complex256"  #: ``"complex"`` numpy dtype
-    Str = "str"  #: ``"str"`` numpy dtype
+    String = "str"  #: ``"str"`` numpy dtype
 
     #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
     #: fall back on the str-as-object-array representation.
-    String = "string"
+    STRING = "string"
 
     @property
     def str_alias(self):
@@ -188,8 +205,8 @@ class PandasDtype(Enum):
             "complex64": cls.Complex64,
             "complex128": cls.Complex128,
             "complex256": cls.Complex256,
-            "str": cls.Str,
-            "string": cls.Str if LEGACY_PANDAS else cls.String,
+            "str": cls.String,
+            "string": cls.String if LEGACY_PANDAS else cls.STRING,
         }.get(str_alias)
 
         if pandas_dtype is None:
@@ -211,7 +228,7 @@ class PandasDtype(Enum):
             return cls.Object
 
         pandas_dtype = {
-            "string": cls.Str,
+            "string": cls.String,
             "floating": cls.Float,
             "integer": cls.Int,
             "categorical": cls.Category,
@@ -238,7 +255,7 @@ class PandasDtype(Enum):
         """
         pandas_dtype = {
             bool: cls.Bool,
-            str: cls.Str,
+            str: cls.String,
             int: cls.Int,
             float: cls.Float,
             object: cls.Object,
@@ -260,6 +277,44 @@ class PandasDtype(Enum):
         """
         return cls.from_str_alias(numpy_type.__name__)
 
+    @classmethod
+    def get_str_dtype(cls, pandas_dtype_arg):
+        """Get pandas-compatible string representation of dtype."""
+        dtype_ = pandas_dtype_arg
+        if dtype_ is None:
+            return dtype_
+
+        if is_extension_array_dtype(dtype_):
+            if isinstance(dtype_, type):
+                try:
+                    # Convert to str here because some pandas dtypes allow
+                    # an empty constructor for compatatibility but fail on
+                    # str(). e.g: PeriodDtype
+                    return str(dtype_())
+                except (TypeError, AttributeError) as err:
+                    raise TypeError(
+                        f"Pandas dtype {dtype_} cannot be instantiated: "
+                        f"{err}\n Usage Tip: Use an instance or a string "
+                        "representation."
+                    ) from err
+            return str(dtype_)
+
+        if dtype_ in NUMPY_TYPES:
+            dtype_ = cls.from_numpy_type(dtype_)
+        elif isinstance(dtype_, str):
+            dtype_ = cls.from_str_alias(dtype_)
+        elif isinstance(dtype_, type):
+            dtype_ = cls.from_python_type(dtype_)
+
+        if isinstance(dtype_, cls):
+            return dtype_.str_alias
+        raise TypeError(
+            "type of `pandas_dtype` argument not recognized: "
+            f"{type(pandas_dtype_arg)}. Please specify a pandera PandasDtype "
+            "enum, legal pandas data type, pandas data type string alias, or "
+            "numpy data type string alias"
+        )
+
     def __eq__(self, other):
         # pylint: disable=comparison-with-callable
         # see https://github.com/PyCQA/pylint/issues/2306
@@ -268,7 +323,7 @@ class PandasDtype(Enum):
         if isinstance(other, str):
             other = self.from_str_alias(other)
         if self.value == "string" and LEGACY_PANDAS:
-            return PandasDtype.Str.value == other.value
+            return PandasDtype.String.value == other.value
         elif self.value == "string":
             return self.value == other.value
         return self.str_alias == other.str_alias
@@ -281,3 +336,101 @@ class PandasDtype(Enum):
         else:
             hash_obj = self.str_alias
         return id(hash_obj)
+
+    @property
+    def numpy_dtype(self):
+        """Get numpy data type."""
+        if self is PandasDtype.Category:
+            raise TypeError(
+                "the pandas Categorical data type doesn't have a numpy "
+                "equivalent."
+            )
+
+        # pylint: disable=comparison-with-callable
+        if self.value in {"str", "string"}:
+            dtype = np.dtype("str")
+        else:
+            dtype = np.dtype(self.str_alias.lower())
+        return dtype
+
+    @property
+    def is_int(self) -> bool:
+        """Return True if PandasDtype is an integer."""
+        return self.value.lower().startswith("int")
+
+    @property
+    def is_nullable_int(self) -> bool:
+        """Return True if PandasDtype is a nullable integer."""
+        return self.value.startswith("Int")
+
+    @property
+    def is_nonnullable_int(self) -> bool:
+        """Return True if PandasDtype is a non-nullable integer."""
+        return self.value.startswith("int")
+
+    @property
+    def is_uint(self) -> bool:
+        """Return True if PandasDtype is an unsigned integer."""
+        return self.value.lower().startswith("uint")
+
+    @property
+    def is_nullable_uint(self) -> bool:
+        """Return True if PandasDtype is a nullable unsigned integer."""
+        return self.value.startswith("UInt")
+
+    @property
+    def is_nonnullable_uint(self) -> bool:
+        """Return True if PandasDtype is a non-nullable unsigned integer."""
+        return self.value.startswith("uint")
+
+    @property
+    def is_float(self) -> bool:
+        """Return True if PandasDtype is a float."""
+        return self.value.startswith("float")
+
+    @property
+    def is_complex(self) -> bool:
+        """Return True if PandasDtype is a complex number."""
+        return self.value.startswith("complex")
+
+    @property
+    def is_bool(self) -> bool:
+        """Return True if PandasDtype is a boolean."""
+        return self is PandasDtype.Bool
+
+    @property
+    def is_string(self) -> bool:
+        """Return True if PandasDtype is a string."""
+        return self in [PandasDtype.String, PandasDtype.STRING]
+
+    @property
+    def is_category(self) -> bool:
+        """Return True if PandasDtype is a category."""
+        return self is PandasDtype.Category
+
+    @property
+    def is_datetime(self) -> bool:
+        """Return True if PandasDtype is a datetime."""
+        return self is PandasDtype.DateTime
+
+    @property
+    def is_timedelta(self) -> bool:
+        """Return True if PandasDtype is a timedelta."""
+        return self is PandasDtype.Timedelta
+
+    @property
+    def is_object(self) -> bool:
+        """Return True if PandasDtype is an object."""
+        return self is PandasDtype.Object
+
+    @property
+    def is_continuous(self) -> bool:
+        """Return True if PandasDtype is a continuous datatype."""
+        return (
+            self.is_int
+            or self.is_uint
+            or self.is_float
+            or self.is_complex
+            or self.is_datetime
+            or self.is_timedelta
+        )

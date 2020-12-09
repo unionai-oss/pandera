@@ -17,13 +17,13 @@ os:
   - windows
 
 env:
-  - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_latest.yml
-  - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_latest.yml
-  - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_latest.yml
-  - PYTHON_VERSION=3.9 ENV_FILE=ci/environment_pandas_latest.yml
-  - PYTHON_VERSION=3.6 ENV_FILE=ci/environment_pandas_0_25_3.yml
-  - PYTHON_VERSION=3.7 ENV_FILE=ci/environment_pandas_0_25_3.yml
-  - PYTHON_VERSION=3.8 ENV_FILE=ci/environment_pandas_0_25_3.yml
+  - PYTHON_VERSION=3.6 ENV_PANDAS_VERSION=latest
+  - PYTHON_VERSION=3.7 ENV_PANDAS_VERSION=latest
+  - PYTHON_VERSION=3.8 ENV_PANDAS_VERSION=latest
+  - PYTHON_VERSION=3.9 ENV_PANDAS_VERSION=latest
+  - PYTHON_VERSION=3.6 ENV_PANDAS_VERSION=0_25_3
+  - PYTHON_VERSION=3.7 ENV_PANDAS_VERSION=0_25_3
+  - PYTHON_VERSION=3.8 ENV_PANDAS_VERSION=0_25_3
 
 before_install:
   - |
@@ -74,10 +74,11 @@ install:
   # Setup Conda Envs
   - |
     conda create -n pandera python=$PYTHON_VERSION || exit 1
-    conda env update -n pandera -f $ENV_FILE
+    conda env update -n pandera -f ci/environment_pandas_${ENV_PANDAS_VERSION}.yml
+    conda list -n pandera
     conda create -n pandera-core python=$PYTHON_VERSION || exit 1
-    conda env update -n pandera-core -f $ENV_FILE
-    conda list
+    conda env update -n pandera-core -f ci/environment_core_pandas_${ENV_PANDAS_VERSION}.yml
+    conda list -n pandera-core
   - source activate pandera && pip install .[all]
   - source activate pandera-core && pip install .
 
@@ -103,7 +104,7 @@ script:
   # Type checking
   - mypy pandera tests
   # Tests
-  - pytest -s --cov=pandera tests/
+  - pytest --hypothesis-profile ci --cov=pandera tests/
   # Coverage
   - codecov
   # Check docs can build, treating warnings as errors

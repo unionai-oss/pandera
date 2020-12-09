@@ -59,7 +59,7 @@ of all schemas and schema components gives you the option of doing just this:
         columns={
             "int_column": Column(pa.Int),
             "float_column": Column(pa.Float, Check.greater_than(0)),
-            "str_column": Column(pa.Str, Check.equal_to("a")),
+            "str_column": Column(pa.String, Check.equal_to("a")),
             "date_column": Column(pa.DateTime),
         },
         strict=True
@@ -105,7 +105,7 @@ of all schemas and schema components gives you the option of doing just this:
     try:
         schema.validate(dataframe, lazy=True)
     except SchemaErrors as err:
-        err.schema_errors  # dataframe of schema errors
+        err.failure_cases  # dataframe of schema errors
         err.data  # invalid dataframe
     ```
 
@@ -122,7 +122,7 @@ catch these errors and inspect the failure cases in a more granular form:
         schema.validate(df, lazy=True)
     except pa.errors.SchemaErrors as err:
         print("Schema errors and failure cases:")
-        print(err.schema_errors.head())
+        print(err.failure_cases.head())
         print("\nDataFrame object that failed validation:")
         print(err.data.head())
 

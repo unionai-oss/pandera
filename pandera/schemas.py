@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
-from packaging import version
 
 from . import constants, dtypes, errors
+from . import strategies as st
 from .checks import Check
 from .dtypes import PandasDtype, PandasExtensionType
 from .error_formatters import (
@@ -31,22 +31,6 @@ CheckList = Optional[
 
 PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
 
-if version.parse(pd.__version__).major < 1:  # type: ignore
-    # pylint: disable=no-name-in-module
-    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
-
-    def is_extension_array_dtype(arr_or_dtype):
-        # pylint: disable=missing-function-docstring
-        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-        return (
-            isinstance(dtype, ExtensionDtype)
-            or registry.find(dtype) is not None
-        )
-
-
-else:
-    from pandas.api.types import is_extension_array_dtype  # type: ignore
-
 
 def _inferred_schema_guard(method):
     """
@@ -61,9 +45,8 @@ def _inferred_schema_guard(method):
             # if method returns a copy of the schema object,
             # the original schema instance and the copy should be set to
             # not inferred.
-            new_schema._is_inferred = False  # pylint: disable=protected-access
-            return new_schema
-        schema._is_inferred = False  # pylint: disable=protected-access
+            new_schema._is_inferred = False
+        return new_schema
 
     return _wrapper
 
@@ -76,6 +59,7 @@ class DataFrameSchema:
         columns: Dict[Any, Any] = None,
         checks: CheckList = None,
         index=None,
+        pandas_dtype: PandasDtypeInputTypes = None,
         transformer: Callable = None,
         coerce: bool = False,
         strict=False,
@@ -89,6 +73,10 @@ class DataFrameSchema:
         :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
         :param index: specify the datatypes and properties of the index.
+        :param pandas_dtype: datatype of the dataframe. This overrides the data
+            types specified in any of the columns. If a string is specified,
+            then assumes one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes.
         :param transformer: a callable with signature:
             pandas.DataFrame -> pandas.DataFrame. If specified, calling
             `validate` will verify properties of the columns and return the
@@ -116,8 +104,6 @@ class DataFrameSchema:
         the signature: ``pd.Series -> Union[bool, pd.Series]`` where the
         output series contains boolean values.
 
-        >>> from pandera import Check
-        >>>
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
         ...         pa.Float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
@@ -168,6 +154,7 @@ class DataFrameSchema:
         self.index = index
         self.strict = strict
         self.name = name
+        self._pandas_dtype = pandas_dtype
         self._coerce = coerce
         self._validate_schema()
         self._set_column_names()
@@ -261,6 +248,99 @@ class DataFrameSchema:
             **regex_dtype,
         }
 
+    @property
+    def pandas_dtype(
+        self,
+    ) -> Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]:
+        """Get the pandas dtype property."""
+        return self._pandas_dtype
+
+    @pandas_dtype.setter
+    def pandas_dtype(
+        self, value: Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]
+    ) -> None:
+        """Set the pandas dtype property."""
+        self._pandas_dtype = value
+        self.dtype  # pylint: disable=pointless-statement
+
+    @property
+    def pdtype(self) -> Optional[PandasDtype]:
+        """PandasDtype of the series."""
+        if self.pandas_dtype is None:
+            return self.pandas_dtype
+        return PandasDtype.from_str_alias(
+            PandasDtype.get_str_dtype(self.pandas_dtype)
+        )
+
+    def _coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
+        if self.pandas_dtype is dtypes.PandasDtype.String:
+            # only coerce non-null elements to string
+            return obj.where(obj.isna(), obj.astype(str))
+
+        if self.pdtype is None:
+            raise ValueError(
+                "pandas_dtype argument is None. Must specify this argument "
+                "to coerce dtype"
+            )
+        try:
+            return obj.astype(self.pdtype.str_alias)
+        except (ValueError, TypeError) as exc:
+            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
+            raise errors.SchemaError(
+                self,
+                obj,
+                msg,
+                failure_cases=scalar_failure_case(str(obj.dtypes.to_dict())),
+                check=f"coerce_dtype({self.pdtype.str_alias})",
+            ) from exc
+
+    def coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
+        """Coerce dataframe to the type specified in pandas_dtype.
+
+        :param obj: dataframe to coerce.
+        :returns: dataframe with coerced dtypes
+        """
+
+        error_handler = SchemaErrorHandler(lazy=True)
+
+        def _try_coercion(coerce_fn, obj):
+            try:
+                return coerce_fn(obj)
+            except errors.SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
+
+        for colname, col_schema in self.columns.items():
+            if col_schema.regex:
+                try:
+                    matched_columns = col_schema.get_regex_columns(obj.columns)
+                except errors.SchemaError:
+                    matched_columns = pd.Index([])
+
+                for matched_colname in matched_columns:
+                    if col_schema.coerce or self.coerce:
+                        obj[matched_colname] = _try_coercion(
+                            col_schema.coerce_dtype, obj[matched_colname]
+                        )
+            elif (col_schema.coerce or self.coerce) and self.pdtype is None:
+                obj.loc[:, colname] = _try_coercion(
+                    col_schema.coerce_dtype, obj[colname]
+                )
+
+        if self.pdtype is not None:
+            obj = _try_coercion(self._coerce_dtype, obj)
+        if self.index is not None and (self.index.coerce or self.coerce):
+            index = copy.deepcopy(self.index)
+            if self.coerce:
+                # coercing at the dataframe-level should apply index coercion
+                # for both single- and multi-indexes.
+                index._coerce = True
+            obj.index = _try_coercion(index.coerce_dtype, obj.index)
+
+        if error_handler.collected_errors:
+            raise errors.SchemaErrors(error_handler.collected_errors, obj)
+
+        return obj
+
     def validate(
         self,
         check_obj: pd.DataFrame,
@@ -271,7 +351,7 @@ class DataFrameSchema:
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=too-many-locals,too-many-branches
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame dataframe: the dataframe to be validated.
@@ -342,6 +422,8 @@ class DataFrameSchema:
         if not inplace:
             check_obj = check_obj.copy()
 
+        check_obj = check_obj.pandera.add_schema(self)
+
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
         if self.strict:
@@ -379,29 +461,17 @@ class DataFrameSchema:
                         ),
                     )
 
-        # column data-type coercion logic
+        # check for columns that are not in the dataframe and collect columns
+        # that are not in the dataframe that should be excluded for lazy
+        # validation
         lazy_exclude_columns = []
         for colname, col_schema in self.columns.items():
-            if col_schema.regex:
-                try:
-                    matched_columns = col_schema.get_regex_columns(
-                        check_obj.columns
-                    )
-                except errors.SchemaError:
-                    matched_columns = pd.Index([])
-
-                for matched_colname in matched_columns:
-                    if col_schema.coerce or self.coerce:
-                        check_obj[matched_colname] = col_schema.coerce_dtype(
-                            check_obj[matched_colname]
-                        )
-
-            elif colname not in check_obj and col_schema.required:
+            if (
+                not col_schema.regex
+                and colname not in check_obj
+                and col_schema.required
+            ):
                 if lazy:
-                    # exclude columns that are not present in the dataframe
-                    # for lazy validation, the error is collected by the
-                    # error_handler and should raise a SchemaErrors exception
-                    # at the end of the `validate` method.
                     lazy_exclude_columns.append(colname)
                 msg = (
                     f"column '{colname}' not in dataframe\n{check_obj.head()}"
@@ -417,20 +487,37 @@ class DataFrameSchema:
                     ),
                 )
 
-            elif col_schema.coerce or self.coerce:
-                check_obj.loc[:, colname] = col_schema.coerce_dtype(
-                    check_obj[colname]
-                )
+        # coerce data types
+        if (
+            self.coerce
+            or (self.index is not None and self.index.coerce)
+            or any(col.coerce for col in self.columns.values())
+        ):
+            try:
+                check_obj = self.coerce_dtype(check_obj)
+            except errors.SchemaErrors as err:
+                for schema_error_dict in err._schema_error_dicts:
+                    if not lazy:
+                        # raise the first error immediately if not doing lazy
+                        # validation
+                        raise schema_error_dict["error"]
+                    error_handler.collect_error(
+                        "schema_component_check", schema_error_dict["error"]
+                    )
 
-        schema_components = [
-            col
-            for col_name, col in self.columns.items()
-            if (col.required or col_name in check_obj)
-            and col_name not in lazy_exclude_columns
-        ]
+        # collect schema components for validation
+        schema_components = []
+        for col_name, col in self.columns.items():
+            if (
+                col.required or col_name in check_obj
+            ) and col_name not in lazy_exclude_columns:
+                if self.pdtype is not None:
+                    # override column dtype with dataframe dtype
+                    col = copy.deepcopy(col)
+                    col.pandas_dtype = self.pdtype
+                schema_components.append(col)
+
         if self.index is not None:
-            if self.index.coerce or self.coerce:
-                check_obj.index = self.index.coerce_dtype(check_obj.index)
             schema_components.append(self.index)
 
         df_to_validate = _pandas_obj_to_validate(
@@ -441,11 +528,18 @@ class DataFrameSchema:
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                check_results.append(
-                    isinstance(schema_component(df_to_validate), pd.DataFrame)
+                result = schema_component(
+                    df_to_validate,
+                    lazy=lazy if schema_component.has_subcomponents else None,
                 )
+                check_results.append(isinstance(result, pd.DataFrame))
             except errors.SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
+            except errors.SchemaErrors as err:
+                for schema_error_dict in err._schema_error_dicts:
+                    error_handler.collect_error(
+                        "schema_component_check", schema_error_dict["error"]
+                    )
 
         # dataframe-level checks
         for check_index, check in enumerate(self.checks):
@@ -556,9 +650,30 @@ class DataFrameSchema:
                 k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
             }
 
-        # if _compare_dict(self) != _compare_dict(other):
-        #     import ipdb; ipdb.set_trace()
         return _compare_dict(self) == _compare_dict(other)
+
+    @st.strategy_import_error
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a DataFrame.
+
+        :param size: number of elements to generate
+        :returns: a strategy that generates pandas DataFrame objects.
+        """
+        return st.dataframe_strategy(
+            self.pdtype,
+            columns=self.columns,
+            checks=self.checks,
+            index=self.index,
+            size=size,
+        )
+
+    def example(self, size=None) -> pd.DataFrame:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated DataFrame.
+        :returns: pandas DataFrame object.
+        """
+        return self.strategy(size=size).example()
 
     @_inferred_schema_guard
     def add_columns(
@@ -570,34 +685,34 @@ class DataFrameSchema:
         :type extra_schema_cols: DataFrameSchema
         :returns: a new :class:`DataFrameSchema` with the extra_schema_cols
             added.
+
         :example:
 
         To add columns to the schema, pass a dictionary with column name and
         ``Column`` instance key-value pairs.
 
-        .. testcode:: add_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema(
-                {
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
-
-        .. testoutput:: add_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type = string>,
-                    'probability': <Schema Column: 'probability' type = float>,
-                    'even_number': <Schema Column: 'even_number' type = bool>
-                },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...    {
+        ...        "category": pa.Column(pa.String),
+        ...        "probability": pa.Column(pa.Float),
+        ...    }
+        ... )
+        >>> print(
+        ...     example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
+        ... )
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=str>",
+                "probability": "<Schema Column: 'probability' type=float>",
+                "even_number": "<Schema Column: 'even_number' type=bool>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`remove_columns`
 
@@ -620,31 +735,31 @@ class DataFrameSchema:
         :returns: a new :class:`DataFrameSchema` without the cols_to_remove
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema.
+
         :example:
 
         To remove a column or set of columns from a schema, pass a list of
         columns to be removed:
 
-        .. testcode:: remove_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema(
-                {
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.remove_columns(["category"])
-
-        .. testoutput:: remove_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'probability': <Schema Column: 'probability' type=float>},
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {
+        ...         "category" : pa.Column(pa.String),
+        ...         "probability": pa.Column(pa.Float)
+        ...     }
+        ... )
+        >>>
+        >>> print(example_schema.remove_columns(["category"]))
+        DataFrameSchema(
+            columns={
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`add_columns`
 
@@ -667,8 +782,8 @@ class DataFrameSchema:
 
     @_inferred_schema_guard
     def update_column(self, column_name: str, **kwargs) -> "DataFrameSchema":
-        """Create copy of a :class:`DataFrameSchema` with
-        updated column properties.
+        """Create copy of a :class:`DataFrameSchema` with updated column
+        properties.
 
         :param column_name:
         :param kwargs: key-word arguments supplied to
@@ -676,36 +791,35 @@ class DataFrameSchema:
         :returns: a new :class:`DataFrameSchema` with updated column
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.
+
         :example:
 
         Calling ``schema.update_column`` returns the :class:`DataFrameSchema`
         with the updated column.
 
-        .. testcode:: update_column_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.update_column('category', pandas_dtype=pa.Category)
-
-        .. testoutput:: update_column_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type=category>,
-                    'probability': <Schema Column: 'probability' type=float>},
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>> print(
+        ...     example_schema.update_column(
+        ...         'category', pandas_dtype=pa.Category
+        ...     )
+        ... )
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=category>",
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`rename_columns`
-
-        .. warning:: This method will be deprecated; it is
-            recommended to use the :func:`update_columns` method instead.
 
         """
         # check that columns exist in schema
@@ -733,40 +847,37 @@ class DataFrameSchema:
         :return: a new :class:`DataFrameSchema` with updated columns
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.
+
         :example:
 
         Calling ``schema.update_columns`` returns the :class:`DataFrameSchema`
         with the updated columns.
 
-        .. testcode:: update_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.update_columns(
-                {
-                    "category": {"pandas_dtype":pa.Category}
-                }
-            )
-
-        .. testoutput:: update_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type = category>,
-                    'probability': <Schema Column: 'probability' type = float>
-                    },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>>
+        >>> print(
+        ...     example_schema.update_columns(
+        ...         {"category": {"pandas_dtype":pa.Category}}
+        ...     )
+        ... )
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=category>",
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. note:: This is the successor to the ``update_column`` method, which
             will be deprecated.
-
 
         """
 
@@ -814,36 +925,35 @@ class DataFrameSchema:
         :returns: :class:`DataFrameSchema` (copy of original)
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
+
         :example:
 
         To rename a column or set of columns, pass a dictionary of old column
         names and new column names, similar to the pandas DataFrame method.
 
-        .. testcode:: rename_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.rename_columns({
-                    "category": "categories",
-                    "probability": "probabilities"
-                }
-            )
-
-        .. testoutput:: rename_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'categories': <Schema Column: 'categories' type = string>,
-                    'probabilities': <Schema Column: 'probabilities' type = float>
-                },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>>
+        >>> print(
+        ...     example_schema.rename_columns({
+        ...         "category": "categories",
+        ...         "probability": "probabilities"
+        ...     })
+        ... )
+        DataFrameSchema(
+            columns={
+                "categories": "<Schema Column: 'categories' type=str>",
+                "probabilities": "<Schema Column: 'probabilities' type=float>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`update_column`
 
@@ -894,30 +1004,28 @@ class DataFrameSchema:
             the selected columns.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
+
         :example:
 
         To subset a schema by column, and return a new schema:
 
-        .. testcode:: select_columns_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                    "category" : pa.Column(pa.String),
-                    "probability": pa.Column(pa.Float)
-                }
-            )
-
-            example_schema.select_columns(['category'])
-
-        .. testoutput:: select_columns_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'category': <Schema Column: 'category' type = string>
-                    },
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)
+        ... })
+        >>>
+        >>> print(example_schema.select_columns(['category']))
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=str>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         .. note:: If an index is present in the schema, it will also be
             included in the new schema.
@@ -993,56 +1101,61 @@ class DataFrameSchema:
             index.
         :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
             schema.
+
         :examples:
 
         Just as you would set the index in a ``pandas`` DataFrame from an
         existing column, you can set an index within the schema from an
         existing column in the schema.
 
-        .. testcode:: set_index_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                "category" : pa.Column(pa.String),
-                "probability": pa.Column(pa.Float)})
-
-            example_schema.set_index(['category'])
-
-        .. testoutput:: set_index_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(
-                columns = {
-                    'probability': <Schema Column:'probability' type = float>},
-                index = <Schema Index: 'category'>,
-                coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String),
+        ...     "probability": pa.Column(pa.Float)})
+        >>>
+        >>> print(example_schema.set_index(['category']))
+        DataFrameSchema(
+            columns={
+                "probability": "<Schema Column: 'probability' type=float>"
+            },
+            checks=[],
+            index=<Schema Index: 'category'>,
+            coerce=False,
+            strict=False
+        )
 
         If you have an existing index in your schema, and you would like to
         append a new column as an index to it (yielding a :class:`Multiindex`),
         just use set_index as you would in pandas.
 
-        .. testcode:: set_index_example2
-
-            example_schema = pa.DataFrameSchema({
-                "column1": pa.Column(pa.String),
-                "column2": pa.Column(pa.Int)},
-                index = Index(name = "column3", pandas_dtype = pa.Int))
-
-            example_schema.set_index(["column2"], append = True)
-
-        .. testoutput:: set_index_example2
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(columns = {
-                    'column1': <Schema Column: 'column1' type = string>
-                },
-                index = MultiIndex(columns = {
-                        "column3": "<Schema Column: 'column3' type = int>",
-                        "column2": "<Schema Column: 'column2' type = int64>"
-                        },
-                    checks = [], index = None, coerce = False, strict = False),
-                coerce = False)
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {
+        ...         "column1": pa.Column(pa.String),
+        ...         "column2": pa.Column(pa.Int)
+        ...     },
+        ...     index=pa.Index(name = "column3", pandas_dtype = pa.Int)
+        ... )
+        >>>
+        >>> print(example_schema.set_index(["column2"], append = True))
+        DataFrameSchema(
+            columns={
+                "column1": "<Schema Column: 'column1' type=str>"
+            },
+            checks=[],
+            index=MultiIndex(
+            columns={
+                "column3": "<Schema Column: 'column3' type=int>",
+                "column2": "<Schema Column: 'column2' type=int>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        ),
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`reset_index`
 
@@ -1118,26 +1231,24 @@ class DataFrameSchema:
         To remove the entire index from the schema, just call the reset_index
         method with default parameters.
 
-
-        .. testcode:: reset_index_example1
-
-            import pandera as pa
-
-            example_schema = pa.DataFrameSchema({
-                "probability" : pa.Column(pa.Float)},
-                index = pa.Index(name = "unique_id",
-                pandas_dtype = pa.Int))
-
-            example_schema.reset_index()
-
-
-        .. testoutput:: reset_index_example1
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(columns={
-                'probability': <Schema Column: 'probability' type = float>,
-                'unique_id': <Schema Column: 'unique_id' type = int64>},
-                index = None, coerce = False)
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {"probability" : pa.Column(pa.Float)},
+        ...     index = pa.Index(name="unique_id", pandas_dtype=pa.Int)
+        ... )
+        >>>
+        >>> print(example_schema.reset_index())
+        DataFrameSchema(
+            columns={
+                "probability": "<Schema Column: 'probability' type=float>",
+                "unique_id": "<Schema Column: 'unique_id' type=int64>"
+            },
+            checks=[],
+            index=None,
+            coerce=False,
+            strict=False
+        )
 
         This reclassifies an index (or indices) as a column (or columns).
 
@@ -1145,27 +1256,25 @@ class DataFrameSchema:
         you would like to be removed to the ``level`` parameter, and you may
         also decide whether to drop the levels with the ``drop`` parameter.
 
-
-        .. testcode:: reset_index_example2
-
-            example_schema = pa.DataFrameSchema({
-                "category" : pa.Column(pa.String)},
-                index = pa.MultiIndex([
-                    pa.Index(name = "unique_id1", pandas_dtype = pa.Int),
-                    pa.Index(name = "unique_id2", pandas_dtype = pa.String)
-                    ]
-                )
-            )
-            example_schema.reset_index(level = ["unique_id1"])
-
-        .. testoutput:: reset_index_example2
-            :options: +NORMALIZE_WHITESPACE
-
-            DataFrameSchema(columns = {
-                'category': <Schema Column: 'category' type = string>,
-                'unique_id1': <Schema Column: 'unique_id1' type = int64>
-                },
-                index=<Schema Index: 'unique_id2'>, coerce = False)
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(pa.String)},
+        ...     index = pa.MultiIndex([
+        ...         pa.Index(name = "unique_id1", pandas_dtype = pa.Int),
+        ...         pa.Index(name = "unique_id2", pandas_dtype = pa.String)
+        ...         ]
+        ...     )
+        ... )
+        >>> print(example_schema.reset_index(level = ["unique_id1"]))
+        DataFrameSchema(
+            columns={
+                "category": "<Schema Column: 'category' type=str>",
+                "unique_id1": "<Schema Column: 'unique_id1' type=int64>"
+            },
+            checks=[],
+            index=<Schema Index: 'unique_id2'>,
+            coerce=False,
+            strict=False
+        )
 
         .. seealso:: :func:`set_index`
 
@@ -1322,10 +1431,6 @@ class SeriesSchemaBase:
     @property
     def checks(self):
         """Return list of checks or hypotheses."""
-        if self._checks is None:
-            return []
-        if isinstance(self._checks, (Check, Hypothesis)):
-            return [self._checks]
         return self._checks
 
     @checks.setter
@@ -1381,40 +1486,16 @@ class SeriesSchemaBase:
     @property
     def dtype(self) -> Optional[str]:
         """String representation of the dtype."""
-        dtype_ = self._pandas_dtype
-        if dtype_ is None:
-            return dtype_
+        return PandasDtype.get_str_dtype(self._pandas_dtype)
 
-        if is_extension_array_dtype(dtype_):
-            if isinstance(dtype_, type):
-                try:
-                    # Convert to str here because some pandas dtypes allow
-                    # an empty constructor for compatatibility but fail on
-                    # str(). e.g: PeriodDtype
-                    return str(dtype_())
-                except (TypeError, AttributeError) as err:
-                    raise TypeError(
-                        f"Pandas dtype {dtype_} cannot be instantiated: "
-                        f"{err}\n Usage Tip: Use an instance or a string "
-                        "representation."
-                    ) from err
-            return str(dtype_)
-
-        if dtype_ in dtypes.NUMPY_TYPES:
-            dtype_ = PandasDtype.from_numpy_type(dtype_)
-        elif isinstance(dtype_, str):
-            dtype_ = PandasDtype.from_str_alias(dtype_)
-        elif isinstance(dtype_, type):
-            dtype_ = PandasDtype.from_python_type(dtype_)
-
-        if isinstance(dtype_, dtypes.PandasDtype):
-            return dtype_.str_alias
-        raise TypeError(
-            "type of `pandas_dtype` argument not recognized: %s "
-            "Please specify a pandera PandasDtype enum, legal pandas data "
-            "type, pandas data type string alias, or numpy data type "
-            "string alias" % type(self._pandas_dtype)
-        )
+    @property
+    def pdtype(self) -> Optional[PandasDtype]:
+        """PandasDtype of the series."""
+        if self.dtype is None:
+            return None
+        if isinstance(self.pandas_dtype, PandasDtype):
+            return self.pandas_dtype
+        return PandasDtype.from_str_alias(self.dtype)
 
     def coerce_dtype(
         self, series_or_index: Union[pd.Series, pd.Index]
@@ -1425,25 +1506,29 @@ class SeriesSchemaBase:
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if self._pandas_dtype is dtypes.PandasDtype.Str:
+        if self._pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
             return series_or_index.where(
-                series_or_index.isna(), series_or_index.astype(str)
+                series_or_index.isna(),
+                series_or_index.astype(str),
             )
 
         try:
             return series_or_index.astype(self.dtype)
-        except TypeError as exc:
-            msg = f"Error while coercing '{self.name}' to type {self.dtype}"
-            raise TypeError(msg) from exc
-        except ValueError as exc:
+        except (ValueError, TypeError) as exc:
             msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
-            raise errors.SchemaError(self, None, msg) from exc
+            raise errors.SchemaError(
+                self,
+                series_or_index,
+                msg,
+                failure_cases=scalar_failure_case(series_or_index.dtype),
+                check=f"coerce_dtype({self.dtype})",
+            ) from exc
 
     @property
     def _allow_groupby(self):
         """Whether the schema or schema component allows groupby operations."""
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "The _allow_groupby property must be implemented by subclasses "
             "of SeriesSchemaBase"
         )
@@ -1489,9 +1574,8 @@ class SeriesSchemaBase:
 
         error_handler = SchemaErrorHandler(lazy)
 
-        check_obj = _pandas_obj_to_validate(
-            check_obj, head, tail, sample, random_state
-        )
+        if not inplace:
+            check_obj = check_obj.copy()
 
         series = (
             check_obj
@@ -1499,8 +1583,9 @@ class SeriesSchemaBase:
             else check_obj[self.name]
         )
 
-        if not inplace:
-            series = series.copy()
+        series = _pandas_obj_to_validate(
+            series, head, tail, sample, random_state
+        )
 
         if self.name is not None and series.name != self._name:
             msg = "Expected %s to have name '%s', found '%s'" % (
@@ -1665,6 +1750,30 @@ class SeriesSchemaBase:
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    @st.strategy_import_error
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Series.
+
+        :param size: number of elements to generate
+        :returns: a strategy that generates pandas Series objects.
+        """
+        return st.series_strategy(
+            self.pdtype,
+            checks=self.checks,
+            nullable=self.nullable,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+            size=size,
+        )
+
+    def example(self, size=None) -> pd.Series:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Series.
+        :returns: pandas Series object.
+        """
+        return self.strategy(size=size).example()
+
 
 class SeriesSchema(SeriesSchemaBase):
     """Series validator."""
@@ -1762,19 +1871,51 @@ class SeriesSchema(SeriesSchemaBase):
         if not isinstance(check_obj, pd.Series):
             raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
 
+        if not inplace:
+            check_obj = check_obj.copy()
+
+        check_obj = check_obj.pandera.add_schema(self)
+        error_handler = SchemaErrorHandler(lazy=lazy)
+
         if self.coerce:
-            check_obj = self.coerce_dtype(check_obj)
+            try:
+                check_obj = self.coerce_dtype(check_obj).pandera.add_schema(
+                    self
+                )
+            except errors.SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
 
         if self.index is not None and (self.index.coerce or self.coerce):
-            check_obj.index = self.index.coerce_dtype(check_obj.index)
+            try:
+                check_obj.index = self.index.coerce_dtype(check_obj.index)
+            except errors.SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
 
         # validate index
         if self.index:
-            self.index(check_obj)
+            try:
+                self.index(check_obj, head, tail, sample, random_state, lazy)
+            except errors.SchemaErrors as err:
+                for schema_error_dict in err._schema_error_dicts:
+                    error_handler.collect_error(
+                        "index_check", schema_error_dict["error"]
+                    )
 
-        return super().validate(
-            check_obj, head, tail, sample, random_state, lazy
-        )
+        # validate series
+        try:
+            super().validate(check_obj, head, tail, sample, random_state, lazy)
+        except errors.SchemaErrors as err:
+            for schema_error_dict in err._schema_error_dicts:
+                error_handler.collect_error(
+                    "series_check", schema_error_dict["error"]
+                )
+
+        if error_handler.collected_errors:
+            raise errors.SchemaErrors(
+                error_handler.collected_errors, check_obj
+            )
+
+        return check_obj
 
     def __call__(
         self,
@@ -1787,7 +1928,9 @@ class SeriesSchema(SeriesSchemaBase):
         inplace: bool = False,
     ) -> pd.Series:
         """Alias for :func:`SeriesSchema.validate` method."""
-        return self.validate(check_obj, head, tail, sample, random_state, lazy)
+        return self.validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

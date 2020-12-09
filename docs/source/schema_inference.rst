@@ -119,7 +119,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 regex=False,
             ),
             "column2": Column(
-                pandas_dtype=PandasDtype.Str,
+                pandas_dtype=PandasDtype.String,
                 checks=None,
                 nullable=False,
                 allow_duplicates=True,

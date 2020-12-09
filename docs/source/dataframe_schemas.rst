@@ -28,7 +28,7 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
             "column1": Column(pa.Int),
             "column2": Column(pa.Float, Check(lambda s: s < -1.2)),
             # you can provide a list of validators
-            "column3": Column(pa.Str, [
+            "column3": Column(pa.String, [
                Check(lambda s: s.str.startswith("value")),
                Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
             ]),
@@ -131,7 +131,7 @@ checks.
     from pandera import Column, DataFrameSchema
 
     df = pd.DataFrame({"column1": [1, 2, 3]})
-    schema = DataFrameSchema({"column1": Column(pa.Str, coerce=True)})
+    schema = DataFrameSchema({"column1": Column(pa.String, coerce=True)})
 
     validated_df = schema.validate(df)
     assert isinstance(validated_df.column1.iloc[0], str)
@@ -203,7 +203,7 @@ in the column constructor:
    df = pd.DataFrame({"column2": ["hello", "pandera"]})
    schema = DataFrameSchema({
        "column1": Column(pa.Int, required=False),
-       "column2": Column(pa.Str)
+       "column2": Column(pa.String)
    })
 
    validated_df = schema.validate(df)
@@ -222,7 +222,7 @@ Since ``required=True`` by default, missing columns would raise an error:
 
     schema = DataFrameSchema({
         "column1": Column(pa.Int),
-        "column2": Column(pa.Str),
+        "column2": Column(pa.String),
     })
 
     schema.validate(df)
@@ -256,7 +256,7 @@ objects can also be used to validate columns in a dataframe on its own:
     })
 
     column1_schema = pa.Column(pa.Int, name="column1")
-    column2_schema = pa.Column(pa.Str, name="column2")
+    column2_schema = pa.Column(pa.String, name="column2")
 
     # pass the dataframe as an argument to the Column object callable
     df = column1_schema(df)
@@ -414,7 +414,7 @@ You can also specify an :class:`~pandera.schema_components.Index` in the :class:
     schema = DataFrameSchema(
        columns={"a": Column(pa.Int)},
        index=Index(
-           pa.Str,
+           pa.String,
            Check(lambda x: x.str.startswith("index_"))))
 
     df = pd.DataFrame(
@@ -475,7 +475,7 @@ tuples for each level in the index hierarchy:
 
     schema = DataFrameSchema({
         ("foo", "bar"): Column(pa.Int),
-        ("foo", "baz"): Column(pa.Str)
+        ("foo", "baz"): Column(pa.String)
     })
 
     df = pd.DataFrame({
@@ -512,7 +512,7 @@ indexes by composing a list of ``pandera.Index`` objects.
   schema = DataFrameSchema(
       columns={"column1": Column(pa.Int)},
       index=MultiIndex([
-          Index(pa.Str,
+          Index(pa.String,
                 Check(lambda s: s.isin(["foo", "bar"])),
                 name="index0"),
           Index(pa.Int, name="index1"),
@@ -606,7 +606,7 @@ changed or perhaps where additional checks may be required.
         strict=True)
 
     transformed_schema = schema.add_columns({
-        "col2": pa.Column(pa.Str, pa.Check(lambda s: s == "value")),
+        "col2": pa.Column(pa.String, pa.Check(lambda s: s == "value")),
         "col3": pa.Column(pa.Float, pa.Check(lambda x: x == 0.0)),
     })
 
@@ -641,7 +641,7 @@ data pipeline:
     schema = pa.DataFrameSchema(
         columns={
             "col1": pa.Column(pa.Int, pa.Check(lambda s: s >= 0)),
-            "col2": pa.Column(pa.Str, pa.Check(lambda x: x <= 0)),
+            "col2": pa.Column(pa.String, pa.Check(lambda x: x <= 0)),
             "col3": pa.Column(pa.Object, pa.Check(lambda x: x == 0)),
         },
         strict=True,

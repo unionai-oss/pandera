@@ -1,13 +1,15 @@
 """Components used in pandera schemas."""
 
-from copy import copy
+from copy import copy, deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from . import errors
+from . import strategies as st
 from .dtypes import PandasDtype
+from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
     DataFrameSchema,
@@ -23,6 +25,8 @@ def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
 
 class Column(SeriesSchemaBase):
     """Validate types and properties of DataFrame columns."""
+
+    has_subcomponents = False
 
     def __init__(
         self,
@@ -242,6 +246,35 @@ class Column(SeriesSchemaBase):
             )
         return column_keys_to_check
 
+    @st.strategy_import_error
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Column.
+
+        :param size: number of elements to generate
+        :returns: a dataframe strategy for a single column.
+        """
+        return super().strategy(size=size).map(lambda x: x.to_frame())
+
+    @st.strategy_import_error
+    def strategy_component(self):
+        """Generate column data object for use by DataFrame strategy."""
+        return st.column_strategy(
+            self.pdtype,
+            checks=self.checks,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+        )
+
+    def example(self, size=None) -> pd.DataFrame:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas DataFrame object.
+        """
+        return (
+            super().strategy(size=size).example().rename(self.name).to_frame()
+        )
+
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
             dtype = self._pandas_dtype.value
@@ -262,19 +295,7 @@ class Column(SeriesSchemaBase):
 class Index(SeriesSchemaBase):
     """Validate types and properties of a DataFrame Index."""
 
-    def coerce_dtype(self, series_or_index: pd.Index) -> pd.Index:
-        """Coerce type of a pd.Index by type specified in pandas_dtype.
-
-        :param pd.Index series: One-dimensional ndarray with axis labels
-            (including time series).
-        :returns: ``Index`` with coerced data type
-        """
-        if self._pandas_dtype is PandasDtype.Str:
-            # only coerce non-null elements to string
-            return series_or_index.where(
-                series_or_index.isna(), series_or_index.astype(str)
-            )
-        return series_or_index.astype(self.dtype)
+    has_subcomponents = False
 
     @property
     def _allow_groupby(self) -> bool:
@@ -330,6 +351,40 @@ class Index(SeriesSchemaBase):
         )
         return check_obj
 
+    @st.strategy_import_error
+    def strategy(self, *, size: int = None):
+        """Create a ``hypothesis`` strategy for generating an Index.
+
+        :param size: number of elements to generate.
+        :returns: index strategy.
+        """
+        return st.index_strategy(
+            self.pdtype,  # type: ignore
+            checks=self.checks,
+            nullable=self.nullable,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+            size=size,
+        )
+
+    @st.strategy_import_error
+    def strategy_component(self):
+        """Generate column data object for use by MultiIndex strategy."""
+        return st.column_strategy(
+            self.pdtype,
+            checks=self.checks,
+            allow_duplicates=self.allow_duplicates,
+            name=self.name,
+        )
+
+    def example(self, size: int = None) -> pd.Index:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas Index object.
+        """
+        return self.strategy(size=size).example()
+
     def __repr__(self):
         if self._name is None:
             return "<Schema Index>"
@@ -342,10 +397,11 @@ class Index(SeriesSchemaBase):
 class MultiIndex(DataFrameSchema):
     """Validate types and properties of a DataFrame MultiIndex.
 
-    Because `MultiIndex.__call__` converts the index to a dataframe via
-    `to_frame()`, each index is treated as a series and it makes sense to
-    inherit the `__call__` and `validate` methods from DataFrameSchema.
+    This class inherits from :class:`~pandera.schemas.DataFrameSchema` to
+    leverage its validation logic.
     """
+
+    has_subcomponents = True
 
     def __init__(
         self,
@@ -420,31 +476,37 @@ class MultiIndex(DataFrameSchema):
     def coerce(self):
         return self._coerce or any(index.coerce for index in self.indexes)
 
-    def coerce_dtype(self, multi_index: pd.MultiIndex) -> pd.MultiIndex:
+    def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
-        :param multi_index: multi-index to coerce.
+        :param obj: multi-index to coerce.
         :returns: ``MultiIndex`` with coerced data type
         """
-        _coerced_multi_index = []
-        if multi_index.nlevels != len(self.indexes):
+        error_handler = SchemaErrorHandler(lazy=True)
+
+        if obj.nlevels != len(self.indexes):
             raise errors.SchemaError(
                 self,
-                multi_index,
+                obj,
                 "multi_index does not have equal number of levels as "
                 "MultiIndex schema %d != %d."
-                % (multi_index.nlevels, len(self.indexes)),
+                % (obj.nlevels, len(self.indexes)),
             )
 
+        _coerced_multi_index = []
         for level_i, index in enumerate(self.indexes):
-            index_array = multi_index.get_level_values(level_i)
-            if index.coerce or self.coerce:
-                index_array = index.coerce_dtype(index_array)
+            index_array = obj.get_level_values(level_i)
+            if index.coerce or self._coerce:
+                try:
+                    index_array = index.coerce_dtype(index_array)
+                except errors.SchemaError as err:
+                    error_handler.collect_error("dtype_coercion_error", err)
             _coerced_multi_index.append(index_array)
 
-        return pd.MultiIndex.from_arrays(
-            _coerced_multi_index, names=multi_index.names
-        )
+        if error_handler.collected_errors:
+            raise errors.SchemaErrors(error_handler.collected_errors, obj)
+
+        return pd.MultiIndex.from_arrays(_coerced_multi_index, names=obj.names)
 
     def validate(
         self,
@@ -473,12 +535,22 @@ class MultiIndex(DataFrameSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-
         if self.coerce:
-            check_obj.index = self.coerce_dtype(check_obj.index)
+            check_obj.index = self.coerce_dtype(
+                check_obj.index if inplace else check_obj.index
+            )
+
+        # Prevent data type coercion when the validate method is called because
+        # it leads to some weird behavior when calling coerce_dtype within the
+        # DataFrameSchema.validate call. Need to fix this by having MultiIndex
+        # not inherit from DataFrameSchema.
+        self_copy = deepcopy(self)
+        self_copy._coerce = False
+        for index in self_copy.indexes:
+            index._coerce = False
 
         try:
-            validation_result = super().validate(
+            validation_result = super(MultiIndex, self_copy).validate(
                 check_obj.index.to_frame(),
                 head,
                 tail,
@@ -492,7 +564,6 @@ class MultiIndex(DataFrameSchema):
             # the schema context to MultiIndex. This should be fixed by with
             # a more principled schema class hierarchy.
             schema_error_dicts = []
-            # pylint: disable=protected-access
             for schema_error_dict in err._schema_error_dicts:
                 error = schema_error_dict["error"]
                 error = errors.SchemaError(
@@ -510,6 +581,13 @@ class MultiIndex(DataFrameSchema):
 
         assert isinstance(validation_result, pd.DataFrame)
         return check_obj
+
+    @st.strategy_import_error
+    def strategy(self, *, size=None):
+        return st.multiindex_strategy(indexes=self.indexes, size=size)
+
+    def example(self, size=None) -> pd.MultiIndex:
+        return self.strategy(size=size).example()
 
     def __repr__(self):
         return f"<Schema MultiIndex: '{list(self.columns)}'>"

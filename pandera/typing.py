@@ -49,8 +49,8 @@ GenericDtype = TypeVar(  # type: ignore
     Literal[PandasDtype.UINT32],
     Literal[PandasDtype.UINT64],
     Literal[PandasDtype.Object],
-    Literal[PandasDtype.Str],
     Literal[PandasDtype.String],
+    Literal[PandasDtype.STRING],
     Literal[PandasDtype.Timedelta],
     covariant=True,
 )
@@ -180,8 +180,8 @@ UINT64 = Literal[
 ]  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
 Object = Literal[PandasDtype.Object]  #: ``"object"`` numpy dtype
 
-Str = Literal[PandasDtype.Str]  #: ``"str"`` numpy dtype
+String = Literal[PandasDtype.String]  #: ``"str"`` numpy dtype
 
 #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
 #: fall back on the str-as-object-array representation.
-String = Literal[PandasDtype.String]
+STRING = Literal[PandasDtype.STRING]  #: ``"str"`` numpy dtype

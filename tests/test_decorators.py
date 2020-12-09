@@ -15,7 +15,7 @@ from pandera import (
     Float,
     Int,
     SchemaModel,
-    Str,
+    String,
     check_input,
     check_io,
     check_output,
@@ -40,7 +40,7 @@ def test_check_function_decorators():
                 ],
             ),
             "b": Column(
-                Str,
+                String,
                 Check(lambda x: x in ["x", "y", "z"], element_wise=True),
             ),
             "c": Column(
@@ -59,9 +59,9 @@ def test_check_function_decorators():
     )
     out_schema = DataFrameSchema(
         {
-            "e": Column(Str, Check(lambda s: s == "foo")),
+            "e": Column(String, Check(lambda s: s == "foo")),
             "f": Column(
-                Str, Check(lambda x: x in ["a", "b"], element_wise=True)
+                String, Check(lambda x: x in ["a", "b"], element_wise=True)
             ),
         }
     )
@@ -189,7 +189,7 @@ def test_check_function_decorator_errors():
 def test_check_input_method_decorators():
     """Test the check_input and check_output decorator behaviours when the
     dataframe is changed within the function being checked"""
-    in_schema = DataFrameSchema({"column1": Column(Str)})
+    in_schema = DataFrameSchema({"column1": Column(String)})
     out_schema = DataFrameSchema({"column2": Column(Int)})
     dataframe = pd.DataFrame({"column1": ["a", "b", "c"]})
 
@@ -272,6 +272,10 @@ def test_check_io():
     def simple_func(df1, df2):
         return df1.assign(col=df1["col"] + df2["col"])
 
+    @check_io(df1=schema, df2=schema)
+    def simple_func_no_out(df1, df2):
+        return df1.assign(col=df1["col"] + df2["col"])
+
     @check_io(out=(1, schema))
     def output_with_obj_getter(df):
         return None, df
@@ -313,6 +317,7 @@ def test_check_io():
 
     for fn, valid, invalid, out in [
         (simple_func, [df1, df2], [invalid_df, invalid_df], expected),
+        (simple_func_no_out, [df1, df2], [invalid_df, invalid_df], expected),
         (output_with_obj_getter, [df1], [invalid_df], (None, df1)),
         (multiple_outputs_tuple, [df1], [invalid_df], (df1, df1)),
         (
@@ -340,6 +345,16 @@ def test_check_io():
         )
         with pytest.raises(expected_error):
             fn(*invalid)
+
+    # invalid out schema types
+    for out_schema in [1, 5.0, "foo", {"foo": "bar"}, ["foo"]]:
+
+        @check_io(out=out_schema)
+        def invalid_out_schema_type(df):
+            return df
+
+        with pytest.raises((TypeError, ValueError)):
+            invalid_out_schema_type(df1)
 
 
 @pytest.mark.parametrize(
@@ -507,6 +522,12 @@ def test_check_types_error_input():
     ):
         transform(df)
 
+    try:
+        transform(df)
+    except errors.SchemaError as exc:
+        assert exc.schema == InSchema.to_schema()
+        assert exc.data.equals(df)
+
 
 @pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
 def test_check_types_error_output(out_schema_cls):
@@ -522,6 +543,12 @@ def test_check_types_error_output(out_schema_cls):
         errors.SchemaError, match="column 'b' not in dataframe"
     ):
         transform(df)
+
+    try:
+        transform(df)
+    except errors.SchemaError as exc:
+        assert exc.schema == out_schema_cls.to_schema()
+        assert exc.data.equals(df)
 
 
 @pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])

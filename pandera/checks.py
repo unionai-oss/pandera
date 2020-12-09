@@ -10,15 +10,11 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from . import constants, errors
+from . import strategies as st
 
 CheckResult = namedtuple(
     "CheckResult",
-    [
-        "check_output",
-        "check_passed",
-        "checked_object",
-        "failure_cases",
-    ],
+    ["check_output", "check_passed", "checked_object", "failure_cases"],
 )
 
 
@@ -424,16 +420,35 @@ class _CheckBase:
         )
 
     def __eq__(self, other):
-        are_fn_objects_equal = (
+        are_check_fn_objects_equal = (
             self.__dict__["_check_fn"].__code__.co_code
             == other.__dict__["_check_fn"].__code__.co_code
         )
 
-        are_all_other_check_attributes_equal = {
-            i: self.__dict__[i] for i in self.__dict__ if i != "_check_fn"
-        } == {i: other.__dict__[i] for i in other.__dict__ if i != "_check_fn"}
+        try:
+            are_strategy_fn_objects_equal = all(
+                getattr(self.__dict__.get("strategy"), attr)
+                == getattr(other.__dict__.get("strategy"), attr)
+                for attr in ["func", "args", "keywords"]
+            )
+        except AttributeError:
+            are_strategy_fn_objects_equal = True
 
-        return are_fn_objects_equal and are_all_other_check_attributes_equal
+        are_all_other_check_attributes_equal = {
+            i: self.__dict__[i]
+            for i in self.__dict__
+            if i not in ["_check_fn", "strategy"]
+        } == {
+            i: other.__dict__[i]
+            for i in other.__dict__
+            if i not in ["_check_fn", "strategy"]
+        }
+
+        return (
+            are_check_fn_objects_equal
+            and are_strategy_fn_objects_equal
+            and are_all_other_check_attributes_equal
+        )
 
     def __hash__(self):
         return hash(self.__dict__["_check_fn"].__code__.co_code)
@@ -450,6 +465,7 @@ class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
 
     @classmethod
+    @st.register_check_strategy(st.eq_strategy)
     @register_check_statistics(["value"])
     def equal_to(cls, value, **kwargs) -> "Check":
         """Ensure all elements of a series equal a certain value.
@@ -478,6 +494,7 @@ class Check(_CheckBase):
     eq = equal_to
 
     @classmethod
+    @st.register_check_strategy(st.ne_strategy)
     @register_check_statistics(["value"])
     def not_equal_to(cls, value, **kwargs) -> "Check":
         """Ensure no elements of a series equals a certain value.
@@ -506,6 +523,7 @@ class Check(_CheckBase):
     ne = not_equal_to
 
     @classmethod
+    @st.register_check_strategy(st.gt_strategy)
     @register_check_statistics(["min_value"])
     def greater_than(cls, min_value, **kwargs) -> "Check":
         """Ensure values of a series are strictly greater than a minimum value.
@@ -537,6 +555,7 @@ class Check(_CheckBase):
     gt = greater_than
 
     @classmethod
+    @st.register_check_strategy(st.ge_strategy)
     @register_check_statistics(["min_value"])
     def greater_than_or_equal_to(cls, min_value, **kwargs) -> "Check":
         """Ensure all values are greater or equal a certain value.
@@ -568,6 +587,7 @@ class Check(_CheckBase):
     ge = greater_than_or_equal_to
 
     @classmethod
+    @st.register_check_strategy(st.lt_strategy)
     @register_check_statistics(["max_value"])
     def less_than(cls, max_value, **kwargs) -> "Check":
         """Ensure values of a series are strictly below a maximum value.
@@ -599,6 +619,7 @@ class Check(_CheckBase):
     lt = less_than
 
     @classmethod
+    @st.register_check_strategy(st.le_strategy)
     @register_check_statistics(["max_value"])
     def less_than_or_equal_to(cls, max_value, **kwargs) -> "Check":
         """Ensure values are less than or equal to a maximum value.
@@ -630,6 +651,7 @@ class Check(_CheckBase):
     le = less_than_or_equal_to
 
     @classmethod
+    @st.register_check_strategy(st.in_range_strategy)
     @register_check_statistics(
         ["min_value", "max_value", "include_min", "include_max"]
     )
@@ -682,6 +704,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
+    @st.register_check_strategy(st.isin_strategy)
     @register_check_statistics(["allowed_values"])
     def isin(cls, allowed_values: Iterable, **kwargs) -> "Check":
         """Ensure only allowed values occur within a series.
@@ -721,6 +744,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
+    @st.register_check_strategy(st.notin_strategy)
     @register_check_statistics(["forbidden_values"])
     def notin(cls, forbidden_values: Iterable, **kwargs) -> "Check":
         """Ensure some defined values don't occur within a series.
@@ -760,6 +784,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
+    @st.register_check_strategy(st.str_matches_strategy)
     @register_check_statistics(["pattern"])
     def str_matches(cls, pattern: str, **kwargs) -> "Check":
         """Ensure that string values match a regular expression.
@@ -793,6 +818,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
+    @st.register_check_strategy(st.str_contains_strategy)
     @register_check_statistics(["pattern"])
     def str_contains(cls, pattern: str, **kwargs) -> "Check":
         """Ensure that a pattern can be found within each row.
@@ -824,6 +850,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
+    @st.register_check_strategy(st.str_startswith_strategy)
     @register_check_statistics(["string"])
     def str_startswith(cls, string: str, **kwargs) -> "Check":
         """Ensure that all values start with a certain string.
@@ -846,6 +873,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
+    @st.register_check_strategy(st.str_endswith_strategy)
     @register_check_statistics(["string"])
     def str_endswith(cls, string: str, **kwargs) -> "Check":
         """Ensure that all values end with a certain string.
@@ -868,6 +896,7 @@ class Check(_CheckBase):
         )
 
     @classmethod
+    @st.register_check_strategy(st.str_length_strategy)
     @register_check_statistics(["min_value", "max_value"])
     def str_length(
         cls, min_value: int = None, max_value: int = None, **kwargs

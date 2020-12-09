@@ -45,6 +45,10 @@ class SchemaError(Exception):
         self.check_index = check_index
 
 
+class BaseStrategyOnlyError(Exception):
+    """Custom error for reporting strategies that must be base strategies."""
+
+
 SCHEMA_ERRORS_SUFFIX = """
 
 Usage Tip
@@ -56,7 +60,7 @@ Directly inspect all errors by catching the exception:
 try:
     schema.validate(dataframe, lazy=True)
 except SchemaErrors as err:
-    err.schema_errors  # dataframe of schema errors
+    err.failure_cases  # dataframe of schema errors
     err.data  # invalid dataframe
 ```
 """
@@ -74,6 +78,11 @@ class SchemaErrors(Exception):
         self.error_counts = error_counts
         self.schema_errors = schema_errors
         self.data = data
+
+    @property
+    def failure_cases(self):
+        """Get all failure cases."""
+        return self.schema_errors
 
     @staticmethod
     def _message(error_counts, schema_errors):

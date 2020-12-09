@@ -1,9 +1,9 @@
 """A flexible and expressive pandas validation library."""
 
-from . import constants, errors
+from . import constants, errors, pandas_accessor
 from .checks import Check
 from .decorators import check_input, check_io, check_output, check_types
-from .dtypes import PandasDtype
+from .dtypes import LEGACY_PANDAS, PandasDtype
 from .hypotheses import Hypothesis
 from .model import SchemaModel
 from .model_components import Field, check, dataframe_check
@@ -38,6 +38,6 @@ UINT16 = PandasDtype.UINT16
 UINT32 = PandasDtype.UINT32
 UINT64 = PandasDtype.UINT64
 Object = PandasDtype.Object
-Str = PandasDtype.Str
 String = PandasDtype.String
+STRING = PandasDtype.STRING
 Timedelta = PandasDtype.Timedelta
