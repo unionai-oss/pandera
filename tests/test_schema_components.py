@@ -511,13 +511,13 @@ def test_column_type_can_be_set():
             pd.MultiIndex.from_arrays(
                 [[1, 2, 3], [1, 2, 3]], names=["a", "a"]
             ),
-            None,
+            False,
         ],
         [
             pd.MultiIndex.from_arrays(
                 [[1, 2, 3], ["a", "b", "c"]], names=["a", "a"]
             ),
-            errors.SchemaError,
+            True,
         ],
     ],
 )
@@ -530,8 +530,10 @@ def test_column_type_can_be_set():
 )
 def test_multiindex_duplicate_index_names(multiindex, error, schema):
     """Test MultiIndex schema component can handle duplicate index names."""
-    if error is None:
-        assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
-    else:
-        with pytest.raises(error):
+    if error:
+        with pytest.raises(errors.SchemaError):
             schema(pd.DataFrame(index=multiindex))
+        with pytest.raises(errors.SchemaErrors):
+            schema(pd.DataFrame(index=multiindex), lazy=True)
+    else:
+        assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
