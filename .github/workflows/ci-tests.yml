@@ -19,7 +19,7 @@ jobs:
         exclude:
           # pandas 0.25.3 not supported by python 3.9
           - python-version: "3.9"
-          - env-suffix: "0_25_3"
+            env-suffix: "0_25_3"
     defaults:
       run:
         shell: bash -l {0}
