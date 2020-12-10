@@ -1,0 +1,72 @@
+name: CI Tests
+on: push
+
+jobs:
+  ci-tests:
+    name:
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }},
+      pandera [${{ matrix.env-infix }}], pandas ${{ matrix.env-suffix }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
+        env-suffix: ["latest", "0_25_3"]
+        env-infix: ["core", "all"]
+        exclude:
+          # pandas 0.25.3 not supported by python 3.9
+          - python-version: "3.9"
+            env-suffix: "0_25_3"
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: pandera-dev
+          auto-update-conda: true
+          channels: conda-forge
+          python-version: ${{ matrix.python-version }}
+          environment-file: ./ci/environment_${{ matrix.env-infix }}_pandas_${{ matrix.env-suffix }}.yml
+          auto-activate-base: false
+      - name: Cache conda
+        uses: actions/cache@v1
+        env:
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACH_NUMBER }}-${{
+            hashFiles('./ci/environment_${{ matrix.env-infix }}_pandas_${{ matrix.env-suffix }}.yml') }}
+      - name: Conda info
+        run: |
+          conda info
+          conda list
+      - name: Check requirements-dev.txt
+        run: python ./scripts/generate_pip_deps_from_conda.py --compare
+      - name: Check isort and black formatting
+        run: |
+          isort --line-length=79 --check-only pandera tests
+          black --line-length=79 --check pandera tests
+      - name: Pylint python 3.9
+        if: ${{ matrix.python-version == '3.9' }}
+        # https://github.com/PyCQA/pylint/issues/776
+        run: pylint pandera tests --disable=unsubscriptable-object
+      - name: Pylint python < 3.9
+        if: ${{ matrix.python-version != '3.9' }}
+        run: pylint pandera tests
+      - name: Mypy Type Checking
+        run: mypy pandera tests
+      - name: Unit Tests Core
+        if: ${{ matrix.env-infix == 'core' }}
+        run: pytest --cov=pandera --cov-append tests/
+      - name: Unit Tests All
+        if: ${{ matrix.env-infix == 'all' }}
+        run: pytest --hypothesis-profile ci --cov=pandera --cov-append tests/
+      - name: Code Coverage
+        run: codecov
+      - name: Check Docs
+        if: ${{ matrix.env-infix == 'all' }}
+        run: python -m sphinx -E -b=doctest "docs/source" "docs/_build"

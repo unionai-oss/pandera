@@ -1,7 +1,7 @@
 name: pandera-dev
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   # environment management
   - pip
