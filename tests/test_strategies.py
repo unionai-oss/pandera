@@ -129,7 +129,10 @@ def value_ranges(pdtype: pa.PandasDtype):
     ],
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(deadline=2000)
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_check_strategy_chained_continuous(
     pdtype, strat_fn, arg_name, base_st_type, compare_op, data
 ):
@@ -384,7 +387,10 @@ def test_register_check_strategy_exception():
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(deadline=2000)
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_series_strategy(data):
     """Test SeriesSchema strategy."""
     series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
@@ -419,7 +425,10 @@ def test_column_example():
     [pdtype for pdtype in SUPPORTED_DTYPES if not pdtype.is_category],
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(deadline=2000)
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_dataframe_strategy(pdtype, data):
     """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
@@ -446,7 +455,10 @@ def test_dataframe_example():
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
-@hypothesis.settings(deadline=2000)
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 @hypothesis.given(st.data())
 def test_dataframe_checks(pdtype, data):
     """Test dataframe strategy with checks defined at the dataframe level."""
@@ -467,7 +479,10 @@ def test_dataframe_checks(pdtype, data):
 
 @pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.String, pa.DateTime])
 @hypothesis.given(st.data())
-@hypothesis.settings(deadline=2000)
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_dataframe_strategy_with_indexes(pdtype, data):
     """Test dataframe strategy with index and multiindex components."""
     dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(pdtype))
