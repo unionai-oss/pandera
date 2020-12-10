@@ -15,7 +15,7 @@ from pandera import (
 from pandera.hypotheses import HAS_SCIPY
 
 if HAS_SCIPY:
-    from scipy import stats
+    from scipy import stats  # pylint: disable=import-error
 
 
 # skip all tests in module if "hypotheses" depends aren't installed
