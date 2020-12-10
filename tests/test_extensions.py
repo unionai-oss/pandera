@@ -140,7 +140,7 @@ def test_register_custom_groupby_check(custom_check_teardown):
         {
             "col1": pa.Column(
                 int,
-                Check.custom_check(group_A="a", group_B="b", groupby="col2"),
+                Check.custom_check(group_a="a", group_b="b", groupby="col2"),
             ),
             "col2": pa.Column(str),
         }
@@ -164,7 +164,7 @@ def test_register_custom_groupby_check(custom_check_teardown):
         },
         index=pa.Index(str, name="my_index"),
         checks=Check.custom_check(
-            group_A="a", group_B="b", groupby="my_index"
+            group_a="a", group_b="b", groupby="my_index"
         ),
     )
     assert isinstance(schema_df_check(data_df_check), pd.DataFrame)
@@ -229,3 +229,47 @@ def test_register_check_with_strategy(custom_check_teardown):
     strat = check.strategy(PandasDtype.Int)
     with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
         assert strat.example() >= 0
+
+
+def test_schema_model_field_kwarg(custom_check_teardown):
+    """Test that registered checks can be specified in a Field."""
+
+    @extensions.register_check_method(
+        statistics=["val"],
+        supported_types=(pd.Series, pd.DataFrame),
+        check_type="vectorized",
+    )
+    def custom_gt(pandas_obj, val):
+        return pandas_obj > val
+
+    class Schema(pa.SchemaModel):
+        """Schema that uses registered checks in Field."""
+
+        col1: pa.typing.Series[int] = pa.Field(custom_gt=100)
+        col2: pa.typing.Series[float] = pa.Field(
+            custom_in_range={"min_value": -10, "max_value": 10}
+        )
+
+    # checks are even accessible in the schema before being registered
+    @extensions.register_check_method(
+        statistics=["val"],
+        supported_types=(pd.Series, pd.DataFrame),
+        check_type="vectorized",
+    )
+    def custom_in_range(pandas_obj, min_value, max_value):
+        return (min_value <= pandas_obj) & (pandas_obj <= max_value)
+
+    data = pd.DataFrame(
+        {
+            "col1": [101, 1000, 2000],
+            "col2": [-5.0, 0.0, 6.0],
+        }
+    )
+    Schema.validate(data)
+
+    for invalid_data in [
+        pd.DataFrame({"col1": [0], "col2": [-10]}),
+        pd.DataFrame({"col1": [1000], "col2": [-100]}),
+    ]:
+        with pytest.raises(pa.errors.SchemaError):
+            Schema.validate(invalid_data)
