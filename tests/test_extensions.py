@@ -203,7 +203,7 @@ def test_register_check_invalid_supported_types(supported_types):
 def test_register_check_with_strategy(custom_check_teardown):
     """Test registering a custom check with a data generation strategy."""
 
-    import hypothesis  # pylint: disable=import-outside-toplevel
+    import hypothesis  # pylint: disable=import-outside-toplevel,import-error
 
     def custom_ge_strategy(
         pandas_dtype: PandasDtype,
