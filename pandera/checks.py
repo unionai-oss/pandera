@@ -302,14 +302,16 @@ class _CheckBase:
             for col in self.groupby:
                 # raise schema definition error if column is not in the
                 # validated dataframe
-                if (
-                    isinstance(df_or_series, pd.DataFrame)
-                    and col not in df_or_series
+                if isinstance(df_or_series, pd.DataFrame) and (
+                    col not in df_or_series
+                    and col not in df_or_series.index.names
                 ):
                     raise errors.SchemaDefinitionError(
                         f"`groupby` column '{col}' not found"
                     )
-            drop_na_columns.extend(self.groupby)
+            drop_na_columns.extend(
+                [col for col in self.groupby if col in df_or_series]
+            )
 
         if drop_na_columns:
             return df_or_series.loc[
@@ -463,6 +465,8 @@ class _CheckBase:
 
 class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
+
+    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
 
     @classmethod
     @st.register_check_strategy(st.eq_strategy)
