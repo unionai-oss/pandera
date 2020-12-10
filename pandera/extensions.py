@@ -12,6 +12,8 @@ from .checks import Check, register_check_statistics
 
 
 class CheckType(Enum):
+    """Check types for registered check methods."""
+
     VECTORIZED = 1
     ELEMENT_WISE = 2
     GROUPBY = 3

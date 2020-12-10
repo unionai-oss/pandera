@@ -640,6 +640,7 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
 )
 @hypothesis.given(st.data())
 def test_series_strategy_undefined_check_strategy(schema, warning, data):
+    """Test case where series check strategy is undefined."""
     with pytest.warns(
         UserWarning, match=f"{warning} check doesn't have a defined strategy"
     ):
@@ -681,6 +682,7 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
 )
 @hypothesis.given(st.data())
 def test_dataframe_strategy_undefined_check_strategy(schema, warning, data):
+    """Test case where dataframe check strategy is undefined."""
     with pytest.warns(
         UserWarning, match=f"{warning} check doesn't have a defined strategy"
     ):

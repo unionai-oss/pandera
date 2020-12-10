@@ -665,7 +665,7 @@ def field_element_strategy(
             pandas_dtype_strategy(pandas_dtype)
             if elements is None
             else elements
-        ).filter(lambda x: check._check_fn(x))
+        ).filter(check._check_fn)
 
     for check in checks:
         if hasattr(check, "strategy"):

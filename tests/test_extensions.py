@@ -1,3 +1,5 @@
+# pylint: disable=no-member,redefined-outer-name,unused-argument
+# pylint: disable=unused-variable
 """Unit tests for pandera API extensions."""
 
 from typing import Any, Optional
@@ -55,7 +57,7 @@ def test_register_vectorized_custom_check(custom_check_teardown, data):
         ValueError,
         match="method with name 'custom_check' already defined",
     ):
-
+        # pylint: disable=function-redefined
         @extensions.register_check_method(statistics=["val"])
         def custom_check(pandas_obj, val):  # noqa
             return pandas_obj != val
@@ -69,6 +71,8 @@ def test_register_vectorized_custom_check(custom_check_teardown, data):
     ],
 )
 def test_register_element_wise_custom_check(custom_check_teardown, data):
+    """Test registering an element-wise custom check."""
+
     @extensions.register_check_method(
         statistics=["val"],
         supported_types=(pd.Series, pd.DataFrame),
@@ -108,11 +112,11 @@ def test_register_custom_groupby_check(custom_check_teardown):
     """Test registering a custom groupby check."""
 
     @extensions.register_check_method(
-        statistics=["group_A", "group_B"],
+        statistics=["group_a", "group_b"],
         supported_types=(pd.Series, pd.DataFrame),
         check_type="groupby",
     )
-    def custom_check(dict_groups, *, group_A, group_B):
+    def custom_check(dict_groups, *, group_a, group_b):
         """
         Test that the mean values in group A is larger than that of group B.
 
@@ -120,8 +124,8 @@ def test_register_custom_groupby_check(custom_check_teardown):
         series.
         """
         return (
-            dict_groups[group_A].values.mean()
-            > dict_groups[group_B].values.mean()
+            dict_groups[group_a].values.mean()
+            > dict_groups[group_b].values.mean()
         )
 
     # column groupby check
@@ -185,6 +189,7 @@ def test_register_custom_groupby_check(custom_check_teardown):
     ],
 )
 def test_register_check_invalid_supported_types(supported_types):
+    """Test that TypeError is raised on invalid supported_types arg."""
     with pytest.raises(TypeError):
 
         @extensions.register_check_method(supported_types=supported_types)
