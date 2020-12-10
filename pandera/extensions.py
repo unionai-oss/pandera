@@ -36,7 +36,7 @@ def register_check_method(
         which serve as the statistics needed to serialize/de-serialize the
         check and generate data if a ``strategy`` function is provided.
     :param supported_types: the pandas type(s) supported by the check function.
-        Valid values are ``pd.DataFrame``, ``pd.Series``, or a tuple of
+        Valid values are ``pd.DataFrame``, ``pd.Series``, or a list/tuple of
         ``(pa.DataFrame, pa.Series)`` if both types are supported.
     :param check_type: the expected input of the check function. Valid values
         are ``~pandera.extensions.CheckType`` enums or
@@ -69,10 +69,7 @@ def register_check_method(
     if isinstance(supported_types, list):
         supported_types = tuple(supported_types)
     elif not isinstance(supported_types, tuple):
-        try:
-            supported_types = (supported_types,)
-        except TypeError as exc:
-            raise TypeError(msg.format(supported_types)) from exc
+        supported_types = (supported_types,)
 
     for supported_type in supported_types:  # type: ignore
         if supported_type not in {pd.DataFrame, pd.Series}:
