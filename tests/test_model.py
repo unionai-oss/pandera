@@ -457,6 +457,7 @@ def test_config():
         class Config:
             name = "Base schema"
             coerce = True
+            ordered = True
             multiindex_coerce = True
             multiindex_strict = True
             multiindex_name: Optional[str] = "mi"
@@ -480,6 +481,7 @@ def test_config():
         name="Child schema",
         coerce=True,
         strict=True,
+        ordered=True,
     )
 
     assert expected == Child.to_schema()

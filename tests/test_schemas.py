@@ -205,6 +205,29 @@ def test_dataframe_reset_column_name():
         DataFrameSchema(columns={"new_name": Column(name="old_name")})
 
 
+def test_dataframe_ordered():
+    """Test that columns are ordered."""
+    schema = DataFrameSchema(
+        {"a": Column(Int), "b": Column(Int)}, ordered=True, strict=True
+    )
+
+    df = pd.DataFrame([[1, 2, 3]], columns=["a", "a", "b"])
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+    df = pd.DataFrame([[1, 2]], columns=["b", "a"])
+    err_msg = "A total of 2 schema errors"
+    with pytest.raises(errors.SchemaErrors, match=err_msg):
+        schema.validate(df, lazy=True)
+
+    schema = DataFrameSchema(
+        {"a": Column(Int), "b": Column(Int), "c": Column(Int)}, ordered=True
+    )
+    df = pd.DataFrame([[1, 2, 3, 4, 5]], columns=["a", "b", "d", "a", "c"])
+    err_msg = "A total of 1 schema errors"
+    with pytest.raises(errors.SchemaErrors, match=err_msg):
+        schema.validate(df, lazy=True)
+
+
 def test_series_schema():
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues

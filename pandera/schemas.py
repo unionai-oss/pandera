@@ -2,6 +2,7 @@
 # pylint: disable=too-many-lines
 
 import copy
+import itertools
 import json
 import warnings
 from functools import wraps
@@ -51,7 +52,7 @@ def _inferred_schema_guard(method):
     return _wrapper
 
 
-class DataFrameSchema:
+class DataFrameSchema:  # pylint: disable=too-many-public-methods
     """A light-weight pandas DataFrame validator."""
 
     def __init__(
@@ -64,6 +65,7 @@ class DataFrameSchema:
         coerce: bool = False,
         strict=False,
         name: str = None,
+        ordered: bool = False,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -86,6 +88,7 @@ class DataFrameSchema:
         :param strict: whether or not to accept columns in the dataframe that
             aren't in the DataFrameSchema.
         :param name: name of the schema.
+        :param ordered:  whether or not to validate the column order.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -156,6 +159,7 @@ class DataFrameSchema:
         self.name = name
         self._pandas_dtype = pandas_dtype
         self._coerce = coerce
+        self._ordered = ordered
         self._validate_schema()
         self._set_column_names()
 
@@ -167,6 +171,11 @@ class DataFrameSchema:
     def coerce(self):
         """Whether to coerce series to specified type."""
         return self._coerce
+
+    @property
+    def ordered(self):
+        """Whether to coerce series to specified type."""
+        return self._ordered
 
     # the _is_inferred getter and setter methods are not public
     @property
@@ -426,30 +435,32 @@ class DataFrameSchema:
 
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
-        if self.strict:
-
-            # expand regex columns
-            col_regex_matches = []  # type: ignore
+        if self.strict or self.ordered:
+            colum_names = []
             for colname, col_schema in self.columns.items():
                 if col_schema.regex:
                     try:
-                        col_regex_matches.extend(
+                        colum_names.extend(
                             col_schema.get_regex_columns(check_obj.columns)
                         )
                     except errors.SchemaError:
                         pass
+                else:
+                    colum_names.append(colname)
+            # ordered "set" of columns
+            sorted_column_names = iter(dict.fromkeys(colum_names))
+            expanded_column_names = frozenset(colum_names)
 
-            expanded_column_names = frozenset(
-                [n for n, c in self.columns.items() if not c.regex]
-                + col_regex_matches
-            )
+            # drop adjacent duplicated column names
+            if check_obj.columns.has_duplicates:
+                columns = [k for k, _ in itertools.groupby(check_obj.columns)]
+            else:
+                columns = check_obj.columns
 
-            for column in check_obj:
-                if column not in expanded_column_names:
-                    msg = (
-                        f"column '{column}' not in DataFrameSchema"
-                        f" {self.columns}"
-                    )
+            for column in columns:
+                is_schema_col = column in expanded_column_names
+                if self.strict and not is_schema_col:
+                    msg = f"column '{column}' not in DataFrameSchema {self.columns}"
                     error_handler.collect_error(
                         "column_not_in_schema",
                         errors.SchemaError(
@@ -460,6 +471,22 @@ class DataFrameSchema:
                             check="column_in_schema",
                         ),
                     )
+                if self.ordered and is_schema_col:
+                    try:
+                        next_ordered_col = next(sorted_column_names)
+                    except StopIteration:
+                        pass
+                    if next_ordered_col != column:
+                        error_handler.collect_error(
+                            "column_not_ordered",
+                            errors.SchemaError(
+                                self,
+                                check_obj,
+                                message=f"column '{column}' out-of-order",
+                                failure_cases=scalar_failure_case(column),
+                                check="column_ordered",
+                            ),
+                        )
 
         # check for columns that are not in the dataframe and collect columns
         # that are not in the dataframe that should be excluded for lazy
