@@ -8,13 +8,9 @@ correctness.*
 
 ![Build Status](https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=master)
 
-.. image:: https://github.com/pandera-dev/pandera/workflows/Prod%20Build/badge.svg?branch=master
+.. image:: https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=master
     :target: https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amaster
-    :alt: Prod Build
-
-.. image:: https://github.com/pandera-dev/pandera/workflows/Dev%20Build/badge.svg?branch=master
-    :target: https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Adev
-    :alt: Dev Build
+    :alt: CI Build
 
 .. image:: https://readthedocs.org/projects/pandera/badge/?version=stable
     :target: https://pandera.readthedocs.io/en/stable/?badge=stable
