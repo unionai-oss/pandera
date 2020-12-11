@@ -437,7 +437,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # are specified in the dataframe schema
         if self.strict or self.ordered:
             colum_names = []
-            for colname, col_schema in self.columns.items():
+            for col_name, col_schema in self.columns.items():
                 if col_schema.regex:
                     try:
                         colum_names.extend(
@@ -445,8 +445,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         )
                     except errors.SchemaError:
                         pass
-                else:
-                    colum_names.append(colname)
+                elif col_name in check_obj.columns:
+                    colum_names.append(col_name)
             # ordered "set" of columns
             sorted_column_names = iter(dict.fromkeys(colum_names))
             expanded_column_names = frozenset(colum_names)

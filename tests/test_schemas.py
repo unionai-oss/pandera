@@ -209,7 +209,13 @@ def test_dataframe_reset_column_name():
 @pytest.mark.parametrize(
     "columns,index",
     [
-        ({"a": Column(Int), "b": Column(Int)}, None),
+        (
+            {
+                "a": Column(Int, required=False),
+                "b": Column(Int, required=False),
+            },
+            None,
+        ),
         (
             None,
             MultiIndex(
@@ -222,6 +228,7 @@ def test_dataframe_reset_column_name():
 def test_ordered(columns: Dict[str, Column], index: MultiIndex):
     """Test that columns are ordered."""
     schema = DataFrameSchema(columns=columns, index=index, ordered=True)
+
     df = pd.DataFrame(
         data=[[1, 2, 3]],
         columns=["a", "a", "b"],
@@ -231,7 +238,14 @@ def test_ordered(columns: Dict[str, Column], index: MultiIndex):
     )
     assert isinstance(schema.validate(df), pd.DataFrame)
 
-    schema = DataFrameSchema(columns=columns, index=index, ordered=True)
+    # test optional column
+    df = pd.DataFrame(
+        data=[[1]],
+        columns=["b"],
+        index=pd.MultiIndex.from_arrays([[1], [2]], names=["a", "b"]),
+    )
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
     df = pd.DataFrame(
         data=[[1, 2]],
         columns=["b", "a"],
