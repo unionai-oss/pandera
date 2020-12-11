@@ -1,5 +1,9 @@
 name: CI Tests
-on: push
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
 
 jobs:
   ci-tests:
