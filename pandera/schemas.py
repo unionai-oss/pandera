@@ -88,7 +88,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :param strict: whether or not to accept columns in the dataframe that
             aren't in the DataFrameSchema.
         :param name: name of the schema.
-        :param ordered:  whether or not to validate the column order.
+        :param ordered: whether or not to validate the columns order.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -174,7 +174,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     @property
     def ordered(self):
-        """Whether to coerce series to specified type."""
+        """Whether or not to validate the columns order."""
         return self._ordered
 
     # the _is_inferred getter and setter methods are not public
