@@ -3,6 +3,7 @@
 
 import copy
 from functools import partial
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -205,26 +206,53 @@ def test_dataframe_reset_column_name():
         DataFrameSchema(columns={"new_name": Column(name="old_name")})
 
 
-def test_dataframe_ordered():
+@pytest.mark.parametrize(
+    "columns,index",
+    [
+        ({"a": Column(Int), "b": Column(Int)}, None),
+        (
+            None,
+            MultiIndex(
+                indexes=[Index(Int, name="a"), Index(Int, name="b")],
+                ordered=True,
+            ),
+        ),
+    ],
+)
+def test_ordered(columns: Dict[str, Column], index: MultiIndex):
     """Test that columns are ordered."""
-    schema = DataFrameSchema(
-        {"a": Column(Int), "b": Column(Int)}, ordered=True, strict=True
+    schema = DataFrameSchema(columns=columns, index=index, ordered=True)
+    df = pd.DataFrame(
+        data=[[1, 2, 3]],
+        columns=["a", "a", "b"],
+        index=pd.MultiIndex.from_arrays(
+            [[1], [2], [3]], names=["a", "a", "b"]
+        ),
     )
-
-    df = pd.DataFrame([[1, 2, 3]], columns=["a", "a", "b"])
     assert isinstance(schema.validate(df), pd.DataFrame)
 
-    df = pd.DataFrame([[1, 2]], columns=["b", "a"])
-    err_msg = "A total of 2 schema errors"
-    with pytest.raises(errors.SchemaErrors, match=err_msg):
+    schema = DataFrameSchema(columns=columns, index=index, ordered=True)
+    df = pd.DataFrame(
+        data=[[1, 2]],
+        columns=["b", "a"],
+        index=pd.MultiIndex.from_arrays([[1], [2]], names=["b", "a"]),
+    )
+    with pytest.raises(
+        errors.SchemaErrors, match="A total of 2 schema errors"
+    ):
         schema.validate(df, lazy=True)
 
-    schema = DataFrameSchema(
-        {"a": Column(Int), "b": Column(Int), "c": Column(Int)}, ordered=True
+    # test out-of-order duplicates
+    df = pd.DataFrame(
+        data=[[1, 2, 3, 4]],
+        columns=["a", "b", "c", "a"],
+        index=pd.MultiIndex.from_arrays(
+            [[1], [2], [3], [4]], names=["a", "b", "c", "a"]
+        ),
     )
-    df = pd.DataFrame([[1, 2, 3, 4, 5]], columns=["a", "b", "d", "a", "c"])
-    err_msg = "A total of 1 schema errors"
-    with pytest.raises(errors.SchemaErrors, match=err_msg):
+    with pytest.raises(
+        errors.SchemaErrors, match="A total of 1 schema errors"
+    ):
         schema.validate(df, lazy=True)
 
 
