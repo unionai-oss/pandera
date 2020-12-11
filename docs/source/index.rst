@@ -259,6 +259,8 @@ Submit issues, feature requests or bugfixes on
    schema_inference
    schema_models
    lazy_validation
+   data_synthesis_strategies
+   extensions
    API_reference
 
 Indices and tables

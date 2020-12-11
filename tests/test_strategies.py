@@ -31,9 +31,9 @@ TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
 
 SUPPORTED_DTYPES = []
 for pdtype in pa.PandasDtype:
-    if pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows":
-        continue
-    if pdtype in {pa.Category, pa.Object}:
+    if (
+        pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows"
+    ) or pdtype is pa.Category:
         continue
     SUPPORTED_DTYPES.append(pdtype)
 
@@ -56,7 +56,7 @@ COMPLEX_RANGE_CONSTANT = np.complex64(
 )
 
 
-@pytest.mark.parametrize("pdtype", [pa.Category, pa.Object])
+@pytest.mark.parametrize("pdtype", [pa.Category])
 def test_unsupported_pandas_dtype_strategy(pdtype):
     """Test unsupported pandas dtype strategy raises error."""
     with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format(pdtype.name)):
@@ -70,11 +70,18 @@ def test_pandas_dtype_strategy(pdtype, data):
 
     strategy = strategies.pandas_dtype_strategy(pdtype)
     example = data.draw(strategy)
-    assert example.dtype.type == pdtype.numpy_dtype.type
+
+    expected_type = (
+        pdtype.String.numpy_dtype.type
+        if pdtype is pa.Object
+        else pdtype.numpy_dtype.type
+    )
+
+    assert example.dtype.type == expected_type
 
     chained_strategy = strategies.pandas_dtype_strategy(pdtype, strategy)
     chained_example = data.draw(chained_strategy)
-    assert chained_example.dtype.type == pdtype.numpy_dtype.type
+    assert chained_example.dtype.type == expected_type
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
@@ -422,7 +429,7 @@ def test_column_example():
 
 @pytest.mark.parametrize(
     "pdtype",
-    [pdtype for pdtype in SUPPORTED_DTYPES if not pdtype.is_category],
+    SUPPORTED_DTYPES,
 )
 @hypothesis.given(st.data())
 @hypothesis.settings(
@@ -434,10 +441,6 @@ def test_dataframe_strategy(pdtype, data):
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype)}
     )
-    if pdtype is pa.PandasDtype.Object:
-        with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format("Object")):
-            dataframe_schema.strategy()
-        return
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
 
     with pytest.raises(pa.errors.BaseStrategyOnlyError):

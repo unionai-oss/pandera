@@ -1,5 +1,6 @@
 """Components used in pandera schemas."""
 
+import warnings
 from copy import copy, deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -282,9 +283,21 @@ class Column(SeriesSchemaBase):
         :param size: number of elements in the generated Index.
         :returns: pandas DataFrame object.
         """
-        return (
-            super().strategy(size=size).example().rename(self.name).to_frame()
-        )
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return (
+                super()
+                .strategy(size=size)
+                .example()
+                .rename(self.name)
+                .to_frame()
+            )
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
@@ -398,7 +411,15 @@ class Index(SeriesSchemaBase):
         :param size: number of elements in the generated Index.
         :returns: pandas Index object.
         """
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
     def __repr__(self):
         if self._name is None:
@@ -607,7 +628,15 @@ class MultiIndex(DataFrameSchema):
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 
     def example(self, size=None) -> pd.MultiIndex:
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
     def __repr__(self):
         return f"<Schema MultiIndex: '{list(self.columns)}'>"

@@ -47,6 +47,13 @@ from packaging import version
 pd.options.display.max_columns = None # For Travis on macOS
 pd.options.display.max_rows = None # For Travis on macOS
 
+try:
+    import hypothesis
+except ImportError:
+    SKIP_STRATEGY = True
+else:
+    SKIP_STRATEGY = False
+
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)
 SKIP_PANDAS_LT_V1 = version.parse(pd.__version__).release < (1, 0) or PY36
