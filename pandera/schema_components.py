@@ -559,6 +559,7 @@ class MultiIndex(DataFrameSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
+        # pylint: disable=too-many-locals
         if self.coerce:
             try:
                 check_obj.index = self.coerce_dtype(
@@ -578,9 +579,27 @@ class MultiIndex(DataFrameSchema):
         for index in self_copy.indexes:
             index._coerce = False
 
+        def to_dataframe(multiindex):
+            """
+            Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
+            duplicate index names if they exist.
+            """
+            df = pd.DataFrame(
+                {
+                    i: multiindex.get_level_values(i)
+                    for i in range(multiindex.nlevels)
+                }
+            )
+            df.columns = [
+                i if name is None else name
+                for i, name in enumerate(multiindex.names)
+            ]
+            df.index = multiindex
+            return df
+
         try:
             validation_result = super(MultiIndex, self_copy).validate(
-                check_obj.index.to_frame(),
+                to_dataframe(check_obj.index),
                 head,
                 tail,
                 sample,
