@@ -3,6 +3,7 @@
 
 import copy
 from functools import partial
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -203,6 +204,76 @@ def test_dataframe_reset_column_name():
     """Test resetting column name at DataFrameSchema init on named column."""
     with pytest.warns(UserWarning):
         DataFrameSchema(columns={"new_name": Column(name="old_name")})
+
+
+@pytest.mark.parametrize(
+    "columns,index",
+    [
+        (
+            {
+                "a": Column(Int, required=False),
+                "b": Column(Int, required=False),
+            },
+            None,
+        ),
+        (
+            None,
+            MultiIndex(
+                indexes=[Index(Int, name="a"), Index(Int, name="b")],
+                ordered=True,
+            ),
+        ),
+    ],
+)
+def test_ordered(columns: Dict[str, Column], index: MultiIndex):
+    """Test that columns are ordered."""
+    schema = DataFrameSchema(columns=columns, index=index, ordered=True)
+
+    df = pd.DataFrame(
+        data=[[1, 2, 3]],
+        columns=["a", "a", "b"],
+        index=pd.MultiIndex.from_arrays(
+            [[1], [2], [3]], names=["a", "a", "b"]
+        ),
+    )
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+    # test optional column
+    df = pd.DataFrame(
+        data=[[1]],
+        columns=["b"],
+        index=pd.MultiIndex.from_arrays([[1], [2]], names=["a", "b"]),
+    )
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+    df = pd.DataFrame(
+        data=[[1, 2]],
+        columns=["b", "a"],
+        index=pd.MultiIndex.from_arrays([[1], [2]], names=["b", "a"]),
+    )
+    with pytest.raises(
+        errors.SchemaErrors, match="A total of 2 schema errors"
+    ):
+        schema.validate(df, lazy=True)
+
+    # test out-of-order duplicates
+    df = pd.DataFrame(
+        data=[[1, 2, 3, 4]],
+        columns=["a", "b", "c", "a"],
+        index=pd.MultiIndex.from_arrays(
+            [[1], [2], [3], [4]], names=["a", "b", "c", "a"]
+        ),
+    )
+    with pytest.raises(
+        errors.SchemaErrors, match="A total of 1 schema errors"
+    ):
+        schema.validate(df, lazy=True)
+
+
+def test_ordered_notnamed_multiindex():
+    """Test that a multiindex must be named to validate its order."""
+    with pytest.raises(errors.SchemaInitError):
+        MultiIndex(indexes=[Index(Int, name="a"), Index(Int)], ordered=True)
 
 
 def test_series_schema():

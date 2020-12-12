@@ -424,6 +424,7 @@ class MultiIndex(DataFrameSchema):
         coerce: bool = False,
         strict: bool = False,
         name: str = None,
+        ordered: bool = False,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -434,6 +435,7 @@ class MultiIndex(DataFrameSchema):
         :param strict: whether or not to accept columns in the MultiIndex that
             aren't defined in the ``indexes`` argument.
         :param name: name of schema component
+        :param ordered: whether or not to validate the indexes order.
 
         :example:
 
@@ -469,22 +471,29 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
+        columns = {}
+        for i, index in enumerate(indexes):
+            col_name = index._name
+            if index._name is None:
+                if ordered:
+                    raise errors.SchemaInitError(
+                        "All indexes must be named when 'MultiIndex.ordered' is True."
+                    )
+                col_name = i  # type: ignore
+            columns[col_name] = Column(
+                pandas_dtype=index._pandas_dtype,
+                checks=index.checks,
+                nullable=index._nullable,
+                allow_duplicates=index._allow_duplicates,
+            )
+
         self.indexes = indexes
         super().__init__(
-            columns={
-                i
-                if index._name is None
-                else index._name: Column(
-                    pandas_dtype=index._pandas_dtype,
-                    checks=index.checks,
-                    nullable=index._nullable,
-                    allow_duplicates=index._allow_duplicates,
-                )
-                for i, index in enumerate(indexes)
-            },
+            columns=columns,
             coerce=coerce,
             strict=strict,
             name=name,
+            ordered=ordered,
         )
 
     @property
@@ -550,6 +559,7 @@ class MultiIndex(DataFrameSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
+        # pylint: disable=too-many-locals
         if self.coerce:
             try:
                 check_obj.index = self.coerce_dtype(
@@ -569,9 +579,27 @@ class MultiIndex(DataFrameSchema):
         for index in self_copy.indexes:
             index._coerce = False
 
+        def to_dataframe(multiindex):
+            """
+            Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
+            duplicate index names if they exist.
+            """
+            df = pd.DataFrame(
+                {
+                    i: multiindex.get_level_values(i)
+                    for i in range(multiindex.nlevels)
+                }
+            )
+            df.columns = [
+                i if name is None else name
+                for i, name in enumerate(multiindex.names)
+            ]
+            df.index = multiindex
+            return df
+
         try:
             validation_result = super(MultiIndex, self_copy).validate(
-                check_obj.index.to_frame(),
+                to_dataframe(check_obj.index),
                 head,
                 tail,
                 sample,

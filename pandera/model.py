@@ -48,7 +48,7 @@ class BaseConfig:  # pylint:disable=R0903
     name: Optional[str] = None  #: name of schema
     coerce: bool = False  #: coerce types of all schema components
     strict: bool = False  #: make sure all specified columns are in dataframe
-    check_index_name: bool = False
+    ordered: bool = False  #: validate columns order
     multiindex_name: Optional[str] = None  #: name of multiindex
 
     #: coerce types of all MultiIndex components
@@ -123,6 +123,7 @@ class SchemaModel:
             coerce=cls.__config__.coerce,
             strict=cls.__config__.strict,
             name=cls.__config__.name,
+            ordered=cls.__config__.ordered,
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__
