@@ -51,5 +51,6 @@
     UINT64
     Object
     String
+    STRING
 
     {% endblock %}

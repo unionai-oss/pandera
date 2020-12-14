@@ -238,6 +238,12 @@ Since ``required=True`` by default, missing columns would raise an error:
     1  pandera
 
 
+.. _ordered columns:
+
+Ordered Columns
+~~~~~~~~~~~~~~~~
+
+
 .. _column validation:
 
 Stand-alone Column Validation
@@ -614,6 +620,7 @@ Some examples of where this can be provided to pandas are:
     b        1  valueB     True
 
 
+.. _dataframe schema transformations:
 
 DataFrameSchema Transformations
 -------------------------------

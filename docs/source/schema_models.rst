@@ -4,8 +4,8 @@
 
 .. _schema_models:
 
-Schema Models (new)
-===================
+Schema Models
+=============
 
 *new in 0.5.0*
 

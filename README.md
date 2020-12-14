@@ -29,6 +29,10 @@ research settings. With `pandera`, you can:
 1. Perform more complex statistical validation like hypothesis testing.
 1. Seamlessly integrate with existing data analysis/processing pipelines
    via function decorators.
+1. Define schema models with the class-based API with pydantic-style syntax and
+   validate dataframes using the typing syntax.
+1. Synthesize data from schema objects for property-based testing with pandas
+   data structures.
 
 `pandera` provides a flexible and expressive API for performing data validation
 on tidy (long-form) and wide data to make data processing pipelines more
@@ -52,14 +56,15 @@ Installing optional functionality:
 ```
 pip install pandera[hypotheses]  # hypothesis checks
 pip install pandera[io]          # yaml/script schema io utilities
-pip install pandera[strategies]  # data generating strategies
+pip install pandera[strategies]  # data synthesis strategies
 pip install pandera[all]         # all packages
 ```
 
 Using conda:
 
 ```
-conda install -c conda-forge pandera
+conda install -c conda-forge pandera-core  # core library functionality
+conda install -c conda-forge pandera       # pandera with all extensions
 ```
 
 ## Quick Start
@@ -97,6 +102,31 @@ print(validated_df)
 #  2        0     -2.9  value_3
 #  3       10    -10.1  value_2
 #  4        9    -20.4  value_1
+```
+
+## Schema Model
+
+`pandera` also provides an alternative API for expressing schemas inspired
+by [dataclasses](https://docs.python.org/3/library/dataclasses.html) and
+[pydantic](https://pydantic-docs.helpmanual.io/). The equivalent `SchemaModel`
+for the above `DataFrameSchema` would be:
+
+
+```python
+from pandera.typing import Series
+
+class Schema(pa.SchemaModel):
+
+    column1: Series[int] = pa.Field(le=10)
+    column2: Series[float] = pa.Field(lt=-1.2)
+    column3: Series[str] = pa.Field(str_startswith="value_")
+
+    @pa.check("column3")
+    def column_3_check(cls, series: Series[str]) -> Series[bool]:
+        """Check that values have two elements after being split with '_'"""
+        return series.str.split("_", expand=True).shape[1] == 2
+
+Schema.validate(df)
 ```
 
 ## Development Installation

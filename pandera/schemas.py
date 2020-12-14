@@ -274,7 +274,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     @property
     def pdtype(self) -> Optional[PandasDtype]:
-        """PandasDtype of the series."""
+        """PandasDtype of the dataframe."""
         if self.pandas_dtype is None:
             return self.pandas_dtype
         return PandasDtype.from_str_alias(
@@ -700,7 +700,15 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :param size: number of elements in the generated DataFrame.
         :returns: pandas DataFrame object.
         """
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
     @_inferred_schema_guard
     def add_columns(
@@ -1800,7 +1808,15 @@ class SeriesSchemaBase:
         :param size: number of elements in the generated Series.
         :returns: pandas Series object.
         """
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
 
 class SeriesSchema(SeriesSchemaBase):
