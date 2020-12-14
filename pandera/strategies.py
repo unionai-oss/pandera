@@ -325,7 +325,12 @@ def pandas_dtype_strategy(
             ),
         )
     return npst.from_dtype(
-        dtype, **{"allow_nan": False, "allow_infinity": False, **kwargs}
+        dtype,
+        **{  # type: ignore
+            "allow_nan": False,
+            "allow_infinity": False,
+            **kwargs,
+        },
     )
 
 
