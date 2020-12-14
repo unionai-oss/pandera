@@ -67,8 +67,10 @@ production-critical data pipelines or reproducible research settings. With
    :ref:`hypothesis testing<hypothesis>`.
 #. Seamlessly integrate with existing data analysis/processing pipelines
    via :ref:`function decorators<decorators>`.
-#. Define schema models with a :ref:`class-based API<schema_models>` with
+#. Define schema models with the :ref:`class-based API<schema_models>` with
    pydantic-style syntax and validate dataframes using the typing syntax.
+#. :ref:`Synthesize data<data synthesis strategies>` from schema objects for
+   property-based testing with pandas data structures.
 
 
 .. _installation:
@@ -89,7 +91,7 @@ Installing optional functionality:
 
     pip install pandera[hypotheses]  # hypothesis checks
     pip install pandera[io]          # yaml/script schema io utilities
-    pip install pandera[strategies]  # data generating strategies
+    pip install pandera[strategies]  # data synthesis strategies
     pip install pandera[all]         # all packages
 
 
@@ -97,7 +99,8 @@ Or conda:
 
 .. code:: bash
 
-    conda install -c conda-forge pandera
+    conda install -c conda-forge pandera-core  # core library functionality
+    conda install -c conda-forge pandera       # pandera with all extensions
 
 
 
@@ -118,8 +121,8 @@ Quick Start
 
     # define schema
     schema = pa.DataFrameSchema({
-        "column1": pa.Column(int, checks=pa.Check.less_than_or_equal_to(10)),
-        "column2": pa.Column(float, checks=pa.Check.less_than(-1.2)),
+        "column1": pa.Column(int, checks=pa.Check.le(10)),
+        "column2": pa.Column(float, checks=pa.Check.lt(-1.2)),
         "column3": pa.Column(str, checks=[
             pa.Check.str_startswith("value_"),
             # define custom checks as functions that take a series as input and
@@ -160,6 +163,33 @@ pandas, or strings representing the
     })
 
 For more details on data types, see :class:`~pandera.dtypes.PandasDtype`
+
+
+Schema Model
+------------
+
+``pandera`` also provides an alternative API for expressing schemas inspired
+by `dataclasses <https://docs.python.org/3/library/dataclasses.html>`_ and
+`pydantic <https://pydantic-docs.helpmanual.io/>`_. The equivalent
+:class:`~pandera.model.SchemaModel` for the above
+:class:`~pandera.scheams.DataFrameSchema` would be:
+
+.. testcode:: quick_start
+
+   from pandera.typing import Series
+
+   class Schema(pa.SchemaModel):
+
+       column1: Series[int] = pa.Field(le=10)
+       column2: Series[float] = pa.Field(lt=-1.2)
+       column3: Series[str] = pa.Field(str_startswith="value_")
+
+       @pa.check("column3")
+       def column_3_check(cls, series: Series[str]) -> Series[bool]:
+           """Check that column3 values have two elements after being split with '_'"""
+           return series.str.split("_", expand=True).shape[1] == 2
+
+   Schema.validate(df)
 
 
 Informative Errors

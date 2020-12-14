@@ -1,4 +1,9 @@
-"""Extend the pandera API."""
+"""pandera API extensions
+
+*new in 0.6.0*
+
+This module provides utilities for extending the ``pandera`` API.
+"""
 
 import warnings
 from enum import Enum
@@ -14,9 +19,9 @@ from .checks import Check, register_check_statistics
 class CheckType(Enum):
     """Check types for registered check methods."""
 
-    VECTORIZED = 1
-    ELEMENT_WISE = 2
-    GROUPBY = 3
+    VECTORIZED = 1  #: Check applied to a Series or DataFrame
+    ELEMENT_WISE = 2  #: Check applied to an element of a Series or DataFrame
+    GROUPBY = 3  #: Check applied to dictionary of Series or DataFrames.
 
 
 def register_check_method(
@@ -29,6 +34,8 @@ def register_check_method(
 ):
     """Registers a function as a :class:`~pandera.checks.Check` method.
 
+    See the :ref:`user guide<extensions>` for more details.
+
     :param check_fn: check function to register. The function should take one
         positional argument for the object to validate and additional
         keyword-only arguments for the check statistics.
@@ -39,8 +46,8 @@ def register_check_method(
         Valid values are ``pd.DataFrame``, ``pd.Series``, or a list/tuple of
         ``(pa.DataFrame, pa.Series)`` if both types are supported.
     :param check_type: the expected input of the check function. Valid values
-        are ``~pandera.extensions.CheckType`` enums or
-        {"vectorized", "element_wise", "groupby"}. The input signature of
+        are :class:`~pandera.extensions.CheckType` enums or
+        ``{"vectorized", "element_wise", "groupby"}``. The input signature of
         ``check_fn`` is determined by this argument:
 
         - if ``vectorized``, the first positional argument of ``check_fn``

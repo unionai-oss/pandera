@@ -65,6 +65,8 @@ For :class:`~pandera.schemas.SeriesSchema` objects:
 The section below describes two workflows for persisting and modifying an
 inferred schema.
 
+.. _schema persistence:
+
 Schema Persistence
 ------------------
 

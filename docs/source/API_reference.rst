@@ -142,6 +142,17 @@ Data Synthesis Strategies
    pandera.strategies
 
 
+Extensions
+----------
+
+.. autosummary::
+   :toctree: generated
+   :template: module.rst
+   :nosignatures:
+
+   pandera.extensions
+
+
 Errors
 ------
 

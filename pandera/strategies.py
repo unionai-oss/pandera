@@ -1,15 +1,20 @@
-# pylint: disable=no-value-for-parameter
+# pylint: disable=no-value-for-parameter,too-many-lines
 """Generate synthetic data from a schema definition.
+
+*new in 0.6.0*
 
 This module is responsible for generating data based on the type and check
 constraints specified in a ``pandera`` schema. It's built on top of the
 `hypothesis <https://hypothesis.readthedocs.io/en/latest/index.html>`_ package
 to compose strategies given multiple checks specified in a schema.
+
+See the :ref:`user guide<data synthesis strategies>` for more details.
 """
 
 import operator
 import re
 import warnings
+from collections import defaultdict
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
@@ -17,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from .dtypes import PandasDtype
-from .errors import BaseStrategyOnlyError
+from .errors import BaseStrategyOnlyError, SchemaDefinitionError
 
 try:
     import hypothesis
@@ -111,6 +116,16 @@ def set_pandas_index(
     index = draw(index_strat)
     df_or_series.index = index
     return df_or_series
+
+
+def verify_pandas_dtype(pandas_dtype, schema_type: str, name: Optional[str]):
+    """Verify that pandas_dtype argument is not None."""
+    if pandas_dtype is None:
+        raise SchemaDefinitionError(
+            f"'{schema_type}' schema with name '{name}' has no specified "
+            "pandas_dtype. You need to specify one in order to synthesize "
+            "data from a strategy."
+        )
 
 
 def strategy_import_error(fn):
@@ -649,7 +664,7 @@ def field_element_strategy(
     :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check`s to constrain
+    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :returns: ``hypothesis`` strategy
     """
@@ -679,6 +694,8 @@ def field_element_strategy(
             elements = check.strategy(pandas_dtype, elements)
         elif check.element_wise:
             elements = undefined_check_strategy(elements, check)
+        # NOTE: vectorized checks with undefined strategies should be handled
+        # by the series/dataframe strategy.
     if elements is None:
         elements = pandas_dtype_strategy(pandas_dtype)
     return elements
@@ -699,7 +716,7 @@ def series_strategy(
     :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check`s to constrain
+    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
     :param allow_duplicates: whether or not generated Series contains
@@ -759,14 +776,14 @@ def column_strategy(
     :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check`s to constrain
+    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :param allow_duplicates: whether or not generated Series contains
         duplicates.
     :param name: name of the Series.
-    :returns: a `column <https://hypothesis.readthedocs.io/en/latest/numpy.html#hypothesis.extra.pandas.column>`_  # noqa
-        object.
+    :returns: a `column <https://hypothesis.readthedocs.io/en/latest/numpy.html#hypothesis.extra.pandas.column>`_ object.
     """
+    verify_pandas_dtype(pandas_dtype, schema_type="column", name=name)
     elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
     return pdst.column(
         name=name,
@@ -791,7 +808,7 @@ def index_strategy(
     :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check`s to constrain
+    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
     :param allow_duplicates: whether or not generated Series contains
@@ -800,6 +817,7 @@ def index_strategy(
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
     """
+    verify_pandas_dtype(pandas_dtype, schema_type="index", name=name)
     elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
     strategy = pdst.indexes(
         elements=elements,
@@ -831,12 +849,13 @@ def dataframe_strategy(
         pandas dtype strategy will be chained onto this strategy.
     :param columns: a dictionary where keys are column names and values
         are :class:`~pandera.schema_components.Column` objects.
-    :param checks: sequence of :class:`~pandera.checks.Check`s to constrain
+    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data at the dataframe level.
     :param index: Index or MultiIndex schema component.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
     """
+    # pylint: disable=too-many-locals
     if strategy:
         raise BaseStrategyOnlyError(
             "The dataframe strategy is a base strategy. You cannot specify "
@@ -854,11 +873,14 @@ def dataframe_strategy(
         col_name: col.nullable for col_name, col in columns.items()
     }
 
-    def undefined_check_strategy(strategy, check):
+    def undefined_check_strategy(strategy, check, column=None):
         """Strategy for checks with undefined strategies."""
 
         def _element_wise_check_fn(element):
             return check._check_fn(element)
+
+        def _column_check_fn(dataframe):
+            return check(dataframe[column]).check_passed
 
         def _dataframe_check_fn(dataframe):
             return check(dataframe).check_passed
@@ -866,9 +888,12 @@ def dataframe_strategy(
         if check.element_wise:
             check_fn = _element_wise_check_fn
             warning_type = "Element-wise"
-        else:
+        elif column is None:
             check_fn = _dataframe_check_fn
-            warning_type = "Dataframe-level"
+            warning_type = "Dataframe"
+        else:
+            check_fn = _column_check_fn
+            warning_type = "Column"
 
         warnings.warn(
             f"{warning_type} check doesn't have a defined strategy. "
@@ -906,6 +931,15 @@ def dataframe_strategy(
         else:
             undefined_strat_df_checks.append(check)
 
+    # collect all non-element-wise column checks with undefined strategies
+    undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
+    for col_name, column in columns.items():
+        undefined_strat_column_checks[col_name].extend(
+            check
+            for check in column.checks
+            if not hasattr(check, "strategy") and not check.element_wise
+        )
+
     row_strategy = None
     if checks:
         row_strategy = st.fixed_dictionaries(
@@ -937,6 +971,12 @@ def dataframe_strategy(
 
     for check in undefined_strat_df_checks:
         strategy = undefined_check_strategy(strategy, check)
+
+    for col_name, column_checks in undefined_strat_column_checks.items():
+        for check in column_checks:  # type: ignore
+            strategy = undefined_check_strategy(
+                strategy, check, column=col_name
+            )
 
     return strategy
 

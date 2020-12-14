@@ -9,7 +9,9 @@
    {% block functions %}
 
      {% for item in functions %}
-       .. autofunction:: {{ item }}
+       {% if item not in ["null_dataframe_masks", "null_field_masks", "set_pandas_index", "strategy_import_error"] %}
+         .. autofunction:: {{ item }}
+       {% endif %}
      {%- endfor %}
 
    {% endblock %}
