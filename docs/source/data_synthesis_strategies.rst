@@ -54,7 +54,7 @@ Usage in Unit Tests
 The ``example`` method is available for all schemas and schema components, and
 is primarily meant to be used interactively. It *could* be used in a script to
 generate test cases, but ``hypothesis`` recommends against doing this and
-instead using the ``strategy`` method and to create a ``hypothesis`` strategy
+instead using the ``strategy`` method to create a ``hypothesis`` strategy
 that can be used in ``pytest`` unit tests.
 
 .. testcode:: data_synthesis_strategies
