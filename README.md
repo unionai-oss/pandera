@@ -8,7 +8,7 @@ correctness.*
 
 <br>
 
-[![Build Status](https://travis-ci.org/pandera-dev/pandera.svg?branch=master)](https://travis-ci.org/pandera-dev/pandera)
+![CI Build](https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=stable)](https://pandera.readthedocs.io/en/stable/?badge=stable)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
 [![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/)
