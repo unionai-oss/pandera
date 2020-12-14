@@ -283,7 +283,7 @@ class Column(SeriesSchemaBase):
         :param size: number of elements in the generated Index.
         :returns: pandas DataFrame object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
 
         with warnings.catch_warnings():
@@ -411,7 +411,7 @@ class Index(SeriesSchemaBase):
         :param size: number of elements in the generated Index.
         :returns: pandas Index object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
 
         with warnings.catch_warnings():
@@ -628,7 +628,7 @@ class MultiIndex(DataFrameSchema):
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 
     def example(self, size=None) -> pd.MultiIndex:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
 
         with warnings.catch_warnings():

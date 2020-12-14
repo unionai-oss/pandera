@@ -673,7 +673,7 @@ class DataFrameSchema:
         :param size: number of elements in the generated DataFrame.
         :returns: pandas DataFrame object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
 
         with warnings.catch_warnings():
@@ -1781,7 +1781,7 @@ class SeriesSchemaBase:
         :param size: number of elements in the generated Series.
         :returns: pandas Series object.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
 
         with warnings.catch_warnings():
