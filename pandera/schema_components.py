@@ -1,5 +1,6 @@
 """Components used in pandera schemas."""
 
+import warnings
 from copy import copy, deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -136,6 +137,15 @@ class Column(SeriesSchemaBase):
         self._name = name
         return self
 
+    def coerce_dtype(self, obj: Union[pd.DataFrame, pd.Series, pd.Index]):
+        """Coerce dtype of a column, handling duplicate column names."""
+        # pylint: disable=super-with-arguments
+        if isinstance(obj, (pd.Series, pd.Index)):
+            return super(Column, self).coerce_dtype(obj)
+        return obj.apply(
+            lambda x: super(Column, self).coerce_dtype(x), axis="columns"
+        )
+
     def validate(
         self,
         check_obj: pd.DataFrame,
@@ -175,28 +185,28 @@ class Column(SeriesSchemaBase):
                 "method.",
             )
 
+        def validate_column(check_obj):
+            super(Column, copy(self).set_name(column_name)).validate(
+                check_obj, head, tail, sample, random_state, lazy
+            )
+
         column_keys_to_check = (
             self.get_regex_columns(check_obj.columns)
             if self._regex
             else [self._name]
         )
 
-        check_results = []
         for column_name in column_keys_to_check:
             if self.coerce:
-                check_obj[column_name] = self.coerce_dtype(
-                    check_obj[column_name]
+                check_obj.loc[:, column_name] = self.coerce_dtype(
+                    check_obj.loc[:, column_name]
                 )
-            check_results.append(
-                isinstance(
-                    super(Column, copy(self).set_name(column_name)).validate(
-                        check_obj, head, tail, sample, random_state, lazy
-                    ),
-                    pd.DataFrame,
-                )
-            )
+            if isinstance(check_obj[column_name], pd.DataFrame):
+                for i in range(check_obj[column_name].shape[1]):
+                    validate_column(check_obj[column_name].iloc[:, [i]])
+            else:
+                validate_column(check_obj)
 
-        assert all(check_results)
         return check_obj
 
     def get_regex_columns(
@@ -244,7 +254,9 @@ class Column(SeriesSchemaBase):
                 "dataframe. Update the regex pattern so that it matches at "
                 "least one column:\n%s" % (self.name, columns.tolist()),
             )
-        return column_keys_to_check
+        # drop duplicates to account for potential duplicated columns in the
+        # dataframe.
+        return column_keys_to_check.drop_duplicates()
 
     @st.strategy_import_error
     def strategy(self, *, size=None):
@@ -271,9 +283,21 @@ class Column(SeriesSchemaBase):
         :param size: number of elements in the generated Index.
         :returns: pandas DataFrame object.
         """
-        return (
-            super().strategy(size=size).example().rename(self.name).to_frame()
-        )
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return (
+                super()
+                .strategy(size=size)
+                .example()
+                .rename(self.name)
+                .to_frame()
+            )
 
     def __repr__(self):
         if isinstance(self._pandas_dtype, PandasDtype):
@@ -333,9 +357,13 @@ class Index(SeriesSchemaBase):
             check_obj.index = self.coerce_dtype(check_obj.index)
             # handles case where pandas native string type is not supported
             # by index.
-            obj_to_validate = pd.Series(check_obj.index).astype(self.dtype)
+            obj_to_validate = pd.Series(
+                check_obj.index, name=check_obj.index.name
+            ).astype(self.dtype)
         else:
-            obj_to_validate = pd.Series(check_obj.index)
+            obj_to_validate = pd.Series(
+                check_obj.index, name=check_obj.index.name
+            )
 
         assert isinstance(
             super().validate(
@@ -383,7 +411,15 @@ class Index(SeriesSchemaBase):
         :param size: number of elements in the generated Index.
         :returns: pandas Index object.
         """
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
     def __repr__(self):
         if self._name is None:
@@ -409,6 +445,7 @@ class MultiIndex(DataFrameSchema):
         coerce: bool = False,
         strict: bool = False,
         name: str = None,
+        ordered: bool = False,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -419,6 +456,7 @@ class MultiIndex(DataFrameSchema):
         :param strict: whether or not to accept columns in the MultiIndex that
             aren't defined in the ``indexes`` argument.
         :param name: name of schema component
+        :param ordered: whether or not to validate the indexes order.
 
         :example:
 
@@ -454,22 +492,29 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
+        columns = {}
+        for i, index in enumerate(indexes):
+            col_name = index._name
+            if index._name is None:
+                if ordered:
+                    raise errors.SchemaInitError(
+                        "All indexes must be named when 'MultiIndex.ordered' is True."
+                    )
+                col_name = i  # type: ignore
+            columns[col_name] = Column(
+                pandas_dtype=index._pandas_dtype,
+                checks=index.checks,
+                nullable=index._nullable,
+                allow_duplicates=index._allow_duplicates,
+            )
+
         self.indexes = indexes
         super().__init__(
-            columns={
-                i
-                if index._name is None
-                else index._name: Column(
-                    pandas_dtype=index._pandas_dtype,
-                    checks=index.checks,
-                    nullable=index._nullable,
-                    allow_duplicates=index._allow_duplicates,
-                )
-                for i, index in enumerate(indexes)
-            },
+            columns=columns,
             coerce=coerce,
             strict=strict,
             name=name,
+            ordered=ordered,
         )
 
     @property
@@ -535,10 +580,16 @@ class MultiIndex(DataFrameSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
+        # pylint: disable=too-many-locals
         if self.coerce:
-            check_obj.index = self.coerce_dtype(
-                check_obj.index if inplace else check_obj.index
-            )
+            try:
+                check_obj.index = self.coerce_dtype(
+                    check_obj.index if inplace else check_obj.index
+                )
+            except errors.SchemaErrors as err:
+                if lazy:
+                    raise
+                raise err._schema_error_dicts[0]["error"]
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the
@@ -549,9 +600,27 @@ class MultiIndex(DataFrameSchema):
         for index in self_copy.indexes:
             index._coerce = False
 
+        def to_dataframe(multiindex):
+            """
+            Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
+            duplicate index names if they exist.
+            """
+            df = pd.DataFrame(
+                {
+                    i: multiindex.get_level_values(i)
+                    for i in range(multiindex.nlevels)
+                }
+            )
+            df.columns = [
+                i if name is None else name
+                for i, name in enumerate(multiindex.names)
+            ]
+            df.index = multiindex
+            return df
+
         try:
             validation_result = super(MultiIndex, self_copy).validate(
-                check_obj.index.to_frame(),
+                to_dataframe(check_obj.index),
                 head,
                 tail,
                 sample,
@@ -587,7 +656,15 @@ class MultiIndex(DataFrameSchema):
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 
     def example(self, size=None) -> pd.MultiIndex:
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
     def __repr__(self):
         return f"<Schema MultiIndex: '{list(self.columns)}'>"

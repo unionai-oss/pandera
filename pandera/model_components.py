@@ -145,6 +145,7 @@ def Field(
     n_failure_cases: int = 10,
     alias: str = None,
     check_name: bool = None,
+    **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
 
@@ -155,9 +156,11 @@ def Field(
 
     :param alias: The public name of the column/index.
 
-    :param check_name: Whether to check the name of the column/index during validation.
-        `None` is the default behavior, which translates to `True` for columns and
-        multi-index, and to `False` for a single index.
+    :param check_name: Whether to check the name of the column/index during
+        validation. `None` is the default behavior, which translates to `True`
+        for columns and multi-index, and to `False` for a single index.
+    :param kwargs: Specify custom checks that have been registered with the
+        :class:`~pandera.extensions.register_check_method` decorator.
     """
     # pylint:disable=C0103,W0613,R0914
     check_kwargs = {
@@ -203,6 +206,7 @@ _check_dispatch = {
     "str_matches": Check.str_matches,
     "str_length": Check.str_length,
     "str_startswith": Check.str_startswith,
+    **Check.REGISTERED_CUSTOM_CHECKS,
 }
 
 

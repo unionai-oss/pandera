@@ -2,6 +2,7 @@
 # pylint: disable=too-many-lines
 
 import copy
+import itertools
 import json
 import warnings
 from functools import wraps
@@ -51,7 +52,7 @@ def _inferred_schema_guard(method):
     return _wrapper
 
 
-class DataFrameSchema:
+class DataFrameSchema:  # pylint: disable=too-many-public-methods
     """A light-weight pandas DataFrame validator."""
 
     def __init__(
@@ -64,6 +65,7 @@ class DataFrameSchema:
         coerce: bool = False,
         strict=False,
         name: str = None,
+        ordered: bool = False,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -86,6 +88,7 @@ class DataFrameSchema:
         :param strict: whether or not to accept columns in the dataframe that
             aren't in the DataFrameSchema.
         :param name: name of the schema.
+        :param ordered: whether or not to validate the columns order.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -156,6 +159,7 @@ class DataFrameSchema:
         self.name = name
         self._pandas_dtype = pandas_dtype
         self._coerce = coerce
+        self._ordered = ordered
         self._validate_schema()
         self._set_column_names()
 
@@ -167,6 +171,11 @@ class DataFrameSchema:
     def coerce(self):
         """Whether to coerce series to specified type."""
         return self._coerce
+
+    @property
+    def ordered(self):
+        """Whether or not to validate the columns order."""
+        return self._ordered
 
     # the _is_inferred getter and setter methods are not public
     @property
@@ -265,7 +274,7 @@ class DataFrameSchema:
 
     @property
     def pdtype(self) -> Optional[PandasDtype]:
-        """PandasDtype of the series."""
+        """PandasDtype of the dataframe."""
         if self.pandas_dtype is None:
             return self.pandas_dtype
         return PandasDtype.from_str_alias(
@@ -426,30 +435,32 @@ class DataFrameSchema:
 
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
-        if self.strict:
-
-            # expand regex columns
-            col_regex_matches = []  # type: ignore
-            for colname, col_schema in self.columns.items():
+        if self.strict or self.ordered:
+            colum_names = []
+            for col_name, col_schema in self.columns.items():
                 if col_schema.regex:
                     try:
-                        col_regex_matches.extend(
+                        colum_names.extend(
                             col_schema.get_regex_columns(check_obj.columns)
                         )
                     except errors.SchemaError:
                         pass
+                elif col_name in check_obj.columns:
+                    colum_names.append(col_name)
+            # ordered "set" of columns
+            sorted_column_names = iter(dict.fromkeys(colum_names))
+            expanded_column_names = frozenset(colum_names)
 
-            expanded_column_names = frozenset(
-                [n for n, c in self.columns.items() if not c.regex]
-                + col_regex_matches
-            )
+            # drop adjacent duplicated column names
+            if check_obj.columns.has_duplicates:
+                columns = [k for k, _ in itertools.groupby(check_obj.columns)]
+            else:
+                columns = check_obj.columns
 
-            for column in check_obj:
-                if column not in expanded_column_names:
-                    msg = (
-                        f"column '{column}' not in DataFrameSchema"
-                        f" {self.columns}"
-                    )
+            for column in columns:
+                is_schema_col = column in expanded_column_names
+                if self.strict and not is_schema_col:
+                    msg = f"column '{column}' not in DataFrameSchema {self.columns}"
                     error_handler.collect_error(
                         "column_not_in_schema",
                         errors.SchemaError(
@@ -460,6 +471,22 @@ class DataFrameSchema:
                             check="column_in_schema",
                         ),
                     )
+                if self.ordered and is_schema_col:
+                    try:
+                        next_ordered_col = next(sorted_column_names)
+                    except StopIteration:
+                        pass
+                    if next_ordered_col != column:
+                        error_handler.collect_error(
+                            "column_not_ordered",
+                            errors.SchemaError(
+                                self,
+                                check_obj,
+                                message=f"column '{column}' out-of-order",
+                                failure_cases=scalar_failure_case(column),
+                                check="column_ordered",
+                            ),
+                        )
 
         # check for columns that are not in the dataframe and collect columns
         # that are not in the dataframe that should be excluded for lazy
@@ -673,7 +700,15 @@ class DataFrameSchema:
         :param size: number of elements in the generated DataFrame.
         :returns: pandas DataFrame object.
         """
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
     @_inferred_schema_guard
     def add_columns(
@@ -1497,9 +1532,7 @@ class SeriesSchemaBase:
             return self.pandas_dtype
         return PandasDtype.from_str_alias(self.dtype)
 
-    def coerce_dtype(
-        self, series_or_index: Union[pd.Series, pd.Index]
-    ) -> pd.Series:
+    def coerce_dtype(self, obj: Union[pd.Series, pd.Index]) -> pd.Series:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
@@ -1508,20 +1541,23 @@ class SeriesSchemaBase:
         """
         if self._pandas_dtype is dtypes.PandasDtype.String:
             # only coerce non-null elements to string
-            return series_or_index.where(
-                series_or_index.isna(),
-                series_or_index.astype(str),
+            return obj.where(
+                obj.isna(),
+                obj.astype(str),
             )
 
         try:
-            return series_or_index.astype(self.dtype)
+            return obj.astype(self.dtype)
         except (ValueError, TypeError) as exc:
-            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
+            msg = (
+                f"Error while coercing '{self.name}' to type "
+                f"{self.dtype}: {exc}"
+            )
             raise errors.SchemaError(
                 self,
-                series_or_index,
+                obj,
                 msg,
-                failure_cases=scalar_failure_case(series_or_index.dtype),
+                failure_cases=scalar_failure_case(obj.dtype),
                 check=f"coerce_dtype({self.dtype})",
             ) from exc
 
@@ -1772,7 +1808,15 @@ class SeriesSchemaBase:
         :param size: number of elements in the generated Series.
         :returns: pandas Series object.
         """
-        return self.strategy(size=size).example()
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
 
 class SeriesSchema(SeriesSchemaBase):

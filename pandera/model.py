@@ -18,6 +18,7 @@ from typing import (
 import pandas as pd
 
 from . import schema_components
+from . import strategies as st
 from .checks import Check
 from .errors import SchemaInitError
 from .model_components import (
@@ -48,7 +49,7 @@ class BaseConfig:  # pylint:disable=R0903
     name: Optional[str] = None  #: name of schema
     coerce: bool = False  #: coerce types of all schema components
     strict: bool = False  #: make sure all specified columns are in dataframe
-    check_index_name: bool = False
+    ordered: bool = False  #: validate columns order
     multiindex_name: Optional[str] = None  #: name of multiindex
 
     #: coerce types of all MultiIndex components
@@ -123,6 +124,7 @@ class SchemaModel:
             coerce=cls.__config__.coerce,
             strict=cls.__config__.strict,
             name=cls.__config__.name,
+            ordered=cls.__config__.ordered,
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__
@@ -143,6 +145,20 @@ class SchemaModel:
         return cls.to_schema().validate(
             check_obj, head, tail, sample, random_state, lazy
         )
+
+    @classmethod
+    @pd.util.Substitution(strategy_doc=DataFrameSchema.strategy.__doc__)
+    @st.strategy_import_error
+    def strategy(cls, *, size=None):
+        """%(strategy_doc)s"""
+        return cls.to_schema().strategy(size=size)
+
+    @classmethod
+    @pd.util.Substitution(example_doc=DataFrameSchema.strategy.__doc__)
+    @st.strategy_import_error
+    def example(cls, *, size=None):
+        """%(example_doc)s"""
+        return cls.to_schema().example(size=size)
 
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals

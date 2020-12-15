@@ -16,6 +16,7 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 .. |index| replace:: ``Index``
 .. |coerced| replace:: ``coerce``
 .. |strict| replace:: ``strict``
+.. |ordered| replace:: ``ordered``
 
 .. testcode:: dataframe_schemas
 
@@ -237,6 +238,12 @@ Since ``required=True`` by default, missing columns would raise an error:
     1  pandera
 
 
+.. _ordered columns:
+
+Ordered Columns
+~~~~~~~~~~~~~~~~
+
+
 .. _column validation:
 
 Stand-alone Column Validation
@@ -396,6 +403,37 @@ schema, specify ``strict=True``:
     ...
     SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int>}
 
+.. _ordered:
+
+Validating the order of the columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For some applications the order of the columns is important. For example:
+
+* If you want to use
+  `selection by position <(https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html#selection-by-position)>`_
+  instead of the more common
+  `selection by label <https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html#selection-by-label>`_.
+* Machine learning: Many ML libraries will cast a Dataframe to numpy arrays,
+  for which order becomes crucial.
+
+To validate the order of the Dataframe columns, specify ``ordered=True``:
+
+.. testcode:: columns_ordered
+
+    import pandas as pd
+    import pandera as pa
+
+    schema = pa.DataFrameSchema(
+        columns={"a": pa.Column(pa.Int), "b": pa.Column(pa.Int)}, ordered=True
+    )
+    df = pd.DataFrame({"b": [1], "a": [1]})
+    print(schema.validate(df))
+
+.. testoutput:: columns_ordered
+
+    Traceback (most recent call last):
+    ...
+    SchemaError: column 'b' out-of-order
 
 .. _index:
 
@@ -582,6 +620,7 @@ Some examples of where this can be provided to pandas are:
     b        1  valueB     True
 
 
+.. _dataframe schema transformations:
 
 DataFrameSchema Transformations
 -------------------------------

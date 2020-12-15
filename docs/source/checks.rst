@@ -56,6 +56,8 @@ For common validation tasks, built-in checks are available in ``pandera``.
 See the :class:`~pandera.checks.Check` API reference for a complete list of built-in checks.
 
 
+.. _elementwise checks:
+
 Vectorized vs. Element-wise Checks
 ------------------------------------
 
@@ -306,3 +308,11 @@ want the resulting table for further analysis.
 
     <Schema Column: 'var2' type=None> failed series validator 0:
     <Check _hypothesis_check: normality test>
+
+
+Registering Custom Checks
+-------------------------
+
+``pandera`` now offers an interface to register custom checks functions so
+that they're available in the :class:`~pandera.checks.Check` namespace. See
+:ref:`the extensions<extensions>` document for more information.

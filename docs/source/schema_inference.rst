@@ -7,10 +7,6 @@ Schema Inference
 
 *New in version 0.4.0*
 
-.. warning::
-
-   This functionality is experimental. Use with caution!
-
 With simple use cases, writing a schema definition manually is pretty
 straight-forward with pandera. However, it can get tedious to do this with
 dataframes that have many columns of various data types.
@@ -68,6 +64,8 @@ For :class:`~pandera.schemas.SeriesSchema` objects:
 
 The section below describes two workflows for persisting and modifying an
 inferred schema.
+
+.. _schema persistence:
 
 Schema Persistence
 ------------------

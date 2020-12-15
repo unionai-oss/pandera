@@ -7,6 +7,7 @@
 # -- Path setup --------------------------------------------------------------
 
 import doctest
+import logging as pylogging
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -14,6 +15,8 @@ import doctest
 #
 import os
 import sys
+
+from sphinx.util import logging
 
 sys.path.insert(0, os.path.abspath("../../pandera"))
 
@@ -46,6 +49,13 @@ import numpy as np
 from packaging import version
 pd.options.display.max_columns = None # For Travis on macOS
 pd.options.display.max_rows = None # For Travis on macOS
+
+try:
+    import hypothesis
+except ImportError:
+    SKIP_STRATEGY = True
+else:
+    SKIP_STRATEGY = False
 
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)
@@ -119,6 +129,24 @@ intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
 }
+
+
+# this is a workaround to filter out forward reference issue in
+# sphinx_autodoc_typehints
+class FilterPandasTypeAnnotationWarning(pylogging.Filter):
+    def filter(self, record: pylogging.LogRecord) -> bool:
+        # You probably should make this check more specific by checking
+        # that dataclass name is in the message, so that you don't filter out
+        # other meaningful warnings
+        return not record.getMessage().startswith(
+            "Cannot resolve forward reference in type annotations of "
+            '"pandera.typing.DataFrame"'
+        )
+
+
+logging.getLogger("sphinx_autodoc_typehints").logger.addFilter(
+    FilterPandasTypeAnnotationWarning()
+)
 
 
 def setup(app):

@@ -27,19 +27,13 @@ else:
     HAS_HYPOTHESIS = True
 
 
-# skip all tests in module if "strategies" dependencies aren't installed
-no_hypothesis_dep = pytest.mark.skipif(
-    not HAS_HYPOTHESIS, reason='needs "strategies" module dependencies'
-)
-
-
 TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
 
 SUPPORTED_DTYPES = []
 for pdtype in pa.PandasDtype:
-    if pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows":
-        continue
-    if pdtype in {pa.Category, pa.Object}:
+    if (
+        pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows"
+    ) or pdtype is pa.Category:
         continue
     SUPPORTED_DTYPES.append(pdtype)
 
@@ -62,7 +56,7 @@ COMPLEX_RANGE_CONSTANT = np.complex64(
 )
 
 
-@pytest.mark.parametrize("pdtype", [pa.Category, pa.Object])
+@pytest.mark.parametrize("pdtype", [pa.Category])
 def test_unsupported_pandas_dtype_strategy(pdtype):
     """Test unsupported pandas dtype strategy raises error."""
     with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format(pdtype.name)):
@@ -76,11 +70,18 @@ def test_pandas_dtype_strategy(pdtype, data):
 
     strategy = strategies.pandas_dtype_strategy(pdtype)
     example = data.draw(strategy)
-    assert example.dtype.type == pdtype.numpy_dtype.type
+
+    expected_type = (
+        pdtype.String.numpy_dtype.type
+        if pdtype is pa.Object
+        else pdtype.numpy_dtype.type
+    )
+
+    assert example.dtype.type == expected_type
 
     chained_strategy = strategies.pandas_dtype_strategy(pdtype, strategy)
     chained_example = data.draw(chained_strategy)
-    assert chained_example.dtype.type == pdtype.numpy_dtype.type
+    assert chained_example.dtype.type == expected_type
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
@@ -135,6 +136,10 @@ def value_ranges(pdtype: pa.PandasDtype):
     ],
 )
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_check_strategy_chained_continuous(
     pdtype, strat_fn, arg_name, base_st_type, compare_op, data
 ):
@@ -348,7 +353,7 @@ def test_register_check_strategy(data):
             return cls(
                 _custom_equals,
                 name=cls.custom_equals.__name__,
-                error="equal_to(%s)" % value,
+                error=f"equal_to({value})",
                 **kwargs,
             )
 
@@ -389,6 +394,10 @@ def test_register_check_strategy_exception():
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_series_strategy(data):
     """Test SeriesSchema strategy."""
     series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
@@ -399,8 +408,7 @@ def test_series_example():
     """Test SeriesSchema example method generate examples that pass."""
     series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
     for _ in range(10):
-        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
-            series_schema(series_schema.example())
+        series_schema(series_schema.example())
 
 
 @hypothesis.given(st.data())
@@ -414,24 +422,23 @@ def test_column_example():
     """Test Column schema example method generate examples that pass."""
     column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
     for _ in range(10):
-        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
-            column_schema(column_schema.example())
+        column_schema(column_schema.example())
 
 
 @pytest.mark.parametrize(
     "pdtype",
-    [pdtype for pdtype in SUPPORTED_DTYPES if not pdtype.is_category],
+    SUPPORTED_DTYPES,
 )
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_dataframe_strategy(pdtype, data):
     """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype)}
     )
-    if pdtype is pa.PandasDtype.Object:
-        with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format("Object")):
-            dataframe_schema.strategy()
-        return
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
 
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
@@ -444,11 +451,14 @@ def test_dataframe_example():
     """Test DataFrameSchema example method generate examples that pass."""
     schema = pa.DataFrameSchema({"column": pa.Column(pa.Int, pa.Check.gt(0))})
     for _ in range(10):
-        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
-            schema(schema.example())
+        schema(schema.example())
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 @hypothesis.given(st.data())
 def test_dataframe_checks(pdtype, data):
     """Test dataframe strategy with checks defined at the dataframe level."""
@@ -469,6 +479,10 @@ def test_dataframe_checks(pdtype, data):
 
 @pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.String, pa.DateTime])
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_dataframe_strategy_with_indexes(pdtype, data):
     """Test dataframe strategy with index and multiindex components."""
     dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(pdtype))
@@ -503,8 +517,7 @@ def test_index_example():
     pdtype = pa.PandasDtype.Int
     index_schema = pa.Index(pdtype, allow_duplicates=False)
     for _ in range(10):
-        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
-            index_schema(pd.DataFrame(index=index_schema.example()))
+        index_schema(pd.DataFrame(index=index_schema.example()))
 
 
 @hypothesis.given(st.data())
@@ -543,9 +556,8 @@ def test_multiindex_example():
         ]
     )
     for _ in range(10):
-        with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
-            example = multiindex.example()
-            multiindex(pd.DataFrame(index=example))
+        example = multiindex.example()
+        multiindex(pd.DataFrame(index=example))
 
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
@@ -610,3 +622,154 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
         assert example.isna().any(axis=None)
     else:
         assert example.notna().all(axis=None)
+
+
+@pytest.mark.parametrize(
+    "schema, warning",
+    [
+        [
+            pa.SeriesSchema(
+                pa.Int,
+                checks=[
+                    pa.Check(lambda x: x > 0, element_wise=True),
+                    pa.Check(lambda x: x > -10, element_wise=True),
+                ],
+            ),
+            "Element-wise",
+        ],
+        [
+            pa.SeriesSchema(
+                pa.Int,
+                checks=[
+                    pa.Check(lambda s: s > -10000),
+                    pa.Check(lambda s: s > -9999),
+                ],
+            ),
+            "Vectorized",
+        ],
+    ],
+)
+@hypothesis.settings(
+    suppress_health_check=[
+        hypothesis.HealthCheck.filter_too_much,
+        hypothesis.HealthCheck.too_slow,
+    ],
+)
+@hypothesis.given(st.data())
+def test_series_strategy_undefined_check_strategy(schema, warning, data):
+    """Test case where series check strategy is undefined."""
+    with pytest.warns(
+        UserWarning, match=f"{warning} check doesn't have a defined strategy"
+    ):
+        strat = schema.strategy(size=5)
+    example = data.draw(strat)
+    schema(example)
+
+
+@pytest.mark.parametrize(
+    "schema, warning",
+    [
+        [
+            pa.DataFrameSchema(
+                columns={"column": pa.Column(pa.Int)},
+                checks=[
+                    pa.Check(lambda x: x > 0, element_wise=True),
+                    pa.Check(lambda x: x > -10, element_wise=True),
+                ],
+            ),
+            "Element-wise",
+        ],
+        [
+            pa.DataFrameSchema(
+                columns={
+                    "column": pa.Column(
+                        pa.Int,
+                        checks=[
+                            pa.Check(lambda s: s > -10000),
+                            pa.Check(lambda s: s > -9999),
+                        ],
+                    )
+                },
+            ),
+            "Column",
+        ],
+        [
+            pa.DataFrameSchema(
+                columns={"column": pa.Column(pa.Int)},
+                checks=[
+                    pa.Check(lambda s: s > -10000),
+                    pa.Check(lambda s: s > -9999),
+                ],
+            ),
+            "Dataframe",
+        ],
+    ],
+)
+@hypothesis.settings(
+    suppress_health_check=[
+        hypothesis.HealthCheck.filter_too_much,
+        hypothesis.HealthCheck.too_slow,
+    ],
+)
+@hypothesis.given(st.data())
+def test_dataframe_strategy_undefined_check_strategy(schema, warning, data):
+    """Test case where dataframe check strategy is undefined."""
+    with pytest.warns(
+        UserWarning, match=f"{warning} check doesn't have a defined strategy"
+    ):
+        strat = schema.strategy(size=5)
+    example = data.draw(strat)
+    schema(example)
+
+
+def test_unsatisfiable_checks():
+    """Test that unsatisfiable checks raise an exception."""
+    schema = pa.DataFrameSchema(
+        columns={
+            "col1": pa.Column(int, checks=[pa.Check.gt(0), pa.Check.lt(0)])
+        }
+    )
+    for _ in range(5):
+        with pytest.raises(hypothesis.errors.Unsatisfiable):
+            schema.example(size=10)
+
+
+@pytest.fixture(scope="module")
+def schema_model():
+    """Schema model fixture."""
+
+    class Schema(pa.SchemaModel):
+        """Schema model for strategy testing."""
+
+        col1: pa.typing.Series[int]
+        col2: pa.typing.Series[float]
+        col3: pa.typing.Series[str]
+
+    return Schema
+
+
+@hypothesis.given(st.data())
+def test_schema_model_strategy(schema_model, data):
+    """Test that strategy can be created from a SchemaModel."""
+    strat = schema_model.strategy(size=10)
+    sample_data = data.draw(strat)
+    schema_model.validate(sample_data)
+
+
+def test_schema_model_example(schema_model):
+    """Test that examples can be drawn from a SchemaModel."""
+    sample_data = schema_model.example(size=10)
+    schema_model.validate(sample_data)
+
+
+def test_schema_component_with_no_pdtype():
+    """
+    Test that SchemaDefinitionError is raised if trying to create a strategy
+    where pandas_dtype property is not specified.
+    """
+    for schema_component_strategy in [
+        strategies.column_strategy,
+        strategies.index_strategy,
+    ]:
+        with pytest.raises(pa.errors.SchemaDefinitionError):
+            schema_component_strategy(pandas_dtype=None)

@@ -131,6 +131,28 @@ IO Utils
    pandera.io.to_script
 
 
+Data Synthesis Strategies
+-------------------------
+
+.. autosummary::
+   :toctree: generated
+   :template: strategies_module.rst
+   :nosignatures:
+
+   pandera.strategies
+
+
+Extensions
+----------
+
+.. autosummary::
+   :toctree: generated
+   :template: module.rst
+   :nosignatures:
+
+   pandera.extensions
+
+
 Errors
 ------
 
