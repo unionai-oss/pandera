@@ -6,7 +6,6 @@ Statistical Data Validation for Pandas
 *A data validation library for scientists, engineers, and analysts seeking
 correctness.*
 
-![Build Status](https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=master)
 
 .. image:: https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=master
     :target: https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amaster
@@ -51,6 +50,14 @@ correctness.*
 .. image:: http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat
     :target: https://pandera-dev.github.io/pandera-asv-logs/
     :alt: asv
+
+.. image:: https://pepy.tech/badge/pandera/month
+    :target: https://pepy.tech/project/pandera
+    :alt: Monthly Downloads
+
+.. image:: https://pepy.tech/badge/pandera
+    :target: https://pepy.tech/badge/pandera
+    :alt: Total Downloads
 
 |
 

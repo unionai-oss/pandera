@@ -19,6 +19,8 @@ correctness.*
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg)](https://doi.org/10.5281/zenodo.3385265)
 [![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
+[![Downloads](https://pepy.tech/badge/pandera/month)](https://pepy.tech/project/pandera)
+[![Downloads](https://pepy.tech/badge/pandera)](https://pepy.tech/project/pandera)
 
 `pandas` data structures contain information that `pandera` explicitly
 validates at runtime. This is useful in production-critical or reproducible
