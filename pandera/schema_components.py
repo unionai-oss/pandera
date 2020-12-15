@@ -10,6 +10,7 @@ import pandas as pd
 from . import errors
 from . import strategies as st
 from .dtypes import PandasDtype
+from .error_formatters import scalar_failure_case
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -322,6 +323,11 @@ class Index(SeriesSchemaBase):
     has_subcomponents = False
 
     @property
+    def names(self):
+        """Get index names in the Index schema component."""
+        return [self.name]
+
+    @property
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
         return False
@@ -445,7 +451,6 @@ class MultiIndex(DataFrameSchema):
         coerce: bool = False,
         strict: bool = False,
         name: str = None,
-        ordered: bool = False,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -456,7 +461,6 @@ class MultiIndex(DataFrameSchema):
         :param strict: whether or not to accept columns in the MultiIndex that
             aren't defined in the ``indexes`` argument.
         :param name: name of schema component
-        :param ordered: whether or not to validate the indexes order.
 
         :example:
 
@@ -492,33 +496,33 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
-        columns = {}
-        for i, index in enumerate(indexes):
-            col_name = index._name
-            if index._name is None:
-                if ordered:
-                    raise errors.SchemaInitError(
-                        "All indexes must be named when 'MultiIndex.ordered' is True."
-                    )
-                col_name = i  # type: ignore
-            columns[col_name] = Column(
-                pandas_dtype=index._pandas_dtype,
-                checks=index.checks,
-                nullable=index._nullable,
-                allow_duplicates=index._allow_duplicates,
-            )
-
         self.indexes = indexes
         super().__init__(
-            columns=columns,
+            columns={
+                i
+                if index.name is None
+                else index.name: Column(
+                    pandas_dtype=index._pandas_dtype,
+                    checks=index.checks,
+                    nullable=index._nullable,
+                    allow_duplicates=index._allow_duplicates,
+                )
+                for i, index in enumerate(indexes)
+            },
             coerce=coerce,
             strict=strict,
             name=name,
-            ordered=ordered,
+            ordered=True,
         )
 
     @property
+    def names(self):
+        """Get index names in the MultiIndex schema component."""
+        return [index.name for index in self.indexes]
+
+    @property
     def coerce(self):
+        """Whether or not to coerce data types."""
         return self._coerce or any(index.coerce for index in self.indexes)
 
     def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:
@@ -533,9 +537,27 @@ class MultiIndex(DataFrameSchema):
             raise errors.SchemaError(
                 self,
                 obj,
-                "multi_index does not have equal number of levels as "
-                "MultiIndex schema %d != %d."
-                % (obj.nlevels, len(self.indexes)),
+                message=(
+                    "MultiIndex has unequal number of levels as "
+                    f"Schema {obj.nlevels} != "
+                    f"pandas.MultiIndex {len(self.indexes)}."
+                ),
+                failure_cases=scalar_failure_case(f"nlevels {obj.nlevels}"),
+                check="multiindex_level_match",
+            )
+
+        if obj.names != self.names:
+            raise errors.SchemaError(
+                self,
+                obj,
+                message=(
+                    "multi_index names do not match: "
+                    f"Schema {self.names} != pandas.MultiIndex {obj.names}."
+                ),
+                failure_cases=scalar_failure_case(
+                    ", ".join(map(str, obj.names))
+                ),
+                check="multiindex_names_match",
             )
 
         _coerced_multi_index = []
@@ -589,7 +611,7 @@ class MultiIndex(DataFrameSchema):
             except errors.SchemaErrors as err:
                 if lazy:
                     raise
-                raise err._schema_error_dicts[0]["error"]
+                raise err._schema_error_dicts[0]["error"] from err
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the

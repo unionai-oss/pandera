@@ -537,3 +537,58 @@ def test_multiindex_duplicate_index_names(multiindex, error, schema):
             schema(pd.DataFrame(index=multiindex), lazy=True)
     else:
         assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
+
+
+@pytest.mark.parametrize(
+    "multiindex, schema, error",
+    [
+        # No index names
+        [
+            pd.MultiIndex.from_arrays([[1, 2], [1, 2]]),
+            MultiIndex([Index(int), Index(int)]),
+            False,
+        ],
+        # index names on pa.MultiIndex, no index name on schema
+        [
+            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=["a", "b"]),
+            MultiIndex([Index(int), Index(int)]),
+            True,
+        ],
+        # no index names on pa.MultiIndex, index names on schema
+        [
+            pd.MultiIndex.from_arrays([[1, 2], [1, 2]]),
+            MultiIndex([Index(int, name="a"), Index(int, name="b")]),
+            True,
+        ],
+        # mixed index names and None
+        [
+            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=["a", None]),
+            MultiIndex([Index(int, name="a"), Index(int)]),
+            False,
+        ],
+        [
+            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=[None, "b"]),
+            MultiIndex([Index(int), Index(int, name="b")]),
+            False,
+        ],
+        [
+            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=["b", None]),
+            MultiIndex([Index(int, name="a"), Index(int)]),
+            True,
+        ],
+        [
+            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=[None, "a"]),
+            MultiIndex([Index(int), Index(int, name="b")]),
+            True,
+        ],
+    ],
+)
+def test_multiindex_name_order(multiindex, schema, error):
+    """Test that MultiIndex schema checks index name order."""
+    if error:
+        with pytest.raises(errors.SchemaError):
+            schema(pd.DataFrame(index=multiindex))
+        with pytest.raises(errors.SchemaErrors):
+            schema(pd.DataFrame(index=multiindex), lazy=True)
+    else:
+        assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)

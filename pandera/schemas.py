@@ -338,12 +338,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if self.pdtype is not None:
             obj = _try_coercion(self._coerce_dtype, obj)
         if self.index is not None and (self.index.coerce or self.coerce):
-            index = copy.deepcopy(self.index)
+            index_schema = copy.deepcopy(self.index)
             if self.coerce:
                 # coercing at the dataframe-level should apply index coercion
                 # for both single- and multi-indexes.
-                index._coerce = True
-            obj.index = _try_coercion(index.coerce_dtype, obj.index)
+                index_schema._coerce = True
+            coerced_index = _try_coercion(index_schema.coerce_dtype, obj.index)
+            if coerced_index is not None:
+                obj.index = coerced_index
 
         if error_handler.collected_errors:
             raise errors.SchemaErrors(error_handler.collected_errors, obj)
