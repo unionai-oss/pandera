@@ -560,6 +560,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 result = schema_component(
                     df_to_validate,
                     lazy=lazy if schema_component.has_subcomponents else None,
+                    # don't make a copy of the data
+                    inplace=True,
                 )
                 check_results.append(isinstance(result, pd.DataFrame))
             except errors.SchemaError as err:
@@ -1625,6 +1627,10 @@ class SeriesSchemaBase:
             series, head, tail, sample, random_state
         )
 
+        check_obj = _pandas_obj_to_validate(
+            check_obj, head, tail, sample, random_state
+        )
+
         if self.name is not None and series.name != self._name:
             msg = "Expected %s to have name '%s', found '%s'" % (
                 type(self),
@@ -1732,7 +1738,6 @@ class SeriesSchemaBase:
         if isinstance(check_obj, pd.Series):
             check_obj, check_args = series, [None]
         else:
-            check_obj = check_obj.loc[series.index.unique()].copy()
             check_args = [self.name]  # type: ignore
 
         for check_index, check in enumerate(self.checks):

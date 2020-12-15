@@ -185,9 +185,15 @@ class Column(SeriesSchemaBase):
                 "method.",
             )
 
-        def validate_column(check_obj):
+        def validate_column(check_obj, column_name):
             super(Column, copy(self).set_name(column_name)).validate(
-                check_obj, head, tail, sample, random_state, lazy
+                check_obj,
+                head,
+                tail,
+                sample,
+                random_state,
+                lazy,
+                inplace=inplace,
             )
 
         column_keys_to_check = (
@@ -203,9 +209,11 @@ class Column(SeriesSchemaBase):
                 )
             if isinstance(check_obj[column_name], pd.DataFrame):
                 for i in range(check_obj[column_name].shape[1]):
-                    validate_column(check_obj[column_name].iloc[:, [i]])
+                    validate_column(
+                        check_obj[column_name].iloc[:, [i]], column_name
+                    )
             else:
-                validate_column(check_obj)
+                validate_column(check_obj, column_name)
 
         return check_obj
 
