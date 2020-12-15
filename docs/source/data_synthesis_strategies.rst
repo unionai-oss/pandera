@@ -99,6 +99,33 @@ Now the ``test_processing_fn`` simply becomes an execution test, raising a
 :class:`~pandera.errors.SchemaError` if ``processing_fn`` doesn't add
 ``column4`` to the dataframe.
 
+Strategies and Examples from Schema Models
+------------------------------------------
+
+You can also use the :ref:`class-based API<schema_models>` to generate examples.
+Here's the equivalent schema model for the above examples:
+
+.. testcode:: data_synthesis_strategies
+   :skipif: SKIP_STRATEGY
+
+   from pandera.typing import Series, DataFrame
+
+   class InSchema(pa.SchemaModel):
+       column1: Series[int] = pa.Field(eq=10)
+       column2: Series[float] = pa.Field(eq=0.25)
+       column3: Series[str] = pa.Field(eq="foo")
+
+   class OutSchema(InSchema):
+       column4: Series[float]
+
+   @pa.check_types
+   def processing_fn(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
+       return df.assign(column4=df.column1 * df.column2)
+
+   @hypothesis.given(InSchema.strategy(size=5))
+   def test_processing_fn(dataframe):
+       processing_fn(dataframe)
+
 
 Checks as Constraints
 ---------------------

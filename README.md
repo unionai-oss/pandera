@@ -211,25 +211,4 @@ Here are a few other alternatives for validating Python data structures.
 
 #### Software Package
 
-```
-@software{niels_bantilan_2020_3926689,
-  author       = {Niels Bantilan and
-                  Nigel Markey and
-                  Riccardo Albertazzi and
-                  Nemanja Radojković and
-                  chr1st1ank and
-                  Aditya Singh and
-                  Anthony Truchet - C3.AI and
-                  Steve Taylor and
-                  Sunho Kim and
-                  Zachary Lawrence},
-  title        = {{pandera-dev/pandera: 0.4.4: bugfixes in yaml
-                   serialization, error reporting, refactor internals}},
-  month        = jul,
-  year         = 2020,
-  publisher    = {Zenodo},
-  version      = {0.4.4},
-  doi          = {10.5281/zenodo.3926689},
-  url          = {https://doi.org/10.5281/zenodo.3926689}
-}
-```
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg)](https://doi.org/10.5281/zenodo.3385265)
