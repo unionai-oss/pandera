@@ -540,14 +540,15 @@ class MultiIndex(DataFrameSchema):
         """
         error_handler = SchemaErrorHandler(lazy=True)
 
+        # construct MultiIndex with coerced data types
         coerced_multi_index = {}
         for i, index in enumerate(self.indexes):
-            if self.ordered:
+            if all(x is None for x in self.names):
                 index_levels = [i]
             else:
                 index_levels = [
                     i for i, name in enumerate(obj.names) if name == index.name
-                ]  # type: ignore
+                ]
             for index_level in index_levels:
                 index_array = obj.get_level_values(index_level)
                 if index.coerce or self._coerce:

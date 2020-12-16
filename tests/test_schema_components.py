@@ -594,6 +594,11 @@ def test_multiindex_duplicate_index_names(multiindex, error, schema):
             False,
         ],
         [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", "a", None]),
+            MultiIndex([Index(int, name="a"), Index(int)], coerce=True),
+            False,
+        ],
+        [
             pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", None, "a"]),
             MultiIndex([Index(int, name="a"), Index(int)]),
             "column 'a' out-of-order",
@@ -603,6 +608,13 @@ def test_multiindex_duplicate_index_names(multiindex, error, schema):
                 [[1], [1], [1], [1]], names=["a", "a", None, None]
             ),
             MultiIndex([Index(int, name="a"), Index(int)]),
+            False,
+        ],
+        [
+            pd.MultiIndex.from_arrays(
+                [[1], [1], [1], [1]], names=["a", "a", None, None]
+            ),
+            MultiIndex([Index(int, name="a"), Index(int)], coerce=True),
             False,
         ],
     ],
@@ -647,7 +659,25 @@ def test_multiindex_ordered(multiindex, schema, error):
             ),
             False,
         ],
-        # unordered schema component with duplicated names in multiindex
+        [
+            pd.MultiIndex.from_arrays([[1], [1]], names=["b", "a"]),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")],
+                ordered=False,
+                coerce=True,
+            ),
+            False,
+        ],
+        # unordered schema component with duplicated names in multiindex and
+        # dtype coercion
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["b", "a", "a"]),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")],
+                ordered=False,
+            ),
+            False,
+        ],
         [
             pd.MultiIndex.from_arrays([[1], [1], [1]], names=["b", "a", "a"]),
             MultiIndex(
