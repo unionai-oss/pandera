@@ -113,7 +113,6 @@ class SchemaErrors(Exception):
         with pd.option_context("display.max_colwidth", 100):
             msg += agg_schema_errors.to_string()
         msg += SCHEMA_ERRORS_SUFFIX
-
         return msg
 
     @staticmethod

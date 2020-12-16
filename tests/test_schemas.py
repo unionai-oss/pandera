@@ -220,12 +220,11 @@ def test_dataframe_reset_column_name():
             None,
             MultiIndex(
                 indexes=[Index(Int, name="a"), Index(Int, name="b")],
-                ordered=True,
             ),
         ),
     ],
 )
-def test_ordered(columns: Dict[str, Column], index: MultiIndex):
+def test_ordered_dataframe(columns: Dict[str, Column], index: MultiIndex):
     """Test that columns are ordered."""
     schema = DataFrameSchema(columns=columns, index=index, ordered=True)
 
@@ -268,12 +267,6 @@ def test_ordered(columns: Dict[str, Column], index: MultiIndex):
         errors.SchemaErrors, match="A total of 1 schema errors"
     ):
         schema.validate(df, lazy=True)
-
-
-def test_ordered_notnamed_multiindex():
-    """Test that a multiindex must be named to validate its order."""
-    with pytest.raises(errors.SchemaInitError):
-        MultiIndex(indexes=[Index(Int, name="a"), Index(Int)], ordered=True)
 
 
 def test_series_schema():

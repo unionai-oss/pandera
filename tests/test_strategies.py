@@ -581,6 +581,10 @@ def test_field_element_strategy(pdtype, data):
 )
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
     """Test strategies for generating nullable column/index data."""
 
@@ -606,6 +610,10 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     """Test strategies for generating nullable DataFrame data."""
     size = 5

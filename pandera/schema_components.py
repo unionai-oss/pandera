@@ -322,6 +322,11 @@ class Index(SeriesSchemaBase):
     has_subcomponents = False
 
     @property
+    def names(self):
+        """Get index names in the Index schema component."""
+        return [self.name]
+
+    @property
     def _allow_groupby(self) -> bool:
         """Whether the schema or schema component allows groupby operations."""
         return False
@@ -445,7 +450,7 @@ class MultiIndex(DataFrameSchema):
         coerce: bool = False,
         strict: bool = False,
         name: str = None,
-        ordered: bool = False,
+        ordered: bool = True,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -492,23 +497,23 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
+        self.indexes = indexes
         columns = {}
         for i, index in enumerate(indexes):
-            col_name = index._name
-            if index._name is None:
-                if ordered:
-                    raise errors.SchemaInitError(
-                        "All indexes must be named when 'MultiIndex.ordered' is True."
-                    )
-                col_name = i  # type: ignore
-            columns[col_name] = Column(
+            if not ordered and index.name is None:
+                # if the MultiIndex is not ordered, there's no way of
+                # determining how to get the index level without an explicit
+                # index name
+                raise errors.SchemaInitError(
+                    "You must specify index names if MultiIndex schema "
+                    "component is not ordered."
+                )
+            columns[i if index.name is None else index.name] = Column(
                 pandas_dtype=index._pandas_dtype,
                 checks=index.checks,
                 nullable=index._nullable,
                 allow_duplicates=index._allow_duplicates,
             )
-
-        self.indexes = indexes
         super().__init__(
             columns=columns,
             coerce=coerce,
@@ -518,7 +523,13 @@ class MultiIndex(DataFrameSchema):
         )
 
     @property
+    def names(self):
+        """Get index names in the MultiIndex schema component."""
+        return [index.name for index in self.indexes]
+
+    @property
     def coerce(self):
+        """Whether or not to coerce data types."""
         return self._coerce or any(index.coerce for index in self.indexes)
 
     def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:
@@ -529,29 +540,37 @@ class MultiIndex(DataFrameSchema):
         """
         error_handler = SchemaErrorHandler(lazy=True)
 
-        if obj.nlevels != len(self.indexes):
-            raise errors.SchemaError(
-                self,
-                obj,
-                "multi_index does not have equal number of levels as "
-                "MultiIndex schema %d != %d."
-                % (obj.nlevels, len(self.indexes)),
-            )
-
-        _coerced_multi_index = []
-        for level_i, index in enumerate(self.indexes):
-            index_array = obj.get_level_values(level_i)
-            if index.coerce or self._coerce:
-                try:
-                    index_array = index.coerce_dtype(index_array)
-                except errors.SchemaError as err:
-                    error_handler.collect_error("dtype_coercion_error", err)
-            _coerced_multi_index.append(index_array)
+        coerced_multi_index = {}
+        for i, index in enumerate(self.indexes):
+            if self.ordered:
+                index_levels = [i]
+            else:
+                index_levels = [
+                    i for i, name in enumerate(obj.names) if name == index.name
+                ]  # type: ignore
+            for index_level in index_levels:
+                index_array = obj.get_level_values(index_level)
+                if index.coerce or self._coerce:
+                    try:
+                        index_array = index.coerce_dtype(index_array)
+                    except errors.SchemaError as err:
+                        error_handler.collect_error(
+                            "dtype_coercion_error", err
+                        )
+                coerced_multi_index[index_level] = index_array
 
         if error_handler.collected_errors:
             raise errors.SchemaErrors(error_handler.collected_errors, obj)
 
-        return pd.MultiIndex.from_arrays(_coerced_multi_index, names=obj.names)
+        return pd.MultiIndex.from_arrays(
+            [
+                v
+                for k, v in sorted(
+                    coerced_multi_index.items(), key=lambda x: x[0]
+                )
+            ],
+            names=obj.names,
+        )
 
     def validate(
         self,
@@ -589,7 +608,7 @@ class MultiIndex(DataFrameSchema):
             except errors.SchemaErrors as err:
                 if lazy:
                     raise
-                raise err._schema_error_dicts[0]["error"]
+                raise err._schema_error_dicts[0]["error"] from err
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the
@@ -599,6 +618,25 @@ class MultiIndex(DataFrameSchema):
         self_copy._coerce = False
         for index in self_copy.indexes:
             index._coerce = False
+
+        # rename integer-based column names in case of duplicate index names,
+        # with at least one named index.
+        if (
+            not all(x is None for x in check_obj.index.names)
+            and len(set(check_obj.index.names)) != check_obj.index.nlevels
+        ):
+            index_names = []
+            for i, name in enumerate(check_obj.index.names):
+                name = i if name is None else name
+                if name not in index_names:
+                    index_names.append(name)
+
+            columns = {}
+            for name, (_, column) in zip(
+                index_names, self_copy.columns.items()
+            ):
+                columns[name] = column.set_name(name)
+            self_copy.columns = columns
 
         def to_dataframe(multiindex):
             """

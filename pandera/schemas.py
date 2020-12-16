@@ -338,12 +338,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if self.pdtype is not None:
             obj = _try_coercion(self._coerce_dtype, obj)
         if self.index is not None and (self.index.coerce or self.coerce):
-            index = copy.deepcopy(self.index)
+            index_schema = copy.deepcopy(self.index)
             if self.coerce:
                 # coercing at the dataframe-level should apply index coercion
                 # for both single- and multi-indexes.
-                index._coerce = True
-            obj.index = _try_coercion(index.coerce_dtype, obj.index)
+                index_schema._coerce = True
+            coerced_index = _try_coercion(index_schema.coerce_dtype, obj.index)
+            if coerced_index is not None:
+                obj.index = coerced_index
 
         if error_handler.collected_errors:
             raise errors.SchemaErrors(error_handler.collected_errors, obj)
@@ -436,20 +438,20 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
         if self.strict or self.ordered:
-            colum_names = []
+            column_names = []
             for col_name, col_schema in self.columns.items():
                 if col_schema.regex:
                     try:
-                        colum_names.extend(
+                        column_names.extend(
                             col_schema.get_regex_columns(check_obj.columns)
                         )
                     except errors.SchemaError:
                         pass
                 elif col_name in check_obj.columns:
-                    colum_names.append(col_name)
+                    column_names.append(col_name)
             # ordered "set" of columns
-            sorted_column_names = iter(dict.fromkeys(colum_names))
-            expanded_column_names = frozenset(colum_names)
+            sorted_column_names = iter(dict.fromkeys(column_names))
+            expanded_column_names = frozenset(column_names)
 
             # drop adjacent duplicated column names
             if check_obj.columns.has_duplicates:
