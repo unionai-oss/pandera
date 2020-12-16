@@ -438,20 +438,20 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
         if self.strict or self.ordered:
-            colum_names = []
+            column_names = []
             for col_name, col_schema in self.columns.items():
                 if col_schema.regex:
                     try:
-                        colum_names.extend(
+                        column_names.extend(
                             col_schema.get_regex_columns(check_obj.columns)
                         )
                     except errors.SchemaError:
                         pass
                 elif col_name in check_obj.columns:
-                    colum_names.append(col_name)
+                    column_names.append(col_name)
             # ordered "set" of columns
-            sorted_column_names = iter(dict.fromkeys(colum_names))
-            expanded_column_names = frozenset(colum_names)
+            sorted_column_names = iter(dict.fromkeys(column_names))
+            expanded_column_names = frozenset(column_names)
 
             # drop adjacent duplicated column names
             if check_obj.columns.has_duplicates:

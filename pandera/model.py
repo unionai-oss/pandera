@@ -58,6 +58,9 @@ class BaseConfig:  # pylint:disable=R0903
     #: make sure all specified columns are in MultiIndex
     multiindex_strict: bool = False
 
+    #: validate MultiIndex in order
+    multiindex_ordered: bool = True
+
 
 _config_options = [
     attr for attr in vars(BaseConfig) if not attr.startswith("_")

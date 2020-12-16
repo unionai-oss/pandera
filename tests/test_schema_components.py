@@ -86,6 +86,7 @@ def test_index_schema():
     )
     df = pd.DataFrame(index=range(1, 11), dtype="int64")
     assert isinstance(schema.validate(df), pd.DataFrame)
+    assert schema.index.names == [None]
 
     with pytest.raises(errors.SchemaError):
         schema.validate(pd.DataFrame(index=range(1, 20)))
@@ -164,6 +165,11 @@ def test_multi_index_index():
 
     validated_df = schema.validate(df)
     assert isinstance(validated_df, pd.DataFrame)
+    assert schema.index.names == ["index0", "index1"]
+    assert (
+        schema.index.__repr__()
+        == f"<Schema MultiIndex: '{schema.index.names}'>"
+    )
 
     # failure case
     df_fail = df.copy()
@@ -544,51 +550,135 @@ def test_multiindex_duplicate_index_names(multiindex, error, schema):
     [
         # No index names
         [
-            pd.MultiIndex.from_arrays([[1, 2], [1, 2]]),
+            pd.MultiIndex.from_arrays([[1], [1]]),
             MultiIndex([Index(int), Index(int)]),
             False,
         ],
         # index names on pa.MultiIndex, no index name on schema
         [
-            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=["a", "b"]),
+            pd.MultiIndex.from_arrays([[1], [1]], names=["a", "b"]),
             MultiIndex([Index(int), Index(int)]),
             True,
         ],
         # no index names on pa.MultiIndex, index names on schema
         [
-            pd.MultiIndex.from_arrays([[1, 2], [1, 2]]),
+            pd.MultiIndex.from_arrays([[1], [1]]),
             MultiIndex([Index(int, name="a"), Index(int, name="b")]),
             True,
         ],
         # mixed index names and None
         [
-            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=["a", None]),
+            pd.MultiIndex.from_arrays([[1], [1]], names=["a", None]),
             MultiIndex([Index(int, name="a"), Index(int)]),
             False,
         ],
         [
-            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=[None, "b"]),
+            pd.MultiIndex.from_arrays([[1], [1]], names=[None, "b"]),
             MultiIndex([Index(int), Index(int, name="b")]),
             False,
         ],
         [
-            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=["b", None]),
+            pd.MultiIndex.from_arrays([[1], [1]], names=["b", None]),
             MultiIndex([Index(int, name="a"), Index(int)]),
             True,
         ],
         [
-            pd.MultiIndex.from_arrays([[1, 2], [1, 2]], names=[None, "a"]),
+            pd.MultiIndex.from_arrays([[1], [1]], names=[None, "a"]),
             MultiIndex([Index(int), Index(int, name="b")]),
             True,
+        ],
+        # duplicated index names
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", "a", None]),
+            MultiIndex([Index(int, name="a"), Index(int)]),
+            False,
+        ],
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["a", None, "a"]),
+            MultiIndex([Index(int, name="a"), Index(int)]),
+            "column 'a' out-of-order",
+        ],
+        [
+            pd.MultiIndex.from_arrays(
+                [[1], [1], [1], [1]], names=["a", "a", None, None]
+            ),
+            MultiIndex([Index(int, name="a"), Index(int)]),
+            False,
         ],
     ],
 )
-def test_multiindex_name_order(multiindex, schema, error):
+def test_multiindex_ordered(multiindex, schema, error):
     """Test that MultiIndex schema checks index name order."""
+    if error:
+        raises_kwargs = {}
+        if isinstance(error, str):
+            raises_kwargs["match"] = error
+        with pytest.raises(errors.SchemaError, **raises_kwargs):
+            schema(pd.DataFrame(index=multiindex))
+        with pytest.raises(errors.SchemaErrors):
+            schema(pd.DataFrame(index=multiindex), lazy=True)
+        return
+    assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
+
+
+@pytest.mark.parametrize(
+    "multiindex, schema, error",
+    [
+        # unordered schema component, no names in multiindex
+        [
+            pd.MultiIndex.from_arrays([[1], [1]]),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")], ordered=False
+            ),
+            True,
+        ],
+        [
+            pd.MultiIndex.from_arrays([[1], [1]], names=[None, "b"]),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")], ordered=False
+            ),
+            True,
+        ],
+        # unordered schema component with names in multiindex
+        [
+            pd.MultiIndex.from_arrays([[1], [1]], names=["b", "a"]),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")], ordered=False
+            ),
+            False,
+        ],
+        # unordered schema component with duplicated names in multiindex
+        [
+            pd.MultiIndex.from_arrays([[1], [1], [1]], names=["b", "a", "a"]),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")],
+                coerce=True,
+                ordered=False,
+            ),
+            False,
+        ],
+    ],
+)
+def test_multiindex_unordered(multiindex, schema, error):
+    """Test MultiIndex schema unordered validation."""
     if error:
         with pytest.raises(errors.SchemaError):
             schema(pd.DataFrame(index=multiindex))
         with pytest.raises(errors.SchemaErrors):
             schema(pd.DataFrame(index=multiindex), lazy=True)
-    else:
-        assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
+        return
+    assert isinstance(schema(pd.DataFrame(index=multiindex)), pd.DataFrame)
+
+
+@pytest.mark.parametrize(
+    "indexes",
+    [
+        [Index(int)],
+        [Index(int, name="a"), Index(int)],
+        [Index(int), Index(int, name="a")],
+    ],
+)
+def test_multiindex_unordered_init_exception(indexes):
+    """Un-named indexes in unordered MultiIndex raises an exception."""
+    with pytest.raises(errors.SchemaInitError):
+        MultiIndex(indexes, ordered=False)

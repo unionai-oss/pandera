@@ -10,7 +10,6 @@ import pandas as pd
 from . import errors
 from . import strategies as st
 from .dtypes import PandasDtype
-from .error_formatters import scalar_failure_case
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -451,6 +450,7 @@ class MultiIndex(DataFrameSchema):
         coerce: bool = False,
         strict: bool = False,
         name: str = None,
+        ordered: bool = True,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -461,6 +461,7 @@ class MultiIndex(DataFrameSchema):
         :param strict: whether or not to accept columns in the MultiIndex that
             aren't defined in the ``indexes`` argument.
         :param name: name of schema component
+        :param ordered: whether or not to validate the indexes order.
 
         :example:
 
@@ -497,22 +498,28 @@ class MultiIndex(DataFrameSchema):
 
         """
         self.indexes = indexes
-        super().__init__(
-            columns={
-                i
-                if index.name is None
-                else index.name: Column(
-                    pandas_dtype=index._pandas_dtype,
-                    checks=index.checks,
-                    nullable=index._nullable,
-                    allow_duplicates=index._allow_duplicates,
+        columns = {}
+        for i, index in enumerate(indexes):
+            if not ordered and index.name is None:
+                # if the MultiIndex is not ordered, there's no way of
+                # determining how to get the index level without an explicit
+                # index name
+                raise errors.SchemaInitError(
+                    "You must specify index names if MultiIndex schema "
+                    "component is not ordered."
                 )
-                for i, index in enumerate(indexes)
-            },
+            columns[i if index.name is None else index.name] = Column(
+                pandas_dtype=index._pandas_dtype,
+                checks=index.checks,
+                nullable=index._nullable,
+                allow_duplicates=index._allow_duplicates,
+            )
+        super().__init__(
+            columns=columns,
             coerce=coerce,
             strict=strict,
             name=name,
-            ordered=True,
+            ordered=ordered,
         )
 
     @property
@@ -533,47 +540,37 @@ class MultiIndex(DataFrameSchema):
         """
         error_handler = SchemaErrorHandler(lazy=True)
 
-        if obj.nlevels != len(self.indexes):
-            raise errors.SchemaError(
-                self,
-                obj,
-                message=(
-                    "MultiIndex has unequal number of levels as "
-                    f"Schema {obj.nlevels} != "
-                    f"pandas.MultiIndex {len(self.indexes)}."
-                ),
-                failure_cases=scalar_failure_case(f"nlevels {obj.nlevels}"),
-                check="multiindex_level_match",
-            )
-
-        if obj.names != self.names:
-            raise errors.SchemaError(
-                self,
-                obj,
-                message=(
-                    "multi_index names do not match: "
-                    f"Schema {self.names} != pandas.MultiIndex {obj.names}."
-                ),
-                failure_cases=scalar_failure_case(
-                    ", ".join(map(str, obj.names))
-                ),
-                check="multiindex_names_match",
-            )
-
-        _coerced_multi_index = []
-        for level_i, index in enumerate(self.indexes):
-            index_array = obj.get_level_values(level_i)
-            if index.coerce or self._coerce:
-                try:
-                    index_array = index.coerce_dtype(index_array)
-                except errors.SchemaError as err:
-                    error_handler.collect_error("dtype_coercion_error", err)
-            _coerced_multi_index.append(index_array)
+        coerced_multi_index = {}
+        for i, index in enumerate(self.indexes):
+            if self.ordered:
+                index_levels = [i]
+            else:
+                index_levels = [
+                    i for i, name in enumerate(obj.names) if name == index.name
+                ]  # type: ignore
+            for index_level in index_levels:
+                index_array = obj.get_level_values(index_level)
+                if index.coerce or self._coerce:
+                    try:
+                        index_array = index.coerce_dtype(index_array)
+                    except errors.SchemaError as err:
+                        error_handler.collect_error(
+                            "dtype_coercion_error", err
+                        )
+                coerced_multi_index[index_level] = index_array
 
         if error_handler.collected_errors:
             raise errors.SchemaErrors(error_handler.collected_errors, obj)
 
-        return pd.MultiIndex.from_arrays(_coerced_multi_index, names=obj.names)
+        return pd.MultiIndex.from_arrays(
+            [
+                v
+                for k, v in sorted(
+                    coerced_multi_index.items(), key=lambda x: x[0]
+                )
+            ],
+            names=obj.names,
+        )
 
     def validate(
         self,
@@ -621,6 +618,25 @@ class MultiIndex(DataFrameSchema):
         self_copy._coerce = False
         for index in self_copy.indexes:
             index._coerce = False
+
+        # rename integer-based column names in case of duplicate index names,
+        # with at least one named index.
+        if (
+            not all(x is None for x in check_obj.index.names)
+            and len(set(check_obj.index.names)) != check_obj.index.nlevels
+        ):
+            index_names = []
+            for i, name in enumerate(check_obj.index.names):
+                name = i if name is None else name
+                if name not in index_names:
+                    index_names.append(name)
+
+            columns = {}
+            for name, (_, column) in zip(
+                index_names, self_copy.columns.items()
+            ):
+                columns[name] = column.set_name(name)
+            self_copy.columns = columns
 
         def to_dataframe(multiindex):
             """

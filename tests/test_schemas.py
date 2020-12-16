@@ -224,7 +224,7 @@ def test_dataframe_reset_column_name():
         ),
     ],
 )
-def test_ordered(columns: Dict[str, Column], index: MultiIndex):
+def test_ordered_dataframe(columns: Dict[str, Column], index: MultiIndex):
     """Test that columns are ordered."""
     schema = DataFrameSchema(columns=columns, index=index, ordered=True)
 
