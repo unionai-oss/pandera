@@ -170,11 +170,13 @@ class Hypothesis(_CheckBase):
         return len(self.samples) <= 1
 
     def _prepare_series_input(
-        self, series: pd.Series, dataframe_context: pd.DataFrame = None
+        self,
+        df_or_series: Union[pd.Series, pd.DataFrame],
+        column: Optional[str] = None,
     ) -> SeriesCheckObj:
         """Prepare Series input for Hypothesis check."""
         self.groups = self.samples
-        return super()._prepare_series_input(series, dataframe_context)
+        return super()._prepare_series_input(df_or_series, column)
 
     def _prepare_dataframe_input(
         self, dataframe: pd.DataFrame
