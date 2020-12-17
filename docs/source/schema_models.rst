@@ -189,6 +189,31 @@ however, a couple of gotchas:
     ...
     TypeError: Parameters to generic types must be types. Got StringDtype.
 
+Required Columns
+----------------
+
+By default all columns specified in the schema are :ref:`required<required>`, meaning
+that if a column is missing in the input DataFrame an exception will be
+thrown. If you want to make a column optional, annotate it with :data:`typing.Optional`.
+
+.. testcode:: dataframe_schema_model
+
+    from typing import Optional
+
+    import pandas as pd
+    import pandera as pa
+    from pandera.typing import Series
+
+
+    class Schema(pa.SchemaModel):
+        a: Series[str]
+        b: Optional[Series[int]]
+
+
+    df = pd.DataFrame({"a": ["2001", "2002", "2003"]})
+    Schema.validate(df)
+
+
 Schema Inheritance
 ------------------
 
