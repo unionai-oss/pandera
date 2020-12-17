@@ -183,6 +183,10 @@ def test_check_strategy_chained_continuous(
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_in_range_strategy(pdtype, chained, data):
     """Test the built-in in-range strategy can correctly generate data."""
     min_value, max_value = data.draw(value_ranges(pdtype))
@@ -221,6 +225,10 @@ def test_in_range_strategy(pdtype, chained, data):
 )
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_isin_notin_strategies(pdtype, chained, data):
     """Test built-in check strategies that rely on discrete values."""
     value_st = strategies.pandas_dtype_strategy(
