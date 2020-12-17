@@ -104,9 +104,9 @@ class _CheckBase:
 
             where the input is a dictionary mapping
             keys to subsets of the column/dataframe.
-        :param ignore_na: If True, drops null values on the checked series or
-            dataframe before passing into the ``check_fn``. For dataframes,
-            drops rows with any null value. *New in version 0.4.0*
+        :param ignore_na: If True, null values will be ignored when determining
+            if a check passed or failed. For dataframes, ignores rows with any
+            null value. *New in version 0.4.0*
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
@@ -376,6 +376,9 @@ class _CheckBase:
             raise TypeError(
                 f"output type of check_fn not recognized: {type(check_output)}"
             )
+
+        if failure_cases is not None and self.n_failure_cases is not None:
+            failure_cases = failure_cases.iloc[: self.n_failure_cases]
 
         check_passed = (
             check_output.all()
