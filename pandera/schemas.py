@@ -525,7 +525,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             try:
                 check_obj = self.coerce_dtype(check_obj)
             except errors.SchemaErrors as err:
-                for schema_error_dict in err._schema_error_dicts:
+                for schema_error_dict in err.schema_errors:
                     if not lazy:
                         # raise the first error immediately if not doing lazy
                         # validation
@@ -567,7 +567,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             except errors.SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
             except errors.SchemaErrors as err:
-                for schema_error_dict in err._schema_error_dicts:
+                for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
                         "schema_component_check", schema_error_dict["error"]
                     )
@@ -1947,7 +1947,7 @@ class SeriesSchema(SeriesSchemaBase):
             try:
                 self.index(check_obj, head, tail, sample, random_state, lazy)
             except errors.SchemaErrors as err:
-                for schema_error_dict in err._schema_error_dicts:
+                for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
                         "index_check", schema_error_dict["error"]
                     )
@@ -1956,7 +1956,7 @@ class SeriesSchema(SeriesSchemaBase):
         try:
             super().validate(check_obj, head, tail, sample, random_state, lazy)
         except errors.SchemaErrors as err:
-            for schema_error_dict in err._schema_error_dicts:
+            for schema_error_dict in err.schema_errors:
                 error_handler.collect_error(
                     "series_check", schema_error_dict["error"]
                 )
@@ -2052,5 +2052,6 @@ def _handle_check_results(
             failure_cases=failure_cases,
             check=check,
             check_index=check_index,
+            check_output=check_result.check_output,
         )
     return check_result.check_passed

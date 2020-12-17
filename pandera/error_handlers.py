@@ -1,6 +1,6 @@
 """Handle schema errors."""
 
-from typing import List
+from typing import Dict, List, Union
 
 from .errors import SchemaError
 
@@ -45,6 +45,6 @@ class SchemaErrorHandler:
         )
 
     @property
-    def collected_errors(self) -> List[SchemaError]:
+    def collected_errors(self) -> List[Dict[str, Union[SchemaError, str]]]:
         """Retrieve SchemaError objects collected during lazy validation."""
         return self._collected_errors

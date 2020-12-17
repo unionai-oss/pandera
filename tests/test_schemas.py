@@ -1041,8 +1041,8 @@ def test_lazy_dataframe_validation_error():
 
         # make sure all expected check errors are in schema errors
         for schema_context, check_failure_cases in expectation.items():
-            err_df = err.schema_errors.loc[
-                err.schema_errors.schema_context == schema_context
+            err_df = err.failure_cases.loc[
+                err.failure_cases.schema_context == schema_context
             ]
             for check, failure_cases in check_failure_cases.items():
                 assert check in err_df.check.values
@@ -1078,7 +1078,7 @@ def test_lazy_dataframe_validation_nullable():
     try:
         schema.validate(df, lazy=True)
     except errors.SchemaErrors as err:
-        assert err.schema_errors.failure_case.isna().all()
+        assert err.failure_cases.failure_case.isna().all()
         for col, index in [
             ("int_column", 1),
             ("float_column", 2),
@@ -1086,7 +1086,7 @@ def test_lazy_dataframe_validation_nullable():
         ]:
             # pylint: disable=cell-var-from-loop
             assert (
-                err.schema_errors.loc[
+                err.failure_cases.loc[
                     lambda df: df.column == col, "index"
                 ].iloc[0]
                 == index
@@ -1212,9 +1212,9 @@ def test_lazy_series_validation_error(schema, data, expectation):
         for schema_context, check_failure_cases in expectation[
             "schema_errors"
         ].items():
-            assert schema_context in err.schema_errors.schema_context.values
-            err_df = err.schema_errors.loc[
-                err.schema_errors.schema_context == schema_context
+            assert schema_context in err.failure_cases.schema_context.values
+            err_df = err.failure_cases.loc[
+                err.failure_cases.schema_context == schema_context
             ]
             for check, failure_cases in check_failure_cases.items():
                 assert check in err_df.check.values

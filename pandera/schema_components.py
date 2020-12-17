@@ -616,7 +616,7 @@ class MultiIndex(DataFrameSchema):
             except errors.SchemaErrors as err:
                 if lazy:
                     raise
-                raise err._schema_error_dicts[0]["error"] from err
+                raise err.schema_errors[0]["error"] from err
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the
@@ -679,7 +679,7 @@ class MultiIndex(DataFrameSchema):
             # the schema context to MultiIndex. This should be fixed by with
             # a more principled schema class hierarchy.
             schema_error_dicts = []
-            for schema_error_dict in err._schema_error_dicts:
+            for schema_error_dict in err.schema_errors:
                 error = schema_error_dict["error"]
                 error = errors.SchemaError(
                     self,
