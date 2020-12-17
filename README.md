@@ -85,8 +85,8 @@ df = pd.DataFrame({
 
 # define schema
 schema = pa.DataFrameSchema({
-    "column1": pa.Column(int, checks=pa.Check.less_than_or_equal_to(10)),
-    "column2": pa.Column(float, checks=pa.Check.less_than(-1.2)),
+    "column1": pa.Column(int, checks=pa.Check.le(10)),
+    "column2": pa.Column(float, checks=pa.Check.lt(-1.2)),
     "column3": pa.Column(str, checks=[
         pa.Check.str_startswith("value_"),
         # define custom checks as functions that take a series as input and

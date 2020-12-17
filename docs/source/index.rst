@@ -152,9 +152,10 @@ Quick Start
     3       10    -10.1  value_2
     4        9    -20.4  value_1
 
-Alternatively, you can pass the built-in python types that are supported by
+You can pass the built-in python types that are supported by
 pandas, or strings representing the
-`legal pandas datatypes <https://pandas.pydata.org/docs/user_guide/basics.html#dtypes>`_:
+`legal pandas datatypes <https://pandas.pydata.org/docs/user_guide/basics.html#dtypes>`_,
+or pandera's `PandasDtype` enum:
 
 .. testcode:: quick_start
 
@@ -169,6 +170,11 @@ pandas, or strings representing the
         "float_column2": pa.Column("float64"),
         # pandas > 1.0.0 support native "string" type
         "str_column2": pa.Column("object"),
+
+        # pandera PandasDtype enum
+        "int_column": pa.Column(pa.Int),
+        "float_column": pa.Column(pa.Float),
+        "str_column": pa.Column(pa.String),
     })
 
 For more details on data types, see :class:`~pandera.dtypes.PandasDtype`
