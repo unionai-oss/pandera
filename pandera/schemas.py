@@ -525,7 +525,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             try:
                 check_obj = self.coerce_dtype(check_obj)
             except errors.SchemaErrors as err:
-                for schema_error_dict in err._schema_error_dicts:
+                for schema_error_dict in err.schema_errors:
                     if not lazy:
                         # raise the first error immediately if not doing lazy
                         # validation
@@ -560,12 +560,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 result = schema_component(
                     df_to_validate,
                     lazy=lazy if schema_component.has_subcomponents else None,
+                    # don't make a copy of the data
+                    inplace=True,
                 )
                 check_results.append(isinstance(result, pd.DataFrame))
             except errors.SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
             except errors.SchemaErrors as err:
-                for schema_error_dict in err._schema_error_dicts:
+                for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
                         "schema_component_check", schema_error_dict["error"]
                     )
@@ -1625,6 +1627,10 @@ class SeriesSchemaBase:
             series, head, tail, sample, random_state
         )
 
+        check_obj = _pandas_obj_to_validate(
+            check_obj, head, tail, sample, random_state
+        )
+
         if self.name is not None and series.name != self._name:
             msg = "Expected %s to have name '%s', found '%s'" % (
                 type(self),
@@ -1732,7 +1738,6 @@ class SeriesSchemaBase:
         if isinstance(check_obj, pd.Series):
             check_obj, check_args = series, [None]
         else:
-            check_obj = check_obj.loc[series.index.unique()].copy()
             check_args = [self.name]  # type: ignore
 
         for check_index, check in enumerate(self.checks):
@@ -1942,7 +1947,7 @@ class SeriesSchema(SeriesSchemaBase):
             try:
                 self.index(check_obj, head, tail, sample, random_state, lazy)
             except errors.SchemaErrors as err:
-                for schema_error_dict in err._schema_error_dicts:
+                for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
                         "index_check", schema_error_dict["error"]
                     )
@@ -1951,7 +1956,7 @@ class SeriesSchema(SeriesSchemaBase):
         try:
             super().validate(check_obj, head, tail, sample, random_state, lazy)
         except errors.SchemaErrors as err:
-            for schema_error_dict in err._schema_error_dicts:
+            for schema_error_dict in err.schema_errors:
                 error_handler.collect_error(
                     "series_check", schema_error_dict["error"]
                 )
@@ -2047,5 +2052,6 @@ def _handle_check_results(
             failure_cases=failure_cases,
             check=check,
             check_index=check_index,
+            check_output=check_result.check_output,
         )
     return check_result.check_passed

@@ -1,7 +1,7 @@
 """pandera-specific errors."""
 
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import pandas as pd
 
@@ -36,6 +36,7 @@ class SchemaError(Exception):
         failure_cases=None,
         check=None,
         check_index=None,
+        check_output=None,
     ):
         super().__init__(message)
         self.schema = schema
@@ -43,6 +44,7 @@ class SchemaError(Exception):
         self.failure_cases = failure_cases
         self.check = check
         self.check_index = check_index
+        self.check_output = check_output
 
 
 class BaseStrategyOnlyError(Exception):
@@ -69,25 +71,25 @@ except SchemaErrors as err:
 class SchemaErrors(Exception):
     """Raised when multiple schema are lazily collected into one error."""
 
-    def __init__(self, schema_error_dicts, data):
-        error_counts, schema_errors = self._parse_schema_errors(
-            schema_error_dicts
-        )
-        super().__init__(self._message(error_counts, schema_errors))
-        self._schema_error_dicts = schema_error_dicts
-        self.error_counts = error_counts
+    def __init__(
+        self,
+        schema_errors: List[Dict[str, Any]],
+        data: Union[pd.Series, pd.DataFrame],
+    ):
+        error_counts, failure_cases = self._parse_schema_errors(schema_errors)
+        super().__init__(self._message(error_counts, failure_cases))
         self.schema_errors = schema_errors
+        self.error_counts = error_counts
+        self.failure_cases = failure_cases
         self.data = data
-
-    @property
-    def failure_cases(self):
-        """Get all failure cases."""
-        return self.schema_errors
 
     @staticmethod
     def _message(error_counts, schema_errors):
         """Format error message."""
-        msg = f"A total of {sum(error_counts.values())} schema errors were found.\n"
+        msg = (
+            f"A total of {sum(error_counts.values())} "
+            "schema errors were found.\n"
+        )
 
         msg += "\nError Counts"
         msg += "\n------------\n"
@@ -116,7 +118,7 @@ class SchemaErrors(Exception):
         return msg
 
     @staticmethod
-    def _parse_schema_errors(schema_error_dicts: List[Dict[str, Any]]):
+    def _parse_schema_errors(schema_errors: List[Dict[str, Any]]):
         """Parse schema error dicts to produce data for error message."""
         error_counts = defaultdict(int)  # type: ignore
         check_failure_cases = []
@@ -130,7 +132,7 @@ class SchemaErrors(Exception):
             "index",
         ]
 
-        for schema_error_dict in schema_error_dicts:
+        for schema_error_dict in schema_errors:
             reason_code = schema_error_dict["reason_code"]
             err = schema_error_dict["error"]
 
@@ -165,9 +167,9 @@ class SchemaErrors(Exception):
                 )
                 check_failure_cases.append(failure_cases[column_order])
 
-        schema_errors = (
+        failure_cases = (
             pd.concat(check_failure_cases)
             .reset_index(drop=True)
             .sort_values("schema_context", ascending=False)
         )
-        return error_counts, schema_errors
+        return error_counts, failure_cases

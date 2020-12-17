@@ -185,9 +185,15 @@ class Column(SeriesSchemaBase):
                 "method.",
             )
 
-        def validate_column(check_obj):
+        def validate_column(check_obj, column_name):
             super(Column, copy(self).set_name(column_name)).validate(
-                check_obj, head, tail, sample, random_state, lazy
+                check_obj,
+                head,
+                tail,
+                sample,
+                random_state,
+                lazy,
+                inplace=inplace,
             )
 
         column_keys_to_check = (
@@ -203,9 +209,11 @@ class Column(SeriesSchemaBase):
                 )
             if isinstance(check_obj[column_name], pd.DataFrame):
                 for i in range(check_obj[column_name].shape[1]):
-                    validate_column(check_obj[column_name].iloc[:, [i]])
+                    validate_column(
+                        check_obj[column_name].iloc[:, [i]], column_name
+                    )
             else:
-                validate_column(check_obj)
+                validate_column(check_obj, column_name)
 
         return check_obj
 
@@ -609,7 +617,7 @@ class MultiIndex(DataFrameSchema):
             except errors.SchemaErrors as err:
                 if lazy:
                     raise
-                raise err._schema_error_dicts[0]["error"] from err
+                raise err.schema_errors[0]["error"] from err
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the
@@ -672,7 +680,7 @@ class MultiIndex(DataFrameSchema):
             # the schema context to MultiIndex. This should be fixed by with
             # a more principled schema class hierarchy.
             schema_error_dicts = []
-            for schema_error_dict in err._schema_error_dicts:
+            for schema_error_dict in err.schema_errors:
                 error = schema_error_dict["error"]
                 error = errors.SchemaError(
                     self,

@@ -104,9 +104,9 @@ class _CheckBase:
 
             where the input is a dictionary mapping
             keys to subsets of the column/dataframe.
-        :param ignore_na: If True, drops null values on the checked series or
-            dataframe before passing into the ``check_fn``. For dataframes,
-            drops rows with any null value. *New in version 0.4.0*
+        :param ignore_na: If True, null values will be ignored when determining
+            if a check passed or failed. For dataframes, ignores rows with any
+            null value. *New in version 0.4.0*
         :param element_wise: Whether or not to apply validator in an
             element-wise fashion. If bool, assumes that all checks should be
             applied to the column element-wise. If list, should be the same
@@ -118,8 +118,8 @@ class _CheckBase:
             exception instead of raising a SchemaError for a specific check.
             This option should be used carefully in cases where a failing
             check is informational and shouldn't stop execution of the program.
-        :param n_failure_cases: report the top n failure cases. If None, then
-            report all failure cases.
+        :param n_failure_cases: report the first n unique failure cases. If
+            None, report all failure cases.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
@@ -243,8 +243,8 @@ class _CheckBase:
 
     def _prepare_series_input(
         self,
-        series: pd.Series,
-        dataframe_context: Optional[pd.DataFrame] = None,
+        df_or_series: Union[pd.Series, pd.DataFrame],
+        column: Optional[str] = None,
     ) -> SeriesCheckObj:
         """Prepare input for Column check.
 
@@ -256,18 +256,20 @@ class _CheckBase:
             to be used by `_check_fn` and `_vectorized_check`
 
         """
-        if dataframe_context is None or self.groupby is None:
-            return series
-        if isinstance(self.groupby, list):
-            groupby_obj = pd.concat(
-                [series, dataframe_context[self.groupby]], axis=1
-            ).groupby(self.groupby)[series.name]
-            return self._format_groupby_input(groupby_obj, self.groups)
-        if callable(self.groupby):
-            groupby_obj = self.groupby(
-                pd.concat([series, dataframe_context], axis=1)
-            )[series.name]
-            return self._format_groupby_input(groupby_obj, self.groups)
+        if isinstance(df_or_series, pd.Series):
+            return df_or_series
+        elif self.groupby is None:
+            return df_or_series[column]
+        elif isinstance(self.groupby, list):
+            return self._format_groupby_input(
+                df_or_series.groupby(self.groupby)[column],
+                self.groups,
+            )
+        elif callable(self.groupby):
+            return self._format_groupby_input(
+                self.groupby(df_or_series)[column],
+                self.groups,
+            )
         raise TypeError("Type %s not recognized for `groupby` argument.")
 
     def _prepare_dataframe_input(
@@ -283,41 +285,6 @@ class _CheckBase:
             return dataframe
         groupby_obj = dataframe.groupby(self.groupby)
         return self._format_groupby_input(groupby_obj, self.groups)
-
-    def _handle_na(
-        self,
-        df_or_series: Union[pd.DataFrame, pd.Series],
-        column: Optional[str] = None,
-    ):
-        """Handle nan values before passing object to check function."""
-        if not self.ignore_na:
-            return df_or_series
-
-        drop_na_columns = []
-        if column is not None:
-            drop_na_columns.append(column)
-        if self.groupby is not None and isinstance(self.groupby, list):
-            # if groupby is specified as a list of columns, include them in
-            # the columns to consider when dropping records
-            for col in self.groupby:
-                # raise schema definition error if column is not in the
-                # validated dataframe
-                if isinstance(df_or_series, pd.DataFrame) and (
-                    col not in df_or_series
-                    and col not in df_or_series.index.names
-                ):
-                    raise errors.SchemaDefinitionError(
-                        f"`groupby` column '{col}' not found"
-                    )
-            drop_na_columns.extend(
-                [col for col in self.groupby if col in df_or_series]
-            )
-
-        if drop_na_columns:
-            return df_or_series.loc[
-                df_or_series[drop_na_columns].dropna().index
-            ]
-        return df_or_series.dropna()
 
     def __call__(
         self,
@@ -346,20 +313,11 @@ class _CheckBase:
 
             ``failure_cases``: subset of the check_object that failed.
         """
-        df_or_series = self._handle_na(df_or_series, column)
-
-        column_dataframe_context = None
-        if column is not None and isinstance(df_or_series, pd.DataFrame):
-            column_dataframe_context = df_or_series.drop(
-                column, axis="columns"
-            )
-            df_or_series = df_or_series[column].copy()
-
         # prepare check object
-        if isinstance(df_or_series, pd.Series):
-            check_obj = self._prepare_series_input(
-                df_or_series, column_dataframe_context
-            )
+        if isinstance(df_or_series, pd.Series) or (
+            column is not None and isinstance(df_or_series, pd.DataFrame)
+        ):
+            check_obj = self._prepare_series_input(df_or_series, column)
         elif isinstance(df_or_series, pd.DataFrame):
             check_obj = self._prepare_dataframe_input(df_or_series)
         else:
@@ -394,12 +352,22 @@ class _CheckBase:
         ):
             failure_cases = None
         elif isinstance(check_output, pd.Series):
+            if self.ignore_na:
+                isna = (
+                    check_obj.isna().any(axis="columns")
+                    if isinstance(check_obj, pd.DataFrame)
+                    else check_obj.isna()
+                )
+                check_output = check_output | isna
             failure_cases = check_obj[~check_output]
         elif isinstance(check_output, pd.DataFrame):
             # check results consisting of a boolean dataframe should be
             # reported at the most granular level.
+            check_output = check_output.unstack()
+            if self.ignore_na:
+                check_output = check_output | df_or_series.unstack().isna()
             failure_cases = (
-                check_obj.unstack()[~check_output.unstack()]
+                check_obj.unstack()[~check_output]
                 .rename("failure_case")
                 .rename_axis(["column", "index"])
                 .reset_index()
@@ -408,6 +376,11 @@ class _CheckBase:
             raise TypeError(
                 f"output type of check_fn not recognized: {type(check_output)}"
             )
+
+        if failure_cases is not None and self.n_failure_cases is not None:
+            failure_cases = failure_cases.drop_duplicates().iloc[
+                : self.n_failure_cases
+            ]
 
         check_passed = (
             check_output.all()
