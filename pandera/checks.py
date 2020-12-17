@@ -118,8 +118,8 @@ class _CheckBase:
             exception instead of raising a SchemaError for a specific check.
             This option should be used carefully in cases where a failing
             check is informational and shouldn't stop execution of the program.
-        :param n_failure_cases: report the top n failure cases. If None, then
-            report all failure cases.
+        :param n_failure_cases: report the first n unique failure cases. If
+            None, report all failure cases.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
@@ -378,7 +378,9 @@ class _CheckBase:
             )
 
         if failure_cases is not None and self.n_failure_cases is not None:
-            failure_cases = failure_cases.iloc[: self.n_failure_cases]
+            failure_cases = failure_cases.drop_duplicates().iloc[
+                : self.n_failure_cases
+            ]
 
         check_passed = (
             check_output.all()
