@@ -521,37 +521,49 @@ def test_coerce_dtype_in_dataframe():
             schema.validate(df)
 
 
-def test_coerce_dtype_nullable_str():
-    """Tests how null values are handled in string dtypes."""
-    # dataframes with columns where the last two values are null
-    df_nans = pd.DataFrame(
-        {
-            "col": ["foobar", "foo", "bar", "baz", np.nan, np.nan],
-        }
-    )
-    df_nones = pd.DataFrame(
-        {
-            "col": ["foobar", "foo", "bar", "baz", None, None],
-        }
-    )
-
-    with pytest.raises(errors.SchemaError):
-        for df in [df_nans, df_nones]:
-            DataFrameSchema(
-                {"col": Column(String, coerce=True, nullable=False)}
-            ).validate(df)
-
+@pytest.mark.parametrize(
+    "data, dtype, nonnull_idx",
+    [
+        # some values are null
+        [["foobar", "foo", "bar", "baz", np.nan, np.nan], str, 4],
+        [["foobar", "foo", "bar", "baz", None, None], str, 4],
+        # some values are null, non-null values are not strings
+        [[1.0, 2.0, 3.0, 4.0, np.nan, np.nan], float, 4],
+        [[1, 2, 3, 4, None, None], "Int64", 4],
+        # all values are null
+        [[np.nan] * 6, object, 0],
+        [[None] * 6, object, 0],
+        [[np.nan] * 6, float, 0],
+        [[None] * 6, float, 0],
+    ],
+)
+@pytest.mark.parametrize("string_type", [String, str, "str", STRING, "string"])
+@pytest.mark.parametrize("nullable", [True, False])
+def test_coerce_dtype_nullable_str(
+    data, dtype, nonnull_idx, string_type, nullable
+):
+    """Tests how null values are handled with string dtypes."""
+    if LEGACY_PANDAS and (
+        dtype == "Int64" or string_type in {STRING, "string"}
+    ):
+        pytest.skip("Skipping data types that depend on pandas>1.0.0")
+    dataframe = pd.DataFrame({"col": pd.Series(data, dtype=dtype)})
     schema = DataFrameSchema(
-        {"col": Column(String, coerce=True, nullable=True)}
+        {"col": Column(string_type, coerce=True, nullable=nullable)}
     )
 
-    for df in [df_nans, df_nones]:
-        validated_df = schema.validate(df)
-        assert isinstance(validated_df, pd.DataFrame)
-        assert pd.isna(validated_df["col"].iloc[-1])
-        assert pd.isna(validated_df["col"].iloc[-2])
-        for i in range(4):
-            assert isinstance(validated_df["col"].iloc[i], str)
+    if not nullable:
+        with pytest.raises(errors.SchemaError):
+            schema.validate(dataframe)
+        return
+
+    validated_df = schema.validate(dataframe)
+    assert isinstance(validated_df, pd.DataFrame)
+    for i, element in validated_df["col"].iteritems():
+        if i < nonnull_idx:
+            assert isinstance(element, str)
+        else:
+            assert pd.isna(element)
 
 
 def test_no_dtype_dataframe():
