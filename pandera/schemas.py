@@ -1543,9 +1543,14 @@ class SeriesSchemaBase:
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if self._pandas_dtype is dtypes.PandasDtype.String:
-            # only coerce non-null elements to string
-            return obj.where(
+        if (
+            self._pandas_dtype is dtypes.PandasDtype.String
+            or self._pandas_dtype is str
+            or self._pandas_dtype == "str"
+        ):
+            # only coerce non-null elements to string, make sure series is of
+            # object dtype
+            return obj.astype(object).where(
                 obj.isna(),
                 obj.astype(str),
             )
