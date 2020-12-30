@@ -609,9 +609,11 @@ def test_coerce_without_dtype():
 
 
 def test_required():
-    """Tests how a Required Column is handled when it's not included, included
+    """
+    Tests how a required Column is handled when it's not included, included
     and then not specified and a second column which is implicitly required
-    isn't available."""
+    isn't available.
+    """
     schema = DataFrameSchema(
         {"col1": Column(Int, required=False), "col2": Column(String)}
     )
@@ -634,6 +636,27 @@ def test_required():
 
     with pytest.raises(Exception):
         schema.validate(df_not_ok)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.DataFrame({"col": [1, 2, 3]}),
+        pd.DataFrame({"col": ["1", "2", "3"]}),
+        pd.DataFrame(),
+    ],
+)
+@pytest.mark.parametrize("required", [True, False])
+def test_coerce_not_required(data, required):
+    """Test that not required columns are not coerced."""
+    schema = DataFrameSchema(
+        {"col": Column(int, required=required)}, coerce=True
+    )
+    if required and data.empty:
+        with pytest.raises(errors.SchemaError):
+            schema(data)
+        return
+    schema(data)
 
 
 def test_head_dataframe_schema():
