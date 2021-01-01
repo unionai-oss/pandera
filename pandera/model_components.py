@@ -15,6 +15,7 @@ from typing import (
 )
 
 from .checks import Check
+from .errors import SchemaInitError
 from .schema_components import (
     Column,
     Index,
@@ -151,11 +152,21 @@ def Field(
 
     *new in 0.5.0*
 
-    Some arguments apply only to number dtypes and some apply only to ``str``.
-    See the :ref:`User Guide <schema_models>` for more.
+    Some arguments apply only to numeric dtypes and some apply only to ``str``.
+    See the :ref:`User Guide <schema_models>` for more information.
 
+    The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
+    to the built-in `~pandera.checks.Check` methods.
+
+    :param nullable: whether or not the column/index is nullable.
+    :param allow_duplicates: whether or not to accept duplicate values.
+    :param coerce: coerces the data type if ``True``.
+    :param regex: whether or not the field name or alias is a regex pattern.
+    :param ignore_na: whether or not to ignore null values in the checks.
+    :param raise_warning: raise a warning instead of an Exception.
+    :param n_failure_cases: report the first n unique failure cases. If None,
+        report all failure cases.
     :param alias: The public name of the column/index.
-
     :param check_name: Whether to check the name of the column/index during
         validation. `None` is the default behavior, which translates to `True`
         for columns and multi-index, and to `False` for a single index.
@@ -170,11 +181,21 @@ def Field(
     }
     args = locals()
     checks = []
-    for arg_name, check_constructor in _check_dispatch.items():
-        arg_value = args[arg_name]
+
+    check_dispatch = _check_dispatch()
+    for key in kwargs:
+        if key not in check_dispatch:
+            raise SchemaInitError(
+                f"custom check '{key}' is not available. Make sure you use "
+                "pandera.extensions.register_check_method decorator to "
+                "register your custom check method."
+            )
+
+    for arg_name, check_constructor in check_dispatch.items():
+        arg_value = args.get(arg_name, kwargs.get(arg_name))
         if arg_value is None:
             continue
-        if arg_name in {"in_range", "str_length"}:
+        if isinstance(arg_value, dict):
             check_ = check_constructor(**arg_value, **check_kwargs)
         else:
             check_ = check_constructor(arg_value, **check_kwargs)
@@ -191,23 +212,24 @@ def Field(
     )
 
 
-_check_dispatch = {
-    "eq": Check.equal_to,
-    "ne": Check.not_equal_to,
-    "gt": Check.greater_than,
-    "ge": Check.greater_than_or_equal_to,
-    "lt": Check.less_than,
-    "le": Check.less_than_or_equal_to,
-    "in_range": Check.in_range,
-    "isin": Check.isin,
-    "notin": Check.notin,
-    "str_contains": Check.str_contains,
-    "str_endswith": Check.str_endswith,
-    "str_matches": Check.str_matches,
-    "str_length": Check.str_length,
-    "str_startswith": Check.str_startswith,
-    **Check.REGISTERED_CUSTOM_CHECKS,
-}
+def _check_dispatch():
+    return {
+        "eq": Check.equal_to,
+        "ne": Check.not_equal_to,
+        "gt": Check.greater_than,
+        "ge": Check.greater_than_or_equal_to,
+        "lt": Check.less_than,
+        "le": Check.less_than_or_equal_to,
+        "in_range": Check.in_range,
+        "isin": Check.isin,
+        "notin": Check.notin,
+        "str_contains": Check.str_contains,
+        "str_endswith": Check.str_endswith,
+        "str_matches": Check.str_matches,
+        "str_length": Check.str_length,
+        "str_startswith": Check.str_startswith,
+        **Check.REGISTERED_CUSTOM_CHECKS,
+    }
 
 
 class CheckInfo:  # pylint:disable=too-few-public-methods

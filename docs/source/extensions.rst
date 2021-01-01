@@ -246,7 +246,7 @@ you can also use custom checks with the :ref:`class-based API<schema_models>`:
 
    class Schema(pa.SchemaModel):
        col1: Series[str] = pa.Field(custom_equals="value")
-       col2: Series[int] = pa.Field(in_between={"min_value": 0, "max_value": 10})
+       col2: Series[int] = pa.Field(is_between={"min_value": 0, "max_value": 10})
 
    data = pd.DataFrame({
        "col1": ["value"] * 5,
