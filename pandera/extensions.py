@@ -139,9 +139,13 @@ def register_check_method(
             return check_kwargs
 
         @register_check_statistics(statistics)
-        def check_method(cls, **kwargs):
+        def check_method(cls, *args, **kwargs):
             """Wrapper function that serves as the Check method."""
             stats, check_kwargs = {}, {}
+
+            if args:
+                stats = dict(zip(statistics, args))
+
             for k, v in kwargs.items():
                 if k in statistics:
                     stats[k] = v
