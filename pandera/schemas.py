@@ -330,7 +330,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         obj[matched_colname] = _try_coercion(
                             col_schema.coerce_dtype, obj[matched_colname]
                         )
-            elif (col_schema.coerce or self.coerce) and self.pdtype is None:
+            elif (
+                (col_schema.coerce or self.coerce)
+                and self.pdtype is None
+                and colname in obj
+            ):
                 obj.loc[:, colname] = _try_coercion(
                     col_schema.coerce_dtype, obj[colname]
                 )
