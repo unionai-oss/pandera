@@ -26,15 +26,17 @@ correctness.*
 validates at runtime. This is useful in production-critical or reproducible
 research settings. With `pandera`, you can:
 
-1. Check the types and properties of columns in a `DataFrame` or values in
-   a `Series`.
-1. Perform more complex statistical validation like hypothesis testing.
+1. [Check](https://pandera.readthedocs.io/en/stable/checks.html) the types and
+   properties of columns in a `DataFrame` or values in a `Series`.
+1. Perform more complex statistical validation like
+   [hypothesis testing](https://pandera.readthedocs.io/en/stable/hypothesis.html#hypothesis).
 1. Seamlessly integrate with existing data analysis/processing pipelines
-   via function decorators.
-1. Define schema models with the class-based API with pydantic-style syntax and
-   validate dataframes using the typing syntax.
-1. Synthesize data from schema objects for property-based testing with pandas
-   data structures.
+   via [function decorators](https://pandera.readthedocs.io/en/stable/decorators.html#decorators).
+1. Define schema models with the
+   [class-based API](https://pandera.readthedocs.io/en/stable/schema_models.html#schema-models)
+   with pydantic-style syntax and validate dataframes using the typing syntax.
+1. [Synthesize data](https://pandera.readthedocs.io/en/stable/data_synthesis_strategies.html#data-synthesis-strategies)
+   from schema objects for property-based testing with pandas data structures.
 
 `pandera` provides a flexible and expressive API for performing data validation
 on tidy (long-form) and wide data to make data processing pipelines more
@@ -194,10 +196,12 @@ Here are a few other alternatives for validating Python data structures.
 - `Check`s and `Hypothesis` objects support both tidy and wide data validation.
 - Comprehensive documentation on key functionality.
 
+## How to Cite
 
-### Citation Information
+If you use `pandera` in the context of academic or industry research, please
+consider citing the **paper** and/or **software package**.
 
-#### [Paper](https://conference.scipy.org/proceedings/scipy2020/niels_bantilan.html)
+### [Paper](https://conference.scipy.org/proceedings/scipy2020/niels_bantilan.html)
 
 ```
 @InProceedings{ niels_bantilan-proc-scipy-2020,
@@ -211,6 +215,12 @@ Here are a few other alternatives for validating Python data structures.
 }
 ```
 
-#### Software Package
+### Software Package
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg)](https://doi.org/10.5281/zenodo.3385265)
+
+
+## License and Credits
+
+`pandera` is licensed under the [MIT license](license.txt) and is written and
+maintained by Niels Bantilan (niels@pandera.ci)
