@@ -308,6 +308,43 @@ Submit issues, feature requests or bugfixes on
    extensions
    API_reference
 
+How to Cite
+-----------
+
+If you use ``pandera`` in the context of academic or industry research, please
+consider citing the paper and/or software package.
+
+`Paper <https://conference.scipy.org/proceedings/scipy2020/niels_bantilan.html>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: bash
+
+    @InProceedings{ niels_bantilan-proc-scipy-2020,
+      author    = { {N}iels {B}antilan },
+      title     = { pandera: {S}tatistical {D}ata {V}alidation of {P}andas {D}ataframes },
+      booktitle = { {P}roceedings of the 19th {P}ython in {S}cience {C}onference },
+      pages     = { 116 - 124 },
+      year      = { 2020 },
+      editor    = { {M}eghann {A}garwal and {C}hris {C}alloway and {D}illon {N}iederhut and {D}avid {S}hupe },
+      doi       = { 10.25080/Majora-342d178e-010 }
+    }
+
+Software Package
+~~~~~~~~~~~~~~~~
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg
+    :target: https://doi.org/10.5281/zenodo.3385265
+    :alt: software package
+
+|
+
+License and Credits
+-------------------
+
+``pandera`` is licensed under the `MIT license <https://github.com/pandera-dev/pandera/blob/master/LICENSE.txt>`_.
+and is written and maintained by Niels Bantilan (niels@pandera.ci)
+
+
 Indices and tables
 ==================
 
