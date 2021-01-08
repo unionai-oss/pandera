@@ -72,6 +72,7 @@ def test_optional_column():
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
     assert not schema.columns["b"].required
+    assert not schema.columns["c"].required
 
 
 def test_optional_index():
