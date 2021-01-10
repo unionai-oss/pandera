@@ -36,7 +36,7 @@ setup(
     data_files=[("", ["LICENSE.txt"])],
     packages=["pandera"],
     install_requires=[
-        "packaging",
+        "packaging >= 20.0",
         "numpy >= 1.9.0",
         "pandas >= 0.23.0",
         "typing_extensions ; python_version<'3.8'",
