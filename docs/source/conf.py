@@ -24,8 +24,8 @@ sys.path.insert(0, os.path.abspath("../../pandera"))
 # -- Project information -----------------------------------------------------
 
 project = "pandera"
-copyright = "2019, Niels Bantilan, Nigel Markey"
-author = "Niels Bantilan, Nigel Markey"
+copyright = "2019, Niels Bantilan, Nigel Markey, Jean-Francois Zinque"
+author = "Niels Bantilan, Nigel Markey, Jean-Francois Zinque"
 
 
 # -- General configuration ---------------------------------------------------
