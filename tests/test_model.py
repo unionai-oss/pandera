@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.typing import DataFrame, Index, Series
+from pandera.typing import DataFrame, Index, Series, String
 
 
 def test_to_schema():
@@ -67,10 +67,12 @@ def test_optional_column():
     class Schema(pa.SchemaModel):
         a: Optional[Series[str]]
         b: Optional[Series[str]] = pa.Field(eq="b")
+        c: Optional[Series[String]]  # test pandera.typing alias
 
     schema = Schema.to_schema()
     assert not schema.columns["a"].required
     assert not schema.columns["b"].required
+    assert not schema.columns["c"].required
 
 
 def test_optional_index():
@@ -79,10 +81,14 @@ def test_optional_index():
     class Schema(pa.SchemaModel):
         idx: Optional[Index[str]]
 
-    with pytest.raises(
-        pa.errors.SchemaInitError, match="Index 'idx' cannot be Optional."
-    ):
-        Schema.to_schema()
+    class SchemaWithAliasDtype(pa.SchemaModel):
+        idx: Optional[Index[String]]  # test pandera.typing alias
+
+    for model in (Schema, SchemaWithAliasDtype):
+        with pytest.raises(
+            pa.errors.SchemaInitError, match="Index 'idx' cannot be Optional."
+        ):
+            model.to_schema()
 
 
 def test_schemamodel_with_fields():

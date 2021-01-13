@@ -130,13 +130,13 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
                 self.origin, self.arg = typing_inspect.get_args(
                     raw_annotation
                 )[0]
-                return
             # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
             raw_annotation = typing_inspect.get_args(raw_annotation)[0]
 
-        self.origin = typing_inspect.get_origin(raw_annotation)
-        args = typing_inspect.get_args(raw_annotation)
-        self.arg = args[0] if args else args
+        if not (self.optional and _LEGACY_TYPING):
+            self.origin = typing_inspect.get_origin(raw_annotation)
+            args = typing_inspect.get_args(raw_annotation)
+            self.arg = args[0] if args else args
 
         self.literal = typing_inspect.is_literal_type(self.arg)
         if self.literal:
