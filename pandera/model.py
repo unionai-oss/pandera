@@ -76,6 +76,16 @@ def _extract_config_options(config: Type) -> Dict[str, Any]:
     }
 
 
+def _getattr_fieldinfo(cls, name, default):
+    """Allows to search the mro for the actual FieldInfo instances and
+    return it, instead of what is returned from the descriptor protocol.
+    """
+    for class_ in cls.__mro__:
+        if name in class_.__dict__:
+            return class_.__dict__[name]
+    return default
+
+
 class SchemaModel:
     """Definition of a :class:`~pandera.DataFrameSchema`.
 
@@ -87,7 +97,9 @@ class SchemaModel:
     Config: Type[BaseConfig] = BaseConfig
     __schema__: Optional[DataFrameSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
-    __fields__: Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]] = {}
+
+    #: Field name according to class definition
+    __fields__: Dict[str, Tuple[AnnotationInfo, FieldInfo]] = {}
     __checks__: Dict[str, List[Check]] = {}
     __dataframe_checks__: List[Check] = []
 
@@ -106,6 +118,7 @@ class SchemaModel:
 
         for field_name in omitted_fields:
             f = Field()
+            f.__set_name__(cls, field_name)
             setattr(cls, field_name, f)
 
     @classmethod
@@ -119,8 +132,12 @@ class SchemaModel:
         check_infos = cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
+
+        column_names = [
+            field.column_name() for (_, (_, field)) in cls.__fields__.items()
+        ]
         cls.__checks__ = cls._extract_checks(
-            check_infos, field_names=list(cls.__fields__.keys())
+            check_infos, field_names=column_names
         )
 
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
@@ -181,7 +198,7 @@ class SchemaModel:
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals
         cls,
-        fields: Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]],
+        fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
         **multiindex_kwargs: Any,
     ) -> Tuple[
@@ -196,7 +213,7 @@ class SchemaModel:
         indices: List[schema_components.Index] = []
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
-            field_name = getattr(field, "alias", None) or field_name
+            field_name = field.column_name()
             check_name = getattr(field, "check_name", None)
 
             if annotation.origin is Series:
@@ -259,17 +276,22 @@ class SchemaModel:
     @classmethod
     def _collect_fields(
         cls, annotations: Dict[str, AnnotationInfo]
-    ) -> Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]]:
+    ) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
         fields = {}
         for field_name, annotation in annotations.items():
-            field: Optional[FieldInfo] = getattr(cls, field_name, None)
+            field: Optional[FieldInfo] = _getattr_fieldinfo(
+                cls, field_name, None
+            )
             if field is not None and not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            field_name = getattr(field, "alias", None) or field_name
+            if field is None:
+                # Should never happen, omitted FieldInfo are
+                # added in __init_subclass__
+                raise ValueError(field_name)
             fields[field_name] = (annotation, field)
         return fields
 

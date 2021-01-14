@@ -608,3 +608,74 @@ def test_inherit_override():
     assert schema.columns.get("_a_child") == pa.Column(str, name="_a_child")
     assert schema.columns.get("b") == pa.Column(str, name="b")
     assert schema.columns.get("c") == pa.Column(int, name="c")
+
+
+def test_column_access():
+    """Test that column name can be accessed through the class"""
+
+    class Base(pa.SchemaModel):
+        a: Series[int]
+        b: Series[int] = pa.Field()
+        c: Series[int] = pa.Field(alias="_c")
+        d: Series[int] = pa.Field(alias=123)
+
+    assert Base.a == "a"
+    assert Base.b == "b"
+    assert Base.c == "_c"
+    assert Base.d == 123
+
+
+def test_column_access_inherit():
+    """Test that column name can be accessed through the class"""
+
+    class Base(pa.SchemaModel):
+        a: Series[int]
+        b: Series[int] = pa.Field()
+        c: Series[int] = pa.Field(alias="_c")
+        d: Series[int] = pa.Field(alias=123)
+
+    class Child(Base):
+        b: Series[str] = pa.Field(alias="_b")
+        c: Series[str]
+        d: Series[str] = pa.Field()
+        extra1: Series[int]
+        extra2: Series[int] = pa.Field()
+        extra3: Series[int] = pa.Field(alias="_extra3")
+
+    expected_base = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int),
+            "b": pa.Column(int),
+            "_c": pa.Column(int),
+            123: pa.Column(int),
+        }
+    )
+
+    expected_child = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int),
+            "_b": pa.Column(str),
+            "c": pa.Column(str),
+            "d": pa.Column(str),
+            "extra1": pa.Column(int),
+            "extra2": pa.Column(int),
+            "_extra3": pa.Column(int),
+        }
+    )
+
+    assert expected_base == Base.to_schema()
+    assert expected_child == Child.to_schema()
+    assert Child.a == "a"  # pylint:disable=no-member
+    assert Child.b == "_b"
+    assert Child.c == "c"
+    assert Child.d == "d"
+    assert Child.extra1 == "extra1"
+    assert Child.extra2 == "extra2"
+    assert Child.extra3 == "_extra3"
+
+
+def test_column_access_regex():
+    class Schema(pa.SchemaModel):
+        col_regex: Series[str] = pa.Field(alias="column_([0-9])+", regex=True)
+
+    assert Schema.col_regex == "column_([0-9])+"
