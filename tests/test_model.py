@@ -386,7 +386,6 @@ def test_inherit_schemamodel_fields():
     assert expected == Child.to_schema()
 
 
-@pytest.mark.xfail(reason="Bug repro", strict=True)
 def test_inherit_schemamodel_fields_alias():
     """Test that columns and indices are inherited."""
 
@@ -399,8 +398,7 @@ def test_inherit_schemamodel_fields_alias():
         idx: Index[str]
 
     class Child(Mid):
-        b: Series[int]  # This line does not pass the test. BUG: it should pass
-        # b: Series[int]  = pa.Field()  # This line passes the test
+        b: Series[int]
 
     expected = pa.DataFrameSchema(
         columns={"a": pa.Column(int), "b": pa.Column(int)},
@@ -592,21 +590,21 @@ def test_inherit_alias():
     assert schema.columns.get("_b", None) is not None
 
 
-@pytest.mark.xfail(reason="Bug repro", strict=True)
 def test_inherit_override():
     """Test that overrides are reflected properly as expected"""
 
     class Base(pa.SchemaModel):
         a: Series[int] = pa.Field(alias="_a")
         b: Series[int] = pa.Field(alias="_b")
+        c: Series[int]
 
     class Child(Base):
         a: Series[str] = pa.Field(alias="_a_child")
-        b: Series[str]  # This line does not pass the test. BUG: it should pass
-        # b: Series[str] = pa.Field()  # This line passes the test
+        b: Series[str]
 
     schema = Child.to_schema()
     print(schema.columns)
-    assert len(schema.columns) == 2
+    assert len(schema.columns) == 3
     assert schema.columns.get("_a_child") == pa.Column(str, name="_a_child")
     assert schema.columns.get("b") == pa.Column(str, name="b")
+    assert schema.columns.get("c") == pa.Column(int, name="c")

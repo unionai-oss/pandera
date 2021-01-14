@@ -25,6 +25,7 @@ from .model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     CheckInfo,
+    Field,
     FieldCheckInfo,
     FieldInfo,
 )
@@ -92,6 +93,20 @@ class SchemaModel:
 
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"{cls.__name__} may not be instantiated.")
+
+    def __init_subclass__(cls, **kwargs):
+        """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
+        super().__init_subclass__(**kwargs)
+        # pylint: disable=no-member
+        omitted_fields = {
+            field_name
+            for field_name in cls.__annotations__.keys()
+            if field_name not in cls.__dict__
+        }
+
+        for field_name in omitted_fields:
+            f = Field()
+            setattr(cls, field_name, f)
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
