@@ -248,20 +248,30 @@ STRING = Literal[PandasDtype.STRING]  #: ``"str"`` numpy dtype
 
 
 class CategoricalDtype(metaclass=AnnotatedPandasExtensionType):
+    """Parametrized CategoricalDtype type hint."""
+
     default_dtype = pd.CategoricalDtype()
 
 
 class DatetimeTZDtype(metaclass=AnnotatedPandasExtensionType):
+    """Parametrized DatetimeTZDtype type hint."""
+
     default_dtype = pd.DatetimeTZDtype(unit="ns", tz="UTC")
 
 
 class IntervalDtype(metaclass=AnnotatedPandasExtensionType):
+    """Parametrized IntervalDtype type hint."""
+
     default_dtype = pd.IntervalDtype()
 
 
 class PeriodDtype(pd.PeriodDtype, metaclass=AnnotatedPandasExtensionType):
+    """Parametrized PeriodDtype type hint."""
+
     default_dtype = pd.PeriodDtype()
 
 
 class SparseDtype(metaclass=AnnotatedPandasExtensionType):
+    """Parametrized SparseDtype type hint."""
+
     default_dtype = pd.SparseDtype()
