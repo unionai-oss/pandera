@@ -1,6 +1,7 @@
 """Class-based api"""
 import inspect
 import re
+import sys
 from typing import (
     Any,
     Dict,
@@ -12,7 +13,6 @@ from typing import (
     Type,
     Union,
     cast,
-    get_type_hints,
 )
 
 import pandas as pd
@@ -29,7 +29,12 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import AnnotationInfo, Index, Series
+from .typing import AnnotatedPandasExtensionType, AnnotationInfo, Index, Series
+
+if sys.version_info[:2] < (3, 9):  # pragma: no cover
+    from typing_extensions import get_type_hints
+else:  # pragma: no cover
+    from typing import get_type_hints  # pylint:disable=no-name-in-module
 
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
 
@@ -184,6 +189,18 @@ class SchemaModel:
             field_name = getattr(field, "alias", None) or field_name
             check_name = getattr(field, "check_name", None)
 
+            if annotation.metadata:
+                dtype_arg_names, *dtype_args = annotation.metadata
+                dtype_kwargs = dict(zip(dtype_arg_names, dtype_args))
+                dtype = annotation.arg(**dtype_kwargs)
+            # using type instead of isinstance to check metaclass
+            elif (  # pylint:disable=unidiomatic-typecheck
+                type(annotation.arg) is AnnotatedPandasExtensionType
+            ):
+                dtype = annotation.arg.default_dtype
+            else:
+                dtype = annotation.arg
+
             if annotation.origin is Series:
                 col_constructor = (
                     field.to_column if field else schema_components.Column
@@ -195,7 +212,7 @@ class SchemaModel:
                     )
 
                 columns[field_name] = col_constructor(  # type: ignore
-                    annotation.arg,
+                    dtype,
                     required=not annotation.optional,
                     checks=field_checks,
                     name=field_name,
@@ -217,7 +234,7 @@ class SchemaModel:
                     field.to_index if field else schema_components.Index
                 )
                 index = index_constructor(  # type: ignore
-                    annotation.arg, checks=field_checks, name=field_name
+                    dtype, checks=field_checks, name=field_name
                 )
                 indices.append(index)
             else:
@@ -325,7 +342,7 @@ class SchemaModel:
 
 
 def _get_field_annotations(model: Type[SchemaModel]) -> Dict[str, Any]:
-    annotations = get_type_hints(model)
+    annotations = get_type_hints(model, include_extras=True)
 
     def _not_routine(member: Any) -> bool:
         return not inspect.isroutine(member)
