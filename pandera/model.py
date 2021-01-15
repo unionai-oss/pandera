@@ -34,7 +34,7 @@ from .typing import AnnotatedPandasExtensionType, AnnotationInfo, Index, Series
 if sys.version_info[:2] < (3, 9):  # pragma: no cover
     from typing_extensions import get_type_hints
 else:  # pragma: no cover
-    from typing import get_type_hints  # pylint:disable=no-name-in-module
+    from typing import get_type_hints
 
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
 
@@ -342,7 +342,9 @@ class SchemaModel:
 
 
 def _get_field_annotations(model: Type[SchemaModel]) -> Dict[str, Any]:
-    annotations = get_type_hints(model, include_extras=True)
+    annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
+        model, include_extras=True
+    )
 
     def _not_routine(member: Any) -> bool:
         return not inspect.isroutine(member)
