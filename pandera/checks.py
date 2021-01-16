@@ -436,7 +436,18 @@ class _CheckBase:
         )
 
 
-class Check(_CheckBase):
+class _CheckMeta(type):
+    """Check metaclass."""
+
+    def __getattr__(cls, name: str) -> Any:
+        """Prevent attribute errors for registered checks."""
+        attr = cls.__dict__.get(name)
+        if attr is None:
+            raise AttributeError(f"'{cls}' object has no attribute '{name}'")
+        return attr
+
+
+class Check(_CheckBase, metaclass=_CheckMeta):
     """Check a pandas Series or DataFrame for certain properties."""
 
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
