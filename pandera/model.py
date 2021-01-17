@@ -76,14 +76,14 @@ def _extract_config_options(config: Type) -> Dict[str, Any]:
     }
 
 
-def _getattr_fieldinfo(cls, name, default):
+def _getattr_fieldinfo(cls, name):
     """Allows to search the mro for the actual FieldInfo instances and
     return it, instead of what is returned from the descriptor protocol.
     """
-    for class_ in cls.__mro__:
+    for class_ in inspect.getmro(cls):
         if name in class_.__dict__:
             return class_.__dict__[name]
-    return default
+    return None
 
 
 class SchemaModel:
@@ -117,9 +117,9 @@ class SchemaModel:
         }
 
         for field_name in omitted_fields:
-            f = Field()
-            f.__set_name__(cls, field_name)
-            setattr(cls, field_name, f)
+            field = Field()
+            field.__set_name__(cls, field_name)
+            setattr(cls, field_name, field)
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
@@ -134,7 +134,7 @@ class SchemaModel:
         )
 
         column_names = [
-            field.column_name() for (_, (_, field)) in cls.__fields__.items()
+            field.name for (_, (_, field)) in cls.__fields__.items()
         ]
         cls.__checks__ = cls._extract_checks(
             check_infos, field_names=column_names
@@ -213,7 +213,7 @@ class SchemaModel:
         indices: List[schema_components.Index] = []
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
-            field_name = field.column_name()
+            field_name = field.name
             check_name = getattr(field, "check_name", None)
 
             if annotation.origin is Series:
@@ -280,18 +280,12 @@ class SchemaModel:
         """Centralize publicly named fields and their corresponding annotations."""
         fields = {}
         for field_name, annotation in annotations.items():
-            field: Optional[FieldInfo] = _getattr_fieldinfo(
-                cls, field_name, None
-            )
-            if field is not None and not isinstance(field, FieldInfo):
+            field: FieldInfo = _getattr_fieldinfo(cls, field_name)
+            if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            if field is None:
-                # Should never happen, omitted FieldInfo are
-                # added in __init_subclass__
-                raise ValueError(field_name)
             fields[field_name] = (annotation, field)
         return fields
 

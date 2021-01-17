@@ -88,7 +88,8 @@ class FieldInfo:
             return self.original_name
 
     def __set__(self, instance, value):
-        raise ValueError
+        # pragma: no cover
+        raise AttributeError(f"Can't set the {self.original_name} field.")
 
     def _to_schema_component(
         self,
@@ -120,7 +121,8 @@ class FieldInfo:
             checks=checks,
         )
 
-    def column_name(self):
+    @property
+    def name(self):
         """Return the name of the field used in the DataFrame"""
         return self.__get__(None)
 
