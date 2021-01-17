@@ -79,16 +79,12 @@ class FieldInfo:
         self.original_name = name
 
     def __get__(self, instance, owner=None):
-        if instance is not None:
-            raise AttributeError("SchemaModel cannot be instantiated")
-
         if self.alias is not None:
             return self.alias
         else:
             return self.original_name
 
-    def __set__(self, instance, value):
-        # pragma: no cover
+    def __set__(self, instance, value):  # pragma: no cover
         raise AttributeError(f"Can't set the {self.original_name} field.")
 
     def _to_schema_component(

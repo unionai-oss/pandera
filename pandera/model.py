@@ -79,11 +79,16 @@ def _extract_config_options(config: Type) -> Dict[str, Any]:
 def _getattr_fieldinfo(cls, name):
     """Allows to search the mro for the actual FieldInfo instances and
     return it, instead of what is returned from the descriptor protocol.
+
+    Usage of this function relies on `SchemaModel.__init_subclass__`
+    to have ensured FieldInfo object to be present for `name`.
     """
     for class_ in inspect.getmro(cls):
         if name in class_.__dict__:
             return class_.__dict__[name]
-    return None
+
+    # This line should not be reached, see description above
+    return None  # pragma: no cover
 
 
 class SchemaModel:
