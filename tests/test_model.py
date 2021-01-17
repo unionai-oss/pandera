@@ -387,7 +387,7 @@ def test_inherit_schemamodel_fields():
 
 
 def test_inherit_schemamodel_fields_alias():
-    """Test that columns and indices are inherited."""
+    """Test that columns and index aliases are inherited."""
 
     class Base(pa.SchemaModel):
         a: Series[int]
@@ -577,62 +577,89 @@ def test_alias():
 def test_inherit_alias():
     """Test that aliases are inherited and can be overwritten."""
 
-    class Base(pa.SchemaModel):
-        a: Series[int] = pa.Field(alias="_a")
-        b: Series[int] = pa.Field(alias="_b")
-
-    class Child(Base):
-        a: Series[int] = pa.Field(alias="_a_child")
-
-    schema = Child.to_schema()
-    assert len(schema.columns) == 2
-    assert schema.columns.get("_a_child", None) is not None
-    assert schema.columns.get("_b", None) is not None
-
-
-def test_inherit_override():
-    """Test that overrides are reflected properly as expected"""
+    # Three cases to consider per annotation:
+    #   - Field omitted
+    #   - Field
+    #   - Field with alias
 
     class Base(pa.SchemaModel):
-        a: Series[int] = pa.Field(alias="_a")
-        b: Series[int] = pa.Field(alias="_b")
-        c: Series[int]
+        a: Series[int]
+        b: Series[int] = pa.Field()
+        c: Series[int] = pa.Field(alias="_c")
 
-    class Child(Base):
-        a: Series[str] = pa.Field(alias="_a_child")
+    class ChildExtend(Base):
+        extra: Series[str]
+
+    schema_ext = ChildExtend.to_schema()
+    assert len(schema_ext.columns) == 4
+    assert schema_ext.columns.get("a") == pa.Column(int, name="a")
+    assert schema_ext.columns.get("b") == pa.Column(int, name="b")
+    assert schema_ext.columns.get("_c") == pa.Column(int, name="_c")
+    assert schema_ext.columns.get("extra") == pa.Column(str, name="extra")
+
+    class ChildOmitted(Base):
+        a: Series[str]
         b: Series[str]
+        c: Series[str]
 
-    schema = Child.to_schema()
-    print(schema.columns)
-    assert len(schema.columns) == 3
-    assert schema.columns.get("_a_child") == pa.Column(str, name="_a_child")
-    assert schema.columns.get("b") == pa.Column(str, name="b")
-    assert schema.columns.get("c") == pa.Column(int, name="c")
+    schema_omitted = ChildOmitted.to_schema()
+    assert len(schema_omitted.columns) == 3
+    assert schema_omitted.columns.get("a") == pa.Column(str, name="a")
+    assert schema_omitted.columns.get("b") == pa.Column(str, name="b")
+    assert schema_omitted.columns.get("c") == pa.Column(str, name="c")
+
+    class ChildField(Base):
+        a: Series[str] = pa.Field()
+        b: Series[str] = pa.Field()
+        c: Series[str] = pa.Field()
+
+    schema_field = ChildField.to_schema()
+    assert len(schema_field.columns) == 3
+    assert schema_field.columns.get("a") == pa.Column(str, name="a")
+    assert schema_field.columns.get("b") == pa.Column(str, name="b")
+    assert schema_field.columns.get("c") == pa.Column(str, name="c")
+
+    class ChildAlias(Base):
+        a: Series[str] = pa.Field(alias="_a")
+        b: Series[str] = pa.Field(alias="_b")
+        c: Series[str] = pa.Field(alias="_c")
+
+    schema_alias = ChildAlias.to_schema()
+    assert len(schema_alias.columns) == 3
+    assert schema_alias.columns.get("_a") == pa.Column(str, name="_a")
+    assert schema_alias.columns.get("_b") == pa.Column(str, name="_b")
+    assert schema_alias.columns.get("_c") == pa.Column(str, name="_c")
 
 
-def test_column_access():
-    """Test that column name can be accessed through the class"""
+def test_field_name_access():
+    """Test that column and index names can be accessed through the class"""
 
     class Base(pa.SchemaModel):
         a: Series[int]
         b: Series[int] = pa.Field()
         c: Series[int] = pa.Field(alias="_c")
         d: Series[int] = pa.Field(alias=123)
+        i1: Index[int]
+        i2: Index[int] = pa.Field()
 
     assert Base.a == "a"
     assert Base.b == "b"
     assert Base.c == "_c"
     assert Base.d == 123
+    assert Base.i1 == "i1"
+    assert Base.i2 == "i2"
 
 
-def test_column_access_inherit():
-    """Test that column name can be accessed through the class"""
+def test_field_name_access_inherit():
+    """Test that column and index names can be accessed through the class"""
 
     class Base(pa.SchemaModel):
         a: Series[int]
         b: Series[int] = pa.Field()
         c: Series[int] = pa.Field(alias="_c")
         d: Series[int] = pa.Field(alias=123)
+        i1: Index[int]
+        i2: Index[int] = pa.Field()
 
     class Child(Base):
         b: Series[str] = pa.Field(alias="_b")
@@ -641,6 +668,8 @@ def test_column_access_inherit():
         extra1: Series[int]
         extra2: Series[int] = pa.Field()
         extra3: Series[int] = pa.Field(alias="_extra3")
+        i1: Index[str]
+        i3: Index[int] = pa.Field(alias="_i3")
 
     expected_base = pa.DataFrameSchema(
         columns={
@@ -648,7 +677,13 @@ def test_column_access_inherit():
             "b": pa.Column(int),
             "_c": pa.Column(int),
             123: pa.Column(int),
-        }
+        },
+        index=pa.MultiIndex(
+            [
+                pa.Index(int, name="i1"),
+                pa.Index(int, name="i2"),
+            ]
+        ),
     )
 
     expected_child = pa.DataFrameSchema(
@@ -660,7 +695,14 @@ def test_column_access_inherit():
             "extra1": pa.Column(int),
             "extra2": pa.Column(int),
             "_extra3": pa.Column(int),
-        }
+        },
+        index=pa.MultiIndex(
+            [
+                pa.Index(str, name="i1"),
+                pa.Index(int, name="i2"),
+                pa.Index(int, name="_i3"),
+            ]
+        ),
     )
 
     assert expected_base == Base.to_schema()
@@ -672,6 +714,9 @@ def test_column_access_inherit():
     assert Child.extra1 == "extra1"
     assert Child.extra2 == "extra2"
     assert Child.extra3 == "_extra3"
+    assert Child.i1 == "i1"
+    assert Child.i2 == "i2"
+    assert Child.i3 == "_i3"
 
 
 def test_column_access_regex():
