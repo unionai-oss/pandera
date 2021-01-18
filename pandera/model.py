@@ -76,21 +76,6 @@ def _extract_config_options(config: Type) -> Dict[str, Any]:
     }
 
 
-def _getattr_fieldinfo(cls, name):
-    """Allows to search the mro for the actual FieldInfo instances and
-    return it, instead of what is returned from the descriptor protocol.
-
-    Usage of this function relies on `SchemaModel.__init_subclass__`
-    to have ensured FieldInfo object to be present for `name`.
-    """
-    for class_ in inspect.getmro(cls):
-        if name in class_.__dict__:
-            return class_.__dict__[name]
-
-    # This line should not be reached, see description above
-    return None  # pragma: no cover
-
-
 class SchemaModel:
     """Definition of a :class:`~pandera.DataFrameSchema`.
 
@@ -114,17 +99,12 @@ class SchemaModel:
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
         super().__init_subclass__(**kwargs)
-        # pylint: disable=no-member
-        omitted_fields = {
-            field_name
-            for field_name in cls.__annotations__.keys()
-            if field_name not in cls.__dict__
-        }
-
-        for field_name in omitted_fields:
-            field = Field()
-            field.__set_name__(cls, field_name)
-            setattr(cls, field_name, field)
+        # pylint:disable=no-member
+        for field_name in cls.__annotations__.keys():
+            if field_name not in cls.__dict__:  # Field omitted
+                field = Field()
+                field.__set_name__(cls, field_name)
+                setattr(cls, field_name, field)
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
@@ -132,8 +112,7 @@ class SchemaModel:
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
-        annotations = cls._collect_field_annotations()
-        cls.__fields__ = cls._collect_fields(annotations)
+        cls.__fields__ = cls._collect_fields()
         check_infos = cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
@@ -265,33 +244,44 @@ class SchemaModel:
         return columns, _build_schema_index(indices, **multiindex_kwargs)
 
     @classmethod
-    def _collect_field_annotations(cls) -> Dict[str, AnnotationInfo]:
-        """Collect inherited field annotations from bases."""
-        bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
-        bases = cast(Tuple[Type[SchemaModel]], bases)
-        raw_annotations = {}
+    def _get_model_attrs(cls) -> Dict[str, Any]:
+        """Return all attributes.
+        Similar to inspect.get_members but bypass descriptors __get__.
+        """
+        bases = inspect.getmro(cls)[:-1]  # bases -> SchemaModel -> object
+        attrs = {}
         for base in reversed(bases):
-            base_annotations = _get_field_annotations(base)
-            raw_annotations.update(base_annotations)
-        return {
-            name: AnnotationInfo(annotation)
-            for name, annotation in raw_annotations.items()
-        }
+            attrs.update(base.__dict__)
+        return attrs
 
     @classmethod
-    def _collect_fields(
-        cls, annotations: Dict[str, AnnotationInfo]
-    ) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
+    def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
+        annotations = get_type_hints(cls)
+        attrs = cls._get_model_attrs()
+
+        missing = []
+        for name, attr in attrs.items():
+            if inspect.isroutine(attr):
+                continue
+            if name.startswith("_") or name == _CONFIG_KEY:
+                # ignore private and reserved keywords
+                annotations.pop(name, None)
+            elif name not in annotations:
+                missing.append(name)
+
+        if missing:
+            raise SchemaInitError(f"Found missing annotations: {missing}")
+
         fields = {}
         for field_name, annotation in annotations.items():
-            field: FieldInfo = _getattr_fieldinfo(cls, field_name)
+            field = attrs[field_name]  # __init_subclass__ guarantees existence
             if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            fields[field_name] = (annotation, field)
+            fields[field_name] = (AnnotationInfo(annotation), field)
         return fields
 
     @classmethod
@@ -358,25 +348,6 @@ class SchemaModel:
     def _extract_df_checks(cls, check_infos: List[CheckInfo]) -> List[Check]:
         """Collect field annotations from bases in mro reverse order."""
         return [check_info.to_check(cls) for check_info in check_infos]
-
-
-def _get_field_annotations(model: Type[SchemaModel]) -> Dict[str, Any]:
-    annotations = get_type_hints(model)
-
-    def _not_routine(member: Any) -> bool:
-        return not inspect.isroutine(member)
-
-    missing = []
-    for name, _ in inspect.getmembers(model, _not_routine):
-        if name.startswith("_") or name == _CONFIG_KEY:
-            annotations.pop(name, None)
-        elif name not in annotations:
-            missing.append(name)
-
-    if missing:
-        raise SchemaInitError(f"Found missing annotations: {missing}")
-
-    return annotations
 
 
 def _build_schema_index(
