@@ -73,18 +73,22 @@ class FieldInfo:
         self.regex = regex
         self.alias = alias
         self.check_name = check_name
-        self.original_name = None
+        self.original_name = cast(str, None)  # always set by SchemaModel
 
-    def __set_name__(self, owner, name):
-        self.original_name = name
-
-    def __get__(self, instance, owner=None):
+    @property
+    def name(self) -> str:
+        """Return the name of the field used in the DataFrame"""
         if self.alias is not None:
             return self.alias
-        else:
-            return self.original_name
+        return self.original_name
 
-    def __set__(self, instance, value):  # pragma: no cover
+    def __set_name__(self, owner: Type, name: str) -> None:
+        self.original_name = name
+
+    def __get__(self, instance: Any, owner: Type) -> str:
+        return self.name
+
+    def __set__(self, instance: Any, value: Any) -> None:  # pragma: no cover
         raise AttributeError(f"Can't set the {self.original_name} field.")
 
     def _to_schema_component(
@@ -116,11 +120,6 @@ class FieldInfo:
             name=name,
             checks=checks,
         )
-
-    @property
-    def name(self):
-        """Return the name of the field used in the DataFrame"""
-        return self.__get__(None)
 
     def to_index(
         self,
