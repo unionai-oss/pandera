@@ -280,7 +280,7 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
 
     def __init__(
         self,
-        fields: Set[str],
+        fields: Set[Union[str, FieldInfo]],
         check_fn: AnyCallable,
         regex: bool = False,
         **check_kwargs: Any,

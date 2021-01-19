@@ -327,10 +327,14 @@ class SchemaModel:
         """Collect field annotations from bases in mro reverse order."""
         checks: Dict[str, List[Check]] = {}
         for check_info in check_infos:
+            check_info_fields = {
+                field.name if isinstance(field, FieldInfo) else field
+                for field in check_info.fields
+            }
             if check_info.regex:
-                matched = _regex_filter(field_names, check_info.fields)
+                matched = _regex_filter(field_names, check_info_fields)
             else:
-                matched = check_info.fields
+                matched = check_info_fields
 
             check_ = check_info.to_check(cls)
 

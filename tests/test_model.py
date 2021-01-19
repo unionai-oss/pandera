@@ -225,6 +225,45 @@ def test_check_validate_method():
     assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
 
 
+def test_check_validate_method_field():
+    """Test validate method on valid data."""
+
+    class Schema(pa.SchemaModel):
+        a: Series[int] = pa.Field()
+        b: Series[int]
+
+        @pa.check(a)
+        def int_column_lt_200(cls, series: pd.Series) -> Iterable[bool]:
+            # pylint:disable=no-self-argument
+            assert cls is Schema
+            return series < 200
+
+        @pa.check(a, "b")
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            # pylint:disable=no-self-argument
+            assert cls is Schema
+            return series < 100
+
+    df = pd.DataFrame({"a": [99], "b": [99]})
+    assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
+
+
+def test_check_validate_method_aliased_field():
+    """Test validate method on valid data."""
+
+    class Schema(pa.SchemaModel):
+        a: Series[int] = pa.Field(alias=2020)
+
+        @pa.check(a)
+        def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
+            # pylint:disable=no-self-argument
+            assert cls is Schema
+            return series < 100
+
+    df = pd.DataFrame({2020: [99]})
+    assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
+
+
 def test_check_single_column():
     """Test the behaviour of a check on a single column."""
 
