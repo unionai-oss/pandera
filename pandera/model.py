@@ -88,7 +88,7 @@ class SchemaModel:
     __schema__: Optional[DataFrameSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
 
-    #: Field name according to class definition
+    #: Key according to `FieldInfo.name`
     __fields__: Dict[str, Tuple[AnnotationInfo, FieldInfo]] = {}
     __checks__: Dict[str, List[Check]] = {}
     __dataframe_checks__: List[Check] = []
@@ -117,11 +117,8 @@ class SchemaModel:
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
 
-        column_names = [
-            field.name for (_, (_, field)) in cls.__fields__.items()
-        ]
         cls.__checks__ = cls._extract_checks(
-            check_infos, field_names=column_names
+            check_infos, field_names=list(cls.__fields__.keys())
         )
 
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
@@ -281,7 +278,7 @@ class SchemaModel:
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            fields[field_name] = (AnnotationInfo(annotation), field)
+            fields[field.name] = (AnnotationInfo(annotation), field)
         return fields
 
     @classmethod

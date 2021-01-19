@@ -252,7 +252,7 @@ def test_check_validate_method_aliased_field():
     """Test validate method on valid data."""
 
     class Schema(pa.SchemaModel):
-        a: Series[int] = pa.Field(alias=2020)
+        a: Series[int] = pa.Field(alias=2020, gt=50)
 
         @pa.check(a)
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
@@ -261,6 +261,7 @@ def test_check_validate_method_aliased_field():
             return series < 100
 
     df = pd.DataFrame({2020: [99]})
+    assert len(Schema.to_schema().columns[2020].checks) == 2
     assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
 
 
@@ -602,6 +603,7 @@ def test_alias():
 
     df = pd.DataFrame({2020: [99]}, index=[0])
     df.index.name = "_idx"
+    assert len(Schema.to_schema().columns[2020].checks) == 1
     assert isinstance(Schema.validate(df), pd.DataFrame)
 
     # test multiindex
