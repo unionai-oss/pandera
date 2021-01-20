@@ -53,6 +53,7 @@ class FieldInfo:
         "regex",
         "check_name",
         "alias",
+        "original_name",
     )
 
     def __init__(
@@ -72,6 +73,23 @@ class FieldInfo:
         self.regex = regex
         self.alias = alias
         self.check_name = check_name
+        self.original_name = cast(str, None)  # always set by SchemaModel
+
+    @property
+    def name(self) -> str:
+        """Return the name of the field used in the DataFrame"""
+        if self.alias is not None:
+            return self.alias
+        return self.original_name
+
+    def __set_name__(self, owner: Type, name: str) -> None:
+        self.original_name = name
+
+    def __get__(self, instance: Any, owner: Type) -> str:
+        return self.name
+
+    def __set__(self, instance: Any, value: Any) -> None:  # pragma: no cover
+        raise AttributeError(f"Can't set the {self.original_name} field.")
 
     def _to_schema_component(
         self,
@@ -262,7 +280,7 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
 
     def __init__(
         self,
-        fields: Set[str],
+        fields: Set[Union[str, FieldInfo]],
         check_fn: AnyCallable,
         regex: bool = False,
         **check_kwargs: Any,

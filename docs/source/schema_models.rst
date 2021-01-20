@@ -88,6 +88,25 @@ Note that :class:`~pandera.model_components.Field` s apply to both
 :class:`~pandera.schema_components.Column` and :class:`~pandera.schema_components.Index`
 objects, exposing the built-in :class:`Check` s via key-word arguments.
 
+*(New in 0.7.0)* When you access a class attribute defined on the schema,
+it will return the name of the column used in the validated `pd.DataFrame`.
+In the example above, this will simply be the string `"year"`.
+
+.. testcode:: dataframe_schema_model
+
+    print(f"Column name for 'year' is {InputSchema.year}\n")
+    print(df.loc[:, [InputSchema.year, "day"]])
+
+.. testoutput:: dataframe_schema_model
+
+    Column name for 'year' is year
+
+       year  day
+    0  2001  200
+    1  2002  156
+    2  2003  365
+
+
 Converting to DataFrameSchema
 -----------------------------
 
@@ -521,6 +540,53 @@ Checks must reference the aliased names.
           2020
     _idx
     0       99
+
+
+*(New in 0.7.0)* The `alias` is respected when using the class attribute to get the underlying
+`pd.DataFrame` column name or index level name.
+
+.. testcode:: dataframe_schema_model
+
+    print(Schema.col_2020)
+
+.. testoutput:: dataframe_schema_model
+
+    2020
+
+
+Very similar to the example above, you can also use the variable name directly within
+the class scope, and it will respect the alias.
+
+.. note::
+
+    To access a variable from the class scope, you need to make it a class attribute,
+    and therefore assign it a default :class:`~pandera.model_components.Field`.
+
+.. testcode:: dataframe_schema_model
+
+    import pandera as pa
+    import pandas as pd
+
+    class Schema(pa.SchemaModel):
+        a: pa.typing.Series[int] = pa.Field()
+        col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
+
+        @pa.check(col_2020)
+        def int_column_lt_100(cls, series):
+            return series < 100
+
+        @pa.check(a)
+        def int_column_gt_100(cls, series):
+            return series > 100
+
+
+    df = pd.DataFrame({2020: [99], "a": [101]})
+    print(Schema.validate(df))
+
+.. testoutput:: dataframe_schema_model
+
+          2020    a
+    0       99  101
 
 
 Footnotes

@@ -25,6 +25,7 @@ from .model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     CheckInfo,
+    Field,
     FieldCheckInfo,
     FieldInfo,
 )
@@ -86,12 +87,24 @@ class SchemaModel:
     Config: Type[BaseConfig] = BaseConfig
     __schema__: Optional[DataFrameSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
-    __fields__: Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]] = {}
+
+    #: Key according to `FieldInfo.name`
+    __fields__: Dict[str, Tuple[AnnotationInfo, FieldInfo]] = {}
     __checks__: Dict[str, List[Check]] = {}
     __dataframe_checks__: List[Check] = []
 
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"{cls.__name__} may not be instantiated.")
+
+    def __init_subclass__(cls, **kwargs):
+        """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
+        super().__init_subclass__(**kwargs)
+        # pylint:disable=no-member
+        for field_name in cls.__annotations__.keys():
+            if field_name not in cls.__dict__:  # Field omitted
+                field = Field()
+                field.__set_name__(cls, field_name)
+                setattr(cls, field_name, field)
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
@@ -99,11 +112,11 @@ class SchemaModel:
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
-        annotations = cls._collect_field_annotations()
-        cls.__fields__ = cls._collect_fields(annotations)
+        cls.__fields__ = cls._collect_fields()
         check_infos = cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
+
         cls.__checks__ = cls._extract_checks(
             check_infos, field_names=list(cls.__fields__.keys())
         )
@@ -166,7 +179,7 @@ class SchemaModel:
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals
         cls,
-        fields: Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]],
+        fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
         **multiindex_kwargs: Any,
     ) -> Tuple[
@@ -181,7 +194,7 @@ class SchemaModel:
         indices: List[schema_components.Index] = []
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
-            field_name = getattr(field, "alias", None) or field_name
+            field_name = field.name
             check_name = getattr(field, "check_name", None)
 
             if annotation.origin is Series:
@@ -228,34 +241,44 @@ class SchemaModel:
         return columns, _build_schema_index(indices, **multiindex_kwargs)
 
     @classmethod
-    def _collect_field_annotations(cls) -> Dict[str, AnnotationInfo]:
-        """Collect inherited field annotations from bases."""
-        bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
-        bases = cast(Tuple[Type[SchemaModel]], bases)
-        raw_annotations = {}
+    def _get_model_attrs(cls) -> Dict[str, Any]:
+        """Return all attributes.
+        Similar to inspect.get_members but bypass descriptors __get__.
+        """
+        bases = inspect.getmro(cls)[:-1]  # bases -> SchemaModel -> object
+        attrs = {}
         for base in reversed(bases):
-            base_annotations = _get_field_annotations(base)
-            raw_annotations.update(base_annotations)
-        return {
-            name: AnnotationInfo(annotation)
-            for name, annotation in raw_annotations.items()
-        }
+            attrs.update(base.__dict__)
+        return attrs
 
     @classmethod
-    def _collect_fields(
-        cls, annotations: Dict[str, AnnotationInfo]
-    ) -> Dict[str, Tuple[AnnotationInfo, Optional[FieldInfo]]]:
+    def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
+        annotations = get_type_hints(cls)
+        attrs = cls._get_model_attrs()
+
+        missing = []
+        for name, attr in attrs.items():
+            if inspect.isroutine(attr):
+                continue
+            if name.startswith("_") or name == _CONFIG_KEY:
+                # ignore private and reserved keywords
+                annotations.pop(name, None)
+            elif name not in annotations:
+                missing.append(name)
+
+        if missing:
+            raise SchemaInitError(f"Found missing annotations: {missing}")
+
         fields = {}
         for field_name, annotation in annotations.items():
-            field: Optional[FieldInfo] = getattr(cls, field_name, None)
-            if field is not None and not isinstance(field, FieldInfo):
+            field = attrs[field_name]  # __init_subclass__ guarantees existence
+            if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
                     + f"not a '{type(field)}.'"
                 )
-            field_name = getattr(field, "alias", None) or field_name
-            fields[field_name] = (annotation, field)
+            fields[field.name] = (AnnotationInfo(annotation), field)
         return fields
 
     @classmethod
@@ -301,10 +324,14 @@ class SchemaModel:
         """Collect field annotations from bases in mro reverse order."""
         checks: Dict[str, List[Check]] = {}
         for check_info in check_infos:
+            check_info_fields = {
+                field.name if isinstance(field, FieldInfo) else field
+                for field in check_info.fields
+            }
             if check_info.regex:
-                matched = _regex_filter(field_names, check_info.fields)
+                matched = _regex_filter(field_names, check_info_fields)
             else:
-                matched = check_info.fields
+                matched = check_info_fields
 
             check_ = check_info.to_check(cls)
 
@@ -322,25 +349,6 @@ class SchemaModel:
     def _extract_df_checks(cls, check_infos: List[CheckInfo]) -> List[Check]:
         """Collect field annotations from bases in mro reverse order."""
         return [check_info.to_check(cls) for check_info in check_infos]
-
-
-def _get_field_annotations(model: Type[SchemaModel]) -> Dict[str, Any]:
-    annotations = get_type_hints(model)
-
-    def _not_routine(member: Any) -> bool:
-        return not inspect.isroutine(member)
-
-    missing = []
-    for name, _ in inspect.getmembers(model, _not_routine):
-        if name.startswith("_") or name == _CONFIG_KEY:
-            annotations.pop(name, None)
-        elif name not in annotations:
-            missing.append(name)
-
-    if missing:
-        raise SchemaInitError(f"Found missing annotations: {missing}")
-
-    return annotations
 
 
 def _build_schema_index(
