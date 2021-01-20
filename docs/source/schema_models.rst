@@ -554,9 +554,13 @@ Checks must reference the aliased names.
     2020
 
 
-Very similar to the example above, you can also use the variable name directly,
-and it will respect the alias.
+Very similar to the example above, you can also use the variable name directly within
+the class scope, and it will respect the alias.
 
+.. note::
+
+    To access a variable from the class scope, you need to make it a class attribute,
+    and therefore assign it a default :class:`~pandera.model_components.Field`.
 
 .. testcode:: dataframe_schema_model
 
@@ -566,7 +570,6 @@ and it will respect the alias.
     class Schema(pa.SchemaModel):
         a: pa.typing.Series[int] = pa.Field()
         col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
-        idx: pa.typing.Index[int] = pa.Field(alias="_idx", check_name=True)
 
         @pa.check(col_2020)
         def int_column_lt_100(cls, series):
@@ -577,15 +580,12 @@ and it will respect the alias.
             return series > 100
 
 
-    df = pd.DataFrame({2020: [99], "a": [101]}, index=[0])
-    df.index.name = "_idx"
-
+    df = pd.DataFrame({2020: [99], "a": [101]})
     print(Schema.validate(df))
 
 .. testoutput:: dataframe_schema_model
 
           2020    a
-    _idx
     0       99  101
 
 
