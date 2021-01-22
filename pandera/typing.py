@@ -1,17 +1,8 @@
 """Typing definitions and helpers."""
+
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import sys
-from inspect import signature
-from typing import (
-    TYPE_CHECKING,
-    Generic,
-    List,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Generic, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
@@ -24,7 +15,7 @@ else:  # pragma: no cover
     from typing import Literal  # pylint:disable=no-name-in-module
 
 if sys.version_info[:2] < (3, 9):  # pragma: no cover
-    from typing_extensions import Annotated
+    from typing_extensions import Annotated  # pylint:disable=unused-import
 else:  # pragma: no cover
     from typing import Annotated  # pylint:disable=no-name-in-module
 
@@ -66,11 +57,6 @@ GenericDtype = TypeVar(  # type: ignore
     Literal[PandasDtype.String],
     Literal[PandasDtype.STRING],
     Literal[PandasDtype.Timedelta],
-    "CategoricalDtype",
-    "DatetimeTZDtype",
-    "IntervalDtype",
-    "PeriodDtype",
-    "SparseDtype",
     covariant=True,
 )
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
@@ -158,49 +144,12 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
             self.arg = args[0] if args else args
 
         self.metadata = getattr(self.arg, "__metadata__", None)
+        if self.metadata:
+            self.arg = typing_inspect.get_args(self.arg)[0]
+
         self.literal = typing_inspect.is_literal_type(self.arg)
         if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
-
-
-class AnnotatedPandasExtensionType(type):
-    """Parametrized PandasExtensionType typing."""
-
-    default_dtype: Type[PandasExtensionType]
-    _arg_names: List[str]
-
-    @property
-    def arg_names(cls) -> List[str]:
-        """Return the name of the PandasExtensionType's constructor arguments."""
-        if getattr(cls, "_arg_names", None):
-            return cls._arg_names
-        cls._arg_names = [
-            name
-            for name, _ in signature(
-                cls.default_dtype.__class__
-            ).parameters.items()
-        ]
-        return cls._arg_names
-
-    def __getitem__(
-        cls, metadata: Union[Tuple[str], str]
-    ) -> Type[PandasExtensionType]:
-        """Let brackets [] pass type metadata, first metadata is the name of
-        PandasExtensionType's constructor arguments.
-        """
-        base_annotation = (cls.default_dtype.__class__, cls.arg_names)
-        if not isinstance(metadata, tuple):
-            metadata = (metadata,)
-
-        if len(metadata) != len(cls.arg_names):
-            raise TypeError(
-                f"Annotation '{cls.default_dtype.__class__.__name__}' requires "
-                + f"all positional arguments {cls.arg_names}."
-            )
-        return Annotated[base_annotation + cast(tuple, metadata)]
-
-    def __repr__(cls) -> str:
-        return cls.default_dtype.__class__.__name__
 
 
 Bool = Literal[PandasDtype.Bool]  #: ``"bool"`` numpy dtype
@@ -245,33 +194,3 @@ String = Literal[PandasDtype.String]  #: ``"str"`` numpy dtype
 #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
 #: fall back on the str-as-object-array representation.
 STRING = Literal[PandasDtype.STRING]  #: ``"str"`` numpy dtype
-
-
-class CategoricalDtype(metaclass=AnnotatedPandasExtensionType):
-    """Parametrized CategoricalDtype type hint."""
-
-    default_dtype = pd.CategoricalDtype()
-
-
-class DatetimeTZDtype(metaclass=AnnotatedPandasExtensionType):
-    """Parametrized DatetimeTZDtype type hint."""
-
-    default_dtype = pd.DatetimeTZDtype(unit="ns", tz="UTC")
-
-
-class IntervalDtype(metaclass=AnnotatedPandasExtensionType):
-    """Parametrized IntervalDtype type hint."""
-
-    default_dtype = pd.IntervalDtype()
-
-
-class PeriodDtype(pd.PeriodDtype, metaclass=AnnotatedPandasExtensionType):
-    """Parametrized PeriodDtype type hint."""
-
-    default_dtype = pd.PeriodDtype()
-
-
-class SparseDtype(metaclass=AnnotatedPandasExtensionType):
-    """Parametrized SparseDtype type hint."""
-
-    default_dtype = pd.SparseDtype()

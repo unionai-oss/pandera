@@ -30,7 +30,7 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import AnnotatedPandasExtensionType, AnnotationInfo, Index, Series
+from .typing import AnnotationInfo, Index, Series
 
 if sys.version_info[:2] < (3, 9):  # pragma: no cover
     from typing_extensions import get_type_hints
@@ -203,14 +203,8 @@ class SchemaModel:
             check_name = getattr(field, "check_name", None)
 
             if annotation.metadata:
-                dtype_arg_names, *dtype_args = annotation.metadata
-                dtype_kwargs = dict(zip(dtype_arg_names, dtype_args))
+                dtype_kwargs = _get_dtype_kwargs(annotation)
                 dtype = annotation.arg(**dtype_kwargs)
-            # using type instead of isinstance to check metaclass
-            elif (  # pylint:disable=unidiomatic-typecheck
-                type(annotation.arg) is AnnotatedPandasExtensionType
-            ):
-                dtype = annotation.arg.default_dtype
             else:
                 dtype = annotation.arg
 
@@ -271,7 +265,9 @@ class SchemaModel:
     @classmethod
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
-        annotations = get_type_hints(cls)
+        annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
+            cls, include_extras=True
+        )
         attrs = cls._get_model_attrs()
 
         missing = []
@@ -387,3 +383,13 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
         pattern = re.compile(regex)
         matched.update(filter(pattern.match, seq))
     return matched
+
+
+def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
+    dtype_arg_names = list(inspect.signature(annotation.arg).parameters.keys())
+    if len(annotation.metadata) != len(dtype_arg_names):
+        raise TypeError(
+            f"Annotation '{annotation.arg.__name__}' requires "
+            + f"all positional arguments {dtype_arg_names}."
+        )
+    return dict(zip(dtype_arg_names, annotation.metadata))
