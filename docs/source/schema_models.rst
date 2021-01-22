@@ -149,12 +149,15 @@ Supported dtypes
 
 Any dtypes supported by ``pandera`` can be used as type parameters for
 :class:`~pandera.typing.Series` and :class:`~pandera.typing.Index`. There are,
-however, a couple of gotchas:
+however, a couple of gotchas.
 
-1. The enumeration :class:`~pandera.dtypes.PandasDtype` is not directly supported because
-   the type parameter of a :class:`typing.Generic` cannot be an enumeration [#dtypes]_.
-   Instead, you can use the :mod:`pandera.typing` counterparts:
-   :data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
+Dtype aliases
+^^^^^^^^^^^^^
+
+The enumeration :class:`~pandera.dtypes.PandasDtype` is not directly supported because
+the type parameter of a :class:`typing.Generic` cannot be an enumeration [#dtypes]_.
+Instead, you can use the :mod:`pandera.typing` counterparts:
+:data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
 
 :green:`✔` Good:
 
@@ -181,7 +184,10 @@ however, a couple of gotchas:
     ...
     AttributeError: type object 'Generic' has no attribute 'value'
 
-2. You must give a **type**, not an **instance**.
+Type Vs instance
+^^^^^^^^^^^^^^^^
+
+You must give a **type**, not an **instance**.
 
 :green:`✔` Good:
 
@@ -207,6 +213,43 @@ however, a couple of gotchas:
     Traceback (most recent call last):
     ...
     TypeError: Parameters to generic types must be types. Got StringDtype.
+
+Parametrized dtypes
+^^^^^^^^^^^^^^^^^^^
+Parameters for parametrized dtypes, such as :class:`~pandas.CategoricalDtype`
+or :class:`~pandas.DatetimeTZDtype`, can be given via :data:`typing.Annotated`.
+It requires python 3.9 or
+`typing_extensions <https://pypi.org/project/typing-extensions/>`_
+which is already a requirement of Pandera.
+
+:green:`✔` Good:
+
+.. testcode:: dataframe_schema_model
+
+    import sys
+
+    if sys.version_info[:2] < (3, 9):
+        from typing_extensions import Annotated
+    else:
+        from typing import Annotated
+
+    class Schema(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
+
+Furthermore, you must pass all parameters in the order defined in the dtype's constructor.
+
+:red:`✘` Bad:
+
+.. testcode:: dataframe_schema_model
+
+    class Schema(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
+
+.. testoutput:: dataframe_schema_model
+
+    Traceback (most recent call last):
+    ...
+    TypeError: Annotation 'DatetimeTZDtype' requires all positional arguments ['unit', 'tz'].
 
 Required Columns
 ----------------
