@@ -243,12 +243,15 @@ Furthermore, you must pass all parameters in the order defined in the dtype's co
 :red:`✘` Bad:
 
 .. testcode:: dataframe_schema_model
-    :skipif: SKIP_PANDAS_LT_V1
+    :skipif: PY36
 
     class Schema(pa.SchemaModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
 
+    Schema.to_schema()
+
 .. testoutput:: dataframe_schema_model
+    :skipif: PY36
 
     Traceback (most recent call last):
     ...
