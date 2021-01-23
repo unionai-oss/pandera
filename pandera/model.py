@@ -216,6 +216,12 @@ class SchemaModel:
             check_name = getattr(field, "check_name", None)
 
             if annotation.metadata:
+                if field.dtype_kwargs:
+                    raise TypeError(
+                        "Cannot specify redundant 'dtype_kwargs' "
+                        + f"for {annotation.raw_annotation}."
+                        + "\n Usage Tip: Drop 'typing.Annotated'."
+                    )
                 dtype_kwargs = _get_dtype_kwargs(annotation)
                 dtype = annotation.arg(**dtype_kwargs)
             else:

@@ -54,6 +54,7 @@ class FieldInfo:
         "check_name",
         "alias",
         "original_name",
+        "dtype_kwargs",
     )
 
     def __init__(
@@ -65,6 +66,7 @@ class FieldInfo:
         regex: bool = False,
         alias: str = None,
         check_name: bool = None,
+        dtype_kwargs: Dict[str, Any] = None,
     ) -> None:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
@@ -74,6 +76,7 @@ class FieldInfo:
         self.alias = alias
         self.check_name = check_name
         self.original_name = cast(str, None)  # always set by SchemaModel
+        self.dtype_kwargs = dtype_kwargs
 
     @property
     def name(self) -> str:
@@ -98,6 +101,8 @@ class FieldInfo:
         checks: _CheckList = None,
         **kwargs: Any,
     ) -> SchemaComponent:
+        if self.dtype_kwargs:
+            pandas_dtype = pandas_dtype(**self.dtype_kwargs)  # type: ignore
         checks = self.checks + _to_checklist(checks)
         return component(pandas_dtype, checks=checks, **kwargs)  # type: ignore
 
@@ -164,6 +169,7 @@ def Field(
     n_failure_cases: int = 10,
     alias: str = None,
     check_name: bool = None,
+    dtype_kwargs: Dict[str, Any] = None,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
@@ -188,6 +194,7 @@ def Field(
     :param check_name: Whether to check the name of the column/index during
         validation. `None` is the default behavior, which translates to `True`
         for columns and multi-index, and to `False` for a single index.
+    :param dtype_kwargs: The parameters to be forwarded to the type of the field.
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -227,6 +234,7 @@ def Field(
         regex=regex,
         check_name=check_name,
         alias=alias,
+        dtype_kwargs=dtype_kwargs,
     )
 
 

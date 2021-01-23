@@ -186,24 +186,10 @@ def test_literal_new_pandas_dtype(
     _test_literal_pandas_dtype(model, pandas_dtype)
 
 
-class SchemaDefaultCategoricalDtype(pa.SchemaModel):
-    col: Series[pd.CategoricalDtype]
-
-
-class SchemaDefaultDatetimeTZDtype(pa.SchemaModel):
-    col: Series[pd.DatetimeTZDtype]
-
-
-class SchemaDefaultIntervalDtype(pa.SchemaModel):
-    col: Series[pd.IntervalDtype]
-
-
-class SchemaDefaultPeriodDtype(pa.SchemaModel):
-    col: Series[pd.PeriodDtype]
-
-
-class SchemaDefaultSparseDtype(pa.SchemaModel):
-    col: Series[pd.SparseDtype]
+class SchemaFieldCategoricalDtype(pa.SchemaModel):
+    col: Series[pd.CategoricalDtype] = pa.Field(
+        dtype_kwargs={"categories": ["b", "a"], "ordered": True}
+    )
 
 
 def _test_annotated_dtype(
@@ -228,6 +214,75 @@ def _test_default_annotated_dtype(
             model.to_schema()
     else:
         _test_annotated_dtype(model, dtype)
+
+
+class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+    col: Series[pd.DatetimeTZDtype] = pa.Field(
+        dtype_kwargs={"unit": "ns", "tz": "EST"}
+    )
+
+
+class SchemaFieldIntervalDtype(pa.SchemaModel):
+    col: Series[pd.IntervalDtype] = pa.Field(dtype_kwargs={"subtype": "int32"})
+
+
+class SchemaFieldPeriodDtype(pa.SchemaModel):
+    col: Series[pd.PeriodDtype] = pa.Field(dtype_kwargs={"freq": "D"})
+
+
+class SchemaFieldSparseDtype(pa.SchemaModel):
+    col: Series[pd.SparseDtype] = pa.Field(
+        dtype_kwargs={"dtype": np.int32, "fill_value": 0}
+    )
+
+
+@pytest.mark.parametrize(
+    "model, dtype, dtype_kwargs",
+    [
+        (
+            SchemaFieldCategoricalDtype,
+            pd.CategoricalDtype,
+            {"categories": ["b", "a"], "ordered": True},
+        ),
+        (
+            SchemaFieldDatetimeTZDtype,
+            pd.DatetimeTZDtype,
+            {"unit": "ns", "tz": "EST"},
+        ),
+        (SchemaFieldIntervalDtype, pd.IntervalDtype, {"subtype": "int32"}),
+        (SchemaFieldPeriodDtype, pd.PeriodDtype, {"freq": "D"}),
+        (
+            SchemaFieldSparseDtype,
+            pd.SparseDtype,
+            {"dtype": np.int32, "fill_value": 0},
+        ),
+    ],
+)
+def test_parametrized_pandas_extension_dtype_field(
+    model: Type[pa.SchemaModel], dtype: Type, dtype_kwargs: Dict[str, Any]
+):
+    """Test type annotations for parametrized pandas extension dtypes."""
+    _test_annotated_dtype(model, dtype, dtype_kwargs)
+
+
+class SchemaDefaultCategoricalDtype(pa.SchemaModel):
+    col: Series[pd.CategoricalDtype]
+
+
+class SchemaDefaultDatetimeTZDtype(pa.SchemaModel):
+    col: Series[pd.DatetimeTZDtype]
+
+
+class SchemaDefaultIntervalDtype(pa.SchemaModel):
+    col: Series[pd.IntervalDtype]
+
+
+class SchemaDefaultPeriodDtype(pa.SchemaModel):
+    col: Series[pd.PeriodDtype]
+
+
+class SchemaDefaultSparseDtype(pa.SchemaModel):
+    col: Series[pd.SparseDtype]
 
 
 @pytest.mark.parametrize(
@@ -309,6 +364,17 @@ if not LEGACY_TYPING:
         )
         with pytest.raises(TypeError, match=err_msg):
             SchemaInvalidAnnotatedDtype.to_schema()
+
+    class SchemaRedundantField(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "utc"]] = pa.Field(
+            dtype_kwargs={"tz": "utc"}
+        )
+
+    def test_pandas_extension_dtype_redundant_field():
+        """Test incorrect number of parameters for parametrized pandas extension dtypes."""
+        err_msg = r"Cannot specify redundant 'dtype_kwargs' for"
+        with pytest.raises(TypeError, match=err_msg):
+            SchemaRedundantField.to_schema()
 
 
 if not LEGACY_PANDAS:

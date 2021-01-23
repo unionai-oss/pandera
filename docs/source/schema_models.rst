@@ -214,23 +214,43 @@ You must give a **type**, not an **instance**.
     ...
     TypeError: Parameters to generic types must be types. Got StringDtype.
 
+.. _parameterized dtypes:
+
 Parametrized dtypes
 ^^^^^^^^^^^^^^^^^^^
-Parameters for parametrized dtypes, such as :class:`~pandas.CategoricalDtype`
-or :class:`~pandas.DatetimeTZDtype`, can be given via :data:`typing.Annotated`.
-It requires python 3.9 or
-`typing_extensions <https://pypi.org/project/typing-extensions/>`_
-which is already a requirement of Pandera. Unfortunately :data:`typing.Annotated` has
-not been backported to python 3.6.
+Pandas supports a couple of parametrized dtypes. As of pandas 1.2.0:
+
+
++-------------------+---------------------------+-----------------------------+
+| Kind of Data      | Data Type                 | Parameters                  |
++===================+===========================+=============================+
+| tz-aware datetime | :class:`DatetimeTZDtype`  | ``unit``, ``tz``            |
++-------------------+---------------------------+-----------------------------+
+| Categorical       | :class:`CategoricalDtype` | ``categories``, ``ordered`` |
++-------------------+---------------------------+-----------------------------+
+| period            | :class:`PeriodDtype`      | ``freq``                    |
++-------------------+---------------------------+-----------------------------+
+| sparse            | :class:`SparseDtype`      | ``dtype``, ``fill_value``   |
++-------------------+---------------------------+-----------------------------+
+| intervals         | :class:`IntervalDtype`    | ``subtype``                 |
++-------------------+---------------------------+-----------------------------+
+
+Annotated
+"""""""""
+
+Parameters can be given via :data:`typing.Annotated`. It requires python > 3.9 or
+`typing_extensions <https://pypi.org/project/typing-extensions/>`_, which is already a
+requirement of Pandera. Unfortunately :data:`typing.Annotated` has not been backported
+to python 3.6.
 
 :green:`✔` Good:
 
 .. testcode:: dataframe_schema_model
-    :skipif: SKIP_PANDAS_LT_V1
+    :skipif: PY36
 
     import sys
 
-    if sys.version_info[:2] < (3, 9):
+    if (3, 6) < sys.version_info[:2] < (3, 9):
         from typing_extensions import Annotated
     else:
         from typing import Annotated
@@ -238,7 +258,8 @@ not been backported to python 3.6.
     class Schema(pa.SchemaModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
-Furthermore, you must pass all parameters in the order defined in the dtype's constructor.
+Furthermore, you must pass all parameters in the order defined in the dtype's
+constructor (see :ref:`table <parameterized dtypes>`).
 
 :red:`✘` Bad:
 
@@ -257,6 +278,36 @@ Furthermore, you must pass all parameters in the order defined in the dtype's co
     ...
     TypeError: Annotation 'DatetimeTZDtype' requires all positional arguments ['unit', 'tz'].
 
+Field
+"""""
+
+:green:`✔` Good:
+
+.. testcode:: dataframe_schema_model
+
+    class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+        col: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
+
+You cannot use both :data:`typing.Annotated` and ``dtype_kwargs``.
+
+:red:`✘` Bad:
+
+.. testcode:: dataframe_schema_model
+    :skipif: PY36
+
+    class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
+
+    Schema.to_schema()
+
+.. testoutput:: dataframe_schema_model
+    :skipif: PY36
+
+    Traceback (most recent call last):
+    ...
+    TypeError: Cannot specify redundant 'dtype_kwargs' for pandera.typing.Series[typing_extensions.Annotated[pandas.core.dtypes.dtypes.DatetimeTZDtype, 'ns', 'est']].
+    Usage Tip: Drop 'typing.Annotated'.
+
 Required Columns
 ----------------
 
@@ -265,6 +316,7 @@ that if a column is missing in the input DataFrame an exception will be
 thrown. If you want to make a column optional, annotate it with :data:`typing.Optional`.
 
 .. testcode:: dataframe_schema_model
+    :skipif: PY36
 
     from typing import Optional
 
