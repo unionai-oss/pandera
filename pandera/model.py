@@ -2,8 +2,10 @@
 import inspect
 import re
 import sys
+import typing
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     List,
@@ -12,7 +14,6 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
 )
 
 import pandas as pd
@@ -30,11 +31,23 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import AnnotationInfo, Index, Series
+from .typing import LEGACY_TYPING, AnnotationInfo, Index, Series
 
-if sys.version_info[:2] < (3, 9):  # pragma: no cover
+if LEGACY_TYPING:
+
+    def get_type_hints(
+        obj: Callable[..., Any],
+        globalns: Optional[Dict[str, Any]] = None,
+        localns: Optional[Dict[str, Any]] = None,
+        include_extras: bool = False,
+    ) -> Dict[str, Any]:
+        # pylint:disable=function-redefined, missing-function-docstring, unused-argument
+        return typing.get_type_hints(obj, globalns, localns)
+
+
+elif sys.version_info[:2] < (3, 9):
     from typing_extensions import get_type_hints
-else:  # pragma: no cover
+else:
     from typing import get_type_hints
 
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
@@ -118,7 +131,7 @@ class SchemaModel:
             return MODEL_CACHE[cls]
 
         cls.__fields__ = cls._collect_fields()
-        check_infos = cast(
+        check_infos = typing.cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
 
@@ -298,7 +311,7 @@ class SchemaModel:
     def _collect_config(cls) -> Type[BaseConfig]:
         """Collect config options from bases."""
         bases = inspect.getmro(cls)[:-1]
-        bases = cast(Tuple[Type[SchemaModel]], bases)
+        bases = typing.cast(Tuple[Type[SchemaModel]], bases)
         root_model, *models = reversed(bases)
 
         options = _extract_config_options(root_model.Config)
@@ -315,7 +328,7 @@ class SchemaModel:
         walk the inheritance tree.
         """
         bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
-        bases = cast(Tuple[Type[SchemaModel]], bases)
+        bases = typing.cast(Tuple[Type[SchemaModel]], bases)
 
         method_names = set()
         check_infos = []

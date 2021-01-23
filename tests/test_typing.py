@@ -10,13 +10,12 @@ import pytest
 
 import pandera as pa
 from pandera.dtypes import LEGACY_PANDAS, PandasDtype
-from pandera.model import SchemaModel
-from pandera.typing import Series
+from pandera.typing import LEGACY_TYPING, Series
 
-if sys.version_info[:2] < (3, 9):  # pragma: no cover
-    from typing_extensions import Annotated
-else:  # pragma: no cover
+if sys.version_info[:2] >= (3, 9):
     from typing import Annotated  # pylint:disable=no-name-in-module
+elif not LEGACY_TYPING:
+    from typing_extensions import Annotated
 
 
 class SchemaBool(pa.SchemaModel):
@@ -128,7 +127,7 @@ class SchemaUINT64(pa.SchemaModel):
 
 
 def _test_literal_pandas_dtype(
-    model: Type[SchemaModel], pandas_dtype: PandasDtype
+    model: Type[pa.SchemaModel], pandas_dtype: PandasDtype
 ):
     schema = model.to_schema()
     expected = pa.Column(pandas_dtype, name="col").dtype
@@ -160,7 +159,7 @@ def _test_literal_pandas_dtype(
     ],
 )
 def test_literal_legacy_pandas_dtype(
-    model: Type[SchemaModel], pandas_dtype: PandasDtype
+    model: Type[pa.SchemaModel], pandas_dtype: PandasDtype
 ):
     """Test literal annotations with the legacy pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
@@ -181,34 +180,36 @@ def test_literal_legacy_pandas_dtype(
     ],
 )
 def test_literal_new_pandas_dtype(
-    model: Type[SchemaModel], pandas_dtype: PandasDtype
+    model: Type[pa.SchemaModel], pandas_dtype: PandasDtype
 ):
     """Test literal annotations with the new nullable pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
 
 
-class SchemaCategoricalDtypeClass(pa.SchemaModel):
+class SchemaDefaultCategoricalDtype(pa.SchemaModel):
     col: Series[pd.CategoricalDtype]
 
 
-class SchemaDatetimeTZDtypeClass(pa.SchemaModel):
+class SchemaDefaultDatetimeTZDtype(pa.SchemaModel):
     col: Series[pd.DatetimeTZDtype]
 
 
-class SchemaIntervalDtypeClass(pa.SchemaModel):
+class SchemaDefaultIntervalDtype(pa.SchemaModel):
     col: Series[pd.IntervalDtype]
 
 
-class SchemaPeriodDtypeClass(pa.SchemaModel):
+class SchemaDefaultPeriodDtype(pa.SchemaModel):
     col: Series[pd.PeriodDtype]
 
 
-class SchemaSparseDtypeClass(pa.SchemaModel):
+class SchemaDefaultSparseDtype(pa.SchemaModel):
     col: Series[pd.SparseDtype]
 
 
-def _test_pandas_extension_dtype(
-    model: Type[SchemaModel], dtype: Type, dtype_kwargs: Dict[str, Any] = None
+def _test_annotated_dtype(
+    model: Type[pa.SchemaModel],
+    dtype: Type,
+    dtype_kwargs: Dict[str, Any] = None,
 ):
     dtype_kwargs = dtype_kwargs or {}
     schema = model.to_schema()
@@ -218,97 +219,96 @@ def _test_pandas_extension_dtype(
     assert actual == expected
 
 
-def _test_default_pandas_extension_dtype(
-    model: Type[SchemaModel], dtype: Type, has_mandatory_args: bool
+def _test_default_annotated_dtype(
+    model: Type[pa.SchemaModel], dtype: Type, has_mandatory_args: bool
 ):
     if has_mandatory_args:
         err_msg = "cannot be instantiated"
         with pytest.raises(TypeError, match=err_msg):
             model.to_schema()
     else:
-        _test_pandas_extension_dtype(model, dtype)
+        _test_annotated_dtype(model, dtype)
 
 
 @pytest.mark.parametrize(
     "model, dtype, has_mandatory_args",
     [
-        (SchemaCategoricalDtypeClass, pd.CategoricalDtype, False),
+        (SchemaDefaultCategoricalDtype, pd.CategoricalDtype, False),
         # DatetimeTZDtype: tz is implictly required
-        (SchemaDatetimeTZDtypeClass, pd.DatetimeTZDtype, True),
-        (SchemaIntervalDtypeClass, pd.IntervalDtype, False),
+        (SchemaDefaultDatetimeTZDtype, pd.DatetimeTZDtype, True),
+        (SchemaDefaultIntervalDtype, pd.IntervalDtype, False),
         # PeriodDtype: freq is implicitely required -> str(pd.PeriodDtype()) raises AttributeError
-        (SchemaPeriodDtypeClass, pd.PeriodDtype, True),
-        (SchemaSparseDtypeClass, pd.SparseDtype, False),
+        (SchemaDefaultPeriodDtype, pd.PeriodDtype, True),
+        (SchemaDefaultSparseDtype, pd.SparseDtype, False),
     ],
 )
 def test_legacy_default_pandas_extension_dtype(
     model, dtype: pd.core.dtypes.base.ExtensionDtype, has_mandatory_args: bool
 ):
     """Test type annotations for default pandas extension dtypes."""
-    _test_default_pandas_extension_dtype(model, dtype, has_mandatory_args)
+    _test_default_annotated_dtype(model, dtype, has_mandatory_args)
 
 
-class SchemaCategoricalDtype(pa.SchemaModel):
-    col: Series[Annotated[pd.CategoricalDtype, ["b", "a"], True]]
+if not LEGACY_TYPING:
 
+    class SchemaAnnotatedCategoricalDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.CategoricalDtype, ["b", "a"], True]]
 
-class SchemaDatetimeTZDtype(pa.SchemaModel):
-    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
+    class SchemaAnnotatedDatetimeTZDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
+    class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.IntervalDtype, "int32"]]
 
-class SchemaIntervalDtype(pa.SchemaModel):
-    col: Series[Annotated[pd.IntervalDtype, "int32"]]
+    class SchemaAnnotatedPeriodDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.PeriodDtype, "D"]]
 
+    class SchemaAnnotatedSparseDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.SparseDtype, np.int32, 0]]
 
-class SchemaPeriodDtype(pa.SchemaModel):
-    col: Series[Annotated[pd.PeriodDtype, "D"]]
-
-
-class SchemaSparseDtype(pa.SchemaModel):
-    col: Series[Annotated[pd.SparseDtype, np.int32, 0]]
-
-
-@pytest.mark.parametrize(
-    "model, dtype, dtype_kwargs",
-    [
-        (
-            SchemaCategoricalDtype,
-            pd.CategoricalDtype,
-            {"categories": ["b", "a"], "ordered": True},
-        ),
-        (
-            SchemaDatetimeTZDtype,
-            pd.DatetimeTZDtype,
-            {"unit": "ns", "tz": "EST"},
-        ),
-        (SchemaIntervalDtype, pd.IntervalDtype, {"subtype": "int32"}),
-        (SchemaPeriodDtype, pd.PeriodDtype, {"freq": "D"}),
-        (
-            SchemaSparseDtype,
-            pd.SparseDtype,
-            {"dtype": np.int32, "fill_value": 0},
-        ),
-    ],
-)
-def test_parametrized_pandas_extension_dtype(
-    model: Type[SchemaModel], dtype: Type, dtype_kwargs: Dict[str, Any]
-):
-    """Test type annotations for parametrized pandas extension dtypes."""
-    _test_pandas_extension_dtype(model, dtype, dtype_kwargs)
-
-
-class InvalidSchemaDatetimeTZDtype(pa.SchemaModel):
-    col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
-
-
-def test_invalid_pandas_extension_dtype():
-    """Test incorrect number of parameters for parametrized pandas extension dtypes."""
-    err_msg = re.escape(
-        "Annotation 'DatetimeTZDtype' requires all "
-        r"positional arguments ['unit', 'tz']."
+    @pytest.mark.parametrize(
+        "model, dtype, dtype_kwargs",
+        [
+            (
+                SchemaAnnotatedCategoricalDtype,
+                pd.CategoricalDtype,
+                {"categories": ["b", "a"], "ordered": True},
+            ),
+            (
+                SchemaAnnotatedDatetimeTZDtype,
+                pd.DatetimeTZDtype,
+                {"unit": "ns", "tz": "EST"},
+            ),
+            (
+                SchemaAnnotatedIntervalDtype,
+                pd.IntervalDtype,
+                {"subtype": "int32"},
+            ),
+            (SchemaAnnotatedPeriodDtype, pd.PeriodDtype, {"freq": "D"}),
+            (
+                SchemaAnnotatedSparseDtype,
+                pd.SparseDtype,
+                {"dtype": np.int32, "fill_value": 0},
+            ),
+        ],
     )
-    with pytest.raises(TypeError, match=err_msg):
-        InvalidSchemaDatetimeTZDtype.to_schema()
+    def test_annotated_dtype(
+        model: Type[pa.SchemaModel], dtype: Type, dtype_kwargs: Dict[str, Any]
+    ):
+        """Test type annotations for parametrized pandas extension dtypes."""
+        _test_annotated_dtype(model, dtype, dtype_kwargs)
+
+    class SchemaInvalidAnnotatedDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
+
+    def test_invalid_annotated_dtype():
+        """Test incorrect number of parameters for parametrized pandas extension dtypes."""
+        err_msg = re.escape(
+            "Annotation 'DatetimeTZDtype' requires all "
+            r"positional arguments ['unit', 'tz']."
+        )
+        with pytest.raises(TypeError, match=err_msg):
+            SchemaInvalidAnnotatedDtype.to_schema()
 
 
 if not LEGACY_PANDAS:
@@ -365,4 +365,4 @@ if not LEGACY_PANDAS:
         has_mandatory_args: bool,
     ):
         """Test type annotations with the new nullable pandas dtypes."""
-        _test_default_pandas_extension_dtype(model, dtype, has_mandatory_args)
+        _test_default_annotated_dtype(model, dtype, has_mandatory_args)

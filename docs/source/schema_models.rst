@@ -220,11 +220,13 @@ Parameters for parametrized dtypes, such as :class:`~pandas.CategoricalDtype`
 or :class:`~pandas.DatetimeTZDtype`, can be given via :data:`typing.Annotated`.
 It requires python 3.9 or
 `typing_extensions <https://pypi.org/project/typing-extensions/>`_
-which is already a requirement of Pandera.
+which is already a requirement of Pandera. Unfortunately :data:`typing.Annotated` has
+not been backported to python 3.6.
 
 :green:`✔` Good:
 
 .. testcode:: dataframe_schema_model
+    :skipif: SKIP_PANDAS_LT_V1
 
     import sys
 
@@ -241,6 +243,7 @@ Furthermore, you must pass all parameters in the order defined in the dtype's co
 :red:`✘` Bad:
 
 .. testcode:: dataframe_schema_model
+    :skipif: SKIP_PANDAS_LT_V1
 
     class Schema(pa.SchemaModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
