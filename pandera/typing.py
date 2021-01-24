@@ -1,5 +1,4 @@
 """Typing definitions and helpers."""
-
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import sys
 from typing import TYPE_CHECKING, Generic, Type, TypeVar
@@ -9,10 +8,10 @@ import typing_inspect
 
 from .dtypes import PandasDtype, PandasExtensionType
 
-if sys.version_info[:2] < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal  # pylint:disable=no-name-in-module
+try:  # python 3.8+
+    from typing import Literal  # type: ignore
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
 
 
 LEGACY_TYPING = sys.version_info[:2] < (3, 7)

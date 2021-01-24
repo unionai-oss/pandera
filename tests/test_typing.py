@@ -1,7 +1,6 @@
 """Test typing annotations for the model api."""
 # pylint:disable=missing-class-docstring,too-few-public-methods
 import re
-import sys
 from typing import Any, Dict, Type
 
 import numpy as np
@@ -12,10 +11,11 @@ import pandera as pa
 from pandera.dtypes import LEGACY_PANDAS, PandasDtype
 from pandera.typing import LEGACY_TYPING, Series
 
-if sys.version_info[:2] >= (3, 9):
-    from typing import Annotated  # pylint:disable=no-name-in-module
-elif not LEGACY_TYPING:
-    from typing_extensions import Annotated
+if not LEGACY_TYPING:
+    try:  # python 3.9+
+        from typing import Annotated  # type: ignore
+    except ImportError:
+        from typing_extensions import Annotated  # type: ignore
 
 
 class SchemaBool(pa.SchemaModel):

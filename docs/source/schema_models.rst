@@ -248,12 +248,10 @@ to python 3.6.
 .. testcode:: dataframe_schema_model
     :skipif: PY36
 
-    import sys
-
-    if (3, 6) < sys.version_info[:2] < (3, 9):
+    try:
+        from typing import Annotated  # python 3.9+
+    except ImportError:
         from typing_extensions import Annotated
-    else:
-        from typing import Annotated
 
     class Schema(pa.SchemaModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
