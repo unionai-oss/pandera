@@ -436,7 +436,7 @@ class _CheckBase:
         )
 
 
-class _CheckMeta(type):
+class _CheckMeta(type):  # pragma: no cover
     """Check metaclass."""
 
     def __getattr__(cls, name: str) -> Any:
