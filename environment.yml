@@ -15,7 +15,7 @@ dependencies:
   - wrapt
   - pyyaml
   - typing_inspect
-  - typing_extensions
+  - typing_extensions>=3.7.4.3
 
   # testing and dependencies
   - black >= 20.8b1

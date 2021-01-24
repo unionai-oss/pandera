@@ -1,8 +1,11 @@
 """Class-based api"""
 import inspect
 import re
+import sys
+import typing
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     List,
@@ -11,8 +14,6 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
-    get_type_hints,
 )
 
 import pandas as pd
@@ -30,7 +31,24 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import AnnotationInfo, Index, Series
+from .typing import LEGACY_TYPING, AnnotationInfo, Index, Series
+
+if LEGACY_TYPING:
+
+    def get_type_hints(
+        obj: Callable[..., Any],
+        globalns: Optional[Dict[str, Any]] = None,
+        localns: Optional[Dict[str, Any]] = None,
+        include_extras: bool = False,
+    ) -> Dict[str, Any]:
+        # pylint:disable=function-redefined, missing-function-docstring, unused-argument
+        return typing.get_type_hints(obj, globalns, localns)
+
+
+elif sys.version_info[:2] < (3, 9):
+    from typing_extensions import get_type_hints
+else:
+    from typing import get_type_hints
 
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
 
@@ -113,7 +131,7 @@ class SchemaModel:
             return MODEL_CACHE[cls]
 
         cls.__fields__ = cls._collect_fields()
-        check_infos = cast(
+        check_infos = typing.cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
 
@@ -197,6 +215,18 @@ class SchemaModel:
             field_name = field.name
             check_name = getattr(field, "check_name", None)
 
+            if annotation.metadata:
+                if field.dtype_kwargs:
+                    raise TypeError(
+                        "Cannot specify redundant 'dtype_kwargs' "
+                        + f"for {annotation.raw_annotation}."
+                        + "\n Usage Tip: Drop 'typing.Annotated'."
+                    )
+                dtype_kwargs = _get_dtype_kwargs(annotation)
+                dtype = annotation.arg(**dtype_kwargs)
+            else:
+                dtype = annotation.arg
+
             if annotation.origin is Series:
                 col_constructor = (
                     field.to_column if field else schema_components.Column
@@ -208,7 +238,7 @@ class SchemaModel:
                     )
 
                 columns[field_name] = col_constructor(  # type: ignore
-                    annotation.arg,
+                    dtype,
                     required=not annotation.optional,
                     checks=field_checks,
                     name=field_name,
@@ -230,7 +260,7 @@ class SchemaModel:
                     field.to_index if field else schema_components.Index
                 )
                 index = index_constructor(  # type: ignore
-                    annotation.arg, checks=field_checks, name=field_name
+                    dtype, checks=field_checks, name=field_name
                 )
                 indices.append(index)
             else:
@@ -254,7 +284,9 @@ class SchemaModel:
     @classmethod
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
-        annotations = get_type_hints(cls)
+        annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
+            cls, include_extras=True
+        )
         attrs = cls._get_model_attrs()
 
         missing = []
@@ -285,7 +317,7 @@ class SchemaModel:
     def _collect_config(cls) -> Type[BaseConfig]:
         """Collect config options from bases."""
         bases = inspect.getmro(cls)[:-1]
-        bases = cast(Tuple[Type[SchemaModel]], bases)
+        bases = typing.cast(Tuple[Type[SchemaModel]], bases)
         root_model, *models = reversed(bases)
 
         options = _extract_config_options(root_model.Config)
@@ -302,7 +334,7 @@ class SchemaModel:
         walk the inheritance tree.
         """
         bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
-        bases = cast(Tuple[Type[SchemaModel]], bases)
+        bases = typing.cast(Tuple[Type[SchemaModel]], bases)
 
         method_names = set()
         check_infos = []
@@ -370,3 +402,13 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
         pattern = re.compile(regex)
         matched.update(filter(pattern.match, seq))
     return matched
+
+
+def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
+    dtype_arg_names = list(inspect.signature(annotation.arg).parameters.keys())
+    if len(annotation.metadata) != len(dtype_arg_names):
+        raise TypeError(
+            f"Annotation '{annotation.arg.__name__}' requires "
+            + f"all positional arguments {dtype_arg_names}."
+        )
+    return dict(zip(dtype_arg_names, annotation.metadata))

@@ -8,13 +8,13 @@ import typing_inspect
 
 from .dtypes import PandasDtype, PandasExtensionType
 
-if sys.version_info < (3, 8):  # pragma: no cover
-    from typing_extensions import Literal
-else:  # pragma: no cover
-    from typing import Literal  # pylint:disable=no-name-in-module
+try:  # python 3.8+
+    from typing import Literal  # type: ignore
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
 
 
-_LEGACY_TYPING = sys.version_info[:3] < (3, 7, 0)
+LEGACY_TYPING = sys.version_info[:2] < (3, 7)
 
 GenericDtype = TypeVar(  # type: ignore
     "GenericDtype",
@@ -125,7 +125,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.optional = typing_inspect.is_optional_type(raw_annotation)
         if self.optional:
             # e.g: Typing.Union[pandera.typing.Index[str], NoneType]
-            if _LEGACY_TYPING:  # pragma: no cover
+            if LEGACY_TYPING:  # pragma: no cover
                 # get_args -> ((pandera.typing.Index, <class 'str'>), <class 'NoneType'>)
                 self.origin, self.arg = typing_inspect.get_args(
                     raw_annotation
@@ -133,10 +133,14 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
             # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
             raw_annotation = typing_inspect.get_args(raw_annotation)[0]
 
-        if not (self.optional and _LEGACY_TYPING):
+        if not (self.optional and LEGACY_TYPING):
             self.origin = typing_inspect.get_origin(raw_annotation)
             args = typing_inspect.get_args(raw_annotation)
             self.arg = args[0] if args else args
+
+        self.metadata = getattr(self.arg, "__metadata__", None)
+        if self.metadata:
+            self.arg = typing_inspect.get_args(self.arg)[0]
 
         self.literal = typing_inspect.is_literal_type(self.arg)
         if self.literal:

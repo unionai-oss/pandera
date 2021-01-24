@@ -149,12 +149,15 @@ Supported dtypes
 
 Any dtypes supported by ``pandera`` can be used as type parameters for
 :class:`~pandera.typing.Series` and :class:`~pandera.typing.Index`. There are,
-however, a couple of gotchas:
+however, a couple of gotchas.
 
-1. The enumeration :class:`~pandera.dtypes.PandasDtype` is not directly supported because
-   the type parameter of a :class:`typing.Generic` cannot be an enumeration [#dtypes]_.
-   Instead, you can use the :mod:`pandera.typing` counterparts:
-   :data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
+Dtype aliases
+^^^^^^^^^^^^^
+
+The enumeration :class:`~pandera.dtypes.PandasDtype` is not directly supported because
+the type parameter of a :class:`typing.Generic` cannot be an enumeration [#dtypes]_.
+Instead, you can use the :mod:`pandera.typing` counterparts:
+:data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
 
 :green:`✔` Good:
 
@@ -181,7 +184,10 @@ however, a couple of gotchas:
     ...
     AttributeError: type object 'Generic' has no attribute 'value'
 
-2. You must give a **type**, not an **instance**.
+Type Vs instance
+^^^^^^^^^^^^^^^^
+
+You must give a **type**, not an **instance**.
 
 :green:`✔` Good:
 
@@ -208,6 +214,98 @@ however, a couple of gotchas:
     ...
     TypeError: Parameters to generic types must be types. Got StringDtype.
 
+.. _parameterized dtypes:
+
+Parametrized dtypes
+^^^^^^^^^^^^^^^^^^^
+Pandas supports a couple of parametrized dtypes. As of pandas 1.2.0:
+
+
++-------------------+---------------------------+-----------------------------+
+| Kind of Data      | Data Type                 | Parameters                  |
++===================+===========================+=============================+
+| tz-aware datetime | :class:`DatetimeTZDtype`  | ``unit``, ``tz``            |
++-------------------+---------------------------+-----------------------------+
+| Categorical       | :class:`CategoricalDtype` | ``categories``, ``ordered`` |
++-------------------+---------------------------+-----------------------------+
+| period            | :class:`PeriodDtype`      | ``freq``                    |
++-------------------+---------------------------+-----------------------------+
+| sparse            | :class:`SparseDtype`      | ``dtype``, ``fill_value``   |
++-------------------+---------------------------+-----------------------------+
+| intervals         | :class:`IntervalDtype`    | ``subtype``                 |
++-------------------+---------------------------+-----------------------------+
+
+Annotated
+"""""""""
+
+Parameters can be given via :data:`typing.Annotated`. It requires python > 3.9 or
+`typing_extensions <https://pypi.org/project/typing-extensions/>`_, which is already a
+requirement of Pandera. Unfortunately :data:`typing.Annotated` has not been backported
+to python 3.6.
+
+:green:`✔` Good:
+
+.. testcode:: dataframe_schema_model
+    :skipif: PY36
+
+    try:
+        from typing import Annotated  # python 3.9+
+    except ImportError:
+        from typing_extensions import Annotated
+
+    class Schema(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
+
+Furthermore, you must pass all parameters in the order defined in the dtype's
+constructor (see :ref:`table <parameterized dtypes>`).
+
+:red:`✘` Bad:
+
+.. testcode:: dataframe_schema_model
+    :skipif: PY36
+
+    class Schema(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
+
+    Schema.to_schema()
+
+.. testoutput:: dataframe_schema_model
+    :skipif: PY36
+
+    Traceback (most recent call last):
+    ...
+    TypeError: Annotation 'DatetimeTZDtype' requires all positional arguments ['unit', 'tz'].
+
+Field
+"""""
+
+:green:`✔` Good:
+
+.. testcode:: dataframe_schema_model
+
+    class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+        col: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
+
+You cannot use both :data:`typing.Annotated` and ``dtype_kwargs``.
+
+:red:`✘` Bad:
+
+.. testcode:: dataframe_schema_model
+    :skipif: PY36
+
+    class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
+
+    Schema.to_schema()
+
+.. testoutput:: dataframe_schema_model
+    :skipif: PY36
+
+    Traceback (most recent call last):
+    ...
+    TypeError: Cannot specify redundant 'dtype_kwargs' for pandera.typing.Series[typing_extensions.Annotated[pandas.core.dtypes.dtypes.DatetimeTZDtype, 'ns', 'est']].
+    Usage Tip: Drop 'typing.Annotated'.
+
 Required Columns
 ----------------
 
@@ -216,6 +314,7 @@ that if a column is missing in the input DataFrame an exception will be
 thrown. If you want to make a column optional, annotate it with :data:`typing.Optional`.
 
 .. testcode:: dataframe_schema_model
+    :skipif: PY36
 
     from typing import Optional
 
