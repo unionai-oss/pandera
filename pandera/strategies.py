@@ -64,9 +64,10 @@ def null_field_masks(draw, strategy: Optional[SearchStrategy]):
     hypothesis.assume(any(null_mask))
     if isinstance(val, pd.Index):
         val = val.to_series()
-        val = val.mask(null_mask)
+        val.mask(null_mask, inplace=True)
         return pd.Index(val)
-    return val.mask(null_mask)
+    val.mask(null_mask, inplace=True)
+    return val
 
 
 @composite
