@@ -54,7 +54,7 @@ def _mask(
     val: Union[pd.Series, pd.Index], null_mask: List[bool]
 ) -> Union[pd.Series, pd.Index]:
     if pd.api.types.is_timedelta64_dtype(val):
-        return val.where(null_mask, pd.NaT)
+        return val.mask(null_mask, pd.NaT)
     return val.mask(null_mask)
 
 
