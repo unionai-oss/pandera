@@ -610,9 +610,9 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
     example = data.draw(strat)
 
     if nullable:
-        assert example.isna().any()
+        assert example.isnull().any()
     else:
-        assert example.notna().all()
+        assert example.notnull().all()
 
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
