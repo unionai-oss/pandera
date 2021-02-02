@@ -111,7 +111,14 @@ def null_dataframe_masks(
     null_mask = draw(mask_st)
     # assume that there is at least one masked value
     hypothesis.assume(null_mask.any(axis=None))
-    return val.mask(null_mask)
+    timedeltas = val.select_dtypes("timedelta64").columns
+    if not timedeltas.empty:
+        val[timedeltas] = val[timedeltas].mask(null_mask, pd.NaT)
+        not_timedeltas = [col for col in val.columns if col not in timedeltas]
+        val[not_timedeltas] = val[not_timedeltas].mask(null_mask)
+    else:
+        val = val.mask(null_mask)
+    return val
 
 
 @composite
