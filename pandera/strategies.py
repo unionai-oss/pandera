@@ -70,7 +70,6 @@ def null_field_masks(draw, strategy: Optional[SearchStrategy]):
     null_mask = draw(st.lists(st.booleans(), min_size=size, max_size=size))
     # assume that there is at least one masked value
     hypothesis.assume(any(null_mask))
-    hypothesis.assume(not all(null_mask))
     if isinstance(val, pd.Index):
         val = val.to_series()
         val = _mask(val, null_mask)
