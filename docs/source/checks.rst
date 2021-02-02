@@ -261,6 +261,7 @@ normality assumptions are not fulfilled by certain columns, but you still
 want the resulting table for further analysis.
 
 .. testcode:: check_raise_warning
+    :skipif: SKIP_PANDAS_LT_V1
 
     import warnings
 
@@ -305,6 +306,7 @@ want the resulting table for further analysis.
 
 
 .. testoutput:: check_raise_warning
+    :skipif: SKIP_PANDAS_LT_V1
 
     <Schema Column: 'var2' type=None> failed series validator 0:
     <Check _hypothesis_check: normality test>

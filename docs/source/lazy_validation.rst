@@ -49,6 +49,7 @@ columns and checks. The ``lazy`` keyword argument in the ``validate`` method
 of all schemas and schema components gives you the option of doing just this:
 
 .. testcode:: lazy_validation
+    :skipif: SKIP_PANDAS_LT_V1
 
     import pandas as pd
     import pandera as pa
@@ -75,6 +76,7 @@ of all schemas and schema components gives you the option of doing just this:
     schema.validate(df, lazy=True)
 
 .. testoutput:: lazy_validation
+    :skipif: SKIP_PANDAS_LT_V1
 
     Traceback (most recent call last):
     ...
@@ -116,7 +118,7 @@ catch these errors and inspect the failure cases in a more granular form:
 
 
 .. testcode:: lazy_validation
-    :skipif: SKIP
+    :skipif: SKIP_PANDAS_LT_V1
 
     try:
         schema.validate(df, lazy=True)
@@ -127,7 +129,7 @@ catch these errors and inspect the failure cases in a more granular form:
         print(err.data.head())
 
 .. testoutput:: lazy_validation
-    :skipif: SKIP
+    :skipif: SKIP_PANDAS_LT_V1
 
     Schema errors and failure cases:
         schema_context        column                    check check_number  \
