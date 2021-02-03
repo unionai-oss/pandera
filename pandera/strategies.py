@@ -182,7 +182,6 @@ def register_check_strategy(strategy_fn: StrategyFn):
                 for arg, stat in check.statistics.items()
                 if stat is not None
             }
-
             check.strategy = partial(strategy_fn, **strategy_kwargs)
             return check
 
@@ -879,6 +878,7 @@ def dataframe_strategy(
     columns = {} if columns is None else columns
     checks = [] if checks is None else checks
 
+    # override the column datatype with dataframe-level datatype if specified
     col_dtypes = {
         col_name: col.dtype if pandas_dtype is None else pandas_dtype.str_alias
         for col_name, col in columns.items()
@@ -970,19 +970,13 @@ def dataframe_strategy(
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
-    ).map(lambda df: df if df.empty else df.astype(col_dtypes))
+    ).map(lambda df: df.astype(col_dtypes))
 
     if any(nullable_columns.values()):
         strategy = null_dataframe_masks(strategy, nullable_columns)
 
     if index is not None:
         strategy = set_pandas_index(strategy, index.strategy(size=size))
-
-    strategy = strategy.map(  # type: ignore
-        lambda x: x.astype(pandas_dtype.str_alias)
-        if pandas_dtype is not None
-        else x
-    )
 
     for check in undefined_strat_df_checks:
         strategy = undefined_check_strategy(strategy, check)
