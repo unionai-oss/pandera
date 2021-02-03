@@ -666,6 +666,7 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     ],
 )
 @hypothesis.settings(
+    deadline=2000,
     suppress_health_check=[
         hypothesis.HealthCheck.filter_too_much,
         hypothesis.HealthCheck.too_slow,
