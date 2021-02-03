@@ -970,7 +970,7 @@ def dataframe_strategy(
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
-    ).map(lambda df: df.astype(col_dtypes))
+    ).map(lambda df: df if df.empty else df.astype(col_dtypes))
 
     if any(nullable_columns.values()):
         strategy = null_dataframe_masks(strategy, nullable_columns)
