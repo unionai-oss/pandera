@@ -239,10 +239,9 @@ def helper_type_validation(dataframe_type, schema_type, debugging=False):
     schema(df)
 
 
-def test_numpy_type():
-    """Test various numpy dtypes"""
-    # Test correct conversions
-    valid_types = (
+@pytest.mark.parametrize(
+    "type1, type2",
+    [
         # Pandas always converts complex numbers to np.complex128
         (np.complex_, np.complex_),
         (np.complex_, np.complex128),
@@ -251,13 +250,13 @@ def test_numpy_type():
         (np.complex128, np.complex128),
         # Pandas always converts float numbers to np.float64
         (np.float_, np.float_),
-        (np.float_, np.float64),
+        (np.float_, _DEFAULT_NUMPY_FLOAT_TYPE),
         (np.float16, np.float64),
         (np.float32, np.float64),
         (np.float64, np.float64),
         # Pandas always converts int numbers to np.int64
         (np.int_, np.int_),
-        (np.int_, np.int64),
+        (np.int_, _DEFAULT_NUMPY_INT_TYPE),
         (np.int8, np.int64),
         (np.int16, np.int64),
         (np.int32, np.int64),
@@ -272,20 +271,23 @@ def test_numpy_type():
         (np.bool_, np.bool_),
         (np.str_, np.str_)
         # np.object, np.void and bytes are not tested
-    )
+    ],
+)
+def test_valid_numpy_type_conversions(type1, type2):
+    """Test correct conversions of numpy dtypes"""
+    try:
+        helper_type_validation(type1, type2)
+    except:  # pylint: disable=bare-except
+        # No exceptions since it should cover all exceptions for debug
+        # purpose
+        # Rerun test with debug inforation
+        print(f"Error on types: {type1}, {type2}")
+        helper_type_validation(type1, type2, True)
 
-    for valid_type in valid_types:
-        try:
-            helper_type_validation(valid_type[0], valid_type[1])
-        except:  # pylint: disable=bare-except
-            # No exceptions since it should cover all exceptions for debug
-            # purpose
-            # Rerun test with debug inforation
-            print(f"Error on types: {valid_type}")
-            helper_type_validation(valid_type[0], valid_type[1], True)
 
-    # Examples of types comparisons, which shall fail
-    invalid_types = (
+@pytest.mark.parametrize(
+    "type1, type2",
+    [
         (np.complex_, np.int_),
         (np.int_, np.complex_),
         (float, np.complex_),
@@ -293,10 +295,12 @@ def test_numpy_type():
         (np.int_, np.float_),
         (np.uint8, np.float_),
         (np.complex_, str),
-    )
-    for invalid_type in invalid_types:
-        with pytest.raises(SchemaError):
-            helper_type_validation(invalid_type[0], invalid_type[1])
+    ],
+)
+def test_invalid_numpy_type_conversions(type1, type2):
+    """Test various numpy dtypes"""
+    with pytest.raises(SchemaError):
+        helper_type_validation(type1, type2)
 
     PandasDtype.from_numpy_type(np.float_)
     with pytest.raises(TypeError):
