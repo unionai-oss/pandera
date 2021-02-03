@@ -50,6 +50,14 @@ StrategyFn = Callable[..., SearchStrategy]
 IndexComponent = Any
 
 
+def _mask(
+    val: Union[pd.Series, pd.Index], null_mask: List[bool]
+) -> Union[pd.Series, pd.Index]:
+    if pd.api.types.is_timedelta64_dtype(val):
+        return val.mask(null_mask, pd.NaT)
+    return val.mask(null_mask)
+
+
 @composite
 def null_field_masks(draw, strategy: Optional[SearchStrategy]):
     """Strategy for masking a column/index with null values.
@@ -64,9 +72,9 @@ def null_field_masks(draw, strategy: Optional[SearchStrategy]):
     hypothesis.assume(any(null_mask))
     if isinstance(val, pd.Index):
         val = val.to_series()
-        val = val.mask(null_mask)
+        val = _mask(val, null_mask)
         return pd.Index(val)
-    return val.mask(null_mask)
+    return _mask(val, null_mask)
 
 
 @composite
@@ -102,7 +110,9 @@ def null_dataframe_masks(
     null_mask = draw(mask_st)
     # assume that there is at least one masked value
     hypothesis.assume(null_mask.any(axis=None))
-    return val.mask(null_mask)
+    for column in val:
+        val[column] = _mask(val[column], null_mask[column])
+    return val
 
 
 @composite

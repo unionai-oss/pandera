@@ -24,8 +24,10 @@ NUMPY_NONNULLABLE_INT_DTYPES = [
 ]
 
 NUMPY_TYPES = frozenset(
-    [item for sublist in np.sctypes.values() for item in sublist]
-).union(frozenset([np.complex, np.int, np.uint, np.float]))
+    [item for sublist in np.sctypes.values() for item in sublist]  # type: ignore
+).union(
+    frozenset([np.complex_, np.int_, np.uint, np.float_, np.str_, np.bool_])
+)
 
 # for int and float dtype, delegate string representation to the
 # default based on OS. In Windows, pandas defaults to int64 while numpy
@@ -275,7 +277,8 @@ class PandasDtype(Enum):
 
         :param numpy_type: numpy data type.
         """
-        return cls.from_str_alias(numpy_type.__name__)
+        pd_dtype = pd.api.types.pandas_dtype(numpy_type)
+        return cls.from_str_alias(pd_dtype.name)
 
     @classmethod
     def get_str_dtype(cls, pandas_dtype_arg):
