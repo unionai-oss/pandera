@@ -652,11 +652,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     def __repr__(self):
         """Represent string for logging."""
-        return "%s(columns=%s, index=%s, coerce=%s)" % (
-            self.__class__.__name__,
-            self.columns,
-            self.index,
-            self.coerce,
+        return (
+            f"<Schema {self.__class__.__name__}("
+            f"(columns={self.columns}, "
+            f"index={self.index.__repr__()}, "
+            f"coerce={self.coerce})"
         )
 
     def __str__(self):
@@ -664,42 +664,40 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         def _format_multiline(json_str, arg):
             return "\n".join(
-                "{}{}".format(_indent, line)
+                "{}{}".format(indent, line)
                 if i != 0
-                else "{}{}={}".format(_indent, arg, line)
+                else "{}{}={}".format(indent, arg, line)
                 for i, line in enumerate(json_str.split("\n"))
             )
 
-        columns = {k: str(v) for k, v in self.columns.items()}
-        columns = json.dumps(columns, indent=N_INDENT_SPACES)
-        _indent = " " * N_INDENT_SPACES
-        columns = _format_multiline(columns, "columns")
-        checks = (
-            None
-            if self.checks is None
-            else _format_multiline(
-                json.dumps(
-                    [str(x) for x in self.checks], indent=N_INDENT_SPACES
-                ),
-                "checks",
+        indent = " " * N_INDENT_SPACES
+        columns_str = f"{indent}columns={{\n"
+        for colname, col in self.columns.items():
+            columns_str += f"{indent * 2}'{colname}': {col}\n"
+        columns_str += f"{indent}}}"
+
+        checks_str = f"{indent}checks=[\n"
+        for check in self.checks:
+            checks_str += f"{indent * 2}{check}\n"
+        checks_str += f"{indent}]"
+
+        # add additional indents
+        index = str(self.index).split("\n")
+        if len(index) == 1:
+            index = str(self.index)
+        else:
+            index = "\n".join(
+                x if i == 0 else f"{indent}{x}" for i, x in enumerate(index)
             )
-        )
+
         return (
-            "{class_name}(\n"
-            "{columns},\n"
-            "{checks},\n"
-            "{indent}index={index},\n"
-            "{indent}coerce={coerce},\n"
-            "{indent}strict={strict}\n"
-            ")"
-        ).format(
-            class_name=self.__class__.__name__,
-            columns=columns,
-            checks=checks,
-            index=str(self.index),
-            coerce=self.coerce,
-            strict=self.strict,
-            indent=_indent,
+            f"<Schema {self.__class__.__name__}(\n"
+            f"{columns_str},\n"
+            f"{checks_str},\n"
+            f"{indent}coerce={self.coerce},\n"
+            f"{indent}index={index},\n"
+            f"{indent}strict={self.strict}\n"
+            ")>"
         )
 
     def __eq__(self, other):
@@ -1445,7 +1443,7 @@ class SeriesSchemaBase:
         nullable: bool = False,
         allow_duplicates: bool = True,
         coerce: bool = False,
-        name: str = None,
+        name: Any = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1865,6 +1863,16 @@ class SeriesSchemaBase:
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
             return self.strategy(size=size).example()
+
+    def __repr__(self):
+        if isinstance(self._pandas_dtype, PandasDtype):
+            dtype = self._pandas_dtype.value
+        else:
+            dtype = self._pandas_dtype
+        return (
+            f"<Schema {self.__class__.__name__}"
+            f"(name={self._name}, type={dtype})>"
+        )
 
 
 class SeriesSchema(SeriesSchemaBase):
