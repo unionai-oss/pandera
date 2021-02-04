@@ -33,8 +33,10 @@ def register_check_statistics(statistics_args):
         @wraps(class_method)
         def _wrapper(cls, *args, **kwargs):
             args = list(args)
-            arg_spec_args = inspect.getfullargspec(class_method).args[1:]
-            args_dict = {**dict(zip(arg_spec_args, args)), **kwargs}
+            arg_names = inspect.getfullargspec(class_method).args[1:]
+            if not arg_names:
+                arg_names = statistics_args
+            args_dict = {**dict(zip(arg_names, args)), **kwargs}
             check = class_method(cls, *args, **kwargs)
             check.statistics = {
                 stat: args_dict.get(stat)
