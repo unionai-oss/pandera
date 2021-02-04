@@ -688,10 +688,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return _compare_dict(self) == _compare_dict(other)
 
     @st.strategy_import_error
-    def strategy(self, *, size=None):
+    def strategy(self, *, size=None, n_regex_columns=1):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
+        :param n_regex_columns: number of regex columns to generate.
         :returns: a strategy that generates pandas DataFrame objects.
         """
         return st.dataframe_strategy(
@@ -700,6 +701,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             checks=self.checks,
             index=self.index,
             size=size,
+            n_regex_columns=n_regex_columns,
         )
 
     def example(self, size=None) -> pd.DataFrame:

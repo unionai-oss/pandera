@@ -847,7 +847,9 @@ def index_strategy(
     return strategy
 
 
+@composite
 def dataframe_strategy(
+    draw,
     pandas_dtype: Optional[PandasDtype] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
@@ -855,21 +857,28 @@ def dataframe_strategy(
     checks: Optional[Sequence] = None,
     index: Optional[IndexComponent] = None,
     size: Optional[int] = None,
+    n_regex_columns: int = 1,
 ):
     """Strategy to generate a pandas DataFrame.
 
     :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
-    :param strategy: an optional hypothesis strategy. If specified, the
-        pandas dtype strategy will be chained onto this strategy.
+    :param strategy: if specified, this will raise a BaseStrategyOnlyError,
+        since it cannot be chained to a prior strategy.
     :param columns: a dictionary where keys are column names and values
         are :class:`~pandera.schema_components.Column` objects.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data at the dataframe level.
     :param index: Index or MultiIndex schema component.
     :param size: number of elements in the Series.
+    :param n_regex_columns: number of regex columns to generate.
     :returns: ``hypothesis`` strategy.
     """
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,too-many-branches
+    if n_regex_columns < 1:
+        raise ValueError(
+            "`n_regex_columns` must be a positive integer, found: "
+            f"{n_regex_columns}"
+        )
     if strategy:
         raise BaseStrategyOnlyError(
             "The dataframe strategy is a base strategy. You cannot specify "
@@ -877,16 +886,6 @@ def dataframe_strategy(
         )
     columns = {} if columns is None else columns
     checks = [] if checks is None else checks
-
-    # override the column datatype with dataframe-level datatype if specified
-    col_dtypes = {
-        col_name: col.dtype if pandas_dtype is None else pandas_dtype.str_alias
-        for col_name, col in columns.items()
-    }
-
-    nullable_columns = {
-        col_name: col.nullable for col_name, col in columns.items()
-    }
 
     def undefined_check_strategy(strategy, check, column=None):
         """Strategy for checks with undefined strategies."""
@@ -955,17 +954,39 @@ def dataframe_strategy(
             if not hasattr(check, "strategy") and not check.element_wise
         )
 
+    # expand column set to generate column names for columns where regex=True.
+    expanded_columns = {}
+    for col_name, column in columns.items():
+        if not column.regex:
+            expanded_columns[col_name] = column
+        else:
+            for _ in range(n_regex_columns):
+                regex_name = draw(st.from_regex(column.name, fullmatch=True))
+                expanded_columns[regex_name] = column.set_name(regex_name)
+
+    # override the column datatype with dataframe-level datatype if specified
+    col_dtypes = {
+        col_name: col.dtype if pandas_dtype is None else pandas_dtype.str_alias
+        for col_name, col in expanded_columns.items()
+    }
+
+    nullable_columns = {
+        col_name: col.nullable for col_name, col in expanded_columns.items()
+    }
+
     row_strategy = None
     if checks:
         row_strategy = st.fixed_dictionaries(
             {
                 col_name: make_row_strategy(col, row_strategy_checks)
-                for col_name, col in columns.items()
+                for col_name, col in expanded_columns.items()
             }
         )
 
     strategy = pdst.data_frames(
-        columns=[column.strategy_component() for column in columns.values()],
+        columns=[
+            column.strategy_component() for column in expanded_columns.values()
+        ],
         rows=row_strategy,
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
@@ -987,7 +1008,7 @@ def dataframe_strategy(
                 strategy, check, column=col_name
             )
 
-    return strategy
+    return draw(strategy)
 
 
 # pylint: disable=unused-argument
