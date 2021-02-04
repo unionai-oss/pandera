@@ -63,7 +63,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         pandas_dtype: PandasDtypeInputTypes = None,
         transformer: Callable = None,
         coerce: bool = False,
-        strict=False,
+        strict: Union[bool, str] = False,
         name: str = None,
         ordered: bool = False,
     ) -> None:
@@ -85,8 +85,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             transformed dataframe object.
         :param coerce: whether or not to coerce all of the columns on
             validation.
-        :param strict: whether or not to accept columns in the dataframe that
-            aren't in the DataFrameSchema.
+        :param strict: ensure that all and only the columns defined in the
+            schema are present in the dataframe. If set to 'filter',
+            only the columns in the schema will be passed to the validated
+            dataframe. If set to filter and columns defined in the schema
+            are not present in the dataframe, will throw an error.
         :param name: name of the schema.
         :param ordered: whether or not to validate the columns order.
 
@@ -151,6 +154,16 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 "data with `transformer(schema(df))` or "
                 "`schema(df).pipe(transformer)`",
                 DeprecationWarning,
+            )
+
+        if strict not in (
+            False,
+            True,
+            "filter",
+        ):
+            raise errors.SchemaInitError(
+                "strict parameter must equal either `True`, `False`, "
+                "or `'filter'`."
             )
 
         self.checks = checks
@@ -441,7 +454,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
-        if self.strict or self.ordered:
+        if (self.strict is not False) or self.ordered:
             column_names = []
             for col_name, col_schema in self.columns.items():
                 if col_schema.regex:
@@ -465,8 +478,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
             for column in columns:
                 is_schema_col = column in expanded_column_names
-                if self.strict and not is_schema_col:
-                    msg = f"column '{column}' not in DataFrameSchema {self.columns}"
+                if (self.strict is True) and not is_schema_col:
+                    msg = (
+                        f"column '{column}' not XXX in DataFrameSchema"
+                        f" {self.columns}"
+                    )
                     error_handler.collect_error(
                         "column_not_in_schema",
                         errors.SchemaError(
@@ -477,6 +493,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                             check="column_in_schema",
                         ),
                     )
+                if self.strict == "filter" and not is_schema_col:
+                    check_obj.drop(labels=[column], inplace=True, axis=1)
                 if self.ordered and is_schema_col:
                     try:
                         next_ordered_col = next(sorted_column_names)
