@@ -15,6 +15,7 @@ import operator
 import re
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
@@ -969,7 +970,9 @@ def dataframe_strategy(
                 )
             )
             for regex_col in regex_columns:
-                expanded_columns[regex_col] = column.set_name(regex_col)
+                expanded_columns[regex_col] = deepcopy(column).set_name(
+                    regex_col
+                )
 
     # override the column datatype with dataframe-level datatype if specified
     col_dtypes = {
