@@ -454,7 +454,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
-        if (self.strict is not False) or self.ordered:
+        if self.strict or self.ordered:
             column_names = []
             for col_name, col_schema in self.columns.items():
                 if col_schema.regex:
@@ -480,7 +480,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 is_schema_col = column in expanded_column_names
                 if (self.strict is True) and not is_schema_col:
                     msg = (
-                        f"column '{column}' not XXX in DataFrameSchema"
+                        f"column '{column}' not in DataFrameSchema"
                         f" {self.columns}"
                     )
                     error_handler.collect_error(
