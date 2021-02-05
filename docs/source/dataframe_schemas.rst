@@ -414,7 +414,7 @@ you can specify ``strict='filter'``.
 
    from pandera import Column, DataFrameSchema
 
-   df = pd.DataFrame({"column1": ["drop", "me"]}, {"column2": ["keep", "me"]})
+   df = pd.DataFrame({"column1": ["drop", "me"],"column2": ["keep", "me"]})
    schema = DataFrameSchema({"column2": Column(pa.String)}, strict='filter')
 
    validated_df = schema.validate(df)
