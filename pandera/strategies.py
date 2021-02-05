@@ -960,9 +960,16 @@ def dataframe_strategy(
         if not column.regex:
             expanded_columns[col_name] = column
         else:
-            for _ in range(n_regex_columns):
-                regex_name = draw(st.from_regex(column.name, fullmatch=True))
-                expanded_columns[regex_name] = column.set_name(regex_name)
+            regex_columns = draw(
+                st.lists(
+                    st.from_regex(column.name, fullmatch=True),
+                    min_size=n_regex_columns,
+                    max_size=n_regex_columns,
+                    unique=True,
+                )
+            )
+            for regex_col in regex_columns:
+                expanded_columns[regex_col] = column.set_name(regex_col)
 
     # override the column datatype with dataframe-level datatype if specified
     col_dtypes = {

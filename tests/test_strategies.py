@@ -471,7 +471,7 @@ def test_dataframe_example():
         "[a-z]+_[0-9]+_[a-z]+",
     ],
 )
-@hypothesis.given(st.data(), st.integers(min_value=-10, max_value=100))
+@hypothesis.given(st.data(), st.integers(min_value=-10, max_value=30))
 def test_dataframe_with_regex(regex, data, n_regex_columns):
     """Test DataFrameSchema strategy with regex columns"""
     dataframe_schema = pa.DataFrameSchema({regex: pa.Column(int, regex=True)})
@@ -482,7 +482,8 @@ def test_dataframe_with_regex(regex, data, n_regex_columns):
         with pytest.raises(ValueError):
             data.draw(strategy)
     else:
-        dataframe_schema(data.draw(strategy))
+        df = dataframe_schema(data.draw(strategy))
+        assert df.shape[1] == n_regex_columns
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)

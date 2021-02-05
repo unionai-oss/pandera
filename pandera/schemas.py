@@ -704,7 +704,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             n_regex_columns=n_regex_columns,
         )
 
-    def example(self, size=None) -> pd.DataFrame:
+    def example(self, size=None, n_regex_columns=1) -> pd.DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
@@ -718,7 +718,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return self.strategy(size=size).example()
+            return self.strategy(
+                size=size, n_regex_columns=n_regex_columns
+            ).example()
 
     @_inferred_schema_guard
     def add_columns(
