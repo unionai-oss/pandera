@@ -848,9 +848,7 @@ def index_strategy(
     return strategy
 
 
-@composite
 def dataframe_strategy(
-    draw,
     pandas_dtype: Optional[PandasDtype] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
@@ -885,6 +883,7 @@ def dataframe_strategy(
             "The dataframe strategy is a base strategy. You cannot specify "
             "the strategy argument to chain it to a parent strategy."
         )
+
     columns = {} if columns is None else columns
     checks = [] if checks is None else checks
 
@@ -936,89 +935,99 @@ def dataframe_strategy(
             strategy = pandas_dtype_strategy(col.pdtype)
         return strategy
 
-    row_strategy_checks = []
-    undefined_strat_df_checks = []
-    for check in checks:
-        if hasattr(check, "strategy") or check.element_wise:
-            # we can apply element-wise checks defined at the dataframe level
-            # to the row strategy
-            row_strategy_checks.append(check)
-        else:
-            undefined_strat_df_checks.append(check)
+    @composite
+    def _dataframe_strategy(draw):
+        row_strategy_checks = []
+        undefined_strat_df_checks = []
+        for check in checks:
+            if hasattr(check, "strategy") or check.element_wise:
+                # we can apply element-wise checks defined at the dataframe
+                # level to the row strategy
+                row_strategy_checks.append(check)
+            else:
+                undefined_strat_df_checks.append(check)
 
-    # collect all non-element-wise column checks with undefined strategies
-    undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
-    for col_name, column in columns.items():
-        undefined_strat_column_checks[col_name].extend(
-            check
-            for check in column.checks
-            if not hasattr(check, "strategy") and not check.element_wise
-        )
-
-    # expand column set to generate column names for columns where regex=True.
-    expanded_columns = {}
-    for col_name, column in columns.items():
-        if not column.regex:
-            expanded_columns[col_name] = column
-        else:
-            regex_columns = draw(
-                st.lists(
-                    st.from_regex(column.name, fullmatch=True),
-                    min_size=n_regex_columns,
-                    max_size=n_regex_columns,
-                    unique=True,
-                )
-            )
-            for regex_col in regex_columns:
-                expanded_columns[regex_col] = deepcopy(column).set_name(
-                    regex_col
-                )
-
-    # override the column datatype with dataframe-level datatype if specified
-    col_dtypes = {
-        col_name: col.dtype if pandas_dtype is None else pandas_dtype.str_alias
-        for col_name, col in expanded_columns.items()
-    }
-
-    nullable_columns = {
-        col_name: col.nullable for col_name, col in expanded_columns.items()
-    }
-
-    row_strategy = None
-    if checks:
-        row_strategy = st.fixed_dictionaries(
-            {
-                col_name: make_row_strategy(col, row_strategy_checks)
-                for col_name, col in expanded_columns.items()
-            }
-        )
-
-    strategy = pdst.data_frames(
-        columns=[
-            column.strategy_component() for column in expanded_columns.values()
-        ],
-        rows=row_strategy,
-        index=pdst.range_indexes(
-            min_size=0 if size is None else size, max_size=size
-        ),
-    ).map(lambda df: df if df.empty else df.astype(col_dtypes))
-
-    if any(nullable_columns.values()):
-        strategy = null_dataframe_masks(strategy, nullable_columns)
-
-    if index is not None:
-        strategy = set_pandas_index(strategy, index.strategy(size=size))
-
-    for check in undefined_strat_df_checks:
-        strategy = undefined_check_strategy(strategy, check)
-
-    for col_name, column_checks in undefined_strat_column_checks.items():
-        for check in column_checks:  # type: ignore
-            strategy = undefined_check_strategy(
-                strategy, check, column=col_name
+        # collect all non-element-wise column checks with undefined strategies
+        undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
+        for col_name, column in columns.items():
+            undefined_strat_column_checks[col_name].extend(
+                check
+                for check in column.checks
+                if not hasattr(check, "strategy") and not check.element_wise
             )
 
-    return draw(strategy)
+        # expand column set to generate column names for columns where
+        # regex=True.
+        expanded_columns = {}
+        for col_name, column in columns.items():
+            if not column.regex:
+                expanded_columns[col_name] = column
+            else:
+                regex_columns = draw(
+                    st.lists(
+                        st.from_regex(column.name, fullmatch=True),
+                        min_size=n_regex_columns,
+                        max_size=n_regex_columns,
+                        unique=True,
+                    )
+                )
+                for regex_col in regex_columns:
+                    expanded_columns[regex_col] = deepcopy(column).set_name(
+                        regex_col
+                    )
+
+        # override the column datatype with dataframe-level datatype if
+        # specified
+        col_dtypes = {
+            col_name: col.dtype
+            if pandas_dtype is None
+            else pandas_dtype.str_alias
+            for col_name, col in expanded_columns.items()
+        }
+
+        nullable_columns = {
+            col_name: col.nullable
+            for col_name, col in expanded_columns.items()
+        }
+
+        row_strategy = None
+        if checks:
+            row_strategy = st.fixed_dictionaries(
+                {
+                    col_name: make_row_strategy(col, row_strategy_checks)
+                    for col_name, col in expanded_columns.items()
+                }
+            )
+
+        strategy = pdst.data_frames(
+            columns=[
+                column.strategy_component()
+                for column in expanded_columns.values()
+            ],
+            rows=row_strategy,
+            index=pdst.range_indexes(
+                min_size=0 if size is None else size, max_size=size
+            ),
+        ).map(lambda df: df if df.empty else df.astype(col_dtypes))
+
+        if any(nullable_columns.values()):
+            strategy = null_dataframe_masks(strategy, nullable_columns)
+
+        if index is not None:
+            strategy = set_pandas_index(strategy, index.strategy(size=size))
+
+        for check in undefined_strat_df_checks:
+            strategy = undefined_check_strategy(strategy, check)
+
+        for col_name, column_checks in undefined_strat_column_checks.items():
+            for check in column_checks:  # type: ignore
+                strategy = undefined_check_strategy(
+                    strategy, check, column=col_name
+                )
+
+        return draw(strategy)
+
+    return _dataframe_strategy()
 
 
 # pylint: disable=unused-argument

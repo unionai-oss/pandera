@@ -25,7 +25,7 @@ requirements:
 
 docs:
 	rm -rf docs/source/generated && \
-		python -m sphinx -E "docs/source" "docs/_build" -W && \
+		python -m sphinx -E "docs/source" "docs/_build" -W -v && \
 		make -C docs doctest
 
 code-cov:

@@ -449,10 +449,8 @@ def test_dataframe_strategy(pdtype, data):
     )
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
-        data.draw(
-            strategies.dataframe_strategy(
-                pdtype, strategies.pandas_dtype_strategy(pdtype)
-            )
+        strategies.dataframe_strategy(
+            pdtype, strategies.pandas_dtype_strategy(pdtype)
         )
 
 
@@ -475,14 +473,17 @@ def test_dataframe_example():
 def test_dataframe_with_regex(regex, data, n_regex_columns):
     """Test DataFrameSchema strategy with regex columns"""
     dataframe_schema = pa.DataFrameSchema({regex: pa.Column(int, regex=True)})
-    strategy = dataframe_schema.strategy(
-        size=5, n_regex_columns=n_regex_columns
-    )
     if n_regex_columns < 1:
         with pytest.raises(ValueError):
-            data.draw(strategy)
+            dataframe_schema.strategy(size=5, n_regex_columns=n_regex_columns)
     else:
-        df = dataframe_schema(data.draw(strategy))
+        df = dataframe_schema(
+            data.draw(
+                dataframe_schema.strategy(
+                    size=5, n_regex_columns=n_regex_columns
+                )
+            )
+        )
         assert df.shape[1] == n_regex_columns
 
 
