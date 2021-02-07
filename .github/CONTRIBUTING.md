@@ -19,6 +19,11 @@ create a development environment that is separate from your existing Python
 environment so that you can make and test changes without compromising your
 own work environment.
 
+An excellent guide on setting up python environments can be found 
+[here](https://pandas.pydata.org/docs/development/contributing.html#creating-a-python-environment).
+Pandera offers a `environment.yml` to set up a conda-based environment and
+`requirements-dev.txt` for a virtualenv.
+
 ### Contributing documentation
 
 Maybe the easiest, fastest, and most useful way to contribute to this project
@@ -32,6 +37,7 @@ TLD, take a look at the [Sphinx](https://www.sphinx-doc.org/en/1.0/rest.html)
 documentation or well-documented [examples](https://pandera.readthedocs.io/en/stable/_modules/pandera/schemas.html#DataFrameSchema)
 within the codebase for guidance on contributing.
 
+You can build the html documentation by running `nox -s docs`.
 
 
 ### Dataframe Schema Style Guides
@@ -95,17 +101,11 @@ the [installation instructions](https://pre-commit.com/#installation), then
 set up hooks with `pre-commit install`. After, `black`, `pylint` and `mypy` checks should
 be run with every commit.
 
-### Run the tests
+### Run the test suite
 
 Before submitting your changes for review, make sure to check that your changes
-do not break any tests by running: `pytest tests/`
+do not break any tests by running: `nox` or `nox -db conda` depending on your environment.
 
-Additionally, sphinxdocs may block you; make sure that the docs build
-successfully:
-
-```
-make docs
-```
 
 ### Raising Pull Requests
 
