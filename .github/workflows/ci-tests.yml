@@ -8,7 +8,7 @@ on:
 env:
   DEFAULT_PYTHON: 3.8
   # Increase this value to reset cache if environment.yml has not changed
-  CACHE_VERSION: 1
+  CACHE_VERSION: 0
 
 jobs:
   codestyle:
@@ -28,7 +28,7 @@ jobs:
             ~/conda_pkgs_dir
             .nox
           key: "${{ runner.os }}\
-            -conda-${{ env.CACHE_VERSION }}\
+            -codestyle-${{ env.CACHE_VERSION }}\
             -${{ env.DEFAULT_PYTHON }}\
             -${{ hashFiles('environment.yml') }}"
 
@@ -74,7 +74,7 @@ jobs:
             ~/conda_pkgs_dir
             .nox
           key: "${{ runner.os }}\
-            -conda-${{ env.CACHE_VERSION }}\
+            -lint-${{ env.CACHE_VERSION }}\
             -${{ matrix.python-version }}\
             -${{ hashFiles('environment.yml') }}"
 
@@ -143,7 +143,7 @@ jobs:
             ~/conda_pkgs_dir
             .nox
           key: "${{ runner.os }}\
-            -conda-${{ env.CACHE_VERSION }}\
+            -tests-${{ env.CACHE_VERSION }}\
             -${{ matrix.python-version }}\
             -${{ hashFiles('environment.yml') }}"
 
