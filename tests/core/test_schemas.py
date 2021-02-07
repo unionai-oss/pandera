@@ -30,7 +30,8 @@ from pandera import (
 )
 from pandera.dtypes import LEGACY_PANDAS
 from pandera.schemas import SeriesSchemaBase
-from tests.test_dtypes import TESTABLE_DTYPES
+
+from .test_dtypes import TESTABLE_DTYPES
 
 
 def test_dataframe_schema():
