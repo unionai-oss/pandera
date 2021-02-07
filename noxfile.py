@@ -211,8 +211,7 @@ def isort(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def lint(session: Session) -> None:
     """Lint using pylint."""
-    install_from_requirements(session, "pylint")
-    install_extras(session)
+    install_extras(session, extra="all")
     args = session.posargs or SOURCE_PATHS
 
     if session.python == "3.9":
@@ -224,7 +223,7 @@ def lint(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
-    install_from_requirements(session, "mypy")
+    install_extras(session, extra="all")
     args = session.posargs or SOURCE_PATHS
     session.run("mypy", "--follow-imports=silent", *args, silent=True)
 
