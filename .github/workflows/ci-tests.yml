@@ -7,6 +7,8 @@ on:
 
 env:
   DEFAULT_PYTHON: 3.8
+  # Increase this value to reset cache if environment.yml has not changed
+  CACHE_VERSION: 1
 
 jobs:
   codestyle:
@@ -21,22 +23,19 @@ jobs:
 
       - name: Cache conda
         uses: actions/cache@v2
-        env:
-          # Increase this value to reset cache if environment.yml has not changed
-          CACHE_NUMBER: 0
         with:
           path: |
             ~/conda_pkgs_dir
             .nox
           key: "${{ runner.os }}\
-            -conda-${{ env.CACHE_NUMBER }}\
+            -conda-${{ env.CACHE_VERSION }}\
             -${{ env.DEFAULT_PYTHON }}\
             -${{ hashFiles('environment.yml') }}"
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: pandera-dev
-          auto-update-conda: true
+          auto-update-conda: false
           python-version: ${{ env.DEFAULT_PYTHON }}
           environment-file: environment.yml
           use-only-tar-bz2: true
@@ -70,22 +69,19 @@ jobs:
 
       - name: Cache conda
         uses: actions/cache@v2
-        env:
-          # Increase this value to reset cache if environment.yml has not changed
-          CACHE_NUMBER: 0
         with:
           path: |
             ~/conda_pkgs_dir
             .nox
           key: "${{ runner.os }}\
-            -conda-${{ env.CACHE_NUMBER }}\
+            -conda-${{ env.CACHE_VERSION }}\
             -${{ matrix.python-version }}\
             -${{ hashFiles('environment.yml') }}"
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: pandera-dev
-          auto-update-conda: true
+          auto-update-conda: false
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           use-only-tar-bz2: true
@@ -124,7 +120,7 @@ jobs:
     name: >
       CI Tests (${{ matrix.python-version }},
       ${{ matrix.os }},
-      pandas-${{ matrix.pandas-version }}
+      pandas-${{ matrix.pandas-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -142,22 +138,19 @@ jobs:
 
       - name: Cache conda
         uses: actions/cache@v2
-        env:
-          # Increase this value to reset cache if environment.yml has not changed
-          CACHE_NUMBER: 0
         with:
           path: |
             ~/conda_pkgs_dir
             .nox
           key: "${{ runner.os }}\
-            -conda-${{ env.CACHE_NUMBER }}\
+            -conda-${{ env.CACHE_VERSION }}\
             -${{ matrix.python-version }}\
             -${{ hashFiles('environment.yml') }}"
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: pandera-dev
-          auto-update-conda: true
+          auto-update-conda: ${{ runner.os == 'Windows' }}
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           use-only-tar-bz2: true
@@ -197,10 +190,7 @@ jobs:
           --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
       - name: Upload coverage to Codecov
-        if: ${{ matrix.python-version != '3.9' && matrix.pandas-version != '0.25.3' }}
         uses: "codecov/codecov-action@v1"
-        with:
-          fail_ci_if_error: true
 
       - name: Check Docs
         run: >
