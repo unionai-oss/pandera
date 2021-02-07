@@ -62,7 +62,7 @@ jobs:
           --session black isort
 
   lint:
-    name: CI Tests (${{ matrix.python-version }}, ${{ matrix.os }})
+    name: Linters (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
