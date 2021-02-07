@@ -218,6 +218,7 @@ jobs:
           --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
       - name: Upload coverage to Codecov
+        if: ${{ matrix.python-version != '3.9' && matrix.pandas-version != '0.25.3' }}
         uses: "codecov/codecov-action@v1"
         with:
           fail_ci_if_error: true
