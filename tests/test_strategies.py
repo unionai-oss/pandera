@@ -448,7 +448,6 @@ def test_dataframe_strategy(pdtype, data):
         {f"{pdtype.value}_col": pa.Column(pdtype)}
     )
     dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
-
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
         strategies.dataframe_strategy(
             pdtype, strategies.pandas_dtype_strategy(pdtype)
@@ -460,6 +459,32 @@ def test_dataframe_example():
     schema = pa.DataFrameSchema({"column": pa.Column(pa.Int, pa.Check.gt(0))})
     for _ in range(10):
         schema(schema.example())
+
+
+@pytest.mark.parametrize(
+    "regex",
+    [
+        "col_[0-9]{1,4}",
+        "[a-zA-Z]+_foobar",
+        "[a-z]+_[0-9]+_[a-z]+",
+    ],
+)
+@hypothesis.given(st.data(), st.integers(min_value=-10, max_value=30))
+def test_dataframe_with_regex(regex, data, n_regex_columns):
+    """Test DataFrameSchema strategy with regex columns"""
+    dataframe_schema = pa.DataFrameSchema({regex: pa.Column(int, regex=True)})
+    if n_regex_columns < 1:
+        with pytest.raises(ValueError):
+            dataframe_schema.strategy(size=5, n_regex_columns=n_regex_columns)
+    else:
+        df = dataframe_schema(
+            data.draw(
+                dataframe_schema.strategy(
+                    size=5, n_regex_columns=n_regex_columns
+                )
+            )
+        )
+        assert df.shape[1] == n_regex_columns
 
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
@@ -625,6 +650,7 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
 def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     """Test strategies for generating nullable DataFrame data."""
     size = 5
+    # pylint: disable=no-value-for-parameter
     strat = strategies.dataframe_strategy(
         columns={
             "col": pa.Column(
@@ -731,11 +757,11 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
 @hypothesis.given(st.data())
 def test_dataframe_strategy_undefined_check_strategy(schema, warning, data):
     """Test case where dataframe check strategy is undefined."""
+    strat = schema.strategy(size=5)
     with pytest.warns(
         UserWarning, match=f"{warning} check doesn't have a defined strategy"
     ):
-        strat = schema.strategy(size=5)
-    example = data.draw(strat)
+        example = data.draw(strat)
     schema(example)
 
 
