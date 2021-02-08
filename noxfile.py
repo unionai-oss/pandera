@@ -155,10 +155,10 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
     install(session, "pyyaml")
     try:
         _generate_pip_deps_from_conda(session, compare=True)
-    except nox.command.CommandFailed:
+    except nox.command.CommandFailed as err:
         _generate_pip_deps_from_conda(session)
         print(f"{REQUIREMENT_PATH} has been re-generated ✨ 🍰 ✨")
-        sys.exit(1)
+        raise err
 
     ignored_pkgs = {"black", "pandas"}
     mismatched = []
