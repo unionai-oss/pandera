@@ -19,7 +19,7 @@ create a development environment that is separate from your existing Python
 environment so that you can make and test changes without compromising your
 own work environment.
 
-An excellent guide on setting up python environments can be found 
+An excellent guide on setting up python environments can be found
 [here](https://pandas.pydata.org/docs/development/contributing.html#creating-a-python-environment).
 Pandera offers a `environment.yml` to set up a conda-based environment and
 `requirements-dev.txt` for a virtualenv.

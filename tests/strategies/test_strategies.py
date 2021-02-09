@@ -470,6 +470,10 @@ def test_dataframe_example():
     ],
 )
 @hypothesis.given(st.data(), st.integers(min_value=-10, max_value=30))
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_dataframe_with_regex(regex, data, n_regex_columns):
     """Test DataFrameSchema strategy with regex columns"""
     dataframe_schema = pa.DataFrameSchema({regex: pa.Column(int, regex=True)})
