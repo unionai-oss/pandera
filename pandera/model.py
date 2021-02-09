@@ -67,14 +67,19 @@ class BaseConfig:  # pylint:disable=R0903
 
     name: Optional[str] = None  #: name of schema
     coerce: bool = False  #: coerce types of all schema components
-    strict: bool = False  #: make sure all specified columns are in dataframe
+
+    #: make sure all specified columns are in the validated dataframe -
+    #: if ``"filter"``, removes columns not specified in the schema
+    strict: Union[bool, str] = False
+
     ordered: bool = False  #: validate columns order
     multiindex_name: Optional[str] = None  #: name of multiindex
 
     #: coerce types of all MultiIndex components
     multiindex_coerce: bool = False
 
-    #: make sure all specified columns are in MultiIndex
+    #: make sure all specified columns are in validated MultiIndex -
+    #: if ``"filter"``, removes indexes not specified in the schema
     multiindex_strict: bool = False
 
     #: validate MultiIndex in order
