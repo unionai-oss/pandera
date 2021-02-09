@@ -403,6 +403,30 @@ schema, specify ``strict=True``:
     ...
     SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int>}
 
+Alternatively, if your DataFrame contains columns that are not in the schema,
+and you would like these to be dropped on validation,
+you can specify ``strict='filter'``.
+
+.. testcode:: handling_columns_not_in_schema_filter
+
+   import pandas as pd
+   import pandera as pa
+
+   from pandera import Column, DataFrameSchema
+
+   df = pd.DataFrame({"column1": ["drop", "me"],"column2": ["keep", "me"]})
+   schema = DataFrameSchema({"column2": Column(pa.String)}, strict='filter')
+
+   validated_df = schema.validate(df)
+   print(validated_df)
+
+.. testoutput:: handling_columns_not_in_schema_filter
+
+       column2
+    0     keep
+    1       me
+
+
 .. _ordered:
 
 Validating the order of the columns

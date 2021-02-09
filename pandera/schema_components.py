@@ -699,10 +699,16 @@ class MultiIndex(DataFrameSchema):
         return check_obj
 
     @st.strategy_import_error
-    def strategy(self, *, size=None):
+    # NOTE: remove these ignore statements as part of
+    # https://github.com/pandera-dev/pandera/issues/403
+    # pylint: disable=arguments-differ
+    def strategy(self, *, size=None):  # type: ignore
         return st.multiindex_strategy(indexes=self.indexes, size=size)
 
-    def example(self, size=None) -> pd.MultiIndex:
+    # NOTE: remove these ignore statements as part of
+    # https://github.com/pandera-dev/pandera/issues/403
+    # pylint: disable=arguments-differ
+    def example(self, size=None) -> pd.MultiIndex:  # type: ignore
         # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
 

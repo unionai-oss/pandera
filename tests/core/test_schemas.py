@@ -106,10 +106,30 @@ def test_dataframe_schema_strict():
     Checks if strict=True whether a schema error is raised because 'a' is
     not present in the dataframe.
     """
-    schema = DataFrameSchema({"a": Column(Int, nullable=True)}, strict=True)
-    df = pd.DataFrame({"b": [1, 2, 3]})
+    schema = DataFrameSchema(
+        {"a": Column(Int, nullable=True), "b": Column(Int, nullable=True)},
+        strict=True,
+    )
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
+
+    assert isinstance(schema.validate(df.loc[:, ["a", "b"]]), pd.DataFrame)
     with pytest.raises(errors.SchemaError):
         schema.validate(df)
+
+    schema.strict = "filter"
+    assert isinstance(schema.validate(df), pd.DataFrame)
+    assert list(schema.validate(df).columns) == ["a", "b"]
+
+    with pytest.raises(errors.SchemaInitError):
+        DataFrameSchema(
+            {"a": Column(Int, nullable=True), "b": Column(Int, nullable=True)},
+            strict="foobar",
+        )
+
+    with pytest.raises(errors.SchemaError):
+        schema.validate(df.loc[:, ["a"]])
+    with pytest.raises(errors.SchemaError):
+        schema.validate(df.loc[:, ["a", "c"]])
 
 
 def test_dataframe_schema_strict_regex():
