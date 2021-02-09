@@ -19,6 +19,7 @@ pylint>=2.4.4
 pytest
 pytest-cov
 pytest-xdist
+setuptools >= 52.0.0
 nox
 importlib_metadata
 sphinx >= 3.2.0

@@ -135,7 +135,6 @@ def install_extras(session: Session, extra: str = "core") -> None:
         session.conda_install("--channel=conda-forge", *specs)
     except ValueError:
         # Not a conda venv
-        session.install("--upgrade", "setuptools", "pip")
         session.install(*specs)
     session.install(".")  # install pandera
 
