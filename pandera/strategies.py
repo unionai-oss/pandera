@@ -120,12 +120,11 @@ def null_dataframe_masks(
 def set_pandas_index(
     draw,
     df_or_series_strat: SearchStrategy,
-    index_strat: SearchStrategy,
+    index: IndexComponent,
 ):
     """Sets Index or MultiIndex object to pandas Series or DataFrame."""
     df_or_series = draw(df_or_series_strat)
-    index = draw(index_strat)
-    df_or_series.index = index
+    df_or_series.index = draw(index.strategy(size=df_or_series.shape[0]))
     return df_or_series
 
 
@@ -1014,7 +1013,7 @@ def dataframe_strategy(
             strategy = null_dataframe_masks(strategy, nullable_columns)
 
         if index is not None:
-            strategy = set_pandas_index(strategy, index.strategy(size=size))
+            strategy = set_pandas_index(strategy, index)
 
         for check in undefined_strat_df_checks:
             strategy = undefined_check_strategy(strategy, check)
