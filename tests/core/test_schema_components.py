@@ -19,7 +19,8 @@ from pandera import (
     String,
     errors,
 )
-from tests.test_dtypes import TESTABLE_DTYPES
+
+from .test_dtypes import TESTABLE_DTYPES
 
 
 def test_column():

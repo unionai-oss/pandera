@@ -38,8 +38,8 @@ setup(
     install_requires=[
         "packaging >= 20.0",
         "numpy >= 1.9.0",
-        "pandas >= 0.23.0",
-        "typing_extensions ; python_version<'3.8'",
+        "pandas >= 0.25.3",
+        "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
         "typing_inspect >= 0.6.0",
         "wrapt",
     ],
