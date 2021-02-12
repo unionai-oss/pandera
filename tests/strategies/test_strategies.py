@@ -439,7 +439,7 @@ def test_column_example():
 )
 @pytest.mark.parametrize(
     "size",
-    [None, 0, 1, 3, 5, 10, 100],
+    [None, 0, 1, 3, 5],
 )
 @hypothesis.given(st.data())
 @hypothesis.settings(
