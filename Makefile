@@ -24,7 +24,7 @@ code-cov:
 	pytest --cov-report=html --cov=pandera tests/
 
 nox:
-	nox -r
+	nox -r --envdir .nox-virtualenv
 
 nox-conda:
 	nox -r -db conda --envdir .nox-conda

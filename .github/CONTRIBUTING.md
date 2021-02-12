@@ -114,9 +114,6 @@ $ make nox
 $ make nox-conda
 ```
 
-: `nox` or `nox -db conda` depending on your
-environment.
-
 #### Using `mamba` (optional)
 
 You can also use [mamba](https://github.com/mamba-org/mamba), which is a faster
