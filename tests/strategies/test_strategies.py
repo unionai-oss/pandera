@@ -137,7 +137,6 @@ def value_ranges(pdtype: pa.PandasDtype):
 )
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_strategy_chained_continuous(
@@ -184,7 +183,6 @@ def test_check_strategy_chained_continuous(
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_in_range_strategy(pdtype, chained, data):
@@ -226,7 +224,6 @@ def test_in_range_strategy(pdtype, chained, data):
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_isin_notin_strategies(pdtype, chained, data):
@@ -403,7 +400,6 @@ def test_register_check_strategy_exception():
 
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_series_strategy(data):
@@ -443,7 +439,6 @@ def test_column_example():
 )
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_dataframe_strategy(pdtype, size, data):
@@ -483,7 +478,6 @@ def test_dataframe_example():
 )
 @hypothesis.given(st.data(), st.integers(min_value=-10, max_value=30))
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_dataframe_with_regex(regex, data, n_regex_columns):
@@ -505,7 +499,6 @@ def test_dataframe_with_regex(regex, data, n_regex_columns):
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 @hypothesis.given(st.data())
@@ -529,7 +522,6 @@ def test_dataframe_checks(pdtype, data):
 @pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.String, pa.DateTime])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_dataframe_strategy_with_indexes(pdtype, data):
@@ -549,7 +541,6 @@ def test_dataframe_strategy_with_indexes(pdtype, data):
 
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_index_strategy(data):
@@ -575,7 +566,6 @@ def test_index_example():
 
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_multiindex_strategy(data):
@@ -639,7 +629,6 @@ def test_field_element_strategy(pdtype, data):
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
@@ -668,7 +657,6 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
@@ -716,7 +704,6 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     ],
 )
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[
         hypothesis.HealthCheck.filter_too_much,
         hypothesis.HealthCheck.too_slow,
@@ -773,7 +760,6 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
     ],
 )
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[
         hypothesis.HealthCheck.filter_too_much,
         hypothesis.HealthCheck.too_slow,
