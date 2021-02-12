@@ -773,6 +773,7 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
     ],
 )
 @hypothesis.settings(
+    deadline=2000,
     suppress_health_check=[
         hypothesis.HealthCheck.filter_too_much,
         hypothesis.HealthCheck.too_slow,
