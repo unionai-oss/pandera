@@ -144,7 +144,7 @@ def conda_install(session: Session, *args):
 def install(session: Session, *args: str):
     """Install dependencies in the appropriate virtual environment
     (conda or virtualenv) and return the type of the environmment."""
-    if session.virtualenv is nox.virtualenv.CondaEnv:
+    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
         print("using conda installer")
         conda_install(session, *args)
     else:
@@ -173,7 +173,7 @@ def install_extras(
         spec if spec != "pandas" else f"pandas{pandas_version}"
         for spec in REQUIRES[extra].values()
     ]
-    if session.virtualenv is nox.virtualenv.CondaEnv:
+    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
         print("using conda installer")
         conda_install(session, *specs)
     else:
