@@ -437,17 +437,29 @@ def test_column_example():
     "pdtype",
     SUPPORTED_DTYPES,
 )
+@pytest.mark.parametrize(
+    "size",
+    [None, 0, 1, 3, 5, 10, 100],
+)
 @hypothesis.given(st.data())
 @hypothesis.settings(
     deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_dataframe_strategy(pdtype, data):
+def test_dataframe_strategy(pdtype, size, data):
     """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype)}
     )
-    dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
+    df_sample = data.draw(dataframe_schema.strategy(size=size))
+    if size == 0:
+        assert df_sample.empty
+    elif size is None:
+        assert df_sample.empty or isinstance(
+            dataframe_schema(df_sample), pd.DataFrame
+        )
+    else:
+        assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
         strategies.dataframe_strategy(
             pdtype, strategies.pandas_dtype_strategy(pdtype)
@@ -536,6 +548,10 @@ def test_dataframe_strategy_with_indexes(pdtype, data):
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_index_strategy(data):
     """Test Index schema component strategy."""
     pdtype = pa.PandasDtype.Int
@@ -558,6 +574,10 @@ def test_index_example():
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    deadline=2000,
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_multiindex_strategy(data):
     """Test MultiIndex schema component strategy."""
     pdtype = pa.PandasDtype.Float

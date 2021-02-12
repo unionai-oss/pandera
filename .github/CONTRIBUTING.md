@@ -98,14 +98,36 @@ for each pull request:
 This project uses [pre-commit](https://pre-commit.com/) to ensure that code
 standard checks pass locally before pushing to the remote project repo. Follow
 the [installation instructions](https://pre-commit.com/#installation), then
-set up hooks with `pre-commit install`. After, `black`, `pylint` and `mypy` checks should
-be run with every commit.
+set up hooks with `pre-commit install`. After, `black`, `pylint` and `mypy`
+checks should be run with every commit.
 
-### Run the test suite
+### Run the test suite locally
 
 Before submitting your changes for review, make sure to check that your changes
-do not break any tests by running: `nox` or `nox -db conda` depending on your environment.
+do not break any tests by running:
 
+```
+# if you're working with virtualenv
+$ make nox
+
+# if you're working with conda
+$ make nox-conda
+```
+
+: `nox` or `nox -db conda` depending on your
+environment.
+
+#### Using `mamba` (optional)
+
+You can also use [mamba](https://github.com/mamba-org/mamba), which is a faster
+implementation of [miniconda](https://docs.conda.io/en/latest/miniconda.html),
+to run the `nox` test suite. Simply install it via conda-forge, and
+`make nox-conda` should use it under the hood.
+
+```
+$ conda install -c conda-forge mamba
+$ make nox-conda
+```
 
 ### Raising Pull Requests
 

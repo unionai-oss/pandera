@@ -1,9 +1,6 @@
 .PHONY: tests clean clean-pyc upload-pypi-test upload-pypi requirements docs \
 	code-cov
 
-tests:
-	pytest
-
 clean:
 	python setup.py clean
 
@@ -23,10 +20,11 @@ upload-pypi:
 requirements:
 	pip install -r requirements-dev.txt
 
-docs:
-	rm -rf docs/source/generated && \
-		python -m sphinx -E "docs/source" "docs/_build" -W && \
-		make -C docs doctest
-
 code-cov:
 	pytest --cov-report=html --cov=pandera tests/
+
+nox:
+	nox -r
+
+nox-conda:
+	nox -r -db conda --envdir .nox-conda

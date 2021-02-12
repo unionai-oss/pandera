@@ -114,3 +114,7 @@ venv.bak/
 
 # Docs
 docs/source/generated
+
+# Nox
+.nox
+.nox-*
