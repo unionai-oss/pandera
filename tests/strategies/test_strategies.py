@@ -476,7 +476,7 @@ def test_dataframe_example():
         "[a-z]+_[0-9]+_[a-z]+",
     ],
 )
-@hypothesis.given(st.data(), st.integers(min_value=-10, max_value=30))
+@hypothesis.given(st.data(), st.integers(min_value=-5, max_value=5))
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
