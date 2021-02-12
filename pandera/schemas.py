@@ -1668,12 +1668,15 @@ class SeriesSchemaBase:
                 self._name,
                 series.name,
             )
-            raise errors.SchemaError(
-                self,
-                check_obj,
-                msg,
-                failure_cases=scalar_failure_case(series.name),
-                check=f"column_name('{self._name}')",
+            error_handler.collect_error(
+                "wrong_field_name",
+                errors.SchemaError(
+                    self,
+                    check_obj,
+                    msg,
+                    failure_cases=scalar_failure_case(series.name),
+                    check=f"field_name('{self._name}')",
+                ),
             )
 
         series_dtype = series.dtype
@@ -1761,9 +1764,6 @@ class SeriesSchemaBase:
                     check=f"pandas_dtype('{self.dtype}')",
                 ),
             )
-
-        if not self.checks:
-            return check_obj
 
         check_results = []
         if isinstance(check_obj, pd.Series):
@@ -1976,7 +1976,9 @@ class SeriesSchema(SeriesSchemaBase):
         # validate index
         if self.index:
             try:
-                self.index(check_obj, head, tail, sample, random_state, lazy)
+                self.index(
+                    check_obj, head, tail, sample, random_state, lazy, inplace
+                )
             except errors.SchemaErrors as err:
                 for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
@@ -1985,7 +1987,9 @@ class SeriesSchema(SeriesSchemaBase):
 
         # validate series
         try:
-            super().validate(check_obj, head, tail, sample, random_state, lazy)
+            super().validate(
+                check_obj, head, tail, sample, random_state, lazy, inplace
+            )
         except errors.SchemaErrors as err:
             for schema_error_dict in err.schema_errors:
                 error_handler.collect_error(

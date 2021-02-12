@@ -1175,8 +1175,31 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
 @pytest.mark.parametrize(
     "schema, data, expectation",
     [
+        # case: series name doesn't match schema name
         [
-            SeriesSchema(Int, checks=Check.greater_than(0)),
+            SeriesSchema(name="foobar"),
+            pd.Series(range(3)),
+            {
+                "data": pd.Series(range(3)),
+                "schema_errors": {
+                    "SeriesSchema": {"field_name('foobar')": [None]},
+                },
+            },
+        ],
+        # case: series type doesn't match schema type
+        [
+            SeriesSchema(int),
+            pd.Series([0.1]),
+            {
+                "data": pd.Series([0.1]),
+                "schema_errors": {
+                    "SeriesSchema": {"pandas_dtype('int64')": ["float64"]},
+                },
+            },
+        ],
+        # case: series type and check doesn't satisfy schema
+        [
+            SeriesSchema(int, checks=Check.greater_than(0)),
             pd.Series(["a", "b", "c"]),
             {
                 "data": pd.Series(["a", "b", "c"]),
@@ -1185,8 +1208,8 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                     "SeriesSchema": {
                         # check name -> failure cases
                         "greater_than(0)": [
-                            "TypeError(\"'>' not supported between instances of "
-                            "'str' and 'int'\")",
+                            "TypeError(\"'>' not supported between instances "
+                            "of 'str' and 'int'\")",
                             # TypeError raised in python=3.5
                             'TypeError("unorderable types: str() > int()")',
                         ],
@@ -1195,6 +1218,7 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                 },
             },
         ],
+        # case: multiple series checks don't satisfy schema
         [
             Column(
                 Int,
@@ -1236,8 +1260,8 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                 ),
             ),
             {
-                # expect that the data in the SchemaError is the pd.MultiIndex cast
-                # into a DataFrame
+                # expect that the data in the SchemaError is the pd.MultiIndex
+                # cast into a DataFrame
                 "data": pd.DataFrame(
                     {"column": [1, 2, 3]},
                     index=pd.MultiIndex.from_arrays(
