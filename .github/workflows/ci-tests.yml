@@ -35,11 +35,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: pandera-dev
-          auto-update-conda: false
-          channels: conda-forge
           python-version: ${{ env.DEFAULT_PYTHON }}
           mamba-version: "*"
+          channels: conda-forge
+          channel-priority: true
+          activate-environment: pandera-dev
+          auto-update-conda: false
           environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false
@@ -83,9 +84,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: true
           activate-environment: pandera-dev
           auto-update-conda: false
-          python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false
@@ -152,9 +156,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: true
           activate-environment: pandera-dev
-          auto-update-conda: ${{ runner.os == 'Windows' }}
-          python-version: ${{ matrix.python-version }}
+          auto-update-conda: false
           environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false

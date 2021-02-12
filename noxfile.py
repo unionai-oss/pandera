@@ -34,6 +34,10 @@ SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
 
 CI_RUN = os.environ.get("CI") == "true"
+if CI_RUN:
+    print("Running on CI")
+else:
+    print("Running locally")
 
 LINE_LENGTH = 79
 
@@ -141,8 +145,10 @@ def install(session: Session, *args: str):
     """Install dependencies in the appropriate virtual environment
     (conda or virtualenv) and return the type of the environmment."""
     if session.virtualenv is nox.virtualenv.CondaEnv:
+        print("using conda installer")
         conda_install(session, *args)
     else:
+        print("using pip installer")
         session.install(*args)
 
 
@@ -168,9 +174,10 @@ def install_extras(
         for spec in REQUIRES[extra].values()
     ]
     if session.virtualenv is nox.virtualenv.CondaEnv:
+        print("using conda installer")
         conda_install(session, *specs)
     else:
-        # Not a conda venv
+        print("using pip installer")
         session.install(*specs)
     session.install("-e", ".", "--no-deps")  # install pandera
 
