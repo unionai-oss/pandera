@@ -7,6 +7,7 @@ on:
 
 env:
   DEFAULT_PYTHON: 3.8
+  CI: "true"
   # Increase this value to reset cache if environment.yml has not changed
   CACHE_VERSION: 0
 
@@ -34,9 +35,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: true
           activate-environment: pandera-dev
           auto-update-conda: false
-          python-version: ${{ env.DEFAULT_PYTHON }}
           environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false
@@ -80,9 +84,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: true
           activate-environment: pandera-dev
           auto-update-conda: false
-          python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false
@@ -149,9 +156,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          mamba-version: "*"
+          channels: conda-forge
+          channel-priority: true
           activate-environment: pandera-dev
-          auto-update-conda: ${{ runner.os == 'Windows' }}
-          python-version: ${{ matrix.python-version }}
+          auto-update-conda: false
           environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false
@@ -164,28 +174,28 @@ jobs:
       - name: Unit Tests - Core
         run: >
           nox
-          -db conda -r
+          -db conda -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Hypotheses
         run: >
           nox
-          -db conda -r
+          -db conda -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - IO
         run: >
           nox
-          -db conda -r
+          -db conda -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Strategies
         run: >
           nox
-          -db conda -r
+          -db conda -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
@@ -195,6 +205,6 @@ jobs:
       - name: Check Docs
         run: >
           nox
-          -db conda -r
+          -db conda -r -v
           --non-interactive
           --session "docs-${{ matrix.python-version }}(pandas='${{ matrix.pandas-version }}')"

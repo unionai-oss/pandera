@@ -137,7 +137,6 @@ def value_ranges(pdtype: pa.PandasDtype):
 )
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_strategy_chained_continuous(
@@ -184,7 +183,6 @@ def test_check_strategy_chained_continuous(
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_in_range_strategy(pdtype, chained, data):
@@ -226,7 +224,6 @@ def test_in_range_strategy(pdtype, chained, data):
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_isin_notin_strategies(pdtype, chained, data):
@@ -403,7 +400,6 @@ def test_register_check_strategy_exception():
 
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_series_strategy(data):
@@ -437,17 +433,28 @@ def test_column_example():
     "pdtype",
     SUPPORTED_DTYPES,
 )
+@pytest.mark.parametrize(
+    "size",
+    [None, 0, 1, 3, 5],
+)
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_dataframe_strategy(pdtype, data):
+def test_dataframe_strategy(pdtype, size, data):
     """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype)}
     )
-    dataframe_schema(data.draw(dataframe_schema.strategy(size=5)))
+    df_sample = data.draw(dataframe_schema.strategy(size=size))
+    if size == 0:
+        assert df_sample.empty
+    elif size is None:
+        assert df_sample.empty or isinstance(
+            dataframe_schema(df_sample), pd.DataFrame
+        )
+    else:
+        assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
         strategies.dataframe_strategy(
             pdtype, strategies.pandas_dtype_strategy(pdtype)
@@ -469,9 +476,8 @@ def test_dataframe_example():
         "[a-z]+_[0-9]+_[a-z]+",
     ],
 )
-@hypothesis.given(st.data(), st.integers(min_value=-10, max_value=30))
+@hypothesis.given(st.data(), st.integers(min_value=-5, max_value=5))
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_dataframe_with_regex(regex, data, n_regex_columns):
@@ -493,7 +499,6 @@ def test_dataframe_with_regex(regex, data, n_regex_columns):
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 @hypothesis.given(st.data())
@@ -517,7 +522,6 @@ def test_dataframe_checks(pdtype, data):
 @pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.String, pa.DateTime])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_dataframe_strategy_with_indexes(pdtype, data):
@@ -536,6 +540,9 @@ def test_dataframe_strategy_with_indexes(pdtype, data):
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_index_strategy(data):
     """Test Index schema component strategy."""
     pdtype = pa.PandasDtype.Int
@@ -558,6 +565,9 @@ def test_index_example():
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_multiindex_strategy(data):
     """Test MultiIndex schema component strategy."""
     pdtype = pa.PandasDtype.Float
@@ -619,7 +629,6 @@ def test_field_element_strategy(pdtype, data):
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
@@ -648,7 +657,6 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
@@ -696,7 +704,6 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     ],
 )
 @hypothesis.settings(
-    deadline=2000,
     suppress_health_check=[
         hypothesis.HealthCheck.filter_too_much,
         hypothesis.HealthCheck.too_slow,

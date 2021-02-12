@@ -12,6 +12,7 @@ from distutils.core import run_setup  # pylint:disable=wrong-import-order
 import nox
 from nox import Session
 from pkg_resources import Requirement, parse_requirements
+from packaging import version
 
 
 nox.options.sessions = (
@@ -33,6 +34,10 @@ SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
 
 CI_RUN = os.environ.get("CI") == "true"
+if CI_RUN:
+    print("Running on CI")
+else:
+    print("Running locally")
 
 LINE_LENGTH = 79
 
@@ -103,17 +108,48 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
 
 REQUIRES: Dict[str, Dict[str, str]] = _build_requires()
 
+CONDA_ARGS = [
+    "--channel=conda-forge",
+    "--update-specs",
+]
 
-def install(session: Session, *args: str) -> str:
+
+def conda_install(session: Session, *args):
+    """Use mamba to install conda dependencies."""
+    run_args = [
+        "install",
+        "--yes",
+        *CONDA_ARGS,
+        "--prefix",
+        session.virtualenv.location,  # type: ignore
+        *args,
+    ]
+
+    # By default, all dependencies are re-installed from scratch with each
+    # session. Specifying external=True allows access to cached packages, which
+    # decreases runtime of the test sessions.
+    try:
+        session.run(
+            *["mamba", *run_args],
+            external=True,
+        )
+    # pylint: disable=broad-except
+    except Exception:
+        session.run(
+            *["conda", *run_args],
+            external=True,
+        )
+
+
+def install(session: Session, *args: str):
     """Install dependencies in the appropriate virtual environment
     (conda or virtualenv) and return the type of the environmment."""
-    try:
-        session.conda_install("--channel=conda-forge", *args)
-        return "conda"
-    except ValueError:
-        # Not a conda venv
+    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
+        print("using conda installer")
+        conda_install(session, *args)
+    else:
+        print("using pip installer")
         session.install(*args)
-        return "virtualenv"
 
 
 def install_from_requirements(session: Session, *packages: str) -> None:
@@ -128,15 +164,22 @@ def install_from_requirements(session: Session, *packages: str) -> None:
         install(session, specs)
 
 
-def install_extras(session: Session, extra: str = "core") -> None:
+def install_extras(
+    session: Session, pandas: str = "latest", extra: str = "core"
+) -> None:
     """Install dependencies."""
-    specs = REQUIRES[extra].values()
-    try:
-        session.conda_install("--channel=conda-forge", *specs)
-    except ValueError:
-        # Not a conda venv
+    pandas_version = "" if pandas == "latest" else f"=={pandas}"
+    specs = [
+        spec if spec != "pandas" else f"pandas{pandas_version}"
+        for spec in REQUIRES[extra].values()
+    ]
+    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
+        print("using conda installer")
+        conda_install(session, *specs)
+    else:
+        print("using pip installer")
         session.install(*specs)
-    session.install(".")  # install pandera
+    session.install("-e", ".", "--no-deps")  # install pandera
 
 
 def _generate_pip_deps_from_conda(
@@ -227,18 +270,19 @@ def mypy(session: Session) -> None:
     session.run("mypy", "--follow-imports=silent", *args, silent=True)
 
 
-def _install_pandas(session: Session, pandas: str) -> bool:
-    python_version = cast(str, session.python)
-    if pandas == "0.25.3" and python_version >= "3.9":
+def _invalid_python_pandas_versions(session: Session, pandas: str) -> bool:
+    python_version = version.parse(cast(str, session.python))
+    if pandas == "0.25.3" and python_version >= version.parse("3.9"):
         print("Python 3.9 does not support pandas 0.25.3")
-        return False
-
-    pandas_version = "" if pandas == "latest" else f"=={pandas}"
-    install(session, f"pandas{pandas_version}")
-    return True
+        return True
+    return False
 
 
-EXTRA_NAMES = [extra for extra in REQUIRES if extra != "all"]
+EXTRA_NAMES = [
+    extra
+    for extra in REQUIRES
+    if extra != "all" and not extra.startswith(":python_version")
+]
 
 
 @nox.session(python=PYTHON_VERSIONS)
@@ -246,9 +290,9 @@ EXTRA_NAMES = [extra for extra in REQUIRES if extra != "all"]
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
-    if not _install_pandas(session, pandas):
+    if _invalid_python_pandas_versions(session, pandas):
         return
-    install_extras(session, extra)
+    install_extras(session, pandas, extra)
 
     if session.posargs:
         args = session.posargs
@@ -257,7 +301,11 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         args = []
         if extra == "strategies":
             # enable threading via pytest-xdist
-            args = ["-n=auto", "-q", "--hypothesis-profile=ci"]
+            args = [
+                "-n=auto",
+                "-q",
+                f"--hypothesis-profile={'ci' if CI_RUN else 'dev'}",
+            ]
         args += [
             f"--cov={PACKAGE}",
             "--cov-report=term-missing",
@@ -275,9 +323,9 @@ def tests(session: Session, pandas: str, extra: str) -> None:
 @nox.parametrize("pandas", ["0.25.3", "latest"])
 def docs(session: Session, pandas: str) -> None:
     """Build the documentation."""
-    if not _install_pandas(session, pandas):
+    if _invalid_python_pandas_versions(session, pandas):
         return
-    install_extras(session, extra="all")
+    install_extras(session, pandas, extra="all")
     session.chdir("docs")
 
     args = session.posargs or ["-W", "-E", "-b=doctest", "source", "_build"]
