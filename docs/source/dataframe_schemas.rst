@@ -716,15 +716,15 @@ data pipeline:
 .. testoutput:: remove_columns
     :options: +NORMALIZE_WHITESPACE
 
-    DataFrameSchema(
+    <Schema DataFrameSchema(
         columns={
-            "col1": "<Schema Column: 'col1' type=int>"
+            'col1': <Schema Column(name=col1, type=int)>
         },
         checks=[],
-        index=None,
         coerce=False,
+        index=None,
         strict=True
-    )
+    )>
 
 If during the course of a data pipeline one of your columns is moved into the
 index, you can simply update the initial input schema using the
@@ -751,24 +751,24 @@ the pipeline output.
 .. testoutput:: set_index
     :options: +NORMALIZE_WHITESPACE
 
-    DataFrameSchema(
+    <Schema DataFrameSchema(
         columns={
-            "column2": "<Schema Column: 'column2' type=float>"
+            'column2': <Schema Column(name=column2, type=float)>
         },
         checks=[],
-        index=MultiIndex(
-        columns={
-            "column3": "<Schema Column: 'column3' type=int>",
-            "column1": "<Schema Column: 'column1' type=int>"
-        },
-        checks=[],
-        index=None,
-        coerce=False,
-        strict=False
-    ),
         coerce=True,
+        index=<Schema MultiIndex(
+            indexes=[
+                <Schema Index(name=column3, type=int)>
+                <Schema Index(name=column1, type=int)>
+            ]
+            coerce=False,
+            strict=False,
+            name=None,
+            ordered=True
+        )>,
         strict=True
-    )
+    )>
 
 
 The available methods for altering the schema are:

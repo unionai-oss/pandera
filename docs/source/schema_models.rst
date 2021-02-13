@@ -119,17 +119,17 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
 
 .. testoutput:: dataframe_schema_model
 
-    DataFrameSchema(
+    <Schema DataFrameSchema(
         columns={
-            "year": "<Schema Column: 'year' type=<class 'int'>>",
-            "month": "<Schema Column: 'month' type=<class 'int'>>",
-            "day": "<Schema Column: 'day' type=<class 'int'>>"
+            'year': <Schema Column(name=year, type=<class 'int'>)>
+            'month': <Schema Column(name=month, type=<class 'int'>)>
+            'day': <Schema Column(name=day, type=<class 'int'>)>
         },
         checks=[],
-        index=None,
         coerce=False,
+        index=None,
         strict=False
-    )
+    )>
 
 Or use the :meth:`~pandera.model.SchemaModel.validate` method to validate dataframes:
 
@@ -422,16 +422,16 @@ the class-based API:
 
 .. testoutput:: dataframe_schema_model
 
-    MultiIndex(
-        columns={
-            "year": "<Schema Column: 'year' type=<class 'int'>>",
-            "month": "<Schema Column: 'month' type=<class 'int'>>"
-        },
-        checks=[],
-        index=None,
+    <Schema MultiIndex(
+        indexes=[
+            <Schema Index(name=year, type=<class 'int'>)>
+            <Schema Index(name=month, type=<class 'int'>)>
+        ]
         coerce=True,
-        strict=True
-    )
+        strict=True,
+        name=time,
+        ordered=True
+    )>
 
 .. testcode:: dataframe_schema_model
 
