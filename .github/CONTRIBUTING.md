@@ -103,15 +103,15 @@ your fork of the GitHub repo before creating a pull request. Depending on the
 type of issue the pull request is resolving, your pull request should merge
 onto the appropriate branch:
 
-#### Bugfixes:
+#### Bugfixes
 - branch naming convention: `bugfix/<issue number>` or `bugfix/<bugfix-name>`
 - pull request to: `dev`
 
-#### Documentation:
+#### Documentation
 - branch naming convention: `docs/<issue number>` or `docs/<doc-name>`
 - pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `dev`
 
-#### Enhancements:
+#### Enhancements
 - branch naming convention: `feature/<issue number>` or `feature/<bugfix-name>`
 - pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `dev`
 
