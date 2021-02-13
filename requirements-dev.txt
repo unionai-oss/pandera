@@ -25,6 +25,7 @@ importlib_metadata
 sphinx >= 3.2.0
 sphinx_rtd_theme
 sphinx-autodoc-typehints
+recommonmark
 twine
 asv
 pre_commit
