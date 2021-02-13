@@ -9,7 +9,6 @@ import pandas as pd
 
 from . import errors
 from . import strategies as st
-from .dtypes import PandasDtype
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
