@@ -14,6 +14,7 @@ import logging as pylogging
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import shutil
 import sys
 
 from sphinx.util import logging
@@ -40,6 +41,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
     "sphinx.ext.viewcode",
+    "recommonmark",
 ]
 
 doctest_global_setup = """
@@ -69,6 +71,14 @@ doctest_default_flags = (
     | doctest.IGNORE_EXCEPTION_DETAIL
     | doctest.NORMALIZE_WHITESPACE
 )
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+
+# copy CONTRIBUTING.md docs into source directory
+shutil.copyfile("../../.github/CONTRIBUTING.md", "CONTRIBUTING.md")
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
