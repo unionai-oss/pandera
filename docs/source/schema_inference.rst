@@ -34,17 +34,20 @@ is a simple example:
 .. testoutput:: infer_dataframe_schema
    :skipif: SKIP
 
-    DataFrameSchema(
+    <Schema DataFrameSchema(
         columns={
-            "column1": "<Schema Column: 'column1' type=int64>",
-            "column2": "<Schema Column: 'column2' type=str>",
-            "column3": "<Schema Column: 'column3' type=datetime64[ns]>"
+            'column1': <Schema Column(name=column1, type=int64)>
+            'column2': <Schema Column(name=column2, type=str)>
+            'column3': <Schema Column(name=column3, type=datetime64[ns])>
         },
         checks=[],
-        index=<Schema Index>,
         coerce=True,
+        pandas_dtype=None,
+        index=<Schema Index(name=None, type=int64)>,
         strict=False
-    )
+        name=None,
+        ordered=False
+    )>
 
 
 These inferred schemas are **rough drafts** that shouldn't be used for

@@ -167,10 +167,6 @@ def test_multi_index_index():
     validated_df = schema.validate(df)
     assert isinstance(validated_df, pd.DataFrame)
     assert schema.index.names == ["index0", "index1"]
-    assert (
-        schema.index.__repr__()
-        == f"<Schema MultiIndex: '{schema.index.names}'>"
-    )
 
     # failure case
     df_fail = df.copy()

@@ -3,7 +3,6 @@
 
 import copy
 import itertools
-import json
 import warnings
 from functools import wraps
 from pathlib import Path
@@ -652,11 +651,21 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     def __repr__(self):
         """Represent string for logging."""
-        return "%s(columns=%s, index=%s, coerce=%s)" % (
-            self.__class__.__name__,
-            self.columns,
-            self.index,
-            self.coerce,
+        if isinstance(self._pandas_dtype, PandasDtype):
+            dtype = self._pandas_dtype.value
+        else:
+            dtype = self._pandas_dtype
+        return (
+            f"<Schema {self.__class__.__name__}("
+            f"columns={self.columns}, "
+            f"checks={self.checks}, "
+            f"index={self.index.__repr__()}, "
+            f"coerce={self.coerce}, "
+            f"pandas_dtype={dtype},"
+            f"strict={self.strict},"
+            f"name={self.name},"
+            f"ordered={self.ordered}"
+            ")>"
         )
 
     def __str__(self):
@@ -664,42 +673,54 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         def _format_multiline(json_str, arg):
             return "\n".join(
-                "{}{}".format(_indent, line)
+                "{}{}".format(indent, line)
                 if i != 0
-                else "{}{}={}".format(_indent, arg, line)
+                else "{}{}={}".format(indent, arg, line)
                 for i, line in enumerate(json_str.split("\n"))
             )
 
-        columns = {k: str(v) for k, v in self.columns.items()}
-        columns = json.dumps(columns, indent=N_INDENT_SPACES)
-        _indent = " " * N_INDENT_SPACES
-        columns = _format_multiline(columns, "columns")
-        checks = (
-            None
-            if self.checks is None
-            else _format_multiline(
-                json.dumps(
-                    [str(x) for x in self.checks], indent=N_INDENT_SPACES
-                ),
-                "checks",
+        indent = " " * N_INDENT_SPACES
+        if self.columns:
+            columns_str = f"{indent}columns={{\n"
+            for colname, col in self.columns.items():
+                columns_str += f"{indent * 2}'{colname}': {col}\n"
+            columns_str += f"{indent}}}"
+        else:
+            columns_str = f"{indent}columns={{}}"
+
+        if self.checks:
+            checks_str = f"{indent}checks=[\n"
+            for check in self.checks:
+                checks_str += f"{indent * 2}{check}\n"
+            checks_str += f"{indent}]"
+        else:
+            checks_str = f"{indent}checks=[]"
+
+        # add additional indents
+        index = str(self.index).split("\n")
+        if len(index) == 1:
+            index = str(self.index)
+        else:
+            index = "\n".join(
+                x if i == 0 else f"{indent}{x}" for i, x in enumerate(index)
             )
-        )
+
+        if isinstance(self._pandas_dtype, PandasDtype):
+            dtype = self._pandas_dtype.value
+        else:
+            dtype = self._pandas_dtype
+
         return (
-            "{class_name}(\n"
-            "{columns},\n"
-            "{checks},\n"
-            "{indent}index={index},\n"
-            "{indent}coerce={coerce},\n"
-            "{indent}strict={strict}\n"
-            ")"
-        ).format(
-            class_name=self.__class__.__name__,
-            columns=columns,
-            checks=checks,
-            index=str(self.index),
-            coerce=self.coerce,
-            strict=self.strict,
-            indent=_indent,
+            f"<Schema {self.__class__.__name__}(\n"
+            f"{columns_str},\n"
+            f"{checks_str},\n"
+            f"{indent}coerce={self.coerce},\n"
+            f"{indent}pandas_dtype={dtype},\n"
+            f"{indent}index={index},\n"
+            f"{indent}strict={self.strict}\n"
+            f"{indent}name={self.name},\n"
+            f"{indent}ordered={self.ordered}\n"
+            ")>"
         )
 
     def __eq__(self, other):
@@ -772,17 +793,20 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> print(
         ...     example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
         ... )
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "category": "<Schema Column: 'category' type=str>",
-                "probability": "<Schema Column: 'probability' type=float>",
-                "even_number": "<Schema Column: 'even_number' type=bool>"
+                'category': <Schema Column(name=category, type=str)>
+                'probability': <Schema Column(name=probability, type=float)>
+                'even_number': <Schema Column(name=even_number, type=bool)>
             },
             checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=None,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. seealso:: :func:`remove_columns`
 
@@ -821,15 +845,18 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... )
         >>>
         >>> print(example_schema.remove_columns(["category"]))
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "probability": "<Schema Column: 'probability' type=float>"
+                'probability': <Schema Column(name=probability, type=float)>
             },
             checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=None,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. seealso:: :func:`add_columns`
 
@@ -864,7 +891,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         :example:
 
-        Calling ``schema.update_column`` returns the :class:`DataFrameSchema`
+        Calling ``schema.1`` returns the :class:`DataFrameSchema`
         with the updated column.
 
         >>> import pandera as pa
@@ -878,16 +905,19 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ...         'category', pandas_dtype=pa.Category
         ...     )
         ... )
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "category": "<Schema Column: 'category' type=category>",
-                "probability": "<Schema Column: 'probability' type=float>"
+                'category': <Schema Column(name=category, type=category)>
+                'probability': <Schema Column(name=probability, type=float)>
             },
             checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=None,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. seealso:: :func:`rename_columns`
 
@@ -935,16 +965,19 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ...         {"category": {"pandas_dtype":pa.Category}}
         ...     )
         ... )
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "category": "<Schema Column: 'category' type=category>",
-                "probability": "<Schema Column: 'probability' type=float>"
+                'category': <Schema Column(name=category, type=category)>
+                'probability': <Schema Column(name=probability, type=float)>
             },
             checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=None,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. note:: This is the successor to the ``update_column`` method, which
             will be deprecated.
@@ -1014,16 +1047,19 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ...         "probability": "probabilities"
         ...     })
         ... )
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "categories": "<Schema Column: 'categories' type=str>",
-                "probabilities": "<Schema Column: 'probabilities' type=float>"
+                'categories': <Schema Column(name=categories, type=str)>
+                'probabilities': <Schema Column(name=probabilities, type=float)>
             },
             checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=None,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. seealso:: :func:`update_column`
 
@@ -1087,15 +1123,18 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... })
         >>>
         >>> print(example_schema.select_columns(['category']))
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "category": "<Schema Column: 'category' type=str>"
+                'category': <Schema Column(name=category, type=str)>
             },
             checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=None,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. note:: If an index is present in the schema, it will also be
             included in the new schema.
@@ -1185,15 +1224,18 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ...     "probability": pa.Column(pa.Float)})
         >>>
         >>> print(example_schema.set_index(['category']))
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "probability": "<Schema Column: 'probability' type=float>"
+                'probability': <Schema Column(name=probability, type=float)>
             },
             checks=[],
-            index=<Schema Index: 'category'>,
             coerce=False,
+            pandas_dtype=None,
+            index=<Schema Index(name=category, type=str)>,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         If you have an existing index in your schema, and you would like to
         append a new column as an index to it (yielding a :class:`Multiindex`),
@@ -1208,24 +1250,27 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... )
         >>>
         >>> print(example_schema.set_index(["column2"], append = True))
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "column1": "<Schema Column: 'column1' type=str>"
+                'column1': <Schema Column(name=column1, type=str)>
             },
             checks=[],
-            index=MultiIndex(
-            columns={
-                "column3": "<Schema Column: 'column3' type=int>",
-                "column2": "<Schema Column: 'column2' type=int>"
-            },
-            checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=<Schema MultiIndex(
+                indexes=[
+                    <Schema Index(name=column3, type=int)>
+                    <Schema Index(name=column2, type=int)>
+                ]
+                coerce=False,
+                strict=False,
+                name=None,
+                ordered=True
+            )>,
             strict=False
-        ),
-            coerce=False,
-            strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. seealso:: :func:`reset_index`
 
@@ -1309,16 +1354,19 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... )
         >>>
         >>> print(example_schema.reset_index())
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "probability": "<Schema Column: 'probability' type=float>",
-                "unique_id": "<Schema Column: 'unique_id' type=int64>"
+                'probability': <Schema Column(name=probability, type=float)>
+                'unique_id': <Schema Column(name=unique_id, type=int64)>
             },
             checks=[],
-            index=None,
             coerce=False,
+            pandas_dtype=None,
+            index=None,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         This reclassifies an index (or indices) as a column (or columns).
 
@@ -1335,16 +1383,19 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ...     )
         ... )
         >>> print(example_schema.reset_index(level = ["unique_id1"]))
-        DataFrameSchema(
+        <Schema DataFrameSchema(
             columns={
-                "category": "<Schema Column: 'category' type=str>",
-                "unique_id1": "<Schema Column: 'unique_id1' type=int64>"
+                'category': <Schema Column(name=category, type=str)>
+                'unique_id1': <Schema Column(name=unique_id1, type=int64)>
             },
             checks=[],
-            index=<Schema Index: 'unique_id2'>,
             coerce=False,
+            pandas_dtype=None,
+            index=<Schema Index(name=unique_id2, type=str)>,
             strict=False
-        )
+            name=None,
+            ordered=False
+        )>
 
         .. seealso:: :func:`set_index`
 
@@ -1445,7 +1496,7 @@ class SeriesSchemaBase:
         nullable: bool = False,
         allow_duplicates: bool = True,
         coerce: bool = False,
-        name: str = None,
+        name: Any = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1865,6 +1916,16 @@ class SeriesSchemaBase:
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
             return self.strategy(size=size).example()
+
+    def __repr__(self):
+        if isinstance(self._pandas_dtype, PandasDtype):
+            dtype = self._pandas_dtype.value
+        else:
+            dtype = self._pandas_dtype
+        return (
+            f"<Schema {self.__class__.__name__}"
+            f"(name={self._name}, type={dtype})>"
+        )
 
 
 class SeriesSchema(SeriesSchemaBase):

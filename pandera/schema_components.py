@@ -9,7 +9,6 @@ import pandas as pd
 
 from . import errors
 from . import strategies as st
-from .dtypes import PandasDtype
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -307,13 +306,6 @@ class Column(SeriesSchemaBase):
                 .to_frame()
             )
 
-    def __repr__(self):
-        if isinstance(self._pandas_dtype, PandasDtype):
-            dtype = self._pandas_dtype.value
-        else:
-            dtype = self._pandas_dtype
-        return f"<Schema Column: '{self._name}' type={dtype}>"
-
     def __eq__(self, other):
         def _compare_dict(obj):
             return {
@@ -433,11 +425,6 @@ class Index(SeriesSchemaBase):
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
             return self.strategy(size=size).example()
-
-    def __repr__(self):
-        if self._name is None:
-            return "<Schema Index>"
-        return f"<Schema Index: '{self._name}'>"
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -723,7 +710,33 @@ class MultiIndex(DataFrameSchema):
             return self.strategy(size=size).example()
 
     def __repr__(self):
-        return f"<Schema MultiIndex: '{list(self.columns)}'>"
+        return (
+            f"<Schema {self.__class__.__name__}("
+            f"indexes={self.indexes}, "
+            f"coerce={self.coerce}, "
+            f"strict={self.strict}, "
+            f"name={self.name}, "
+            f"ordered={self.ordered}"
+            ")>"
+        )
+
+    def __str__(self):
+        indent = " " * 4
+
+        indexes_str = "[\n"
+        for index in self.indexes:
+            indexes_str += f"{indent * 2}{index}\n"
+        indexes_str += f"{indent}]"
+
+        return (
+            f"<Schema {self.__class__.__name__}(\n"
+            f"{indent}indexes={indexes_str}\n"
+            f"{indent}coerce={self.coerce},\n"
+            f"{indent}strict={self.strict},\n"
+            f"{indent}name={self.name},\n"
+            f"{indent}ordered={self.ordered}\n"
+            ")>"
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
