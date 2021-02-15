@@ -307,6 +307,7 @@ Submit issues, feature requests or bugfixes on
    data_synthesis_strategies
    extensions
    API_reference
+   CONTRIBUTING
 
 How to Cite
 -----------

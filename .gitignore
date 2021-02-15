@@ -118,3 +118,6 @@ docs/source/generated
 # Nox
 .nox
 .nox-*
+
+# ignore markdown files copied from .github
+docs/source/CONTRIBUTING.md
