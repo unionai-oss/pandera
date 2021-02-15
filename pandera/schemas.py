@@ -651,11 +651,21 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     def __repr__(self):
         """Represent string for logging."""
+        if isinstance(self._pandas_dtype, PandasDtype):
+            dtype = self._pandas_dtype.value
+        else:
+            dtype = self._pandas_dtype
         return (
             f"<Schema {self.__class__.__name__}("
-            f"(columns={self.columns}, "
+            f"columns={self.columns}, "
+            f"checks={self.checks}, "
             f"index={self.index.__repr__()}, "
-            f"coerce={self.coerce})"
+            f"coerce={self.coerce}, "
+            f"pandas_dtype={dtype},"
+            f"strict={self.strict},"
+            f"name={self.name},"
+            f"ordered={self.ordered}"
+            ")>"
         )
 
     def __str__(self):
@@ -695,13 +705,21 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 x if i == 0 else f"{indent}{x}" for i, x in enumerate(index)
             )
 
+        if isinstance(self._pandas_dtype, PandasDtype):
+            dtype = self._pandas_dtype.value
+        else:
+            dtype = self._pandas_dtype
+
         return (
             f"<Schema {self.__class__.__name__}(\n"
             f"{columns_str},\n"
             f"{checks_str},\n"
             f"{indent}coerce={self.coerce},\n"
+            f"{indent}pandas_dtype={dtype},\n"
             f"{indent}index={index},\n"
             f"{indent}strict={self.strict}\n"
+            f"{indent}name={self.name},\n"
+            f"{indent}ordered={self.ordered}\n"
             ")>"
         )
 
@@ -783,8 +801,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=None,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. seealso:: :func:`remove_columns`
@@ -830,8 +851,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=None,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. seealso:: :func:`add_columns`
@@ -888,8 +912,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=None,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. seealso:: :func:`rename_columns`
@@ -945,8 +972,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=None,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. note:: This is the successor to the ``update_column`` method, which
@@ -1024,8 +1054,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=None,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. seealso:: :func:`update_column`
@@ -1096,8 +1129,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=None,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. note:: If an index is present in the schema, it will also be
@@ -1194,8 +1230,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=<Schema Index(name=category, type=str)>,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         If you have an existing index in your schema, and you would like to
@@ -1217,6 +1256,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=<Schema MultiIndex(
                 indexes=[
                     <Schema Index(name=column3, type=int)>
@@ -1228,6 +1268,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 ordered=True
             )>,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. seealso:: :func:`reset_index`
@@ -1319,8 +1361,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=None,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         This reclassifies an index (or indices) as a column (or columns).
@@ -1345,8 +1390,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
+            pandas_dtype=None,
             index=<Schema Index(name=unique_id2, type=str)>,
             strict=False
+            name=None,
+            ordered=False
         )>
 
         .. seealso:: :func:`set_index`

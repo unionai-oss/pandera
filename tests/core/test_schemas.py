@@ -1577,3 +1577,64 @@ def test_dataframe_duplicated_columns(data, error, schema):
     else:
         with pytest.raises(error):
             schema(data)
+
+
+@pytest.mark.parametrize(
+    "schema,fields",
+    [
+        [
+            DataFrameSchema(
+                columns={"col": Column(int)},
+                checks=Check.gt(0),
+                index=Index(int),
+                pandas_dtype=int,
+                coerce=True,
+                strict=True,
+                name="schema",
+                ordered=False,
+            ),
+            [
+                "columns",
+                "checks",
+                "index",
+                "pandas_dtype",
+                "coerce",
+                "strict",
+                "name",
+                "ordered",
+            ],
+        ],
+        [
+            MultiIndex(
+                indexes=[
+                    Index(int),
+                    Index(int),
+                    Index(int),
+                ],
+                coerce=True,
+                strict=True,
+                name="multiindex_schema",
+                ordered=True,
+            ),
+            [
+                "indexes",
+                "coerce",
+                "strict",
+                "name",
+                "ordered",
+            ],
+        ],
+        [SeriesSchema(int, name="series_schema"), ["type", "name"]],
+    ],
+)
+def test_schema_str_repr(schema, fields):
+    """Test the __str__ and __repr__ methods for schemas."""
+    for x in [
+        schema.__str__(),
+        schema.__repr__(),
+    ]:
+        print(x)
+        assert x.startswith(f"<Schema {schema.__class__.__name__}(")
+        assert x.endswith(")>")
+        for field in fields:
+            assert field in x

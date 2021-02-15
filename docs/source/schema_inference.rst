@@ -42,8 +42,11 @@ is a simple example:
         },
         checks=[],
         coerce=True,
+        pandas_dtype=None,
         index=<Schema Index(name=None, type=int64)>,
         strict=False
+        name=None,
+        ordered=False
     )>
 
 

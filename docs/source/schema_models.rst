@@ -127,8 +127,11 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
         },
         checks=[],
         coerce=False,
+        pandas_dtype=None,
         index=None,
         strict=False
+        name=None,
+        ordered=False
     )>
 
 Or use the :meth:`~pandera.model.SchemaModel.validate` method to validate dataframes:

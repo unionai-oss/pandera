@@ -722,8 +722,11 @@ data pipeline:
         },
         checks=[],
         coerce=False,
+        pandas_dtype=None,
         index=None,
         strict=True
+        name=None,
+        ordered=False
     )>
 
 If during the course of a data pipeline one of your columns is moved into the
@@ -757,6 +760,7 @@ the pipeline output.
         },
         checks=[],
         coerce=True,
+        pandas_dtype=None,
         index=<Schema MultiIndex(
             indexes=[
                 <Schema Index(name=column3, type=int)>
@@ -768,6 +772,8 @@ the pipeline output.
             ordered=True
         )>,
         strict=True
+        name=None,
+        ordered=False
     )>
 
 
