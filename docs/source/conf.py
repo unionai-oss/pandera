@@ -78,7 +78,12 @@ source_suffix = {
 }
 
 # copy CONTRIBUTING.md docs into source directory
-shutil.copyfile("../../.github/CONTRIBUTING.md", "CONTRIBUTING.md")
+shutil.copyfile(
+    os.path.join(
+        os.path.dirname(__file__), "..", "..", ".github", "CONTRIBUTING.md"
+    ),
+    "CONTRIBUTING.md",
+)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
