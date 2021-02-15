@@ -193,6 +193,11 @@ def test_dataframe_pandas_dtype_coerce():
     with pytest.raises(ValueError):
         schema._coerce_dtype(df)
 
+    # test setting coerce as false at the dataframe level no longer coerces
+    # columns to int
+    schema.coerce = False
+    assert (schema(df).dtypes == "float64").all()
+
 
 def test_dataframe_coerce_regex():
     """Test dataframe pandas dtype coercion for regex columns"""
@@ -877,6 +882,10 @@ def test_add_and_remove_columns():
 
     assert schema4 == expected_schema_4 == schema1
 
+    # test raising error if column name is not in the schema
+    with pytest.raises(errors.SchemaInitError):
+        schema2.remove_columns(["foo", "bar"])
+
 
 def test_schema_get_dtype():
     """Test that schema dtype and get_dtype methods handle regex columns."""
@@ -1000,6 +1009,11 @@ def test_rename_columns():
 
     with pytest.raises(errors.SchemaInitError):
         schema_original.rename_columns({"foo": "bar"})
+
+    # Test raising error if new column name is already in schema
+    for rename_dict in [{"col1": "col2"}, {"col2": "col1"}]:
+        with pytest.raises(errors.SchemaInitError):
+            schema_original.rename_columns(rename_dict)
 
 
 @pytest.mark.parametrize(
@@ -1175,8 +1189,67 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
 @pytest.mark.parametrize(
     "schema, data, expectation",
     [
+        # case: series name doesn't match schema name
         [
-            SeriesSchema(Int, checks=Check.greater_than(0)),
+            SeriesSchema(name="foobar"),
+            pd.Series(range(3)),
+            {
+                "data": pd.Series(range(3)),
+                "schema_errors": {
+                    "SeriesSchema": {"field_name('foobar')": [None]},
+                },
+            },
+        ],
+        # case: series type doesn't match schema type
+        [
+            SeriesSchema(int),
+            pd.Series([0.1]),
+            {
+                "data": pd.Series([0.1]),
+                "schema_errors": {
+                    "SeriesSchema": {"pandas_dtype('int64')": ["float64"]},
+                },
+            },
+        ],
+        # case: series index doesn't satisfy schema index
+        [
+            SeriesSchema(index=Index(int)),
+            pd.Series([1, 2, 3], index=list("abc")),
+            {
+                "data": pd.Series([1, 2, 3], index=list("abc")),
+                "schema_errors": {
+                    "Index": {"pandas_dtype('int64')": ["object"]},
+                },
+            },
+        ],
+        # case: SeriesSchema data-type coercion error
+        [
+            SeriesSchema(float, coerce=True),
+            pd.Series(["1", "foo", "bar"]),
+            {
+                "data": pd.Series(["1", "foo", "bar"]),
+                "schema_errors": {
+                    "SeriesSchema": {
+                        "pandas_dtype('float64')": ["object"],
+                        "coerce_dtype('float64')": ["object"],
+                    },
+                },
+            },
+        ],
+        # case: series index coercion error
+        [
+            SeriesSchema(index=Index(int, coerce=True)),
+            pd.Series([1, 2, 3], index=list("abc")),
+            {
+                "data": pd.Series([1, 2, 3], index=list("abc")),
+                "schema_errors": {
+                    "Index": {"coerce_dtype('int64')": ["object"]},
+                },
+            },
+        ],
+        # case: series type and check doesn't satisfy schema
+        [
+            SeriesSchema(int, checks=Check.greater_than(0)),
             pd.Series(["a", "b", "c"]),
             {
                 "data": pd.Series(["a", "b", "c"]),
@@ -1185,8 +1258,8 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                     "SeriesSchema": {
                         # check name -> failure cases
                         "greater_than(0)": [
-                            "TypeError(\"'>' not supported between instances of "
-                            "'str' and 'int'\")",
+                            "TypeError(\"'>' not supported between instances "
+                            "of 'str' and 'int'\")",
                             # TypeError raised in python=3.5
                             'TypeError("unorderable types: str() > int()")',
                         ],
@@ -1195,6 +1268,7 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                 },
             },
         ],
+        # case: multiple series checks don't satisfy schema
         [
             Column(
                 Int,
@@ -1236,8 +1310,8 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
                 ),
             ),
             {
-                # expect that the data in the SchemaError is the pd.MultiIndex cast
-                # into a DataFrame
+                # expect that the data in the SchemaError is the pd.MultiIndex
+                # cast into a DataFrame
                 "data": pd.DataFrame(
                     {"column": [1, 2, 3]},
                     index=pd.MultiIndex.from_arrays(

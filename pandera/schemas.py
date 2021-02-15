@@ -185,6 +185,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         """Whether to coerce series to specified type."""
         return self._coerce
 
+    @coerce.setter
+    def coerce(self, value: bool) -> None:
+        """Set coerce attribute"""
+        self._coerce = value
+
     @property
     def ordered(self):
         """Whether or not to validate the columns order."""
@@ -313,7 +318,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 obj,
                 msg,
                 failure_cases=scalar_failure_case(str(obj.dtypes.to_dict())),
-                check=f"coerce_dtype({self.pdtype.str_alias})",
+                check=f"coerce_dtype('{self.pdtype.str_alias}')",
             ) from exc
 
     def coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
@@ -1528,6 +1533,11 @@ class SeriesSchemaBase:
         """Whether to coerce series to specified type."""
         return self._coerce
 
+    @coerce.setter
+    def coerce(self, value: bool) -> None:
+        """Set coerce attribute."""
+        self._coerce = value
+
     @property
     def name(self) -> Union[str, None]:
         """Get SeriesSchema name."""
@@ -1592,8 +1602,8 @@ class SeriesSchemaBase:
                 self,
                 obj,
                 msg,
-                failure_cases=scalar_failure_case(obj.dtype),
-                check=f"coerce_dtype({self.dtype})",
+                failure_cases=scalar_failure_case(str(obj.dtype)),
+                check=f"coerce_dtype('{self.dtype}')",
             ) from exc
 
     @property
@@ -1668,12 +1678,15 @@ class SeriesSchemaBase:
                 self._name,
                 series.name,
             )
-            raise errors.SchemaError(
-                self,
-                check_obj,
-                msg,
-                failure_cases=scalar_failure_case(series.name),
-                check=f"column_name('{self._name}')",
+            error_handler.collect_error(
+                "wrong_field_name",
+                errors.SchemaError(
+                    self,
+                    check_obj,
+                    msg,
+                    failure_cases=scalar_failure_case(series.name),
+                    check=f"field_name('{self._name}')",
+                ),
             )
 
         series_dtype = series.dtype
@@ -1761,9 +1774,6 @@ class SeriesSchemaBase:
                     check=f"pandas_dtype('{self.dtype}')",
                 ),
             )
-
-        if not self.checks:
-            return check_obj
 
         check_results = []
         if isinstance(check_obj, pd.Series):
@@ -1967,25 +1977,28 @@ class SeriesSchema(SeriesSchemaBase):
             except errors.SchemaError as exc:
                 error_handler.collect_error("dtype_coercion_error", exc)
 
-        if self.index is not None and (self.index.coerce or self.coerce):
-            try:
-                check_obj.index = self.index.coerce_dtype(check_obj.index)
-            except errors.SchemaError as exc:
-                error_handler.collect_error("dtype_coercion_error", exc)
-
         # validate index
         if self.index:
+            # coerce data type using index schema copy to prevent mutation
+            # of original index schema attribute.
+            _index = copy.deepcopy(self.index)
+            _index.coerce = _index.coerce or self.coerce
             try:
-                self.index(check_obj, head, tail, sample, random_state, lazy)
+                check_obj = _index(
+                    check_obj, head, tail, sample, random_state, lazy, inplace
+                )
+            except errors.SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
             except errors.SchemaErrors as err:
                 for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
                         "index_check", schema_error_dict["error"]
                     )
-
         # validate series
         try:
-            super().validate(check_obj, head, tail, sample, random_state, lazy)
+            super().validate(
+                check_obj, head, tail, sample, random_state, lazy, inplace
+            )
         except errors.SchemaErrors as err:
             for schema_error_dict in err.schema_errors:
                 error_handler.collect_error(

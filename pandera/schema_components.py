@@ -540,6 +540,11 @@ class MultiIndex(DataFrameSchema):
         """Whether or not to coerce data types."""
         return self._coerce or any(index.coerce for index in self.indexes)
 
+    @coerce.setter
+    def coerce(self, value: bool) -> None:
+        """Set coerce attribute."""
+        self._coerce = value
+
     def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:
         """Coerce type of a pd.Series by type specified in pandas_dtype.
 
@@ -611,9 +616,7 @@ class MultiIndex(DataFrameSchema):
         # pylint: disable=too-many-locals
         if self.coerce:
             try:
-                check_obj.index = self.coerce_dtype(
-                    check_obj.index if inplace else check_obj.index
-                )
+                check_obj.index = self.coerce_dtype(check_obj.index)
             except errors.SchemaErrors as err:
                 if lazy:
                     raise
@@ -624,9 +627,9 @@ class MultiIndex(DataFrameSchema):
         # DataFrameSchema.validate call. Need to fix this by having MultiIndex
         # not inherit from DataFrameSchema.
         self_copy = deepcopy(self)
-        self_copy._coerce = False
+        self_copy.coerce = False
         for index in self_copy.indexes:
-            index._coerce = False
+            index.coerce = False
 
         # rename integer-based column names in case of duplicate index names,
         # with at least one named index.
