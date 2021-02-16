@@ -105,7 +105,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
     statistics = {
         "columns": {
             col_name: {
-                "pandas_dtype": column._pandas_dtype,
+                "pandas_dtype": column.pdtype,
                 "nullable": column.nullable,
                 "allow_duplicates": column.allow_duplicates,
                 "coerce": column.coerce,
