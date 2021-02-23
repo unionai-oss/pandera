@@ -592,6 +592,26 @@ def test_coerce_dtype_nullable_str(
             assert pd.isna(element)
 
 
+@pytest.mark.parametrize(
+    "data, expected_type",
+    [
+        [{"a": 1, "b": 2, "c": 3}, dict],
+        [[1, 2, 3, 4], list],
+        [[1, {"a": 5}], list],
+        [{1, 2, 3}, set],
+    ],
+)
+@pytest.mark.parametrize("dtype", ["object", object, Object])
+def test_coerce_object_dtype(data, expected_type, dtype):
+    """Test coercing on object dtype."""
+    schema = DataFrameSchema({"col": Column(dtype)}, coerce=True)
+    df = pd.DataFrame({"col": [data] * 3})
+    validated_df = schema(df)
+    assert isinstance(validated_df, pd.DataFrame)
+    for _, x in validated_df["col"].iteritems():
+        assert isinstance(x, expected_type)
+
+
 def test_no_dtype_dataframe():
     """Test how nullability is handled in DataFrameSchemas where no type is
     specified."""
