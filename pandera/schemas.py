@@ -1631,9 +1631,10 @@ class SeriesSchemaBase:
         :returns: ``Series`` with coerced data type
         """
         if (
-            self._pandas_dtype is dtypes.PandasDtype.String
+            self._pandas_dtype is PandasDtype.String
             or self._pandas_dtype is str
             or self._pandas_dtype == "str"
+            and self._pandas_dtype is not PandasDtype.Object
         ):
             # only coerce non-null elements to string, make sure series is of
             # object dtype
