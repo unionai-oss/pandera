@@ -138,7 +138,7 @@ def _deserialize_component_stats(serialized_component_stats):
         serialized_component_stats["pandas_dtype"]
     )
     checks = None
-    if serialized_component_stats["checks"] is not None:
+    if serialized_component_stats.get("checks") is not None:
         checks = [
             _deserialize_check_stats(
                 getattr(Check, check_name), check_stats, pandas_dtype
@@ -149,12 +149,12 @@ def _deserialize_component_stats(serialized_component_stats):
         ]
     return {
         "pandas_dtype": pandas_dtype,
-        "nullable": serialized_component_stats["nullable"],
         "checks": checks,
         **{
             key: serialized_component_stats.get(key)
             for key in [
                 "name",
+                "nullable",
                 "allow_duplicates",
                 "coerce",
                 "required",

@@ -248,10 +248,34 @@ coerce: false
 strict: false
 """
 
-YAML_VALIDATION_PAIRS = [
-    # [YAML_SCHEMA, _create_schema],
-    [YAML_SCHEMA_NULL_INDEX, _create_schema_null_index]
-]
+
+def _create_schema_python_types():
+    return pa.DataFrameSchema(
+        {
+            "int_column": pa.Column(int),
+            "float_column": pa.Column(float),
+            "str_column": pa.Column(str),
+            "object_column": pa.Column(object),
+        }
+    )
+
+
+YAML_SCHEMA_PYTHON_TYPES = f"""
+schema_type: dataframe
+version: {pa.__version__}
+columns:
+  int_column:
+    pandas_dtype: int64
+  float_column:
+    pandas_dtype: float64
+  str_column:
+    pandas_dtype: str
+  object_column:
+    pandas_dtype: object
+index: null
+coerce: false
+strict: false
+"""
 
 
 @pytest.mark.skipif(
@@ -291,14 +315,20 @@ def test_to_yaml():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
-def test_from_yaml():
+@pytest.mark.parametrize(
+    "yaml_str, schema_creator",
+    [
+        [YAML_SCHEMA, _create_schema],
+        [YAML_SCHEMA_NULL_INDEX, _create_schema_null_index],
+        [YAML_SCHEMA_PYTHON_TYPES, _create_schema_python_types],
+    ],
+)
+def test_from_yaml(yaml_str, schema_creator):
     """Test that from_yaml reads yaml string."""
-
-    for yml_string, schema_creator in YAML_VALIDATION_PAIRS:
-        schema_from_yaml = io.from_yaml(yml_string)
-        expected_schema = schema_creator()
-        assert schema_from_yaml == expected_schema
-        assert expected_schema == schema_from_yaml
+    schema_from_yaml = io.from_yaml(yaml_str)
+    expected_schema = schema_creator()
+    assert schema_from_yaml == expected_schema
+    assert expected_schema == schema_from_yaml
 
 
 def test_io_yaml_file_obj():
