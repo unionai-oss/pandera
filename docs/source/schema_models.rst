@@ -185,7 +185,7 @@ Instead, you can use the :mod:`pandera.typing` counterparts:
 
     Traceback (most recent call last):
     ...
-    AttributeError: type object 'Generic' has no attribute 'value'
+    TypeError: python type '<class 'typing.Generic'>' not recognized as pandas data type
 
 Type Vs instance
 ^^^^^^^^^^^^^^^^
