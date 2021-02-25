@@ -88,7 +88,7 @@ Note that :class:`~pandera.model_components.Field` s apply to both
 :class:`~pandera.schema_components.Column` and :class:`~pandera.schema_components.Index`
 objects, exposing the built-in :class:`Check` s via key-word arguments.
 
-*(New in 0.7.0)* When you access a class attribute defined on the schema,
+*(New in 0.6.2)* When you access a class attribute defined on the schema,
 it will return the name of the column used in the validated `pd.DataFrame`.
 In the example above, this will simply be the string `"year"`.
 
@@ -644,7 +644,7 @@ Checks must reference the aliased names.
     0       99
 
 
-*(New in 0.7.0)* The `alias` is respected when using the class attribute to get the underlying
+*(New in 0.6.2)* The `alias` is respected when using the class attribute to get the underlying
 `pd.DataFrame` column name or index level name.
 
 .. testcode:: dataframe_schema_model
