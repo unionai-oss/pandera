@@ -2,6 +2,7 @@
 """Schema datatypes."""
 
 from enum import Enum
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -38,21 +39,12 @@ _DEFAULT_PANDAS_COMPLEX_TYPE = str(pd.Series([complex(1)]).dtype)
 _DEFAULT_NUMPY_INT_TYPE = str(np.dtype(int))
 _DEFAULT_NUMPY_FLOAT_TYPE = str(np.dtype(float))
 
-if version.parse(pd.__version__).major < 1:  # type: ignore
-    # pylint: disable=no-name-in-module
-    from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 
-    def is_extension_array_dtype(arr_or_dtype):
-        # pylint: disable=missing-function-docstring
-        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-        return (
-            isinstance(dtype, ExtensionDtype)
-            or registry.find(dtype) is not None
-        )
-
-
-else:
-    from pandas.api.types import is_extension_array_dtype  # type: ignore
+def is_extension_dtype(dtype):
+    """Check if a value is a pandas extension type or instance of one."""
+    return isinstance(dtype, PandasExtensionType) or (
+        isinstance(dtype, type) and issubclass(dtype, PandasExtensionType)
+    )
 
 
 class PandasDtype(Enum):
@@ -281,55 +273,75 @@ class PandasDtype(Enum):
         return cls.from_str_alias(pd_dtype.name)
 
     @classmethod
-    def get_str_dtype(cls, pandas_dtype_arg):
-        """Get pandas-compatible string representation of dtype."""
+    def get_dtype(
+        cls, pandas_dtype_arg: Union[str, type, "PandasDtype", np.dtype]
+    ) -> Optional[
+        Union["PandasDtype", "pd.core.dtypes.dtypes.ExtensionDtype"]
+    ]:
+        """Get PandasDtype from schema argument.
+
+        :param pandas_dtype_arg: ``pandas_dtype`` argument specified in schema
+            definition.
+        """
         dtype_ = pandas_dtype_arg
+
         if dtype_ is None:
             return dtype_
-
-        if is_extension_array_dtype(dtype_):
+        elif isinstance(dtype_, PandasDtype):
+            return pandas_dtype_arg
+        elif is_extension_dtype(dtype_):
             if isinstance(dtype_, type):
                 try:
                     # Convert to str here because some pandas dtypes allow
-                    # an empty constructor for compatatibility but fail on
+                    # an empty constructor for compatibility but fail on
                     # str(). e.g: PeriodDtype
-                    return str(dtype_())
+                    str(dtype_().name)
+                    return dtype_()
                 except (TypeError, AttributeError) as err:
                     raise TypeError(
                         f"Pandas dtype {dtype_} cannot be instantiated: "
                         f"{err}\n Usage Tip: Use an instance or a string "
                         "representation."
                     ) from err
-            return str(dtype_)
+            return dtype_
 
         if dtype_ in NUMPY_TYPES:
-            dtype_ = cls.from_numpy_type(dtype_)
+            dtype_ = cls.from_numpy_type(dtype_)  # type: ignore
         elif isinstance(dtype_, str):
             dtype_ = cls.from_str_alias(dtype_)
         elif isinstance(dtype_, type):
             dtype_ = cls.from_python_type(dtype_)
 
-        if isinstance(dtype_, cls):
-            return dtype_.str_alias
+        if isinstance(dtype_, PandasDtype):
+            return dtype_
         raise TypeError(
             "type of `pandas_dtype` argument not recognized: "
             f"{type(pandas_dtype_arg)}. Please specify a pandera PandasDtype "
-            "enum, legal pandas data type, pandas data type string alias, or "
-            "numpy data type string alias"
+            "enum, built-in python type, pandas data type, pandas data type "
+            "string alias, or numpy data type string alias"
         )
+
+    @classmethod
+    def get_str_dtype(cls, pandas_dtype_arg) -> Optional[str]:
+        """Get pandas-compatible string representation of dtype."""
+        pandas_dtype = cls.get_dtype(pandas_dtype_arg)
+        if pandas_dtype is None:
+            return pandas_dtype
+        elif isinstance(pandas_dtype, PandasDtype):
+            return pandas_dtype.str_alias
+        return str(pandas_dtype)
 
     def __eq__(self, other):
         # pylint: disable=comparison-with-callable
         # see https://github.com/PyCQA/pylint/issues/2306
         if other is None:
             return False
-        if isinstance(other, str):
-            other = self.from_str_alias(other)
+        other_dtype = PandasDtype.get_dtype(other)
         if self.value == "string" and LEGACY_PANDAS:
-            return PandasDtype.String.value == other.value
+            return PandasDtype.String.value == other_dtype.value
         elif self.value == "string":
-            return self.value == other.value
-        return self.str_alias == other.str_alias
+            return self.value == other_dtype.value
+        return self.str_alias == other_dtype.str_alias
 
     def __hash__(self):
         if self is PandasDtype.Int:

@@ -292,11 +292,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     @property
     def pdtype(self) -> Optional[PandasDtype]:
         """PandasDtype of the dataframe."""
-        if self.pandas_dtype is None:
-            return self.pandas_dtype
-        return PandasDtype.from_str_alias(
-            PandasDtype.get_str_dtype(self.pandas_dtype)
-        )
+        pandas_dtype = PandasDtype.get_str_dtype(self.pandas_dtype)
+        if pandas_dtype is None:
+            return pandas_dtype
+        return PandasDtype.from_str_alias(pandas_dtype)
 
     def _coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
         if self.pandas_dtype is dtypes.PandasDtype.String:
