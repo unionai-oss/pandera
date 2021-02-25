@@ -9,7 +9,7 @@ env:
   DEFAULT_PYTHON: 3.8
   CI: "true"
   # Increase this value to reset cache if environment.yml has not changed
-  CACHE_VERSION: 0
+  CACHE_VERSION: 1
 
 jobs:
   codestyle:
