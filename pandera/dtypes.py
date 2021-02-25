@@ -283,9 +283,10 @@ class PandasDtype(Enum):
 
     @classmethod
     def get_dtype(
-        cls,
-        pandas_dtype_arg: Union[str, type, "PandasDtype", np.dtype],
-    ):
+        cls, pandas_dtype_arg: Union[str, type, "PandasDtype", np.dtype]
+    ) -> Optional[
+        Union["PandasDtype", "pd.core.dtypes.dtypes.ExtensionDtype"]
+    ]:
         """Get PandasDtype from schema argument.
 
         :param pandas_dtype_arg: ``pandas_dtype`` argument specified in schema
