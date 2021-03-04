@@ -397,9 +397,12 @@ class _CheckBase:
         )
 
     def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            # we can only be equal if the same type
+            return False
+
         are_check_fn_objects_equal = (
-            self.__dict__["_check_fn"].__code__.co_code
-            == other.__dict__["_check_fn"].__code__.co_code
+            self._get_check_fn_code() == other._get_check_fn_code()
         )
 
         try:
@@ -427,8 +430,18 @@ class _CheckBase:
             and are_all_other_check_attributes_equal
         )
 
+    def _get_check_fn_code(self):
+        check_fn = self.__dict__["_check_fn"]
+        try:
+            code = check_fn.__code__.co_code
+        except AttributeError:
+            # try accessing the functools.partial wrapper
+            code = check_fn.func.__code__.co_code
+
+        return code
+
     def __hash__(self):
-        return hash(self.__dict__["_check_fn"].__code__.co_code)
+        return hash(self._get_check_fn_code())
 
     def __repr__(self):
         return (

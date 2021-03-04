@@ -1,14 +1,30 @@
 # pylint: disable=W0212
 """Unit tests for inferring statistics of pandas objects."""
 
+import unittest.mock as mock
 import pandas as pd
 import pytest
 
 import pandera as pa
+import pandera.extensions as pa_ext
 from pandera import PandasDtype, dtypes, schema_statistics
 
 DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_INT_TYPE)
 DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)
+
+
+@pytest.fixture(scope="function")
+def extra_registered_checks():
+    """temporarily registers custom checks onto the Check class"""
+    with mock.patch(
+        "pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict
+    ):
+        # register custom checks here
+        @pa_ext.register_check_method()
+        def no_param_check(_: pd.DataFrame) -> bool:
+            return True
+
+        yield
 
 
 def _create_dataframe(multi_index=False, nullable=False):
@@ -557,6 +573,18 @@ def test_parse_checks_and_statistics_roundtrip(checks, expectation):
         with pytest.raises(ValueError):
             schema_statistics.parse_checks(checks)
         return
+    assert schema_statistics.parse_checks(checks) == expectation
+
+    check_statistics = {check.name: check.statistics for check in checks}
+    check_list = schema_statistics.parse_check_statistics(check_statistics)
+    assert set(check_list) == set(checks)
+
+
+def test_parse_checks_and_statistics_no_param(extra_registered_checks):
+    """Ensure that an edge case where a check does not have parameters is appropriately handled."""
+
+    checks = [pa.Check.no_param_check()]
+    expectation = {"no_param_check": {}}
     assert schema_statistics.parse_checks(checks) == expectation
 
     check_statistics = {check.name: check.statistics for check in checks}
