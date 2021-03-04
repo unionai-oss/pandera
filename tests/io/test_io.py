@@ -471,3 +471,19 @@ def test_to_yaml_registered_dataframe_check(_):
         schema.validate(pd.DataFrame(data={"a": [1]}))
 
     assert ncols_gt_called, "did not call ncols_gt"
+
+
+def test_to_yaml_custom_dataframe_check():
+    """Tests that writing DataFrameSchema with a registered dataframe raises."""
+
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int,
+            ),
+        },
+        checks=[pa.Check(lambda obj: len(obj.index) > 1)],
+    )
+
+    with pytest.raises(UserWarning, match=".*register custom checks.*"):
+        pa.io.to_yaml(schema)
