@@ -115,6 +115,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
             }
             for col_name, column in dataframe_schema.columns.items()
         },
+        "checks": parse_checks(dataframe_schema.checks),
         "index": (
             None
             if dataframe_schema.index is None

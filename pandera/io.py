@@ -25,15 +25,23 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 
-def _serialize_check_stats(check_stats, pandas_dtype):
+def _serialize_check_stats(check_stats, pandas_dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
+    # pylint: disable=unused-argument
 
     def handle_stat_dtype(stat):
+        # infer dtype if not passed
+        nonlocal pandas_dtype
+
+        if pandas_dtype is None:
+            pandas_dtype = PandasDtype.get_dtype(type(stat))
+
         if pandas_dtype == PandasDtype.DateTime:
             return stat.strftime(DATETIME_FORMAT)
         elif pandas_dtype == PandasDtype.Timedelta:
             # serialize to int in nanoseconds
             return stat.delta
+
         return stat
 
     # for unary checks, return a single value instead of a dictionary
@@ -88,7 +96,7 @@ def _serialize_schema(dataframe_schema):
 
     statistics = get_dataframe_schema_statistics(dataframe_schema)
 
-    columns, index = None, None
+    columns, index, checks = None, None, None
     if statistics["columns"] is not None:
         columns = {
             col_name: _serialize_component_stats(column_stats)
@@ -101,18 +109,33 @@ def _serialize_schema(dataframe_schema):
             for index_stats in statistics["index"]
         ]
 
+    if statistics["checks"] is not None:
+        checks = {
+            check_name: _serialize_check_stats(
+                check_stats,
+            )
+            for check_name, check_stats in statistics["checks"].items()
+        }
+
     return {
         "schema_type": "dataframe",
         "version": __version__,
         "columns": columns,
+        "checks": checks,
         "index": index,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
     }
 
 
-def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype):
+def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
+    # pylint: disable=unused-argument
     def handle_stat_dtype(stat):
+        nonlocal pandas_dtype
+
+        if pandas_dtype is None:
+            pandas_dtype = PandasDtype.get_dtype(type(stat))
+
         if pandas_dtype == PandasDtype.DateTime:
             return pd.to_datetime(stat, format=DATETIME_FORMAT)
         elif pandas_dtype == PandasDtype.Timedelta:
@@ -167,9 +190,9 @@ def _deserialize_component_stats(serialized_component_stats):
 
 def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
-    from pandera import Column, DataFrameSchema, Index, MultiIndex
+    from pandera import Check, Column, DataFrameSchema, Index, MultiIndex
 
-    columns, index = None, None
+    columns, index, checks = None, None, None
     if serialized_schema["columns"] is not None:
         columns = {
             col_name: Column(**_deserialize_component_stats(column_stats))
@@ -180,6 +203,12 @@ def _deserialize_schema(serialized_schema):
         index = [
             _deserialize_component_stats(index_component)
             for index_component in serialized_schema["index"]
+        ]
+
+    if serialized_schema["checks"] is not None:
+        checks = [
+            _deserialize_check_stats(getattr(Check, check_name), check_stats)
+            for check_name, check_stats in serialized_schema["checks"].items()
         ]
 
     if index is None:
@@ -193,6 +222,7 @@ def _deserialize_schema(serialized_schema):
 
     return DataFrameSchema(
         columns=columns,
+        checks=checks,
         index=index,
         coerce=serialized_schema["coerce"],
         strict=serialized_schema["strict"],
