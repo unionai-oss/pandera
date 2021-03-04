@@ -25,7 +25,7 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 
-def _serialize_check_stats(check_stats, pandas_dtype=None):
+def _serialize_check_stats(check_stats, pandas_dtype = None):
     """Serialize check statistics into json/yaml-compatible format."""
     # pylint: disable=unused-argument
 
@@ -55,18 +55,44 @@ def _serialize_check_stats(check_stats, pandas_dtype=None):
     return serialized_check_stats
 
 
+def _serialize_dataframe_stats(dataframe_checks):
+    """
+    Serialize global dataframe check statistics into json/yaml-compatible format.
+    """
+    from pandera.checks import Check
+
+    serialized_checks = {}
+
+    if dataframe_checks is None:
+        return serialized_checks
+
+    for check_name, check_stats in dataframe_checks.items():
+        if check_name not in Check:
+            warnings.warn(
+                f"Check {check_name} cannot be serialized. This check will be "
+                "ignored. Did you forget to register it with the extension API?"
+            )
+        else:
+            # infer dtype and
+            serialized_checks[check_name] = _serialize_check_stats(check_stats)
+
+    return serialized_checks
+
+
 def _serialize_component_stats(component_stats):
     """
     Serialize column or index statistics into json/yaml-compatible format.
     """
+    from pandera.checks import Check
+
     serialized_checks = None
     if component_stats["checks"] is not None:
         serialized_checks = {}
         for check_name, check_stats in component_stats["checks"].items():
-            if check_stats is None:
+            if check_name not in Check:
                 warnings.warn(
                     f"Check {check_name} cannot be serialized. This check will be "
-                    f"ignored"
+                    "ignored. Did you forget to register it with the extension API?"
                 )
             else:
                 serialized_checks[check_name] = _serialize_check_stats(
@@ -110,12 +136,7 @@ def _serialize_schema(dataframe_schema):
         ]
 
     if statistics["checks"] is not None:
-        checks = {
-            check_name: _serialize_check_stats(
-                check_stats,
-            )
-            for check_name, check_stats in statistics["checks"].items()
-        }
+        checks = _serialize_dataframe_stats(statistics["checks"])
 
     return {
         "schema_type": "dataframe",

@@ -5,7 +5,7 @@ import operator
 import re
 from collections import namedtuple
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union, TypeVar, Type
 
 import pandas as pd
 
@@ -451,8 +451,13 @@ class _CheckBase:
         )
 
 
+T = TypeVar("T")
+
+
 class _CheckMeta(type):  # pragma: no cover
     """Check metaclass."""
+
+    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
@@ -461,12 +466,19 @@ class _CheckMeta(type):  # pragma: no cover
             raise AttributeError(f"'{cls}' object has no attribute '{name}'")
         return attr
 
+    def __contains__(cls: Type[T], item: Union[T, str]) -> bool:
+        """Allow lookups for registered checks."""
+        if isinstance(item, cls):
+            name = item.name
+            ref = getattr(cls, name, None)
+            return False if ref is None else ref == item
+        else:
+            # assume item is str
+            return hasattr(cls, item)
+
 
 class Check(_CheckBase, metaclass=_CheckMeta):
     """Check a pandas Series or DataFrame for certain properties."""
-
-    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
-
     @classmethod
     @st.register_check_strategy(st.eq_strategy)
     @register_check_statistics(["value"])
