@@ -388,6 +388,7 @@ def test_get_dataframe_schema_statistics():
         ),
     )
     expectation = {
+        "checks": None,
         "columns": {
             "int": {
                 "pandas_dtype": pa.Int,

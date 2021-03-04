@@ -2,6 +2,7 @@
 
 import platform
 import tempfile
+import unittest.mock as mock
 from pathlib import Path
 
 import pandas as pd
@@ -9,6 +10,7 @@ import pytest
 from packaging import version
 
 import pandera as pa
+import pandera.extensions as pa_ext
 
 try:
     from pandera import io
@@ -183,6 +185,7 @@ columns:
     coerce: true
     required: false
     regex: true
+checks: null
 index:
 - pandas_dtype: int
   nullable: false
@@ -244,6 +247,7 @@ columns:
         min_value: 1
         max_value: 3
 index: null
+checks: null
 coerce: false
 strict: false
 """
@@ -272,6 +276,7 @@ columns:
     pandas_dtype: str
   object_column:
     pandas_dtype: object
+checks: null
 index: null
 coerce: false
 strict: false
@@ -283,7 +288,7 @@ strict: false
     reason="pyyaml >= 5.1.0 required",
 )
 def test_inferred_schema_io():
-    """Test that inferred schema can be writted to yaml."""
+    """Test that inferred schema can be written to yaml."""
     df = pd.DataFrame(
         {
             "column1": [5, 10, 20],
@@ -424,3 +429,45 @@ def test_to_yaml_lambda_check():
 
     with pytest.warns(UserWarning):
         pa.io.to_yaml(schema)
+
+
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_to_yaml_registered_dataframe_check(_):
+    """Tests that writing DataFrameSchema with a registered dataframe works."""
+    ncols_gt_called = False
+
+    @pa_ext.register_check_method(statistics=["column_count"])
+    def ncols_gt(pandas_obj: pd.DataFrame, column_count: int) -> bool:
+        """test registered dataframe check"""
+
+        # pylint: disable=unused-variable
+        nonlocal ncols_gt_called
+        ncols_gt_called = True
+        assert isinstance(column_count, int), "column_count must be integral"
+        assert isinstance(
+            pandas_obj, pd.DataFrame
+        ), "ncols_gt should only be applied to DataFrame"
+        return len(pandas_obj.columns) > column_count
+
+    assert (
+        len(pa.Check.REGISTERED_CUSTOM_CHECKS) == 1
+    ), "custom check is registered"
+
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int,
+            ),
+        },
+        checks=[pa.Check.ncols_gt(column_count=5)],
+    )
+
+    serialized = pa.io.to_yaml(schema)
+    loaded = pa.io.from_yaml(serialized)
+
+    assert len(loaded.checks) == 1, "global check was stripped"
+
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(pd.DataFrame(data={"a": [1]}))
+
+    assert ncols_gt_called, "did not call ncols_gt"
