@@ -101,6 +101,16 @@ def test_dataframe_schema():
         schema.validate(df.assign(a=[1.7, 2.3, 3.1]))
 
 
+def test_dataframe_schema_equality():
+    """Test DataframeSchema equality."""
+    schema = DataFrameSchema({"a": Column(Int)})
+    assert schema == copy.copy(schema)
+    assert schema != "schema"
+    assert DataFrameSchema(coerce=True) != DataFrameSchema(coerce=False)
+    assert schema != schema.update_column("a", pandas_dtype=Float)
+    assert schema != schema.update_column("a", checks=Check.eq(1))
+
+
 def test_dataframe_schema_strict():
     """
     Checks if strict=True whether a schema error is raised because 'a' is
