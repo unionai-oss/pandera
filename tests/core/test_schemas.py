@@ -104,7 +104,6 @@ def test_dataframe_schema():
 def test_dataframe_schema_equality():
     """Test DataframeSchema equality."""
     schema = DataFrameSchema({"a": Column(Int)})
-    assert schema == schema
     assert schema == copy.copy(schema)
     assert schema != "schema"
     assert DataFrameSchema(coerce=True) != DataFrameSchema(coerce=False)
