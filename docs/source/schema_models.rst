@@ -147,6 +147,14 @@ Or use the :meth:`~pandera.model.SchemaModel.validate` method to validate datafr
     1  2002      6  156
     2  2003     12  365
 
+Excluded attributes
+-------------------
+
+Class variables which begin with an underscore will be automatically excluded from
+the model. :ref:`Config<schema_model_config>` is also a reserved name.
+However, :ref:`aliases<schema_model_alias>` can be used to circumvent these limitations.
+
+
 Supported dtypes
 ----------------
 
@@ -609,6 +617,7 @@ The custom checks are inherited and therefore can be overwritten by the subclass
     1      1             2
     2      2             3
 
+.. _schema_model_alias:
 
 Aliases
 -------
