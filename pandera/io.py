@@ -64,8 +64,13 @@ def _serialize_component_stats(component_stats):
                 serialized_checks[check_name] = _serialize_check_stats(
                     check_stats, component_stats["pandas_dtype"]
                 )
+
+    pandas_dtype = component_stats.get("pandas_dtype")
+    if pandas_dtype:
+        pandas_dtype = pandas_dtype.value
+
     return {
-        "pandas_dtype": component_stats["pandas_dtype"].value,
+        "pandas_dtype": pandas_dtype,
         "nullable": component_stats["nullable"],
         "checks": serialized_checks,
         **{
@@ -134,9 +139,10 @@ def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype):
 def _deserialize_component_stats(serialized_component_stats):
     from pandera import Check  # pylint: disable=import-outside-toplevel
 
-    pandas_dtype = PandasDtype.from_str_alias(
-        serialized_component_stats["pandas_dtype"]
-    )
+    pandas_dtype = serialized_component_stats.get("pandas_dtype")
+    if pandas_dtype:
+        pandas_dtype = PandasDtype.from_str_alias(pandas_dtype)
+
     checks = None
     if serialized_component_stats.get("checks") is not None:
         checks = [
@@ -333,8 +339,13 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     columns = {}
     for colname, properties in statistics["columns"].items():
+        pandas_dtype = properties.get("pandas_dtype")
         column_code = COLUMN_TEMPLATE.format(
-            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
+            pandas_dtype=(
+                None
+                if pandas_dtype is None
+                else f"PandasDtype.{properties['pandas_dtype'].name}"
+            ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
             allow_duplicates=properties["allow_duplicates"],
