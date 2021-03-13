@@ -29,6 +29,31 @@ def test_to_schema():
         Schema()
 
 
+def test_empty_schema():
+    """Test that SchemaModel supports empty schemas."""
+
+    empty_schema = pa.DataFrameSchema()
+
+    class EmptySchema(pa.SchemaModel):
+        pass
+
+    assert empty_schema == EmptySchema.to_schema()
+
+    class Schema(pa.SchemaModel):
+        a: Series[int]
+
+    class EmptySubSchema(Schema):
+        pass
+
+    schema = pa.DataFrameSchema({"a": pa.Column(int)})
+    assert schema == EmptySubSchema.to_schema()
+
+    class EmptyParentSchema(EmptySchema):
+        a: Series[int]
+
+    assert schema == EmptyParentSchema.to_schema()
+
+
 def test_invalid_annotations():
     """Test that SchemaModel.to_schema() fails if annotations or types are not
     recognized.
