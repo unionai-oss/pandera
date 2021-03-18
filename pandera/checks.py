@@ -399,7 +399,7 @@ class _CheckBase:
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             # we can only be equal if the same type
-            return False
+            return NotImplemented
 
         are_check_fn_objects_equal = (
             self._get_check_fn_code() == other._get_check_fn_code()
@@ -470,11 +470,10 @@ class _CheckMeta(type):  # pragma: no cover
         """Allow lookups for registered checks."""
         if isinstance(item, cls):
             name = item.name
-            ref = getattr(cls, name, None)
-            return False if ref is None else ref == item
-        else:
-            # assume item is str
-            return hasattr(cls, item)
+            return hasattr(cls, name)
+
+        # assume item is str
+        return hasattr(cls, item)
 
 
 class Check(_CheckBase, metaclass=_CheckMeta):
