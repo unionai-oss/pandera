@@ -461,7 +461,7 @@ class _CheckBase:
         )
 
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
 class _CheckMeta(type):  # pragma: no cover
@@ -476,7 +476,7 @@ class _CheckMeta(type):  # pragma: no cover
             raise AttributeError(f"'{cls}' object has no attribute '{name}'")
         return attr
 
-    def __contains__(cls: Type[T], item: Union[T, str]) -> bool:
+    def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
         """Allow lookups for registered checks."""
         if isinstance(item, cls):
             name = item.name

@@ -161,7 +161,8 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
     for check in checks:
         if check not in Check:
             warnings.warn(
-                "only registered checks may be converted to statistics. "
+                "Only registered checks may be converted to statistics. "
+                "Did you forget to register it with the extension API? "
                 f"Check `{check.name}` will be skipped."
             )
             continue

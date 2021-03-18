@@ -16,6 +16,7 @@ DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)
 @pytest.fixture(scope="function")
 def extra_registered_checks():
     """temporarily registers custom checks onto the Check class"""
+    # pylint: disable=unused-variable
     with mock.patch(
         "pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict
     ):
@@ -580,6 +581,8 @@ def test_parse_checks_and_statistics_roundtrip(checks, expectation):
     assert set(check_list) == set(checks)
 
 
+# The next line is a workaround for pylint's confusion about pytest fixtures
+# pylint: disable=redefined-outer-name,unused-argument
 def test_parse_checks_and_statistics_no_param(extra_registered_checks):
     """Ensure that an edge case where a check does not have parameters is appropriately handled."""
 
@@ -590,3 +593,6 @@ def test_parse_checks_and_statistics_no_param(extra_registered_checks):
     check_statistics = {check.name: check.statistics for check in checks}
     check_list = schema_statistics.parse_check_statistics(check_statistics)
     assert set(check_list) == set(checks)
+
+
+# pylint: enable=redefined-outer-name,unused-argument

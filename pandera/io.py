@@ -59,6 +59,7 @@ def _serialize_dataframe_stats(dataframe_checks):
     """
     Serialize global dataframe check statistics into json/yaml-compatible format.
     """
+    # pylint: disable=import-outside-toplevel
     from pandera.checks import Check
 
     serialized_checks = {}
@@ -69,7 +70,7 @@ def _serialize_dataframe_stats(dataframe_checks):
     for check_name, check_stats in dataframe_checks.items():
         if check_name not in Check:
             warnings.warn(
-                f"Check {check_name} cannot be serialized. This check will be "
+                f"Check `{check_name}` cannot be serialized. This check will be "
                 "ignored. Did you forget to register it with the extension API?"
             )
         else:
@@ -83,6 +84,7 @@ def _serialize_component_stats(component_stats):
     """
     Serialize column or index statistics into json/yaml-compatible format.
     """
+    # pylint: disable=import-outside-toplevel
     from pandera.checks import Check
 
     serialized_checks = None
