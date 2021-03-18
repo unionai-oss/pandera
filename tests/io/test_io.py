@@ -485,5 +485,5 @@ def test_to_yaml_custom_dataframe_check():
         checks=[pa.Check(lambda obj: len(obj.index) > 1)],
     )
 
-    with pytest.warns(UserWarning, match=".*only registered checks.*"):
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
         pa.io.to_yaml(schema)

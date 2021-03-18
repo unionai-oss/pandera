@@ -1,4 +1,5 @@
 """Module for reading and writing schema objects."""
+# pylint: disable=fixme
 
 import warnings
 from functools import partial
@@ -30,7 +31,7 @@ def _serialize_check_stats(check_stats, pandas_dtype=None):
     # pylint: disable=unused-argument
 
     def handle_stat_dtype(stat):
-        # infer dtype if not passed
+        # fixme: change interface to not require a dtype spec
         nonlocal pandas_dtype
 
         if pandas_dtype is None:
@@ -154,6 +155,7 @@ def _serialize_schema(dataframe_schema):
 def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
     # pylint: disable=unused-argument
     def handle_stat_dtype(stat):
+        # fixme: change interface to not require a dtype spec
         nonlocal pandas_dtype
 
         if pandas_dtype is None:

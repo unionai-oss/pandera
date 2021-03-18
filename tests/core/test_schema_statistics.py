@@ -1,31 +1,14 @@
 # pylint: disable=W0212
 """Unit tests for inferring statistics of pandas objects."""
 
-import unittest.mock as mock
 import pandas as pd
 import pytest
 
 import pandera as pa
-import pandera.extensions as pa_ext
 from pandera import PandasDtype, dtypes, schema_statistics
 
 DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_INT_TYPE)
 DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)
-
-
-@pytest.fixture(scope="function")
-def extra_registered_checks():
-    """temporarily registers custom checks onto the Check class"""
-    # pylint: disable=unused-variable
-    with mock.patch(
-        "pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict
-    ):
-        # register custom checks here
-        @pa_ext.register_check_method()
-        def no_param_check(_: pd.DataFrame) -> bool:
-            return True
-
-        yield
 
 
 def _create_dataframe(multi_index=False, nullable=False):
@@ -581,8 +564,7 @@ def test_parse_checks_and_statistics_roundtrip(checks, expectation):
     assert set(check_list) == set(checks)
 
 
-# The next line is a workaround for pylint's confusion about pytest fixtures
-# pylint: disable=redefined-outer-name,unused-argument
+# pylint: disable=unused-argument
 def test_parse_checks_and_statistics_no_param(extra_registered_checks):
     """Ensure that an edge case where a check does not have parameters is appropriately handled."""
 
@@ -595,4 +577,4 @@ def test_parse_checks_and_statistics_no_param(extra_registered_checks):
     assert set(check_list) == set(checks)
 
 
-# pylint: enable=redefined-outer-name,unused-argument
+# pylint: enable=unused-argument

@@ -161,9 +161,8 @@ def register_check_method(
         if strategy is not None:
             check_method = st.register_check_strategy(strategy)(check_method)
 
-        setattr(Check, check_fn.__name__, classmethod(check_method))
-        Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = getattr(
-            Check, check_fn.__name__
+        Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(
+            check_method, Check
         )
 
     return register_check_wrapper(check_fn)

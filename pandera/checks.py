@@ -3,8 +3,9 @@
 import inspect
 import operator
 import re
-from collections import namedtuple
+from collections import namedtuple, ChainMap
 from functools import partial, wraps
+from itertools import chain
 from typing import (
     Any,
     Callable,
@@ -471,10 +472,14 @@ class _CheckMeta(type):  # pragma: no cover
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
-        attr = cls.__dict__.get(name)
+        attr = ChainMap(cls.__dict__, cls.REGISTERED_CUSTOM_CHECKS).get(name)
         if attr is None:
             raise AttributeError(f"'{cls}' object has no attribute '{name}'")
         return attr
+
+    def __dir__(cls) -> Iterable[str]:
+        """Allow custom checks to show up as attributes when autocompleting."""
+        return chain(super().__dir__(), cls.REGISTERED_CUSTOM_CHECKS.keys())
 
     def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
         """Allow lookups for registered checks."""
