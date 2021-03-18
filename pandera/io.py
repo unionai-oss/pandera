@@ -25,7 +25,7 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 
-def _serialize_check_stats(check_stats, pandas_dtype = None):
+def _serialize_check_stats(check_stats, pandas_dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
     # pylint: disable=unused-argument
 

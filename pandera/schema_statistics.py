@@ -160,11 +160,15 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
     _check_memo = {}
     for check in checks:
         if check not in Check:
-            warnings.warn("only registered checks may be converted to statistics. "
-                          f"Check `{check.name}` will be skipped.")
+            warnings.warn(
+                "only registered checks may be converted to statistics. "
+                f"Check `{check.name}` will be skipped."
+            )
             continue
 
-        check_statistics[check.name] = {} if check.statistics is None else check.statistics
+        check_statistics[check.name] = (
+            {} if check.statistics is None else check.statistics
+        )
         _check_memo[check.name] = check
 
     # raise ValueError on incompatible checks

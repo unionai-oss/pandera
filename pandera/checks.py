@@ -5,7 +5,17 @@ import operator
 import re
 from collections import namedtuple
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union, TypeVar, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Union,
+    TypeVar,
+    Type,
+)
 
 import pandas as pd
 
@@ -478,6 +488,7 @@ class _CheckMeta(type):  # pragma: no cover
 
 class Check(_CheckBase, metaclass=_CheckMeta):
     """Check a pandas Series or DataFrame for certain properties."""
+
     @classmethod
     @st.register_check_strategy(st.eq_strategy)
     @register_check_statistics(["value"])
