@@ -1,7 +1,8 @@
 """Pytest fixtures for testing custom checks."""
 import unittest.mock as mock
-import pytest
+
 import pandas as pd
+import pytest
 
 import pandera as pa
 import pandera.extensions as pa_ext

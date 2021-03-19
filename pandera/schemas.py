@@ -1,9 +1,9 @@
 """Core pandera schema class definitions."""
 # pylint: disable=too-many-lines
 
-import os
 import copy
 import itertools
+import os
 import warnings
 from functools import wraps
 from pathlib import Path

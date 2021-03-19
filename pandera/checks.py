@@ -4,7 +4,7 @@
 import inspect
 import operator
 import re
-from collections import namedtuple, ChainMap
+from collections import ChainMap, namedtuple
 from functools import partial, wraps
 from itertools import chain
 from typing import (
@@ -14,9 +14,9 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Union,
-    TypeVar,
     Type,
+    TypeVar,
+    Union,
     no_type_check,
 )
 

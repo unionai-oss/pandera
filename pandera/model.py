@@ -1,8 +1,8 @@
 """Class-based api"""
 import inspect
+import os
 import re
 import sys
-import os
 import typing
 from typing import (
     Any,
