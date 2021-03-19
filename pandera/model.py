@@ -125,7 +125,8 @@ class SchemaModel:
         super().__init_subclass__(**kwargs)
         # pylint:disable=no-member
         for field_name in cls.__annotations__.keys():
-            if field_name not in cls.__dict__:  # Field omitted
+            if _is_field(field_name) and field_name not in cls.__dict__:
+                # Field omitted
                 field = Field()
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
@@ -306,8 +307,7 @@ class SchemaModel:
         for name, attr in attrs.items():
             if inspect.isroutine(attr):
                 continue
-            if name.startswith("_") or name == _CONFIG_KEY:
-                # ignore private and reserved keywords
+            if not _is_field(name):
                 annotations.pop(name, None)
             elif name not in annotations:
                 missing.append(name)
@@ -425,3 +425,8 @@ def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
             + f"all positional arguments {dtype_arg_names}."
         )
     return dict(zip(dtype_arg_names, annotation.metadata))
+
+
+def _is_field(name: str) -> bool:
+    """Ignore private and reserved keywords."""
+    return not name.startswith("_") and name != _CONFIG_KEY

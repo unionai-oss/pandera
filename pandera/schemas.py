@@ -723,6 +723,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         )
 
     def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
         def _compare_dict(obj):
             return {
                 k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"

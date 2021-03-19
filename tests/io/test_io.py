@@ -102,6 +102,7 @@ def _create_schema(index="single"):
                 regex=True,
                 checks=[pa.Check.str_length(1, 3)],
             ),
+            "empty_column": pa.Column(),
         },
         index=index,
         coerce=False,
@@ -186,6 +187,14 @@ columns:
     coerce: true
     required: false
     regex: true
+  empty_column:
+    pandas_dtype: null
+    nullable: false
+    checks: null
+    allow_duplicates: true
+    coerce: false
+    required: true
+    regex: false
 checks: null
 index:
 - pandas_dtype: int
