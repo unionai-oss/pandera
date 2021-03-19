@@ -214,6 +214,7 @@ is a convenience method for this functionality.
         coerce: false
         required: true
         regex: false
+    checks: null
     index:
     - pandas_dtype: int64
       nullable: false
