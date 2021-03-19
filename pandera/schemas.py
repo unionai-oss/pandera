@@ -1,6 +1,7 @@
 """Core pandera schema class definitions."""
 # pylint: disable=too-many-lines
 
+import os
 import copy
 import itertools
 import warnings
@@ -1186,17 +1187,16 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return pandera.io.from_yaml(yaml_schema)
 
-    def to_yaml(self, fp: Union[str, Path] = None):
+    def to_yaml(self, stream: Optional[os.PathLike] = None):
         """Write DataFrameSchema to yaml file.
 
-        :param dataframe_schema: schema to write to file or dump to string.
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
         import pandera.io
 
-        return pandera.io.to_yaml(self, fp)
+        return pandera.io.to_yaml(self, stream=stream)
 
     def set_index(
         self, keys: List[str], drop: bool = True, append: bool = False

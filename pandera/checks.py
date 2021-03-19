@@ -1,4 +1,5 @@
 """Data validation checks."""
+# pylint: disable=fixme
 
 import inspect
 import operator
@@ -16,6 +17,7 @@ from typing import (
     Union,
     TypeVar,
     Type,
+    no_type_check,
 )
 
 import pandas as pd
@@ -462,11 +464,13 @@ class _CheckBase:
         )
 
 
-_T = TypeVar("_T")
+_T = TypeVar("_T", bound=_CheckBase)
 
 
 class _CheckMeta(type):  # pragma: no cover
     """Check metaclass."""
+
+    # FIXME: this should probably just be moved to _CheckBase
 
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
 
@@ -481,6 +485,11 @@ class _CheckMeta(type):  # pragma: no cover
         """Allow custom checks to show up as attributes when autocompleting."""
         return chain(super().__dir__(), cls.REGISTERED_CUSTOM_CHECKS.keys())
 
+    # pylint: disable=line-too-long
+    # mypy has limited metaclass support so this doesn't pass typecheck
+    # see https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
+    # pylint: enable=line-too-long
+    @no_type_check
     def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
         """Allow lookups for registered checks."""
         if isinstance(item, cls):
