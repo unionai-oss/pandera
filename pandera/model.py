@@ -2,6 +2,7 @@
 import inspect
 import re
 import sys
+import os
 import typing
 from typing import (
     Any,
@@ -168,6 +169,13 @@ class SchemaModel:
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__
         return cls.__schema__
+
+    @classmethod
+    def to_yaml(cls, stream: Optional[os.PathLike] = None):
+        """
+        Convert `Schema` to yaml using `io.to_yaml`.
+        """
+        return cls.to_schema().to_yaml(stream)
 
     @classmethod
     @pd.util.Substitution(validate_doc=DataFrameSchema.validate.__doc__)

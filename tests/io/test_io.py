@@ -11,6 +11,7 @@ from packaging import version
 
 import pandera as pa
 import pandera.extensions as pa_ext
+import pandera.typing as pat
 
 try:
     from pandera import io
@@ -487,3 +488,22 @@ def test_to_yaml_custom_dataframe_check():
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
         pa.io.to_yaml(schema)
+
+
+def test_to_yaml_bugfix_419():
+    """Ensure that GH#419 is fixed"""
+    # pylint: disable=no-self-use
+
+    class CheckedSchemaModel(pa.SchemaModel):
+        """Schema with a global check"""
+
+        a: pat.Series[pat.Int64]
+        b: pat.Series[pat.Int64]
+
+        @pa.dataframe_check()
+        def unregistered_check(self, _):
+            """sample unregistered check"""
+            ...
+
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
+        CheckedSchemaModel.to_yaml()
