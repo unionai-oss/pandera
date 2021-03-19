@@ -62,9 +62,6 @@ def _serialize_dataframe_stats(dataframe_checks):
     """
     serialized_checks = {}
 
-    if dataframe_checks is None:
-        return serialized_checks
-
     for check_name, check_stats in dataframe_checks.items():
         # The case that `check_name` is not registered is handled in `parse_checks`,
         # so we know that `check_name` exists.
