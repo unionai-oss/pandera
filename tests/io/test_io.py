@@ -293,6 +293,28 @@ strict: false
 """
 
 
+YAML_SCHEMA_MISSING_CHECKS = f"""
+schema_type: dataframe
+version: {pa.__version__}
+columns:
+  int_column:
+    pandas_dtype: int64
+  float_column:
+    pandas_dtype: float64
+  str_column:
+    pandas_dtype: str
+  object_column:
+    pandas_dtype: object
+checks:
+  unregistered_check:
+    stat1: missing_str_stat
+    stat2: 11
+index: null
+coerce: false
+strict: false
+"""
+
+
 @pytest.mark.skipif(
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
@@ -344,6 +366,13 @@ def test_from_yaml(yaml_str, schema_creator):
     expected_schema = schema_creator()
     assert schema_from_yaml == expected_schema
     assert expected_schema == schema_from_yaml
+
+
+def test_from_yaml_unregistered_checks():
+    """Test that from_yaml raises an exception when deserializing unregistered checks."""
+
+    with pytest.raises(AttributeError, match=".*custom checks.*"):
+        io.from_yaml(YAML_SCHEMA_MISSING_CHECKS)
 
 
 def test_io_yaml_file_obj():
@@ -413,7 +442,7 @@ def test_to_script(index):
 
 def test_to_script_lambda_check():
     """Test writing DataFrameSchema to a script with lambda check."""
-    schema = pa.DataFrameSchema(
+    schema1 = pa.DataFrameSchema(
         {
             "a": pa.Column(
                 pa.Int,
@@ -423,7 +452,19 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pa.io.to_script(schema)
+        pa.io.to_script(schema1)
+
+    schema2 = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int,
+            ),
+        },
+        checks=pa.Check(lambda s: s.mean() > 5, element_wise=False),
+    )
+
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
+        pa.io.to_script(schema2)
 
 
 def test_to_yaml_lambda_check():
@@ -443,7 +484,7 @@ def test_to_yaml_lambda_check():
 
 @mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
 def test_to_yaml_registered_dataframe_check(_):
-    """Tests that writing DataFrameSchema with a registered dataframe works."""
+    """Tests that writing DataFrameSchema with a registered dataframe check works."""
     ncols_gt_called = False
 
     @pa_ext.register_check_method(statistics=["column_count"])

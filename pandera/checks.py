@@ -411,7 +411,6 @@ class _CheckBase:
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
-            # we can only be equal if the same type
             return NotImplemented
 
         are_check_fn_objects_equal = (
@@ -478,7 +477,11 @@ class _CheckMeta(type):  # pragma: no cover
         """Prevent attribute errors for registered checks."""
         attr = ChainMap(cls.__dict__, cls.REGISTERED_CUSTOM_CHECKS).get(name)
         if attr is None:
-            raise AttributeError(f"'{cls}' object has no attribute '{name}'")
+            raise AttributeError(
+                f"'{cls}' object has no attribute '{name}'. "
+                "Make sure any custom checks have been registered "
+                "using the extensions api."
+            )
         return attr
 
     def __dir__(cls) -> Iterable[str]:

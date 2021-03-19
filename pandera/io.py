@@ -60,23 +60,17 @@ def _serialize_dataframe_stats(dataframe_checks):
     """
     Serialize global dataframe check statistics into json/yaml-compatible format.
     """
-    # pylint: disable=import-outside-toplevel
-    from pandera.checks import Check
-
     serialized_checks = {}
 
     if dataframe_checks is None:
         return serialized_checks
 
     for check_name, check_stats in dataframe_checks.items():
-        if check_name not in Check:
-            warnings.warn(
-                f"Check `{check_name}` cannot be serialized. This check will be "
-                "ignored. Did you forget to register it with the extension API?"
-            )
-        else:
-            # infer dtype and
-            serialized_checks[check_name] = _serialize_check_stats(check_stats)
+        # The case that `check_name` is not registered is handled in `parse_checks`,
+        # so we know that `check_name` exists.
+
+        # infer dtype of statistics and serialize them
+        serialized_checks[check_name] = _serialize_check_stats(check_stats)
 
     return serialized_checks
 
@@ -237,6 +231,7 @@ def _deserialize_schema(serialized_schema):
         ]
 
     if serialized_schema["checks"] is not None:
+        # handles unregistered checks by raising AttributeErrors from getattr
         checks = [
             _deserialize_check_stats(getattr(Check, check_name), check_stats)
             for check_name, check_stats in serialized_schema["checks"].items()
