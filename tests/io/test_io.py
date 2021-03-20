@@ -102,7 +102,9 @@ def _create_schema(index="single"):
                 regex=True,
                 checks=[pa.Check.str_length(1, 3)],
             ),
-            "empty_column": pa.Column(),
+            "notype_column": pa.Column(
+                checks=pa.Check.isin(["foo", "bar", "x", "xy"]),
+            ),
         },
         index=index,
         coerce=False,
@@ -187,10 +189,15 @@ columns:
     coerce: true
     required: false
     regex: true
-  empty_column:
+  notype_column:
     pandas_dtype: null
     nullable: false
-    checks: null
+    checks:
+      isin:
+      - foo
+      - bar
+      - x
+      - xy
     allow_duplicates: true
     coerce: false
     required: true

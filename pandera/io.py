@@ -1,5 +1,4 @@
 """Module for reading and writing schema objects."""
-# pylint: disable=fixme
 
 import warnings
 from functools import partial
@@ -28,15 +27,8 @@ NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 def _serialize_check_stats(check_stats, pandas_dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
-    # pylint: disable=unused-argument
 
-    def handle_stat_dtype(stat):
-        # fixme: change interface to not require a dtype spec
-        nonlocal pandas_dtype
-
-        if pandas_dtype is None:
-            pandas_dtype = PandasDtype.get_dtype(type(stat))
-
+    def handle_stat_dtype(stat, pandas_dtype):
         if pandas_dtype == PandasDtype.DateTime:
             return stat.strftime(DATETIME_FORMAT)
         elif pandas_dtype == PandasDtype.Timedelta:
@@ -47,12 +39,12 @@ def _serialize_check_stats(check_stats, pandas_dtype=None):
 
     # for unary checks, return a single value instead of a dictionary
     if len(check_stats) == 1:
-        return handle_stat_dtype(list(check_stats.values())[0])
+        return handle_stat_dtype(list(check_stats.values())[0], pandas_dtype)
 
     # otherwise return a dictionary of keyword args needed to create the Check
     serialized_check_stats = {}
     for arg, stat in check_stats.items():
-        serialized_check_stats[arg] = handle_stat_dtype(stat)
+        serialized_check_stats[arg] = handle_stat_dtype(stat, pandas_dtype)
     return serialized_check_stats
 
 
@@ -149,14 +141,7 @@ def _serialize_schema(dataframe_schema):
 
 
 def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
-    # pylint: disable=unused-argument
-    def handle_stat_dtype(stat):
-        # fixme: change interface to not require a dtype spec
-        nonlocal pandas_dtype
-
-        if pandas_dtype is None:
-            pandas_dtype = PandasDtype.get_dtype(type(stat))
-
+    def handle_stat_dtype(stat, pandas_dtype):
         if pandas_dtype == PandasDtype.DateTime:
             return pd.to_datetime(stat, format=DATETIME_FORMAT)
         elif pandas_dtype == PandasDtype.Timedelta:
@@ -169,10 +154,10 @@ def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
         # dictionary mapping Check arg names to values.
         check_stats = {}
         for arg, stat in serialized_check_stats.items():
-            check_stats[arg] = handle_stat_dtype(stat)
+            check_stats[arg] = handle_stat_dtype(stat, pandas_dtype)
         return check(**check_stats)
     # otherwise assume unary check function signature
-    return check(handle_stat_dtype(serialized_check_stats))
+    return check(handle_stat_dtype(serialized_check_stats, pandas_dtype))
 
 
 def _deserialize_component_stats(serialized_component_stats):
