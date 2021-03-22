@@ -1,5 +1,4 @@
 """Data validation checks."""
-# pylint: disable=fixme
 
 import inspect
 import operator
@@ -64,7 +63,45 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-class _CheckBase:
+_T = TypeVar("_T", bound="_CheckBase")
+
+
+class _CheckMeta(type):  # pragma: no cover
+    """Check metaclass."""
+
+    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
+
+    def __getattr__(cls, name: str) -> Any:
+        """Prevent attribute errors for registered checks."""
+        attr = ChainMap(cls.__dict__, cls.REGISTERED_CUSTOM_CHECKS).get(name)
+        if attr is None:
+            raise AttributeError(
+                f"'{cls}' object has no attribute '{name}'. "
+                "Make sure any custom checks have been registered "
+                "using the extensions api."
+            )
+        return attr
+
+    def __dir__(cls) -> Iterable[str]:
+        """Allow custom checks to show up as attributes when autocompleting."""
+        return chain(super().__dir__(), cls.REGISTERED_CUSTOM_CHECKS.keys())
+
+    # pylint: disable=line-too-long
+    # mypy has limited metaclass support so this doesn't pass typecheck
+    # see https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
+    # pylint: enable=line-too-long
+    @no_type_check
+    def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
+        """Allow lookups for registered checks."""
+        if isinstance(item, cls):
+            name = item.name
+            return hasattr(cls, name)
+
+        # assume item is str
+        return hasattr(cls, item)
+
+
+class _CheckBase(metaclass=_CheckMeta):
     """Check base class."""
 
     def __init__(
@@ -463,47 +500,7 @@ class _CheckBase:
         )
 
 
-_T = TypeVar("_T", bound=_CheckBase)
-
-
-class _CheckMeta(type):  # pragma: no cover
-    """Check metaclass."""
-
-    # FIXME: this should probably just be moved to _CheckBase
-
-    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
-
-    def __getattr__(cls, name: str) -> Any:
-        """Prevent attribute errors for registered checks."""
-        attr = ChainMap(cls.__dict__, cls.REGISTERED_CUSTOM_CHECKS).get(name)
-        if attr is None:
-            raise AttributeError(
-                f"'{cls}' object has no attribute '{name}'. "
-                "Make sure any custom checks have been registered "
-                "using the extensions api."
-            )
-        return attr
-
-    def __dir__(cls) -> Iterable[str]:
-        """Allow custom checks to show up as attributes when autocompleting."""
-        return chain(super().__dir__(), cls.REGISTERED_CUSTOM_CHECKS.keys())
-
-    # pylint: disable=line-too-long
-    # mypy has limited metaclass support so this doesn't pass typecheck
-    # see https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
-    # pylint: enable=line-too-long
-    @no_type_check
-    def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
-        """Allow lookups for registered checks."""
-        if isinstance(item, cls):
-            name = item.name
-            return hasattr(cls, name)
-
-        # assume item is str
-        return hasattr(cls, item)
-
-
-class Check(_CheckBase, metaclass=_CheckMeta):
+class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
 
     @classmethod
