@@ -381,27 +381,6 @@ def test_to_yaml():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
-def test_to_yaml_missing_checks():
-    """Test that to_yaml warns when using unregistered checks on columns/globally."""
-    schema = _create_schema()
-    unregistered = pa.Check(lambda _: False)
-    schema.columns["int_column"]._checks.append(unregistered)
-
-    with pytest.warns(UserWarning, match=".*registered checks.*"):
-        io.to_yaml(schema)
-
-    del schema.columns["int_column"]._checks[-1]
-
-    schema.checks.append(unregistered)
-
-    with pytest.warns(UserWarning, match=".*registered checks.*"):
-        io.to_yaml(schema)
-
-
-@pytest.mark.skipif(
-    SKIP_YAML_TESTS,
-    reason="pyyaml >= 5.1.0 required",
-)
 @pytest.mark.parametrize(
     "yaml_str, schema_creator",
     [
@@ -578,7 +557,7 @@ def test_to_yaml_registered_dataframe_check(_):
 
 
 def test_to_yaml_custom_dataframe_check():
-    """Tests that writing DataFrameSchema with a registered dataframe raises."""
+    """Tests that writing DataFrameSchema with an unregistered check raises."""
 
     schema = pa.DataFrameSchema(
         {
@@ -591,6 +570,8 @@ def test_to_yaml_custom_dataframe_check():
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
         pa.io.to_yaml(schema)
+
+    # the unregistered column check case is tested in `test_to_yaml_lambda_check`
 
 
 def test_to_yaml_bugfix_419():
