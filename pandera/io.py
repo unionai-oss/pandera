@@ -28,7 +28,7 @@ NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 def _serialize_check_stats(check_stats, pandas_dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
-    def handle_stat_dtype(stat, pandas_dtype):
+    def handle_stat_dtype(stat):
         if pandas_dtype == PandasDtype.DateTime:
             return stat.strftime(DATETIME_FORMAT)
         elif pandas_dtype == PandasDtype.Timedelta:
@@ -39,12 +39,12 @@ def _serialize_check_stats(check_stats, pandas_dtype=None):
 
     # for unary checks, return a single value instead of a dictionary
     if len(check_stats) == 1:
-        return handle_stat_dtype(list(check_stats.values())[0], pandas_dtype)
+        return handle_stat_dtype(list(check_stats.values())[0])
 
     # otherwise return a dictionary of keyword args needed to create the Check
     serialized_check_stats = {}
     for arg, stat in check_stats.items():
-        serialized_check_stats[arg] = handle_stat_dtype(stat, pandas_dtype)
+        serialized_check_stats[arg] = handle_stat_dtype(stat)
     return serialized_check_stats
 
 
@@ -141,7 +141,7 @@ def _serialize_schema(dataframe_schema):
 
 
 def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
-    def handle_stat_dtype(stat, pandas_dtype):
+    def handle_stat_dtype(stat):
         if pandas_dtype == PandasDtype.DateTime:
             return pd.to_datetime(stat, format=DATETIME_FORMAT)
         elif pandas_dtype == PandasDtype.Timedelta:
@@ -154,10 +154,10 @@ def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
         # dictionary mapping Check arg names to values.
         check_stats = {}
         for arg, stat in serialized_check_stats.items():
-            check_stats[arg] = handle_stat_dtype(stat, pandas_dtype)
+            check_stats[arg] = handle_stat_dtype(stat)
         return check(**check_stats)
     # otherwise assume unary check function signature
-    return check(handle_stat_dtype(serialized_check_stats, pandas_dtype))
+    return check(handle_stat_dtype(serialized_check_stats))
 
 
 def _deserialize_component_stats(serialized_component_stats):
