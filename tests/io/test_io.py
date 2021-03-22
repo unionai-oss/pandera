@@ -300,7 +300,7 @@ strict: false
 """
 
 
-YAML_SCHEMA_MISSING_CHECKS = f"""
+YAML_SCHEMA_MISSING_GLOBAL_CHECK = f"""
 schema_type: dataframe
 version: {pa.__version__}
 columns:
@@ -316,6 +316,28 @@ checks:
   unregistered_check:
     stat1: missing_str_stat
     stat2: 11
+index: null
+coerce: false
+strict: false
+"""
+
+
+YAML_SCHEMA_MISSING_COLUMN_CHECK = f"""
+schema_type: dataframe
+version: {pa.__version__}
+columns:
+  int_column:
+    pandas_dtype: int64
+    checks:
+      unregistered_check:
+        stat1: missing_str_stat
+        stat2: 11
+  float_column:
+    pandas_dtype: float64
+  str_column:
+    pandas_dtype: str
+  object_column:
+    pandas_dtype: object
 index: null
 coerce: false
 strict: false
@@ -359,6 +381,27 @@ def test_to_yaml():
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
 )
+def test_to_yaml_missing_checks():
+    """Test that to_yaml warns when using unregistered checks on columns/globally."""
+    schema = _create_schema()
+    unregistered = pa.Check(lambda _: False)
+    schema.columns["int_column"]._checks.append(unregistered)
+
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
+        io.to_yaml(schema)
+
+    del schema.columns["int_column"]._checks[-1]
+
+    schema.checks.append(unregistered)
+
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
+        io.to_yaml(schema)
+
+
+@pytest.mark.skipif(
+    SKIP_YAML_TESTS,
+    reason="pyyaml >= 5.1.0 required",
+)
 @pytest.mark.parametrize(
     "yaml_str, schema_creator",
     [
@@ -379,7 +422,10 @@ def test_from_yaml_unregistered_checks():
     """Test that from_yaml raises an exception when deserializing unregistered checks."""
 
     with pytest.raises(AttributeError, match=".*custom checks.*"):
-        io.from_yaml(YAML_SCHEMA_MISSING_CHECKS)
+        io.from_yaml(YAML_SCHEMA_MISSING_COLUMN_CHECK)
+
+    with pytest.raises(AttributeError, match=".*custom checks.*"):
+        io.from_yaml(YAML_SCHEMA_MISSING_GLOBAL_CHECK)
 
 
 def test_io_yaml_file_obj():
