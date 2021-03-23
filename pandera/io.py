@@ -25,7 +25,7 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 
-def _serialize_check_stats(check_stats, pandas_dtype):
+def _serialize_check_stats(check_stats, pandas_dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
@@ -34,6 +34,7 @@ def _serialize_check_stats(check_stats, pandas_dtype):
         elif pandas_dtype == PandasDtype.Timedelta:
             # serialize to int in nanoseconds
             return stat.delta
+
         return stat
 
     # for unary checks, return a single value instead of a dictionary
@@ -47,18 +48,37 @@ def _serialize_check_stats(check_stats, pandas_dtype):
     return serialized_check_stats
 
 
+def _serialize_dataframe_stats(dataframe_checks):
+    """
+    Serialize global dataframe check statistics into json/yaml-compatible format.
+    """
+    serialized_checks = {}
+
+    for check_name, check_stats in dataframe_checks.items():
+        # The case that `check_name` is not registered is handled in `parse_checks`,
+        # so we know that `check_name` exists.
+
+        # infer dtype of statistics and serialize them
+        serialized_checks[check_name] = _serialize_check_stats(check_stats)
+
+    return serialized_checks
+
+
 def _serialize_component_stats(component_stats):
     """
     Serialize column or index statistics into json/yaml-compatible format.
     """
+    # pylint: disable=import-outside-toplevel
+    from pandera.checks import Check
+
     serialized_checks = None
     if component_stats["checks"] is not None:
         serialized_checks = {}
         for check_name, check_stats in component_stats["checks"].items():
-            if check_stats is None:
+            if check_name not in Check:
                 warnings.warn(
                     f"Check {check_name} cannot be serialized. This check will be "
-                    f"ignored"
+                    "ignored. Did you forget to register it with the extension API?"
                 )
             else:
                 serialized_checks[check_name] = _serialize_check_stats(
@@ -93,7 +113,7 @@ def _serialize_schema(dataframe_schema):
 
     statistics = get_dataframe_schema_statistics(dataframe_schema)
 
-    columns, index = None, None
+    columns, index, checks = None, None, None
     if statistics["columns"] is not None:
         columns = {
             col_name: _serialize_component_stats(column_stats)
@@ -106,17 +126,21 @@ def _serialize_schema(dataframe_schema):
             for index_stats in statistics["index"]
         ]
 
+    if statistics["checks"] is not None:
+        checks = _serialize_dataframe_stats(statistics["checks"])
+
     return {
         "schema_type": "dataframe",
         "version": __version__,
         "columns": columns,
+        "checks": checks,
         "index": index,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
     }
 
 
-def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype):
+def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
     def handle_stat_dtype(stat):
         if pandas_dtype == PandasDtype.DateTime:
             return pd.to_datetime(stat, format=DATETIME_FORMAT)
@@ -173,9 +197,9 @@ def _deserialize_component_stats(serialized_component_stats):
 
 def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
-    from pandera import Column, DataFrameSchema, Index, MultiIndex
+    from pandera import Check, Column, DataFrameSchema, Index, MultiIndex
 
-    columns, index = None, None
+    columns, index, checks = None, None, None
     if serialized_schema["columns"] is not None:
         columns = {
             col_name: Column(**_deserialize_component_stats(column_stats))
@@ -186,6 +210,13 @@ def _deserialize_schema(serialized_schema):
         index = [
             _deserialize_component_stats(index_component)
             for index_component in serialized_schema["index"]
+        ]
+
+    if serialized_schema["checks"] is not None:
+        # handles unregistered checks by raising AttributeErrors from getattr
+        checks = [
+            _deserialize_check_stats(getattr(Check, check_name), check_stats)
+            for check_name, check_stats in serialized_schema["checks"].items()
         ]
 
     if index is None:
@@ -199,6 +230,7 @@ def _deserialize_schema(serialized_schema):
 
     return DataFrameSchema(
         columns=columns,
+        checks=checks,
         index=index,
         coerce=serialized_schema["coerce"],
         strict=serialized_schema["strict"],

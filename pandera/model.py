@@ -1,5 +1,6 @@
 """Class-based api"""
 import inspect
+import os
 import re
 import sys
 import typing
@@ -169,6 +170,13 @@ class SchemaModel:
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__
         return cls.__schema__
+
+    @classmethod
+    def to_yaml(cls, stream: Optional[os.PathLike] = None):
+        """
+        Convert `Schema` to yaml using `io.to_yaml`.
+        """
+        return cls.to_schema().to_yaml(stream)
 
     @classmethod
     @pd.util.Substitution(validate_doc=DataFrameSchema.validate.__doc__)

@@ -388,6 +388,7 @@ def test_get_dataframe_schema_statistics():
         ),
     )
     expectation = {
+        "checks": None,
         "columns": {
             "int": {
                 "pandas_dtype": pa.Int,
@@ -561,3 +562,19 @@ def test_parse_checks_and_statistics_roundtrip(checks, expectation):
     check_statistics = {check.name: check.statistics for check in checks}
     check_list = schema_statistics.parse_check_statistics(check_statistics)
     assert set(check_list) == set(checks)
+
+
+# pylint: disable=unused-argument
+def test_parse_checks_and_statistics_no_param(extra_registered_checks):
+    """Ensure that an edge case where a check does not have parameters is appropriately handled."""
+
+    checks = [pa.Check.no_param_check()]
+    expectation = {"no_param_check": {}}
+    assert schema_statistics.parse_checks(checks) == expectation
+
+    check_statistics = {check.name: check.statistics for check in checks}
+    check_list = schema_statistics.parse_check_statistics(check_statistics)
+    assert set(check_list) == set(checks)
+
+
+# pylint: enable=unused-argument

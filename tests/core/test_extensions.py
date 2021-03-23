@@ -13,13 +13,9 @@ from pandera import PandasDtype, extensions
 from pandera.checks import Check
 
 
-@pytest.fixture(scope="function")
-def custom_check_teardown():
-    """Remove all custom checks after execution of each pytest function."""
-    yield
-    for check_name in list(pa.Check.REGISTERED_CUSTOM_CHECKS):
-        delattr(pa.Check, check_name)
-        del pa.Check.REGISTERED_CUSTOM_CHECKS[check_name]
+def test_custom_checks_in_dir(extra_registered_checks):
+    """Ensures that autocomplete works with registered custom checks."""
+    assert "no_param_check" in dir(pa.Check)
 
 
 @pytest.mark.parametrize(
