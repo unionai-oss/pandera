@@ -68,22 +68,13 @@ def _serialize_component_stats(component_stats):
     """
     Serialize column or index statistics into json/yaml-compatible format.
     """
-    # pylint: disable=import-outside-toplevel
-    from pandera.checks import Check
-
     serialized_checks = None
     if component_stats["checks"] is not None:
         serialized_checks = {}
         for check_name, check_stats in component_stats["checks"].items():
-            if check_name not in Check:
-                warnings.warn(
-                    f"Check {check_name} cannot be serialized. This check will be "
-                    "ignored. Did you forget to register it with the extension API?"
-                )
-            else:
-                serialized_checks[check_name] = _serialize_check_stats(
-                    check_stats, component_stats["pandas_dtype"]
-                )
+            serialized_checks[check_name] = _serialize_check_stats(
+                check_stats, component_stats["pandas_dtype"]
+            )
 
     pandas_dtype = component_stats.get("pandas_dtype")
     if pandas_dtype:
@@ -261,10 +252,7 @@ def to_yaml(dataframe_schema, stream=None):
     statistics = _serialize_schema(dataframe_schema)
 
     def _write_yaml(obj, stream):
-        try:
-            return yaml.safe_dump(obj, stream=stream, sort_keys=False)
-        except TypeError:
-            return yaml.safe_dump(obj, stream=stream)
+        return yaml.safe_dump(obj, stream=stream, sort_keys=False)
 
     try:
         with Path(stream).open("w") as f:

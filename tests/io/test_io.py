@@ -514,9 +514,17 @@ def test_to_yaml_lambda_check():
         pa.io.to_yaml(schema)
 
 
+def test_format_checks_warning():
+    """Test that unregistered checks raise a warning when formatting checks."""
+    with pytest.warns(UserWarning):
+        io._format_checks({"my_check": None})
+
+
 @mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
 def test_to_yaml_registered_dataframe_check(_):
-    """Tests that writing DataFrameSchema with a registered dataframe check works."""
+    """
+    Tests that writing DataFrameSchema with a registered dataframe check works.
+    """
     ncols_gt_called = False
 
     @pa_ext.register_check_method(statistics=["column_count"])
@@ -571,7 +579,8 @@ def test_to_yaml_custom_dataframe_check():
     with pytest.warns(UserWarning, match=".*registered checks.*"):
         pa.io.to_yaml(schema)
 
-    # the unregistered column check case is tested in `test_to_yaml_lambda_check`
+    # the unregistered column check case is tested in
+    # `test_to_yaml_lambda_check`
 
 
 def test_to_yaml_bugfix_419():
