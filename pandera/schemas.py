@@ -9,12 +9,13 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import numpy as np
 import pandas as pd
 
 from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import PandasDtype, PandasExtensionType
+from .dtypes import PandasDtype, PandasExtensionType, is_extension_dtype
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -30,7 +31,13 @@ CheckList = Optional[
     Union[Union[Check, Hypothesis], List[Union[Check, Hypothesis]]]
 ]
 
-PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
+PandasDtypeInputTypes = Union[
+    str,
+    type,
+    PandasDtype,
+    PandasExtensionType,
+    np.dtype,
+]
 
 
 def _inferred_schema_guard(method):
@@ -1812,11 +1819,16 @@ class SeriesSchemaBase:
                     ),
                 )
 
-        if self.dtype is not None and str(series_dtype) != self.dtype:
+        if is_extension_dtype(self._pandas_dtype):
+            target_dtype = PandasDtype.get_dtype(self._pandas_dtype)
+        else:
+            series_dtype = str(series_dtype)
+            target_dtype = self.dtype
+        if self._pandas_dtype is not None and series_dtype != target_dtype:
             msg = "expected series '%s' to have type %s, got %s" % (
                 series.name,
-                self.dtype,
-                str(series_dtype),
+                repr(target_dtype),
+                repr(series_dtype),
             )
             error_handler.collect_error(
                 "wrong_pandas_dtype",
