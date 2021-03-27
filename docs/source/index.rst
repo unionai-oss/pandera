@@ -291,11 +291,17 @@ Submit issues, feature requests or bugfixes on
 `github <https://github.com/pandera-dev/pandera/issues>`__.
 
 .. toctree::
+    :maxdepth: 6
+    :caption: Introduction
+    :hidden:
+
+    self
+
+.. toctree::
    :maxdepth: 6
-   :caption: Table of Contents
+   :caption: User Guide
    :hidden:
 
-   self
    dataframe_schemas
    series_schemas
    checks
@@ -306,7 +312,19 @@ Submit issues, feature requests or bugfixes on
    lazy_validation
    data_synthesis_strategies
    extensions
+
+.. toctree::
+   :maxdepth: 6
+   :caption: Reference
+   :hidden:
+
    API_reference
+
+.. toctree::
+   :maxdepth: 6
+   :caption: Community
+   :hidden:
+
    CONTRIBUTING
 
 How to Cite
