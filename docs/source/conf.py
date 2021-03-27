@@ -122,7 +122,7 @@ html_logo = "_static/pandera-logo.png"
 html_theme_options = {
     "light_css_variables": {
         "color-brand-primary": "#26b079",
-        "color_brand-content": "#26b079",
+        "color-brand-content": "#26b079",
     },
     # always use light theme, taken from:
     # https://github.com/pradyunsg/furo/blob/main/src/furo/assets/styles/variables/_index.scss
