@@ -115,6 +115,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
             }
             for col_name, column in dataframe_schema.columns.items()
         },
+        "checks": parse_checks(dataframe_schema.checks),
         "index": (
             None
             if dataframe_schema.index is None
@@ -158,7 +159,17 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
     check_statistics = {}
     _check_memo = {}
     for check in checks:
-        check_statistics[check.name] = check.statistics
+        if check not in Check:
+            warnings.warn(
+                "Only registered checks may be serialized to statistics. "
+                "Did you forget to register it with the extension API? "
+                f"Check `{check.name}` will be skipped."
+            )
+            continue
+
+        check_statistics[check.name] = (
+            {} if check.statistics is None else check.statistics
+        )
         _check_memo[check.name] = check
 
     # raise ValueError on incompatible checks

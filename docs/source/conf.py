@@ -96,7 +96,6 @@ master_doc = "index"
 exclude_patterns = []
 
 autoclass_content = "both"
-pygments_style = None
 
 autodoc_default_options = {
     # 'special-members': '__call__',
@@ -106,26 +105,52 @@ autodoc_default_options = {
 
 # -- Options for HTML output -------------------------------------------------
 
+html_title = "pandera"
+
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
+pygments_style = "friendly"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-html_logo = "_static/pandera-banner-white.png"
+html_logo = "_static/pandera-logo.png"
+html_favicon = "_static/pandera-favicon.png"
 html_theme_options = {
-    "collapse_navigation": False,
-    "logo_only": True,
-    "analytics_id": "UA-71018060-2",
+    "light_css_variables": {
+        "color-brand-primary": "#26b079",
+        "color-brand-content": "#26b079",
+        "color-api-highlight-on-target": "#e5fff5",
+    },
+    # always use light theme, taken from:
+    # https://github.com/pradyunsg/furo/blob/main/src/furo/assets/styles/variables/_index.scss
+    "dark_css_variables": {
+        "color-foreground-primary": "black",
+        "color-foreground-secondary": "#5a5c63",
+        "color-foreground-muted": "#72747e",
+        "color-foreground-border": "#878787",
+        "color-background-primary": "white",
+        "color-background-secondary": "#f8f9fb",
+        "color-background-hover": "#efeff4ff",
+        "color-background-hover--transparent": "#efeff400",
+        "color-background-border": "#eeebee",
+        "color-admonition-background": "transparent",
+        "color-api-highlight-on-target": "#e5fff5",
+    },
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+html_css_files = [
+    "default.css",
+    "custom_furo.scss",
+]
 
 rst_prolog = """
 .. role:: red
@@ -161,7 +186,3 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
 logging.getLogger("sphinx_autodoc_typehints").logger.addFilter(
     FilterPandasTypeAnnotationWarning()
 )
-
-
-def setup(app):
-    app.add_css_file("default.css")

@@ -353,12 +353,14 @@ def test_reshape_failure_cases_exceptions():
 
 
 def test_check_equality_operators():
-    """Test the usage of == between a Check and an entirely different Check."""
+    """Test the usage of == between a Check and an entirely different Check,
+    and a non-Check."""
     check = Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3")
 
     not_equal_check = Check(lambda x: x.isna().sum() == 0)
     assert check == copy.deepcopy(check)
     assert check != not_equal_check
+    assert check != "not a check"
 
 
 def test_equality_operators_functional_equivalence():

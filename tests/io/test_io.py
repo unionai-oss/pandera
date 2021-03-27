@@ -2,6 +2,7 @@
 
 import platform
 import tempfile
+import unittest.mock as mock
 from pathlib import Path
 
 import pandas as pd
@@ -9,6 +10,8 @@ import pytest
 from packaging import version
 
 import pandera as pa
+import pandera.extensions as pa_ext
+import pandera.typing as pat
 
 try:
     from pandera import io
@@ -99,6 +102,9 @@ def _create_schema(index="single"):
                 regex=True,
                 checks=[pa.Check.str_length(1, 3)],
             ),
+            "notype_column": pa.Column(
+                checks=pa.Check.isin(["foo", "bar", "x", "xy"]),
+            ),
         },
         index=index,
         coerce=False,
@@ -183,6 +189,20 @@ columns:
     coerce: true
     required: false
     regex: true
+  notype_column:
+    pandas_dtype: null
+    nullable: false
+    checks:
+      isin:
+      - foo
+      - bar
+      - x
+      - xy
+    allow_duplicates: true
+    coerce: false
+    required: true
+    regex: false
+checks: null
 index:
 - pandas_dtype: int
   nullable: false
@@ -244,6 +264,7 @@ columns:
         min_value: 1
         max_value: 3
 index: null
+checks: null
 coerce: false
 strict: false
 """
@@ -272,6 +293,51 @@ columns:
     pandas_dtype: str
   object_column:
     pandas_dtype: object
+checks: null
+index: null
+coerce: false
+strict: false
+"""
+
+
+YAML_SCHEMA_MISSING_GLOBAL_CHECK = f"""
+schema_type: dataframe
+version: {pa.__version__}
+columns:
+  int_column:
+    pandas_dtype: int64
+  float_column:
+    pandas_dtype: float64
+  str_column:
+    pandas_dtype: str
+  object_column:
+    pandas_dtype: object
+checks:
+  unregistered_check:
+    stat1: missing_str_stat
+    stat2: 11
+index: null
+coerce: false
+strict: false
+"""
+
+
+YAML_SCHEMA_MISSING_COLUMN_CHECK = f"""
+schema_type: dataframe
+version: {pa.__version__}
+columns:
+  int_column:
+    pandas_dtype: int64
+    checks:
+      unregistered_check:
+        stat1: missing_str_stat
+        stat2: 11
+  float_column:
+    pandas_dtype: float64
+  str_column:
+    pandas_dtype: str
+  object_column:
+    pandas_dtype: object
 index: null
 coerce: false
 strict: false
@@ -283,7 +349,7 @@ strict: false
     reason="pyyaml >= 5.1.0 required",
 )
 def test_inferred_schema_io():
-    """Test that inferred schema can be writted to yaml."""
+    """Test that inferred schema can be written to yaml."""
     df = pd.DataFrame(
         {
             "column1": [5, 10, 20],
@@ -329,6 +395,16 @@ def test_from_yaml(yaml_str, schema_creator):
     expected_schema = schema_creator()
     assert schema_from_yaml == expected_schema
     assert expected_schema == schema_from_yaml
+
+
+def test_from_yaml_unregistered_checks():
+    """Test that from_yaml raises an exception when deserializing unregistered checks."""
+
+    with pytest.raises(AttributeError, match=".*custom checks.*"):
+        io.from_yaml(YAML_SCHEMA_MISSING_COLUMN_CHECK)
+
+    with pytest.raises(AttributeError, match=".*custom checks.*"):
+        io.from_yaml(YAML_SCHEMA_MISSING_GLOBAL_CHECK)
 
 
 def test_io_yaml_file_obj():
@@ -398,7 +474,7 @@ def test_to_script(index):
 
 def test_to_script_lambda_check():
     """Test writing DataFrameSchema to a script with lambda check."""
-    schema = pa.DataFrameSchema(
+    schema1 = pa.DataFrameSchema(
         {
             "a": pa.Column(
                 pa.Int,
@@ -408,7 +484,19 @@ def test_to_script_lambda_check():
     )
 
     with pytest.warns(UserWarning):
-        pa.io.to_script(schema)
+        pa.io.to_script(schema1)
+
+    schema2 = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int,
+            ),
+        },
+        checks=pa.Check(lambda s: s.mean() > 5, element_wise=False),
+    )
+
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
+        pa.io.to_script(schema2)
 
 
 def test_to_yaml_lambda_check():
@@ -424,3 +512,91 @@ def test_to_yaml_lambda_check():
 
     with pytest.warns(UserWarning):
         pa.io.to_yaml(schema)
+
+
+def test_format_checks_warning():
+    """Test that unregistered checks raise a warning when formatting checks."""
+    with pytest.warns(UserWarning):
+        io._format_checks({"my_check": None})
+
+
+@mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict)
+def test_to_yaml_registered_dataframe_check(_):
+    """
+    Tests that writing DataFrameSchema with a registered dataframe check works.
+    """
+    ncols_gt_called = False
+
+    @pa_ext.register_check_method(statistics=["column_count"])
+    def ncols_gt(pandas_obj: pd.DataFrame, column_count: int) -> bool:
+        """test registered dataframe check"""
+
+        # pylint: disable=unused-variable
+        nonlocal ncols_gt_called
+        ncols_gt_called = True
+        assert isinstance(column_count, int), "column_count must be integral"
+        assert isinstance(
+            pandas_obj, pd.DataFrame
+        ), "ncols_gt should only be applied to DataFrame"
+        return len(pandas_obj.columns) > column_count
+
+    assert (
+        len(pa.Check.REGISTERED_CUSTOM_CHECKS) == 1
+    ), "custom check is registered"
+
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int,
+            ),
+        },
+        checks=[pa.Check.ncols_gt(column_count=5)],
+    )
+
+    serialized = pa.io.to_yaml(schema)
+    loaded = pa.io.from_yaml(serialized)
+
+    assert len(loaded.checks) == 1, "global check was stripped"
+
+    with pytest.raises(pa.errors.SchemaError):
+        schema.validate(pd.DataFrame(data={"a": [1]}))
+
+    assert ncols_gt_called, "did not call ncols_gt"
+
+
+def test_to_yaml_custom_dataframe_check():
+    """Tests that writing DataFrameSchema with an unregistered check raises."""
+
+    schema = pa.DataFrameSchema(
+        {
+            "a": pa.Column(
+                pa.Int,
+            ),
+        },
+        checks=[pa.Check(lambda obj: len(obj.index) > 1)],
+    )
+
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
+        pa.io.to_yaml(schema)
+
+    # the unregistered column check case is tested in
+    # `test_to_yaml_lambda_check`
+
+
+def test_to_yaml_bugfix_419():
+    """Ensure that GH#419 is fixed"""
+    # pylint: disable=no-self-use
+
+    class CheckedSchemaModel(pa.SchemaModel):
+        """Schema with a global check"""
+
+        a: pat.Series[pat.Int64]
+        b: pat.Series[pat.Int64]
+
+        @pa.dataframe_check()
+        def unregistered_check(self, _):
+            """sample unregistered check"""
+            ...
+
+    with pytest.warns(UserWarning, match=".*registered checks.*"):
+        CheckedSchemaModel.to_yaml()

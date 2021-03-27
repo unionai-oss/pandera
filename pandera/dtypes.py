@@ -274,7 +274,14 @@ class PandasDtype(Enum):
 
     @classmethod
     def get_dtype(
-        cls, pandas_dtype_arg: Union[str, type, "PandasDtype", np.dtype]
+        cls,
+        pandas_dtype_arg: Union[
+            str,
+            type,
+            "PandasDtype",
+            "pd.core.dtypes.dtypes.ExtensionDtype",
+            np.dtype,
+        ],
     ) -> Optional[
         Union["PandasDtype", "pd.core.dtypes.dtypes.ExtensionDtype"]
     ]:

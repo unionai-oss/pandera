@@ -26,6 +26,7 @@ sphinx >= 3.2.0
 sphinx_rtd_theme
 sphinx-autodoc-typehints
 recommonmark
+furo
 twine
 asv
 pre_commit

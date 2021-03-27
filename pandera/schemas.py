@@ -3,17 +3,19 @@
 
 import copy
 import itertools
+import os
 import warnings
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import numpy as np
 import pandas as pd
 
 from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import PandasDtype, PandasExtensionType
+from .dtypes import PandasDtype, PandasExtensionType, is_extension_dtype
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -29,7 +31,13 @@ CheckList = Optional[
     Union[Union[Check, Hypothesis], List[Union[Check, Hypothesis]]]
 ]
 
-PandasDtypeInputTypes = Union[str, type, PandasDtype, PandasExtensionType]
+PandasDtypeInputTypes = Union[
+    str,
+    type,
+    PandasDtype,
+    PandasExtensionType,
+    np.dtype,
+]
 
 
 def _inferred_schema_guard(method):
@@ -723,6 +731,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         )
 
     def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
         def _compare_dict(obj):
             return {
                 k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
@@ -1183,17 +1194,16 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return pandera.io.from_yaml(yaml_schema)
 
-    def to_yaml(self, fp: Union[str, Path] = None):
+    def to_yaml(self, stream: Optional[os.PathLike] = None):
         """Write DataFrameSchema to yaml file.
 
-        :param dataframe_schema: schema to write to file or dump to string.
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
         import pandera.io
 
-        return pandera.io.to_yaml(self, fp)
+        return pandera.io.to_yaml(self, stream=stream)
 
     def set_index(
         self, keys: List[str], drop: bool = True, append: bool = False
@@ -1809,11 +1819,16 @@ class SeriesSchemaBase:
                     ),
                 )
 
-        if self.dtype is not None and str(series_dtype) != self.dtype:
+        if is_extension_dtype(self._pandas_dtype):
+            target_dtype = PandasDtype.get_dtype(self._pandas_dtype)
+        else:
+            series_dtype = str(series_dtype)
+            target_dtype = self.dtype
+        if self._pandas_dtype is not None and series_dtype != target_dtype:
             msg = "expected series '%s' to have type %s, got %s" % (
                 series.name,
-                self.dtype,
-                str(series_dtype),
+                repr(target_dtype),
+                repr(series_dtype),
             )
             error_handler.collect_error(
                 "wrong_pandas_dtype",

@@ -3,9 +3,21 @@
 import inspect
 import operator
 import re
-from collections import namedtuple
+from collections import ChainMap, namedtuple
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from itertools import chain
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    no_type_check,
+)
 
 import pandas as pd
 
@@ -51,7 +63,45 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-class _CheckBase:
+_T = TypeVar("_T", bound="_CheckBase")
+
+
+class _CheckMeta(type):  # pragma: no cover
+    """Check metaclass."""
+
+    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
+
+    def __getattr__(cls, name: str) -> Any:
+        """Prevent attribute errors for registered checks."""
+        attr = ChainMap(cls.__dict__, cls.REGISTERED_CUSTOM_CHECKS).get(name)
+        if attr is None:
+            raise AttributeError(
+                f"'{cls}' object has no attribute '{name}'. "
+                "Make sure any custom checks have been registered "
+                "using the extensions api."
+            )
+        return attr
+
+    def __dir__(cls) -> Iterable[str]:
+        """Allow custom checks to show up as attributes when autocompleting."""
+        return chain(super().__dir__(), cls.REGISTERED_CUSTOM_CHECKS.keys())
+
+    # pylint: disable=line-too-long
+    # mypy has limited metaclass support so this doesn't pass typecheck
+    # see https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
+    # pylint: enable=line-too-long
+    @no_type_check
+    def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
+        """Allow lookups for registered checks."""
+        if isinstance(item, cls):
+            name = item.name
+            return hasattr(cls, name)
+
+        # assume item is str
+        return hasattr(cls, item)
+
+
+class _CheckBase(metaclass=_CheckMeta):
     """Check base class."""
 
     def __init__(
@@ -397,9 +447,11 @@ class _CheckBase:
         )
 
     def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
         are_check_fn_objects_equal = (
-            self.__dict__["_check_fn"].__code__.co_code
-            == other.__dict__["_check_fn"].__code__.co_code
+            self._get_check_fn_code() == other._get_check_fn_code()
         )
 
         try:
@@ -427,8 +479,18 @@ class _CheckBase:
             and are_all_other_check_attributes_equal
         )
 
+    def _get_check_fn_code(self):
+        check_fn = self.__dict__["_check_fn"]
+        try:
+            code = check_fn.__code__.co_code
+        except AttributeError:
+            # try accessing the functools.partial wrapper
+            code = check_fn.func.__code__.co_code
+
+        return code
+
     def __hash__(self):
-        return hash(self.__dict__["_check_fn"].__code__.co_code)
+        return hash(self._get_check_fn_code())
 
     def __repr__(self):
         return (
@@ -438,21 +500,8 @@ class _CheckBase:
         )
 
 
-class _CheckMeta(type):  # pragma: no cover
-    """Check metaclass."""
-
-    def __getattr__(cls, name: str) -> Any:
-        """Prevent attribute errors for registered checks."""
-        attr = cls.__dict__.get(name)
-        if attr is None:
-            raise AttributeError(f"'{cls}' object has no attribute '{name}'")
-        return attr
-
-
-class Check(_CheckBase, metaclass=_CheckMeta):
+class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
-
-    REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
 
     @classmethod
     @st.register_check_strategy(st.eq_strategy)
