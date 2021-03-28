@@ -127,7 +127,15 @@ class SchemaModel:
         for field_name in cls.__annotations__.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
                 # Field omitted
-                field = Field()
+                field = Field(
+                    # if the subclass has no additional attribute annotations,
+                    # propagate alias via field attribute access
+                    alias=(
+                        getattr(cls, field_name, None)
+                        if cls.__dict__.get("__annotations__") is None
+                        else None
+                    )
+                )
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 
