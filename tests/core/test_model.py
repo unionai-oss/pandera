@@ -462,15 +462,39 @@ def test_inherit_schemamodel_fields_alias():
         b: Series[str] = pa.Field(alias="_b")
         idx: Index[str]
 
-    class Child(Mid):
+    class ChildOverrideAttr(Mid):
         b: Series[int]
 
-    expected = pa.DataFrameSchema(
-        columns={"a": pa.Column(int), "b": pa.Column(int)},
+    class ChildOverrideAlias(Mid):
+        b: Series[str] = pa.Field(alias="new_b")
+
+    class ChildNewAttr(Mid):
+        c: Series[int]
+
+    class ChildEmpty(Mid):
+        pass
+
+    expected_mid = pa.DataFrameSchema(
+        columns={"a": pa.Column(int), "_b": pa.Column(str)},
         index=pa.Index(str),
     )
+    expected_child_override_attr = expected_mid.rename_columns(
+        {"_b": "b"}
+    ).update_column("b", pandas_dtype=int)
+    expected_child_override_alias = expected_mid.rename_columns(
+        {"_b": "new_b"}
+    )
+    expected_child_new_attr = expected_mid.add_columns(
+        {
+            "c": pa.Column(int),
+        }
+    )
 
-    assert expected == Child.to_schema()
+    assert expected_mid == Mid.to_schema()
+    assert expected_child_override_attr == ChildOverrideAttr.to_schema()
+    assert expected_child_override_alias == ChildOverrideAlias.to_schema()
+    assert expected_child_new_attr == ChildNewAttr.to_schema()
+    assert expected_mid == ChildEmpty.to_schema()
 
 
 def test_inherit_field_checks():
