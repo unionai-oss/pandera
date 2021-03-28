@@ -12,20 +12,27 @@ a {
 
 .sidebar-drawer {
   width: calc(50% - 25em);
-  min-width: 23em;
+  min-width: 22em;
 }
 
 .sidebar-drawer .sidebar-container {
   width: 23em;
 }
 
-@media (max-width: 67em) {
-  .sidebar-drawer {
-    width: 24em;
-    left: -24em;
-  }
-}
-
 li.toctree-l2 {
   font-size: 80%;
+}
+
+
+@media (max-width: 67em) {
+  .sidebar-drawer {
+    width: 22em;
+    left: -22em;
+  }
+  .sidebar-drawer .sidebar-container {
+    width: 22em;
+  }
+  li.toctree-l2 {
+    font-size: 75%;
+  }
 }
