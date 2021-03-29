@@ -41,6 +41,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
     "sphinx.ext.viewcode",
+    "sphinx_copybutton",
     "recommonmark",
 ]
 
