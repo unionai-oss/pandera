@@ -189,10 +189,11 @@ class SchemaModel:
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> pd.DataFrame:
         """%(validate_doc)s"""
         return cls.to_schema().validate(
-            check_obj, head, tail, sample, random_state, lazy
+            check_obj, head, tail, sample, random_state, lazy, inplace
         )
 
     @classmethod
