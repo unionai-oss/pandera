@@ -124,7 +124,8 @@ class SchemaModel:
         """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
         super().__init_subclass__(**kwargs)
         # pylint:disable=no-member
-        for field_name in cls.__annotations__.keys():
+        subclass_annotations = cls.__dict__.get("__annotations__", {})
+        for field_name in subclass_annotations.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
                 # Field omitted
                 field = Field()
@@ -188,10 +189,11 @@ class SchemaModel:
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
+        inplace: bool = False,
     ) -> pd.DataFrame:
         """%(validate_doc)s"""
         return cls.to_schema().validate(
-            check_obj, head, tail, sample, random_state, lazy
+            check_obj, head, tail, sample, random_state, lazy, inplace
         )
 
     @classmethod
