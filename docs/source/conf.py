@@ -45,6 +45,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
+    "sphinx_copybutton",
     "recommonmark",
 ]
 
