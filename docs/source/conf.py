@@ -7,7 +7,9 @@
 # -- Path setup --------------------------------------------------------------
 
 import doctest
+import inspect
 import logging as pylogging
+import subprocess
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -18,6 +20,8 @@ import shutil
 import sys
 
 from sphinx.util import logging
+
+import pandera
 
 sys.path.insert(0, os.path.abspath("../../pandera"))
 
@@ -40,7 +44,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "recommonmark",
 ]
@@ -187,3 +191,50 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
 logging.getLogger("sphinx_autodoc_typehints").logger.addFilter(
     FilterPandasTypeAnnotationWarning()
 )
+
+# based on pandas/doc/source/conf.py
+def linkcode_resolve(domain, info):
+    """Determine the URL corresponding to Python object."""
+    if domain != "py":
+        return None
+
+    submod = sys.modules.get(info["module"])
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in info["fullname"].split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            return None
+
+    try:
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
+    except TypeError:
+        fn = None
+    if not fn:
+        return None
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except OSError:
+        lineno = None
+
+    fn = os.path.relpath(fn, start=os.path.dirname(pandera.__file__))
+
+    linespec = f"#L{lineno}-L{lineno + len(source) - 1}" if lineno else ""
+
+    try:  # check if we are building "latest" version on reathedocs
+        tag = (
+            subprocess.check_output(["git", "branch", "--show-current"])
+            .decode("utf-8")
+            .strip()
+        )
+    except subprocess.CalledProcessError:
+        tag = None
+
+    if tag != "master":
+        tag = f"v{pandera.__version__}"
+
+    return f"https://github.com/pandera-dev/pandera/blob/{tag}/pandera/{fn}{linespec}"
