@@ -5,6 +5,7 @@ import tempfile
 import unittest.mock as mock
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 from packaging import version
@@ -600,3 +601,275 @@ def test_to_yaml_bugfix_419():
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
         CheckedSchemaModel.to_yaml()
+
+
+FRICTIONLESS_YAML = yaml.safe_load(
+    """
+fields:
+  - constraints:
+      maximum: 99
+      minimum: 10
+    name: integer_col
+    type: integer
+  - constraints:
+      maximum: 30
+    name: integer_col_2
+    type: integer
+  - constraints:
+      maxLength: 80
+      minLength: 3
+    name: string_col
+  - constraints:
+      pattern: \\d{3}[A-Z]
+    name: string_col_2
+  - constraints:
+      minLength: 3
+    name: string_col_3
+  - constraints:
+      maxLength: 3
+    name: string_col_4
+  - constraints:
+      enum:
+        - 1.0
+        - 2.0
+        - 3.0
+      required: true
+    name: float_col
+    type: number
+  - constraints:
+    name: float_col_2
+    type: number
+  - constraints:
+      minimum: "20201231"
+    name: date_col
+primaryKey: integer_col
+"""
+)
+
+FRICTIONLESS_JSON = {
+    "fields": [
+        {
+            "name": "integer_col",
+            "type": "integer",
+            "constraints": {"minimum": 10, "maximum": 99},
+        },
+        {
+            "name": "integer_col_2",
+            "type": "integer",
+            "constraints": {"maximum": 30},
+        },
+        {
+            "name": "string_col",
+            "constraints": {"maxLength": 80, "minLength": 3},
+        },
+        {
+            "name": "string_col_2",
+            "constraints": {"pattern": r"\d{3}[A-Z]"},
+        },
+        {
+            "name": "string_col_3",
+            "constraints": {"minLength": 3},
+        },
+        {
+            "name": "string_col_4",
+            "constraints": {"maxLength": 3},
+        },
+        {
+            "name": "float_col",
+            "type": "number",
+            "constraints": {"enum": [1.0, 2.0, 3.0], "required": True},
+        },
+        {
+            "name": "float_col_2",
+            "type": "number",
+        },
+        {
+            "name": "date_col",
+            "type": "date",
+            "constraints": {"minimum": "20201231"},
+        },
+    ],
+    "primaryKey": "integer_col",
+}
+
+YAML_FROM_FRICTIONLESS = f"""
+schema_type: dataframe
+version: {pa.__version__}
+columns:
+  integer_col:
+    pandas_dtype: int
+    nullable: false
+    checks:
+      in_range:
+        min_value: 10
+        max_value: 99
+    allow_duplicates: false
+    coerce: true
+    required: true
+    regex: false
+  integer_col_2:
+    pandas_dtype: int
+    nullable: true
+    checks:
+      less_than_or_equal_to: 30
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+  string_col:
+    pandas_dtype: string
+    nullable: true
+    checks:
+      str_length:
+        min_value: 3
+        max_value: 80
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+  string_col_2:
+    pandas_dtype: string
+    nullable: true
+    checks:
+      str_matches: ^\\d{{3}}[A-Z]$
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+  string_col_3:
+    pandas_dtype: string
+    nullable: true
+    checks:
+      str_length: 3
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+  string_col_4:
+    pandas_dtype: string
+    nullable: true
+    checks:
+      str_length: 3
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+  float_col:
+    pandas_dtype: category
+    nullable: false
+    checks:
+      isin:
+      - 1.0
+      - 2.0
+      - 3.0
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+  float_col_2:
+    pandas_dtype: float
+    nullable: true
+    checks: null
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+  date_col:
+    pandas_dtype: string
+    nullable: true
+    checks:
+      greater_than_or_equal_to: '20201231'
+    allow_duplicates: true
+    coerce: true
+    required: true
+    regex: false
+checks: null
+index: null
+coerce: true
+strict: true
+"""
+
+VALID_FRICTIONLESS_DF = pd.DataFrame(
+    {
+        "integer_col": [10, 11, 12, 13, 14],
+        "integer_col_2": [1, 2, 3, 3, 1],
+        "string_col": ["aaa", None, "ccc", "ddd", "eee"],
+        "string_col_2": ["123A", "456B", None, "789C", "101D"],
+        "string_col_3": ["123ABC", "456B", None, "78a9C", "1A3F01D"],
+        "string_col_4": ["23A", "46B", None, "78C", "1D"],
+        "float_col": [1.0, 1.0, 1.0, 2.0, 3.0],
+        "float_col_2": [1, 1, None, 2, 3],
+        "date_col": [
+            "20210101",
+            "20210102",
+            "20210103",
+            "20210104",
+            "20210105",
+        ],
+    }
+)
+
+INVALID_FRICTIONLESS_DF = pd.DataFrame(
+    {
+        "integer_col": [1, 180, 12, 12, 18],
+        "integer_col_2": [10, 11, 12, 113, 14],
+        "string_col": ["a", "bbb", "ccc", "d" * 100, "eee"],
+        "string_col_2": ["123A", "456B", None, "789c", "101D"],
+        "string_col_3": ["1A", "456B", None, "789c", "101D"],
+        "string_col_4": ["123A", "4B", None, "c", "1D"],
+        "float_col": [1.0, 1.1, None, 3.0, 3.8],
+        "float_col_2": ["a", 1, None, 3.0, 3.8],
+        "unexpected_column": [1, 2, 3, 4, 5],
+    }
+)
+
+
+@pytest.mark.parametrize(
+    "frictionless_schema", [FRICTIONLESS_YAML, FRICTIONLESS_JSON]
+)
+def test_frictionless_schema_parses_correctly(frictionless_schema):
+    """Test parsing frictionless schema from yaml and json."""
+    schema = pa.io.from_frictionless_schema(frictionless_schema)
+
+    assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
+
+    assert isinstance(
+        schema, pa.schemas.DataFrameSchema
+    ), "schema object not loaded successfully"
+
+    df = schema.validate(VALID_FRICTIONLESS_DF)
+    assert dict(df.dtypes) == {
+        "integer_col": "int64",
+        "integer_col_2": "int64",
+        "string_col": pd.StringDtype(),
+        "string_col_2": pd.StringDtype(),
+        "string_col_3": pd.StringDtype(),
+        "string_col_4": pd.StringDtype(),
+        "float_col": pd.CategoricalDtype(
+            categories=[1.0, 2.0, 3.0], ordered=False
+        ),
+        "float_col_2": "float64",
+        "date_col": pd.StringDtype(),
+    }, "dtypes not parsed correctly from frictionless schema"
+
+    with pytest.raises(pa.errors.SchemaErrors) as err:
+        schema.validate(INVALID_FRICTIONLESS_DF, lazy=True)
+    # check we're capturing all errors according to the frictionless schema:
+    assert err.value.failure_cases[["check", "failure_case"]].to_dict(
+        orient="records"
+    ) == [
+        {"check": "column_in_schema", "failure_case": "unexpected_column"},
+        {"check": "column_in_dataframe", "failure_case": "date_col"},
+        {"check": "coerce_dtype('float64')", "failure_case": "object"},
+        {"check": "no_duplicates", "failure_case": 12},
+        {"check": "less_than_or_equal_to(30)", "failure_case": 113},
+        {"check": "str_length(3, 80)", "failure_case": "a"},
+        {"check": "str_length(3, 80)", "failure_case": "d" * 100},
+        {
+            "check": "str_matches(re.compile('^\\\\d{3}[A-Z]$'))",
+            "failure_case": "789c",
+        },
+        {"check": "str_length(3, None)", "failure_case": "1A"},
+        {"check": "str_length(None, 3)", "failure_case": "123A"},
+        {"check": "not_nullable", "failure_case": np.nan},
+    ], "validation failure cases not as expected"

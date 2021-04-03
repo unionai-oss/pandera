@@ -6,16 +6,20 @@ from pathlib import Path
 
 import pandas as pd
 
+from .checks import Check
 from .dtypes import PandasDtype
+from .schema_components import Column
 from .schema_statistics import get_dataframe_schema_statistics
 
 try:
     import black
     import yaml
+    from frictionless import Schema as FrictionlessSchema
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        'IO and formatting requires "pyyaml" and "black" to be installed. \n'
-        "You can install pandera together with the IO dependencies with: \n"
+        "IO and formatting requires 'pyyaml', 'black' and 'frictionless'"
+        "to be installed.\n"
+        "You can install pandera together with the IO dependencies with:\n"
         "pip install pandera[io]\n"
     ) from exc
 
@@ -152,8 +156,6 @@ def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
 
 
 def _deserialize_component_stats(serialized_component_stats):
-    from pandera import Check  # pylint: disable=import-outside-toplevel
-
     pandas_dtype = serialized_component_stats.get("pandas_dtype")
     if pandas_dtype:
         pandas_dtype = PandasDtype.from_str_alias(pandas_dtype)
@@ -188,7 +190,7 @@ def _deserialize_component_stats(serialized_component_stats):
 
 def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
-    from pandera import Check, Column, DataFrameSchema, Index, MultiIndex
+    from pandera import DataFrameSchema, Index, MultiIndex
 
     columns, index, checks = None, None, None
     if serialized_schema["columns"] is not None:
@@ -309,8 +311,7 @@ def _format_checks(checks_dict):
             )
         else:
             args = ", ".join(
-                "{}={}".format(k, v.__repr__())
-                for k, v in check_kwargs.items()
+                f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
             )
             checks.append(f"Check.{check_name}({args})")
     return f"[{', '.join(checks)}]"
@@ -381,7 +382,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         else _format_index(statistics["index"])
     )
 
-    column_str = ", ".join("'{}': {}".format(k, v) for k, v in columns.items())
+    column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
@@ -404,3 +405,170 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     with Path(path_or_buf).open("w") as f:
         f.write(formatted_script)
+
+
+class FrictionlessFieldParser:
+    """Parses frictionless data schema field specifications so we can convert
+    them to an equivalent pandera Column schema.
+
+    For this implementation, we are using field names, constraints and types
+    but leaving other frictionless parameters out (e.g. foreign keys, type
+    formats, titles, descriptions).
+
+    :param field: a field object from a frictionless schema.
+    :primary_keys: the primary keys from a frictionless schema. These are used
+        to ensure primary key fields are treated properly - no duplicates,
+        no missing values etc.
+    """
+
+    def __init__(self, field, primary_keys) -> None:
+        self.constraints = field.constraints
+        self.name = field.name
+        self.is_a_primary_key = self.name in primary_keys
+        self.type = field.get("type", "string")
+
+    @property
+    def dtype(self):
+        """Determine what type of field this is, so we can feed that into
+        :class:`~pandera.dtypes.PandasDtype`. If no type is specified in the
+        frictionless schema, we default to string values.
+
+        :returns: the pandas-compatible representation of this field type as a
+            string.
+        """
+        types = {
+            "string": "string",
+            "number": "float",
+            "integer": "int",
+            "boolean": "bool",
+            "object": "object",
+            "array": "object",
+            "date": "string",
+            "time": "string",
+            "datetime": "datetime64[ns]",
+            "year": "int",
+            "yearmonth": "string",
+            "duration": "timedelta64[ns]",
+            "geopoint": "object",
+            "geojson": "object",
+            "any": "string",
+        }
+        return (
+            "category"
+            if self.constraints.get("enum", None)
+            else types[self.type]
+        )
+
+    @property
+    def checks(self):
+        """Convert a set of frictionless schema field constraints into checks.
+
+        This parses the standard set of frictionless constraints which can be
+        found
+        `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
+        and maps them into the equivalent pandera checks.
+
+        :returns: a list of pandera checks which capture the standard constraint
+            logic of a frictionless schema field.
+        """
+        if not self.constraints:
+            return None
+        constraints = self.constraints.copy()
+        checks = {}
+
+        def _combine_constraints(check_name, min_constraint, max_constraint):
+            """Catches bounded constraints where we need to combine a min and max
+            pair of constraints into a single check."""
+            if (
+                min_constraint in constraints.keys()
+                and max_constraint in constraints.keys()
+            ):
+                checks[check_name] = {
+                    "min_value": constraints.pop(min_constraint),
+                    "max_value": constraints.pop(max_constraint),
+                }
+
+        _combine_constraints("in_range", "minimum", "maximum")
+        _combine_constraints("str_length", "minLength", "maxLength")
+
+        for constraint_type, constraint_value in constraints.items():
+            if constraint_type == "maximum":
+                checks["less_than_or_equal_to"] = constraint_value
+            elif constraint_type == "minimum":
+                checks["greater_than_or_equal_to"] = constraint_value
+            elif constraint_type == "maxLength":
+                checks["str_length"] = {
+                    "min_value": None,
+                    "max_value": constraint_value,
+                }
+            elif constraint_type == "minLength":
+                checks["str_length"] = {
+                    "min_value": constraint_value,
+                    "max_value": None,
+                }
+            elif constraint_type == "pattern":
+                checks["str_matches"] = rf"^{constraint_value}$"
+            elif constraint_type == "enum":
+                checks["isin"] = constraint_value
+        return checks or None
+
+    @property
+    def nullable(self):
+        """Determine whether this field can contain missing values."""
+        if self.is_a_primary_key:
+            return False
+        return not self.constraints.get("required", False)
+
+    @property
+    def unique(self):
+        """Determine whether this field can only contain unique values."""
+        if self.is_a_primary_key:
+            return True
+        return self.constraints.get("unique", False)
+
+    @property
+    def allow_duplicates(self):
+        """Determine whether this field can contain duplicate values."""
+        return not self.unique
+
+    def to_pandera_column(self):
+        """Export this field to a column spec dictionary."""
+        return {
+            "allow_duplicates": self.allow_duplicates,
+            "checks": self.checks,
+            "coerce": True,
+            "nullable": self.nullable,
+            "pandas_dtype": self.dtype,
+            "required": True,
+            "name": self.name,
+            "regex": False,
+        }
+
+
+def from_frictionless_schema(schema):
+    """Create a :class:`~pandera.schemas.DataFrameSchema` from a frictionless
+    json/yaml schema file on disk, or a frictionless schema already loaded
+    into memory.
+
+    :param frictionless_schema: the frictionless schema object (or a
+        string/Path to the location on disk of a schema specification) to
+        parse.
+    :returns: dataframe schema with frictionless field specs converted to
+        pandera column checks and constraints for use as normal.
+    """
+    if not isinstance(schema, FrictionlessSchema):
+        schema = FrictionlessSchema(schema)
+
+    assembled_schema = {
+        "columns": {
+            field.name: FrictionlessFieldParser(
+                field, schema.primary_key
+            ).to_pandera_column()
+            for field in schema.fields
+        },
+        "index": None,
+        "checks": None,
+        "coerce": True,
+        "strict": True,
+    }
+    return _deserialize_schema(assembled_schema)
