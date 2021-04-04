@@ -550,11 +550,37 @@ def from_frictionless_schema(schema):
     json/yaml schema file on disk, or a frictionless schema already loaded
     into memory.
 
+    Each field from the frictionless schema will be converted to a pandera
+    column specification using :class:`~pandera.io.FrictionlessFieldParser`
+    to map field characteristics to pandera column specifications.
+
     :param frictionless_schema: the frictionless schema object (or a
         string/Path to the location on disk of a schema specification) to
         parse.
     :returns: dataframe schema with frictionless field specs converted to
         pandera column checks and constraints for use as normal.
+
+    :example:
+
+    >>> from pandera.io import from_frictionless_schema
+    >>>
+    >>> FRICTIONLESS_SCHEMA = {
+    ...     "fields": [
+    ...         {
+    ...             "name": "column_1",
+    ...             "type": "integer",
+    ...             "constraints": {"minimum": 10, "maximum": 99}
+    ...         }
+    ...     ],
+    ...     "primaryKey": "column_1"
+    ... }
+    >>> schema = from_frictionless_schema(FRICTIONLESS_SCHEMA)
+    >>> schema.columns["column_1"].checks
+    [<Check in_range: in_range(10, 99)>]
+    >>> schema.columns["column_1"].required
+    True
+    >>> schema.columns["column_1"].allow_duplicates
+    False
     """
     if not isinstance(schema, FrictionlessSchema):
         schema = FrictionlessSchema(schema)
