@@ -4,14 +4,14 @@ on:
     branches:
     - master
     - dev
-    - bugfixes
-    - release/**
+    - bugfix
+    - 'release/*'
   pull_request:
     branches:
     - master
     - dev
-    - bugfixes
-    - release/**
+    - bugfix
+    - 'release/*'
 
 env:
   DEFAULT_PYTHON: 3.8
