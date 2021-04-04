@@ -1,9 +1,17 @@
 name: CI Tests
 on:
   push:
-    branches: [master, dev]
+    branches:
+    - master
+    - dev
+    - bugfixes
+    - release/**
   pull_request:
-    branches: [master, dev]
+    branches:
+    - master
+    - dev
+    - bugfixes
+    - release/**
 
 env:
   DEFAULT_PYTHON: 3.8
