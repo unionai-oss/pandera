@@ -430,7 +430,7 @@ class FrictionlessFieldParser:
         self.type = field.get("type", "string")
 
     @property
-    def dtype(self) -> str:
+    def pandas_dtype(self) -> str:
         """Determine what type of field this is, so we can feed that into
         :class:`~pandera.dtypes.PandasDtype`. If no type is specified in the
         frictionless schema, we default to string values.
@@ -548,7 +548,7 @@ class FrictionlessFieldParser:
             "checks": self.checks,
             "coerce": self.coerce,
             "nullable": self.nullable,
-            "pandas_dtype": self.dtype,
+            "pandas_dtype": self.pandas_dtype,
             "required": self.required,
             "name": self.name,
             "regex": self.regex,
