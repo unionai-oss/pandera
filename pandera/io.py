@@ -470,9 +470,9 @@ class FrictionlessFieldParser:
         `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
         and maps them into the equivalent pandera checks.
 
-        :returns: a list of pandera :class:`pandera.checks.Check` objects
-            which capture the standard constraint logic of a frictionless
-            schema field.
+        :returns: a dictionary of pandera :class:`pandera.checks.Check`
+            objects which capture the standard constraint logic of a
+            frictionless schema field.
         """
         if not self.constraints:
             return None
