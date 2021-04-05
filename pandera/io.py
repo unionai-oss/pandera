@@ -409,7 +409,7 @@ def to_script(dataframe_schema, path_or_buf=None):
 
 class FrictionlessFieldParser:
     """Parses frictionless data schema field specifications so we can convert
-    them to an equivalent pandera Column schema.
+    them to an equivalent :class:`pandera.schema_components.Column` schema.
 
     For this implementation, we are using field names, constraints and types
     but leaving other frictionless parameters out (e.g. foreign keys, type
@@ -468,7 +468,7 @@ class FrictionlessFieldParser:
         `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
         and maps them into the equivalent pandera checks.
 
-        :returns: a list of pandera checks which capture the standard constraint
+        :returns: a list of pandera :class:`pandera.checks.Check` objects which capture the standard constraint
             logic of a frictionless schema field.
         """
         if not self.constraints:
@@ -554,7 +554,7 @@ def from_frictionless_schema(schema):
     column specification using :class:`~pandera.io.FrictionlessFieldParser`
     to map field characteristics to pandera column specifications.
 
-    :param frictionless_schema: the frictionless schema object (or a
+    :param schema: the frictionless schema object (or a
         string/Path to the location on disk of a schema specification) to
         parse.
     :returns: dataframe schema with frictionless field specs converted to
