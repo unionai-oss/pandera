@@ -523,28 +523,38 @@ class FrictionlessFieldParser:
         return not self.constraints.get("required", False)
 
     @property
-    def unique(self) -> bool:
-        """Determine whether this field can only contain unique values."""
-        if self.is_a_primary_key:
-            return True
-        return self.constraints.get("unique", False)
-
-    @property
     def allow_duplicates(self) -> bool:
         """Determine whether this field can contain duplicate values."""
-        return not self.unique
+        if self.is_a_primary_key:
+            return False
+        return not self.constraints.get("unique", False)
+
+    @property
+    def coerce(self) -> bool:
+        """Determine whether values within this field should be coerced."""
+        return True
+
+    @property
+    def required(self) -> bool:
+        """Determine whether this field must exist within the data."""
+        return True
+
+    @property
+    def regex(self) -> bool:
+        """Determine whether this field name should be used for regex matches."""
+        return False
 
     def to_pandera_column(self) -> Dict:
         """Export this field to a column spec dictionary."""
         return {
             "allow_duplicates": self.allow_duplicates,
             "checks": self.checks,
-            "coerce": True,
+            "coerce": self.coerce,
             "nullable": self.nullable,
             "pandas_dtype": self.dtype,
-            "required": True,
+            "required": self.required,
             "name": self.name,
-            "regex": False,
+            "regex": self.regex,
         }
 
 
