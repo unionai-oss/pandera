@@ -3,6 +3,7 @@
 import warnings
 from functools import partial
 from pathlib import Path
+from typing import Dict, Optional, Union
 
 import pandas as pd
 
@@ -10,6 +11,7 @@ from .checks import Check
 from .dtypes import PandasDtype
 from .schema_components import Column
 from .schema_statistics import get_dataframe_schema_statistics
+from .schemas import DataFrameSchema
 
 try:
     import black
@@ -190,7 +192,7 @@ def _deserialize_component_stats(serialized_component_stats):
 
 def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
-    from pandera import DataFrameSchema, Index, MultiIndex
+    from pandera import Index, MultiIndex
 
     columns, index, checks = None, None, None
     if serialized_schema["columns"] is not None:
@@ -428,7 +430,7 @@ class FrictionlessFieldParser:
         self.type = field.get("type", "string")
 
     @property
-    def dtype(self):
+    def dtype(self) -> str:
         """Determine what type of field this is, so we can feed that into
         :class:`~pandera.dtypes.PandasDtype`. If no type is specified in the
         frictionless schema, we default to string values.
@@ -460,7 +462,7 @@ class FrictionlessFieldParser:
         )
 
     @property
-    def checks(self):
+    def checks(self) -> Optional[Dict]:
         """Convert a set of frictionless schema field constraints into checks.
 
         This parses the standard set of frictionless constraints which can be
@@ -468,8 +470,9 @@ class FrictionlessFieldParser:
         `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
         and maps them into the equivalent pandera checks.
 
-        :returns: a list of pandera :class:`pandera.checks.Check` objects which capture the standard constraint
-            logic of a frictionless schema field.
+        :returns: a list of pandera :class:`pandera.checks.Check` objects
+            which capture the standard constraint logic of a frictionless
+            schema field.
         """
         if not self.constraints:
             return None
@@ -513,25 +516,25 @@ class FrictionlessFieldParser:
         return checks or None
 
     @property
-    def nullable(self):
+    def nullable(self) -> bool:
         """Determine whether this field can contain missing values."""
         if self.is_a_primary_key:
             return False
         return not self.constraints.get("required", False)
 
     @property
-    def unique(self):
+    def unique(self) -> bool:
         """Determine whether this field can only contain unique values."""
         if self.is_a_primary_key:
             return True
         return self.constraints.get("unique", False)
 
     @property
-    def allow_duplicates(self):
+    def allow_duplicates(self) -> bool:
         """Determine whether this field can contain duplicate values."""
         return not self.unique
 
-    def to_pandera_column(self):
+    def to_pandera_column(self) -> Dict:
         """Export this field to a column spec dictionary."""
         return {
             "allow_duplicates": self.allow_duplicates,
@@ -545,7 +548,9 @@ class FrictionlessFieldParser:
         }
 
 
-def from_frictionless_schema(schema):
+def from_frictionless_schema(
+    schema: Union[str, Path, FrictionlessSchema]
+) -> DataFrameSchema:
     """Create a :class:`~pandera.schemas.DataFrameSchema` from a frictionless
     json/yaml schema file on disk, or a frictionless schema already loaded
     into memory.
