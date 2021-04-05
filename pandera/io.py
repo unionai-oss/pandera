@@ -482,10 +482,7 @@ class FrictionlessFieldParser:
         def _combine_constraints(check_name, min_constraint, max_constraint):
             """Catches bounded constraints where we need to combine a min and max
             pair of constraints into a single check."""
-            if (
-                min_constraint in constraints.keys()
-                and max_constraint in constraints.keys()
-            ):
+            if min_constraint in constraints and max_constraint in constraints:
                 checks[check_name] = {
                     "min_value": constraints.pop(min_constraint),
                     "max_value": constraints.pop(max_constraint),
