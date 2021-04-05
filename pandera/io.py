@@ -556,7 +556,7 @@ class FrictionlessFieldParser:
 
 
 def from_frictionless_schema(
-    schema: Union[str, Path, FrictionlessSchema]
+    schema: Union[str, Path, Dict, FrictionlessSchema]
 ) -> DataFrameSchema:
     """Create a :class:`~pandera.schemas.DataFrameSchema` from a frictionless
     json/yaml schema file on disk, or a frictionless schema already loaded
