@@ -14,6 +14,7 @@ from pandera import (
     Field,
     Float,
     Int,
+    PandasDtype,
     SchemaModel,
     String,
     check_input,
@@ -491,6 +492,11 @@ class OutSchema(SchemaModel):  # pylint: disable=too-few-public-methods
 
     b: Series[int]
 
+    class Config:  # pylint: disable=too-few-public-methods
+        """Set coerce."""
+
+        coerce = True
+
 
 def test_check_types_multiple_inputs():
     """Test that check_types behaviour when multiple inputs are annotated."""
@@ -588,3 +594,16 @@ def test_check_types_optional_in_out(out_schema_cls):
         return None
 
     assert transform(None) is None
+
+
+def test_check_types_coerce():
+    """Test that check_types return the result of validate."""
+
+    @check_types()
+    def transform() -> DataFrame[OutSchema]:
+        # OutSchema.b should be coerced to an integer.
+        return pd.DataFrame({"b": ["1"]})
+
+    df = transform()
+    expected = OutSchema.to_schema().columns["b"].pandas_dtype
+    assert PandasDtype(str(df["b"].dtype)) == expected == PandasDtype("int")
