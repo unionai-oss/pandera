@@ -500,7 +500,7 @@ def check_types(
             model = cast(SchemaModel, annotation_info.arg)
             schema = model.to_schema()
             try:
-                schema.validate(
+                out = schema.validate(
                     out, head, tail, sample, random_state, lazy, inplace
                 )
             except errors.SchemaError as e:
