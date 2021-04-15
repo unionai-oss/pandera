@@ -239,7 +239,7 @@ class SchemaModel:
                         + "\n Usage Tip: Drop 'typing.Annotated'."
                     )
                 dtype_kwargs = _get_dtype_kwargs(annotation)
-                dtype = annotation.arg(**dtype_kwargs)
+                dtype = annotation.arg(**dtype_kwargs)  # type: ignore
             else:
                 dtype = annotation.arg
 
@@ -420,10 +420,11 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
 
 
 def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
-    dtype_arg_names = list(inspect.signature(annotation.arg).parameters.keys())
+    sig = inspect.signature(annotation.arg)  # type: ignore
+    dtype_arg_names = list(sig.parameters.keys())
     if len(annotation.metadata) != len(dtype_arg_names):
         raise TypeError(
-            f"Annotation '{annotation.arg.__name__}' requires "
+            f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
     return dict(zip(dtype_arg_names, annotation.metadata))

@@ -600,10 +600,20 @@ def test_check_types_coerce():
     """Test that check_types return the result of validate."""
 
     @check_types()
-    def transform() -> DataFrame[OutSchema]:
+    def transform_in(df: DataFrame[InSchema]):
+        return df
+
+    df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))
+    expected = InSchema.to_schema().columns["a"].pandas_dtype
+    assert PandasDtype(str(df["a"].dtype)) == expected == PandasDtype("int")
+
+    @check_types()
+    def transform_out() -> DataFrame[OutSchema]:
         # OutSchema.b should be coerced to an integer.
         return pd.DataFrame({"b": ["1"]})
 
-    df = transform()
+    out_df = transform_out()
     expected = OutSchema.to_schema().columns["b"].pandas_dtype
-    assert PandasDtype(str(df["b"].dtype)) == expected == PandasDtype("int")
+    assert (
+        PandasDtype(str(out_df["b"].dtype)) == expected == PandasDtype("int")
+    )
