@@ -5,7 +5,6 @@ import tempfile
 import unittest.mock as mock
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pytest
 from packaging import version
@@ -855,9 +854,9 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     with pytest.raises(pa.errors.SchemaErrors) as err:
         schema.validate(INVALID_FRICTIONLESS_DF, lazy=True)
     # check we're capturing all errors according to the frictionless schema:
-    assert err.value.failure_cases[["check", "failure_case"]].to_dict(
-        orient="records"
-    ) == [
+    assert err.value.failure_cases[["check", "failure_case"]].fillna(
+        "NaN"
+    ).to_dict(orient="records") == [
         {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {"check": "column_in_dataframe", "failure_case": "date_col"},
         {"check": "coerce_dtype('float64')", "failure_case": "object"},
@@ -871,5 +870,5 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         },
         {"check": "str_length(3, None)", "failure_case": "1A"},
         {"check": "str_length(None, 3)", "failure_case": "123A"},
-        {"check": "not_nullable", "failure_case": np.nan},
+        {"check": "not_nullable", "failure_case": "NaN"},
     ], "validation failure cases not as expected"
