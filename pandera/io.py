@@ -424,7 +424,7 @@ class FrictionlessFieldParser:
     """
 
     def __init__(self, field, primary_keys) -> None:
-        self.constraints = field.constraints
+        self.constraints = field.constraints or {}
         self.name = field.name
         self.is_a_primary_key = self.name in primary_keys
         self.type = field.get("type", "string")
