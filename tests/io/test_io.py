@@ -691,12 +691,18 @@ FRICTIONLESS_JSON = {
     "primaryKey": "integer_col",
 }
 
+# pandas dtype aliases to support testing across multiple pandas versions:
+STR_DTYPE = pa.dtypes.PandasDtype.from_str_alias("string").value
+STR_DTYPE_ALIAS = pa.dtypes.PandasDtype.from_str_alias("string").str_alias
+INT_DTYPE = pa.dtypes.PandasDtype.from_str_alias("int").value
+INT_DTYPE_ALIAS = pa.dtypes.PandasDtype.from_str_alias("int").str_alias
+
 YAML_FROM_FRICTIONLESS = f"""
 schema_type: dataframe
 version: {pa.__version__}
 columns:
   integer_col:
-    pandas_dtype: int
+    pandas_dtype: {INT_DTYPE}
     nullable: false
     checks:
       in_range:
@@ -707,7 +713,7 @@ columns:
     required: true
     regex: false
   integer_col_2:
-    pandas_dtype: int
+    pandas_dtype: {INT_DTYPE}
     nullable: true
     checks:
       less_than_or_equal_to: 30
@@ -716,7 +722,7 @@ columns:
     required: true
     regex: false
   string_col:
-    pandas_dtype: string
+    pandas_dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length:
@@ -727,7 +733,7 @@ columns:
     required: true
     regex: false
   string_col_2:
-    pandas_dtype: string
+    pandas_dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_matches: ^\\d{{3}}[A-Z]$
@@ -736,7 +742,7 @@ columns:
     required: true
     regex: false
   string_col_3:
-    pandas_dtype: string
+    pandas_dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length: 3
@@ -745,7 +751,7 @@ columns:
     required: true
     regex: false
   string_col_4:
-    pandas_dtype: string
+    pandas_dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length: 3
@@ -774,7 +780,7 @@ columns:
     required: true
     regex: false
   date_col:
-    pandas_dtype: string
+    pandas_dtype: {STR_DTYPE}
     nullable: true
     checks:
       greater_than_or_equal_to: '20201231'
@@ -838,17 +844,17 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
 
     df = schema.validate(VALID_FRICTIONLESS_DF)
     assert dict(df.dtypes) == {
-        "integer_col": "int64",
-        "integer_col_2": "int64",
-        "string_col": pd.StringDtype(),
-        "string_col_2": pd.StringDtype(),
-        "string_col_3": pd.StringDtype(),
-        "string_col_4": pd.StringDtype(),
+        "integer_col": INT_DTYPE_ALIAS,
+        "integer_col_2": INT_DTYPE_ALIAS,
+        "string_col": STR_DTYPE_ALIAS,
+        "string_col_2": STR_DTYPE_ALIAS,
+        "string_col_3": STR_DTYPE_ALIAS,
+        "string_col_4": STR_DTYPE_ALIAS,
         "float_col": pd.CategoricalDtype(
             categories=[1.0, 2.0, 3.0], ordered=False
         ),
         "float_col_2": "float64",
-        "date_col": pd.StringDtype(),
+        "date_col": STR_DTYPE_ALIAS,
     }, "dtypes not parsed correctly from frictionless schema"
 
     with pytest.raises(pa.errors.SchemaErrors) as err:
