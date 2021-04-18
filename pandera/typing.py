@@ -104,6 +104,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         literal: Whether the annotation is a literal.
         optional: Whether the annotation is optional.
         raw_annotation: The raw annotation.
+        metadata: Extra arguments passed to :data:`typing.Annotated`.
     """
 
     def __init__(self, raw_annotation: Type) -> None:
@@ -121,10 +122,11 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         :returns: Annotation
         """
         self.raw_annotation = raw_annotation
+        self.origin = self.arg = None
 
         self.optional = typing_inspect.is_optional_type(raw_annotation)
-        if self.optional:
-            # e.g: Typing.Union[pandera.typing.Index[str], NoneType]
+        if self.optional and typing_inspect.is_union_type(raw_annotation):
+            # Annotated with Optional or Union[..., NoneType]
             if LEGACY_TYPING:  # pragma: no cover
                 # get_args -> ((pandera.typing.Index, <class 'str'>), <class 'NoneType'>)
                 self.origin, self.arg = typing_inspect.get_args(
