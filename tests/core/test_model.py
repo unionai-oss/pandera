@@ -1,6 +1,7 @@
 """Tests schema creation and validation from type annotations."""
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
+from decimal import Decimal  # pylint:disable=C0415
 from typing import Iterable, Optional
 
 import pandas as pd
@@ -74,8 +75,6 @@ def test_invalid_annotations():
 
     with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
         Invalid.to_schema()
-
-    from decimal import Decimal  # pylint:disable=C0415
 
     class InvalidDtype(pa.SchemaModel):
         d: Series[Decimal]  # type: ignore
@@ -604,15 +603,17 @@ def test_config():
     assert expected == Child.to_schema()
 
 
+class Input(pa.SchemaModel):
+    a: Series[int]
+    b: Series[int]
+    idx: Index[str]
+
+
+class Output(Input):
+    c: Series[int]
+
+
 def test_check_types():
-    class Input(pa.SchemaModel):
-        a: Series[int]
-        b: Series[int]
-        idx: Index[str]
-
-    class Output(Input):
-        c: Series[int]
-
     @pa.check_types
     def transform(df: DataFrame[Input]) -> DataFrame[Output]:
         return df.assign(c=lambda x: x.a + x.b)

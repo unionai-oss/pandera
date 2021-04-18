@@ -1,7 +1,7 @@
 """Decorators for integrating pandera into existing data pipelines."""
-
 import functools
 import inspect
+import typing
 from collections import OrderedDict
 from typing import (
     Any,
@@ -459,6 +459,32 @@ def check_types(
             inplace=inplace,
         )
 
+    # Front-load annotation parsing
+    annotated_schemas: Dict[str, Tuple[schemas.DataFrameSchema, bool]] = {}
+    for arg_name, annotation in typing.get_type_hints(wrapped).items():
+        annotation_info = AnnotationInfo(annotation)
+        if not annotation_info.is_generic_df:
+            continue
+
+        schema = cast(SchemaModel, annotation_info.arg).to_schema()
+        annotated_schemas[arg_name] = (schema, annotation_info.optional)
+
+    def _check_arg(arg_name: str, arg_value: Any) -> Any:
+        """Validate function's argument if annoted with a schema, else pass-through."""
+        schema, optional = annotated_schemas.get(arg_name, (None, None))
+        if schema and not (optional and arg_value is None):
+            try:
+                return schema.validate(
+                    arg_value, head, tail, sample, random_state, lazy, inplace
+                )
+            except errors.SchemaError as e:
+                _handle_schema_error(
+                    "check_types", wrapped, schema, arg_value, e
+                )
+        return arg_value
+
+    sig = inspect.signature(wrapped)
+
     @wrapt.decorator
     def _wrapper(
         wrapped: Callable,
@@ -466,46 +492,18 @@ def check_types(
         args: Union[List[Any], Tuple[Any]],
         kwargs: Dict[str, Any],
     ):
-        sig = inspect.signature(wrapped)
+        # 1st element for positional args, 2nd for keyword args
+        pos_kw_validated: List[Dict] = []
+        for arguments in (
+            sig.bind_partial(*args).arguments,
+            sig.bind_partial(**kwargs).arguments,
+        ):
+            validated_args = {}
+            for arg_name, arg_value in arguments.items():
+                validated_args[arg_name] = _check_arg(arg_name, arg_value)
+            pos_kw_validated.append(validated_args)
 
-        arguments = sig.bind(*args, **kwargs).arguments
-        for arg_name, arg_value in arguments.items():
-            annotation = sig.parameters[arg_name].annotation
-            annotation_info = AnnotationInfo(annotation)
-
-            if annotation_info.optional and arg_value is None:
-                continue
-
-            if not annotation_info.is_generic_df:
-                continue
-
-            model = cast(SchemaModel, annotation_info.arg)
-            schema = model.to_schema()
-            try:
-                schema.validate(
-                    arg_value, head, tail, sample, random_state, lazy, inplace
-                )
-            except errors.SchemaError as e:
-                _handle_schema_error(
-                    "check_types", wrapped, schema, arg_value, e
-                )
-
-        out = wrapped(*args, **kwargs)
-
-        annotation_info = AnnotationInfo(sig.return_annotation)
-        if annotation_info.optional and out is None:
-            return out
-
-        if annotation_info.is_generic_df:
-            model = cast(SchemaModel, annotation_info.arg)
-            schema = model.to_schema()
-            try:
-                out = schema.validate(
-                    out, head, tail, sample, random_state, lazy, inplace
-                )
-            except errors.SchemaError as e:
-                _handle_schema_error("check_types", wrapped, schema, out, e)
-
-        return out
+        out = wrapped(*pos_kw_validated[0].values(), **pos_kw_validated[1])
+        return _check_arg("return", out)
 
     return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter

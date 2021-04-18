@@ -1,5 +1,4 @@
 """Testing the Decorators that check a functions input or output."""
-
 from typing import Optional
 
 import numpy as np
@@ -480,6 +479,11 @@ class InSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     a: Series[int]
     idx: Index[str]
 
+    class Config:  # pylint: disable=too-few-public-methods
+        """Set coerce."""
+
+        coerce = True
+
 
 class DerivedOutSchema(InSchema):
     """Test schema derived from InSchema."""
@@ -506,7 +510,7 @@ def test_check_types_multiple_inputs():
         return pd.concat([df_1, df_2])
 
     correct = pd.DataFrame({"a": [1]}, index=["1"])
-    transform(correct, correct)
+    transform(correct, df_2=correct)
 
     wrong = pd.DataFrame({"b": [1]})
     with pytest.raises(
@@ -535,14 +539,32 @@ def test_check_types_error_input():
         assert exc.data.equals(df)
 
 
-@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
-def test_check_types_error_output(out_schema_cls):
+def test_check_types_error_output():
     """Test that check_types raises an error when the output is not correct."""
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
     @check_types
-    def transform(df: DataFrame[InSchema]) -> DataFrame[out_schema_cls]:
+    def transform_derived(
+        df: DataFrame[InSchema],
+    ) -> DataFrame[DerivedOutSchema]:
+        return df
+
+    with pytest.raises(
+        errors.SchemaError, match="column 'b' not in dataframe"
+    ):
+        transform_derived(df)
+
+    try:
+        transform_derived(df)
+    except errors.SchemaError as exc:
+        assert exc.schema == DerivedOutSchema.to_schema()
+        assert exc.data.equals(df)
+
+    df = pd.DataFrame({"a": [1]}, index=["1"])
+
+    @check_types
+    def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
         return df
 
     with pytest.raises(
@@ -553,18 +575,26 @@ def test_check_types_error_output(out_schema_cls):
     try:
         transform(df)
     except errors.SchemaError as exc:
-        assert exc.schema == out_schema_cls.to_schema()
+        assert exc.schema == OutSchema.to_schema()
         assert exc.data.equals(df)
 
 
-@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
-def test_check_types_optional_out(out_schema_cls):
+def test_check_types_optional_out():
     """Test the check_types behaviour when the output schema is optional."""
+
+    @check_types
+    def optional_derived_out(
+        df: DataFrame[InSchema],  # pylint: disable=unused-argument
+    ) -> Optional[DataFrame[DerivedOutSchema]]:
+        return None
+
+    df = pd.DataFrame({"a": [1]}, index=["1"])
+    assert optional_derived_out(df) is None
 
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[out_schema_cls]]:
+    ) -> Optional[DataFrame[OutSchema]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -583,14 +613,21 @@ def test_check_types_optional_in():
     assert optional_in(None) is None
 
 
-@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
-def test_check_types_optional_in_out(out_schema_cls):
+def test_check_types_optional_in_out():
     """Test the check_types behaviour when both input and outputs schemas are optional."""
+
+    @check_types
+    def transform_derived(
+        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
+    ) -> Optional[DataFrame[DerivedOutSchema]]:
+        return None
+
+    assert transform_derived(None) is None
 
     @check_types
     def transform(
         df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[out_schema_cls]]:
+    ) -> Optional[DataFrame[OutSchema]]:
         return None
 
     assert transform(None) is None
@@ -600,10 +637,20 @@ def test_check_types_coerce():
     """Test that check_types return the result of validate."""
 
     @check_types()
-    def transform() -> DataFrame[OutSchema]:
+    def transform_in(df: DataFrame[InSchema]):
+        return df
+
+    df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))
+    expected = InSchema.to_schema().columns["a"].pandas_dtype
+    assert PandasDtype(str(df["a"].dtype)) == expected == PandasDtype("int")
+
+    @check_types()
+    def transform_out() -> DataFrame[OutSchema]:
         # OutSchema.b should be coerced to an integer.
         return pd.DataFrame({"b": ["1"]})
 
-    df = transform()
+    out_df = transform_out()
     expected = OutSchema.to_schema().columns["b"].pandas_dtype
-    assert PandasDtype(str(df["b"].dtype)) == expected == PandasDtype("int")
+    assert (
+        PandasDtype(str(out_df["b"].dtype)) == expected == PandasDtype("int")
+    )
