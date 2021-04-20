@@ -10,7 +10,7 @@ with open("pandera/version.py") as fp:
 _extras_require = {
     "strategies": ["hypothesis >= 5.41.1"],
     "hypotheses": ["scipy"],
-    "io": ["pyyaml >= 5.1", "black"],
+    "io": ["pyyaml >= 5.1", "black", "frictionless"],
 }
 extras_require = {
     **_extras_require,
