@@ -657,11 +657,12 @@ def test_no_dtype_series():
 def test_coerce_without_dtype():
     """Test that an error is thrown when a dtype isn't specified and coerce
     is True."""
-    with pytest.raises(errors.SchemaInitError):
-        DataFrameSchema({"col": Column(coerce=True)})
-
-    with pytest.raises(errors.SchemaInitError):
-        DataFrameSchema({"col": Column()}, coerce=True)
+    df = pd.DataFrame({"col": [1, 2, 3]})
+    for schema in [
+        DataFrameSchema({"col": Column(coerce=True)}),
+        DataFrameSchema({"col": Column()}, coerce=True),
+    ]:
+        assert isinstance(schema(df), pd.DataFrame)
 
 
 def test_required():
@@ -1027,15 +1028,10 @@ def test_rename_columns():
 
     # Check if new column names are indeed present in the new schema
     assert all(
-        [
-            col_name in rename_dict.values()
-            for col_name in schema_renamed.columns
-        ]
+        col_name in rename_dict.values() for col_name in schema_renamed.columns
     )
     # Check if original schema didn't change in the process
-    assert all(
-        [col_name in schema_original.columns for col_name in rename_dict]
-    )
+    assert all(col_name in schema_original.columns for col_name in rename_dict)
 
     with pytest.raises(errors.SchemaInitError):
         schema_original.rename_columns({"foo": "bar"})
@@ -1525,7 +1521,7 @@ def test_invalid_keys(schema_simple):
 
 
 def test_update_columns(schema_simple):
-    """ Catch-all test for update columns functionality """
+    """Catch-all test for update columns functionality"""
 
     # Basic function
     test_schema = schema_simple.update_columns({"col2": {"pandas_dtype": Int}})

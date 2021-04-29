@@ -38,7 +38,6 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx-copybutton
   - recommonmark
-  - furo
 
   # packaging
   - twine
@@ -48,3 +47,6 @@ dependencies:
 
   # optional
   - pre_commit
+
+  - pip:
+    - furo
