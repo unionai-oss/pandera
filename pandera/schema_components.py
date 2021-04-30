@@ -488,6 +488,11 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
+        if any(not isinstance(i, Index) for i in indexes):
+            raise errors.SchemaInitError(
+                f"expected a list of Index objects, found {indexes} "
+                f"of type {[type(x) for x in indexes]}"
+            )
         self.indexes = indexes
         columns = {}
         for i, index in enumerate(indexes):
