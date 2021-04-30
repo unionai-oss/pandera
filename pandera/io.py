@@ -50,13 +50,14 @@ def _serialize_check_stats(check_stats, pandas_dtype=None):
 
 def _serialize_dataframe_stats(dataframe_checks):
     """
-    Serialize global dataframe check statistics into json/yaml-compatible format.
+    Serialize global dataframe check statistics into json/yaml-compatible
+    format.
     """
     serialized_checks = {}
 
     for check_name, check_stats in dataframe_checks.items():
-        # The case that `check_name` is not registered is handled in `parse_checks`,
-        # so we know that `check_name` exists.
+        # The case that `check_name` is not registered is handled in
+        # `parse_checks` so we know that `check_name` exists.
 
         # infer dtype of statistics and serialize them
         serialized_checks[check_name] = _serialize_check_stats(check_stats)
@@ -305,7 +306,8 @@ def _format_checks(checks_dict):
     for check_name, check_kwargs in checks_dict.items():
         if check_kwargs is None:
             warnings.warn(
-                f"Check {check_name} cannot be serialized. This check will be ignored"
+                f"Check {check_name} cannot be serialized. "
+                "This check will be ignored"
             )
         else:
             args = ", ".join(
