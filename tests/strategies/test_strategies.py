@@ -86,6 +86,9 @@ def test_pandas_dtype_strategy(pdtype, data):
 
 @pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_check_strategy_continuous(pdtype, data):
     """Test built-in check strategies can generate continuous data."""
     value = data.draw(
@@ -416,6 +419,9 @@ def test_series_example():
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_column_strategy(data):
     """Test Column schema strategy."""
     column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
@@ -803,6 +809,9 @@ def schema_model():
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_schema_model_strategy(schema_model, data):
     """Test that strategy can be created from a SchemaModel."""
     strat = schema_model.strategy(size=10)
