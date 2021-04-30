@@ -18,6 +18,7 @@ dependencies:
   - typing_extensions >= 3.7.4.3
 
   # testing and dependencies
+  - typed-ast
   - black >= 20.8b1
 
   # testing

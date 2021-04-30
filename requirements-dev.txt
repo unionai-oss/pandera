@@ -11,11 +11,12 @@ wrapt
 pyyaml >=5.1
 typing_inspect >= 0.6.0
 typing_extensions >= 3.7.4.3
+typed-ast
 black >= 20.8b1
 isort >= 5.7.0
 codecov
 mypy
-pylint == 2.7.2
+pylint == 2.6.0
 pytest
 pytest-cov
 pytest-xdist
