@@ -32,7 +32,7 @@ PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = ["furo", "mypy"]
+ALWAYS_USE_PIP = ["furo"]
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -180,6 +180,7 @@ def install_extras(
         for spec in REQUIRES[extra].values()
         if spec not in ALWAYS_USE_PIP
     ]
+    session.install(*ALWAYS_USE_PIP)
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
         and not force_pip
