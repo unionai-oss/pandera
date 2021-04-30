@@ -315,7 +315,16 @@ def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
     if _invalid_python_pandas_versions(session, pandas):
         return
-    install_extras(session, pandas, extra)
+    python_version = version.parse(cast(str, session.python))
+    install_extras(
+        session,
+        pandas,
+        extra,
+        # this is a hack until typed-ast conda package starts working again,
+        # basically this issue comes up:
+        # https://github.com/python/mypy/pull/2906
+        force_pip=python_version == version.parse("3.7"),
+    )
 
     if session.posargs:
         args = session.posargs
@@ -348,7 +357,16 @@ def docs(session: Session, pandas: str) -> None:
     """Build the documentation."""
     if _invalid_python_pandas_versions(session, pandas):
         return
-    install_extras(session, pandas, extra="all")
+    python_version = version.parse(cast(str, session.python))
+    install_extras(
+        session,
+        pandas,
+        extra="all",
+        # this is a hack until typed-ast conda package starts working again,
+        # basically this issue comes up:
+        # https://github.com/python/mypy/pull/2906
+        force_pip=python_version == version.parse("3.7"),
+    )
     session.chdir("docs")
 
     shutil.rmtree(os.path.join("_build"), ignore_errors=True)
