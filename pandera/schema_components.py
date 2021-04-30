@@ -50,7 +50,8 @@ class Column(SeriesSchemaBase):
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
         :param coerce: If True, when schema.validate is called the column will
-            be coerced into the specified dtype.
+            be coerced into the specified dtype. This has no effect on columns
+            where ``pandas_dtype=None``.
         :param required: Whether or not column is allowed to be missing
         :param name: column name in dataframe to validate.
         :param regex: whether the ``name`` attribute should be treated as a
@@ -89,11 +90,6 @@ class Column(SeriesSchemaBase):
         self.required = required
         self._name = name
         self._regex = regex
-
-        if coerce and self._pandas_dtype is None:
-            raise errors.SchemaInitError(
-                "Must specify dtype if coercing a Column's type"
-            )
 
     @property
     def regex(self) -> bool:

@@ -27,7 +27,7 @@ sphinx_rtd_theme
 sphinx-autodoc-typehints
 sphinx-copybutton
 recommonmark
-furo
 twine
 asv
 pre_commit
+furo

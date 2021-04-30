@@ -91,7 +91,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             `validate` will verify properties of the columns and return the
             transformed dataframe object.
         :param coerce: whether or not to coerce all of the columns on
-            validation.
+            validation. This has no effect on columns where
+            ``pandas_dtype=None``
         :param strict: ensure that all and only the columns defined in the
             schema are present in the dataframe. If set to 'filter',
             only the columns in the schema will be passed to the validated
@@ -139,19 +140,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             checks = [checks]
 
         self.columns = {} if columns is None else columns
-
-        if coerce:
-            missing_pandas_type = [
-                name
-                for name, col in self.columns.items()
-                if col.pandas_dtype is None
-            ]
-            if missing_pandas_type:
-                raise errors.SchemaInitError(
-                    "Must specify dtype in all Columns if coercing "
-                    "DataFrameSchema ; columns with missing pandas_type:"
-                    + ", ".join(missing_pandas_type)
-                )
 
         if transformer is not None:
             warnings.warn(
@@ -318,7 +306,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         try:
             return obj.astype(self.pdtype.str_alias)
         except (ValueError, TypeError) as exc:
-            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
+            msg = (
+                f"Error while coercing '{self.name}' to type {self.dtype}: "
+                f"{exc}"
+            )
             raise errors.SchemaError(
                 self,
                 obj,
@@ -1639,7 +1630,9 @@ class SeriesSchemaBase:
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if (
+        if self._pandas_dtype is None:
+            return obj
+        elif (
             self._pandas_dtype is PandasDtype.String
             or self._pandas_dtype is str
             or self._pandas_dtype == "str"
