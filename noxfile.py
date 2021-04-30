@@ -32,7 +32,7 @@ PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = ["furo"]
+ALWAYS_USE_PIP = ["furo", "mypy"]
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -168,7 +168,10 @@ def install_from_requirements(session: Session, *packages: str) -> None:
 
 
 def install_extras(
-    session: Session, pandas: str = "latest", extra: str = "core"
+    session: Session,
+    pandas: str = "latest",
+    extra: str = "core",
+    force_pip=False,
 ) -> None:
     """Install dependencies."""
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
@@ -177,14 +180,16 @@ def install_extras(
         for spec in REQUIRES[extra].values()
         if spec not in ALWAYS_USE_PIP
     ]
-    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
+    if (
+        isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
+        and not force_pip
+    ):
         print("using conda installer")
         conda_install(session, *specs)
     else:
         print("using pip installer")
         session.install(*specs)
     # always use pip for these packages
-    session.install(*ALWAYS_USE_PIP)
     session.install("-e", ".", "--no-deps")  # install pandera
 
 
@@ -271,7 +276,15 @@ def lint(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
-    install_extras(session, extra="all")
+    python_version = version.parse(cast(str, session.python))
+    install_extras(
+        session,
+        extra="all",
+        # this is a hack until typed-ast conda package starts working again,
+        # basically this issue comes up:
+        # https://github.com/python/mypy/pull/2906
+        force_pip=python_version == version.parse("3.7"),
+    )
     args = session.posargs or SOURCE_PATHS
     session.run("mypy", "--follow-imports=silent", *args, silent=True)
 
