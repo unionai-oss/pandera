@@ -48,7 +48,7 @@ def is_extension_dtype(dtype):
 
 
 class PandasDtype(Enum):
-    # pylint: disable=line-too-long
+    # pylint: disable=line-too-long,invalid-name
     """Enumerate all valid pandas data types.
 
     ``pandera`` follows the
