@@ -1298,7 +1298,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ind_list: List = (
             []
             if new_schema.index is None or not append
-            else list(new_schema.index.columns.values())
+            else list(new_schema.index.indexes)
             if isinstance(new_schema.index, MultiIndex) and append
             else [new_schema.index]
         )
@@ -1417,11 +1417,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         # ensure all specified keys are present in the index
         level_not_in_index: Union[List[Any], List[str], None] = (
-            [
-                x
-                for x in level_temp
-                if x not in list(new_schema.index.columns.keys())
-            ]
+            [x for x in level_temp if x not in new_schema.index.names]
             if isinstance(new_schema.index, MultiIndex) and level_temp
             else []
             if isinstance(new_schema.index, Index)

@@ -15,7 +15,7 @@ black >= 20.8b1
 isort >= 5.7.0
 codecov
 mypy
-pylint == 2.6.0
+pylint >= 2.7.2
 pytest
 pytest-cov
 pytest-xdist
