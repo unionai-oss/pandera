@@ -2,12 +2,13 @@
 
 import warnings
 from functools import partial
-from typing import Mapping
 from pathlib import Path
+from typing import Mapping
 
 import pandas as pd
 
 import pandera.errors
+
 from .dtypes import PandasDtype
 from .schema_statistics import get_dataframe_schema_statistics
 
@@ -194,7 +195,9 @@ def _deserialize_schema(serialized_schema):
     # GH#475
     serialized_schema = serialized_schema if serialized_schema else {}
     if not isinstance(serialized_schema, Mapping):
-        raise pandera.errors.SchemaDefinitionError("Schema representation must be a mapping.")
+        raise pandera.errors.SchemaDefinitionError(
+            "Schema representation must be a mapping."
+        )
 
     columns = serialized_schema.get("columns")
     index = serialized_schema.get("index")

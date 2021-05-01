@@ -411,10 +411,14 @@ def test_from_yaml_load_required_fields():
     """Test that dataframe schemas do not require any field."""
     io.from_yaml("")
 
-    with pytest.raises(pa.errors.SchemaDefinitionError, match=".*must be a mapping.*"):
-        io.from_yaml("""
+    with pytest.raises(
+        pa.errors.SchemaDefinitionError, match=".*must be a mapping.*"
+    ):
+        io.from_yaml(
+            """
         - value
-        """)
+        """
+        )
 
 
 def test_io_yaml_file_obj():
