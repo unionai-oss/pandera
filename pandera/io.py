@@ -2,10 +2,12 @@
 
 import warnings
 from functools import partial
+from typing import Mapping
 from pathlib import Path
 
 import pandas as pd
 
+import pandera.errors
 from .dtypes import PandasDtype
 from .schema_statistics import get_dataframe_schema_statistics
 
@@ -159,15 +161,13 @@ def _deserialize_component_stats(serialized_component_stats):
     if pandas_dtype:
         pandas_dtype = PandasDtype.from_str_alias(pandas_dtype)
 
-    checks = None
-    if serialized_component_stats.get("checks") is not None:
+    checks = serialized_component_stats.get("checks")
+    if checks is not None:
         checks = [
             _deserialize_check_stats(
                 getattr(Check, check_name), check_stats, pandas_dtype
             )
-            for check_name, check_stats in serialized_component_stats[
-                "checks"
-            ].items()
+            for check_name, check_stats in checks.items()
         ]
     return {
         "pandas_dtype": pandas_dtype,
@@ -191,24 +191,32 @@ def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
     from pandera import Check, Column, DataFrameSchema, Index, MultiIndex
 
-    columns, index, checks = None, None, None
-    if serialized_schema["columns"] is not None:
+    # GH#475
+    serialized_schema = serialized_schema if serialized_schema else {}
+    if not isinstance(serialized_schema, Mapping):
+        raise pandera.errors.SchemaDefinitionError("Schema representation must be a mapping.")
+
+    columns = serialized_schema.get("columns")
+    index = serialized_schema.get("index")
+    checks = serialized_schema.get("checks")
+
+    if columns is not None:
         columns = {
             col_name: Column(**_deserialize_component_stats(column_stats))
-            for col_name, column_stats in serialized_schema["columns"].items()
+            for col_name, column_stats in columns.items()
         }
 
-    if serialized_schema["index"] is not None:
+    if index is not None:
         index = [
             _deserialize_component_stats(index_component)
-            for index_component in serialized_schema["index"]
+            for index_component in index
         ]
 
-    if serialized_schema["checks"] is not None:
+    if checks is not None:
         # handles unregistered checks by raising AttributeErrors from getattr
         checks = [
             _deserialize_check_stats(getattr(Check, check_name), check_stats)
-            for check_name, check_stats in serialized_schema["checks"].items()
+            for check_name, check_stats in checks.items()
         ]
 
     if index is None:
@@ -224,8 +232,8 @@ def _deserialize_schema(serialized_schema):
         columns=columns,
         checks=checks,
         index=index,
-        coerce=serialized_schema["coerce"],
-        strict=serialized_schema["strict"],
+        coerce=serialized_schema.get("coerce", False),
+        strict=serialized_schema.get("strict", False),
     )
 
 
