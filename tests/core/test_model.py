@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
+import pandera.extensions as pax
 from pandera.typing import DataFrame, Index, Series, String
 
 
@@ -560,6 +561,62 @@ def test_dataframe_check():
         pa.errors.SchemaErrors, match="2 schema errors were found"
     ):
         schema.validate(df, lazy=True)
+
+
+def test_registered_dataframe_checks(
+    extra_registered_checks,
+):  # pylint: disable=unused-argument
+    """Check that custom check inheritance works"""
+    # pylint: disable=unused-variable
+
+    @pax.register_check_method(statistics=["one_arg"])
+    def base_check(df, *, one_arg):
+        # pylint: disable=unused-argument
+        return True
+
+    @pax.register_check_method(statistics=["one_arg", "two_arg"])
+    def child_check(df, *, one_arg, two_arg):
+        # pylint: disable=unused-argument
+        return True
+
+    # pylint: enable=unused-variable
+
+    check_vals = {"one_arg": 150, "two_arg": "hello"}
+
+    class Base(pa.SchemaModel):
+        a: Series[int]
+        b: Series[int]
+
+        class Config:
+            no_param_check = ()
+            base_check = check_vals["one_arg"]
+
+    class Child(Base):
+        class Config:
+            child_check = check_vals
+
+    child = Child.to_schema()
+
+    expected_stats = {
+        "no_param_check": {},
+        "base_check": {"one_arg": check_vals["one_arg"]},
+        "child_check": check_vals,
+    }
+
+    assert {c.name: c.statistics for c in child.checks} == expected_stats
+
+    # check that unregistered checks raise
+    with pytest.raises(AttributeError, match=".*custom checks.*"):
+
+        class ErrorSchema(pa.SchemaModel):
+            class Config:
+                unknown_check = {}
+
+        # Check lookup happens at validation/to_schema conversion time
+        # This means that you can register checks after defining a Config,
+        # but also because of caching you can refer to a check that no longer
+        # exists for some order of operations.
+        ErrorSchema.to_schema()
 
 
 def test_config():
