@@ -1,6 +1,7 @@
 """Module for reading and writing schema objects."""
-from collections.abc import Mapping
+
 import warnings
+from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
 
