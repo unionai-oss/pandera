@@ -1,9 +1,8 @@
 """Module for reading and writing schema objects."""
-
+from collections.abc import Mapping
 import warnings
 from functools import partial
 from pathlib import Path
-from typing import Mapping
 
 import pandas as pd
 
@@ -195,12 +194,10 @@ def _deserialize_schema(serialized_schema):
     # GH#475
     serialized_schema = serialized_schema if serialized_schema else {}
 
-    # pylint: disable=isinstance-second-argument-not-valid-type
     if not isinstance(serialized_schema, Mapping):
         raise pandera.errors.SchemaDefinitionError(
             "Schema representation must be a mapping."
         )
-    # pylint: enable=isinstance-second-argument-not-valid-type
 
     columns = serialized_schema.get("columns")
     index = serialized_schema.get("index")
