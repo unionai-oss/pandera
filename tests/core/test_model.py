@@ -581,7 +581,11 @@ def test_registered_dataframe_checks(
 
     # pylint: enable=unused-variable
 
-    check_vals = {"one_arg": 150, "two_arg": "hello"}
+    check_vals = {
+        "one_arg": 150,
+        "two_arg": "hello",
+        "one_arg_prime": "not_150",
+    }
 
     class Base(pa.SchemaModel):
         a: Series[int]
@@ -593,17 +597,31 @@ def test_registered_dataframe_checks(
 
     class Child(Base):
         class Config:
-            child_check = check_vals
+            base_check = check_vals["one_arg_prime"]
+            child_check = {
+                "one_arg": check_vals["one_arg"],
+                "two_arg": check_vals["two_arg"],
+            }
 
+    base = Base.to_schema()
     child = Child.to_schema()
 
-    expected_stats = {
+    expected_stats_base = {
         "no_param_check": {},
         "base_check": {"one_arg": check_vals["one_arg"]},
-        "child_check": check_vals,
     }
 
-    assert {c.name: c.statistics for c in child.checks} == expected_stats
+    expected_stats_child = {
+        "no_param_check": {},
+        "base_check": {"one_arg": check_vals["one_arg_prime"]},
+        "child_check": {
+            "one_arg": check_vals["one_arg"],
+            "two_arg": check_vals["two_arg"],
+        },
+    }
+
+    assert {b.name: b.statistics for b in base.checks} == expected_stats_base
+    assert {c.name: c.statistics for c in child.checks} == expected_stats_child
 
     # check that unregistered checks raise
     with pytest.raises(AttributeError, match=".*custom checks.*"):
