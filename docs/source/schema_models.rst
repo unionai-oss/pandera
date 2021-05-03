@@ -400,10 +400,12 @@ class.
             name = "BaseSchema"
             strict = True
             coerce = True
-            foo = "bar"  # not a valid option, ignored
+            foo = "bar"  # Interpreted as dataframe check
 
 It is not required for the ``Config`` to subclass :class:`~pandera.model.BaseConfig` but
 it **must** be named '**Config**'.
+
+See :ref:`class_based_api_dataframe_checks` for details on using registered dataframe checks.
 
 MultiIndex
 ----------

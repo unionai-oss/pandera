@@ -18,7 +18,7 @@ def format_generic_error_message(
     :param check: check that generated error.
     :param check_index: The validator that failed.
     """
-    return "%s failed series validator %d:\n%s" % (
+    return "%s failed series or dataframe validator %d:\n%s" % (
         parent_schema,
         check_index,
         check,
