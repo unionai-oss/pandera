@@ -39,6 +39,7 @@ class Column(SeriesSchemaBase):
         name: Union[str, Tuple[str, ...], None] = None,
         regex: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
+        unique: bool = False,
     ) -> None:
         """Create column validator object.
 
@@ -61,6 +62,7 @@ class Column(SeriesSchemaBase):
 
             .. warning:: This option will be deprecated in 0.8.0
 
+        :param unique: whether column values should be unique
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:
@@ -88,6 +90,7 @@ class Column(SeriesSchemaBase):
             coerce,
             name,
             pandas_dtype,
+            unique,
         )
         if (
             name is not None
@@ -124,6 +127,7 @@ class Column(SeriesSchemaBase):
             "required": self.required,
             "name": self._name,
             "regex": self._regex,
+            "unique": self._unique,
         }
 
     def set_name(self, name: str):
@@ -515,7 +519,7 @@ class MultiIndex(DataFrameSchema):
                 dtype=index._dtype,
                 checks=index.checks,
                 nullable=index._nullable,
-                allow_duplicates=index._allow_duplicates,
+                unique=index._unique,
             )
         super().__init__(
             columns=columns,

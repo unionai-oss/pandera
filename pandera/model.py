@@ -218,6 +218,7 @@ class SchemaModel:
             strict=cls.__config__.strict,
             name=cls.__config__.name,
             ordered=cls.__config__.ordered,
+            unique=cls.__config__.unique,
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore
