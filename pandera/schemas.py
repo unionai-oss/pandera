@@ -73,6 +73,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         strict: Union[bool, str] = False,
         name: str = None,
         ordered: bool = False,
+        unique: Optional[Union[str, List[str]]] = None,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -99,6 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             are not present in the dataframe, will throw an error.
         :param name: name of the schema.
         :param ordered: whether or not to validate the columns order.
+        :param unique: a list of columns that should be jointly unique.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -180,6 +182,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._pandas_dtype = pandas_dtype
         self._coerce = coerce
         self._ordered = ordered
+        self._unique = unique
         self._validate_schema()
         self._set_column_names()
 
@@ -196,6 +199,20 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     def coerce(self, value: bool) -> None:
         """Set coerce attribute"""
         self._coerce = value
+
+    @property
+    def unique(self):
+        """Whether to check for duplicates in check object"""
+        return self._unique
+
+    @unique.setter
+    def unique(self, value: Union[str, List[str]]) -> None:
+        """Set unique attribute"""
+        self._unique = (
+            [value]
+            if (value and (all([isinstance(c, str) for c in value])))
+            else value
+        )
 
     @property
     def ordered(self):
@@ -615,6 +632,33 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
+
+        if self.unique:
+            temp_unique: List[List] = (
+                [self.unique]
+                if all([isinstance(x, str) for x in self.unique])
+                else self.unique
+            )
+            for lst in temp_unique:
+                duplicates = df_to_validate.duplicated(subset=lst, keep=False)
+                if any(duplicates):
+                    failure_cases = df_to_validate.loc[duplicates, lst]
+                    print(reshape_failure_cases(failure_cases))
+                    msg = f"columns '{*lst,}' not unique"
+                    e = errors.SchemaError(
+                        self,
+                        check_obj,
+                        msg,
+                        failure_cases=reshape_failure_cases(failure_cases),
+                        check="duplicates",
+                    )
+                    if not lazy:
+                        raise e
+
+                    error_handler.collect_error(
+                        "duplicates",
+                        e,
+                    )
 
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
@@ -1319,7 +1363,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                     name=col,
                     checks=new_schema.columns[col].checks,
                     nullable=new_schema.columns[col].nullable,
-                    allow_duplicates=new_schema.columns[col].allow_duplicates,
+                    unique=new_schema.columns[col].unique,
                     coerce=new_schema.columns[col].coerce,
                 )
             )
@@ -1458,9 +1502,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 nullable=new_index.columns[
                     list(new_index.columns)[0]
                 ].nullable,
-                allow_duplicates=new_index.columns[
-                    list(new_index.columns)[0]
-                ].allow_duplicates,
+                unique=new_index.columns[list(new_index.columns)[0]].unique,
                 coerce=new_index.columns[list(new_index.columns)[0]].coerce,
                 name=new_index.columns[list(new_index.columns)[0]].name,
             )
@@ -1482,7 +1524,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         pandas_dtype=v.dtype,
                         checks=v.checks,
                         nullable=v.nullable,
-                        allow_duplicates=v.allow_duplicates,
+                        unique=v.unique,
                         coerce=v.coerce,
                         name=v.name,
                     )
@@ -1506,6 +1548,7 @@ class SeriesSchemaBase:
         allow_duplicates: bool = True,
         coerce: bool = False,
         name: Any = None,
+        unique: bool = False,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1523,6 +1566,8 @@ class SeriesSchemaBase:
         :type nullable: bool
         :param allow_duplicates:
         :type allow_duplicates: bool
+        :param unique:
+        :type unique: bool
         """
         if checks is None:
             checks = []
@@ -1531,16 +1576,26 @@ class SeriesSchemaBase:
 
         self._pandas_dtype = pandas_dtype
         self._nullable = nullable
-        self._allow_duplicates = allow_duplicates
         self._coerce = coerce
         self._checks = checks
         self._name = name
+        self._unique = unique
+        self._allow_duplicates = True if not unique else False
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
                 raise errors.SchemaInitError(
                     f"Cannot use groupby checks with type {type(self)}"
                 )
+
+        if not allow_duplicates:
+            warnings.warn(
+                "The `allow_duplicates` will be deprecated in "
+                "favor of the `unique` keyword. The value of "
+                "`allow_duplicates` will be set to the opposite of "
+                "the `unique` keyword.",
+                DeprecationWarning,
+            )
 
         # make sure pandas dtype is valid
         self.dtype  # pylint: disable=pointless-statement
@@ -1584,9 +1639,24 @@ class SeriesSchemaBase:
         return self._nullable
 
     @property
+    def unique(self) -> bool:
+        """Whether to check for duplicates in check object"""
+        return self._unique
+
+    @unique.setter
+    def unique(self, value: bool) -> None:
+        """Set unique attribute"""
+        self._unique = value
+
+    @property
     def allow_duplicates(self) -> bool:
         """Whether to allow duplicate values."""
         return self._allow_duplicates
+
+    @allow_duplicates.setter
+    def allow_duplicates(self, value: bool) -> None:
+        """Set allow_duplicates attribute."""
+        self._allow_duplicates = True if not self._unique else False
 
     @property
     def coerce(self) -> bool:
@@ -1797,7 +1867,7 @@ class SeriesSchemaBase:
                 )
 
         # Check if the series contains duplicate values
-        if not self._allow_duplicates:
+        if self._unique:
             duplicates = series.duplicated()
             if any(duplicates):
                 msg = "series '%s' contains duplicate values: %s" % (
@@ -1955,6 +2025,7 @@ class SeriesSchema(SeriesSchemaBase):
         allow_duplicates: bool = True,
         coerce: bool = False,
         name: str = None,
+        unique: bool = False,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1975,7 +2046,13 @@ class SeriesSchema(SeriesSchemaBase):
         :type allow_duplicates: bool
         """
         super().__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce, name
+            pandas_dtype,
+            checks,
+            nullable,
+            allow_duplicates,
+            coerce,
+            name,
+            unique,
         )
         self.index = index
 

@@ -92,6 +92,7 @@ def _serialize_component_stats(component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "unique",
             ]
             if key in component_stats
         },
@@ -128,6 +129,7 @@ def _serialize_schema(dataframe_schema):
         "index": index,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
+        "unique": dataframe_schema.unique,
     }
 
 
@@ -180,6 +182,7 @@ def _deserialize_component_stats(serialized_component_stats):
                 "coerce",
                 "required",
                 "regex",
+                "unique",
             ]
             if key in serialized_component_stats
         },
@@ -225,6 +228,7 @@ def _deserialize_schema(serialized_schema):
         index=index,
         coerce=serialized_schema["coerce"],
         strict=serialized_schema["strict"],
+        unique=serialized_schema["unique"],
     )
 
 
@@ -372,6 +376,7 @@ def to_script(dataframe_schema, path_or_buf=None):
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
+            unique=properties["unique"],
         )
         columns[colname] = column_code.strip()
 
@@ -389,6 +394,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         coerce=dataframe_schema.coerce,
         strict=dataframe_schema.strict,
         name=dataframe_schema.name.__repr__(),
+        unique=dataframe_schema.unique,
     ).strip()
 
     # add pandas imports to handle datetime and timedelta.

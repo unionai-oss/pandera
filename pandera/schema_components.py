@@ -38,6 +38,7 @@ class Column(SeriesSchemaBase):
         required: bool = True,
         name: str = None,
         regex: bool = False,
+        unique: bool = False,
     ) -> None:
         """Create column validator object.
 
@@ -55,6 +56,7 @@ class Column(SeriesSchemaBase):
         :param name: column name in dataframe to validate.
         :param regex: whether the ``name`` attribute should be treated as a
             regex pattern to apply to multiple columns in a dataframe.
+        :param unique: whether column values should be unique
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:
@@ -75,7 +77,7 @@ class Column(SeriesSchemaBase):
         See :ref:`here<column>` for more usage details.
         """
         super().__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce
+            pandas_dtype, checks, nullable, allow_duplicates, coerce, unique
         )
         if (
             name is not None
@@ -117,6 +119,7 @@ class Column(SeriesSchemaBase):
             "required": self.required,
             "name": self._name,
             "regex": self._regex,
+            "unique": self._unique,
         }
 
     def set_name(self, name: str):
@@ -507,7 +510,7 @@ class MultiIndex(DataFrameSchema):
                 pandas_dtype=index._pandas_dtype,
                 checks=index.checks,
                 nullable=index._nullable,
-                allow_duplicates=index._allow_duplicates,
+                unique=index._unique,
             )
         super().__init__(
             columns=columns,

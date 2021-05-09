@@ -67,6 +67,7 @@ class FieldInfo:
         alias: str = None,
         check_name: bool = None,
         dtype_kwargs: Dict[str, Any] = None,
+        unique: bool = False,
     ) -> None:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
@@ -77,6 +78,7 @@ class FieldInfo:
         self.check_name = check_name
         self.original_name = cast(str, None)  # always set by SchemaModel
         self.dtype_kwargs = dtype_kwargs
+        self.unique = unique
 
     @property
     def name(self) -> str:
@@ -124,6 +126,7 @@ class FieldInfo:
             required=required,
             name=name,
             checks=checks,
+            unique=self.unique,
         )
 
     def to_index(
@@ -141,6 +144,7 @@ class FieldInfo:
             coerce=self.coerce,
             name=name,
             checks=checks,
+            unique=self.unique,
         )
 
 
@@ -170,6 +174,7 @@ def Field(
     alias: str = None,
     check_name: bool = None,
     dtype_kwargs: Dict[str, Any] = None,
+    unique: bool = False,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
@@ -195,6 +200,7 @@ def Field(
         validation. `None` is the default behavior, which translates to `True`
         for columns and multi-index, and to `False` for a single index.
     :param dtype_kwargs: The parameters to be forwarded to the type of the field.
+    :param unique: whether column values should be unique
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -235,6 +241,7 @@ def Field(
         check_name=check_name,
         alias=alias,
         dtype_kwargs=dtype_kwargs,
+        unique=unique,
     )
 
 

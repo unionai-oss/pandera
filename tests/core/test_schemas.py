@@ -342,7 +342,7 @@ def test_series_schema():
         with pytest.raises(TypeError):
             int_schema.validate(TypeError)
 
-    non_duplicate_schema = SeriesSchema(Int, allow_duplicates=False)
+    non_duplicate_schema = SeriesSchema(Int, unique=True)
     with pytest.raises(errors.SchemaError):
         non_duplicate_schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
 
@@ -830,14 +830,14 @@ def test_schema_equality_operators():
         String,
         checks=[Check(lambda s: s.str.startswith("foo"))],
         nullable=False,
-        allow_duplicates=True,
+        unique=False,
         name="my_series",
     )
     series_schema_base = SeriesSchemaBase(
         String,
         checks=[Check(lambda s: s.str.startswith("foo"))],
         nullable=False,
-        allow_duplicates=True,
+        unique=False,
         name="my_series",
     )
     not_equal_schema = DataFrameSchema({"col1": Column(String)}, strict=False)
@@ -981,10 +981,10 @@ def _boolean_update_column_case(bool_kwarg):
             _boolean_update_column_case(bool_kwarg)
             for bool_kwarg in [
                 "nullable",
-                "allow_duplicates",
                 "coerce",
                 "required",
                 "regex",
+                "unique",
             ]
         ],
         [
@@ -1539,13 +1539,14 @@ def test_update_columns(schema_simple):
     test_schema = schema_simple.update_columns(
         {
             "col1": {"pandas_dtype": Category, "coerce": True},
-            "col2": {"pandas_dtype": Int, "allow_duplicates": False},
+            "col2": {"pandas_dtype": Int, "unique": True},
         }
     )
+    print(test_schema.columns["col2"].unique)
     assert test_schema.columns["col1"].pandas_dtype == Category
     assert test_schema.columns["col1"].coerce is True
     assert test_schema.columns["col2"].pandas_dtype == Int
-    assert test_schema.columns["col2"].allow_duplicates is False
+    assert test_schema.columns["col2"].unique is True
 
     # Errors
     with pytest.raises(errors.SchemaInitError):
@@ -1668,3 +1669,47 @@ def test_schema_str_repr(schema, fields):
         assert x.endswith(")>")
         for field in fields:
             assert field in x
+
+
+@pytest.mark.parametrize(
+    "unique_kw,expected",
+    [
+        (["a", "c"], "SchemaError"),
+        (["a", "b"], True),
+        ([["a", "b"], ["b", "c"]], True),
+        ([["a", "b"], ["a", "c"]], "SchemaError"),
+        (False, True),
+        ((("a", "b"), ["b", "c"]), True),
+    ],
+)
+def test_schema_level_unique_keyword(unique_kw, expected):
+    test_schema = DataFrameSchema(
+        columns={"a": Column(int), "b": Column(int), "c": Column(int)},
+        unique=unique_kw,
+    )
+    d = pd.DataFrame({"a": [1, 2, 1], "b": [1, 5, 6], "c": [1, 5, 1]})
+    if expected == "SchemaError":
+        with pytest.raises(errors.SchemaError):
+            test_schema.validate(d)
+    else:
+        assert isinstance(test_schema.validate(d), pd.DataFrame)
+
+
+def test_for_review():
+    """
+    This basic test is failing, for setting the value of the unique
+    keyword to a value other than the default.
+    """
+
+    test_schema = DataFrameSchema(
+        columns={
+            "a": Column(int, unique=True),
+            "b": Column(int),
+            "c": Column(int),
+        }
+    )
+    assert test_schema.columns["a"].unique
+
+    test_schema.columns["a"] = True
+
+    assert test_schema.columns["a"].unique
