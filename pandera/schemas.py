@@ -509,7 +509,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             ):
                 if lazy:
                     lazy_exclude_columns.append(colname)
-                msg = f"column '{colname}' not in dataframe\n{check_obj.head()}"
+                msg = (
+                    f"column '{colname}' not in dataframe\n{check_obj.head()}"
+                )
                 error_handler.collect_error(
                     "column_not_in_dataframe",
                     errors.SchemaError(
@@ -589,7 +591,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 error_handler.collect_error("dataframe_check", err)
 
         if lazy and error_handler.collected_errors:
-            raise errors.SchemaErrors(error_handler.collected_errors, check_obj)
+            raise errors.SchemaErrors(
+                error_handler.collected_errors, check_obj
+            )
 
         assert all(check_results)
         return check_obj
@@ -1408,7 +1412,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             else Index(
                 dtype=new_index.columns[list(new_index.columns)[0]].dtype,
                 checks=new_index.columns[list(new_index.columns)[0]].checks,
-                nullable=new_index.columns[list(new_index.columns)[0]].nullable,
+                nullable=new_index.columns[
+                    list(new_index.columns)[0]
+                ].nullable,
                 allow_duplicates=new_index.columns[
                     list(new_index.columns)[0]
                 ].allow_duplicates,
@@ -1709,7 +1715,9 @@ class SeriesSchemaBase:
                         self,
                         check_obj,
                         msg,
-                        failure_cases=reshape_failure_cases(series[duplicates]),
+                        failure_cases=reshape_failure_cases(
+                            series[duplicates]
+                        ),
                         check="no_duplicates",
                     ),
                 )
@@ -1766,7 +1774,9 @@ class SeriesSchemaBase:
                 )
 
         if lazy and error_handler.collected_errors:
-            raise errors.SchemaErrors(error_handler.collected_errors, check_obj)
+            raise errors.SchemaErrors(
+                error_handler.collected_errors, check_obj
+            )
 
         assert all(check_results)
         return check_obj
@@ -1967,7 +1977,9 @@ class SeriesSchema(SeriesSchemaBase):
                 )
 
         if error_handler.collected_errors:
-            raise errors.SchemaErrors(error_handler.collected_errors, check_obj)
+            raise errors.SchemaErrors(
+                error_handler.collected_errors, check_obj
+            )
 
         return check_obj
 
@@ -2033,7 +2045,9 @@ def _handle_check_results(
         if check_result.failure_cases is None:
             # encode scalar False values explicitly
             failure_cases = scalar_failure_case(check_result.check_passed)
-            error_msg = format_generic_error_message(schema, check, check_index)
+            error_msg = format_generic_error_message(
+                schema, check, check_index
+            )
         else:
             failure_cases = reshape_failure_cases(
                 check_result.failure_cases, check.ignore_na

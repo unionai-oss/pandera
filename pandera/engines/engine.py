@@ -5,7 +5,6 @@ from abc import ABCMeta
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Type, Union, get_type_hints
 
-
 import typing_inspect
 
 from pandera.dtypes_ import DataType
@@ -57,7 +56,8 @@ class Engine(ABCMeta):
         func = method.__func__
         annotations = get_type_hints(func).values()
         dtype = next(iter(annotations))  # get 1st annotation
-        dtypes = typing_inspect.get_args(dtype) or [dtype]  # parse typing.Union
+        # parse typing.Union
+        dtypes = typing_inspect.get_args(dtype) or [dtype]
 
         def _method(*args, **kwargs):
             return func(target_dtype, *args, **kwargs)

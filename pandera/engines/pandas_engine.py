@@ -2,17 +2,17 @@ import builtins
 import datetime
 from dataclasses import field
 from typing import Any, Dict, List, Union
+
 import numpy as np
 import pandas as pd
 
-from pandera.engines.engine import Engine
+import pandera.dtypes_
 import pandera.engines.numpy_engine
+from pandera.engines.engine import Engine
 from pandera.engines.numpy_engine import *
 
-import pandera.dtypes_
 from ..dtypes_ import *
 from .engine import Engine
-import numpy as np
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
 PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
@@ -297,7 +297,9 @@ class PandasCategorical(PandasDataType, Category):
         )
 
     @classmethod
-    def from_parametrized_dtype(cls, cat: Union[Category, pd.CategoricalDtype]):
+    def from_parametrized_dtype(
+        cls, cat: Union[Category, pd.CategoricalDtype]
+    ):
         return cls(categories=cat.categories, ordered=cat.ordered)
 
 
@@ -516,7 +518,9 @@ class PandasInterval(PandasDataType):
     subtype: Union[str, np.dtype]
 
     def __post_init__(self):
-        object.__setattr__(self, "type", pd.IntervalDtype(subtype=self.subtype))
+        object.__setattr__(
+            self, "type", pd.IntervalDtype(subtype=self.subtype)
+        )
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.IntervalDtype):

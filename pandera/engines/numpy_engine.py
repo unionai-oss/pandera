@@ -2,12 +2,12 @@ import builtins
 import datetime
 from dataclasses import field
 from typing import Any, List
+
 import numpy as np
 
 import pandera.dtypes_
 from pandera.dtypes_ import *
 from pandera.engines.engine import Engine
-from typing import Any
 
 
 @immutable(init=True)

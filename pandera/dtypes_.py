@@ -1,7 +1,6 @@
 import functools
 from dataclasses import dataclass, field
 from typing import Any, Tuple, Type, Union
-from devtools import debug
 
 try:  # python 3.8+
     from typing import Literal  # type: ignore
@@ -49,6 +48,9 @@ class DataType:
         if not isinstance(datatype, DataType):
             return False
         return self == datatype
+
+    def __hash__(self) -> int:
+        pass
 
 
 ################################################################################
