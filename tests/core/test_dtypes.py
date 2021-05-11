@@ -1,607 +1,390 @@
 """Tests a variety of python and pandas dtypes, and tests some specific
 coercion examples."""
+import dataclasses
+import inspect
+from decimal import Decimal
+from typing import Any, List
 
+import hypothesis
 import numpy as np
 import pandas as pd
 import pytest
+from _pytest.mark.structures import ParameterSet
+from _pytest.python import Metafunc
+from hypothesis import strategies as st
+from hypothesis.strategies._internal.strategies import one_of
 from packaging import version
 
 import pandera as pa
-from pandera import (
-    Bool,
-    Category,
-    Check,
-    Column,
-    DataFrameSchema,
-    DateTime,
-    Float,
-    Int,
-    Object,
-    PandasDtype,
-    SeriesSchema,
-    String,
-    Timedelta,
-)
-from pandera.dtypes import (
-    _DEFAULT_NUMPY_FLOAT_TYPE,
-    _DEFAULT_NUMPY_INT_TYPE,
-    _DEFAULT_PANDAS_FLOAT_TYPE,
-    _DEFAULT_PANDAS_INT_TYPE,
-)
-from pandera.errors import SchemaError
+from pandera.dtypes_ import DataType
+from pandera.engines.pandas_engine import *
 
 PANDAS_VERSION = version.parse(pd.__version__)
 
-TESTABLE_DTYPES = [
-    (Bool, "bool"),
-    (DateTime, "datetime64[ns]"),
-    (Category, "category"),
-    (Float, Float.str_alias),
-    (Int, Int.str_alias),
-    (Object, "object"),
-    (String, String.str_alias),
-    (Timedelta, "timedelta64[ns]"),
-    ("bool", "bool"),
-    ("datetime64[ns]", "datetime64[ns]"),
-    ("category", "category"),
-    ("float64", "float64"),
+
+# List dtype classes and associated pandas alias,
+# except for parameterizable dtypes that should also list examples of instances.
+int_dtypes = {
+    int: "int",
+    pa.Int: "int64",
+    pa.Int8: "int8",
+    pa.Int16: "int16",
+    pa.Int32: "int32",
+    pa.Int64: "int64",
+    np.int8: "int8",
+    np.int16: "int16",
+    np.int32: "int32",
+    np.int64: "int64",
+}
+
+
+nullable_int_dtypes = {
+    PandasInt8: "Int8",
+    PandasInt16: "Int16",
+    PandasInt32: "Int32",
+    PandasInt64: "Int64",
+}
+
+uint_dtypes = {
+    pa.UInt: "uint64",
+    pa.UInt8: "uint8",
+    pa.UInt16: "uint16",
+    pa.UInt32: "uint32",
+    pa.UInt64: "uint64",
+    np.uint8: "uint8",
+    np.uint16: "uint16",
+    np.uint32: "uint32",
+    np.uint64: "uint64",
+}
+
+nullable_uint_dtypes = {
+    PandasUInt8: "UInt8",
+    PandasUInt16: "UInt16",
+    PandasUInt32: "UInt32",
+    PandasUInt64: "UInt64",
+}
+
+float_dtypes = {
+    float: "float",
+    pa.Float: "float64",
+    pa.Float16: "float16",
+    pa.Float32: "float32",
+    pa.Float64: "float64",
+    pa.Float128: "float128",
+    np.float16: "float16",
+    np.float32: "float32",
+    np.float64: "float64",
+    np.float128: "float128",
+}
+
+complex_dtypes = {
+    complex: "complex",
+    pa.Complex: "complex128",
+    pa.Complex64: "complex64",
+    pa.Complex128: "complex128",
+}
+
+boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
+nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
+
+string_dtypes = {
+    str: "str",
+    pa.String: "str",
+    np.str_: "str",
+}
+nullable_string_dtypes = {pd.StringDtype: "string"}
+
+object_dtypes = {object: "object", np.object_: "object"}
+
+category_dtypes = {
+    pa.Category: "category",
+    pa.Category(["A", "B"], ordered=True): pd.CategoricalDtype(
+        ["A", "B"], ordered=True
+    ),
+    pd.CategoricalDtype(["A", "B"], ordered=True): pd.CategoricalDtype(
+        ["A", "B"], ordered=True
+    ),
+}
+
+timestamp_dtypes = {
+    datetime.datetime: "datetime64[ns]",
+    np.datetime64: "datetime64[ns]",
+    pa.Timestamp: "datetime64[ns]",
+    pd.DatetimeTZDtype(tz="CET"): "datetime64[ns, CET]",
+    PandasDateTime: "datetime64[ns]",
+    PandasDateTime(unit="ns", tz="CET"): "datetime64[ns, CET]",
+}
+
+timedelta_dtypes = {
+    datetime.timedelta: "timedelta64",
+    datetime.timedelta: "timedelta64",
+    np.timedelta64: "timedelta64",
+    pd.Timedelta: "timedelta64",
+    Timedelta: "timedelta64",
+}
+
+period_dtypes = {pd.PeriodDtype(freq="D"): "period[D]"}
+# Series.astype does not accept a string alias for SparseDtype.
+sparse_dtypes = {
+    pd.SparseDtype: pd.SparseDtype(),
+    pd.SparseDtype(np.float64): pd.SparseDtype(np.float64),
+}
+interval_dtypes = {pd.IntervalDtype(subtype=np.int64): "interval[int64]"}
+
+dtype_fixtures = [
+    (int_dtypes, [-1]),
+    (nullable_int_dtypes, [-1, None]),
+    (uint_dtypes, [1]),
+    (nullable_uint_dtypes, [1, None]),
+    (float_dtypes, [1.0]),
+    (complex_dtypes, [complex(1)]),
+    (boolean_dtypes, [True, False]),
+    (nullable_boolean_dtypes, [True, None]),
+    (string_dtypes, ["A", "B"]),
+    (object_dtypes, ["A", "B"]),
+    (nullable_string_dtypes, [1, 2, None]),
+    (category_dtypes, [1, 2, None]),
+    (
+        timestamp_dtypes,
+        pd.to_datetime(["2019/01/01", "2018/05/21"]).to_series(),
+    ),
+    (
+        period_dtypes,
+        pd.to_datetime(["2019/01/01", "2018/05/21"])
+        .to_period("D")
+        .to_series(),
+    ),
+    (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),
+    (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),
 ]
 
 
-def test_default_numeric_dtypes():
-    """Test that default numeric dtypes int and float are consistent."""
-    assert str(pd.Series([1]).dtype) == _DEFAULT_PANDAS_INT_TYPE
-    assert pa.Int.str_alias == _DEFAULT_PANDAS_INT_TYPE
-    assert str(pd.Series([1], dtype=int).dtype) == _DEFAULT_NUMPY_INT_TYPE
-    assert str(pd.Series([1], dtype="int").dtype) == _DEFAULT_NUMPY_INT_TYPE
-
-    assert str(pd.Series([1.0]).dtype) == _DEFAULT_PANDAS_FLOAT_TYPE
-    assert pa.Float.str_alias == _DEFAULT_PANDAS_FLOAT_TYPE
-    assert (
-        str(pd.Series([1.0], dtype=float).dtype) == _DEFAULT_NUMPY_FLOAT_TYPE
-    )
-    assert (
-        str(pd.Series([1.0], dtype="float").dtype) == _DEFAULT_NUMPY_FLOAT_TYPE
-    )
-
-
-def test_numeric_dtypes():
-    """Test every numeric type can be validated properly by schema.validate"""
-    for dtype in [pa.Float, pa.Float16, pa.Float32, pa.Float64]:
-        assert all(
-            isinstance(
-                schema.validate(
-                    pd.DataFrame(
-                        {"col": [-123.1, -7654.321, 1.0, 1.1, 1199.51, 5.1]},
-                        dtype=dtype.str_alias,
-                    )
-                ),
-                pd.DataFrame,
-            )
-            for schema in [
-                DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema(
-                    {"col": Column(dtype.str_alias, nullable=False)}
-                ),
-            ]
+def pretty_param(*values: Any, **kw: Any) -> ParameterSet:
+    """Return a pytest parameter with a human-readable id."""
+    id_ = kw.pop("id", None)
+    if not id_:
+        id_ = "-".join(
+            f"{val.__module__}.{val.__name__}"
+            if inspect.isclass(val)
+            else repr(val)
+            for val in values
         )
-
-    for dtype in [pa.Int, pa.Int8, pa.Int16, pa.Int32, pa.Int64]:
-        assert all(
-            isinstance(
-                schema.validate(
-                    pd.DataFrame(
-                        {"col": [-712, -4, -321, 0, 1, 777, 5, 123, 9000]},
-                        dtype=dtype.str_alias,
-                    )
-                ),
-                pd.DataFrame,
-            )
-            for schema in [
-                DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema(
-                    {"col": Column(dtype.str_alias, nullable=False)}
-                ),
-            ]
-        )
-
-    for dtype in [pa.UInt8, pa.UInt16, pa.UInt32, pa.UInt64]:
-        assert all(
-            isinstance(
-                schema.validate(
-                    pd.DataFrame(
-                        {"col": [1, 777, 5, 123, 9000]}, dtype=dtype.str_alias
-                    )
-                ),
-                pd.DataFrame,
-            )
-            for schema in [
-                DataFrameSchema({"col": Column(dtype, nullable=False)}),
-                DataFrameSchema(
-                    {"col": Column(dtype.str_alias, nullable=False)}
-                ),
-            ]
-        )
+    return pytest.param(*values, id=id_, **kw)
 
 
-@pytest.mark.skipif(
-    PANDAS_VERSION.release < (1, 0, 0),  # type: ignore
-    reason="pandas >= 1.0.0 required",
-)
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        pa.INT8,
-        pa.INT16,
-        pa.INT32,
-        pa.INT64,
-        pa.UINT8,
-        pa.UINT16,
-        pa.UINT32,
-        pa.UINT64,
-    ],
-)
-@pytest.mark.parametrize("coerce", [True, False])
-def test_pandas_nullable_int_dtype(dtype, coerce):
-    """Test that pandas nullable int dtype can be specified in a schema."""
-    assert all(
-        isinstance(
-            schema.validate(
-                pd.DataFrame(
-                    # keep max range to 127 in order to support Int8
-                    {"col": range(128)},
-                    **({} if coerce else {"dtype": dtype.str_alias}),
-                )
-            ),
-            pd.DataFrame,
-        )
-        for schema in [
-            DataFrameSchema(
-                {"col": Column(dtype, nullable=False)}, coerce=coerce
-            ),
-            DataFrameSchema(
-                {"col": Column(dtype.str_alias, nullable=False)}, coerce=coerce
-            ),
-        ]
-    )
+def pytest_generate_tests(metafunc: Metafunc) -> None:
+    """Inject dtype, alias, data fixtures from `dtype_fixtures`.
 
-
-@pytest.mark.parametrize("str_alias", ["foo", "bar", "baz", "asdf", "qwerty"])
-def test_unrecognized_str_aliases(str_alias):
-    """Test that unrecognized string aliases are supported."""
-    with pytest.raises(TypeError):
-        PandasDtype.from_str_alias(str_alias)
-
-
-def test_category_dtype():
-    """Test the category type can be validated properly by schema.validate"""
-    schema = DataFrameSchema(
-        columns={
-            "col": Column(
-                pa.Category,
-                checks=[
-                    Check(lambda s: set(s) == {"A", "B", "C"}),
-                    Check(
-                        lambda s: s.cat.categories.tolist() == ["A", "B", "C"]
-                    ),
-                    Check(lambda s: s.isin(["A", "B", "C"])),
-                ],
-                nullable=False,
-            ),
-        },
-        coerce=False,
-    )
-    validated_df = schema.validate(
-        pd.DataFrame(
-            {"col": pd.Series(["A", "B", "A", "B", "C"], dtype="category")}
-        )
-    )
-    assert isinstance(validated_df, pd.DataFrame)
-
-
-def test_category_dtype_coerce():
-    """Test coercion of the category type is validated properly by
-    schema.validate and fails safely."""
-    columns = {
-        "col": Column(
-            pa.Category,
-            checks=Check(lambda s: set(s) == {"A", "B", "C"}),
-            nullable=False,
-        ),
-    }
-
-    with pytest.raises(SchemaError):
-        DataFrameSchema(columns=columns, coerce=False).validate(
-            pd.DataFrame(
-                {"col": pd.Series(["A", "B", "A", "B", "C"], dtype="object")}
-            )
-        )
-
-    validated_df = DataFrameSchema(columns=columns, coerce=True).validate(
-        pd.DataFrame(
-            {"col": pd.Series(["A", "B", "A", "B", "C"], dtype="object")}
-        )
-    )
-    assert isinstance(validated_df, pd.DataFrame)
-
-
-def helper_type_validation(dataframe_type, schema_type, debugging=False):
+    Filter pandera.dtypes.DataType classes if the test name contains "datatype".
     """
-    Helper function for using same or different dtypes for the dataframe and
-    the schema_type
-    """
-    df = pd.DataFrame({"column1": [dataframe_type(1)]})
-    if debugging:
-        print(dataframe_type, df.column1)
-    schema = pa.DataFrameSchema({"column1": pa.Column(schema_type)})
-    if debugging:
-        print(schema)
-    schema(df)
-
-
-@pytest.mark.parametrize(
-    "type1, type2",
-    [
-        # Pandas always converts complex numbers to np.complex128
-        (np.complex_, np.complex_),
-        (np.complex_, np.complex128),
-        (np.complex128, np.complex_),
-        (np.complex64, np.complex128),
-        (np.complex128, np.complex128),
-        # Pandas always converts float numbers to np.float64
-        (np.float_, np.float_),
-        (np.float_, np.float64),
-        (np.float16, np.float64),
-        (np.float32, np.float64),
-        (np.float64, np.float64),
-        # Pandas always converts int numbers to np.int64
-        (np.int_, np.int64),
-        (np.int8, np.int64),
-        (np.int16, np.int64),
-        (np.int32, np.int64),
-        (np.int64, np.int64),
-        # Pandas always converts int numbers to np.int64
-        (np.uint, np.int64),
-        (np.uint, np.int64),
-        (np.uint8, np.int64),
-        (np.uint16, np.int64),
-        (np.uint32, np.int64),
-        (np.uint64, np.int64),
-        (np.bool_, np.bool_),
-        (np.str_, np.str_)
-        # np.object, np.void and bytes are not tested
-    ],
-)
-def test_valid_numpy_type_conversions(type1, type2):
-    """Test correct conversions of numpy dtypes"""
-    try:
-        helper_type_validation(type1, type2)
-    except:  # pylint: disable=bare-except
-        # No exceptions since it should cover all exceptions for debug
-        # purpose
-        # Rerun test with debug inforation
-        print(f"Error on types: {type1}, {type2}")
-        helper_type_validation(type1, type2, True)
-
-
-@pytest.mark.parametrize(
-    "type1, type2",
-    [
-        (np.complex_, np.int_),
-        (np.int_, np.complex_),
-        (float, np.complex_),
-        (np.complex_, float),
-        (np.int_, np.float_),
-        (np.uint8, np.float_),
-        (np.complex_, str),
-    ],
-)
-def test_invalid_numpy_type_conversions(type1, type2):
-    """Test various numpy dtypes"""
-    with pytest.raises(SchemaError):
-        helper_type_validation(type1, type2)
-
-    PandasDtype.from_numpy_type(np.float_)
-    with pytest.raises(TypeError):
-        PandasDtype.from_numpy_type(pd.DatetimeIndex)
-
-
-def test_datetime():
-    """Test datetime types can be validated properly by schema.validate"""
-    schema = DataFrameSchema(
-        columns={
-            "col": Column(
-                pa.DateTime,
-                checks=Check(lambda s: s.min() > pd.Timestamp("2015")),
-            )
-        }
-    )
-
-    validated_df = schema.validate(
-        pd.DataFrame(
-            {"col": pd.to_datetime(["2019/01/01", "2018/05/21", "2016/03/10"])}
-        )
-    )
-
-    assert isinstance(validated_df, pd.DataFrame)
-
-    with pytest.raises(SchemaError):
-        schema.validate(pd.DataFrame({"col": pd.to_datetime(["2010/01/01"])}))
-
-
-@pytest.mark.skipif(
-    PANDAS_VERSION.release < (1, 0, 0),  # type: ignore
-    reason="pandas >= 1.0.0 required",
-)
-def test_pandas_extension_types():
-    """Test pandas extension data type happy path."""
-    # pylint: disable=no-member
-    test_params = [
-        (
-            pd.CategoricalDtype(),
-            pd.Series(["a", "a", "b", "b", "c", "c"], dtype="category"),
-            None,
-        ),
-        (
-            pd.DatetimeTZDtype(tz="UTC"),
-            pd.Series(
-                pd.date_range(start="20200101", end="20200301"),
-                dtype="datetime64[ns, utc]",
-            ),
-            None,
-        ),
-        (pd.Int64Dtype(), pd.Series(range(10), dtype="Int64"), None),
-        (
-            pd.StringDtype(),
-            pd.Series(["foo", "bar", "baz"], dtype="string"),
-            None,
-        ),
-        (
-            pd.PeriodDtype(freq="D"),
-            pd.Series(pd.period_range("1/1/2019", "1/1/2020", freq="D")),
-            None,
-        ),
-        (
-            pd.SparseDtype("float"),
-            pd.Series(range(100))
-            .where(lambda s: s < 5, other=np.nan)
-            .astype("Sparse[float]"),
-            {"nullable": True},
-        ),
-        (pd.BooleanDtype(), pd.Series([1, 0, 0, 1, 1], dtype="boolean"), None),
-        (
-            pd.IntervalDtype(subtype="int64"),
-            pd.Series(pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])),
-            None,
-        ),
+    fixtures = [
+        fixture
+        for fixture in ("dtype", "pd_dtype", "data")
+        if fixture in metafunc.fixturenames
     ]
-    for dtype, data, series_kwargs in test_params:
-        series_kwargs = {} if series_kwargs is None else series_kwargs
-        series_schema = SeriesSchema(pandas_dtype=dtype, **series_kwargs)
-        assert isinstance(series_schema.validate(data), pd.Series)
+    arg_names = ",".join(fixtures)
+
+    if arg_names:
+        arg_values = []
+        for dtypes, data in dtype_fixtures:
+            for dtype, pd_dtype in dtypes.items():
+                if "datatype" in metafunc.function.__name__ and not (
+                    isinstance(dtype, DataType)
+                    or (inspect.isclass(dtype) and issubclass(dtype, DataType))
+                ):
+                    # not a DataType class or instance
+                    continue
+
+                params = [dtype]
+                if "pd_dtype" in fixtures:
+                    params.append(pd_dtype)
+                if "data" in fixtures:
+                    params.append(data)
+                arg_values.append(pretty_param(*params))
+
+        metafunc.parametrize(arg_names, arg_values)
 
 
-def test_python_builtin_types():
-    """Test support python data types can be used for validation."""
-    schema = DataFrameSchema(
-        {
-            "int_col": Column(int),
-            "float_col": Column(float),
-            "str_col": Column(str),
-            "bool_col": Column(bool),
-            "object_col": Column(object),
-            "complex_col": Column(complex),
-        }
+def test_datatype_init(dtype: Any):
+    """Test that a default DataType can be constructed."""
+    if not inspect.isclass(dtype):
+        pytest.skip(
+            "test_datatype_init tests DataType classes, not instances."
+        )
+    assert isinstance(dtype(), DataType)
+
+
+def test_datatype_alias(dtype: Any, pd_dtype: Any):
+    """Test that a default DataType can be constructed."""
+    data_type = dtype() if inspect.isclass(dtype) else dtype
+    assert str(PandasEngine.dtype(dtype)) == str(pd_dtype)
+
+
+def test_frozen_datatype(dtype: Any):
+    """Test that DataType instances are immutable."""
+    data_type = dtype() if inspect.isclass(dtype) else dtype
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        data_type.foo = 1
+
+
+def test_invalid_pandas_extension_dtype():
+    with pytest.raises(TypeError):
+        PandasEngine.dtype(
+            pd.PeriodDtype
+        )  # PerioDtype has required parameters
+
+
+def test_check_equivalent(dtype: Any, pd_dtype: Any):
+    """Test that a pandas-compatible dtype can be validated by check()."""
+    actual_dtype = PandasEngine.dtype(pd_dtype)
+    expected_dtype = PandasEngine.dtype(dtype)
+    assert actual_dtype.check(expected_dtype)
+
+
+def test_check_not_equivalent(dtype: Any):
+    """Test that check() rejects non-equivalent dtypes."""
+    if str(PandasEngine.dtype(dtype)) == "object":
+        actual_dtype = PandasEngine.dtype(int)
+    else:
+        actual_dtype = PandasEngine.dtype(object)
+    expected_dtype = PandasEngine.dtype(dtype)
+    assert actual_dtype.check(expected_dtype) is False
+
+
+def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
+    """Test that dtypes can be coerced without casting."""
+    expected_dtype = PandasEngine.dtype(dtype)
+    print(pd_dtype)
+    series = pd.Series(data, dtype=pd_dtype)
+    coerced_series = expected_dtype.coerce(series)
+    assert series.equals(coerced_series)
+    print(expected_dtype)
+    print(series)
+    print(coerced_series)
+    print(coerced_series.dtype)
+    print(PandasEngine.dtype(coerced_series.dtype))
+    assert expected_dtype.check(PandasEngine.dtype(coerced_series.dtype))
+
+    df = pd.DataFrame({"col": data}, dtype=pd_dtype)
+    coerced_df = expected_dtype.coerce(df)
+    assert df.equals(coerced_df)
+    assert expected_dtype.check(PandasEngine.dtype(coerced_df["col"].dtype))
+
+
+def _flatten_dtypes_dict(*dtype_kinds):
+    return [
+        (datatype, pd_dtype)
+        for dtype_kind in dtype_kinds
+        for datatype, pd_dtype in dtype_kind.items()
+    ]
+
+
+numeric_dtypes = _flatten_dtypes_dict(
+    int_dtypes,
+    uint_dtypes,
+    float_dtypes,
+    complex_dtypes,
+    boolean_dtypes,
+)
+
+nullable_numeric_dtypes = _flatten_dtypes_dict(
+    nullable_int_dtypes,
+    nullable_uint_dtypes,
+    nullable_boolean_dtypes,
+)
+
+nominal_dtypes = _flatten_dtypes_dict(
+    string_dtypes,
+    nullable_string_dtypes,
+    category_dtypes,
+)
+
+
+@pytest.mark.parametrize(
+    "dtypes, examples",
+    [
+        (numeric_dtypes, [1]),
+        (nullable_numeric_dtypes, [1, None]),
+        (nominal_dtypes, ["A", "B"]),
+    ],
+)
+@hypothesis.given(st.data())
+def test_coerce_cast(dtypes, examples, data):
+    """Test that dtypes can be coerced with casting."""
+    _, from_pd_dtype = data.draw(st.sampled_from(dtypes))
+    to_datatype, _ = data.draw(st.sampled_from(dtypes))
+
+    expected_dtype = PandasEngine.dtype(to_datatype)
+
+    series = pd.Series(examples, dtype=from_pd_dtype)
+    coerced_dtype = expected_dtype.coerce(series).dtype
+    assert expected_dtype.check(PandasEngine.dtype(coerced_dtype))
+
+    df = pd.DataFrame({"col": examples}, dtype=from_pd_dtype)
+    coerced_dtype = expected_dtype.coerce(df)["col"].dtype
+    assert expected_dtype.check(PandasEngine.dtype(coerced_dtype))
+
+
+def test_coerce_string():
+    """Test that strings can be coerced."""
+    data = pd.Series([1, None], dtype="Int32")
+    coerced = PandasEngine.dtype(str).coerce(data).to_list()
+    assert isinstance(coerced[0], str)
+    assert pd.isna(coerced[1])
+
+
+def test_default_numeric_dtypes():
+    """Test that default numeric dtypes int, float and complex are consistent."""
+    default_int_dtype = pd.Series([1], dtype=int).dtype
+    assert (
+        PandasEngine.dtype(default_int_dtype)
+        == PandasEngine.dtype(int)
+        == PandasEngine.dtype("int")
     )
-    df = pd.DataFrame(
-        {
-            "int_col": [1, 2, 3],
-            "float_col": [1.0, 2.0, 3.0],
-            "str_col": list("abc"),
-            "bool_col": [True, False, True],
-            "object_col": [[1], 1, {"foo": "bar"}],
-            "complex_col": [complex(1), complex(2), complex(3)],
-        }
+
+    default_float_dtype = pd.Series([1], dtype=float).dtype
+    assert (
+        PandasEngine.dtype(default_float_dtype)
+        == PandasEngine.dtype(float)
+        == PandasEngine.dtype("float")
     )
-    assert isinstance(schema(df), pd.DataFrame)
-    assert schema.dtype["int_col"] == PandasDtype.Int.str_alias
-    assert schema.dtype["float_col"] == PandasDtype.Float.str_alias
-    assert schema.dtype["str_col"] == PandasDtype.String.str_alias
-    assert schema.dtype["bool_col"] == PandasDtype.Bool.str_alias
-    assert schema.dtype["object_col"] == PandasDtype.Object.str_alias
-    assert schema.dtype["complex_col"] == PandasDtype.Complex.str_alias
 
-
-@pytest.mark.parametrize("python_type", [list, dict, set])
-def test_python_builtin_types_not_supported(python_type):
-    """Test unsupported python data types raise a type error."""
-    with pytest.raises(TypeError):
-        Column(python_type)
+    default_complex_dtype = pd.Series([1], dtype=complex).dtype
+    assert (
+        PandasEngine.dtype(default_complex_dtype)
+        == PandasEngine.dtype(complex)
+        == PandasEngine.dtype("complex")
+    )
 
 
 @pytest.mark.parametrize(
-    "pandas_api_type,pandas_dtype",
+    "examples",
     [
-        ["string", PandasDtype.String],
-        ["floating", PandasDtype.Float],
-        ["integer", PandasDtype.Int],
-        ["categorical", PandasDtype.Category],
-        ["boolean", PandasDtype.Bool],
-        ["datetime64", PandasDtype.DateTime],
-        ["datetime", PandasDtype.DateTime],
-        ["timedelta64", PandasDtype.Timedelta],
-        ["timedelta", PandasDtype.Timedelta],
-        ["mixed-integer", PandasDtype.Object],
+        pretty_param(param)
+        for param in [
+            ["A", "B"],  # string
+            [b"foo", b"bar"],  # bytes
+            [1, 2, 3],  # integer
+            ["a", datetime.date(2013, 1, 1)],  # mixed
+            ["a", 1],  # mixed-integer
+            [1, 2, 3.5, "foo"],  # mixed-integer-float
+            [1.0, 2.0, 3.5],  # floating
+            [Decimal(1), Decimal(2.0)],  # decimal
+            [pd.Timestamp("20130101")],  # datetime
+            [datetime.date(2013, 1, 1)],  # date
+            [datetime.timedelta(0, 1, 1)],  # timedelta
+            pd.Series(list("aabc")).astype("category"),  # categorical
+            [Decimal(1), Decimal(2.0)],  # decimal
+        ]
     ],
 )
-def test_pandas_api_types(pandas_api_type, pandas_dtype):
-    """Test pandas api type conversion."""
-    assert PandasDtype.from_pandas_api_type(pandas_api_type) is pandas_dtype
-
-
-@pytest.mark.parametrize(
-    "invalid_pandas_api_type",
-    [
-        "foo",
-        "bar",
-        "baz",
-        "this is not a type",
-    ],
-)
-def test_pandas_api_type_exception(invalid_pandas_api_type):
-    """Test unsupported values for pandas api type conversion."""
-    with pytest.raises(TypeError):
-        PandasDtype.from_pandas_api_type(invalid_pandas_api_type)
-
-
-@pytest.mark.parametrize(
-    "pandas_dtype", (pandas_dtype for pandas_dtype in PandasDtype)
-)
-def test_pandas_dtype_equality(pandas_dtype):
-    """Test __eq__ implementation."""
-    assert pandas_dtype is not None  # pylint:disable=singleton-comparison
-    assert pandas_dtype == pandas_dtype.value
-
-
-@pytest.mark.parametrize("pdtype", PandasDtype)
-def test_dtype_none_comparison(pdtype):
-    """Test that comparing PandasDtype to None is False."""
-    assert pdtype is not None
-
-
-@pytest.mark.parametrize(
-    "property_fn, pdtypes",
-    [
-        [
-            lambda x: x.is_int,
-            [
-                PandasDtype.Int,
-                PandasDtype.Int8,
-                PandasDtype.Int16,
-                PandasDtype.Int32,
-                PandasDtype.Int64,
-                PandasDtype.INT8,
-                PandasDtype.INT16,
-                PandasDtype.INT32,
-                PandasDtype.INT64,
-            ],
-        ],
-        [
-            lambda x: x.is_nullable_int,
-            [
-                PandasDtype.INT8,
-                PandasDtype.INT16,
-                PandasDtype.INT32,
-                PandasDtype.INT64,
-            ],
-        ],
-        [
-            lambda x: x.is_nonnullable_int,
-            [
-                PandasDtype.Int,
-                PandasDtype.Int8,
-                PandasDtype.Int16,
-                PandasDtype.Int32,
-                PandasDtype.Int64,
-            ],
-        ],
-        [
-            lambda x: x.is_uint,
-            [
-                PandasDtype.UInt8,
-                PandasDtype.UInt16,
-                PandasDtype.UInt32,
-                PandasDtype.UInt64,
-                PandasDtype.UINT8,
-                PandasDtype.UINT16,
-                PandasDtype.UINT32,
-                PandasDtype.UINT64,
-            ],
-        ],
-        [
-            lambda x: x.is_nullable_uint,
-            [
-                PandasDtype.UINT8,
-                PandasDtype.UINT16,
-                PandasDtype.UINT32,
-                PandasDtype.UINT64,
-            ],
-        ],
-        [
-            lambda x: x.is_nonnullable_uint,
-            [
-                PandasDtype.UInt8,
-                PandasDtype.UInt16,
-                PandasDtype.UInt32,
-                PandasDtype.UInt64,
-            ],
-        ],
-        [
-            lambda x: x.is_float,
-            [
-                PandasDtype.Float,
-                PandasDtype.Float16,
-                PandasDtype.Float32,
-                PandasDtype.Float64,
-            ],
-        ],
-        [
-            lambda x: x.is_complex,
-            [
-                PandasDtype.Complex,
-                PandasDtype.Complex64,
-                PandasDtype.Complex128,
-                PandasDtype.Complex256,
-            ],
-        ],
-        [lambda x: x.is_bool, [PandasDtype.Bool]],
-        [lambda x: x.is_string, [PandasDtype.String, PandasDtype.String]],
-        [lambda x: x.is_category, [PandasDtype.Category]],
-        [lambda x: x.is_datetime, [PandasDtype.DateTime]],
-        [lambda x: x.is_timedelta, [PandasDtype.Timedelta]],
-        [lambda x: x.is_object, [PandasDtype.Object]],
-        [
-            lambda x: x.is_continuous,
-            [
-                PandasDtype.Int,
-                PandasDtype.Int8,
-                PandasDtype.Int16,
-                PandasDtype.Int32,
-                PandasDtype.Int64,
-                PandasDtype.INT8,
-                PandasDtype.INT16,
-                PandasDtype.INT32,
-                PandasDtype.INT64,
-                PandasDtype.UInt8,
-                PandasDtype.UInt16,
-                PandasDtype.UInt32,
-                PandasDtype.UInt64,
-                PandasDtype.UINT8,
-                PandasDtype.UINT16,
-                PandasDtype.UINT32,
-                PandasDtype.UINT64,
-                PandasDtype.Float,
-                PandasDtype.Float16,
-                PandasDtype.Float32,
-                PandasDtype.Float64,
-                PandasDtype.Complex,
-                PandasDtype.Complex64,
-                PandasDtype.Complex128,
-                PandasDtype.Complex256,
-                PandasDtype.DateTime,
-                PandasDtype.Timedelta,
-            ],
-        ],
-    ],
-)
-def test_dtype_is_checks(property_fn, pdtypes):
-    """Test all the pandas dtype is_* properties."""
-    for pdtype in pdtypes:
-        assert property_fn(pdtype)
-
-
-def test_category_dtype_exception():
-    """Test that category dtype has no numpy dtype equivalent."""
-    with pytest.raises(TypeError):
-        # pylint: disable=pointless-statement
-        PandasDtype.Category.numpy_dtype
+def test_inferred_dtype(examples: pd.Series):
+    alias = pd.api.types.infer_dtype(examples)
+    if "mixed" in alias or alias in ("date", "string"):
+        # infer_dtype returns "string", "date"
+        # whereas a Series will default to a "np.object_" dtype
+        inferred_datatype = PandasEngine.dtype(object)
+    else:
+        inferred_datatype = PandasEngine.dtype(alias)
+    actual_dtype = PandasEngine.dtype(pd.Series(examples).dtype)
+    assert actual_dtype.check(inferred_datatype)
