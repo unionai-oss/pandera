@@ -554,7 +554,9 @@ class MultiIndex(DataFrameSchema):
                     try:
                         index_array = index.coerce_dtype(index_array)
                     except errors.SchemaError as err:
-                        error_handler.collect_error("dtype_coercion_error", err)
+                        error_handler.collect_error(
+                            "dtype_coercion_error", err
+                        )
                 coerced_multi_index[index_level] = index_array
 
         if error_handler.collected_errors:
