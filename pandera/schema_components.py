@@ -89,11 +89,6 @@ class Column(SeriesSchemaBase):
         self._name = name
         self._regex = regex
 
-        if coerce and self._dtype is None:
-            raise errors.SchemaInitError(
-                "Must specify dtype if coercing a Column's type"
-            )
-
     @property
     def regex(self) -> bool:
         """True if ``name`` attribute should be treated as a regex pattern."""
@@ -559,9 +554,7 @@ class MultiIndex(DataFrameSchema):
                     try:
                         index_array = index.coerce_dtype(index_array)
                     except errors.SchemaError as err:
-                        error_handler.collect_error(
-                            "dtype_coercion_error", err
-                        )
+                        error_handler.collect_error("dtype_coercion_error", err)
                 coerced_multi_index[index_level] = index_array
 
         if error_handler.collected_errors:
