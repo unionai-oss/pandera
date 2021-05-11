@@ -15,7 +15,8 @@ import pandas as pd
 from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import PandasDtype, PandasExtensionType, is_extension_dtype
+from .dtypes_ import DataType
+from .engines.pandas_engine import PandasEngine, PandasExtensionType
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -34,7 +35,7 @@ CheckList = Optional[
 PandasDtypeInputTypes = Union[
     str,
     type,
-    PandasDtype,
+    DataType,
     PandasExtensionType,
     np.dtype,
 ]
@@ -67,7 +68,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         columns: Dict[Any, Any] = None,
         checks: CheckList = None,
         index=None,
-        pandas_dtype: PandasDtypeInputTypes = None,
+        dtype: PandasDtypeInputTypes = None,
         transformer: Callable = None,
         coerce: bool = False,
         strict: Union[bool, str] = False,
@@ -82,7 +83,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
         :param index: specify the datatypes and properties of the index.
-        :param pandas_dtype: datatype of the dataframe. This overrides the data
+        :param dtype: datatype of the dataframe. This overrides the data
             types specified in any of the columns. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes.
@@ -141,6 +142,17 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         self.columns = {} if columns is None else columns
 
+        if coerce:
+            missing_pandas_type = [
+                name for name, col in self.columns.items() if col.dtype is None
+            ]
+            if missing_pandas_type:
+                raise errors.SchemaInitError(
+                    "Must specify dtype in all Columns if coercing "
+                    "DataFrameSchema ; columns with missing pandas_type:"
+                    + ", ".join(missing_pandas_type)
+                )
+
         if transformer is not None:
             warnings.warn(
                 "The `transformers` argument has been deprecated and will no "
@@ -165,7 +177,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self.index = index
         self.strict = strict
         self.name = name
-        self._pandas_dtype = pandas_dtype
+        self.dtype = dtype
         self._coerce = coerce
         self._ordered = ordered
         self._validate_schema()
@@ -230,9 +242,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         }
 
     @property
-    def dtype(self) -> Dict[str, str]:
+    def dtypes(self) -> Dict[str, str]:
         """
-        A pandas style dtype dict where the keys are column names and values
+        A pandas style dtypes dict where the keys are column names and values
         are pandas dtype for the column. Excludes columns where regex=True.
 
         :returns: dictionary of columns and their associated dtypes.
@@ -249,7 +261,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
-    def get_dtype(self, dataframe: pd.DataFrame) -> Dict[str, str]:
+    def get_dtypes(self, dataframe: pd.DataFrame) -> Dict[str, str]:
         """
         Same as the ``dtype`` property, but expands columns where
         ``regex == True`` based on the supplied dataframe.
@@ -271,60 +283,42 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         }
 
     @property
-    def pandas_dtype(
+    def dtype(
         self,
-    ) -> Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]:
-        """Get the pandas dtype property."""
-        return self._pandas_dtype
+    ) -> PandasDtypeInputTypes:
+        """Get the dtype property."""
+        return self._dtype
 
-    @pandas_dtype.setter
-    def pandas_dtype(
-        self, value: Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]
-    ) -> None:
+    @dtype.setter
+    def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the pandas dtype property."""
-        self._pandas_dtype = value
-        self.dtype  # pylint: disable=pointless-statement
-
-    @property
-    def pdtype(self) -> Optional[PandasDtype]:
-        """PandasDtype of the dataframe."""
-        pandas_dtype = PandasDtype.get_str_dtype(self.pandas_dtype)
-        if pandas_dtype is None:
-            return pandas_dtype
-        return PandasDtype.from_str_alias(pandas_dtype)
+        self._dtype = PandasEngine.dtype(value) if value else None
 
     def _coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
-        if self.pandas_dtype is dtypes.PandasDtype.String:
-            # only coerce non-null elements to string
-            return obj.where(obj.isna(), obj.astype(str))
-
-        if self.pdtype is None:
+        if self.dtype is None:
             raise ValueError(
-                "pandas_dtype argument is None. Must specify this argument "
+                "dtype argument is None. Must specify this argument "
                 "to coerce dtype"
             )
+
         try:
-            return obj.astype(self.pdtype.str_alias)
-        except (ValueError, TypeError) as exc:
-            msg = (
-                f"Error while coercing '{self.name}' to type {self.dtype}: "
-                f"{exc}"
-            )
+            return self.dtype.coerce(obj)
+        except Exception as exc:
+            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
             raise errors.SchemaError(
                 self,
                 obj,
                 msg,
                 failure_cases=scalar_failure_case(str(obj.dtypes.to_dict())),
-                check=f"coerce_dtype('{self.pdtype.str_alias}')",
+                check=f"coerce_dtype('{self.dtype}')",
             ) from exc
 
     def coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
-        """Coerce dataframe to the type specified in pandas_dtype.
+        """Coerce dataframe to the type specified in dtype.
 
         :param obj: dataframe to coerce.
         :returns: dataframe with coerced dtypes
         """
-
         error_handler = SchemaErrorHandler(lazy=True)
 
         def _try_coercion(coerce_fn, obj):
@@ -347,14 +341,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         )
             elif (
                 (col_schema.coerce or self.coerce)
-                and self.pdtype is None
+                and self.dtype is None
                 and colname in obj
             ):
                 obj.loc[:, colname] = _try_coercion(
                     col_schema.coerce_dtype, obj[colname]
                 )
 
-        if self.pdtype is not None:
+        if self.dtype is not None:
             obj = _try_coercion(self._coerce_dtype, obj)
         if self.index is not None and (self.index.coerce or self.coerce):
             index_schema = copy.deepcopy(self.index)
@@ -564,10 +558,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             if (
                 col.required or col_name in check_obj
             ) and col_name not in lazy_exclude_columns:
-                if self.pdtype is not None:
+                if self.dtype is not None:
                     # override column dtype with dataframe dtype
                     col = copy.deepcopy(col)
-                    col.pandas_dtype = self.pdtype
+                    col.dtype = self.dtype
                 schema_components.append(col)
 
         if self.index is not None:
@@ -649,17 +643,13 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     def __repr__(self):
         """Represent string for logging."""
-        if isinstance(self._pandas_dtype, PandasDtype):
-            dtype = self._pandas_dtype.value
-        else:
-            dtype = self._pandas_dtype
         return (
             f"<Schema {self.__class__.__name__}("
             f"columns={self.columns}, "
             f"checks={self.checks}, "
             f"index={self.index.__repr__()}, "
             f"coerce={self.coerce}, "
-            f"pandas_dtype={dtype},"
+            f"dtype={self._dtype},"
             f"strict={self.strict},"
             f"name={self.name},"
             f"ordered={self.ordered}"
@@ -671,9 +661,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         def _format_multiline(json_str, arg):
             return "\n".join(
-                "{}{}".format(indent, line)
-                if i != 0
-                else "{}{}={}".format(indent, arg, line)
+                f"{indent}{line}" if i != 0 else f"{indent}{arg}={line}"
                 for i, line in enumerate(json_str.split("\n"))
             )
 
@@ -703,17 +691,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 x if i == 0 else f"{indent}{x}" for i, x in enumerate(index)
             )
 
-        if isinstance(self._pandas_dtype, PandasDtype):
-            dtype = self._pandas_dtype.value
-        else:
-            dtype = self._pandas_dtype
-
         return (
             f"<Schema {self.__class__.__name__}(\n"
             f"{columns_str},\n"
             f"{checks_str},\n"
             f"{indent}coerce={self.coerce},\n"
-            f"{indent}pandas_dtype={dtype},\n"
+            f"{indent}dtype={self._dtype},\n"
             f"{indent}index={index},\n"
             f"{indent}strict={self.strict}\n"
             f"{indent}name={self.name},\n"
@@ -741,7 +724,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :returns: a strategy that generates pandas DataFrame objects.
         """
         return st.dataframe_strategy(
-            self.pdtype,
+            self.dtype,
             columns=self.columns,
             checks=self.checks,
             index=self.index,
@@ -802,7 +785,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=None,
             strict=False
             name=None,
@@ -852,7 +835,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=None,
             strict=False
             name=None,
@@ -903,7 +886,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... })
         >>> print(
         ...     example_schema.update_column(
-        ...         'category', pandas_dtype=pa.Category
+        ...         'category', dtype=pa.Category
         ...     )
         ... )
         <Schema DataFrameSchema(
@@ -913,7 +896,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=None,
             strict=False
             name=None,
@@ -963,7 +946,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>>
         >>> print(
         ...     example_schema.update_columns(
-        ...         {"category": {"pandas_dtype":pa.Category}}
+        ...         {"category": {"dtype":pa.Category}}
         ...     )
         ... )
         <Schema DataFrameSchema(
@@ -973,7 +956,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=None,
             strict=False
             name=None,
@@ -1055,7 +1038,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=None,
             strict=False
             name=None,
@@ -1130,7 +1113,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=None,
             strict=False
             name=None,
@@ -1230,7 +1213,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=<Schema Index(name=category, type=str)>,
             strict=False
             name=None,
@@ -1246,7 +1229,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ...         "column1": pa.Column(pa.String),
         ...         "column2": pa.Column(pa.Int)
         ...     },
-        ...     index=pa.Index(name = "column3", pandas_dtype = pa.Int)
+        ...     index=pa.Index(name = "column3", dtype = pa.Int)
         ... )
         >>>
         >>> print(example_schema.set_index(["column2"], append = True))
@@ -1256,7 +1239,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=<Schema MultiIndex(
                 indexes=[
                     <Schema Index(name=column3, type=int)>
@@ -1306,7 +1289,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         for col in keys_temp:
             ind_list.append(
                 Index(
-                    pandas_dtype=new_schema.columns[col].pandas_dtype,
+                    dtype=new_schema.columns[col].dtype,
                     name=col,
                     checks=new_schema.columns[col].checks,
                     nullable=new_schema.columns[col].nullable,
@@ -1350,7 +1333,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...     {"probability" : pa.Column(pa.Float)},
-        ...     index = pa.Index(name="unique_id", pandas_dtype=pa.Int)
+        ...     index = pa.Index(name="unique_id", dtype=pa.Int)
         ... )
         >>>
         >>> print(example_schema.reset_index())
@@ -1361,7 +1344,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=None,
             strict=False
             name=None,
@@ -1377,8 +1360,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> example_schema = pa.DataFrameSchema({
         ...     "category" : pa.Column(pa.String)},
         ...     index = pa.MultiIndex([
-        ...         pa.Index(name = "unique_id1", pandas_dtype = pa.Int),
-        ...         pa.Index(name = "unique_id2", pandas_dtype = pa.String)
+        ...         pa.Index(name = "unique_id1", dtype = pa.Int),
+        ...         pa.Index(name = "unique_id2", dtype = pa.String)
         ...         ]
         ...     )
         ... )
@@ -1390,7 +1373,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             },
             checks=[],
             coerce=False,
-            pandas_dtype=None,
+            dtype=None,
             index=<Schema Index(name=unique_id2, type=str)>,
             strict=False
             name=None,
@@ -1438,9 +1421,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             new_index
             if new_index is None
             else Index(
-                pandas_dtype=new_index.columns[
-                    list(new_index.columns)[0]
-                ].pandas_dtype,
+                dtype=new_index.columns[list(new_index.columns)[0]].dtype,
                 checks=new_index.columns[list(new_index.columns)[0]].checks,
                 nullable=new_index.columns[
                     list(new_index.columns)[0]
@@ -1466,7 +1447,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             new_schema = new_schema.add_columns(
                 {
                     k: Column(
-                        pandas_dtype=v.dtype,
+                        dtype=v.dtype,
                         checks=v.checks,
                         nullable=v.nullable,
                         allow_duplicates=v.allow_duplicates,
@@ -1487,7 +1468,7 @@ class SeriesSchemaBase:
 
     def __init__(
         self,
-        pandas_dtype: PandasDtypeInputTypes = None,
+        dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
         allow_duplicates: bool = True,
@@ -1496,7 +1477,7 @@ class SeriesSchemaBase:
     ) -> None:
         """Initialize series schema base object.
 
-        :param pandas_dtype: datatype of the column. If a string is specified,
+        :param dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: If element_wise is True, then callable signature should
@@ -1515,8 +1496,7 @@ class SeriesSchemaBase:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
-
-        self._pandas_dtype = pandas_dtype
+        self.dtype = dtype
         self._nullable = nullable
         self._allow_duplicates = allow_duplicates
         self._coerce = coerce
@@ -1591,58 +1571,26 @@ class SeriesSchemaBase:
         return self._name
 
     @property
-    def pandas_dtype(
+    def dtype(
         self,
-    ) -> Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]:
+    ) -> PandasDtypeInputTypes:
         """Get the pandas dtype"""
-        return self._pandas_dtype
+        return self._dtype
 
-    @pandas_dtype.setter
-    def pandas_dtype(
-        self, value: Union[str, dtypes.PandasDtype, dtypes.PandasExtensionType]
-    ) -> None:
+    @dtype.setter
+    def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the pandas dtype"""
-        self._pandas_dtype = value
-        self.dtype  # pylint: disable=pointless-statement
-
-    @property
-    def dtype(self) -> Optional[str]:
-        """String representation of the dtype."""
-        return PandasDtype.get_str_dtype(self._pandas_dtype)
-
-    @property
-    def pdtype(self) -> Optional[PandasDtype]:
-        """PandasDtype of the series."""
-        if self.dtype is None:
-            return None
-        if isinstance(self.pandas_dtype, PandasDtype):
-            return self.pandas_dtype
-        return PandasDtype.from_str_alias(self.dtype)
+        self._dtype = PandasEngine.dtype(value) if value else None
 
     def coerce_dtype(self, obj: Union[pd.Series, pd.Index]) -> pd.Series:
-        """Coerce type of a pd.Series by type specified in pandas_dtype.
+        """Coerce type of a pd.Series by type specified in dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if self._pandas_dtype is None:
-            return obj
-        elif (
-            self._pandas_dtype is PandasDtype.String
-            or self._pandas_dtype is str
-            or self._pandas_dtype == "str"
-            and self._pandas_dtype is not PandasDtype.Object
-        ):
-            # only coerce non-null elements to string, make sure series is of
-            # object dtype
-            return obj.astype(object).where(
-                obj.isna(),
-                obj.astype(str),
-            )
-
         try:
-            return obj.astype(self.dtype)
+            return self.dtype.coerce(obj)
         except (ValueError, TypeError) as exc:
             msg = (
                 f"Error while coercing '{self.name}' to type "
@@ -1739,33 +1687,7 @@ class SeriesSchemaBase:
                 ),
             )
 
-        series_dtype = series.dtype
-        if self._nullable:
-            series_no_nans = series.dropna()
-            if self.dtype in dtypes.NUMPY_NONNULLABLE_INT_DTYPES:
-                _series = series_no_nans.astype(self.dtype)
-                series_dtype = _series.dtype
-                if (_series != series_no_nans).any():
-                    # in case where dtype is meant to be int, make sure that
-                    # casting to int results in equal values.
-                    msg = (
-                        "after dropping null values, expected values in "
-                        "series '%s' to be int, found: %s"
-                        % (series.name, set(series))
-                    )
-                    error_handler.collect_error(
-                        "unexpected_nullable_integer_type",
-                        errors.SchemaError(
-                            self,
-                            check_obj,
-                            msg,
-                            failure_cases=reshape_failure_cases(
-                                series_no_nans
-                            ),
-                            check="nullable_integer",
-                        ),
-                    )
-        else:
+        if not self._nullable:
             nulls = series.isna()
             if sum(nulls) > 0:
                 msg = "non-nullable series '%s' contains null values: %s" % (
@@ -1808,25 +1730,21 @@ class SeriesSchemaBase:
                     ),
                 )
 
-        if is_extension_dtype(self._pandas_dtype):
-            target_dtype = PandasDtype.get_dtype(self._pandas_dtype)
-        else:
-            series_dtype = str(series_dtype)
-            target_dtype = self.dtype
-        if self._pandas_dtype is not None and series_dtype != target_dtype:
-            msg = "expected series '%s' to have type %s, got %s" % (
-                series.name,
-                repr(target_dtype),
-                repr(series_dtype),
+        if self._dtype is not None and (
+            not self._dtype.check(PandasEngine.dtype(series.dtype))
+        ):
+            msg = (
+                f"expected series '{series.name}' to have type {self._dtype}, "
+                + f"got {series.dtype}"
             )
             error_handler.collect_error(
-                "wrong_pandas_dtype",
+                "wrong_dtype",
                 errors.SchemaError(
                     self,
                     check_obj,
                     msg,
-                    failure_cases=scalar_failure_case(str(series_dtype)),
-                    check=f"pandas_dtype('{self.dtype}')",
+                    failure_cases=scalar_failure_case(str(series.dtype)),
+                    check=f"dtype('{self.dtype}')",
                 ),
             )
 
@@ -1897,7 +1815,7 @@ class SeriesSchemaBase:
         :returns: a strategy that generates pandas Series objects.
         """
         return st.series_strategy(
-            self.pdtype,
+            self.dtype,
             checks=self.checks,
             nullable=self.nullable,
             allow_duplicates=self.allow_duplicates,
@@ -1922,13 +1840,9 @@ class SeriesSchemaBase:
             return self.strategy(size=size).example()
 
     def __repr__(self):
-        if isinstance(self._pandas_dtype, PandasDtype):
-            dtype = self._pandas_dtype.value
-        else:
-            dtype = self._pandas_dtype
         return (
             f"<Schema {self.__class__.__name__}"
-            f"(name={self._name}, type={dtype})>"
+            f"(name={self._name}, type={self.dtype!r})>"
         )
 
 
@@ -1937,7 +1851,7 @@ class SeriesSchema(SeriesSchemaBase):
 
     def __init__(
         self,
-        pandas_dtype: PandasDtypeInputTypes = None,
+        dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         index=None,
         nullable: bool = False,
@@ -1947,7 +1861,7 @@ class SeriesSchema(SeriesSchemaBase):
     ) -> None:
         """Initialize series schema base object.
 
-        :param pandas_dtype: datatype of the column. If a string is specified,
+        :param dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: If element_wise is True, then callable signature should
@@ -1964,7 +1878,7 @@ class SeriesSchema(SeriesSchemaBase):
         :type allow_duplicates: bool
         """
         super().__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce, name
+            dtype, checks, nullable, allow_duplicates, coerce, name
         )
         self.index = index
 

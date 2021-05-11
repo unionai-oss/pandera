@@ -13,7 +13,6 @@ from pandera import (
     Field,
     Float,
     Int,
-    PandasDtype,
     SchemaModel,
     String,
     check_input,
@@ -22,6 +21,7 @@ from pandera import (
     check_types,
     errors,
 )
+from pandera.engines.pandas_engine import PandasEngine
 from pandera.typing import DataFrame, Index, Series
 
 
@@ -641,8 +641,8 @@ def test_check_types_coerce():
         return df
 
     df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))
-    expected = InSchema.to_schema().columns["a"].pandas_dtype
-    assert PandasDtype(str(df["a"].dtype)) == expected == PandasDtype("int")
+    expected = InSchema.to_schema().columns["a"].dtype
+    assert PandasEngine.dtype(df["a"].dtype) == expected
 
     @check_types()
     def transform_out() -> DataFrame[OutSchema]:
@@ -650,7 +650,5 @@ def test_check_types_coerce():
         return pd.DataFrame({"b": ["1"]})
 
     out_df = transform_out()
-    expected = OutSchema.to_schema().columns["b"].pandas_dtype
-    assert (
-        PandasDtype(str(out_df["b"].dtype)) == expected == PandasDtype("int")
-    )
+    expected = OutSchema.to_schema().columns["b"].dtype
+    assert PandasEngine.dtype(out_df["b"].dtype) == expected
