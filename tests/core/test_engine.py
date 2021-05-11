@@ -1,6 +1,8 @@
-from typing import Any, Type, List, Union
-from pandera.engines.engine import Engine
+from typing import Any, List, Type, Union
+
 import pytest
+
+from pandera.engines.engine import Engine
 
 
 class BaseDataType:
@@ -132,7 +134,9 @@ def test_register_dtype_complete(engine: Type[Engine], equivalents: List[Any]):
         engine.dtype(str)
 
 
-def test_register_dtype_overwrite(engine: Type[Engine], equivalents: List[Any]):
+def test_register_dtype_overwrite(
+    engine: Type[Engine], equivalents: List[Any]
+):
     """Test that register_dtype overwrites existing registrations."""
 
     @engine.register_dtype(equivalents=["foo"])
