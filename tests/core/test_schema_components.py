@@ -20,8 +20,7 @@ from pandera import (
     String,
     errors,
 )
-
-from .test_dtypes import TESTABLE_DTYPES
+from pandera.engines.pandas_engine import PandasEngine
 
 
 def test_column():
@@ -44,25 +43,6 @@ def test_column():
 
     with pytest.raises(errors.SchemaError):
         Column(Int)(data)
-
-
-def test_coerce_nullable_object_column():
-    """Test that Object dtype coercing preserves object types."""
-    df_objects_with_na = pd.DataFrame(
-        {"col": [1, 2.0, [1, 2, 3], {"a": 1}, np.nan, None]}
-    )
-
-    column_schema = Column(Object, name="col", coerce=True, nullable=True)
-
-    validated_df = column_schema.validate(df_objects_with_na)
-    assert isinstance(validated_df, pd.DataFrame)
-    assert pd.isna(validated_df["col"].iloc[-1])
-    assert pd.isna(validated_df["col"].iloc[-2])
-    for i in range(4):
-        isinstance(
-            validated_df["col"].iloc[i],
-            type(df_objects_with_na["col"].iloc[i]),
-        )
 
 
 def test_column_in_dataframe_schema():
@@ -94,18 +74,13 @@ def test_index_schema():
         schema.validate(pd.DataFrame(index=range(1, 20)))
 
 
-@pytest.mark.parametrize("pdtype", [Float, Int, String, String])
-def test_index_schema_coerce(pdtype):
+@pytest.mark.parametrize("dtype", [Float, Int, String])
+def test_index_schema_coerce(dtype):
     """Test that index can be type-coerced."""
-    schema = DataFrameSchema(index=Index(pdtype, coerce=True))
+    schema = DataFrameSchema(index=Index(dtype, coerce=True))
     df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
-    validated_df = schema(df)
-    # pandas-native "string" dtype doesn't apply to indexes
-    assert (
-        validated_df.index.dtype == "object"
-        if pdtype is String
-        else pdtype.str_alias
-    )
+    validated_index_dtype = PandasEngine.dtype(schema(df).index.dtype)
+    assert schema.index.dtype.check(validated_index_dtype)
 
 
 def test_multi_index_columns():
@@ -198,10 +173,8 @@ def test_multi_index_schema_coerce():
     )
     validated_df = schema(df)
     for level_i in range(validated_df.index.nlevels):
-        assert (
-            validated_df.index.get_level_values(level_i).dtype
-            == indexes[level_i].dtype
-        )
+        index_dtype = validated_df.index.get_level_values(level_i).dtype
+        assert indexes[level_i].dtype.check(PandasEngine.dtype(index_dtype))
 
 
 def tests_multi_index_subindex_coerce():
@@ -234,12 +207,6 @@ def tests_multi_index_subindex_coerce():
         errors.SchemaErrors, match="A total of 2 schema errors were found"
     ):
         schema(data, lazy=True)
-
-
-@pytest.mark.parametrize("pandas_dtype, expected", TESTABLE_DTYPES)
-def test_column_dtype_property(pandas_dtype, expected):
-    """Tests that the dtypes provided by Column match pandas dtypes"""
-    assert Column(pandas_dtype).dtype == expected
 
 
 def test_schema_component_equality_operators():
@@ -494,18 +461,17 @@ def test_column_type_can_be_set():
     column_a = Column(Int, name="a")
     changed_type = Float
 
-    column_a.pandas_dtype = Float
+    column_a.dtype = Float
 
-    assert column_a.pandas_dtype == changed_type
-    assert column_a.dtype == changed_type.str_alias
+    assert column_a.dtype == PandasEngine.dtype(changed_type)
 
     for invalid_dtype in ("foobar", "bar"):
         with pytest.raises(TypeError):
-            column_a.pandas_dtype = invalid_dtype
+            column_a.dtype = invalid_dtype
 
     for invalid_dtype in (1, 2.2, ["foo", 1, 1.1], {"b": 1}):
         with pytest.raises(TypeError):
-            column_a.pandas_dtype = invalid_dtype
+            column_a.dtype = invalid_dtype
 
 
 @pytest.mark.parametrize(
