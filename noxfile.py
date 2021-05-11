@@ -180,6 +180,9 @@ def install_extras(
         for spec in REQUIRES[extra].values()
         if spec not in ALWAYS_USE_PIP
     ]
+    if extra == "core":
+        specs.append(REQUIRES["all"]["hypothesis"])
+
     session.install(*ALWAYS_USE_PIP)
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
