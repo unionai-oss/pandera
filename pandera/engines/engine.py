@@ -27,7 +27,7 @@ class Engine(ABCMeta):
 
     def __new__(mcs, name, bases, namespace, **kwargs):
         base_datatype = kwargs.pop("base_datatype")
-        try:
+        try:  # allow multiple base datatypes
             base_datatype = tuple(base_datatype)
         except TypeError:
             pass

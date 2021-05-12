@@ -21,7 +21,7 @@ from pandera import (
     check_types,
     errors,
 )
-from pandera.engines.pandas_engine import PandasEngine
+from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
 
@@ -642,7 +642,7 @@ def test_check_types_coerce():
 
     df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))
     expected = InSchema.to_schema().columns["a"].dtype
-    assert PandasEngine.dtype(df["a"].dtype) == expected
+    assert Engine.dtype(df["a"].dtype) == expected
 
     @check_types()
     def transform_out() -> DataFrame[OutSchema]:
@@ -651,4 +651,4 @@ def test_check_types_coerce():
 
     out_df = transform_out()
     expected = OutSchema.to_schema().columns["b"].dtype
-    assert PandasEngine.dtype(out_df["b"].dtype) == expected
+    assert Engine.dtype(out_df["b"].dtype) == expected

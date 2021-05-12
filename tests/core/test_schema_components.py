@@ -20,7 +20,7 @@ from pandera import (
     String,
     errors,
 )
-from pandera.engines.pandas_engine import PandasEngine
+from pandera.engines.pandas_engine import Engine
 
 
 def test_column():
@@ -79,7 +79,7 @@ def test_index_schema_coerce(dtype):
     """Test that index can be type-coerced."""
     schema = DataFrameSchema(index=Index(dtype, coerce=True))
     df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
-    validated_index_dtype = PandasEngine.dtype(schema(df).index.dtype)
+    validated_index_dtype = Engine.dtype(schema(df).index.dtype)
     assert schema.index.dtype.check(validated_index_dtype)
 
 
@@ -174,7 +174,7 @@ def test_multi_index_schema_coerce():
     validated_df = schema(df)
     for level_i in range(validated_df.index.nlevels):
         index_dtype = validated_df.index.get_level_values(level_i).dtype
-        assert indexes[level_i].dtype.check(PandasEngine.dtype(index_dtype))
+        assert indexes[level_i].dtype.check(Engine.dtype(index_dtype))
 
 
 def tests_multi_index_subindex_coerce():
@@ -463,7 +463,7 @@ def test_column_type_can_be_set():
 
     column_a.dtype = Float
 
-    assert column_a.dtype == PandasEngine.dtype(changed_type)
+    assert column_a.dtype == Engine.dtype(changed_type)
 
     for invalid_dtype in ("foobar", "bar"):
         with pytest.raises(TypeError):
