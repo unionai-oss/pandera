@@ -227,8 +227,8 @@ class Complex64(Complex128):
 ################################################################################
 
 
-@dataclass(frozen=True)
-class Category(DataType):
+@immutable(init=True)
+class Category(DisableInitMixin, DataType):
     categories: Tuple[Any] = None  # immutable sequence to ensure safe hash
     ordered: bool = False
 

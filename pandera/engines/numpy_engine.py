@@ -5,13 +5,13 @@ from typing import Any, List
 
 import numpy as np
 
-import pandera.dtypes_
-from pandera.dtypes_ import *
-from pandera.engines.engine import Engine
+from .. import dtypes_
+from ..dtypes_ import DisableInitMixin, immutable
+from . import engine
 
 
 @immutable(init=True)
-class NumpyDataType(DataType):
+class DataType(dtypes_.DataType):
     type: np.dtype = field(default=np.dtype("object"), repr=False)
 
     def __post_init__(self):
@@ -24,14 +24,14 @@ class NumpyDataType(DataType):
         return self.type.name
 
     def __repr__(self) -> str:
-        return f"NumpyDataType({self})"
+        return f"DataType({self})"
 
 
-class NumpyEngine(metaclass=Engine, base_datatype=NumpyDataType):
+class Engine(metaclass=engine.Engine, base_datatype=DataType):
     @classmethod
-    def dtype(cls, data_type: Any) -> "NumpyDataType":
+    def dtype(cls, data_type: Any) -> "DataType":
         try:
-            return Engine.dtype(cls, data_type)
+            return engine.Engine.dtype(cls, data_type)
         except TypeError:
             try:
                 np_dtype = np.dtype(data_type).type
@@ -40,9 +40,9 @@ class NumpyEngine(metaclass=Engine, base_datatype=NumpyDataType):
                     f"data type '{data_type}' not understood by {cls.__name__}."
                 ) from None
             try:
-                return Engine.dtype(cls, np_dtype)
+                return engine.Engine.dtype(cls, np_dtype)
             except TypeError:
-                return NumpyDataType(data_type)
+                return DataType(data_type)
 
 
 ################################################################################
@@ -50,10 +50,12 @@ class NumpyEngine(metaclass=Engine, base_datatype=NumpyDataType):
 ################################################################################
 
 
-@NumpyEngine.register_dtype(equivalents=["bool", bool, np.bool_, Bool, Bool()])
+@Engine.register_dtype(
+    equivalents=["bool", bool, np.bool_, dtypes_.Bool, dtypes_.Bool()]
+)
 @immutable
-class NumpyBool(DisableInitMixin, NumpyDataType, Bool):
-    """Numpy representation of a boolean data type."""
+class Bool(DisableInitMixin, DataType, dtypes_.Bool):
+    """representation of a boolean data type."""
 
     type = np.dtype("bool")
 
@@ -71,7 +73,7 @@ def _build_number_equivalents(
         # e.g.: np.int64
         np.dtype(builtin_name).type,
         # e.g: pandera.dtypes.Int
-        getattr(pandera.dtypes_, pandera_name),
+        getattr(dtypes_, pandera_name),
     ]
     if builtin_type:
         default_equivalents.append(builtin_type)
@@ -82,10 +84,10 @@ def _build_number_equivalents(
                 # e.g.: numpy.int64
                 getattr(np, f"{builtin_name}{bit_width}"),
                 # e.g.: pandera.dtypes.Int64
-                getattr(pandera.dtypes_, f"{pandera_name}{bit_width}"),
-                getattr(pandera.dtypes_, f"{pandera_name}{bit_width}")(),
+                getattr(dtypes_, f"{pandera_name}{bit_width}"),
+                getattr(dtypes_, f"{pandera_name}{bit_width}")(),
                 # e.g.: pandera.dtypes.Int(64)
-                getattr(pandera.dtypes_, pandera_name)(),
+                getattr(dtypes_, pandera_name)(),
             )
         )
         | set(default_equivalents if bit_width == default_size else [])
@@ -102,30 +104,30 @@ _int_equivalents = _build_number_equivalents(
 )
 
 
-@NumpyEngine.register_dtype(equivalents=_int_equivalents[64])
+@Engine.register_dtype(equivalents=_int_equivalents[64])
 @immutable
-class NumpyInt64(DisableInitMixin, NumpyDataType, Int64):
+class Int64(DisableInitMixin, DataType, dtypes_.Int64):
     type = np.dtype("int64")
     bit_width: int = 64
 
 
-@NumpyEngine.register_dtype(equivalents=_int_equivalents[32])
+@Engine.register_dtype(equivalents=_int_equivalents[32])
 @immutable
-class NumpyInt32(NumpyInt64):
+class Int32(Int64):
     type = np.dtype("int32")
     bit_width: int = 32
 
 
-@NumpyEngine.register_dtype(equivalents=_int_equivalents[16])
+@Engine.register_dtype(equivalents=_int_equivalents[16])
 @immutable
-class NumpyInt16(NumpyInt32):
+class Int16(Int32):
     type = np.dtype("int16")
     bit_width: int = 16
 
 
-@NumpyEngine.register_dtype(equivalents=_int_equivalents[8])
+@Engine.register_dtype(equivalents=_int_equivalents[8])
 @immutable
-class NumpyInt8(NumpyInt16):
+class Int8(Int16):
     type = np.dtype("int8")
     bit_width: int = 8
 
@@ -141,30 +143,30 @@ _uint_equivalents = _build_number_equivalents(
 )
 
 
-@NumpyEngine.register_dtype(equivalents=_uint_equivalents[64])
+@Engine.register_dtype(equivalents=_uint_equivalents[64])
 @immutable
-class NumpyUInt64(DisableInitMixin, NumpyDataType, UInt64):
+class UInt64(DisableInitMixin, DataType, dtypes_.UInt64):
     type = np.dtype("uint64")
     bit_width: int = 64
 
 
-@NumpyEngine.register_dtype(equivalents=_uint_equivalents[32])
+@Engine.register_dtype(equivalents=_uint_equivalents[32])
 @immutable
-class NumpyUInt32(NumpyUInt64):
+class UInt32(UInt64):
     type = np.dtype("uint32")
     bit_width: int = 32
 
 
-@NumpyEngine.register_dtype(equivalents=_uint_equivalents[16])
+@Engine.register_dtype(equivalents=_uint_equivalents[16])
 @immutable
-class NumpyUInt16(NumpyUInt32):
+class UInt16(UInt32):
     type = np.dtype("uint16")
     bit_width: int = 16
 
 
-@NumpyEngine.register_dtype(equivalents=_uint_equivalents[8])
+@Engine.register_dtype(equivalents=_uint_equivalents[8])
 @immutable
-class NumpyUInt8(NumpyUInt16):
+class UInt8(UInt16):
     type = np.dtype("uint8")
     bit_width: int = 8
 
@@ -180,30 +182,30 @@ _float_equivalents = _build_number_equivalents(
 )
 
 
-@NumpyEngine.register_dtype(equivalents=_float_equivalents[128])
+@Engine.register_dtype(equivalents=_float_equivalents[128])
 @immutable
-class NumpyFloat128(DisableInitMixin, NumpyDataType, Float128):
+class Float128(DisableInitMixin, DataType, dtypes_.Float128):
     type = np.dtype("float128")
     bit_width: int = 128
 
 
-@NumpyEngine.register_dtype(equivalents=_float_equivalents[64])
+@Engine.register_dtype(equivalents=_float_equivalents[64])
 @immutable
-class NumpyFloat64(NumpyFloat128):
+class Float64(Float128):
     type = np.dtype("float64")
     bit_width: int = 64
 
 
-@NumpyEngine.register_dtype(equivalents=_float_equivalents[32])
+@Engine.register_dtype(equivalents=_float_equivalents[32])
 @immutable
-class NumpyFloat32(NumpyFloat64):
+class Float32(Float64):
     type = np.dtype("float32")
     bit_width: int = 32
 
 
-@NumpyEngine.register_dtype(equivalents=_float_equivalents[16])
+@Engine.register_dtype(equivalents=_float_equivalents[16])
 @immutable
-class NumpyFloat16(NumpyFloat32):
+class Float16(Float32):
     type = np.dtype("float16")
     bit_width: int = 16
 
@@ -219,23 +221,23 @@ _complex_equivalents = _build_number_equivalents(
 )
 
 
-@NumpyEngine.register_dtype(equivalents=_complex_equivalents[256])
+@Engine.register_dtype(equivalents=_complex_equivalents[256])
 @immutable
-class NumpyComplex256(DisableInitMixin, NumpyDataType, Complex256):
+class Complex256(DisableInitMixin, DataType, dtypes_.Complex256):
     type = np.dtype("complex256")
     bit_width: int = 256
 
 
-@NumpyEngine.register_dtype(equivalents=_complex_equivalents[128])
+@Engine.register_dtype(equivalents=_complex_equivalents[128])
 @immutable
-class NumpyComplex128(NumpyComplex256):
+class Complex128(Complex256):
     type = np.dtype("complex128")
     bit_width: int = 128
 
 
-@NumpyEngine.register_dtype(equivalents=_complex_equivalents[64])
+@Engine.register_dtype(equivalents=_complex_equivalents[64])
 @immutable
-class NumpyComplex64(NumpyComplex128):
+class Complex64(Complex128):
     type = np.dtype("complex64")
     bit_width: int = 64
 
@@ -245,9 +247,9 @@ class NumpyComplex64(NumpyComplex128):
 ################################################################################
 
 
-@NumpyEngine.register_dtype(equivalents=["str", "string", str, np.str_])
+@Engine.register_dtype(equivalents=["str", "string", str, np.str_])
 @immutable
-class NumpyString(DisableInitMixin, NumpyDataType, String):
+class String(DisableInitMixin, DataType, dtypes_.String):
     type = np.dtype("str")
 
     def coerce(self, arr: np.ndarray) -> np.ndarray:
@@ -256,8 +258,8 @@ class NumpyString(DisableInitMixin, NumpyDataType, String):
         arr[notna] = arr[notna].astype(str)
         return arr
 
-    def check(self, datatype: "DataType") -> bool:
-        return isinstance(datatype, (NumpyObject, type(self)))
+    def check(self, datatype: "dtypes_.DataType") -> bool:
+        return isinstance(datatype, (Object, type(self)))
 
 
 ################################################################################
@@ -265,40 +267,40 @@ class NumpyString(DisableInitMixin, NumpyDataType, String):
 ################################################################################
 
 
-@NumpyEngine.register_dtype(equivalents=["object", "O", object, np.object_])
+@Engine.register_dtype(equivalents=["object", "O", object, np.object_])
 @immutable
-class NumpyObject(DisableInitMixin, NumpyDataType):
+class Object(DisableInitMixin, DataType):
     type = np.dtype("object")
 
 
-Object = NumpyObject
+Object = Object
 
 ################################################################################
 # time
 ################################################################################
 
 
-@NumpyEngine.register_dtype(
+@Engine.register_dtype(
     equivalents=[
         datetime.datetime,
         np.datetime64,
-        Timestamp,
-        Timestamp(),
+        dtypes_.Timestamp,
+        dtypes_.Timestamp(),
     ]
 )
 @immutable
-class NumpyDateTime64(DisableInitMixin, NumpyDataType, Timestamp):
+class DateTime64(DisableInitMixin, DataType, dtypes_.Timestamp):
     type = np.dtype("datetime64")
 
 
-@NumpyEngine.register_dtype(
+@Engine.register_dtype(
     equivalents=[
         datetime.datetime,
         np.timedelta64,
-        Timedelta,
-        Timedelta(),
+        dtypes_.Timedelta,
+        dtypes_.Timedelta(),
     ]
 )
 @immutable
-class NumpyTimedelta64(DisableInitMixin, NumpyDataType, Timedelta):
+class Timedelta64(DisableInitMixin, DataType, dtypes_.Timedelta):
     type = np.dtype("timedelta64")

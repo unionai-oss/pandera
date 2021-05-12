@@ -337,20 +337,20 @@ class Index(SeriesSchemaBase):
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 
-            :check_obj: pandas DataFrame of Series containing index to validate.
-            :param head: validate the first n rows. Rows overlapping with `tail` or
-                `sample` are de-duplicated.
-            :param tail: validate the last n rows. Rows overlapping with `head` or
-                `sample` are de-duplicated.
-            :param sample: validate a random sample of n rows. Rows overlapping
-                with `head` or `tail` are de-duplicated.
+        :check_obj: pandas DataFrame of Series containing index to validate.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
-            :param lazy: if True, lazily evaluates dataframe against all validation
-                checks and raises a ``SchemaErrors``. Otherwise, raise
-                ``SchemaError`` as soon as one occurs.
-            :param inplace: if True, applies coercion to the object of validation,
-                otherwise creates a copy of the data.
-            :returns: validated DataFrame or Series.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated DataFrame or Series.
         """
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
