@@ -1,5 +1,32 @@
 """A flexible and expressive pandas validation library."""
-from pandera.dtypes_ import *
+from pandera.dtypes_ import (
+    Bool,
+    Category,
+    Complex,
+    Complex64,
+    Complex128,
+    Complex256,
+    DataType,
+    DateTime,
+    Float,
+    Float16,
+    Float32,
+    Float64,
+    Float128,
+    Int,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    String,
+    Timedelta,
+    Timestamp,
+    UInt,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+)
 from pandera.engines.numpy_engine import Object
 from pandera.engines.pandas_engine import (
     BOOL,

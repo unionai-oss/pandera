@@ -16,7 +16,7 @@ from . import constants, dtypes, errors
 from . import strategies as st
 from .checks import Check
 from .dtypes_ import DataType
-from .engines.pandas_engine import PandasEngine, PandasExtensionType
+from .engines import pandas_engine
 from .error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -36,7 +36,7 @@ PandasDtypeInputTypes = Union[
     str,
     type,
     DataType,
-    PandasExtensionType,
+    pandas_engine.PandasExtensionType,
     np.dtype,
 ]
 
@@ -281,7 +281,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     @dtype.setter
     def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the pandas dtype property."""
-        self._dtype = PandasEngine.dtype(value) if value else None
+        self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
     def _coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
         if self.dtype is None:
@@ -1569,7 +1569,7 @@ class SeriesSchemaBase:
     @dtype.setter
     def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the pandas dtype"""
-        self._dtype = PandasEngine.dtype(value) if value else None
+        self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
     def coerce_dtype(self, obj: Union[pd.Series, pd.Index]) -> pd.Series:
         """Coerce type of a pd.Series by type specified in dtype.
@@ -1723,7 +1723,7 @@ class SeriesSchemaBase:
                 )
 
         if self._dtype is not None and (
-            not self._dtype.check(PandasEngine.dtype(series.dtype))
+            not self._dtype.check(pandas_engine.Engine.dtype(series.dtype))
         ):
             msg = (
                 f"expected series '{series.name}' to have type {self._dtype}, "

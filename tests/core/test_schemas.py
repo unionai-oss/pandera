@@ -20,7 +20,7 @@ from pandera import (
     SeriesSchema,
     errors,
 )
-from pandera.engines.pandas_engine import PandasEngine
+from pandera.engines.pandas_engine import Engine
 from pandera.schemas import SeriesSchemaBase
 
 
@@ -171,12 +171,12 @@ def test_dataframe_dtype_coerce():
     df = pd.DataFrame(
         {f"column_{i}": range(10) for i in range(5)}, dtype=float
     )
-    int_alias = str(PandasEngine.dtype(int))
+    int_alias = str(Engine.dtype(int))
     assert (schema(df).dtypes == int_alias).all()
 
     # test that dtype in schema.columns are preserved
     for col in schema.columns.values():
-        assert col.dtype == PandasEngine.dtype(float)
+        assert col.dtype == Engine.dtype(float)
 
     # raises SchemeError if dataframe can't be coerced
     with pytest.raises(errors.SchemaErrors):
@@ -187,7 +187,7 @@ def test_dataframe_dtype_coerce():
         schema(pd.DataFrame({"foo": list("abcdef")}), lazy=True)
 
     # test that original dataframe dtypes are preserved
-    float_alias = str(PandasEngine.dtype(float))
+    float_alias = str(Engine.dtype(float))
     assert (df.dtypes == float_alias).all()
 
     # raises ValueError if _coerce_dtype is called when dtype is None
@@ -201,10 +201,8 @@ def test_dataframe_dtype_coerce():
     # test setting coerce as false at the dataframe level no longer coerces
     # columns to int
     schema.coerce = False
-    pd_dtypes = [
-        PandasEngine.dtype(pd_dtype) for pd_dtype in schema(df).dtypes
-    ]
-    assert all(pd_dtype == PandasEngine.dtype(float) for pd_dtype in pd_dtypes)
+    pd_dtypes = [Engine.dtype(pd_dtype) for pd_dtype in schema(df).dtypes]
+    assert all(pd_dtype == Engine.dtype(float) for pd_dtype in pd_dtypes)
 
 
 def test_dataframe_coerce_regex():
@@ -525,11 +523,11 @@ def test_coerce_dtype_in_dataframe():
 
     for schema in [schema1, schema2]:
         result = schema.validate(df)
-        column1_datatype = PandasEngine.dtype(result.column1.dtype)
-        assert column1_datatype == PandasEngine.dtype(int)
+        column1_datatype = Engine.dtype(result.column1.dtype)
+        assert column1_datatype == Engine.dtype(int)
 
-        column2_datatype = PandasEngine.dtype(result.column2.dtype)
-        assert column2_datatype == PandasEngine.dtype(datetime)
+        column2_datatype = Engine.dtype(result.column2.dtype)
+        assert column2_datatype == Engine.dtype(datetime)
 
         # make sure that correct error is raised when null values are present
         # in a float column that's coerced to an int
@@ -715,10 +713,10 @@ def test_dataframe_schema_dtype_property():
         }
     )
     assert schema.dtypes == {
-        "col1": PandasEngine.dtype("int64"),
-        "col2": PandasEngine.dtype("str"),
-        "col3": PandasEngine.dtype("datetime64[ns]"),
-        "col4": PandasEngine.dtype("uint16"),
+        "col1": Engine.dtype("int64"),
+        "col2": Engine.dtype("str"),
+        "col3": Engine.dtype("datetime64[ns]"),
+        "col4": Engine.dtype("uint16"),
     }
 
 
@@ -849,7 +847,7 @@ def test_schema_get_dtype():
     )
 
     with pytest.warns(UserWarning) as record:
-        assert schema.dtypes == {"col1": PandasEngine.dtype(int)}
+        assert schema.dtypes == {"col1": Engine.dtype(int)}
     assert len(record) == 1
     assert (
         record[0]
@@ -858,10 +856,10 @@ def test_schema_get_dtype():
     )
 
     assert schema.get_dtypes(data) == {
-        "col1": PandasEngine.dtype(int),
-        "var1": PandasEngine.dtype(float),
-        "var2": PandasEngine.dtype(float),
-        "var3": PandasEngine.dtype(float),
+        "col1": Engine.dtype(int),
+        "var1": Engine.dtype(float),
+        "var2": Engine.dtype(float),
+        "var3": Engine.dtype(float),
     }
 
 
@@ -1437,7 +1435,7 @@ def test_update_columns(schema_simple):
         schema_simple.columns["col1"].properties
         == test_schema.columns["col1"].properties
     )
-    assert test_schema.columns["col2"].dtype == PandasEngine.dtype(int)
+    assert test_schema.columns["col2"].dtype == Engine.dtype(int)
 
     # Multiple columns, multiple properties
     test_schema = schema_simple.update_columns(
@@ -1446,9 +1444,9 @@ def test_update_columns(schema_simple):
             "col2": {"dtype": int, "allow_duplicates": False},
         }
     )
-    assert test_schema.columns["col1"].dtype == PandasEngine.dtype(Category)
+    assert test_schema.columns["col1"].dtype == Engine.dtype(Category)
     assert test_schema.columns["col1"].coerce is True
-    assert test_schema.columns["col2"].dtype == PandasEngine.dtype(int)
+    assert test_schema.columns["col2"].dtype == Engine.dtype(int)
     assert test_schema.columns["col2"].allow_duplicates is False
 
     # Errors
@@ -1463,12 +1461,12 @@ def test_update_columns(schema_simple):
 @pytest.mark.parametrize("dtype", [int, None])  # type: ignore
 def test_series_schema_dtype(dtype):
     """Series schema dtype property should return
-    a PandasEngine-compatible dtype."""
+    a Engine-compatible dtype."""
     if dtype is None:
         series_schema = SeriesSchema(dtype)
         assert series_schema.dtype is None
     else:
-        assert SeriesSchema(dtype).dtype == PandasEngine.dtype(dtype)
+        assert SeriesSchema(dtype).dtype == Engine.dtype(dtype)
 
 
 @pytest.mark.parametrize(
