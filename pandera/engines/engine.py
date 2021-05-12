@@ -12,8 +12,8 @@ from pandera.dtypes_ import DataType
 
 @dataclass
 class _DtypeRegistry:
-    dispatcher: Callable[[Any], DataType]
-    lookup: Dict[Any, Type[DataType]]
+    dispatch: Callable[[Any], DataType]
+    equivalents: Dict[Any, Type[DataType]]
 
 
 class Engine(ABCMeta):
@@ -38,7 +38,7 @@ class Engine(ABCMeta):
         def dtype(obj: Any) -> DataType:
             raise ValueError(f"Data type '{obj}' not understood")
 
-        mcs._registry[cls] = _DtypeRegistry(dispatcher=dtype, lookup={})
+        mcs._registry[cls] = _DtypeRegistry(dispatch=dtype, equivalents={})
         return cls
 
     def _check_source_dtype(cls, obj: Any) -> None:
@@ -64,9 +64,9 @@ class Engine(ABCMeta):
 
         for source_dtype in dtypes:
             cls._check_source_dtype(source_dtype)
-            cls._registry[cls].dispatcher.register(source_dtype, _method)
+            cls._registry[cls].dispatch.register(source_dtype, _method)
 
-    def _register_lookup(
+    def _register_equivalents(
         cls,
         target_dtype: Union[DataType, Type[DataType]],
         *source_dtypes: Any,
@@ -74,7 +74,7 @@ class Engine(ABCMeta):
         value = target_dtype()
         for source_dtype in source_dtypes:
             cls._check_source_dtype(source_dtype)
-            cls._registry[cls].lookup[source_dtype] = value
+            cls._registry[cls].equivalents[source_dtype] = value
 
     def register_dtype(
         cls,
@@ -100,7 +100,7 @@ class Engine(ABCMeta):
                 )
 
             if equivalents:
-                cls._register_lookup(dtype, *equivalents)
+                cls._register_equivalents(dtype, *equivalents)
 
             from_parametrized_dtype = dtype.__dict__.get(
                 "from_parametrized_dtype"
@@ -145,12 +145,12 @@ class Engine(ABCMeta):
 
         registry = cls._registry[cls]
 
-        data_type = registry.lookup.get(obj)
+        data_type = registry.equivalents.get(obj)
         if data_type is not None:
             return data_type
 
         try:
-            return registry.dispatcher(obj)
+            return registry.dispatch(obj)
         except (KeyError, ValueError):
             raise TypeError(
                 f"Data type '{obj}' not understood by {cls.__name__}."
