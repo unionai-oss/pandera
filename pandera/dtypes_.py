@@ -40,26 +40,6 @@ def immutable(
     """:func:`dataclasses.dataclass` decorator with different default values:
     `frozen=True`, `init=False`, `repr=False`.
 
-    :param dtype: :class:`DataType` to decorate.
-    :param dataclass_kwargs: Keywords arguments forwarded to
-        :func:`dataclasses.dataclass`.
-    :returns: Immutable :class:`DataType`
-    """
-    kwargs = {"frozen": True, "init": False, "repr": False}
-    kwargs.update(dataclass_kwargs)
-
-
-#     if dtype is None:
-#         return functools.partial(dataclasses.dataclass, **kwargs)
-#     return dataclasses.dataclass(**kwargs)(dtype)
-
-
-def immutable(
-    dtype: Type[DataType] = None, **dataclass_kwargs: Any
-) -> Type[DataType]:
-    """:func:`dataclasses.dataclass` decorator with different default values:
-    `frozen=True`, `init=False`, `repr=False`.
-
     In addition, `init=False` disables inherited `__init__` method to ensure
     the DataType's default attributes are not altered during initialization.
 
