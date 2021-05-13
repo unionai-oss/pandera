@@ -1,13 +1,13 @@
 import builtins
+import dataclasses
 import datetime
-from dataclasses import field
 from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
 
 from .. import dtypes_
-from ..dtypes_ import DisableInitMixin, immutable
+from ..dtypes_ import immutable
 from . import engine, numpy_engine
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
@@ -23,7 +23,10 @@ def is_extension_dtype(dtype):
 
 @immutable(init=True)
 class DataType(dtypes_.DataType):
-    type: Any = field(repr=False)
+    type: Any = dataclasses.field(repr=False, init=False)
+
+    def __init__(self, dtype: Any):
+        object.__setattr__(self, "type", pd.api.types.pandas_dtype(dtype))
 
     def __post_init__(self):
         object.__setattr__(self, "type", pd.api.types.pandas_dtype(self.type))
@@ -93,7 +96,7 @@ Engine.register_dtype(
     equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()],
 )
 @immutable
-class Bool(DisableInitMixin, DataType, dtypes_.Bool):
+class Bool(DataType, dtypes_.Bool):
     type = pd.BooleanDtype()
 
 
@@ -164,7 +167,7 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.Int64Dtype, pd.Int64Dtype()])
 @immutable
-class Int64(DisableInitMixin, DataType, dtypes_.Int):
+class Int64(DataType, dtypes_.Int):
     type = pd.Int64Dtype()
     bit_width: int = 64
 
@@ -214,7 +217,7 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.UInt64Dtype, pd.UInt64Dtype()])
 @immutable
-class UInt64(DisableInitMixin, DataType, dtypes_.UInt):
+class UInt64(DataType, dtypes_.UInt):
     type = pd.UInt64Dtype()
     bit_width: int = 64
 
@@ -280,7 +283,7 @@ _register_numpy_numbers(
 )
 @immutable(init=True)
 class Category(DataType, dtypes_.Category):
-    type: pd.CategoricalDtype = field(default=None, init=False)
+    type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
 
     def __post_init__(self):
         dtypes_.Category.__post_init__(self)
@@ -301,7 +304,7 @@ class Category(DataType, dtypes_.Category):
     equivalents=["string", pd.StringDtype, pd.StringDtype()]
 )
 @immutable
-class String(DisableInitMixin, DataType, dtypes_.String):
+class String(DataType, dtypes_.String):
     type = pd.StringDtype()
 
 
@@ -357,12 +360,12 @@ Engine.register_dtype(
 )
 @immutable(init=True)
 class DateTime(DataType, dtypes_.Timestamp):
-    type: Union[np.datetime64, pd.DatetimeTZDtype] = field(
+    type: Union[np.datetime64, pd.DatetimeTZDtype] = dataclasses.field(
         default=None, init=False
     )
     unit: str = "ns"
     tz: datetime.tzinfo = None
-    to_datetime_kwargs: Dict[str, Any] = field(
+    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
         default=None, compare=False, repr=False
     )
 
@@ -380,7 +383,7 @@ class DateTime(DataType, dtypes_.Timestamp):
         kwargs = self.to_datetime_kwargs or {}
 
         def _to_datetime(col: pd.Series) -> pd.Series:
-            return pd.to_datetime(col, **kwargs).astype(self.type)
+            return pd.to_datetime(col, **kwargs).astype(self.type).to_series()
 
         if isinstance(obj, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
@@ -412,12 +415,12 @@ class DateTime(DataType, dtypes_.Timestamp):
 )
 @immutable(init=True)
 class DateTime(DataType, dtypes_.Timestamp):
-    type: Union[np.datetime64, pd.DatetimeTZDtype] = field(
+    type: Union[np.datetime64, pd.DatetimeTZDtype] = dataclasses.field(
         default=None, init=False
     )
     unit: str = "ns"
     tz: datetime.tzinfo = None
-    to_datetime_kwargs: Dict[str, Any] = field(
+    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
         default=None, compare=False, repr=False
     )
 
@@ -470,7 +473,7 @@ Engine.register_dtype(
 @Engine.register_dtype
 @immutable(init=True)
 class Period(DataType):
-    type: pd.PeriodDtype = field(default=None, init=False)
+    type: pd.PeriodDtype = dataclasses.field(default=None, init=False)
     freq: Union[str, pd.tseries.offsets.DateOffset]
 
     def __post_init__(self):
@@ -489,7 +492,7 @@ class Period(DataType):
 @Engine.register_dtype(equivalents=[pd.SparseDtype])
 @immutable(init=True)
 class Sparse(DataType):
-    type: pd.SparseDtype = field(default=None, init=False)
+    type: pd.SparseDtype = dataclasses.field(default=None, init=False)
     dtype: Union[str, PandasExtensionType, np.dtype, "type"] = np.float_
     fill_value: Any = np.nan
 
@@ -508,7 +511,7 @@ class Sparse(DataType):
 @Engine.register_dtype
 @immutable(init=True)
 class Interval(DataType):
-    type: pd.IntervalDtype = field(default=None, init=False)
+    type: pd.IntervalDtype = dataclasses.field(default=None, init=False)
     subtype: Union[str, np.dtype]
 
     def __post_init__(self):

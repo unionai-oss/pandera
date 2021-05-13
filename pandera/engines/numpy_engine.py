@@ -1,18 +1,23 @@
 import builtins
+import dataclasses
 import datetime
-from dataclasses import field
 from typing import Any, List
 
 import numpy as np
 
 from .. import dtypes_
-from ..dtypes_ import DisableInitMixin, immutable
+from ..dtypes_ import immutable
 from . import engine
 
 
 @immutable(init=True)
 class DataType(dtypes_.DataType):
-    type: np.dtype = field(default=np.dtype("object"), repr=False)
+    type: np.dtype = dataclasses.field(
+        default=np.dtype("object"), repr=False, init=False
+    )
+
+    def __init__(self, dtype: Any):
+        object.__setattr__(self, "type", np.dtype(dtype))
 
     def __post_init__(self):
         object.__setattr__(self, "type", np.dtype(self.type))
@@ -39,6 +44,7 @@ class Engine(metaclass=engine.Engine, base_datatype=DataType):
                 raise TypeError(
                     f"data type '{data_type}' not understood by {cls.__name__}."
                 ) from None
+
             try:
                 return engine.Engine.dtype(cls, np_dtype)
             except TypeError:
@@ -54,7 +60,7 @@ class Engine(metaclass=engine.Engine, base_datatype=DataType):
     equivalents=["bool", bool, np.bool_, dtypes_.Bool, dtypes_.Bool()]
 )
 @immutable
-class Bool(DisableInitMixin, DataType, dtypes_.Bool):
+class Bool(DataType, dtypes_.Bool):
     """representation of a boolean data type."""
 
     type = np.dtype("bool")
@@ -106,7 +112,7 @@ _int_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_int_equivalents[64])
 @immutable
-class Int64(DisableInitMixin, DataType, dtypes_.Int64):
+class Int64(DataType, dtypes_.Int64):
     type = np.dtype("int64")
     bit_width: int = 64
 
@@ -145,7 +151,7 @@ _uint_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_uint_equivalents[64])
 @immutable
-class UInt64(DisableInitMixin, DataType, dtypes_.UInt64):
+class UInt64(DataType, dtypes_.UInt64):
     type = np.dtype("uint64")
     bit_width: int = 64
 
@@ -184,7 +190,7 @@ _float_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_float_equivalents[128])
 @immutable
-class Float128(DisableInitMixin, DataType, dtypes_.Float128):
+class Float128(DataType, dtypes_.Float128):
     type = np.dtype("float128")
     bit_width: int = 128
 
@@ -223,7 +229,7 @@ _complex_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_complex_equivalents[256])
 @immutable
-class Complex256(DisableInitMixin, DataType, dtypes_.Complex256):
+class Complex256(DataType, dtypes_.Complex256):
     type = np.dtype("complex256")
     bit_width: int = 256
 
@@ -249,7 +255,7 @@ class Complex64(Complex128):
 
 @Engine.register_dtype(equivalents=["str", "string", str, np.str_])
 @immutable
-class String(DisableInitMixin, DataType, dtypes_.String):
+class String(DataType, dtypes_.String):
     type = np.dtype("str")
 
     def coerce(self, arr: np.ndarray) -> np.ndarray:
@@ -269,11 +275,9 @@ class String(DisableInitMixin, DataType, dtypes_.String):
 
 @Engine.register_dtype(equivalents=["object", "O", object, np.object_])
 @immutable
-class Object(DisableInitMixin, DataType):
+class Object(DataType):
     type = np.dtype("object")
 
-
-Object = Object
 
 ################################################################################
 # time
@@ -289,7 +293,7 @@ Object = Object
     ]
 )
 @immutable
-class DateTime64(DisableInitMixin, DataType, dtypes_.Timestamp):
+class DateTime64(DataType, dtypes_.Timestamp):
     type = np.dtype("datetime64")
 
 
@@ -302,5 +306,5 @@ class DateTime64(DisableInitMixin, DataType, dtypes_.Timestamp):
     ]
 )
 @immutable
-class Timedelta64(DisableInitMixin, DataType, dtypes_.Timedelta):
+class Timedelta64(DataType, dtypes_.Timedelta):
     type = np.dtype("timedelta64")
