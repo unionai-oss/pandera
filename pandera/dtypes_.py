@@ -1,25 +1,6 @@
+import dataclasses
 import functools
-from dataclasses import dataclass, field
-from typing import Any, Tuple, Type, Union
-
-try:  # python 3.8+
-    from typing import Literal  # type: ignore
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
-
-
-def immutable(dtype=None, **kwargs) -> Type:
-    dataclass_kwargs = {"frozen": True, "init": False, "repr": False}
-    dataclass_kwargs.update(kwargs)
-
-    if dtype is None:
-        return functools.partial(dataclass, **dataclass_kwargs)
-    return dataclass(**dataclass_kwargs)(dtype)
-
-
-class DisableInitMixin:
-    def __init__(self) -> None:
-        pass
+from typing import Any, Tuple, Type
 
 
 class DataType:
@@ -37,6 +18,11 @@ class DataType:
         """Coerce object to the dtype."""
         raise NotImplementedError()
 
+    def check(self, datatype: "DataType") -> bool:
+        if not isinstance(datatype, DataType):
+            return False
+        return self == datatype
+
     def __repr__(self) -> str:
         return f"DataType({str(self)})"
 
@@ -44,13 +30,64 @@ class DataType:
         """Must be implemented by subclasses."""
         raise NotImplementedError()
 
-    def check(self, datatype: "DataType") -> bool:
-        if not isinstance(datatype, DataType):
-            return False
-        return self == datatype
-
     def __hash__(self) -> int:
-        pass
+        raise NotImplementedError()
+
+
+def immutable(
+    dtype: Type[DataType] = None, **dataclass_kwargs: Any
+) -> Type[DataType]:
+    """:func:`dataclasses.dataclass` decorator with different default values:
+    `frozen=True`, `init=False`, `repr=False`.
+
+    :param dtype: :class:`DataType` to decorate.
+    :param dataclass_kwargs: Keywords arguments forwarded to
+        :func:`dataclasses.dataclass`.
+    :returns: Immutable :class:`DataType`
+    """
+    kwargs = {"frozen": True, "init": False, "repr": False}
+    kwargs.update(dataclass_kwargs)
+
+
+#     if dtype is None:
+#         return functools.partial(dataclasses.dataclass, **kwargs)
+#     return dataclasses.dataclass(**kwargs)(dtype)
+
+
+def immutable(
+    dtype: Type[DataType] = None, **dataclass_kwargs: Any
+) -> Type[DataType]:
+    """:func:`dataclasses.dataclass` decorator with different default values:
+    `frozen=True`, `init=False`, `repr=False`.
+
+    In addition, `init=False` disables inherited `__init__` method to ensure
+    the DataType's default attributes are not altered during initialization.
+
+    :param dtype: :class:`DataType` to decorate.
+    :param dataclass_kwargs: Keywords arguments forwarded to
+        :func:`dataclasses.dataclass`.
+    :returns: Immutable :class:`DataType`
+    """
+    kwargs = {"frozen": True, "init": False, "repr": False}
+    kwargs.update(dataclass_kwargs)
+
+    def _wrapper(dtype):
+        immutable_dtype = dataclasses.dataclass(**kwargs)(dtype)
+        if not kwargs["init"]:
+
+            def __init__(self):
+                pass
+
+            # delattr(immutable_dtype, "__init__") doesn't work because
+            # super.__init__ would still exist.
+            setattr(immutable_dtype, "__init__", __init__)
+
+        return immutable_dtype
+
+    if dtype is None:
+        return _wrapper
+
+    return _wrapper(dtype)
 
 
 ################################################################################
@@ -87,7 +124,7 @@ class _Number(DataType):
 @immutable
 class _PhysicalNumber(_Number):
     bit_width: int = None
-    _base_name: str = field(default=None, init=False, repr=False)
+    _base_name: str = dataclasses.field(default=None, init=False, repr=False)
 
     def __eq__(self, obj: object) -> bool:
         if isinstance(obj, type(self)):
@@ -109,7 +146,7 @@ class Int(_PhysicalNumber):
     continuous = False
     exact = True
     bit_width = 64
-    signed: bool = field(default=True, init=False)
+    signed: bool = dataclasses.field(default=True, init=False)
 
 
 @immutable
@@ -140,7 +177,7 @@ class Int8(Int16):
 @immutable
 class UInt(Int):
     _base_name = "uint"
-    signed: bool = field(default=False, init=False)
+    signed: bool = dataclasses.field(default=False, init=False)
 
 
 @immutable
@@ -228,7 +265,7 @@ class Complex64(Complex128):
 
 
 @immutable(init=True)
-class Category(DisableInitMixin, DataType):
+class Category(DataType):
     categories: Tuple[Any] = None  # immutable sequence to ensure safe hash
     ordered: bool = False
 
