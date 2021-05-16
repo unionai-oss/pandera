@@ -22,7 +22,7 @@ series must evaluate to ``True``, for example:
 
     check_lt_10 = pa.Check(lambda s: s <= 10)
 
-    schema = pa.DataFrameSchema({"column1": pa.Column(pa.Int, check_lt_10)})
+    schema = pa.DataFrameSchema({"column1": pa.Column(int, check_lt_10)})
     schema.validate(pd.DataFrame({"column1": range(10)}))
 
 
@@ -31,7 +31,7 @@ Multiple checks can be applied to a column:
 .. testcode:: checks
 
   schema = pa.DataFrameSchema({
-      "column2": pa.Column(pa.String, [
+      "column2": pa.Column(str, [
           pa.Check(lambda s: s.str.startswith("value")),
           pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
       ]),
@@ -48,9 +48,9 @@ For common validation tasks, built-in checks are available in ``pandera``.
   from pandera import Column, Check, DataFrameSchema
 
   schema = DataFrameSchema({
-      "small_values": Column(pa.Float, Check.less_than(100)),
-      "one_to_three": Column(pa.Int, Check.isin([1, 2, 3])),
-      "phone_number": Column(pa.String, Check.str_matches(r'^[a-z0-9-]+$')),
+      "small_values": Column(float, Check.less_than(100)),
+      "one_to_three": Column(int, Check.isin([1, 2, 3])),
+      "phone_number": Column(str, Check.str_matches(r'^[a-z0-9-]+$')),
   })
 
 See the :class:`~pandera.checks.Check` API reference for a complete list of built-in checks.
@@ -72,7 +72,7 @@ you can provide the ``element_wise=True`` keyword argument:
 
     schema = pa.DataFrameSchema({
         "a": pa.Column(
-            pa.Int,
+            int,
             checks=[
                 # a vectorized check that returns a bool
                 pa.Check(lambda s: s.mean() > 5, element_wise=False),
@@ -140,7 +140,7 @@ fly.
 
     schema = pa.DataFrameSchema({
         "height_in_feet": pa.Column(
-            pa.Float, [
+            float, [
                 # groupby as a single column
                 pa.Check(
                     lambda g: g[False].mean() > 6,
@@ -159,9 +159,9 @@ fly.
                         df.assign(age_less_than_15=lambda d: d["age"] < 15)
                         .groupby(["age_less_than_15", "sex"]))),
             ]),
-        "age": pa.Column(pa.Int, pa.Check(lambda s: s > 0)),
-        "age_less_than_20": pa.Column(pa.Bool),
-        "sex": pa.Column(pa.String, pa.Check(lambda s: s.isin(["M", "F"])))
+        "age": pa.Column(int, pa.Check(lambda s: s > 0)),
+        "age_less_than_20": pa.Column(bool),
+        "sex": pa.Column(str, pa.Check(lambda s: s.isin(["M", "F"])))
     })
 
     df = (
@@ -202,10 +202,10 @@ columns in a ``DataFrame``. For example, if you want to make assertions about
 
     schema = pa.DataFrameSchema({
         "height": pa.Column(
-            pa.Float,
+            float,
             pa.Check(lambda g: g["A"].mean() < g["B"].mean(), groupby="group")
         ),
-        "group": pa.Column(pa.String)
+        "group": pa.Column(str)
     })
 
     schema.validate(df)
@@ -222,8 +222,8 @@ Whereas the equivalent wide-form schema would look like this:
 
     schema = pa.DataFrameSchema(
         columns={
-            "height_A": pa.Column(pa.Float),
-            "height_B": pa.Column(pa.Float),
+            "height_A": pa.Column(float),
+            "height_B": pa.Column(float),
         },
         # define checks at the DataFrameSchema-level
         checks=pa.Check(

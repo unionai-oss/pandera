@@ -39,7 +39,7 @@ which can be called as in this example of a two-sample t-test:
 
     schema = DataFrameSchema({
         "height_in_feet": Column(
-            pa.Float, [
+            float, [
                 Hypothesis.two_sample_ttest(
                     sample1="M",
                     sample2="F",
@@ -48,7 +48,7 @@ which can be called as in this example of a two-sample t-test:
                     alpha=0.05,
                     equal_var=True),
         ]),
-        "sex": Column(pa.String)
+        "sex": Column(str)
     })
 
     schema.validate(df)
@@ -90,7 +90,7 @@ Here's an implementation of the two-sample t-test that uses the
 
     schema = DataFrameSchema({
         "height_in_feet": Column(
-            pa.Float, [
+            float, [
                 Hypothesis(
                     test=two_sample_ttest,
                     samples=["M", "F"],
@@ -99,7 +99,7 @@ Here's an implementation of the two-sample t-test that uses the
                     relationship_kwargs={"alpha": 0.05}
                 )
         ]),
-        "sex": Column(pa.String, checks=Check.isin(["M", "F"]))
+        "sex": Column(str, checks=Check.isin(["M", "F"]))
     })
 
     schema.validate(df)
@@ -132,14 +132,14 @@ the tidy dataset and schema might look like this:
 
     schema = DataFrameSchema({
         "height": Column(
-            pa.Float, Hypothesis.two_sample_ttest(
+            float, Hypothesis.two_sample_ttest(
                 "A", "B",
                 groupby="group",
                 relationship="less_than",
                 alpha=0.05
             )
         ),
-        "group": Column(pa.String, Check(lambda s: s.isin(["A", "B"])))
+        "group": Column(str, Check(lambda s: s.isin(["A", "B"])))
     })
 
     schema.validate(df)

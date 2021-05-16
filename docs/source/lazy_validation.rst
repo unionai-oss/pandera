@@ -33,7 +33,7 @@ For example:
 
    df = pd.DataFrame({"column": ["a", "b", "c"]})
 
-   schema = pa.DataFrameSchema({"column": Column(pa.Int)})
+   schema = pa.DataFrameSchema({"column": Column(int)})
    schema.validate(df)
 
 .. testoutput:: non_lazy_validation
@@ -58,9 +58,9 @@ of all schemas and schema components gives you the option of doing just this:
 
     schema = pa.DataFrameSchema(
         columns={
-            "int_column": Column(pa.Int),
-            "float_column": Column(pa.Float, Check.greater_than(0)),
-            "str_column": Column(pa.String, Check.equal_to("a")),
+            "int_column": Column(int),
+            "float_column": Column(float, Check.greater_than(0)),
+            "str_column": Column(str, Check.equal_to("a")),
             "date_column": Column(pa.DateTime),
         },
         strict=True

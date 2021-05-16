@@ -20,7 +20,7 @@ The :class:`~pandera.schemas.SeriesSchema` class allows for the validation of pa
 
     # specify multiple validators
     schema = pa.SeriesSchema(
-        pa.String,
+        str,
         checks=[
             pa.Check(lambda s: s.str.startswith("foo")),
             pa.Check(lambda s: s.str.endswith("bar")),

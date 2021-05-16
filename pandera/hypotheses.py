@@ -112,7 +112,7 @@ class Hypothesis(_CheckBase):
         >>> from scipy import stats
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "height_in_feet": pa.Column(pa.Float, [
+        ...     "height_in_feet": pa.Column(float, [
         ...         pa.Hypothesis(
         ...             test=stats.ttest_ind,
         ...             samples=["A", "B"],
@@ -126,7 +126,7 @@ class Hypothesis(_CheckBase):
         ...             relationship_kwargs={"alpha": 0.05}
         ...         )
         ...     ]),
-        ...     "group": pa.Column(pa.String),
+        ...     "group": pa.Column(str),
         ... })
         >>> df = (
         ...     pd.DataFrame({
@@ -299,7 +299,7 @@ class Hypothesis(_CheckBase):
         >>>
         >>> schema = pa.DataFrameSchema({
         ...     "height_in_feet": pa.Column(
-        ...         pa.Float, [
+        ...         float, [
         ...             pa.Hypothesis.two_sample_ttest(
         ...                 sample1="A",
         ...                 sample2="B",
@@ -308,7 +308,7 @@ class Hypothesis(_CheckBase):
         ...                 alpha=0.05,
         ...                 equal_var=True),
         ...     ]),
-        ...     "group": pa.Column(pa.String)
+        ...     "group": pa.Column(str)
         ... })
         >>> df = (
         ...     pd.DataFrame({
@@ -402,7 +402,7 @@ class Hypothesis(_CheckBase):
         >>>
         >>> schema = pa.DataFrameSchema({
         ...     "height_in_feet": pa.Column(
-        ...         pa.Float, [
+        ...         float, [
         ...             pa.Hypothesis.one_sample_ttest(
         ...                 popmean=5,
         ...                 relationship="greater_than",
