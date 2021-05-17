@@ -252,9 +252,9 @@ class Column(SeriesSchemaBase):
             raise errors.SchemaError(
                 self,
                 columns,
-                "Column regex name='%s' did not match any columns in the "
+                f"Column regex name='{self.name}' did not match any columns in the "
                 "dataframe. Update the regex pattern so that it matches at "
-                "least one column:\n%s" % (self.name, columns.tolist()),
+                f"least one column:\n{columns.tolist()}" ,
             )
         # drop duplicates to account for potential duplicated columns in the
         # dataframe.
