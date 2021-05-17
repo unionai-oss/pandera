@@ -165,14 +165,8 @@ def check_input(
                     f"error in check_input decorator of function '{fn.__name__}': the "
                     f"index '{obj_getter}' was supplied to the check but this "
                     f"function accepts '{len(_get_fn_argnames(fn))}' arguments, so the maximum "
-                    f"index is '%s'. The full error is: '{exc}'"
-                    % (
-                        fn.__name__,
-                        obj_getter,
-                        len(_get_fn_argnames(fn)),
-                        max(0, len(_get_fn_argnames(fn)) - 1),
-                        exc,
-                    )
+                    f"index is 'max(0, len(_get_fn_argnames(fn)) - 1)'. The full error is: '{exc}'"
+
                 ) from exc
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:

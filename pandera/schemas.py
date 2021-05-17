@@ -209,9 +209,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 ]
                 if nonexistent_groupby_columns:
                     raise errors.SchemaInitError(
-                        "groupby argument %s in Check for Column %s not "
+                        f"groupby argument {nonexistent_groupby_columns} in Check for Column {column_name} not "
                         "specified in the DataFrameSchema."
-                        % (nonexistent_groupby_columns, column_name)
                     )
 
     def _set_column_names(self):
