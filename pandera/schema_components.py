@@ -29,15 +29,15 @@ class Column(SeriesSchemaBase):
     has_subcomponents = False
 
     def __init__(
-        self,
-        pandas_dtype: PandasDtypeInputTypes = None,
-        checks: CheckList = None,
-        nullable: bool = False,
-        allow_duplicates: bool = True,
-        coerce: bool = False,
-        required: bool = True,
-        name: str = None,
-        regex: bool = False,
+            self,
+            pandas_dtype: PandasDtypeInputTypes = None,
+            checks: CheckList = None,
+            nullable: bool = False,
+            allow_duplicates: bool = True,
+            coerce: bool = False,
+            required: bool = True,
+            name: str = None,
+            regex: bool = False,
     ) -> None:
         """Create column validator object.
 
@@ -79,10 +79,10 @@ class Column(SeriesSchemaBase):
             pandas_dtype, checks, nullable, allow_duplicates, coerce
         )
         if (
-            name is not None
-            and not isinstance(name, str)
-            and not _is_valid_multiindex_tuple_str(name)
-            and regex
+                name is not None
+                and not isinstance(name, str)
+                and not _is_valid_multiindex_tuple_str(name)
+                and regex
         ):
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True"
@@ -122,9 +122,9 @@ class Column(SeriesSchemaBase):
 
         """
         if (
-            not isinstance(name, str)
-            and not _is_valid_multiindex_tuple_str(name)
-            and self.regex
+                not isinstance(name, str)
+                and not _is_valid_multiindex_tuple_str(name)
+                and self.regex
         ):
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True"
@@ -142,14 +142,14 @@ class Column(SeriesSchemaBase):
         )
 
     def validate(
-        self,
-        check_obj: pd.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
+            self,
+            check_obj: pd.DataFrame,
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
+            lazy: bool = False,
+            inplace: bool = False,
     ) -> pd.DataFrame:
         """Validate a Column in a DataFrame object.
 
@@ -213,7 +213,7 @@ class Column(SeriesSchemaBase):
         return check_obj
 
     def get_regex_columns(
-        self, columns: Union[pd.Index, pd.MultiIndex]
+            self, columns: Union[pd.Index, pd.MultiIndex]
     ) -> Union[pd.Index, pd.MultiIndex]:
         """Get matching column names based on regex column name pattern.
 
@@ -224,9 +224,8 @@ class Column(SeriesSchemaBase):
             # handle MultiIndex case
             if len(self.name) != columns.nlevels:
                 raise IndexError(
-                    "Column regex name='%s' is a tuple, expected a MultiIndex "
-                    "columns with %d number of levels, found %d level(s)"
-                    % (self.name, len(self.name), columns.nlevels)
+                    f"Column regex name='{self.name}' is a tuple, expected a MultiIndex "
+                    f"columns with {len(self.name)} number of levels, found {columns.nlevels} level(s)"
                 )
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(self.name):
@@ -238,16 +237,16 @@ class Column(SeriesSchemaBase):
         else:
             if isinstance(columns, pd.MultiIndex):
                 raise IndexError(
-                    "Column regex name %s is a string, expected a dataframe "
+                    f"Column regex name {self.name} is a string, expected a dataframe "
                     "where the index is a pd.Index object, not a "
-                    "pd.MultiIndex object" % (self.name)
+                    "pd.MultiIndex object"
                 )
             column_keys_to_check = columns[
                 # str.match will return nan values when the index value is
                 # not a string.
                 pd.Index(columns.str.match(self.name))
-                .fillna(False)
-                .tolist()
+                    .fillna(False)
+                    .tolist()
             ]
         if column_keys_to_check.shape[0] == 0:
             raise errors.SchemaError(
@@ -296,10 +295,10 @@ class Column(SeriesSchemaBase):
             )
             return (
                 super()
-                .strategy(size=size)
-                .example()
-                .rename(self.name)
-                .to_frame()
+                    .strategy(size=size)
+                    .example()
+                    .rename(self.name)
+                    .to_frame()
             )
 
     def __eq__(self, other):
@@ -328,14 +327,14 @@ class Index(SeriesSchemaBase):
         return False
 
     def validate(
-        self,
-        check_obj: Union[pd.DataFrame, pd.Series],
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
+            self,
+            check_obj: Union[pd.DataFrame, pd.Series],
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
+            lazy: bool = False,
+            inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 
@@ -436,12 +435,12 @@ class MultiIndex(DataFrameSchema):
     has_subcomponents = True
 
     def __init__(
-        self,
-        indexes: List[Index],
-        coerce: bool = False,
-        strict: bool = False,
-        name: str = None,
-        ordered: bool = True,
+            self,
+            indexes: List[Index],
+            coerce: bool = False,
+            strict: bool = False,
+            name: str = None,
+            ordered: bool = True,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -568,21 +567,21 @@ class MultiIndex(DataFrameSchema):
             [
                 v
                 for k, v in sorted(
-                    coerced_multi_index.items(), key=lambda x: x[0]
-                )
+                coerced_multi_index.items(), key=lambda x: x[0]
+            )
             ],
             names=obj.names,
         )
 
     def validate(
-        self,
-        check_obj: Union[pd.DataFrame, pd.Series],
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
+            self,
+            check_obj: Union[pd.DataFrame, pd.Series],
+            head: Optional[int] = None,
+            tail: Optional[int] = None,
+            sample: Optional[int] = None,
+            random_state: Optional[int] = None,
+            lazy: bool = False,
+            inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrame or Series MultiIndex.
 
@@ -622,8 +621,8 @@ class MultiIndex(DataFrameSchema):
         # rename integer-based column names in case of duplicate index names,
         # with at least one named index.
         if (
-            not all(x is None for x in check_obj.index.names)
-            and len(set(check_obj.index.names)) != check_obj.index.nlevels
+                not all(x is None for x in check_obj.index.names)
+                and len(set(check_obj.index.names)) != check_obj.index.nlevels
         ):
             index_names = []
             for i, name in enumerate(check_obj.index.names):
@@ -633,7 +632,7 @@ class MultiIndex(DataFrameSchema):
 
             columns = {}
             for name, (_, column) in zip(
-                index_names, self_copy.columns.items()
+                    index_names, self_copy.columns.items()
             ):
                 columns[name] = column.set_name(name)
             self_copy.columns = columns
