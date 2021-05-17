@@ -174,8 +174,8 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
 
     # raise ValueError on incompatible checks
     if (
-            "greater_than_or_equal_to" in check_statistics
-            and "less_than_or_equal_to" in check_statistics
+        "greater_than_or_equal_to" in check_statistics
+        and "less_than_or_equal_to" in check_statistics
     ):
         min_value = check_statistics.get(
             "greater_than_or_equal_to", float("-inf")
@@ -185,45 +185,51 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
         )["max_value"]
         if min_value > max_value:
             raise ValueError(
-                "checks {_check_memo['greater_than_or_equal_to']"
-                " and {_check_memo['less_than_or_equal_to'] are incompatible, reason: "
-                f"min value {min_value} > max value {max_value}"
-
+                "checks %s and %s are incompatible, reason: "
+                "min value %s > max value %s"
+                % (
+                    _check_memo["greater_than_or_equal_to"],
+                    _check_memo["less_than_or_equal_to"],
+                    min_value,
+                    max_value,
+                )
             )
-        return check_statistics if check_statistics else None
+    return check_statistics if check_statistics else None
 
-    def _get_array_type(x):
-        # get most granular type possible
-        dtype = PandasDtype.from_str_alias(str(x.dtype))
-        # for object arrays, try to infer dtype
-        if dtype is PandasDtype.Object:
-            dtype = PandasDtype.from_pandas_api_type(
-                pd.api.types.infer_dtype(x, skipna=True)
-            )
-        return dtype
 
-    def _get_array_check_statistics(
-            x, dtype: PandasDtype
-    ) -> Union[Dict[str, Any], None]:
-        """Get check statistics from an array-like object."""
-        if dtype is PandasDtype.DateTime:
-            check_stats = {
-                "greater_than_or_equal_to": x.min(),
-                "less_than_or_equal_to": x.max(),
-            }
-        elif dtype in NUMERIC_DTYPES:
-            check_stats = {
-                "greater_than_or_equal_to": float(x.min()),
-                "less_than_or_equal_to": float(x.max()),
-            }
-        elif dtype is PandasDtype.Category:
-            try:
-                categories = x.cat.categories
-            except AttributeError:
-                categories = x.categories
-            check_stats = {
-                "isin": categories.tolist(),
-            }
-        else:
-            check_stats = {}
-        return check_stats if check_stats else None
+def _get_array_type(x):
+    # get most granular type possible
+    dtype = PandasDtype.from_str_alias(str(x.dtype))
+    # for object arrays, try to infer dtype
+    if dtype is PandasDtype.Object:
+        dtype = PandasDtype.from_pandas_api_type(
+            pd.api.types.infer_dtype(x, skipna=True)
+        )
+    return dtype
+
+
+def _get_array_check_statistics(
+    x, dtype: PandasDtype
+) -> Union[Dict[str, Any], None]:
+    """Get check statistics from an array-like object."""
+    if dtype is PandasDtype.DateTime:
+        check_stats = {
+            "greater_than_or_equal_to": x.min(),
+            "less_than_or_equal_to": x.max(),
+        }
+    elif dtype in NUMERIC_DTYPES:
+        check_stats = {
+            "greater_than_or_equal_to": float(x.min()),
+            "less_than_or_equal_to": float(x.max()),
+        }
+    elif dtype is PandasDtype.Category:
+        try:
+            categories = x.cat.categories
+        except AttributeError:
+            categories = x.categories
+        check_stats = {
+            "isin": categories.tolist(),
+        }
+    else:
+        check_stats = {}
+    return check_stats if check_stats else None
