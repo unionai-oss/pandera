@@ -179,6 +179,21 @@ def test_multi_index_index():
         schema.validate(df_fail)
 
 
+def test_single_index_multi_index_mismatch():
+    """Tests the failure case that attempting to validate a MultiIndex DataFrame
+    against a single index schema raises a SchemaError with a constructive error
+    message."""
+    ind = pd.MultiIndex.from_tuples(
+        [("a", "b"), ("c", "d"), ("e", "f")],
+        names=(u"one", u"two"),
+    )
+    df_fail = pd.DataFrame(columns=["alpha", "beta"], index=ind)
+    schema = DataFrameSchema(index=Index(name="key"))
+    with pytest.raises(errors.SchemaError) as exc_info:
+        schema.validate(df_fail)
+    assert exc_info.message.contains("mismatch")  # TODO: Maybe elaborate more...
+
+
 def test_multi_index_schema_coerce():
     """Test that multi index can be type-coerced."""
     indexes = [
