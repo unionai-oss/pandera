@@ -57,11 +57,7 @@ def _handle_schema_error(
     :raises SchemaError: when ``DataFrame`` violates built-in or custom
         checks.
     """
-    msg = "error in %s decorator of function '%s': %s" % (
-        decorator_name,
-        fn.__name__,
-        schema_error,
-    )
+    msg = f"error in {decorator_name} decorator of function '{fn.__name__}': {schema_error}"
     raise errors.SchemaError(
         schema,
         arg_df,
@@ -166,10 +162,10 @@ def check_input(
                 args[obj_getter] = schema.validate(args[obj_getter])
             except IndexError as exc:
                 raise IndexError(
-                    "error in check_input decorator of function '%s': the "
-                    "index '%s' was supplied to the check but this "
-                    "function accepts '%s' arguments, so the maximum "
-                    "index is '%s'. The full error is: '%s'"
+                    f"error in check_input decorator of function '{fn.__name__}': the "
+                    f"index '{obj_getter}' was supplied to the check but this "
+                    f"function accepts '{len(_get_fn_argnames(fn))}' arguments, so the maximum "
+                    f"index is '%s'. The full error is: '{exc}'"
                     % (
                         fn.__name__,
                         obj_getter,
