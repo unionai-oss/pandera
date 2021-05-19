@@ -371,7 +371,15 @@ def docs(session: Session, pandas: str) -> None:
     session.chdir("docs")
 
     shutil.rmtree(os.path.join("_build"), ignore_errors=True)
-    args = session.posargs or ["-W", "-E", "-b=doctest", "source", "_build"]
+    args = session.posargs or [
+        "-v",
+        "-v",
+        "-W",
+        "-E",
+        "-b=doctest",
+        "source",
+        "_build",
+    ]
     session.run("sphinx-build", *args)
 
     # build html docs
