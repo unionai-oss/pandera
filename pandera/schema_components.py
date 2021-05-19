@@ -366,6 +366,13 @@ class Index(SeriesSchemaBase):
                 check_obj.index, name=check_obj.index.name
             )
 
+        if isinstance(check_obj.index, pd.MultiIndex):
+            raise errors.SchemaError(
+                self,
+                check_obj,
+                "Attempting to validate mismatch index"
+                )
+
         assert isinstance(
             super().validate(
                 obj_to_validate,
