@@ -33,7 +33,7 @@ dependencies:
   - importlib_metadata # required if python < 3.8
 
   # documentation
-  - sphinx >= 3.2.0
+  - sphinx = 3.5.4  # pinned due to doc-building error https://github.com/pandera-dev/pandera/runs/2601459267
   - sphinx_rtd_theme
   - sphinx-autodoc-typehints
   - sphinx-copybutton

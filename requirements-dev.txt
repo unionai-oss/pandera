@@ -22,7 +22,7 @@ pytest-xdist
 setuptools >= 52.0.0
 nox
 importlib_metadata
-sphinx >= 3.2.0
+sphinx == 3.5.4
 sphinx_rtd_theme
 sphinx-autodoc-typehints
 sphinx-copybutton
