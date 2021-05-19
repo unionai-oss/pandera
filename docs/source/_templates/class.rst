@@ -33,7 +33,7 @@
    {%- endfor %}
    {% endif %}
 
-   {%- if '__call__' in members %}
+   {%- if members and '__call__' in members %}
       ~{{ name }}.__call__
    {%- endif %}
 
