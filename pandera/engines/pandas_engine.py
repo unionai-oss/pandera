@@ -29,6 +29,13 @@ class DataType(dtypes_.DataType):
 
     def __init__(self, dtype: Any):
         object.__setattr__(self, "type", pd.api.types.pandas_dtype(dtype))
+        dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
+        warnings.warn(
+            f"'{dtype_cls}' support is not guaranteed.\n"
+            + "Usage Tip: Consider writing a custom "
+            + "pandera.dtypes.DataType or opening an issue at "
+            + "https://github.com/pandera-dev/pandera"
+        )
 
     def __post_init__(self):
         object.__setattr__(self, "type", pd.api.types.pandas_dtype(self.type))
