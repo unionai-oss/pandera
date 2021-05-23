@@ -1,11 +1,15 @@
-from typing import Any, List, Type, Union
+"""Tests Engine subclassing and registring DataTypes."""
+# pylint:disable=redefined-outer-name,unused-argument
+# pylint:disable=missing-function-docstring,missing-class-docstring
+from typing import Any, Generator, List, Union
 
 import pytest
 
+from pandera.dtypes_ import DataType
 from pandera.engines.engine import Engine
 
 
-class BaseDataType:
+class BaseDataType(DataType):
     def __eq__(self, obj: object) -> bool:
         if isinstance(obj, type(self)):
             return True
@@ -25,8 +29,10 @@ def equivalents() -> List[Any]:
 
 
 @pytest.fixture
-def engine() -> Type[Engine]:
-    class FakeEngine(metaclass=Engine, base_pandera_dtypes=BaseDataType):
+def engine() -> Generator[Engine, None, None]:
+    class FakeEngine(  # pylint:disable=too-few-public-methods
+        metaclass=Engine, base_pandera_dtypes=BaseDataType
+    ):
         pass
 
     yield FakeEngine
@@ -34,7 +40,7 @@ def engine() -> Type[Engine]:
     del FakeEngine
 
 
-def test_register_bare_dtype(engine: Type[Engine]):
+def test_register_bare_dtype(engine: Engine):
     """Test that a dtype without  equivalents nor 'from_parametrized_dtype'
     classmethod can be registered.
     """
@@ -42,7 +48,7 @@ def test_register_bare_dtype(engine: Type[Engine]):
         engine.register_dtype(SimpleDtype)
 
 
-def test_register_equivalents(engine: Type[Engine], equivalents: List[Any]):
+def test_register_equivalents(engine: Engine, equivalents: List[Any]):
     """Test that a dtype with equivalents can be registered."""
     engine.register_dtype(SimpleDtype, equivalents=equivalents)
 
@@ -55,13 +61,11 @@ def test_register_equivalents(engine: Type[Engine], equivalents: List[Any]):
         engine.dtype("foo")
 
 
-def test_register_from_parametrized_dtype(engine: Type[Engine]):
+def test_register_from_parametrized_dtype(engine: Engine):
     """Test that a dtype with from_parametrized_dtype can be registered."""
 
     @engine.register_dtype
-    class Dtype(BaseDataType):
-        pass
-
+    class _Dtype(BaseDataType):
         @classmethod
         def from_parametrized_dtype(cls, x: int):
             return x
@@ -74,15 +78,13 @@ def test_register_from_parametrized_dtype(engine: Type[Engine]):
         engine.dtype("foo")
 
 
-def test_register_from_parametrized_dtype_union(engine: Type[Engine]):
+def test_register_from_parametrized_dtype_union(engine: Engine):
     """Test that a dtype with from_parametrized_dtype and Union annotation
     can be registered.
     """
 
     @engine.register_dtype
-    class Dtype(BaseDataType):
-        pass
-
+    class _Dtype(BaseDataType):
         @classmethod
         def from_parametrized_dtype(cls, x: Union[int, str]):
             return x
@@ -90,33 +92,31 @@ def test_register_from_parametrized_dtype_union(engine: Type[Engine]):
     assert engine.dtype(42) == 42
 
 
-def test_register_invalid_from_parametrized_dtype(engine: Type[Engine]):
+def test_register_notclassmethod_from_parametrized_dtype(engine: Engine):
     """Test that a dtype with invalid from_parametrized_dtype
     cannot be registered.
     """
 
     with pytest.raises(
         ValueError,
-        match="Dtype.from_parametrized_dtype must be a classmethod.",
+        match="_InvalidDtype.from_parametrized_dtype must be a classmethod.",
     ):
 
         @engine.register_dtype
-        class Dtype(BaseDataType):
-            pass
-
-            def from_parametrized_dtype(cls, x: int):
+        class _InvalidDtype(BaseDataType):
+            def from_parametrized_dtype(  # pylint:disable=no-self-argument,no-self-use
+                cls, x: int
+            ):
                 return x
 
 
-def test_register_dtype_complete(engine: Type[Engine], equivalents: List[Any]):
+def test_register_dtype_complete(engine: Engine, equivalents: List[Any]):
     """Test that a dtype with equivalents and from_parametrized_dtype
     can be registered.
     """
 
     @engine.register_dtype(equivalents=equivalents)
-    class Dtype(BaseDataType):
-        pass
-
+    class _Dtype(BaseDataType):
         @classmethod
         def from_parametrized_dtype(cls, x: Union[int, str]):
             return x
@@ -125,7 +125,7 @@ def test_register_dtype_complete(engine: Type[Engine], equivalents: List[Any]):
     assert engine.dtype("foo") == "foo"
 
     for equivalent in equivalents:
-        engine.dtype(equivalent) == Dtype()
+        assert engine.dtype(equivalent) == _Dtype()
 
     with pytest.raises(
         TypeError,
@@ -134,33 +134,31 @@ def test_register_dtype_complete(engine: Type[Engine], equivalents: List[Any]):
         engine.dtype(str)
 
 
-def test_register_dtype_overwrite(
-    engine: Type[Engine], equivalents: List[Any]
-):
+def test_register_dtype_overwrite(engine: Engine):
     """Test that register_dtype overwrites existing registrations."""
 
     @engine.register_dtype(equivalents=["foo"])
-    class DtypeA(BaseDataType):
+    class _DtypeA(BaseDataType):
         @classmethod
         def from_parametrized_dtype(cls, x: Union[int, str]):
-            return DtypeA()
+            return _DtypeA()
 
-    assert engine.dtype("foo") == DtypeA()
-    assert engine.dtype("bar") == DtypeA()
-    assert engine.dtype(42) == DtypeA()
+    assert engine.dtype("foo") == _DtypeA()
+    assert engine.dtype("bar") == _DtypeA()
+    assert engine.dtype(42) == _DtypeA()
 
     @engine.register_dtype(equivalents=["foo"])
-    class DtypeB(BaseDataType):
+    class _DtypeB(BaseDataType):
         @classmethod
         def from_parametrized_dtype(cls, x: int):
-            return DtypeB()
+            return _DtypeB()
 
-    assert engine.dtype("foo") == DtypeB()
-    assert engine.dtype("bar") == DtypeA()
-    assert engine.dtype(42) == DtypeB()
+    assert engine.dtype("foo") == _DtypeB()
+    assert engine.dtype("bar") == _DtypeA()
+    assert engine.dtype(42) == _DtypeB()
 
 
-def test_register_base_pandera_dtypes(engine: Type[Engine]):
+def test_register_base_pandera_dtypes(engine: Engine):
     """Test that base datatype cannot be registered."""
     with pytest.raises(
         ValueError,
@@ -168,26 +166,27 @@ def test_register_base_pandera_dtypes(engine: Type[Engine]):
     ):
 
         @engine.register_dtype(equivalents=[SimpleDtype])
-        class Dtype(BaseDataType):
+        class _Dtype(BaseDataType):
             pass
 
 
-def test_return_base_dtype(engine: Type[Engine]):
+def test_return_base_dtype(engine: Engine):
     """Test that Engine.dtype returns back base datatypes."""
     assert engine.dtype(SimpleDtype()) == SimpleDtype()
     assert engine.dtype(SimpleDtype) == SimpleDtype()
 
-    class ParametrizedDtype(BaseDataType):
+    class ParametrizedDtypec(BaseDataType):
         def __init__(self, x: int) -> None:
+            super().__init__()
             self.x = x
 
         def __eq__(self, obj: object) -> bool:
-            if not isinstance(obj, ParametrizedDtype):
+            if not isinstance(obj, ParametrizedDtypec):
                 return NotImplemented
             return obj.x == self.x
 
-    assert engine.dtype(ParametrizedDtype(1)) == ParametrizedDtype(1)
+    assert engine.dtype(ParametrizedDtypec(1)) == ParametrizedDtypec(1)
     with pytest.raises(
-        TypeError, match="DataType 'ParametrizedDtype' cannot be instantiated"
+        TypeError, match="DataType 'ParametrizedDtypec' cannot be instantiated"
     ):
-        engine.dtype(ParametrizedDtype)
+        engine.dtype(ParametrizedDtypec)

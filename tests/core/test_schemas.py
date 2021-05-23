@@ -315,9 +315,9 @@ def test_series_schema():
         int_schema.validate(pd.Series([0, 30, 50, 100])), pd.Series
     )
 
-    def f(s):
-        print(s)
-        return s.isin(["foo", "bar", "baz"])
+    def f(series):
+        print(series)
+        return series.isin(["foo", "bar", "baz"])
 
     str_schema = SeriesSchema(
         str,

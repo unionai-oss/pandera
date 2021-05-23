@@ -2,7 +2,6 @@
 
 import copy
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -15,7 +14,6 @@ from pandera import (
     Index,
     Int,
     MultiIndex,
-    Object,
     SeriesSchema,
     String,
     errors,
