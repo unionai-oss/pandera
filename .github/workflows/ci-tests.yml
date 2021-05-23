@@ -6,12 +6,14 @@ on:
     - dev
     - bugfix
     - 'release/*'
+    - dtypes
   pull_request:
     branches:
     - master
     - dev
     - bugfix
     - 'release/*'
+    - dtypes
 
 env:
   DEFAULT_PYTHON: 3.8
