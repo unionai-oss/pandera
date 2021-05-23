@@ -23,30 +23,31 @@ class Engine(ABCMeta):
     """
 
     _registry: Dict["Engine", _DtypeRegistry] = {}
-    _base_datatype: Type[DataType]
+    _base_pandera_dtypes: Type[DataType]
 
     def __new__(mcs, name, bases, namespace, **kwargs):
-        base_datatype = kwargs.pop("base_datatype")
+        base_pandera_dtypes = kwargs.pop("base_pandera_dtypes")
         try:  # allow multiple base datatypes
-            base_datatype = tuple(base_datatype)
+            base_pandera_dtypes = tuple(base_pandera_dtypes)
         except TypeError:
             pass
-        namespace["_base_datatype"] = base_datatype
+        namespace["_base_pandera_dtypes"] = base_pandera_dtypes
         cls = super().__new__(mcs, name, bases, namespace, **kwargs)
 
         @functools.singledispatch
-        def dtype(obj: Any) -> DataType:
-            raise ValueError(f"Data type '{obj}' not understood")
+        def dtype(data_type: Any) -> DataType:
+            raise ValueError(f"Data type '{data_type}' not understood")
 
         mcs._registry[cls] = _DtypeRegistry(dispatch=dtype, equivalents={})
         return cls
 
-    def _check_source_dtype(cls, obj: Any) -> None:
-        if isinstance(obj, cls._base_datatype) or (
-            inspect.isclass(obj) and issubclass(obj, cls._base_datatype)
+    def _check_source_dtype(cls, data_type: Any) -> None:
+        if isinstance(data_type, cls._base_pandera_dtypes) or (
+            inspect.isclass(data_type)
+            and issubclass(data_type, cls._base_pandera_dtypes)
         ):
             raise ValueError(
-                f"{cls._base_datatype.__name__} subclasses cannot be registered"
+                f"{cls._base_pandera_dtypes.__name__} subclasses cannot be registered"
                 f" with {cls.__name__}."
             )
 
@@ -78,80 +79,82 @@ class Engine(ABCMeta):
 
     def register_dtype(
         cls,
-        dtype: Type[DataType] = None,
+        pandera_dtype: Type[DataType] = None,
         *,
         equivalents: List[DataType] = None,
     ):
-        """Register a DataType
+        """Register a Pandera :class:`DataType`.
 
-        :param dtype: The DataType to register.
-        :param equivalents: Equivalent scalar dtype class or
-            non-parametrized dtype instance.
+        :param pandera_dtype: The DataType to register.
+        :param equivalents: Equivalent scalar data type class or
+            non-parametrized data type instance.
 
         .. note::
-            Register the classmethod ``from_parametrized_dtype`` if present.
+            The classmethod ``from_parametrized_dtype`` will also be registered.
         """
 
-        def _wrapper(dtype: Union[DataType, Type[DataType]]):
-            if not inspect.isclass(dtype):
+        def _wrapper(pandera_dtype: Union[DataType, Type[DataType]]):
+            if not inspect.isclass(pandera_dtype):
                 raise ValueError(
                     f"{cls.__name__}.register_dtype can only decorate a class, "
-                    + f"got {dtype}"
+                    + f"got {pandera_dtype}"
                 )
 
             if equivalents:
-                cls._register_equivalents(dtype, *equivalents)
+                cls._register_equivalents(pandera_dtype, *equivalents)
 
-            from_parametrized_dtype = dtype.__dict__.get(
+            from_parametrized_dtype = pandera_dtype.__dict__.get(
                 "from_parametrized_dtype"
             )
             if from_parametrized_dtype:
                 if not isinstance(from_parametrized_dtype, classmethod):
                     raise ValueError(
-                        f"{dtype.__name__}.from_parametrized_dtype "
+                        f"{pandera_dtype.__name__}.from_parametrized_dtype "
                         + "must be a classmethod."
                     )
                 cls._register_from_parametrized_dtype(
-                    dtype,
+                    pandera_dtype,
                     from_parametrized_dtype,
                 )
             elif not equivalents:
                 warnings.warn(
-                    f"register_dtype({dtype}) on a class without a "
+                    f"register_dtype({pandera_dtype}) on a class without a "
                     + "'from_parametrized_dtype' classmethod has no effect."
                 )
 
-            return dtype
+            return pandera_dtype
 
-        if dtype:
-            return _wrapper(dtype)
+        if pandera_dtype:
+            return _wrapper(pandera_dtype)
 
         return _wrapper
 
-    def dtype(cls, obj: Any) -> DataType:
-        """Convert input into a DataType object."""
-        if isinstance(obj, cls._base_datatype):
-            return obj
+    def dtype(cls, data_type: Any) -> DataType:
+        """Convert input into a Pandera :class:`DataType` object."""
+        if isinstance(data_type, cls._base_pandera_dtypes):
+            return data_type
 
-        if inspect.isclass(obj) and issubclass(obj, cls._base_datatype):
+        if inspect.isclass(data_type) and issubclass(
+            data_type, cls._base_pandera_dtypes
+        ):
             try:
-                return obj()
+                return data_type()
             except (TypeError, AttributeError) as err:
                 raise TypeError(
-                    f"DataType '{obj.__name__}' cannot be instantiated: "
+                    f"DataType '{data_type.__name__}' cannot be instantiated: "
                     f"{err}\n "
                     + "Usage Tip: Use an instance or a string representation."
                 ) from err
 
         registry = cls._registry[cls]
 
-        data_type = registry.equivalents.get(obj)
-        if data_type is not None:
-            return data_type
+        equivalent_data_type = registry.equivalents.get(data_type)
+        if equivalent_data_type is not None:
+            return equivalent_data_type
 
         try:
-            return registry.dispatch(obj)
+            return registry.dispatch(data_type)
         except (KeyError, ValueError):
             raise TypeError(
-                f"Data type '{obj}' not understood by {cls.__name__}."
+                f"Data type '{data_type}' not understood by {cls.__name__}."
             ) from None

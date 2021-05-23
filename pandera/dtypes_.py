@@ -18,10 +18,10 @@ class DataType:
         """Coerce object to the dtype."""
         raise NotImplementedError()
 
-    def check(self, datatype: "DataType") -> bool:
-        if not isinstance(datatype, DataType):
+    def check(self, pandera_dtype: "DataType") -> bool:
+        if not isinstance(pandera_dtype, DataType):
             return False
-        return self == datatype
+        return self == pandera_dtype
 
     def __repr__(self) -> str:
         return f"DataType({str(self)})"
