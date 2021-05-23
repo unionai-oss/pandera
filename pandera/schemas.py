@@ -233,7 +233,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         }
 
     @property
-    def dtypes(self) -> Dict[str, str]:
+    def dtypes(self) -> Dict[str, dtypes_.DataType]:
         """
         A pandas style dtypes dict where the keys are column names and values
         are pandas dtype for the column. Excludes columns where regex=True.
