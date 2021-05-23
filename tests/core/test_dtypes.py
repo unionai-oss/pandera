@@ -1,10 +1,12 @@
 """Tests a variety of python and pandas dtypes, and tests some specific
 coercion examples."""
+# pylint doesn't know about __init__ generated with dataclass
+# pylint:disable=unexpected-keyword-arg,no-value-for-parameter
 import dataclasses
 import datetime
 import inspect
 from decimal import Decimal
-from typing import Any, List
+from typing import Any, Dict, List, Tuple
 
 import hypothesis
 import numpy as np
@@ -13,13 +15,9 @@ import pytest
 from _pytest.mark.structures import ParameterSet
 from _pytest.python import Metafunc
 from hypothesis import strategies as st
-from packaging import version
 
 import pandera as pa
 from pandera.engines import pandas_engine
-
-PANDAS_VERSION = version.parse(pd.__version__)
-
 
 # List dtype classes and associated pandas alias,
 # except for parameterizable dtypes that should also list examples of instances.
@@ -111,7 +109,7 @@ timestamp_dtypes = {
     pa.Timestamp: "datetime64[ns]",
     pd.DatetimeTZDtype(tz="CET"): "datetime64[ns, CET]",
     pandas_engine.DateTime: "datetime64[ns]",
-    pandas_engine.DateTime(unit="ns", tz="CET"): "datetime64[ns, CET]",
+    pandas_engine.DateTime(unit="ns", tz="CET"): "datetime64[ns, CET]",  # type: ignore
 }
 
 timedelta_dtypes = {
@@ -130,7 +128,7 @@ sparse_dtypes = {
 }
 interval_dtypes = {pd.IntervalDtype(subtype=np.int64): "interval[int64]"}
 
-dtype_fixtures = [
+dtype_fixtures: List[Tuple[Dict, List]] = [
     (int_dtypes, [-1]),
     (nullable_int_dtypes, [-1, None]),
     (uint_dtypes, [1]),
@@ -218,7 +216,6 @@ def test_datatype_init(dtype: Any):
 
 def test_datatype_alias(dtype: Any, pd_dtype: Any):
     """Test that a default pa.DataType can be constructed."""
-    data_type = dtype() if inspect.isclass(dtype) else dtype
     assert str(pandas_engine.Engine.dtype(dtype)) == str(pd_dtype)
 
 
@@ -230,6 +227,7 @@ def test_frozen_datatype(dtype: Any):
 
 
 def test_invalid_pandas_extension_dtype():
+    """Test that an invalid dtype is rejected."""
     with pytest.raises(TypeError):
         pandas_engine.Engine.dtype(
             pd.PeriodDtype
@@ -385,6 +383,7 @@ def test_default_numeric_dtypes():
     ],
 )
 def test_inferred_dtype(examples: pd.Series):
+    """Test compatibility with pd.api.types.infer_dtype's outputs."""
     alias = pd.api.types.infer_dtype(examples)
     if "mixed" in alias or alias in ("date", "string"):
         # infer_dtype returns "string", "date"

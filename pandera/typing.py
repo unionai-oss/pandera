@@ -9,22 +9,74 @@ import typing_inspect
 from . import dtypes_
 from .engines import numpy_engine, pandas_engine
 
-try:  # python 3.8+
-    from typing import Literal  # type: ignore
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
-
-
 LEGACY_TYPING = sys.version_info[:2] < (3, 7)
+
+Bool = dtypes_.Bool  #: ``"bool"`` numpy dtype
+DateTime = dtypes_.DateTime  #: ``"datetime64[ns]"`` numpy dtype
+Timedelta = dtypes_.Timedelta  #: ``"timedelta64[ns]"`` numpy dtype
+Category = dtypes_.Category  #: pandas ``"categorical"`` datatype
+Float = dtypes_.Float  #: ``"float"`` numpy dtype
+Float16 = dtypes_.Float16  #: ``"float16"`` numpy dtype
+Float32 = dtypes_.Float32  #: ``"float32"`` numpy dtype
+Float64 = dtypes_.Float64  #: ``"float64"`` numpy dtype
+Int = dtypes_.Int  #: ``"int"`` numpy dtype
+Int8 = dtypes_.Int8  #: ``"int8"`` numpy dtype
+Int16 = dtypes_.Int16  #: ``"int16"`` numpy dtype
+Int32 = dtypes_.Int32  #: ``"int32"`` numpy dtype
+Int64 = dtypes_.Int64  #: ``"int64"`` numpy dtype
+UInt8 = dtypes_.UInt8  #: ``"uint8"`` numpy dtype
+UInt16 = dtypes_.UInt16  #: ``"uint16"`` numpy dtype
+UInt32 = dtypes_.UInt32  #: ``"uint32"`` numpy dtype
+UInt64 = dtypes_.UInt64  #: ``"uint64"`` numpy dtype
+INT8 = pandas_engine.INT8  #: ``"Int8"`` pandas dtype:: pandas 0.24.0+
+INT16 = pandas_engine.INT16  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
+INT32 = pandas_engine.INT32  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
+INT64 = pandas_engine.INT64  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
+UINT8 = pandas_engine.UINT8  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
+UINT16 = pandas_engine.UINT16  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
+UINT32 = pandas_engine.UINT32  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
+UINT64 = pandas_engine.UINT64  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
+Object = numpy_engine.Object  #: ``"object"`` numpy dtype
+String = dtypes_.String  #: ``"str"`` numpy dtype
+#: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
+#: fall back on the str-as-object-array representation.
+STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 
 GenericDtype = TypeVar(  # type: ignore
     "GenericDtype",
-    dtypes_.DataType,
-    pandas_engine.PandasExtensionType,
     bool,
     int,
     str,
     float,
+    pd.core.dtypes.base.ExtensionDtype,
+    Bool,
+    DateTime,
+    Timedelta,
+    Category,
+    Float,
+    Float16,
+    Float32,
+    Float64,
+    Int,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    INT8,
+    INT16,
+    INT32,
+    INT64,
+    UINT8,
+    UINT16,
+    UINT32,
+    UINT64,
+    Object,
+    String,
+    STRING,
     covariant=True,
 )
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
@@ -120,37 +172,3 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.literal = typing_inspect.is_literal_type(self.arg)
         if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
-
-
-Bool = dtypes_.Bool  #: ``"bool"`` numpy dtype
-DateTime = dtypes_.DateTime  #: ``"datetime64[ns]"`` numpy dtype
-Timedelta = dtypes_.Timedelta  #: ``"timedelta64[ns]"`` numpy dtype
-Category = dtypes_.Category  #: pandas ``"categorical"`` datatype
-Float = dtypes_.Float  #: ``"float"`` numpy dtype
-Float16 = dtypes_.Float16  #: ``"float16"`` numpy dtype
-Float32 = dtypes_.Float32  #: ``"float32"`` numpy dtype
-Float64 = dtypes_.Float64  #: ``"float64"`` numpy dtype
-Int = dtypes_.Int  #: ``"int"`` numpy dtype
-Int8 = dtypes_.Int8  #: ``"int8"`` numpy dtype
-Int16 = dtypes_.Int16  #: ``"int16"`` numpy dtype
-Int32 = dtypes_.Int32  #: ``"int32"`` numpy dtype
-Int64 = dtypes_.Int64  #: ``"int64"`` numpy dtype
-UInt8 = dtypes_.UInt8  #: ``"uint8"`` numpy dtype
-UInt16 = dtypes_.UInt16  #: ``"uint16"`` numpy dtype
-UInt32 = dtypes_.UInt32  #: ``"uint32"`` numpy dtype
-UInt64 = dtypes_.UInt64  #: ``"uint64"`` numpy dtype
-INT8 = pandas_engine.INT8  #: ``"Int8"`` pandas dtype:: pandas 0.24.0+
-INT16 = pandas_engine.INT16  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
-INT32 = pandas_engine.INT32  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
-INT64 = pandas_engine.INT64  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
-UINT8 = pandas_engine.UINT8  #: ``"UInt8"`` pandas dtype:: pandas 0.24.0+
-UINT16 = pandas_engine.UINT16  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
-UINT32 = pandas_engine.UINT32  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
-UINT64 = pandas_engine.UINT64  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
-Object = numpy_engine.Object  #: ``"object"`` numpy dtype
-
-String = dtypes_.String  #: ``"str"`` numpy dtype
-
-#: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
-#: fall back on the str-as-object-array representation.
-STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype

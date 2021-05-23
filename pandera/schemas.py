@@ -12,7 +12,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from . import constants, dtypes, errors
+from pandera import dtypes_
+
+from . import constants, errors
 from . import strategies as st
 from .checks import Check
 from .dtypes_ import DataType
@@ -36,7 +38,7 @@ PandasDtypeInputTypes = Union[
     str,
     type,
     DataType,
-    pandas_engine.PandasExtensionType,
+    pd.core.dtypes.base.ExtensionDtype,
     np.dtype,
 ]
 
@@ -166,7 +168,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self.index = index
         self.strict = strict
         self.name = name
-        self.dtype = dtype
+        self.dtype = dtype  # type: ignore
         self._coerce = coerce
         self._ordered = ordered
         self._validate_schema()
@@ -274,9 +276,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     @property
     def dtype(
         self,
-    ) -> PandasDtypeInputTypes:
+    ) -> dtypes_.DataType:
         """Get the dtype property."""
-        return self._dtype
+        return self._dtype  # type: ignore
 
     @dtype.setter
     def dtype(self, value: PandasDtypeInputTypes) -> None:
@@ -1485,7 +1487,7 @@ class SeriesSchemaBase:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
-        self.dtype = dtype
+        self.dtype = dtype  # type: ignore
         self._nullable = nullable
         self._allow_duplicates = allow_duplicates
         self._coerce = coerce
@@ -1562,9 +1564,9 @@ class SeriesSchemaBase:
     @property
     def dtype(
         self,
-    ) -> PandasDtypeInputTypes:
+    ) -> dtypes_.DataType:
         """Get the pandas dtype"""
-        return self._dtype
+        return self._dtype  # type: ignore
 
     @dtype.setter
     def dtype(self, value: PandasDtypeInputTypes) -> None:
