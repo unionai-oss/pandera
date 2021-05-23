@@ -26,7 +26,7 @@ def equivalents() -> List[Any]:
 
 @pytest.fixture
 def engine() -> Type[Engine]:
-    class FakeEngine(metaclass=Engine, base_datatype=BaseDataType):
+    class FakeEngine(metaclass=Engine, base_pandera_dtypes=BaseDataType):
         pass
 
     yield FakeEngine
@@ -160,7 +160,7 @@ def test_register_dtype_overwrite(
     assert engine.dtype(42) == DtypeB()
 
 
-def test_register_base_datatype(engine: Type[Engine]):
+def test_register_base_pandera_dtypes(engine: Type[Engine]):
     """Test that base datatype cannot be registered."""
     with pytest.raises(
         ValueError,
