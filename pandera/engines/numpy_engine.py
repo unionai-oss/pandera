@@ -32,7 +32,7 @@ class DataType(dtypes_.DataType):
         return f"DataType({self})"
 
 
-class Engine(metaclass=engine.Engine, base_datatype=DataType):
+class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
     @classmethod
     def dtype(cls, data_type: Any) -> "DataType":
         try:
@@ -264,8 +264,8 @@ class String(DataType, dtypes_.String):
         arr[notna] = arr[notna].astype(str)
         return arr
 
-    def check(self, datatype: "dtypes_.DataType") -> bool:
-        return isinstance(datatype, (Object, type(self)))
+    def check(self, pandera_dtype: "dtypes_.DataType") -> bool:
+        return isinstance(pandera_dtype, (Object, type(self)))
 
 
 ################################################################################

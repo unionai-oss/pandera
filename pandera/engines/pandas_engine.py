@@ -12,12 +12,14 @@ from . import engine, numpy_engine
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
 PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
+PandasDtype = Union[PandasExtensionType, np.dtype, type]
 
 
-def is_extension_dtype(dtype):
+def is_extension_dtype(pd_dtype: PandasDtype) -> bool:
     """Check if a value is a pandas extension type or instance of one."""
-    return isinstance(dtype, PandasExtensionType) or (
-        isinstance(dtype, type) and issubclass(dtype, PandasExtensionType)
+    return isinstance(pd_dtype, PandasExtensionType) or (
+        isinstance(pd_dtype, type)
+        and issubclass(pd_dtype, PandasExtensionType)
     )
 
 
@@ -31,15 +33,15 @@ class DataType(dtypes_.DataType):
     def __post_init__(self):
         object.__setattr__(self, "type", pd.api.types.pandas_dtype(self.type))
 
-    def coerce(self, obj: PandasObject) -> PandasObject:
-        return obj.astype(self.type)
+    def coerce(self, pd_obj: PandasObject) -> PandasObject:
+        return pd_obj.astype(self.type)
 
-    def check(self, datatype: "DataType") -> bool:
+    def check(self, pandera_dtype: dtypes_.DataType) -> bool:
         try:
-            datatype = Engine.dtype(datatype)
+            pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
             return False
-        return super().check(datatype)
+        return super().check(pandera_dtype)
 
     def __str__(self) -> str:
         return str(self.type)
@@ -49,35 +51,36 @@ class DataType(dtypes_.DataType):
 
 
 class Engine(
-    metaclass=engine.Engine, base_datatype=(DataType, numpy_engine.DataType)
+    metaclass=engine.Engine,
+    base_pandera_dtypes=(DataType, numpy_engine.DataType),
 ):
     @classmethod
-    def dtype(cls, obj: Any) -> "DataType":
+    def dtype(cls, data_type: Any) -> "DataType":
         try:
-            return engine.Engine.dtype(cls, obj)
+            return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            if is_extension_dtype(obj) and isinstance(obj, type):
+            if is_extension_dtype(data_type) and isinstance(data_type, type):
                 try:
-                    np_or_pd_dtype = obj()
+                    np_or_pd_dtype = data_type()
                     # Convert to str here because some pandas dtypes allow
                     # an empty constructor for compatibility but fail on
                     # str(). e.g: PeriodDtype
                     str(np_or_pd_dtype.name)
                 except (TypeError, AttributeError) as err:
                     raise TypeError(
-                        f" dtype {obj} cannot be instantiated: {err}\n"
+                        f" dtype {data_type} cannot be instantiated: {err}\n"
                         "Usage Tip: Use an instance or a string representation."
                     ) from None
             else:
                 # let pandas transform any acceptable value
                 # into a numpy or pandas dtype.
-                np_or_pd_dtype = pd.api.types.pandas_dtype(obj)
+                np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
                 if isinstance(np_or_pd_dtype, np.dtype):
                     np_or_pd_dtype = np_or_pd_dtype.type
 
             try:
                 return engine.Engine.dtype(cls, np_or_pd_dtype)
-            except TypeError:
+            except TypeError as err:
                 return DataType(np_or_pd_dtype)
 
 
@@ -318,14 +321,14 @@ STRING = String
 class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
 
-    def coerce(self, obj: PandasObject) -> np.ndarray:
+    def coerce(self, pd_obj: PandasObject) -> np.ndarray:
         # Convert to object first to avoid
         # TypeError: object cannot be converted to an IntegerDtype
-        obj = obj.astype(object)
-        return obj.where(obj.isna(), obj.astype(str))
+        pd_obj = pd_obj.astype(object)
+        return pd_obj.where(pd_obj.isna(), pd_obj.astype(str))
 
-    def check(self, datatype: "DataType") -> bool:
-        return isinstance(datatype, (numpy_engine.Object, type(self)))
+    def check(self, pandera_dtype: dtypes_.DataType) -> bool:
+        return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
 
 
 Engine.register_dtype(
@@ -379,17 +382,17 @@ class DateTime(DataType, dtypes_.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
-    def coerce(self, obj: PandasObject) -> PandasObject:
+    def coerce(self, pd_obj: PandasObject) -> PandasObject:
         kwargs = self.to_datetime_kwargs or {}
 
         def _to_datetime(col: pd.Series) -> pd.Series:
             return pd.to_datetime(col, **kwargs).astype(self.type).to_series()
 
-        if isinstance(obj, pd.DataFrame):
+        if isinstance(pd_obj, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
             # We actually want to coerce every columns.
-            return obj.transform(_to_datetime)
-        return _to_datetime(obj)
+            return pd_obj.transform(_to_datetime)
+        return _to_datetime(pd_obj)
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
@@ -434,17 +437,17 @@ class DateTime(DataType, dtypes_.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
-    def coerce(self, obj: PandasObject) -> PandasObject:
+    def coerce(self, pd_obj: PandasObject) -> PandasObject:
         kwargs = self.to_datetime_kwargs or {}
 
         def _to_datetime(col: pd.Series) -> pd.Series:
             return pd.to_datetime(col, **kwargs).astype(self.type)
 
-        if isinstance(obj, pd.DataFrame):
+        if isinstance(pd_obj, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
             # We actually want to coerce every columns.
-            return obj.transform(_to_datetime)
-        return _to_datetime(obj)
+            return pd_obj.transform(_to_datetime)
+        return _to_datetime(pd_obj)
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
