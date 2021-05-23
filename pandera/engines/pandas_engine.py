@@ -1,7 +1,17 @@
+"""Pandas engine and data types."""
+# pylint:disable=too-many-ancestors
+
+# docstrings are inherited
+# pylint:disable=missing-class-docstring
+
+# pylint doesn't know about __init__ generated with dataclass
+# pylint:disable=unexpected-keyword-arg,no-value-for-parameter
 import builtins
 import dataclasses
 import datetime
-from typing import Any, Dict, List, Union
+import inspect
+import warnings
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -12,7 +22,7 @@ from . import engine, numpy_engine
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
 PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
-PandasDtype = Union[PandasExtensionType, np.dtype, type]
+PandasDtype = Union[pd.core.dtypes.base.ExtensionDtype, np.dtype, type]
 
 
 def is_extension_dtype(pd_dtype: PandasDtype) -> bool:
@@ -25,9 +35,12 @@ def is_extension_dtype(pd_dtype: PandasDtype) -> bool:
 
 @immutable(init=True)
 class DataType(dtypes_.DataType):
+    """Base `DataType` for boxing Pandas data types."""
+
     type: Any = dataclasses.field(repr=False, init=False)
 
     def __init__(self, dtype: Any):
+        super().__init__()
         object.__setattr__(self, "type", pd.api.types.pandas_dtype(dtype))
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
         warnings.warn(
@@ -40,8 +53,8 @@ class DataType(dtypes_.DataType):
     def __post_init__(self):
         object.__setattr__(self, "type", pd.api.types.pandas_dtype(self.type))
 
-    def coerce(self, pd_obj: PandasObject) -> PandasObject:
-        return pd_obj.astype(self.type)
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        return data_container.astype(self.type)
 
     def check(self, pandera_dtype: dtypes_.DataType) -> bool:
         try:
@@ -57,12 +70,16 @@ class DataType(dtypes_.DataType):
         return f"DataType({self})"
 
 
-class Engine(
+class Engine(  # pylint:disable=too-few-public-methods
     metaclass=engine.Engine,
     base_pandera_dtypes=(DataType, numpy_engine.DataType),
 ):
+    """Pandas data type engine."""
+
     @classmethod
     def dtype(cls, data_type: Any) -> "DataType":
+        """Convert input into a pandas-compatible
+        Pandera :class:`DataType` object."""
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -120,8 +137,8 @@ BOOL = Bool
 def _register_numpy_numbers(
     builtin_name: str, pandera_name: str, sizes: List[int]
 ) -> None:
-    """Return a dict of equivalent builtin, numpy, pandera dtypes
-    indexed by size in bits."""
+    """Register pandera.engines.numpy_engine DataTypes
+    with the pandas engine."""
 
     builtin_type = getattr(builtins, builtin_name, None)  # uint doesn't exist
     default_pd_dtype = pd.Series([1], dtype=builtin_name).dtype
@@ -161,7 +178,7 @@ def _register_numpy_numbers(
                 equivalents.add("integer")
 
         numpy_data_type = getattr(numpy_engine, f"{pandera_name}{bit_width}")
-        Engine.register_dtype(numpy_data_type, equivalents=equivalents)
+        Engine.register_dtype(numpy_data_type, equivalents=list(equivalents))
 
 
 ################################################################################
@@ -295,8 +312,12 @@ _register_numpy_numbers(
 class Category(DataType, dtypes_.Category):
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
 
-    def __post_init__(self):
-        dtypes_.Category.__post_init__(self)
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        categories: Optional[Iterable[Any]] = None,
+        ordered: bool = False,
+    ) -> None:
+        dtypes_.Category.__init__(self, categories, ordered)
         object.__setattr__(
             self,
             "type",
@@ -307,7 +328,11 @@ class Category(DataType, dtypes_.Category):
     def from_parametrized_dtype(
         cls, cat: Union[dtypes_.Category, pd.CategoricalDtype]
     ):
-        return cls(categories=cat.categories, ordered=cat.ordered)
+        """Convert a categorical to
+        a Pandera :class:`~pandera.dtypes.pandas_engine.Category`."""
+        return cls(  # type: ignore
+            categories=cat.categories, ordered=cat.ordered
+        )
 
 
 @Engine.register_dtype(
@@ -328,11 +353,13 @@ STRING = String
 class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
 
-    def coerce(self, pd_obj: PandasObject) -> np.ndarray:
+    def coerce(self, data_container: PandasObject) -> np.ndarray:
         # Convert to object first to avoid
         # TypeError: object cannot be converted to an IntegerDtype
-        pd_obj = pd_obj.astype(object)
-        return pd_obj.where(pd_obj.isna(), pd_obj.astype(str))
+        data_container = data_container.astype(object)
+        return data_container.where(
+            data_container.isna(), data_container.astype(str)
+        )
 
     def check(self, pandera_dtype: dtypes_.DataType) -> bool:
         return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
@@ -355,60 +382,9 @@ Engine.register_dtype(
 # ################################################################################
 # # time
 # ################################################################################
-@Engine.register_dtype(
-    equivalents=[
-        "time",
-        "datetime",
-        "datetime64",
-        datetime.date,
-        datetime.datetime,
-        np.datetime64,
-        dtypes_.Timestamp,
-        dtypes_.Timestamp(),
-        pd.Timestamp,
-    ]
-)
-@immutable(init=True)
-class DateTime(DataType, dtypes_.Timestamp):
-    type: Union[np.datetime64, pd.DatetimeTZDtype] = dataclasses.field(
-        default=None, init=False
-    )
-    unit: str = "ns"
-    tz: datetime.tzinfo = None
-    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
-        default=None, compare=False, repr=False
-    )
 
-    def __post_init__(self):
-        if self.tz is None:
-            type_ = np.dtype("datetime64")
-        else:
-            type_ = pd.DatetimeTZDtype(self.unit, self.tz)
-            # DatetimeTZDtype converted tz to tzinfo for us
-            object.__setattr__(self, "tz", type_.tz)
 
-        object.__setattr__(self, "type", type_)
-
-    def coerce(self, pd_obj: PandasObject) -> PandasObject:
-        kwargs = self.to_datetime_kwargs or {}
-
-        def _to_datetime(col: pd.Series) -> pd.Series:
-            return pd.to_datetime(col, **kwargs).astype(self.type).to_series()
-
-        if isinstance(pd_obj, pd.DataFrame):
-            # pd.to_datetime transforms a df input into a series.
-            # We actually want to coerce every columns.
-            return pd_obj.transform(_to_datetime)
-        return _to_datetime(pd_obj)
-
-    @classmethod
-    def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
-        return cls(unit=pd_dtype.unit, tz=pd_dtype.tz)
-
-    def __str__(self) -> str:
-        if self.type == np.dtype("datetime64"):
-            return "datetime64[ns]"
-        return str(self.type)
+_PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
 
 
 @Engine.register_dtype(
@@ -425,13 +401,13 @@ class DateTime(DataType, dtypes_.Timestamp):
 )
 @immutable(init=True)
 class DateTime(DataType, dtypes_.Timestamp):
-    type: Union[np.datetime64, pd.DatetimeTZDtype] = dataclasses.field(
+    type: Optional[_PandasDatetime] = dataclasses.field(
         default=None, init=False
     )
     unit: str = "ns"
-    tz: datetime.tzinfo = None
+    tz: Optional[datetime.tzinfo] = None
     to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
-        default=None, compare=False, repr=False
+        default_factory=dict, compare=False, repr=False
     )
 
     def __post_init__(self):
@@ -444,21 +420,22 @@ class DateTime(DataType, dtypes_.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
-    def coerce(self, pd_obj: PandasObject) -> PandasObject:
-        kwargs = self.to_datetime_kwargs or {}
-
+    def coerce(self, data_container: PandasObject) -> PandasObject:
         def _to_datetime(col: pd.Series) -> pd.Series:
-            return pd.to_datetime(col, **kwargs).astype(self.type)
+            col = pd.to_datetime(col, **self.to_datetime_kwargs)
+            return col.astype(self.type)
 
-        if isinstance(pd_obj, pd.DataFrame):
+        if isinstance(data_container, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
             # We actually want to coerce every columns.
-            return pd_obj.transform(_to_datetime)
-        return _to_datetime(pd_obj)
+            return data_container.transform(_to_datetime)
+        return _to_datetime(data_container)
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
-        return cls(unit=pd_dtype.unit, tz=pd_dtype.tz)
+        """Convert a :class:`pandas.DatetimeTZDtype` to
+        a Pandera :class:`~pandera.engines.pandas_engine.DateTime`."""
+        return cls(unit=pd_dtype.unit, tz=pd_dtype.tz)  # type: ignore
 
     def __str__(self) -> str:
         if self.type == np.dtype("datetime64"):
@@ -483,6 +460,8 @@ Engine.register_dtype(
 @Engine.register_dtype
 @immutable(init=True)
 class Period(DataType):
+    """Representation of pandas :class:`pd.Period`."""
+
     type: pd.PeriodDtype = dataclasses.field(default=None, init=False)
     freq: Union[str, pd.tseries.offsets.DateOffset]
 
@@ -491,7 +470,9 @@ class Period(DataType):
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.PeriodDtype):
-        return cls(freq=pd_dtype.freq)
+        """Convert a :class:`pandas.PeriodDtype` to
+        a Pandera :class:`~pandera.engines.pandas_engine.Period`."""
+        return cls(freq=pd_dtype.freq)  # type: ignore
 
 
 # ################################################################################
@@ -502,8 +483,10 @@ class Period(DataType):
 @Engine.register_dtype(equivalents=[pd.SparseDtype])
 @immutable(init=True)
 class Sparse(DataType):
+    """Representation of pandas :class:`pd.SparseDtype`."""
+
     type: pd.SparseDtype = dataclasses.field(default=None, init=False)
-    dtype: Union[str, PandasExtensionType, np.dtype, "type"] = np.float_
+    dtype: PandasDtype = np.float_
     fill_value: Any = np.nan
 
     def __post_init__(self):
@@ -515,12 +498,18 @@ class Sparse(DataType):
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.SparseDtype):
-        return cls(dtype=pd_dtype.subtype, fill_value=pd_dtype.fill_value)
+        """Convert a :class:`pandas.SparseDtype` to
+        a Pandera :class:`~pandera.engines.pandas_engine.Sparse`."""
+        return cls(  # type: ignore
+            dtype=pd_dtype.subtype, fill_value=pd_dtype.fill_value
+        )
 
 
 @Engine.register_dtype
 @immutable(init=True)
 class Interval(DataType):
+    """Representation of pandas :class:`pd.IntervalDtype`."""
+
     type: pd.IntervalDtype = dataclasses.field(default=None, init=False)
     subtype: Union[str, np.dtype]
 
@@ -531,4 +520,6 @@ class Interval(DataType):
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.IntervalDtype):
-        return cls(subtype=pd_dtype.subtype)
+        """Convert a :class:`pandas.IntervalDtype` to
+        a Pandera :class:`~pandera.engines.pandas_engine.Interval`."""
+        return cls(subdtype=pd_dtype.subtype)  # type: ignore

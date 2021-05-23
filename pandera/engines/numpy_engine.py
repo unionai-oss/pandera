@@ -1,7 +1,12 @@
+"""Numpy engine and data types."""
+# docstrings are inherited
+# pylint:disable=missing-class-docstring,too-many-ancestors
 import builtins
 import dataclasses
 import datetime
-from typing import Any, List
+import inspect
+import warnings
+from typing import Any, Dict, List, Union
 
 import numpy as np
 
@@ -12,11 +17,14 @@ from . import engine
 
 @immutable(init=True)
 class DataType(dtypes_.DataType):
+    """Base `DataType` for boxing Numpy data types."""
+
     type: np.dtype = dataclasses.field(
         default=np.dtype("object"), repr=False, init=False
     )
 
     def __init__(self, dtype: Any):
+        super().__init__()
         object.__setattr__(self, "type", np.dtype(dtype))
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
         warnings.warn(
@@ -29,8 +37,8 @@ class DataType(dtypes_.DataType):
     def __post_init__(self):
         object.__setattr__(self, "type", np.dtype(self.type))
 
-    def coerce(self, arr: np.ndarray) -> np.ndarray:
-        return arr.astype(self.type)
+    def coerce(self, data_container: np.ndarray) -> np.ndarray:
+        return data_container.astype(self.type)
 
     def __str__(self) -> str:
         return self.type.name
@@ -39,9 +47,15 @@ class DataType(dtypes_.DataType):
         return f"DataType({self})"
 
 
-class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
+class Engine(  # pylint:disable=too-few-public-methods
+    metaclass=engine.Engine, base_pandera_dtypes=DataType
+):
+    """Numpy data type engine."""
+
     @classmethod
-    def dtype(cls, data_type: Any) -> "DataType":
+    def dtype(cls, data_type: Any) -> dtypes_.DataType:
+        """Convert input into a numpy-compatible
+        Pandera :class:`DataType` object."""
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -68,14 +82,12 @@ class Engine(metaclass=engine.Engine, base_pandera_dtypes=DataType):
 )
 @immutable
 class Bool(DataType, dtypes_.Bool):
-    """representation of a boolean data type."""
-
     type = np.dtype("bool")
 
 
 def _build_number_equivalents(
     builtin_name: str, pandera_name: str, sizes: List[int]
-) -> None:
+) -> Dict[int, List[Union[type, str, np.dtype, dtypes_.DataType]]]:
     """Return a dict of equivalent builtin, numpy, pandera dtypes
     indexed by size in bit_width."""
     builtin_type = getattr(builtins, builtin_name, None)
@@ -92,18 +104,20 @@ def _build_number_equivalents(
         default_equivalents.append(builtin_type)
 
     return {
-        bit_width: set(
-            (
-                # e.g.: numpy.int64
-                getattr(np, f"{builtin_name}{bit_width}"),
-                # e.g.: pandera.dtypes.Int64
-                getattr(dtypes_, f"{pandera_name}{bit_width}"),
-                getattr(dtypes_, f"{pandera_name}{bit_width}")(),
-                # e.g.: pandera.dtypes.Int(64)
-                getattr(dtypes_, pandera_name)(),
+        bit_width: list(
+            set(
+                (
+                    # e.g.: numpy.int64
+                    getattr(np, f"{builtin_name}{bit_width}"),
+                    # e.g.: pandera.dtypes.Int64
+                    getattr(dtypes_, f"{pandera_name}{bit_width}"),
+                    getattr(dtypes_, f"{pandera_name}{bit_width}")(),
+                    # e.g.: pandera.dtypes.Int(64)
+                    getattr(dtypes_, pandera_name)(),
+                )
             )
+            | set(default_equivalents if bit_width == default_size else [])
         )
-        | set(default_equivalents if bit_width == default_size else [])
         for bit_width in sizes
     }
 
@@ -120,6 +134,7 @@ _int_equivalents = _build_number_equivalents(
 @Engine.register_dtype(equivalents=_int_equivalents[64])
 @immutable
 class Int64(DataType, dtypes_.Int64):
+
     type = np.dtype("int64")
     bit_width: int = 64
 
@@ -127,21 +142,21 @@ class Int64(DataType, dtypes_.Int64):
 @Engine.register_dtype(equivalents=_int_equivalents[32])
 @immutable
 class Int32(Int64):
-    type = np.dtype("int32")
+    type = np.dtype("int32")  # type: ignore
     bit_width: int = 32
 
 
 @Engine.register_dtype(equivalents=_int_equivalents[16])
 @immutable
 class Int16(Int32):
-    type = np.dtype("int16")
+    type = np.dtype("int16")  # type: ignore
     bit_width: int = 16
 
 
 @Engine.register_dtype(equivalents=_int_equivalents[8])
 @immutable
 class Int8(Int16):
-    type = np.dtype("int8")
+    type = np.dtype("int8")  # type: ignore
     bit_width: int = 8
 
 
@@ -166,21 +181,21 @@ class UInt64(DataType, dtypes_.UInt64):
 @Engine.register_dtype(equivalents=_uint_equivalents[32])
 @immutable
 class UInt32(UInt64):
-    type = np.dtype("uint32")
+    type = np.dtype("uint32")  # type: ignore
     bit_width: int = 32
 
 
 @Engine.register_dtype(equivalents=_uint_equivalents[16])
 @immutable
 class UInt16(UInt32):
-    type = np.dtype("uint16")
+    type = np.dtype("uint16")  # type: ignore
     bit_width: int = 16
 
 
 @Engine.register_dtype(equivalents=_uint_equivalents[8])
 @immutable
 class UInt8(UInt16):
-    type = np.dtype("uint8")
+    type = np.dtype("uint8")  # type: ignore
     bit_width: int = 8
 
 
@@ -212,14 +227,14 @@ class Float64(Float128):
 @Engine.register_dtype(equivalents=_float_equivalents[32])
 @immutable
 class Float32(Float64):
-    type = np.dtype("float32")
+    type = np.dtype("float32")  # type: ignore
     bit_width: int = 32
 
 
 @Engine.register_dtype(equivalents=_float_equivalents[16])
 @immutable
 class Float16(Float32):
-    type = np.dtype("float16")
+    type = np.dtype("float16")  # type: ignore
     bit_width: int = 16
 
 
@@ -244,14 +259,14 @@ class Complex256(DataType, dtypes_.Complex256):
 @Engine.register_dtype(equivalents=_complex_equivalents[128])
 @immutable
 class Complex128(Complex256):
-    type = np.dtype("complex128")
+    type = np.dtype("complex128")  # type: ignore
     bit_width: int = 128
 
 
 @Engine.register_dtype(equivalents=_complex_equivalents[64])
 @immutable
 class Complex64(Complex128):
-    type = np.dtype("complex64")
+    type = np.dtype("complex64")  # type: ignore
     bit_width: int = 64
 
 
@@ -265,11 +280,11 @@ class Complex64(Complex128):
 class String(DataType, dtypes_.String):
     type = np.dtype("str")
 
-    def coerce(self, arr: np.ndarray) -> np.ndarray:
-        arr = arr.astype(object)
-        notna = ~arr.isna()
-        arr[notna] = arr[notna].astype(str)
-        return arr
+    def coerce(self, data_container: np.ndarray) -> np.ndarray:
+        data_container = data_container.astype(object)
+        notna = ~np.isnan(data_container)
+        data_container[notna] = data_container[notna].astype(str)
+        return data_container
 
     def check(self, pandera_dtype: "dtypes_.DataType") -> bool:
         return isinstance(pandera_dtype, (Object, type(self)))
