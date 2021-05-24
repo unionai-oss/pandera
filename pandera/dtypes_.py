@@ -379,3 +379,53 @@ class Timedelta(DataType):
 
     def __str__(self) -> str:
         return "timedelta"
+
+
+################################################################################
+## Utilities
+################################################################################
+
+
+def is_int(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is an integer."""
+    return isinstance(pandera_dtype, Int)
+
+
+def is_uint(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is an unsigned integer."""
+    return isinstance(pandera_dtype, Int)
+
+
+def is_float(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a float."""
+    return isinstance(pandera_dtype, Float)
+
+
+def is_complex(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a complex number."""
+    return isinstance(pandera_dtype, Complex)
+
+
+def is_bool(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a boolean."""
+    return isinstance(pandera_dtype, Bool)
+
+
+def is_string(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a string."""
+    return isinstance(pandera_dtype, String)
+
+
+def is_category(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a category."""
+    return isinstance(pandera_dtype, Category)
+
+
+def is_datetime(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a datetime."""
+    return isinstance(pandera_dtype, DateTime)
+
+
+def is_timedelta(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a timedelta."""
+    return isinstance(pandera_dtype, Timedelta)

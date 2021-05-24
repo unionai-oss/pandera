@@ -393,3 +393,94 @@ def test_inferred_dtype(examples: pd.Series):
         inferred_datatype = pandas_engine.Engine.dtype(alias)
     actual_dtype = pandas_engine.Engine.dtype(pd.Series(examples).dtype)
     assert actual_dtype.check(inferred_datatype)
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in int_dtypes] + [("string", False)],
+)
+def test_is_int(data_type: Any, expected: bool):
+    """Test is_int."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_int(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in uint_dtypes] + [("string", False)],
+)
+def test_is_uint(data_type: Any, expected: bool):
+    """Test is_uint."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_uint(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in float_dtypes] + [("string", False)],
+)
+def test_is_float(data_type: Any, expected: bool):
+    """Test is_float."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_float(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in complex_dtypes]
+    + [("string", False)],  # type: ignore
+)
+def test_is_complex(data_type: Any, expected: bool):
+    """Test is_complex."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_complex(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in boolean_dtypes] + [("string", False)],
+)
+def test_is_bool(data_type: Any, expected: bool):
+    """Test is_bool."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_bool(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in string_dtypes] + [("int", False)],
+)
+def test_is_string(data_type: Any, expected: bool):
+    """Test is_string."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_string(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in category_dtypes] + [("string", False)],
+)
+def test_is_category(data_type: Any, expected: bool):
+    """Test is_category."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_category(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in timestamp_dtypes] + [("string", False)],
+)
+def test_is_datetime(data_type: Any, expected: bool):
+    """Test is_datetime."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_datetime(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype in timedelta_dtypes] + [("string", False)],
+)
+def test_is_timedelta(data_type: Any, expected: bool):
+    """Test is_timedelta."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_timedelta(pandera_dtype) == expected
