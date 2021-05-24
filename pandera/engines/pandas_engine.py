@@ -444,7 +444,7 @@ class DateTime(DataType, dtypes_.Timestamp):
 
 
 Engine.register_dtype(
-    numpy_engine.DateTime64,
+    numpy_engine.Timedelta64,
     equivalents=[
         "timedelta",
         "timedelta64",
