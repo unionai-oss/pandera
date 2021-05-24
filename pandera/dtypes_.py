@@ -17,6 +17,8 @@ from typing import (
 class DataType(ABC):
     """Base class of all Pandera data types."""
 
+    continuous: bool = False
+
     def __init__(self):
         if self.__class__ is DataType:
             raise TypeError(
@@ -111,7 +113,6 @@ Boolean = Bool
 class _Number(DataType):
     """Semantic representation of a numeric data type."""
 
-    continuous: Optional[bool] = None
     exact: Optional[bool] = None
 
     def check(self, pandera_dtype: "DataType") -> bool:
@@ -147,7 +148,6 @@ class Int(_PhysicalNumber):  # type: ignore
     """Semantic representation of an integer data type."""
 
     _base_name = "int"
-    continuous = False
     exact = True
     bit_width = 64
     signed: bool = dataclasses.field(default=True, init=False)
