@@ -522,4 +522,4 @@ class Interval(DataType):
     def from_parametrized_dtype(cls, pd_dtype: pd.IntervalDtype):
         """Convert a :class:`pandas.IntervalDtype` to
         a Pandera :class:`~pandera.engines.pandas_engine.Interval`."""
-        return cls(subdtype=pd_dtype.subtype)  # type: ignore
+        return cls(subtype=pd_dtype.subtype)  # type: ignore
