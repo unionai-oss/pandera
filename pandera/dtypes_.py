@@ -90,21 +90,6 @@ def immutable(
 
 
 ################################################################################
-# boolean
-################################################################################
-
-
-@immutable
-class Bool(DataType):
-    """Semantic representation of a boolean data type."""
-
-    def __str__(self) -> str:
-        return "bool"
-
-
-Boolean = Bool
-
-################################################################################
 # number
 ################################################################################
 
@@ -117,7 +102,7 @@ class _Number(DataType):
 
     def check(self, pandera_dtype: "DataType") -> bool:
         if self.__class__ is _Number:
-            return isinstance(pandera_dtype, (Int, Float, Complex))
+            return isinstance(pandera_dtype, _Number)
         return super().check(pandera_dtype)
 
 
@@ -138,6 +123,20 @@ class _PhysicalNumber(_Number):
         return f"{self._base_name}{self.bit_width}"
 
 
+################################################################################
+# boolean
+################################################################################
+
+
+@immutable
+class Bool(_Number):
+    """Semantic representation of a boolean data type."""
+
+    def __str__(self) -> str:
+        return "bool"
+
+
+Boolean = Bool
 ################################################################################
 ## signed integer
 ################################################################################
@@ -404,6 +403,11 @@ def is_float(pandera_dtype: DataType) -> bool:
 def is_complex(pandera_dtype: DataType) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a complex number."""
     return isinstance(pandera_dtype, Complex)
+
+
+def is_numeric(pandera_dtype: DataType) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a complex number."""
+    return isinstance(pandera_dtype, _Number)
 
 
 def is_bool(pandera_dtype: DataType) -> bool:

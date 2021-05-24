@@ -397,7 +397,8 @@ def test_inferred_dtype(examples: pd.Series):
 
 @pytest.mark.parametrize(
     "data_type, expected",
-    [(dtype, True) for dtype in int_dtypes] + [("string", False)],
+    [(dtype, True) for dtype in (*int_dtypes, *nullable_int_dtypes)]
+    + [("string", False)],
 )
 def test_is_int(data_type: Any, expected: bool):
     """Test is_int."""
@@ -407,7 +408,8 @@ def test_is_int(data_type: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "data_type, expected",
-    [(dtype, True) for dtype in uint_dtypes] + [("string", False)],
+    [(dtype, True) for dtype in (*uint_dtypes, *nullable_uint_dtypes)]
+    + [("string", False)],
 )
 def test_is_uint(data_type: Any, expected: bool):
     """Test is_uint."""
@@ -438,7 +440,8 @@ def test_is_complex(data_type: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "data_type, expected",
-    [(dtype, True) for dtype in boolean_dtypes] + [("string", False)],
+    [(dtype, True) for dtype in (*boolean_dtypes, *nullable_boolean_dtypes)]
+    + [("string", False)],
 )
 def test_is_bool(data_type: Any, expected: bool):
     """Test is_bool."""
@@ -484,3 +487,13 @@ def test_is_timedelta(data_type: Any, expected: bool):
     """Test is_timedelta."""
     pandera_dtype = pandas_engine.Engine.dtype(data_type)
     assert pa.dtypes_.is_timedelta(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type, expected",
+    [(dtype, True) for dtype, _ in numeric_dtypes] + [("string", False)],
+)
+def test_is_numeric(data_type: Any, expected: bool):
+    """Test is_timedelta."""
+    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    assert pa.dtypes_.is_numeric(pandera_dtype) == expected
