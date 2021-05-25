@@ -12,6 +12,8 @@ from typing import (
     Callable,
     Dict,
     List,
+    Set,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -58,7 +60,8 @@ class Engine(ABCMeta):
     """
 
     _registry: Dict["Engine", _DtypeRegistry] = {}
-    _base_pandera_dtypes: Type[DataType]
+    _registered_dtypes: Set[Type[DataType]]
+    _base_pandera_dtypes: Union[Type[DataType], Tuple[Type[DataType]]]
 
     def __new__(cls, name, bases, namespace, **kwargs):
 
@@ -68,6 +71,7 @@ class Engine(ABCMeta):
         except TypeError:
             pass
         namespace["_base_pandera_dtypes"] = base_pandera_dtypes
+        namespace["_registered_dtypes"] = set()
         engine = super().__new__(cls, name, bases, namespace, **kwargs)
 
         @functools.singledispatch
@@ -136,25 +140,26 @@ class Engine(ABCMeta):
             The classmethod ``from_parametrized_dtype`` will also be registered.
         """
 
-        def _wrapper(pandera_dtype: Union[DataType, Type[DataType]]):
-            if not inspect.isclass(pandera_dtype):
+        def _wrapper(pandera_dtype_cls: Union[DataType, Type[DataType]]):
+            if not inspect.isclass(pandera_dtype_cls):
                 raise ValueError(
                     f"{cls.__name__}.register_dtype can only decorate a class, "
-                    + f"got {pandera_dtype}"
+                    + f"got {pandera_dtype_cls}"
                 )
 
             if equivalents:
-                cls._register_equivalents(pandera_dtype, *equivalents)
+                cls._register_equivalents(pandera_dtype_cls, *equivalents)
 
-            if "from_parametrized_dtype" in pandera_dtype.__dict__:
-                cls._register_from_parametrized_dtype(pandera_dtype)
+            if "from_parametrized_dtype" in pandera_dtype_cls.__dict__:
+                cls._register_from_parametrized_dtype(pandera_dtype_cls)
             elif not equivalents:
                 warnings.warn(
-                    f"register_dtype({pandera_dtype}) on a class without a "
+                    f"register_dtype({pandera_dtype_cls}) on a class without a "
                     + "'from_parametrized_dtype' classmethod has no effect."
                 )
 
-            return pandera_dtype
+            cls._registered_dtypes.add(pandera_dtype_cls)
+            return pandera_dtype_cls
 
         if pandera_dtype_cls:
             return _wrapper(pandera_dtype_cls)
@@ -190,3 +195,8 @@ class Engine(ABCMeta):
             raise TypeError(
                 f"Data type '{data_type}' not understood by {cls.__name__}."
             ) from None
+
+    def get_registered_dtypes(cls) -> List[Type[DataType]]:
+        """Return :class:`pandera.dtypes.DataType`s registered
+        with this engine."""
+        return list(cls._registered_dtypes)
