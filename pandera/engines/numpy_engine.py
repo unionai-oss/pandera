@@ -329,4 +329,4 @@ class DateTime64(DataType, dtypes_.Timestamp):
 )
 @immutable
 class Timedelta64(DataType, dtypes_.Timedelta):
-    type = np.dtype("timedelta64")
+    type = np.dtype("timedelta64[ns]")
