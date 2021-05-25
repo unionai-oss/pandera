@@ -1,6 +1,7 @@
 """Pandera data types."""
 # pylint:disable=too-many-ancestors
 import dataclasses
+import inspect
 from abc import ABC
 from typing import (
     Any,
@@ -385,51 +386,62 @@ class Timedelta(DataType):
 ################################################################################
 
 
-def is_int(pandera_dtype: DataType) -> bool:
+def is_subdtype(
+    arg1: Union[DataType, Type[DataType]],
+    arg2: Union[DataType, Type[DataType]],
+) -> bool:
+    """Returns True if first argument is lower/equal in DataType hierarchy."""
+    arg1_cls = arg1 if inspect.isclass(arg1) else arg1.__class__
+    arg2_cls = arg2 if inspect.isclass(arg2) else arg2.__class__
+    return issubclass(arg1_cls, arg2_cls)  # type: ignore
+
+
+def is_int(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is an integer."""
-    return isinstance(pandera_dtype, Int)
+    return is_subdtype(pandera_dtype, Int)
 
 
-def is_uint(pandera_dtype: DataType) -> bool:
-    """Return True if :class:`pandera.dtypes.DataType` is an unsigned integer."""
-    return isinstance(pandera_dtype, Int)
+def is_uint(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is
+    an unsigned integer."""
+    return is_subdtype(pandera_dtype, UInt)
 
 
-def is_float(pandera_dtype: DataType) -> bool:
+def is_float(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a float."""
-    return isinstance(pandera_dtype, Float)
+    return is_subdtype(pandera_dtype, Float)
 
 
-def is_complex(pandera_dtype: DataType) -> bool:
+def is_complex(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a complex number."""
-    return isinstance(pandera_dtype, Complex)
+    return is_subdtype(pandera_dtype, Complex)
 
 
-def is_numeric(pandera_dtype: DataType) -> bool:
+def is_numeric(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a complex number."""
-    return isinstance(pandera_dtype, _Number)
+    return is_subdtype(pandera_dtype, _Number)
 
 
-def is_bool(pandera_dtype: DataType) -> bool:
+def is_bool(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a boolean."""
-    return isinstance(pandera_dtype, Bool)
+    return is_subdtype(pandera_dtype, Bool)
 
 
-def is_string(pandera_dtype: DataType) -> bool:
+def is_string(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a string."""
-    return isinstance(pandera_dtype, String)
+    return is_subdtype(pandera_dtype, String)
 
 
-def is_category(pandera_dtype: DataType) -> bool:
+def is_category(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a category."""
-    return isinstance(pandera_dtype, Category)
+    return is_subdtype(pandera_dtype, Category)
 
 
-def is_datetime(pandera_dtype: DataType) -> bool:
+def is_datetime(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a datetime."""
-    return isinstance(pandera_dtype, DateTime)
+    return is_subdtype(pandera_dtype, DateTime)
 
 
-def is_timedelta(pandera_dtype: DataType) -> bool:
+def is_timedelta(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a timedelta."""
-    return isinstance(pandera_dtype, Timedelta)
+    return is_subdtype(pandera_dtype, Timedelta)
