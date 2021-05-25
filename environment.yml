@@ -16,6 +16,7 @@ dependencies:
   - pyyaml >=5.1
   - typing_inspect >= 0.6.0
   - typing_extensions >= 3.7.4.3
+  - frictionless
 
   # testing and dependencies
   - black >= 20.8b1
@@ -24,7 +25,7 @@ dependencies:
   - isort >= 5.7.0
   - codecov
   - mypy
-  - pylint = 2.6.0
+  - pylint >= 2.7.2
   - pytest
   - pytest-cov
   - pytest-xdist
@@ -38,7 +39,6 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx-copybutton
   - recommonmark
-  - furo
 
   # packaging
   - twine
@@ -48,3 +48,6 @@ dependencies:
 
   # optional
   - pre_commit
+
+  - pip:
+    - furo

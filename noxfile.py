@@ -32,6 +32,7 @@ PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
+ALWAYS_USE_PIP = ["furo"]
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -153,7 +154,9 @@ def install(session: Session, *args: str):
 
 
 def install_from_requirements(session: Session, *packages: str) -> None:
-    """Install dependencies, respecting the version specified in requirements."""
+    """
+    Install dependencies, respecting the version specified in requirements.
+    """
     for package in packages:
         try:
             specs = REQUIRES["all"][package]
@@ -165,20 +168,29 @@ def install_from_requirements(session: Session, *packages: str) -> None:
 
 
 def install_extras(
-    session: Session, pandas: str = "latest", extra: str = "core"
+    session: Session,
+    pandas: str = "latest",
+    extra: str = "core",
+    force_pip=False,
 ) -> None:
     """Install dependencies."""
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
     specs = [
         spec if spec != "pandas" else f"pandas{pandas_version}"
         for spec in REQUIRES[extra].values()
+        if spec not in ALWAYS_USE_PIP
     ]
-    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
+    session.install(*ALWAYS_USE_PIP)
+    if (
+        isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
+        and not force_pip
+    ):
         print("using conda installer")
         conda_install(session, *specs)
     else:
         print("using pip installer")
         session.install(*specs)
+    # always use pip for these packages
     session.install("-e", ".", "--no-deps")  # install pandera
 
 
@@ -265,14 +277,26 @@ def lint(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
-    install_extras(session, extra="all")
+    python_version = version.parse(cast(str, session.python))
+    install_extras(
+        session,
+        extra="all",
+        # this is a hack until typed-ast conda package starts working again,
+        # basically this issue comes up:
+        # https://github.com/python/mypy/pull/2906
+        force_pip=python_version == version.parse("3.7"),
+    )
     args = session.posargs or SOURCE_PATHS
     session.run("mypy", "--follow-imports=silent", *args, silent=True)
 
 
 def _invalid_python_pandas_versions(session: Session, pandas: str) -> bool:
     python_version = version.parse(cast(str, session.python))
-    if pandas == "0.25.3" and python_version >= version.parse("3.9"):
+    if pandas == "0.25.3" and (
+        python_version >= version.parse("3.9")
+        # this is just a bandaid until support for 0.25.3 is dropped
+        or python_version == version.parse("3.7")
+    ):
         print("Python 3.9 does not support pandas 0.25.3")
         return True
     return False
@@ -292,7 +316,16 @@ def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
     if _invalid_python_pandas_versions(session, pandas):
         return
-    install_extras(session, pandas, extra)
+    python_version = version.parse(cast(str, session.python))
+    install_extras(
+        session,
+        pandas,
+        extra,
+        # this is a hack until typed-ast conda package starts working again,
+        # basically this issue comes up:
+        # https://github.com/python/mypy/pull/2906
+        force_pip=python_version == version.parse("3.7"),
+    )
 
     if session.posargs:
         args = session.posargs
@@ -325,9 +358,19 @@ def docs(session: Session, pandas: str) -> None:
     """Build the documentation."""
     if _invalid_python_pandas_versions(session, pandas):
         return
-    install_extras(session, pandas, extra="all")
+    python_version = version.parse(cast(str, session.python))
+    install_extras(
+        session,
+        pandas,
+        extra="all",
+        # this is a hack until typed-ast conda package starts working again,
+        # basically this issue comes up:
+        # https://github.com/python/mypy/pull/2906
+        force_pip=python_version == version.parse("3.7"),
+    )
     session.chdir("docs")
 
+    shutil.rmtree(os.path.join("_build"), ignore_errors=True)
     args = session.posargs or ["-W", "-E", "-b=doctest", "source", "_build"]
     session.run("sphinx-build", *args)
 

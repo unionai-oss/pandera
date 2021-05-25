@@ -308,7 +308,7 @@ want the resulting table for further analysis.
 .. testoutput:: check_raise_warning
     :skipif: SKIP_PANDAS_LT_V1
 
-    <Schema Column(name=var2, type=None)> failed series validator 0:
+    <Schema Column(name=var2, type=None)> failed series or dataframe validator 0:
     <Check _hypothesis_check: normality test>
 
 

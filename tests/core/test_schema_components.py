@@ -16,6 +16,7 @@ from pandera import (
     Int,
     MultiIndex,
     Object,
+    SeriesSchema,
     String,
     errors,
 )
@@ -709,3 +710,21 @@ def test_multiindex_unordered_init_exception(indexes):
     """Un-named indexes in unordered MultiIndex raises an exception."""
     with pytest.raises(errors.SchemaInitError):
         MultiIndex(indexes, ordered=False)
+
+
+@pytest.mark.parametrize(
+    "indexes",
+    [
+        [Column(int)],
+        [Column(int, name="a"), Index(int)],
+        [Index(int), Column(int, name="a")],
+        [SeriesSchema(int)],
+        1,
+        1.0,
+        "foo",
+    ],
+)
+def test_multiindex_incorrect_input(indexes):
+    """Passing in non-Index object raises SchemaInitError."""
+    with pytest.raises((errors.SchemaInitError, TypeError)):
+        MultiIndex(indexes)

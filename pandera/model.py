@@ -87,17 +87,52 @@ class BaseConfig:  # pylint:disable=R0903
     multiindex_ordered: bool = True
 
 
-_config_options = [
-    attr for attr in vars(BaseConfig) if not attr.startswith("_")
-]
+def _is_field(name: str) -> bool:
+    """Ignore private and reserved keywords."""
+    return not name.startswith("_") and name != _CONFIG_KEY
 
 
-def _extract_config_options(config: Type) -> Dict[str, Any]:
-    return {
-        name: value
-        for name, value in vars(config).items()
-        if name in _config_options
-    }
+_config_options = [attr for attr in vars(BaseConfig) if _is_field(attr)]
+
+
+def _extract_config_options_and_extras(
+    config: Type,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    config_options, extras = {}, {}
+    for name, value in vars(config).items():
+        if name in _config_options:
+            config_options[name] = value
+        elif _is_field(name):
+            extras[name] = value
+        # drop private/reserved keywords
+
+    return config_options, extras
+
+
+def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
+    """
+    New in GH#383.
+    Any key not in BaseConfig keys is interpreted as defining a dataframe check. This function
+    defines this conversion as follows:
+        - Look up the key name in Check
+        - If value is
+            - tuple: interpret as args
+            - dict: interpret as kwargs
+            - anything else: interpret as the only argument to pass to Check
+    """
+    checks = []
+    for name, value in extras.items():
+        if isinstance(value, tuple):
+            args, kwargs = value, {}
+        elif isinstance(value, dict):
+            args, kwargs = (), value
+        else:
+            args, kwargs = (value,), {}
+
+        # dispatch directly to getattr to raise the correct exception
+        checks.append(Check.__getattr__(name)(*args, **kwargs))
+
+    return checks
 
 
 class SchemaModel:
@@ -138,6 +173,13 @@ class SchemaModel:
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
+        cls.__config__, extras = cls._collect_config_and_extras()
+        mi_kwargs = {
+            name[len("multiindex_") :]: value
+            for name, value in vars(cls.__config__).items()
+            if name.startswith("multiindex_")
+        }
+
         cls.__fields__ = cls._collect_fields()
         check_infos = typing.cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
@@ -148,14 +190,10 @@ class SchemaModel:
         )
 
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
-        cls.__dataframe_checks__ = cls._extract_df_checks(df_check_infos)
+        df_custom_checks = cls._extract_df_checks(df_check_infos)
+        df_registered_checks = _convert_extras_to_checks(extras)
+        cls.__dataframe_checks__ = df_custom_checks + df_registered_checks
 
-        cls.__config__ = cls._collect_config()
-        mi_kwargs = {
-            name[len("multiindex_") :]: value
-            for name, value in vars(cls.__config__).items()
-            if name.startswith("multiindex_")
-        }
         columns, index = cls._build_columns_index(
             cls.__fields__, cls.__checks__, **mi_kwargs
         )
@@ -240,7 +278,7 @@ class SchemaModel:
                         + "\n Usage Tip: Drop 'typing.Annotated'."
                     )
                 dtype_kwargs = _get_dtype_kwargs(annotation)
-                dtype = annotation.arg(**dtype_kwargs)
+                dtype = annotation.arg(**dtype_kwargs)  # type: ignore
             else:
                 dtype = annotation.arg
 
@@ -330,18 +368,25 @@ class SchemaModel:
         return fields
 
     @classmethod
-    def _collect_config(cls) -> Type[BaseConfig]:
-        """Collect config options from bases."""
+    def _collect_config_and_extras(
+        cls,
+    ) -> Tuple[Type[BaseConfig], Dict[str, Any]]:
+        """Collect config options from bases, splitting off unknown options."""
         bases = inspect.getmro(cls)[:-1]
         bases = typing.cast(Tuple[Type[SchemaModel]], bases)
         root_model, *models = reversed(bases)
 
-        options = _extract_config_options(root_model.Config)
+        options, extras = _extract_config_options_and_extras(root_model.Config)
+
         for model in models:
             config = getattr(model, _CONFIG_KEY, {})
-            base_options = _extract_config_options(config)
+            base_options, base_extras = _extract_config_options_and_extras(
+                config
+            )
             options.update(base_options)
-        return type("Config", (BaseConfig,), options)
+            extras.update(base_extras)
+
+        return type("Config", (BaseConfig,), options), extras
 
     @classmethod
     def _collect_check_infos(cls, key: str) -> List[CheckInfo]:
@@ -421,15 +466,11 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
 
 
 def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
-    dtype_arg_names = list(inspect.signature(annotation.arg).parameters.keys())
+    sig = inspect.signature(annotation.arg)  # type: ignore
+    dtype_arg_names = list(sig.parameters.keys())
     if len(annotation.metadata) != len(dtype_arg_names):
         raise TypeError(
-            f"Annotation '{annotation.arg.__name__}' requires "
+            f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
     return dict(zip(dtype_arg_names, annotation.metadata))
-
-
-def _is_field(name: str) -> bool:
-    """Ignore private and reserved keywords."""
-    return not name.startswith("_") and name != _CONFIG_KEY

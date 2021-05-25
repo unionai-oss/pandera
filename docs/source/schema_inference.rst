@@ -184,7 +184,7 @@ is a convenience method for this functionality.
    :skipif: SKIP
 
     schema_type: dataframe
-    version: 0.6.3
+    version: 0.6.4
     columns:
       column1:
         pandas_dtype: int64
