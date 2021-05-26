@@ -185,14 +185,14 @@ def test_single_index_multi_index_mismatch():
     message."""
     ind = pd.MultiIndex.from_tuples(
         [("a", "b"), ("c", "d"), ("e", "f")],
-        names=(u"one", u"two"),
+        names=("one", "two"),
     )
     df_fail = pd.DataFrame(columns=["alpha", "beta"], index=ind)
     schema = DataFrameSchema(index=Index(name="key"))
 
-    if isinstance(
-        df_fail.index, pd.MultiIndex
-    ) and isinstance(schema.index, Index):
+    if isinstance(df_fail.index, pd.MultiIndex) and isinstance(
+        schema.index, Index
+    ):
         pytest.raises(errors.SchemaError)
 
 
