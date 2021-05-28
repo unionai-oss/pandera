@@ -9,9 +9,11 @@ import pandas as pd
 import pytest
 from packaging import version
 
+import pandera
 import pandera as pa
 import pandera.extensions as pa_ext
 import pandera.typing as pat
+from pandera.engines import pandas_engine
 
 try:
     from pandera import io
@@ -117,7 +119,7 @@ schema_type: dataframe
 version: {pa.__version__}
 columns:
   int_column:
-    pandas_dtype: int
+    dtype: int64
     nullable: false
     checks:
       greater_than: 0
@@ -130,7 +132,7 @@ columns:
     required: true
     regex: false
   float_column:
-    pandas_dtype: float
+    dtype: float64
     nullable: false
     checks:
       greater_than: -10
@@ -143,7 +145,7 @@ columns:
     required: true
     regex: false
   str_column:
-    pandas_dtype: str
+    dtype: str
     nullable: false
     checks:
       isin:
@@ -159,7 +161,7 @@ columns:
     required: true
     regex: false
   datetime_column:
-    pandas_dtype: datetime64[ns]
+    dtype: datetime64[ns]
     nullable: false
     checks:
       greater_than: '2010-01-01 00:00:00'
@@ -169,7 +171,7 @@ columns:
     required: true
     regex: false
   timedelta_column:
-    pandas_dtype: timedelta64[ns]
+    dtype: timedelta64[ns]
     nullable: false
     checks:
       greater_than: 1000
@@ -179,7 +181,7 @@ columns:
     required: true
     regex: false
   optional_props_column:
-    pandas_dtype: str
+    dtype: str
     nullable: true
     checks:
       str_length:
@@ -190,7 +192,7 @@ columns:
     required: false
     regex: true
   notype_column:
-    pandas_dtype: null
+    dtype: null
     nullable: false
     checks:
       isin:
@@ -204,7 +206,7 @@ columns:
     regex: false
 checks: null
 index:
-- pandas_dtype: int
+- dtype: int64
   nullable: false
   checks: null
   name: null
@@ -243,7 +245,7 @@ schema_type: dataframe
 version: {pa.__version__}
 columns:
   float_column:
-    pandas_dtype: float
+    dtype: float64
     nullable: false
     checks:
       greater_than: -10
@@ -252,7 +254,7 @@ columns:
         min_value: -10
         max_value: 20
   str_column:
-    pandas_dtype: str
+    dtype: str
     nullable: false
     checks:
       isin:
@@ -286,13 +288,13 @@ schema_type: dataframe
 version: {pa.__version__}
 columns:
   int_column:
-    pandas_dtype: int64
+    dtype: int64
   float_column:
-    pandas_dtype: float64
+    dtype: float64
   str_column:
-    pandas_dtype: str
+    dtype: str
   object_column:
-    pandas_dtype: object
+    dtype: object
 checks: null
 index: null
 coerce: false
@@ -305,13 +307,13 @@ schema_type: dataframe
 version: {pa.__version__}
 columns:
   int_column:
-    pandas_dtype: int64
+    dtype: int64
   float_column:
-    pandas_dtype: float64
+    dtype: float64
   str_column:
-    pandas_dtype: str
+    dtype: str
   object_column:
-    pandas_dtype: object
+    dtype: object
 checks:
   unregistered_check:
     stat1: missing_str_stat
@@ -327,17 +329,17 @@ schema_type: dataframe
 version: {pa.__version__}
 columns:
   int_column:
-    pandas_dtype: int64
+    dtype: int64
     checks:
       unregistered_check:
         stat1: missing_str_stat
         stat2: 11
   float_column:
-    pandas_dtype: float64
+    dtype: float64
   str_column:
-    pandas_dtype: str
+    dtype: str
   object_column:
-    pandas_dtype: object
+    dtype: object
 index: null
 coerce: false
 strict: false
@@ -371,6 +373,10 @@ def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
     yaml_str = io.to_yaml(schema)
+    with open("yaml_str.yml", "wt") as f:
+        f.write(yaml_str)
+    with open("YAML_SCHEMA.yml", "wt") as f:
+        f.write(YAML_SCHEMA)
     assert yaml_str.strip() == YAML_SCHEMA.strip()
 
     yaml_str_schema_method = schema.to_yaml()
@@ -448,6 +454,22 @@ def test_io_yaml(index):
         output = io.to_yaml(schema, f.name)
         assert output is None
         schema_from_yaml = io.from_yaml(f.name)
+        debug(schema_from_yaml, schema)
+        debug(
+            schema_from_yaml.columns["datetime_column"],
+            schema_from_yaml.columns["datetime_column"].dtype.__class__,
+            schema.columns["datetime_column"],
+            schema.columns["datetime_column"].dtype.__class__,
+        )
+        debug(
+            schema_from_yaml.columns["datetime_column"].dtype.check(
+                schema.columns["datetime_column"].dtype
+            )
+        )
+        debug(
+            schema_from_yaml.columns["datetime_column"].dtype
+            == schema.columns["datetime_column"].dtype
+        )
         assert schema_from_yaml == schema
 
     # pass in a Path object
@@ -706,17 +728,17 @@ FRICTIONLESS_JSON = {
 }
 
 # pandas dtype aliases to support testing across multiple pandas versions:
-STR_DTYPE = pa.dtypes.PandasDtype.from_str_alias("string").value
-STR_DTYPE_ALIAS = pa.dtypes.PandasDtype.from_str_alias("string").str_alias
-INT_DTYPE = pa.dtypes.PandasDtype.from_str_alias("int").value
-INT_DTYPE_ALIAS = pa.dtypes.PandasDtype.from_str_alias("int").str_alias
+STR_DTYPE = pandas_engine.Engine.dtype("string")
+STR_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("string"))
+INT_DTYPE = pandas_engine.Engine.dtype("int")
+INT_DTYPE_ALIAS = str(pandas_engine.Engine.dtype("int"))
 
 YAML_FROM_FRICTIONLESS = f"""
 schema_type: dataframe
 version: {pa.__version__}
 columns:
   integer_col:
-    pandas_dtype: {INT_DTYPE}
+    dtype: {INT_DTYPE}
     nullable: false
     checks:
       in_range:
@@ -727,7 +749,7 @@ columns:
     required: true
     regex: false
   integer_col_2:
-    pandas_dtype: {INT_DTYPE}
+    dtype: {INT_DTYPE}
     nullable: true
     checks:
       less_than_or_equal_to: 30
@@ -736,7 +758,7 @@ columns:
     required: true
     regex: false
   string_col:
-    pandas_dtype: {STR_DTYPE}
+    dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length:
@@ -747,7 +769,7 @@ columns:
     required: true
     regex: false
   string_col_2:
-    pandas_dtype: {STR_DTYPE}
+    dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_matches: ^\\d{{3}}[A-Z]$
@@ -756,7 +778,7 @@ columns:
     required: true
     regex: false
   string_col_3:
-    pandas_dtype: {STR_DTYPE}
+    dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length: 3
@@ -765,7 +787,7 @@ columns:
     required: true
     regex: false
   string_col_4:
-    pandas_dtype: {STR_DTYPE}
+    dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length: 3
@@ -774,7 +796,7 @@ columns:
     required: true
     regex: false
   float_col:
-    pandas_dtype: category
+    dtype: category
     nullable: false
     checks:
       isin:
@@ -786,7 +808,7 @@ columns:
     required: true
     regex: false
   float_col_2:
-    pandas_dtype: float
+    dtype: float64
     nullable: true
     checks: null
     allow_duplicates: true
@@ -794,7 +816,7 @@ columns:
     required: true
     regex: false
   date_col:
-    pandas_dtype: {STR_DTYPE}
+    dtype: {STR_DTYPE}
     nullable: true
     checks:
       greater_than_or_equal_to: '20201231'
