@@ -354,6 +354,11 @@ class Index(SeriesSchemaBase):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
+        if isinstance(check_obj.index, pd.MultiIndex):
+            raise errors.SchemaError(
+                self, check_obj, "Attempting to validate mismatch index"
+            )
+
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
             # handles case where pandas native string type is not supported
@@ -364,11 +369,6 @@ class Index(SeriesSchemaBase):
         else:
             obj_to_validate = pd.Series(
                 check_obj.index, name=check_obj.index.name
-            )
-
-        if isinstance(check_obj.index, pd.MultiIndex):
-            raise errors.SchemaError(
-                self, check_obj, "Attempting to validate mismatch index"
             )
 
         assert isinstance(
