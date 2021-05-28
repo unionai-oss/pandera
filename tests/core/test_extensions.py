@@ -9,7 +9,7 @@ import pytest
 
 import pandera as pa
 import pandera.strategies as st
-from pandera import PandasDtype, extensions
+from pandera import DataType, extensions
 from pandera.checks import Check
 
 
@@ -202,7 +202,7 @@ def test_register_check_with_strategy(custom_check_teardown):
     import hypothesis  # pylint: disable=import-outside-toplevel,import-error
 
     def custom_ge_strategy(
-        pandas_dtype: PandasDtype,
+        pandas_dtype: DataType,
         strategy: Optional[st.SearchStrategy] = None,
         *,
         min_value: Any,
@@ -222,7 +222,7 @@ def test_register_check_with_strategy(custom_check_teardown):
         return pandas_obj >= min_value
 
     check = Check.custom_ge_check(min_value=0)
-    strat = check.strategy(PandasDtype.Int)
+    strat = check.strategy(pa.Int)
     with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
         assert strat.example() >= 0
 
