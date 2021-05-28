@@ -22,7 +22,7 @@ from typing import (
 
 import typing_inspect
 
-from pandera.dtypes_ import DataType
+from pandera.dtypes import DataType
 
 _DataType = TypeVar("_DataType", bound=DataType)
 _Engine = TypeVar("_Engine", bound="Engine")

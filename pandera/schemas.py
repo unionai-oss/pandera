@@ -12,12 +12,10 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from pandera import dtypes_
-
 from . import constants, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes_ import DataType
+from .dtypes import DataType
 from .engines import pandas_engine
 from .error_formatters import (
     format_generic_error_message,
@@ -233,7 +231,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         }
 
     @property
-    def dtypes(self) -> Dict[str, dtypes_.DataType]:
+    def dtypes(self) -> Dict[str, DataType]:
         """
         A pandas style dtypes dict where the keys are column names and values
         are pandas dtype for the column. Excludes columns where regex=True.
@@ -276,7 +274,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     @property
     def dtype(
         self,
-    ) -> dtypes_.DataType:
+    ) -> DataType:
         """Get the dtype property."""
         return self._dtype  # type: ignore
 
@@ -1564,7 +1562,7 @@ class SeriesSchemaBase:
     @property
     def dtype(
         self,
-    ) -> dtypes_.DataType:
+    ) -> DataType:
         """Get the pandas dtype"""
         return self._dtype  # type: ignore
 

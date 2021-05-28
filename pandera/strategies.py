@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import numpy as np
 import pandas as pd
 
-from .dtypes_ import (
+from .dtypes import (
     DataType,
     is_category,
     is_complex,

@@ -7,11 +7,10 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 import pandas as pd
-from devtools import debug
 
 import pandera.errors
 
-from . import dtypes_
+from . import dtypes
 from .checks import Check
 from .engines import pandas_engine
 from .schema_components import Column
@@ -42,9 +41,9 @@ def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
-        if pandas_engine.Engine.dtype(dtypes_.DateTime).check(dtype):
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
             return stat.strftime(DATETIME_FORMAT)
-        elif pandas_engine.Engine.dtype(dtypes_.Timedelta).check(dtype):
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
             # serialize to int in nanoseconds
             return stat.delta
 
@@ -147,9 +146,9 @@ def _serialize_schema(dataframe_schema):
 
 def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     def handle_stat_dtype(stat):
-        if pandas_engine.Engine.dtype(dtypes_.DateTime).check(dtype):
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
             return pd.to_datetime(stat, format=DATETIME_FORMAT)
-        elif pandas_engine.Engine.dtype(dtypes_.Timedelta).check(dtype):
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
             # serialize to int in nanoseconds
             return pd.to_timedelta(stat, unit="ns")
         return stat

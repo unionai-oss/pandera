@@ -10,13 +10,13 @@ from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from .. import dtypes_
-from ..dtypes_ import immutable
+from .. import dtypes
+from ..dtypes import immutable
 from . import engine
 
 
 @immutable(init=True)
-class DataType(dtypes_.DataType):
+class DataType(dtypes.DataType):
     """Base `DataType` for boxing Numpy data types."""
 
     type: np.dtype = dataclasses.field(
@@ -53,7 +53,7 @@ class Engine(  # pylint:disable=too-few-public-methods
     """Numpy data type engine."""
 
     @classmethod
-    def dtype(cls, data_type: Any) -> dtypes_.DataType:
+    def dtype(cls, data_type: Any) -> dtypes.DataType:
         """Convert input into a numpy-compatible
         Pandera :class:`DataType` object."""
         try:
@@ -78,16 +78,16 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 @Engine.register_dtype(
-    equivalents=["bool", bool, np.bool_, dtypes_.Bool, dtypes_.Bool()]
+    equivalents=["bool", bool, np.bool_, dtypes.Bool, dtypes.Bool()]
 )
 @immutable
-class Bool(DataType, dtypes_.Bool):
+class Bool(DataType, dtypes.Bool):
     type = np.dtype("bool")
 
 
 def _build_number_equivalents(
     builtin_name: str, pandera_name: str, sizes: List[int]
-) -> Dict[int, List[Union[type, str, np.dtype, dtypes_.DataType]]]:
+) -> Dict[int, List[Union[type, str, np.dtype, dtypes.DataType]]]:
     """Return a dict of equivalent builtin, numpy, pandera dtypes
     indexed by size in bit_width."""
     builtin_type = getattr(builtins, builtin_name, None)
@@ -98,7 +98,7 @@ def _build_number_equivalents(
         # e.g.: np.int64
         np.dtype(builtin_name).type,
         # e.g: pandera.dtypes.Int
-        getattr(dtypes_, pandera_name),
+        getattr(dtypes, pandera_name),
     ]
     if builtin_type:
         default_equivalents.append(builtin_type)
@@ -110,10 +110,10 @@ def _build_number_equivalents(
                     # e.g.: numpy.int64
                     getattr(np, f"{builtin_name}{bit_width}"),
                     # e.g.: pandera.dtypes.Int64
-                    getattr(dtypes_, f"{pandera_name}{bit_width}"),
-                    getattr(dtypes_, f"{pandera_name}{bit_width}")(),
+                    getattr(dtypes, f"{pandera_name}{bit_width}"),
+                    getattr(dtypes, f"{pandera_name}{bit_width}")(),
                     # e.g.: pandera.dtypes.Int(64)
-                    getattr(dtypes_, pandera_name)(),
+                    getattr(dtypes, pandera_name)(),
                 )
             )
             | set(default_equivalents if bit_width == default_size else [])
@@ -133,7 +133,7 @@ _int_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_int_equivalents[64])
 @immutable
-class Int64(DataType, dtypes_.Int64):
+class Int64(DataType, dtypes.Int64):
 
     type = np.dtype("int64")
     bit_width: int = 64
@@ -173,7 +173,7 @@ _uint_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_uint_equivalents[64])
 @immutable
-class UInt64(DataType, dtypes_.UInt64):
+class UInt64(DataType, dtypes.UInt64):
     type = np.dtype("uint64")
     bit_width: int = 64
 
@@ -212,7 +212,7 @@ _float_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_float_equivalents[128])
 @immutable
-class Float128(DataType, dtypes_.Float128):
+class Float128(DataType, dtypes.Float128):
     type = np.dtype("float128")
     bit_width: int = 128
 
@@ -251,7 +251,7 @@ _complex_equivalents = _build_number_equivalents(
 
 @Engine.register_dtype(equivalents=_complex_equivalents[256])
 @immutable
-class Complex256(DataType, dtypes_.Complex256):
+class Complex256(DataType, dtypes.Complex256):
     type = np.dtype("complex256")
     bit_width: int = 256
 
@@ -277,7 +277,7 @@ class Complex64(Complex128):
 
 @Engine.register_dtype(equivalents=["str", "string", str, np.str_])
 @immutable
-class String(DataType, dtypes_.String):
+class String(DataType, dtypes.String):
     type = np.dtype("str")
 
     def coerce(self, data_container: np.ndarray) -> np.ndarray:
@@ -286,7 +286,7 @@ class String(DataType, dtypes_.String):
         data_container[notna] = data_container[notna].astype(str)
         return data_container
 
-    def check(self, pandera_dtype: "dtypes_.DataType") -> bool:
+    def check(self, pandera_dtype: "dtypes.DataType") -> bool:
         return isinstance(pandera_dtype, (Object, type(self)))
 
 
@@ -310,12 +310,12 @@ class Object(DataType):
     equivalents=[
         datetime.datetime,
         np.datetime64,
-        dtypes_.Timestamp,
-        dtypes_.Timestamp(),
+        dtypes.Timestamp,
+        dtypes.Timestamp(),
     ]
 )
 @immutable
-class DateTime64(DataType, dtypes_.Timestamp):
+class DateTime64(DataType, dtypes.Timestamp):
     type = np.dtype("datetime64")
 
 
@@ -323,10 +323,10 @@ class DateTime64(DataType, dtypes_.Timestamp):
     equivalents=[
         datetime.datetime,
         np.timedelta64,
-        dtypes_.Timedelta,
-        dtypes_.Timedelta(),
+        dtypes.Timedelta,
+        dtypes.Timedelta(),
     ]
 )
 @immutable
-class Timedelta64(DataType, dtypes_.Timedelta):
+class Timedelta64(DataType, dtypes.Timedelta):
     type = np.dtype("timedelta64[ns]")

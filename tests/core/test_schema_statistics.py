@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import dtypes_, schema_statistics
+from pandera import dtypes, schema_statistics
 from pandera.engines import pandas_engine
 
 DEFAULT_FLOAT = pandas_engine.Engine.dtype(float)
@@ -19,15 +19,15 @@ NUMERIC_TYPES = [
     pandas_engine.Engine.dtype("UInt32"),
 ]
 INTEGER_TYPES = [
-    dtypes_.Int(),
-    dtypes_.Int8(),
-    dtypes_.Int16(),
-    dtypes_.Int32(),
-    dtypes_.Int64(),
-    dtypes_.UInt8(),
-    dtypes_.UInt16(),
-    dtypes_.UInt32(),
-    dtypes_.UInt64(),
+    dtypes.Int(),
+    dtypes.Int8(),
+    dtypes.Int16(),
+    dtypes.Int32(),
+    dtypes.Int64(),
+    dtypes.UInt8(),
+    dtypes.UInt16(),
+    dtypes.UInt32(),
+    dtypes.UInt64(),
 ]
 
 

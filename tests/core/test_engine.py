@@ -6,7 +6,7 @@ from typing import Any, Generator, List, Union
 
 import pytest
 
-from pandera.dtypes_ import DataType
+from pandera.dtypes import DataType
 from pandera.engines.engine import Engine
 
 

@@ -16,8 +16,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from .. import dtypes_
-from ..dtypes_ import immutable
+from .. import dtypes
+from ..dtypes import immutable
 from . import engine, numpy_engine
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
@@ -34,7 +34,7 @@ def is_extension_dtype(pd_dtype: PandasDtype) -> bool:
 
 
 @immutable(init=True)
-class DataType(dtypes_.DataType):
+class DataType(dtypes.DataType):
     """Base `DataType` for boxing Pandas data types."""
 
     type: Any = dataclasses.field(repr=False, init=False)
@@ -56,7 +56,7 @@ class DataType(dtypes_.DataType):
     def coerce(self, data_container: PandasObject) -> PandasObject:
         return data_container.astype(self.type)
 
-    def check(self, pandera_dtype: dtypes_.DataType) -> bool:
+    def check(self, pandera_dtype: dtypes.DataType) -> bool:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
@@ -108,7 +108,7 @@ class Engine(  # pylint:disable=too-few-public-methods
                 return DataType(np_or_pd_dtype)
 
     @classmethod
-    def numpy_dtype(cls, pandera_dtype: dtypes_.DataType) -> np.dtype:
+    def numpy_dtype(cls, pandera_dtype: dtypes.DataType) -> np.dtype:
         """Convert a pandera data type to a numpy data type."""
         pandera_dtype = engine.Engine.dtype(cls, pandera_dtype)
 
@@ -127,7 +127,7 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 Engine.register_dtype(
     numpy_engine.Bool,
-    equivalents=["bool", bool, np.bool_, dtypes_.Bool, dtypes_.Bool()],
+    equivalents=["bool", bool, np.bool_, dtypes.Bool, dtypes.Bool()],
 )
 
 
@@ -135,7 +135,7 @@ Engine.register_dtype(
     equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()],
 )
 @immutable
-class Bool(DataType, dtypes_.Bool):
+class Bool(DataType, dtypes.Bool):
     type = pd.BooleanDtype()
 
 
@@ -164,8 +164,8 @@ def _register_numpy_numbers(
                 np_dtype,
                 getattr(np, f"{builtin_name}{bit_width}"),
                 # e.g.: pandera.dtypes.Int64
-                getattr(dtypes_, f"{pandera_name}{bit_width}"),
-                getattr(dtypes_, f"{pandera_name}{bit_width}")(),
+                getattr(dtypes, f"{pandera_name}{bit_width}"),
+                getattr(dtypes, f"{pandera_name}{bit_width}")(),
             )
         )
 
@@ -175,8 +175,8 @@ def _register_numpy_numbers(
                     # e.g: numpy.int_
                     default_pd_dtype,
                     # e.g: pandera.dtypes.Int
-                    getattr(dtypes_, pandera_name),
-                    getattr(dtypes_, pandera_name)(),
+                    getattr(dtypes, pandera_name),
+                    getattr(dtypes, pandera_name)(),
                 )
             )
             if builtin_type:
@@ -206,7 +206,7 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.Int64Dtype, pd.Int64Dtype()])
 @immutable
-class Int64(DataType, dtypes_.Int):
+class Int64(DataType, dtypes.Int):
     type = pd.Int64Dtype()
     bit_width: int = 64
 
@@ -256,7 +256,7 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.UInt64Dtype, pd.UInt64Dtype()])
 @immutable
-class UInt64(DataType, dtypes_.UInt):
+class UInt64(DataType, dtypes.UInt):
     type = pd.UInt64Dtype()
     bit_width: int = 64
 
@@ -316,12 +316,12 @@ _register_numpy_numbers(
     equivalents=[
         "category",
         "categorical",
-        dtypes_.Category,
+        dtypes.Category,
         pd.CategoricalDtype,
     ]
 )
 @immutable(init=True)
-class Category(DataType, dtypes_.Category):
+class Category(DataType, dtypes.Category):
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
 
     def __init__(  # pylint:disable=super-init-not-called
@@ -329,7 +329,7 @@ class Category(DataType, dtypes_.Category):
         categories: Optional[Iterable[Any]] = None,
         ordered: bool = False,
     ) -> None:
-        dtypes_.Category.__init__(self, categories, ordered)
+        dtypes.Category.__init__(self, categories, ordered)
         object.__setattr__(
             self,
             "type",
@@ -338,7 +338,7 @@ class Category(DataType, dtypes_.Category):
 
     @classmethod
     def from_parametrized_dtype(
-        cls, cat: Union[dtypes_.Category, pd.CategoricalDtype]
+        cls, cat: Union[dtypes.Category, pd.CategoricalDtype]
     ):
         """Convert a categorical to
         a Pandera :class:`~pandera.dtypes.pandas_engine.Category`."""
@@ -351,7 +351,7 @@ class Category(DataType, dtypes_.Category):
     equivalents=["string", pd.StringDtype, pd.StringDtype()]
 )
 @immutable
-class String(DataType, dtypes_.String):
+class String(DataType, dtypes.String):
     type = pd.StringDtype()
 
 
@@ -359,7 +359,7 @@ STRING = String
 
 
 @Engine.register_dtype(
-    equivalents=["str", str, dtypes_.String, dtypes_.String(), np.str_]
+    equivalents=["str", str, dtypes.String, dtypes.String(), np.str_]
 )
 @immutable
 class NpString(numpy_engine.String):
@@ -373,7 +373,7 @@ class NpString(numpy_engine.String):
             data_container.isna(), data_container.astype(str)
         )
 
-    def check(self, pandera_dtype: dtypes_.DataType) -> bool:
+    def check(self, pandera_dtype: dtypes.DataType) -> bool:
         return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
 
 
@@ -406,13 +406,13 @@ _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
         "datetime64",
         datetime.datetime,
         np.datetime64,
-        dtypes_.Timestamp,
-        dtypes_.Timestamp(),
+        dtypes.Timestamp,
+        dtypes.Timestamp(),
         pd.Timestamp,
     ]
 )
 @immutable(init=True)
-class DateTime(DataType, dtypes_.Timestamp):
+class DateTime(DataType, dtypes.Timestamp):
     type: Optional[_PandasDatetime] = dataclasses.field(
         default=None, init=False
     )
@@ -463,8 +463,8 @@ Engine.register_dtype(
         datetime.timedelta,
         np.timedelta64,
         pd.Timedelta,
-        dtypes_.Timedelta,
-        dtypes_.Timedelta(),
+        dtypes.Timedelta,
+        dtypes.Timedelta(),
     ],
 )
 

@@ -4,7 +4,7 @@ from typing import Any, Dict, Union
 
 import pandas as pd
 
-from . import dtypes_
+from . import dtypes
 from .checks import Check
 from .engines import pandas_engine
 
@@ -191,20 +191,20 @@ def _get_array_type(x):
 
 
 def _get_array_check_statistics(
-    x, data_type: dtypes_.DataType
+    x, data_type: dtypes.DataType
 ) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
-    if dtypes_.is_datetime(data_type):
+    if dtypes.is_datetime(data_type):
         check_stats = {
             "greater_than_or_equal_to": x.min(),
             "less_than_or_equal_to": x.max(),
         }
-    elif dtypes_.is_numeric(data_type) and not dtypes_.is_bool(data_type):
+    elif dtypes.is_numeric(data_type) and not dtypes.is_bool(data_type):
         check_stats = {
             "greater_than_or_equal_to": float(x.min()),
             "less_than_or_equal_to": float(x.max()),
         }
-    elif dtypes_.is_category(data_type):
+    elif dtypes.is_category(data_type):
         try:
             categories = x.cat.categories
         except AttributeError:

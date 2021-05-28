@@ -12,7 +12,7 @@ import pytest
 import pandera as pa
 import pandera.strategies as strategies
 from pandera.checks import _CheckBase, register_check_statistics
-from pandera.dtypes_ import is_category, is_complex, is_float
+from pandera.dtypes import is_category, is_complex, is_float
 from pandera.engines import pandas_engine
 
 try:
