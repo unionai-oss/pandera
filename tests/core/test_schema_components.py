@@ -187,7 +187,7 @@ def test_single_index_multi_index_mismatch():
         [("a", "b"), ("c", "d"), ("e", "f")],
         names=("one", "two"),
     )
-    df_fail = pd.DataFrame(columns=["alpha", "beta"], index=ind)
+    df_fail = pd.DataFrame(index=ind)
     schema = DataFrameSchema(index=Index(name="key"))
 
     if isinstance(df_fail.index, pd.MultiIndex) and isinstance(
