@@ -147,9 +147,7 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     ),
     (
         period_dtypes,
-        pd.to_datetime(["2019/01/01", "2018/05/21"])
-        .to_period("D")
-        .to_series(),
+        pd.to_datetime(["2019/01/01", "2018/05/21"]).to_period("D").to_series(),
     ),
     (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),
     (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),
@@ -170,13 +168,12 @@ def pretty_param(*values: Any, **kw: Any) -> ParameterSet:
 
 
 def pytest_generate_tests(metafunc: Metafunc) -> None:
-    """Inject dtype, alias, data fixtures from `dtype_fixtures`.
-
-    Filter pandera.dtypes.pa.DataType classes if the test name contains "datatype".
+    """Inject `dtype`, `data_type` (filter pandera DataTypes), `alias`, `data`
+    fixtures from `dtype_fixtures`.
     """
     fixtures = [
         fixture
-        for fixture in ("dtype", "pd_dtype", "data")
+        for fixture in ("data_type", "dtype", "pd_dtype", "data")
         if fixture in metafunc.fixturenames
     ]
     arg_names = ",".join(fixtures)
@@ -185,7 +182,7 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
         arg_values = []
         for dtypes, data in dtype_fixtures:
             for dtype, pd_dtype in dtypes.items():
-                if "datatype" in metafunc.function.__name__ and not (
+                if "data_type" in fixtures and not (
                     isinstance(dtype, pa.DataType)
                     or (
                         inspect.isclass(dtype)
@@ -205,23 +202,23 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
         metafunc.parametrize(arg_names, arg_values)
 
 
-def test_datatype_init(dtype: Any):
+def test_datatype_init(data_type: Any):
     """Test that a default pa.DataType can be constructed."""
-    if not inspect.isclass(dtype):
+    if not inspect.isclass(data_type):
         pytest.skip(
             "test_datatype_init tests pa.DataType classes, not instances."
         )
-    assert isinstance(dtype(), pa.DataType)
+    assert isinstance(data_type(), pa.DataType)
 
 
-def test_datatype_alias(dtype: Any, pd_dtype: Any):
+def test_datatype_alias(data_type: Any, pd_dtype: Any):
     """Test that a default pa.DataType can be constructed."""
-    assert str(pandas_engine.Engine.dtype(dtype)) == str(pd_dtype)
+    assert str(pandas_engine.Engine.dtype(data_type)) == str(pd_dtype)
 
 
-def test_frozen_datatype(dtype: Any):
+def test_frozen_datatype(data_type: Any):
     """Test that pa.DataType instances are immutable."""
-    data_type = dtype() if inspect.isclass(dtype) else dtype
+    data_type = data_type() if inspect.isclass(data_type) else data_type
     with pytest.raises(dataclasses.FrozenInstanceError):
         data_type.foo = 1
 
@@ -254,21 +251,17 @@ def test_check_not_equivalent(dtype: Any):
 def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
     """Test that dtypes can be coerced without casting."""
     expected_dtype = pandas_engine.Engine.dtype(dtype)
-    print(pd_dtype)
     series = pd.Series(data, dtype=pd_dtype)
     coerced_series = expected_dtype.coerce(series)
+
     assert series.equals(coerced_series)
-    print(expected_dtype)
-    print(series)
-    print(coerced_series)
-    print(coerced_series.dtype)
-    print(pandas_engine.Engine.dtype(coerced_series.dtype))
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_series.dtype)
     )
 
     df = pd.DataFrame({"col": data}, dtype=pd_dtype)
     coerced_df = expected_dtype.coerce(df)
+
     assert df.equals(coerced_df)
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_df["col"].dtype)
@@ -396,104 +389,104 @@ def test_inferred_dtype(examples: pd.Series):
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "int_dtype, expected",
     [(dtype, True) for dtype in (*int_dtypes, *nullable_int_dtypes)]
     + [("string", False)],
 )
-def test_is_int(data_type: Any, expected: bool):
+def test_is_int(int_dtype: Any, expected: bool):
     """Test is_int."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(int_dtype)
     assert pa.dtypes_.is_int(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "uint_dtype, expected",
     [(dtype, True) for dtype in (*uint_dtypes, *nullable_uint_dtypes)]
     + [("string", False)],
 )
-def test_is_uint(data_type: Any, expected: bool):
+def test_is_uint(uint_dtype: Any, expected: bool):
     """Test is_uint."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(uint_dtype)
     assert pa.dtypes_.is_uint(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "float_dtype, expected",
     [(dtype, True) for dtype in float_dtypes] + [("string", False)],
 )
-def test_is_float(data_type: Any, expected: bool):
+def test_is_float(float_dtype: Any, expected: bool):
     """Test is_float."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(float_dtype)
     assert pa.dtypes_.is_float(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "complex_dtype, expected",
     [(dtype, True) for dtype in complex_dtypes]
     + [("string", False)],  # type: ignore
 )
-def test_is_complex(data_type: Any, expected: bool):
+def test_is_complex(complex_dtype: Any, expected: bool):
     """Test is_complex."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(complex_dtype)
     assert pa.dtypes_.is_complex(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "bool_dtype, expected",
     [(dtype, True) for dtype in (*boolean_dtypes, *nullable_boolean_dtypes)]
     + [("string", False)],
 )
-def test_is_bool(data_type: Any, expected: bool):
+def test_is_bool(bool_dtype: Any, expected: bool):
     """Test is_bool."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(bool_dtype)
     assert pa.dtypes_.is_bool(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "string_dtype, expected",
     [(dtype, True) for dtype in string_dtypes] + [("int", False)],
 )
-def test_is_string(data_type: Any, expected: bool):
+def test_is_string(string_dtype: Any, expected: bool):
     """Test is_string."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(string_dtype)
     assert pa.dtypes_.is_string(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "category_dtype, expected",
     [(dtype, True) for dtype in category_dtypes] + [("string", False)],
 )
-def test_is_category(data_type: Any, expected: bool):
+def test_is_category(category_dtype: Any, expected: bool):
     """Test is_category."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(category_dtype)
     assert pa.dtypes_.is_category(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "datetime_dtype, expected",
     [(dtype, True) for dtype in timestamp_dtypes] + [("string", False)],
 )
-def test_is_datetime(data_type: Any, expected: bool):
+def test_is_datetime(datetime_dtype: Any, expected: bool):
     """Test is_datetime."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(datetime_dtype)
     assert pa.dtypes_.is_datetime(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "timedelta_dtype, expected",
     [(dtype, True) for dtype in timedelta_dtypes] + [("string", False)],
 )
-def test_is_timedelta(data_type: Any, expected: bool):
+def test_is_timedelta(timedelta_dtype: Any, expected: bool):
     """Test is_timedelta."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(timedelta_dtype)
     assert pa.dtypes_.is_timedelta(pandera_dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "data_type, expected",
+    "numeric_dtype, expected",
     [(dtype, True) for dtype, _ in numeric_dtypes] + [("string", False)],
 )
-def test_is_numeric(data_type: Any, expected: bool):
+def test_is_numeric(numeric_dtype: Any, expected: bool):
     """Test is_timedelta."""
-    pandera_dtype = pandas_engine.Engine.dtype(data_type)
+    pandera_dtype = pandas_engine.Engine.dtype(numeric_dtype)
     assert pa.dtypes_.is_numeric(pandera_dtype) == expected
