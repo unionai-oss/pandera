@@ -61,16 +61,15 @@ class Engine(ABCMeta):
 
     _registry: Dict["Engine", _DtypeRegistry] = {}
     _registered_dtypes: Set[Type[DataType]]
-    _base_pandera_dtypes: Union[Type[DataType], Tuple[Type[DataType]]]
+    _base_pandera_dtypes: Tuple[Type[DataType]]
 
     def __new__(cls, name, bases, namespace, **kwargs):
-
         base_pandera_dtypes = kwargs.pop("base_pandera_dtypes")
-        try:  # allow multiple base datatypes
-            base_pandera_dtypes = tuple(base_pandera_dtypes)
+        try:
+            namespace["_base_pandera_dtypes"] = tuple(base_pandera_dtypes)
         except TypeError:
-            pass
-        namespace["_base_pandera_dtypes"] = base_pandera_dtypes
+            namespace["_base_pandera_dtypes"] = (base_pandera_dtypes,)
+
         namespace["_registered_dtypes"] = set()
         engine = super().__new__(cls, name, bases, namespace, **kwargs)
 
@@ -86,8 +85,12 @@ class Engine(ABCMeta):
             inspect.isclass(data_type)
             and issubclass(data_type, cls._base_pandera_dtypes)
         ):
+            base_names = [
+                f"{base.__module__}.{base.__qualname__}"
+                for base in cls._base_pandera_dtypes
+            ]
             raise ValueError(
-                f"{cls._base_pandera_dtypes.__name__} subclasses cannot be registered"
+                f"Subclasses of {base_names} cannot be registered"
                 f" with {cls.__name__}."
             )
 
