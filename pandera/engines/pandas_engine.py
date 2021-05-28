@@ -412,7 +412,7 @@ class DateTime(DataType, dtypes_.Timestamp):
 
     def __post_init__(self):
         if self.tz is None:
-            type_ = np.dtype("datetime64")
+            type_ = np.dtype("datetime64[ns]")
         else:
             type_ = pd.DatetimeTZDtype(self.unit, self.tz)
             # DatetimeTZDtype converted tz to tzinfo for us
@@ -438,7 +438,7 @@ class DateTime(DataType, dtypes_.Timestamp):
         return cls(unit=pd_dtype.unit, tz=pd_dtype.tz)  # type: ignore
 
     def __str__(self) -> str:
-        if self.type == np.dtype("datetime64"):
+        if self.type == np.dtype("datetime64[ns]"):
             return "datetime64[ns]"
         return str(self.type)
 
