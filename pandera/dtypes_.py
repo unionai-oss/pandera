@@ -36,8 +36,6 @@ class DataType(ABC):
 
     def check(self, pandera_dtype: "DataType") -> bool:
         """Check that pandera :class:`DataType`s are equivalent."""
-        if not isinstance(pandera_dtype, DataType):
-            return False
         return self == pandera_dtype
 
     def __repr__(self) -> str:
@@ -154,7 +152,7 @@ class Int(_PhysicalNumber):  # type: ignore
 
 
 @immutable
-class Int64(Int, _PhysicalNumber):
+class Int64(Int):
     """Semantic representation of an integer data type stored in 64 bits."""
 
     bit_width = 64

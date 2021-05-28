@@ -107,6 +107,18 @@ class Engine(  # pylint:disable=too-few-public-methods
             except TypeError as err:
                 return DataType(np_or_pd_dtype)
 
+    @classmethod
+    def numpy_dtype(cls, pandera_dtype: dtypes_.DataType) -> np.dtype:
+        """Convert a pandera data type to a numpy data type."""
+        pandera_dtype = engine.Engine.dtype(cls, pandera_dtype)
+
+        alias = str(pandera_dtype).lower()
+        if alias == "boolean":
+            alias = "bool"
+        elif alias == "string":
+            alias = "str"
+        return np.dtype(alias)
+
 
 ################################################################################
 # boolean

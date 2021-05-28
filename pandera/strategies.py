@@ -10,7 +10,6 @@ to compose strategies given multiple checks specified in a schema.
 
 See the :ref:`user guide<data synthesis strategies>` for more details.
 """
-
 import operator
 import re
 import warnings
@@ -22,7 +21,15 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import numpy as np
 import pandas as pd
 
-from .dtypes import PandasDtype
+from .dtypes_ import (
+    DataType,
+    is_category,
+    is_complex,
+    is_datetime,
+    is_float,
+    is_timedelta,
+)
+from .engines import numpy_engine, pandas_engine
 from .errors import BaseStrategyOnlyError, SchemaDefinitionError
 
 try:
@@ -128,12 +135,16 @@ def set_pandas_index(
     return df_or_series
 
 
-def verify_pandas_dtype(pandas_dtype, schema_type: str, name: Optional[str]):
-    """Verify that pandas_dtype argument is not None."""
-    if pandas_dtype is None:
+def verify_dtype(
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
+    schema_type: str,
+    name: Optional[str],
+):
+    """Verify that pandera_dtype argument is not None."""
+    if pandera_dtype is None:
         raise SchemaDefinitionError(
             f"'{schema_type}' schema with name '{name}' has no specified "
-            "pandas_dtype. You need to specify one in order to synthesize "
+            "dtype. You need to specify one in order to synthesize "
             "data from a strategy."
         )
 
@@ -197,7 +208,7 @@ MIN_DT_VALUE = -(2 ** 63)
 MAX_DT_VALUE = 2 ** 63 - 1
 
 
-def numpy_time_dtypes(dtype, min_value=None, max_value=None):
+def numpy_time_dtypes(dtype: np.dtype, min_value=None, max_value=None):
     """Create numpy strategy for datetime and timedelta data types.
 
     :param dtype: numpy datetime or timedelta datatype
@@ -282,15 +293,24 @@ def numpy_complex_dtypes(
     return build_complex()
 
 
+def to_numpy_dtype(pandera_dtype: DataType):
+    """Convert a :class:`~pandera.dtypes.DataType` to numpy dtype compatible
+    with hypothesis."""
+    np_dtype = pandas_engine.Engine.numpy_dtype(pandera_dtype)
+    if np_dtype == np.dtype("object"):
+        np_dtype = np.dtype(str)
+    return np_dtype
+
+
 def pandas_dtype_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: DataType,
     strategy: Optional[SearchStrategy] = None,
     **kwargs,
 ) -> SearchStrategy:
     # pylint: disable=line-too-long,no-else-raise
-    """Strategy to generate data from a :class:`pandera.dtypes.PandasDtype`.
+    """Strategy to generate data from a :class:`pandera.dtypes.DataType`.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :kwargs: key-word arguments passed into
@@ -306,35 +326,30 @@ def pandas_dtype_strategy(
 
     # hypothesis doesn't support categoricals or objects, so we'll will need to
     # build a pandera-specific solution.
-    if pandas_dtype is PandasDtype.Category:
+    if is_category(pandera_dtype):
         raise TypeError(
             "data generation for the Category dtype is currently "
             "unsupported. Consider using a string or int dtype and "
             "Check.isin(values) to ensure a finite set of values."
         )
 
-    # The object type falls back onto generating strings.
-    if pandas_dtype is PandasDtype.Object:
-        dtype = np.dtype("str")
-    else:
-        dtype = pandas_dtype.numpy_dtype
-
+    np_dtype = to_numpy_dtype(pandera_dtype)
     if strategy:
-        return strategy.map(dtype.type)
-    elif pandas_dtype.is_datetime or pandas_dtype.is_timedelta:
+        return strategy.map(np_dtype.type)
+    elif is_datetime(pandera_dtype) or is_timedelta(pandera_dtype):
         return numpy_time_dtypes(
-            dtype,
+            np_dtype,
             **compat_kwargs("min_value", "max_value"),
         )
-    elif pandas_dtype.is_complex:
+    elif is_complex(pandera_dtype):
         return numpy_complex_dtypes(
-            dtype,
+            np_dtype,
             **compat_kwargs(
                 "min_value", "max_value", "allow_infinity", "allow_nan"
             ),
         )
     return npst.from_dtype(
-        dtype,
+        np_dtype,
         **{  # type: ignore
             "allow_nan": False,
             "allow_infinity": False,
@@ -344,14 +359,14 @@ def pandas_dtype_strategy(
 
 
 def eq_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     value: Any,
 ) -> SearchStrategy:
     """Strategy to generate a single value.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param value: value to generate.
@@ -359,38 +374,38 @@ def eq_strategy(
     """
     # override strategy preceding this one and generate value of the same type
     if strategy is None:
-        strategy = pandas_dtype_strategy(pandas_dtype)
-    return st.just(value).map(pandas_dtype.numpy_dtype.type)
+        strategy = pandas_dtype_strategy(pandera_dtype)
+    return st.just(value).map(to_numpy_dtype(pandera_dtype).type)
 
 
 def ne_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     value: Any,
 ) -> SearchStrategy:
     """Strategy to generate anything except for a particular value.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param value: value to avoid.
     :returns: ``hypothesis`` strategy
     """
     if strategy is None:
-        strategy = pandas_dtype_strategy(pandas_dtype)
+        strategy = pandas_dtype_strategy(pandera_dtype)
     return strategy.filter(lambda x: x != value)
 
 
 def gt_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
 ) -> SearchStrategy:
     """Strategy to generate values greater than a minimum value.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param min_value: generate values larger than this.
@@ -398,22 +413,22 @@ def gt_strategy(
     """
     if strategy is None:
         strategy = pandas_dtype_strategy(
-            pandas_dtype,
+            pandera_dtype,
             min_value=min_value,
-            exclude_min=True if pandas_dtype.is_float else None,
+            exclude_min=True if is_float(pandera_dtype) else None,
         )
     return strategy.filter(lambda x: x > min_value)
 
 
 def ge_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
 ) -> SearchStrategy:
     """Strategy to generate values greater than or equal to a minimum value.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param min_value: generate values greater than or equal to this.
@@ -421,22 +436,22 @@ def ge_strategy(
     """
     if strategy is None:
         return pandas_dtype_strategy(
-            pandas_dtype,
+            pandera_dtype,
             min_value=min_value,
-            exclude_min=False if pandas_dtype.is_float else None,
+            exclude_min=False if is_float(pandera_dtype) else None,
         )
     return strategy.filter(lambda x: x >= min_value)
 
 
 def lt_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     max_value: Union[int, float],
 ) -> SearchStrategy:
     """Strategy to generate values less than a maximum value.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param max_value: generate values less than this.
@@ -444,22 +459,22 @@ def lt_strategy(
     """
     if strategy is None:
         strategy = pandas_dtype_strategy(
-            pandas_dtype,
+            pandera_dtype,
             max_value=max_value,
-            exclude_max=True if pandas_dtype.is_float else None,
+            exclude_max=True if is_float(pandera_dtype) else None,
         )
     return strategy.filter(lambda x: x < max_value)
 
 
 def le_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     max_value: Union[int, float],
 ) -> SearchStrategy:
     """Strategy to generate values less than or equal to a maximum value.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param max_value: generate values less than or equal to this.
@@ -467,15 +482,15 @@ def le_strategy(
     """
     if strategy is None:
         return pandas_dtype_strategy(
-            pandas_dtype,
+            pandera_dtype,
             max_value=max_value,
-            exclude_max=False if pandas_dtype.is_float else None,
+            exclude_max=False if is_float(pandera_dtype) else None,
         )
     return strategy.filter(lambda x: x <= max_value)
 
 
 def in_range_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     min_value: Union[int, float],
@@ -485,7 +500,7 @@ def in_range_strategy(
 ) -> SearchStrategy:
     """Strategy to generate values within a particular range.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param min_value: generate values greater than this.
@@ -496,7 +511,7 @@ def in_range_strategy(
     """
     if strategy is None:
         return pandas_dtype_strategy(
-            pandas_dtype,
+            pandera_dtype,
             min_value=min_value,
             max_value=max_value,
             exclude_min=not include_min,
@@ -510,14 +525,14 @@ def in_range_strategy(
 
 
 def isin_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     allowed_values: Sequence[Any],
 ) -> SearchStrategy:
     """Strategy to generate values within a finite set.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param allowed_values: set of allowable values.
@@ -525,39 +540,39 @@ def isin_strategy(
     """
     if strategy is None:
         return st.sampled_from(allowed_values).map(
-            pandas_dtype.numpy_dtype.type
+            to_numpy_dtype(pandera_dtype).type
         )
     return strategy.filter(lambda x: x in allowed_values)
 
 
 def notin_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     forbidden_values: Sequence[Any],
 ) -> SearchStrategy:
     """Strategy to generate values excluding a set of forbidden values
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param forbidden_values: set of forbidden values.
     :returns: ``hypothesis`` strategy
     """
     if strategy is None:
-        strategy = pandas_dtype_strategy(pandas_dtype)
+        strategy = pandas_dtype_strategy(pandera_dtype)
     return strategy.filter(lambda x: x not in forbidden_values)
 
 
 def str_matches_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     pattern: str,
 ) -> SearchStrategy:
     """Strategy to generate strings that patch a regex pattern.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param pattern: regex pattern.
@@ -565,7 +580,7 @@ def str_matches_strategy(
     """
     if strategy is None:
         return st.from_regex(pattern, fullmatch=True).map(
-            pandas_dtype.numpy_dtype.type
+            to_numpy_dtype(pandera_dtype).type
         )
 
     def matches(x):
@@ -575,14 +590,14 @@ def str_matches_strategy(
 
 
 def str_contains_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     pattern: str,
 ) -> SearchStrategy:
     """Strategy to generate strings that contain a particular pattern.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param pattern: regex pattern.
@@ -590,7 +605,7 @@ def str_contains_strategy(
     """
     if strategy is None:
         return st.from_regex(pattern, fullmatch=False).map(
-            pandas_dtype.numpy_dtype.type
+            to_numpy_dtype(pandera_dtype).type
         )
 
     def contains(x):
@@ -600,14 +615,14 @@ def str_contains_strategy(
 
 
 def str_startswith_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     string: str,
 ) -> SearchStrategy:
     """Strategy to generate strings that start with a specific string pattern.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param string: string pattern.
@@ -615,21 +630,21 @@ def str_startswith_strategy(
     """
     if strategy is None:
         return st.from_regex(f"\\A{string}", fullmatch=False).map(
-            pandas_dtype.numpy_dtype.type
+            to_numpy_dtype(pandera_dtype).type
         )
 
     return strategy.filter(lambda x: x.startswith(string))
 
 
 def str_endswith_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     string: str,
 ) -> SearchStrategy:
     """Strategy to generate strings that end with a specific string pattern.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param string: string pattern.
@@ -637,14 +652,14 @@ def str_endswith_strategy(
     """
     if strategy is None:
         return st.from_regex(f"{string}\\Z", fullmatch=False).map(
-            pandas_dtype.numpy_dtype.type
+            to_numpy_dtype(pandera_dtype).type
         )
 
     return strategy.filter(lambda x: x.endswith(string))
 
 
 def str_length_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     min_value: int,
@@ -652,7 +667,7 @@ def str_length_strategy(
 ) -> SearchStrategy:
     """Strategy to generate strings of a particular length
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param min_value: minimum string length.
@@ -661,21 +676,21 @@ def str_length_strategy(
     """
     if strategy is None:
         return st.text(min_size=min_value, max_size=max_value).map(
-            pandas_dtype.numpy_dtype.type
+            to_numpy_dtype(pandera_dtype).type
         )
 
     return strategy.filter(lambda x: min_value <= len(x) <= max_value)
 
 
 def field_element_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
 ) -> SearchStrategy:
     """Strategy to generate elements of a column or index.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
@@ -698,25 +713,25 @@ def field_element_strategy(
             "definition. This can considerably slow down data-generation."
         )
         return (
-            pandas_dtype_strategy(pandas_dtype)
+            pandas_dtype_strategy(pandera_dtype)
             if elements is None
             else elements
         ).filter(check._check_fn)
 
     for check in checks:
         if hasattr(check, "strategy"):
-            elements = check.strategy(pandas_dtype, elements)
+            elements = check.strategy(pandera_dtype, elements)
         elif check.element_wise:
             elements = undefined_check_strategy(elements, check)
         # NOTE: vectorized checks with undefined strategies should be handled
         # by the series/dataframe strategy.
     if elements is None:
-        elements = pandas_dtype_strategy(pandas_dtype)
+        elements = pandas_dtype_strategy(pandera_dtype)
     return elements
 
 
 def series_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
@@ -727,7 +742,7 @@ def series_strategy(
 ):
     """Strategy to generate a pandas Series.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
@@ -739,11 +754,11 @@ def series_strategy(
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
     """
-    elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
+    elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
     strategy = (
         pdst.series(
             elements=elements,
-            dtype=pandas_dtype.numpy_dtype,
+            dtype=to_numpy_dtype(pandera_dtype),
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
@@ -751,7 +766,7 @@ def series_strategy(
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
-        .map(lambda x: x.astype(pandas_dtype.str_alias))
+        .map(lambda x: x.astype(str(pandera_dtype)))
     )
     if nullable:
         strategy = null_field_masks(strategy)
@@ -777,7 +792,7 @@ def series_strategy(
 
 
 def column_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
@@ -787,7 +802,7 @@ def column_strategy(
     # pylint: disable=line-too-long
     """Create a data object describing a column in a DataFrame.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
@@ -797,18 +812,18 @@ def column_strategy(
     :param name: name of the Series.
     :returns: a `column <https://hypothesis.readthedocs.io/en/latest/numpy.html#hypothesis.extra.pandas.column>`_ object.
     """
-    verify_pandas_dtype(pandas_dtype, schema_type="column", name=name)
-    elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
+    verify_dtype(pandera_dtype, schema_type="column", name=name)
+    elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
     return pdst.column(
         name=name,
         elements=elements,
-        dtype=pandas_dtype.numpy_dtype,
+        dtype=to_numpy_dtype(pandera_dtype),
         unique=not allow_duplicates,
     )
 
 
 def index_strategy(
-    pandas_dtype: PandasDtype,
+    pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
@@ -819,7 +834,7 @@ def index_strategy(
 ):
     """Strategy to generate a pandas Index.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
@@ -831,15 +846,15 @@ def index_strategy(
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
     """
-    verify_pandas_dtype(pandas_dtype, schema_type="index", name=name)
-    elements = field_element_strategy(pandas_dtype, strategy, checks=checks)
+    verify_dtype(pandera_dtype, schema_type="index", name=name)
+    elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
     strategy = pdst.indexes(
         elements=elements,
-        dtype=pandas_dtype.numpy_dtype,
+        dtype=to_numpy_dtype(pandera_dtype),
         min_size=0 if size is None else size,
         max_size=size,
         unique=not allow_duplicates,
-    ).map(lambda x: x.astype(pandas_dtype.str_alias))
+    ).map(lambda x: x.astype(str(pandera_dtype)))
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
     if nullable:
@@ -848,7 +863,7 @@ def index_strategy(
 
 
 def dataframe_strategy(
-    pandas_dtype: Optional[PandasDtype] = None,
+    pandera_dtype: Optional[DataType] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
     columns: Optional[Dict] = None,
@@ -859,7 +874,7 @@ def dataframe_strategy(
 ):
     """Strategy to generate a pandas DataFrame.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: if specified, this will raise a BaseStrategyOnlyError,
         since it cannot be chained to a prior strategy.
     :param columns: a dictionary where keys are column names and values
@@ -920,18 +935,18 @@ def dataframe_strategy(
         strategy = None
         for check in checks:
             if hasattr(check, "strategy"):
-                strategy = check.strategy(col.pdtype, strategy)
+                strategy = check.strategy(col.dtype, strategy)
             else:
                 strategy = undefined_check_strategy(
                     strategy=(
-                        pandas_dtype_strategy(col.pdtype)
+                        pandas_dtype_strategy(col.dtype)
                         if strategy is None
                         else strategy
                     ),
                     check=check,
                 )
         if strategy is None:
-            strategy = pandas_dtype_strategy(col.pdtype)
+            strategy = pandas_dtype_strategy(col.dtype)
         return strategy
 
     @composite
@@ -978,9 +993,9 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: col.dtype
-            if pandas_dtype is None
-            else pandas_dtype.str_alias
+            col_name: str(col.dtype)
+            if pandera_dtype is None
+            else str(pandera_dtype)
             for col_name, col in expanded_columns.items()
         }
 
@@ -1031,7 +1046,7 @@ def dataframe_strategy(
 
 # pylint: disable=unused-argument
 def multiindex_strategy(
-    pandas_dtype: Optional[PandasDtype] = None,
+    pandera_dtype: Optional[DataType] = None,
     strategy: Optional[SearchStrategy] = None,
     *,
     indexes: Optional[List] = None,
@@ -1039,7 +1054,7 @@ def multiindex_strategy(
 ):
     """Strategy to generate a pandas MultiIndex object.
 
-    :param pandas_dtype: :class:`pandera.dtypes.PandasDtype` instance.
+    :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
     :param indexes: a list of :class:`~pandera.schema_components.Inded`
@@ -1055,7 +1070,7 @@ def multiindex_strategy(
         )
     indexes = [] if indexes is None else indexes
     index_dtypes = {
-        index.name if index.name is not None else i: index.dtype
+        index.name if index.name is not None else i: str(index.dtype)
         for i, index in enumerate(indexes)
     }
     nullable_index = {
