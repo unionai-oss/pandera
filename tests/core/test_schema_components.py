@@ -190,10 +190,8 @@ def test_single_index_multi_index_mismatch():
     df_fail = pd.DataFrame(index=ind)
     schema = DataFrameSchema(index=Index(name="key"))
 
-    if isinstance(df_fail.index, pd.MultiIndex) and isinstance(
-        schema.index, Index
-    ):
-        pytest.raises(errors.SchemaError)
+    with pytest.raises(errors.SchemaError):
+        schema.validate(df_fail)
 
 
 def test_multi_index_schema_coerce():
