@@ -147,7 +147,9 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     ),
     (
         period_dtypes,
-        pd.to_datetime(["2019/01/01", "2018/05/21"]).to_period("D").to_series(),
+        pd.to_datetime(["2019/01/01", "2018/05/21"])
+        .to_period("D")
+        .to_series(),
     ),
     (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),
     (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),
