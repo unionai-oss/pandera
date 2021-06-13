@@ -14,13 +14,13 @@ typing_extensions >= 3.7.4.3
 black >= 20.8b1
 isort >= 5.7.0
 codecov
-mypy
+mypy == 0.812
 pylint >= 2.7.2
 pytest
 pytest-cov
 pytest-xdist
 setuptools >= 52.0.0
-nox
+nox == 2020.12.31
 importlib_metadata
 sphinx == 3.5.4
 sphinx_rtd_theme

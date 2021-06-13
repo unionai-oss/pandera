@@ -1,5 +1,5 @@
 """Testing the Decorators that check a functions input or output."""
-from typing import Optional
+import typing
 
 import numpy as np
 import pandas as pd
@@ -23,6 +23,12 @@ from pandera import (
     errors,
 )
 from pandera.typing import DataFrame, Index, Series
+
+try:
+    from typing import Literal  # type: ignore
+except ImportError:
+    # Remove this after dropping python 3.6
+    from typing_extensions import Literal  # type: ignore
 
 
 def test_check_function_decorators():
@@ -412,7 +418,8 @@ def test_check_io_unrecognized_obj_getter(out, error, msg):
         test_check_io_fn(pd.DataFrame({"column": [1, 2, 3]}))
 
 
-# required to be a global: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+# required to be a global: see
+# https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
 class OnlyZeroesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     """Schema with a single column containing zeroes."""
 
@@ -472,7 +479,8 @@ def test_check_types_unchanged():
     pd.testing.assert_frame_equal(transform(df, 2), df)
 
 
-# required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+# required to be globals:
+# see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
 class InSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     """Test schema used as input."""
 
@@ -580,12 +588,12 @@ def test_check_types_error_output():
 
 
 def test_check_types_optional_out():
-    """Test the check_types behaviour when the output schema is optional."""
+    """Test the check_types behaviour when the output schema is Optional."""
 
     @check_types
     def optional_derived_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[DerivedOutSchema]]:
+    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -594,7 +602,7 @@ def test_check_types_optional_out():
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[OutSchema]]:
+    ) -> typing.Optional[DataFrame[OutSchema]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -602,11 +610,12 @@ def test_check_types_optional_out():
 
 
 def test_check_types_optional_in():
-    """Test the check_types behaviour when the input schema is optional."""
+    """Test the check_types behaviour when the input schema is Optional."""
 
     @check_types
     def optional_in(
-        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
+        # pylint: disable=unused-argument
+        df: typing.Optional[DataFrame[InSchema]],
     ) -> None:
         return None
 
@@ -614,20 +623,25 @@ def test_check_types_optional_in():
 
 
 def test_check_types_optional_in_out():
-    """Test the check_types behaviour when both input and outputs schemas are optional."""
+    """
+    Test the check_types behaviour when both input and outputs schemas are
+    Optional.
+    """
 
     @check_types
     def transform_derived(
-        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[DerivedOutSchema]]:
+        # pylint: disable=unused-argument
+        df: typing.Optional[DataFrame[InSchema]],
+    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
         return None
 
     assert transform_derived(None) is None
 
     @check_types
     def transform(
-        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[OutSchema]]:
+        # pylint: disable=unused-argument
+        df: typing.Optional[DataFrame[InSchema]],
+    ) -> typing.Optional[DataFrame[OutSchema]]:
         return None
 
     assert transform(None) is None
@@ -654,3 +668,33 @@ def test_check_types_coerce():
     assert (
         PandasDtype(str(out_df["b"].dtype)) == expected == PandasDtype("int")
     )
+
+
+@pytest.mark.parametrize(
+    "arg_examples",
+    [
+        [1, 5, 10, 123],
+        list("abcdefg"),
+        [1.0, 1.1, 1.3, 10.2],
+        [None],
+    ],
+)
+def test_check_types_with_literal_type(arg_examples):
+    """Test that using typing module types works with check_types"""
+
+    for example in arg_examples:
+        arg_type = Literal[example]
+
+        @check_types
+        def transform_with_literal(
+            df: DataFrame[InSchema],
+            arg: arg_type,  # pylint: disable=unused-argument
+        ) -> DataFrame[OutSchema]:
+            return df.assign(b=100)
+
+        df = pd.DataFrame({"a": [1]})
+        invalid_df = pd.DataFrame()
+
+        transform_with_literal(df, example)
+        with pytest.raises(errors.SchemaError):
+            transform_with_literal(invalid_df, example)

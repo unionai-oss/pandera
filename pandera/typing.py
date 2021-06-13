@@ -113,7 +113,12 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
     @property
     def is_generic_df(self) -> bool:
         """True if the annotation is a pandera.typing.DataFrame."""
-        return self.origin is not None and issubclass(self.origin, DataFrame)
+        try:
+            return self.origin is not None and issubclass(
+                self.origin, DataFrame
+            )
+        except TypeError:
+            return False
 
     def _parse_annotation(self, raw_annotation: Type) -> None:
         """Parse key information from annotation.

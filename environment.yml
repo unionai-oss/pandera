@@ -23,13 +23,13 @@ dependencies:
   # testing
   - isort >= 5.7.0
   - codecov
-  - mypy
+  - mypy = 0.812  # TODO: update codebase to be 0.902+ compatible
   - pylint >= 2.7.2
   - pytest
   - pytest-cov
   - pytest-xdist
   - setuptools >= 52.0.0
-  - nox
+  - nox = 2020.12.31  # TODO: update codebase to be 2021.6.6+ compatible
   - importlib_metadata # required if python < 3.8
 
   # documentation
