@@ -20,7 +20,7 @@ pytest
 pytest-cov
 pytest-xdist
 setuptools >= 52.0.0
-nox == 2020.8.22
+nox == 2020.12.31
 importlib_metadata
 sphinx == 3.5.4
 sphinx_rtd_theme

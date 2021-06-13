@@ -29,7 +29,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist
   - setuptools >= 52.0.0
-  - nox = 2020.8.22  # TODO: update codebase to be 2021.6.6+ compatible
+  - nox = 2020.12.31  # TODO: update codebase to be 2021.6.6+ compatible
   - importlib_metadata # required if python < 3.8
 
   # documentation
