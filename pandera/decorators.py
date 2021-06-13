@@ -470,7 +470,10 @@ def check_types(
         annotated_schemas[arg_name] = (schema, annotation_info.optional)
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
-        """Validate function's argument if annoted with a schema, else pass-through."""
+        """
+        Validate function's argument if annoted with a schema, else
+        pass-through.
+        """
         schema, optional = annotated_schemas.get(arg_name, (None, None))
         if schema and not (optional and arg_value is None):
             try:
