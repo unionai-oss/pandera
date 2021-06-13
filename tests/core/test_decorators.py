@@ -25,7 +25,7 @@ from pandera import (
 from pandera.typing import DataFrame, Index, Series
 
 try:
-    from typing import Literal
+    from typing import Literal  # type: ignore
 except ImportError:
     # Remove this after dropping python 3.6
     from typing_extensions import Literal  # type: ignore
