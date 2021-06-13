@@ -24,6 +24,12 @@ from pandera import (
 )
 from pandera.typing import DataFrame, Index, Series
 
+try:
+    from typing import Literal
+except ImportError:
+    # Remove this after dropping python 3.6
+    from typing_extensions import Literal  # type: ignore
+
 
 def test_check_function_decorators():
     """
@@ -677,7 +683,7 @@ def test_check_types_with_literal_type(arg_examples):
     """Test that using typing module types works with check_types"""
 
     for example in arg_examples:
-        arg_type = typing.Literal[example]
+        arg_type = Literal[example]
 
         @check_types
         def transform_with_literal(
