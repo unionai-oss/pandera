@@ -15,7 +15,9 @@ frictionless
 black >= 20.8b1
 isort >= 5.7.0
 codecov
-mypy
+mypy >= 0.902
+types-PyYAML
+types-pkg_resources
 pylint >= 2.7.2
 pytest
 pytest-cov
