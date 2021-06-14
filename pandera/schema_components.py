@@ -224,9 +224,8 @@ class Column(SeriesSchemaBase):
             # handle MultiIndex case
             if len(self.name) != columns.nlevels:
                 raise IndexError(
-                    "Column regex name='%s' is a tuple, expected a MultiIndex "
-                    "columns with %d number of levels, found %d level(s)"
-                    % (self.name, len(self.name), columns.nlevels)
+                    f"Column regex name='{self.name}' is a tuple, expected a MultiIndex "
+                    f"columns with {len(self.name)} number of levels, found {columns.nlevels} level(s)"
                 )
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(self.name):
@@ -238,9 +237,9 @@ class Column(SeriesSchemaBase):
         else:
             if isinstance(columns, pd.MultiIndex):
                 raise IndexError(
-                    "Column regex name %s is a string, expected a dataframe "
+                    f"Column regex name {self.name} is a string, expected a dataframe "
                     "where the index is a pd.Index object, not a "
-                    "pd.MultiIndex object" % (self.name)
+                    "pd.MultiIndex object"
                 )
             column_keys_to_check = columns[
                 # str.match will return nan values when the index value is
@@ -253,9 +252,9 @@ class Column(SeriesSchemaBase):
             raise errors.SchemaError(
                 self,
                 columns,
-                "Column regex name='%s' did not match any columns in the "
+                f"Column regex name='{self.name}' did not match any columns in the "
                 "dataframe. Update the regex pattern so that it matches at "
-                "least one column:\n%s" % (self.name, columns.tolist()),
+                f"least one column:\n{columns.tolist()}" ,
             )
         # drop duplicates to account for potential duplicated columns in the
         # dataframe.
@@ -493,11 +492,6 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
-        if any(not isinstance(i, Index) for i in indexes):
-            raise errors.SchemaInitError(
-                f"expected a list of Index objects, found {indexes} "
-                f"of type {[type(x) for x in indexes]}"
-            )
         self.indexes = indexes
         columns = {}
         for i, index in enumerate(indexes):

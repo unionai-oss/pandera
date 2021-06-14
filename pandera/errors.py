@@ -94,7 +94,7 @@ class SchemaErrors(Exception):
         msg += "\nError Counts"
         msg += "\n------------\n"
         for k, v in error_counts.items():
-            msg += "- %s: %d\n" % (k, v)
+            msg += f"- {k}: {v}\n"
 
         def failure_cases(x):
             return list(set(x))
