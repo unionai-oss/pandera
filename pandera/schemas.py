@@ -244,7 +244,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if regex_columns:
             warnings.warn(
                 "Schema has columns specified as regex column names: %s "
-                "Use the `get_dtype` to get the datatypes for these "
+                "Use the `get_dtypes` to get the datatypes for these "
                 "columns." % regex_columns,
                 UserWarning,
             )
@@ -768,9 +768,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... )
         <Schema DataFrameSchema(
             columns={
-                'category': <Schema Column(name=category, type=str)>
-                'probability': <Schema Column(name=probability, type=float)>
-                'even_number': <Schema Column(name=even_number, type=bool)>
+                'category': <Schema Column(name=category, type=DataType(str))>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+                'even_number': <Schema Column(name=even_number, type=DataType(bool))>
             },
             checks=[],
             coerce=False,
@@ -820,7 +820,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> print(example_schema.remove_columns(["category"]))
         <Schema DataFrameSchema(
             columns={
-                'probability': <Schema Column(name=probability, type=float)>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
             coerce=False,
@@ -880,8 +880,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... )
         <Schema DataFrameSchema(
             columns={
-                'category': <Schema Column(name=category, type=category)>
-                'probability': <Schema Column(name=probability, type=float)>
+                'category': <Schema Column(name=category, type=DataType(category))>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
             coerce=False,
@@ -940,8 +940,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... )
         <Schema DataFrameSchema(
             columns={
-                'category': <Schema Column(name=category, type=category)>
-                'probability': <Schema Column(name=probability, type=float)>
+                'category': <Schema Column(name=category, type=DataType(category))>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
             coerce=False,
@@ -1022,8 +1022,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ... )
         <Schema DataFrameSchema(
             columns={
-                'categories': <Schema Column(name=categories, type=str)>
-                'probabilities': <Schema Column(name=probabilities, type=float)>
+                'categories': <Schema Column(name=categories, type=DataType(str))>
+                'probabilities': <Schema Column(name=probabilities, type=DataType(float64))>
             },
             checks=[],
             coerce=False,
@@ -1098,7 +1098,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> print(example_schema.select_columns(['category']))
         <Schema DataFrameSchema(
             columns={
-                'category': <Schema Column(name=category, type=str)>
+                'category': <Schema Column(name=category, type=DataType(str))>
             },
             checks=[],
             coerce=False,
@@ -1198,12 +1198,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> print(example_schema.set_index(['category']))
         <Schema DataFrameSchema(
             columns={
-                'probability': <Schema Column(name=probability, type=float)>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
             coerce=False,
             dtype=None,
-            index=<Schema Index(name=category, type=str)>,
+            index=<Schema Index(name=category, type=DataType(str))>,
             strict=False
             name=None,
             ordered=False
@@ -1224,15 +1224,15 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> print(example_schema.set_index(["column2"], append = True))
         <Schema DataFrameSchema(
             columns={
-                'column1': <Schema Column(name=column1, type=str)>
+                'column1': <Schema Column(name=column1, type=DataType(str))>
             },
             checks=[],
             coerce=False,
             dtype=None,
             index=<Schema MultiIndex(
                 indexes=[
-                    <Schema Index(name=column3, type=int)>
-                    <Schema Index(name=column2, type=int)>
+                    <Schema Index(name=column3, type=DataType(int64))>
+                    <Schema Index(name=column2, type=DataType(int64))>
                 ]
                 coerce=False,
                 strict=False,
@@ -1328,8 +1328,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> print(example_schema.reset_index())
         <Schema DataFrameSchema(
             columns={
-                'probability': <Schema Column(name=probability, type=float)>
-                'unique_id': <Schema Column(name=unique_id, type=int64)>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+                'unique_id': <Schema Column(name=unique_id, type=DataType(int64))>
             },
             checks=[],
             coerce=False,
@@ -1357,13 +1357,13 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> print(example_schema.reset_index(level = ["unique_id1"]))
         <Schema DataFrameSchema(
             columns={
-                'category': <Schema Column(name=category, type=str)>
-                'unique_id1': <Schema Column(name=unique_id1, type=int64)>
+                'category': <Schema Column(name=category, type=DataType(str))>
+                'unique_id1': <Schema Column(name=unique_id1, type=DataType(int64))>
             },
             checks=[],
             coerce=False,
             dtype=None,
-            index=<Schema Index(name=unique_id2, type=str)>,
+            index=<Schema Index(name=unique_id2, type=DataType(str))>,
             strict=False
             name=None,
             ordered=False

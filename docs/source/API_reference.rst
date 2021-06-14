@@ -93,7 +93,7 @@ Pandas Data Types
    :template: pandas_dtype_class.rst
    :nosignatures:
 
-   pandera.dtypes.PandasDtype
+   pandera.dtypes.DataType
 
 
 Decorators

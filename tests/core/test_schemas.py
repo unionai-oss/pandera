@@ -828,8 +828,8 @@ def test_add_and_remove_columns():
         schema2.remove_columns(["foo", "bar"])
 
 
-def test_schema_get_dtype():
-    """Test that schema dtype and get_dtype methods handle regex columns."""
+def test_schema_get_dtypes():
+    """Test that schema dtype and get_dtypes methods handle regex columns."""
     schema = DataFrameSchema(
         {
             "col1": Column(int),
