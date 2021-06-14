@@ -166,7 +166,6 @@ def check_input(
                     f"index '{obj_getter}' was supplied to the check but this "
                     f"function accepts '{len(_get_fn_argnames(fn))}' arguments, so the maximum "
                     f"index is 'max(0, len(_get_fn_argnames(fn)) - 1)'. The full error is: '{exc}'"
-
                 ) from exc
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:

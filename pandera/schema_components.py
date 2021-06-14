@@ -224,8 +224,9 @@ class Column(SeriesSchemaBase):
             # handle MultiIndex case
             if len(self.name) != columns.nlevels:
                 raise IndexError(
-                    f"Column regex name='{self.name}' is a tuple, expected a MultiIndex "
-                    f"columns with {len(self.name)} number of levels, found {columns.nlevels} level(s)"
+                    f"Column regex name='{self.name}' is a tuple, expected a "
+                    f"MultiIndex columns with {len(self.name)} number of "
+                    f"levels, found {columns.nlevels} level(s)"
                 )
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(self.name):
@@ -237,8 +238,8 @@ class Column(SeriesSchemaBase):
         else:
             if isinstance(columns, pd.MultiIndex):
                 raise IndexError(
-                    f"Column regex name {self.name} is a string, expected a dataframe "
-                    "where the index is a pd.Index object, not a "
+                    f"Column regex name {self.name} is a string, expected a "
+                    "dataframe where the index is a pd.Index object, not a "
                     "pd.MultiIndex object"
                 )
             column_keys_to_check = columns[
@@ -252,9 +253,9 @@ class Column(SeriesSchemaBase):
             raise errors.SchemaError(
                 self,
                 columns,
-                f"Column regex name='{self.name}' did not match any columns in the "
-                "dataframe. Update the regex pattern so that it matches at "
-                f"least one column:\n{columns.tolist()}" ,
+                f"Column regex name='{self.name}' did not match any columns "
+                "in the dataframe. Update the regex pattern so that it "
+                f"matches at least one column:\n{columns.tolist()}",
             )
         # drop duplicates to account for potential duplicated columns in the
         # dataframe.
