@@ -25,8 +25,6 @@ dependencies:
   - isort >= 5.7.0
   - codecov
   - mypy >= 0.902 # mypy no longer bundle stubs for third-party libraries
-  - types-PyYAML
-  - types-pkg_resources
   - pylint >= 2.7.2
   - pytest
   - pytest-cov
@@ -53,3 +51,5 @@ dependencies:
 
   - pip:
     - furo
+    - types-PyYAML
+    - types-pkg_resources
