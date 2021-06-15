@@ -21,12 +21,9 @@ def check_values(values, check, expected_failure_cases):
     n_failure_cases = len(expected_failure_cases)
 
     # Assert that the check only fails if we expect it to
-    assert check_result.check_passed == (
-        n_failure_cases == 0
-    ), "Check %s returned result %s although %s failure cases were expected" % (
-        check,
-        check_result,
-        n_failure_cases,
+    assert check_result.check_passed == (n_failure_cases == 0), (
+        f"Check {check} returned result {check_result} although "
+        f"{n_failure_cases} failure cases were expected"
     )
 
     # Assert that the returned check object is what was passed in

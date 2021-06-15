@@ -29,7 +29,7 @@ def infer_schema(
     else:
         raise TypeError(
             "pandas_obj type not recognized. Expected a pandas DataFrame or "
-            "Series, found %s" % type(pandas_obj)
+            f"Series, found {type(pandas_obj)}"
         )
 
 

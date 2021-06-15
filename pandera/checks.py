@@ -284,8 +284,8 @@ class _CheckBase(metaclass=_CheckMeta):
         invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:
             raise KeyError(
-                "groups %s provided in `groups` argument not a valid group "
-                "key. Valid group keys: %s" % (invalid_groups, group_keys)
+                f"groups {invalid_groups} provided in `groups` argument not a valid group "
+                f"key. Valid group keys: {group_keys}"
             )
         return {
             group_key: group
@@ -374,8 +374,8 @@ class _CheckBase(metaclass=_CheckMeta):
             check_obj = self._prepare_dataframe_input(df_or_series)
         else:
             raise ValueError(
-                "object of type %s not supported. Must be a "
-                "Series, a dictionary of Series, or DataFrame" % df_or_series
+                f"object of type {df_or_series} not supported. Must be a "
+                "Series, a dictionary of Series, or DataFrame"
             )
 
         # apply check function to check object
@@ -723,8 +723,8 @@ class Check(_CheckBase):
             min_value == max_value and (not include_min or not include_max)
         ):
             raise ValueError(
-                "The combination of min_value = %s and max_value = %s "
-                "defines an empty interval!" % (min_value, max_value)
+                f"The combination of min_value = {min_value} and max_value = {max_value} "
+                "defines an empty interval!"
             )
         # Using functions from operator module to keep conditions out of the
         # closure

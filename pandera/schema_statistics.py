@@ -185,14 +185,9 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
         )["max_value"]
         if min_value > max_value:
             raise ValueError(
-                "checks %s and %s are incompatible, reason: "
-                "min value %s > max value %s"
-                % (
-                    _check_memo["greater_than_or_equal_to"],
-                    _check_memo["less_than_or_equal_to"],
-                    min_value,
-                    max_value,
-                )
+                f"checks {_check_memo['greater_than_or_equal_to']} "
+                f"and {_check_memo['less_than_or_equal_to']} are incompatible, reason: "
+                f"min value {min_value} > max value {max_value}"
             )
     return check_statistics if check_statistics else None
 
