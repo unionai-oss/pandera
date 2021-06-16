@@ -5,6 +5,7 @@ import builtins
 import dataclasses
 import datetime
 import inspect
+import platform
 import warnings
 from typing import Any, Dict, List, Union
 
@@ -13,6 +14,8 @@ import numpy as np
 from .. import dtypes
 from ..dtypes import immutable
 from . import engine
+
+WINDOWS_PLATFORM = platform.system() == "Windows"
 
 
 @immutable(init=True)
@@ -63,7 +66,8 @@ class Engine(  # pylint:disable=too-few-public-methods
                 np_dtype = np.dtype(data_type).type
             except TypeError:
                 raise TypeError(
-                    f"data type '{data_type}' not understood by {cls.__name__}."
+                    f"data type '{data_type}' not understood by "
+                    f"{cls.__name__}."
                 ) from None
 
             try:
@@ -72,9 +76,9 @@ class Engine(  # pylint:disable=too-few-public-methods
                 return DataType(data_type)
 
 
-################################################################################
+###############################################################################
 # boolean
-################################################################################
+###############################################################################
 
 
 @Engine.register_dtype(
@@ -122,9 +126,9 @@ def _build_number_equivalents(
     }
 
 
-################################################################################
-## signed integer
-################################################################################
+###############################################################################
+# signed integer
+###############################################################################
 
 _int_equivalents = _build_number_equivalents(
     builtin_name="int", pandera_name="Int", sizes=[64, 32, 16, 8]
@@ -160,9 +164,9 @@ class Int8(Int16):
     bit_width: int = 8
 
 
-################################################################################
-## unsigned integer
-################################################################################
+###############################################################################
+# unsigned integer
+###############################################################################
 
 _uint_equivalents = _build_number_equivalents(
     builtin_name="uint",
@@ -199,22 +203,25 @@ class UInt8(UInt16):
     bit_width: int = 8
 
 
-################################################################################
-## float
-################################################################################
+###############################################################################
+# float
+###############################################################################
 
 _float_equivalents = _build_number_equivalents(
     builtin_name="float",
     pandera_name="Float",
-    sizes=[128, 64, 32, 16],
+    sizes=[64, 32, 16] if WINDOWS_PLATFORM else [128, 64, 32, 16],
 )
 
 
-@Engine.register_dtype(equivalents=_float_equivalents[128])
-@immutable
-class Float128(DataType, dtypes.Float128):
-    type = np.dtype("float128")
-    bit_width: int = 128
+if not WINDOWS_PLATFORM:
+    # not supported in windows
+    # https://github.com/winpython/winpython/issues/613
+    @Engine.register_dtype(equivalents=_float_equivalents[128])
+    @immutable
+    class Float128(DataType, dtypes.Float128):
+        type = np.dtype("float128")
+        bit_width: int = 128
 
 
 @Engine.register_dtype(equivalents=_float_equivalents[64])
@@ -238,22 +245,25 @@ class Float16(Float32):
     bit_width: int = 16
 
 
-################################################################################
-## complex
-################################################################################
+###############################################################################
+# complex
+###############################################################################
 
 _complex_equivalents = _build_number_equivalents(
     builtin_name="complex",
     pandera_name="Complex",
-    sizes=[256, 128, 64],
+    sizes=[128, 64] if WINDOWS_PLATFORM else [256, 128, 64],
 )
 
 
-@Engine.register_dtype(equivalents=_complex_equivalents[256])
-@immutable
-class Complex256(DataType, dtypes.Complex256):
-    type = np.dtype("complex256")
-    bit_width: int = 256
+if not WINDOWS_PLATFORM:
+    # not supported in windows
+    # https://github.com/winpython/winpython/issues/613
+    @Engine.register_dtype(equivalents=_complex_equivalents[256])
+    @immutable
+    class Complex256(DataType, dtypes.Complex256):
+        type = np.dtype("complex256")
+        bit_width: int = 256
 
 
 @Engine.register_dtype(equivalents=_complex_equivalents[128])
@@ -270,9 +280,9 @@ class Complex64(Complex128):
     bit_width: int = 64
 
 
-################################################################################
+###############################################################################
 # string
-################################################################################
+###############################################################################
 
 
 @Engine.register_dtype(equivalents=["str", "string", str, np.str_])
@@ -290,9 +300,9 @@ class String(DataType, dtypes.String):
         return isinstance(pandera_dtype, (Object, type(self)))
 
 
-################################################################################
+###############################################################################
 # object
-################################################################################
+###############################################################################
 
 
 @Engine.register_dtype(equivalents=["object", "O", object, np.object_])
@@ -301,9 +311,9 @@ class Object(DataType):
     type = np.dtype("object")
 
 
-################################################################################
+###############################################################################
 # time
-################################################################################
+###############################################################################
 
 
 @Engine.register_dtype(
