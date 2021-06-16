@@ -10,6 +10,7 @@ import builtins
 import dataclasses
 import datetime
 import inspect
+import platform
 import warnings
 from typing import Any, Dict, Iterable, List, Optional, Union
 
@@ -19,6 +20,8 @@ import pandas as pd
 from .. import dtypes
 from ..dtypes import immutable
 from . import engine, numpy_engine
+
+WINDOWS_PLATFORM = platform.system() == "Windows"
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
 PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
@@ -294,7 +297,7 @@ UINT8 = UInt8
 _register_numpy_numbers(
     builtin_name="float",
     pandera_name="Float",
-    sizes=[128, 64, 32, 16],
+    sizes=[64, 32, 16] if WINDOWS_PLATFORM else [128, 64, 32, 16],
 )
 
 # ################################################################################
@@ -304,7 +307,7 @@ _register_numpy_numbers(
 _register_numpy_numbers(
     builtin_name="complex",
     pandera_name="Complex",
-    sizes=[128, 64],
+    sizes=[128, 64] if WINDOWS_PLATFORM else [256, 128, 64],
 )
 
 # ################################################################################
