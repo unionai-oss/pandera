@@ -51,5 +51,6 @@ dependencies:
 
   - pip:
     - furo
+    - types-click
     - types-pyyaml
     - types-pkg_resources

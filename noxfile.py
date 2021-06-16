@@ -3,7 +3,7 @@
 import os
 import shutil
 import sys
-from typing import Dict, List, cast
+from typing import Dict, List
 
 # setuptools must be imported before distutils !
 import setuptools  # pylint:disable=unused-import  # noqa: F401
@@ -12,7 +12,6 @@ from distutils.core import run_setup  # pylint:disable=wrong-import-order
 import nox
 from nox import Session
 from pkg_resources import Requirement, parse_requirements
-from packaging import version
 
 
 nox.options.sessions = (
@@ -32,7 +31,7 @@ PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = ["furo", "types-pyyaml", "types-pkg_resources"]
+ALWAYS_USE_PIP = ["furo", "types-click", "types-pyyaml", "types-pkg_resources"]
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -143,7 +142,6 @@ def install_from_requirements(session: Session, *packages: str) -> None:
 def install_extras(
     session: Session,
     extra: str = "core",
-    force_pip=False,
 ) -> None:
     """Install dependencies."""
     specs = [
@@ -154,10 +152,7 @@ def install_extras(
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
-    if (
-        isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
-        and not force_pip
-    ):
+    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
         print("using conda installer")
         session.conda_install(*CONDA_ARGS, *specs)
     else:
@@ -252,15 +247,7 @@ def lint(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
-    python_version = version.parse(cast(str, session.python))
-    install_extras(
-        session,
-        extra="all",
-        # this is a hack until typed-ast conda package starts working again,
-        # basically this issue comes up:
-        # https://github.com/python/mypy/pull/2906
-        force_pip=python_version == version.parse("3.7"),
-    )
+    install_extras(session, extra="all")
     args = session.posargs or SOURCE_PATHS
     session.run("mypy", "--follow-imports=silent", *args, silent=True)
 
@@ -276,14 +263,9 @@ EXTRA_NAMES = [
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, extra: str) -> None:
     """Run the test suite."""
-    python_version = version.parse(cast(str, session.python))
     install_extras(
         session,
         extra,
-        # this is a hack until typed-ast conda package starts working again,
-        # basically this issue comes up:
-        # https://github.com/python/mypy/pull/2906
-        force_pip=python_version == version.parse("3.7"),
     )
 
     if session.posargs:

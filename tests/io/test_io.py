@@ -372,9 +372,9 @@ def test_to_yaml():
     """Test that to_yaml writes to yaml string."""
     schema = _create_schema()
     yaml_str = io.to_yaml(schema)
-    with open("yaml_str.yml", "wt") as f:
+    with tempfile.NamedTemporaryFile("w+") as f:
         f.write(yaml_str)
-    with open("YAML_SCHEMA.yml", "wt") as f:
+    with tempfile.NamedTemporaryFile("w+") as f:
         f.write(YAML_SCHEMA)
     assert yaml_str.strip() == YAML_SCHEMA.strip()
 
