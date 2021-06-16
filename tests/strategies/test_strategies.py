@@ -104,11 +104,15 @@ def test_check_strategy_continuous(data_type, data):
 
     assert data.draw(strategies.ne_strategy(data_type, value=value)) != value
     assert data.draw(strategies.eq_strategy(data_type, value=value)) == value
-    assert data.draw(strategies.gt_strategy(data_type, min_value=value)) > value
+    assert (
+        data.draw(strategies.gt_strategy(data_type, min_value=value)) > value
+    )
     assert (
         data.draw(strategies.ge_strategy(data_type, min_value=value)) >= value
     )
-    assert data.draw(strategies.lt_strategy(data_type, max_value=value)) < value
+    assert (
+        data.draw(strategies.lt_strategy(data_type, max_value=value)) < value
+    )
     assert (
         data.draw(strategies.le_strategy(data_type, max_value=value)) <= value
     )
@@ -471,7 +475,9 @@ def test_dataframe_strategy(data_type, size, data):
 
 def test_dataframe_example():
     """Test DataFrameSchema example method generate examples that pass."""
-    schema = pa.DataFrameSchema({"column": pa.Column(pa.Int(), pa.Check.gt(0))})
+    schema = pa.DataFrameSchema(
+        {"column": pa.Column(pa.Int(), pa.Check.gt(0))}
+    )
     for _ in range(10):
         schema(schema.example())
 

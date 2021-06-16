@@ -175,7 +175,7 @@ please use :class:`~pandera.dtypes.DataType` subclasses instead.
 
     class Schema(pa.SchemaModel):
         a: Series[String]
-        
+
 Type Vs instance
 ^^^^^^^^^^^^^^^^
 
