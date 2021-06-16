@@ -223,12 +223,20 @@ if not WINDOWS_PLATFORM:
         type = np.dtype("float128")
         bit_width: int = 128
 
+    @Engine.register_dtype(equivalents=_float_equivalents[64])
+    @immutable
+    class Float64(Float128):
+        type = np.dtype("float64")
+        bit_width: int = 64
 
-@Engine.register_dtype(equivalents=_float_equivalents[64])
-@immutable
-class Float64(Float128):
-    type = np.dtype("float64")
-    bit_width: int = 64
+
+else:
+
+    @Engine.register_dtype(equivalents=_float_equivalents[64])
+    @immutable
+    class Float64(DataType, dtypes.Float64):  # type: ignore
+        type = np.dtype("float64")
+        bit_width: int = 64
 
 
 @Engine.register_dtype(equivalents=_float_equivalents[32])
@@ -265,12 +273,20 @@ if not WINDOWS_PLATFORM:
         type = np.dtype("complex256")
         bit_width: int = 256
 
+    @Engine.register_dtype(equivalents=_complex_equivalents[128])
+    @immutable
+    class Complex128(Complex256):
+        type = np.dtype("complex128")  # type: ignore
+        bit_width: int = 128
 
-@Engine.register_dtype(equivalents=_complex_equivalents[128])
-@immutable
-class Complex128(Complex256):
-    type = np.dtype("complex128")  # type: ignore
-    bit_width: int = 128
+
+else:
+
+    @Engine.register_dtype(equivalents=_complex_equivalents[128])
+    @immutable
+    class Complex128(DataType, dtypes.Complex128):  # type: ignore
+        type = np.dtype("complex128")  # type: ignore
+        bit_width: int = 128
 
 
 @Engine.register_dtype(equivalents=_complex_equivalents[64])
