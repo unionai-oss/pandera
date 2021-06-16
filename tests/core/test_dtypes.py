@@ -5,6 +5,7 @@ coercion examples."""
 import dataclasses
 import datetime
 import inspect
+import platform
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
@@ -18,6 +19,8 @@ from hypothesis import strategies as st
 
 import pandera as pa
 from pandera.engines import pandas_engine
+
+WINDOWS_PLATFORM = platform.system() == "Windows"
 
 # List dtype classes and associated pandas alias,
 # except for parameterizable dtypes that should also list examples of instances.
@@ -67,12 +70,11 @@ float_dtypes = {
     pa.Float16: "float16",
     pa.Float32: "float32",
     pa.Float64: "float64",
-    pa.Float128: "float128",
     np.float16: "float16",
     np.float32: "float32",
     np.float64: "float64",
-    np.float128: "float128",
 }
+
 
 complex_dtypes = {
     complex: "complex",
@@ -80,6 +82,21 @@ complex_dtypes = {
     pa.Complex64: "complex64",
     pa.Complex128: "complex128",
 }
+
+
+if not WINDOWS_PLATFORM:
+    float_dtypes.update(
+        {
+            pa.Float128: "float128",
+            np.float128: "float128",
+        }
+    )
+    complex_dtypes.update(
+        {
+            pa.Complex256: "complex256",
+            np.complex256: "complex256",
+        }
+    )
 
 boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
 nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
@@ -414,7 +431,7 @@ def test_is_uint(uint_dtype: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "float_dtype, expected",
-    [(dtype, True) for dtype in float_dtypes] + [("string", False)],
+    [(dtype, True) for dtype in float_dtypes] + [("string", False)],  # type: ignore
 )
 def test_is_float(float_dtype: Any, expected: bool):
     """Test is_float."""

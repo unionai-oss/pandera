@@ -1,18 +1,18 @@
 """A flexible and expressive pandas validation library."""
+import platform
+
 from pandera.dtypes import (
     Bool,
     Category,
     Complex,
     Complex64,
     Complex128,
-    Complex256,
     DataType,
     DateTime,
     Float,
     Float16,
     Float32,
     Float64,
-    Float128,
     Int,
     Int8,
     Int16,
@@ -51,3 +51,6 @@ from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
 from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
+
+if platform.system() != "Windows":
+    from pandera.dtypes import Complex256, Float128
