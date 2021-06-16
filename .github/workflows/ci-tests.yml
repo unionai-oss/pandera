@@ -133,9 +133,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }},
-      ${{ matrix.os }},
-      pandas-latest)
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -182,28 +180,28 @@ jobs:
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='core', pandas='latest')"
+          --session "tests-${{ matrix.python-version }}(extra='core')"
 
       - name: Unit Tests - Hypotheses
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='latest')"
+          --session "tests-${{ matrix.python-version }}(extra='hypotheses')"
 
       - name: Unit Tests - IO
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='io', pandas='latest')"
+          --session "tests-${{ matrix.python-version }}(extra='io')"
 
       - name: Unit Tests - Strategies
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='latest')"
+          --session "tests-${{ matrix.python-version }}(extra='strategies')"
 
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"
@@ -213,4 +211,4 @@ jobs:
           nox
           -db conda -r -v
           --non-interactive
-          --session "docs-${{ matrix.python-version }}(pandas='latest')"
+          --session "docs-${{ matrix.python-version }}"
