@@ -1311,25 +1311,21 @@ def test_schema_transformer_deprecated():
 )
 def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     """Test coercion logic for validation when inplace is True and False"""
+    from_dtype = (
+        from_dtype if from_dtype is not int else str(Engine.dtype(from_dtype))
+    )
+    to_dtype = to_dtype if to_dtype is not int else str(Engine.dtype(to_dtype))
     df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})
     schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})
     validated_df = schema.validate(df, inplace=inplace)
 
-    assert validated_df["column"].dtype == (
-        to_dtype if to_dtype is not int else str(Engine.dtype(to_dtype))
-    )
+    assert validated_df["column"].dtype == to_dtype
     if inplace:
         # inplace mutates original dataframe
-        assert df["column"].dtype == (
-            to_dtype if to_dtype is not int else str(Engine.dtype(to_dtype))
-        )
+        assert df["column"].dtype == to_dtype
     else:
         # not inplace preserves original dataframe type
-        assert df["column"].dtype == (
-            from_dtype
-            if from_dtype is not int
-            else str(Engine.dtype(from_dtype))
-        )
+        assert df["column"].dtype == from_dtype
 
 
 @pytest.fixture
