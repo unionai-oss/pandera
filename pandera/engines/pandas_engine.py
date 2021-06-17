@@ -123,9 +123,9 @@ class Engine(  # pylint:disable=too-few-public-methods
         return np.dtype(alias)
 
 
-################################################################################
+###############################################################################
 # boolean
-################################################################################
+###############################################################################
 
 
 Engine.register_dtype(
@@ -144,9 +144,9 @@ class Bool(DataType, dtypes.Bool):
 
 BOOL = Bool
 
-################################################################################
+###############################################################################
 # number
-################################################################################
+###############################################################################
 
 
 def _register_numpy_numbers(
@@ -159,12 +159,9 @@ def _register_numpy_numbers(
     default_data = 1
     if builtin_type:
         default_data = builtin_type(default_data)
-    default_pd_dtype = pd.Series([default_data], dtype=builtin_name).dtype
-    _default_pd_dtype = pd.Series([default_data]).dtype
-    print(
-        f"DEFAULT DATA TYPES: default_pd_dtype={default_pd_dtype} "
-        f"_default_pd_dtype={_default_pd_dtype}"
-    )
+        default_pd_dtype = pd.Series([default_data]).dtype
+    else:
+        default_pd_dtype = pd.Series([default_data], dtype=builtin_name).dtype
 
     for bit_width in sizes:
         # e.g.: numpy.int64
@@ -182,7 +179,7 @@ def _register_numpy_numbers(
         add_default = True
         if WINDOWS_PLATFORM:
             print("ON WINDOWS PLATFORM")
-            if builtin_name in {"int", "uint"} and bit_width == 64:
+            if builtin_name in {"int"} and bit_width == 64:
                 print(f"ADDING {builtin_type}")
                 equivalents.add(builtin_type)
                 equivalents.add(builtin_name)
@@ -194,7 +191,7 @@ def _register_numpy_numbers(
                         getattr(dtypes, pandera_name)(),
                     )
                 )
-            elif builtin_name in {"int", "uint"} and bit_width == 32:
+            elif builtin_name in {"int"} and bit_width == 32:
                 add_default = False
 
         if np_dtype == default_pd_dtype:
@@ -221,9 +218,9 @@ def _register_numpy_numbers(
         Engine.register_dtype(numpy_data_type, equivalents=list(equivalents))
 
 
-################################################################################
-## signed integer
-################################################################################
+###############################################################################
+# signed integer
+###############################################################################
 
 _register_numpy_numbers(
     builtin_name="int",
@@ -271,9 +268,9 @@ class Int8(Int16):
 
 INT8 = Int8
 
-################################################################################
-## unsigned integer
-################################################################################
+###############################################################################
+# unsigned integer
+###############################################################################
 
 _register_numpy_numbers(
     builtin_name="uint",
@@ -315,9 +312,9 @@ UINT32 = UInt32
 UINT16 = UInt16
 UINT8 = UInt8
 
-# ################################################################################
-# ## float
-# ################################################################################
+# ###############################################################################
+# # float
+# ###############################################################################
 
 _register_numpy_numbers(
     builtin_name="float",
@@ -325,9 +322,9 @@ _register_numpy_numbers(
     sizes=[64, 32, 16] if WINDOWS_PLATFORM else [128, 64, 32, 16],
 )
 
-# ################################################################################
-# ## complex
-# ################################################################################
+# ###############################################################################
+# # complex
+# ###############################################################################
 
 _register_numpy_numbers(
     builtin_name="complex",
@@ -335,9 +332,9 @@ _register_numpy_numbers(
     sizes=[128, 64] if WINDOWS_PLATFORM else [256, 128, 64],
 )
 
-# ################################################################################
+# ###############################################################################
 # # nominal
-# ################################################################################
+# ###############################################################################
 
 
 @Engine.register_dtype(
@@ -419,9 +416,9 @@ Engine.register_dtype(
     ],
 )
 
-# ################################################################################
+# ###############################################################################
 # # time
-# ################################################################################
+# ###############################################################################
 
 
 _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
@@ -515,9 +512,9 @@ class Period(DataType):
         return cls(freq=pd_dtype.freq)  # type: ignore
 
 
-# ################################################################################
+# ###############################################################################
 # # misc
-# ################################################################################
+# ###############################################################################
 
 
 @Engine.register_dtype(equivalents=[pd.SparseDtype])
