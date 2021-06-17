@@ -177,6 +177,13 @@ def _register_numpy_numbers(
             if np_dtype == np.dtype("int64"):
                 print(f"ADDING {builtin_type}")
                 equivalents.add(builtin_type)
+                equivalents.add("integer")
+                equivalents |= set(
+                    (
+                        getattr(dtypes, pandera_name),
+                        getattr(dtypes, pandera_name)(),
+                    )
+                )
             elif np_dtype == np.dtype("int32"):
                 add_builtin = False
 
@@ -185,11 +192,15 @@ def _register_numpy_numbers(
                 (
                     # e.g: numpy.int_
                     default_pd_dtype,
-                    # e.g: pandera.dtypes.Int
-                    getattr(dtypes, pandera_name),
-                    getattr(dtypes, pandera_name)(),
                 )
             )
+            if add_builtin:
+                equivalents |= set(
+                    (
+                        getattr(dtypes, pandera_name),
+                        getattr(dtypes, pandera_name)(),
+                    )
+                )
             if builtin_type and add_builtin:
                 equivalents.add(builtin_type)
 
@@ -197,7 +208,7 @@ def _register_numpy_numbers(
             if builtin_type is float:
                 equivalents.add("floating")
                 equivalents.add("mixed-integer-float")
-            elif builtin_type is int:
+            elif builtin_type is int and add_builtin:
                 equivalents.add("integer")
 
         numpy_data_type = getattr(numpy_engine, f"{pandera_name}{bit_width}")
