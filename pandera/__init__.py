@@ -1,18 +1,18 @@
 """A flexible and expressive pandas validation library."""
-from pandera.dtypes_ import (
+import platform
+
+from pandera.dtypes import (
     Bool,
     Category,
     Complex,
     Complex64,
     Complex128,
-    Complex256,
     DataType,
     DateTime,
     Float,
     Float16,
     Float32,
     Float64,
-    Float128,
     Int,
     Int8,
     Int16,
@@ -44,7 +44,6 @@ from pandera.engines.pandas_engine import (
 from . import constants, errors, pandas_accessor
 from .checks import Check
 from .decorators import check_input, check_io, check_output, check_types
-from .dtypes import LEGACY_PANDAS, PandasDtype
 from .hypotheses import Hypothesis
 from .model import SchemaModel
 from .model_components import Field, check, dataframe_check
@@ -52,3 +51,6 @@ from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
 from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
+
+if platform.system() != "Windows":
+    from pandera.dtypes import Complex256, Float128

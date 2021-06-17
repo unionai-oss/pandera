@@ -1,11 +1,12 @@
 """Tests Engine subclassing and registring DataTypes."""
 # pylint:disable=redefined-outer-name,unused-argument
 # pylint:disable=missing-function-docstring,missing-class-docstring
+import re
 from typing import Any, Generator, List, Union
 
 import pytest
 
-from pandera.dtypes_ import DataType
+from pandera.dtypes import DataType
 from pandera.engines.engine import Engine
 
 
@@ -158,14 +159,24 @@ def test_register_dtype_overwrite(engine: Engine):
     assert engine.dtype(42) == _DtypeB()
 
 
-def test_register_base_pandera_dtypes(engine: Engine):
+def test_register_base_pandera_dtypes():
     """Test that base datatype cannot be registered."""
+
+    class FakeEngine(  # pylint:disable=too-few-public-methods
+        metaclass=Engine, base_pandera_dtypes=(BaseDataType, BaseDataType)
+    ):
+        pass
+
     with pytest.raises(
         ValueError,
-        match="BaseDataType subclasses cannot be registered with FakeEngine.",
+        match=re.escape(
+            "Subclasses of ['tests.core.test_engine.BaseDataType', "
+            + "'tests.core.test_engine.BaseDataType'] "
+            + "cannot be registered with FakeEngine."
+        ),
     ):
 
-        @engine.register_dtype(equivalents=[SimpleDtype])
+        @FakeEngine.register_dtype(equivalents=[SimpleDtype])
         class _Dtype(BaseDataType):
             pass
 

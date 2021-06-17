@@ -3,16 +3,15 @@
 import os
 import shutil
 import sys
-from typing import Dict, List, cast
+from typing import Dict, List
 
 # setuptools must be imported before distutils !
-import setuptools  # pylint:disable=unused-import
+import setuptools  # pylint:disable=unused-import  # noqa: F401
 from distutils.core import run_setup  # pylint:disable=wrong-import-order
 
 import nox
 from nox import Session
 from pkg_resources import Requirement, parse_requirements
-from packaging import version
 
 
 nox.options.sessions = (
@@ -26,13 +25,13 @@ nox.options.sessions = (
 )
 
 DEFAULT_PYTHON = "3.8"
-PYTHON_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
+PYTHON_VERSIONS = ["3.7", "3.8", "3.9"]
 
 PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = ["furo"]
+ALWAYS_USE_PIP = ["furo", "types-click", "types-pyyaml", "types-pkg_resources"]
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -169,21 +168,18 @@ def install_from_requirements(session: Session, *packages: str) -> None:
 
 def install_extras(
     session: Session,
-    pandas: str = "latest",
     extra: str = "core",
-    force_pip=False,
+    force_pip: bool = False,
 ) -> None:
     """Install dependencies."""
-    pandas_version = "" if pandas == "latest" else f"=={pandas}"
     specs = [
-        spec if spec != "pandas" else f"pandas{pandas_version}"
+        spec if spec != "pandas" else "pandas"
         for spec in REQUIRES[extra].values()
         if spec not in ALWAYS_USE_PIP
     ]
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
-    session.install(*ALWAYS_USE_PIP)
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
         and not force_pip
@@ -193,6 +189,8 @@ def install_extras(
     else:
         print("using pip installer")
         session.install(*specs)
+
+    session.install(*ALWAYS_USE_PIP)
     # always use pip for these packages
     session.install("-e", ".", "--no-deps")  # install pandera
 
@@ -280,29 +278,9 @@ def lint(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
-    python_version = version.parse(cast(str, session.python))
-    install_extras(
-        session,
-        extra="all",
-        # this is a hack until typed-ast conda package starts working again,
-        # basically this issue comes up:
-        # https://github.com/python/mypy/pull/2906
-        force_pip=python_version == version.parse("3.7"),
-    )
+    install_extras(session, extra="all")
     args = session.posargs or SOURCE_PATHS
     session.run("mypy", "--follow-imports=silent", *args, silent=True)
-
-
-def _invalid_python_pandas_versions(session: Session, pandas: str) -> bool:
-    python_version = version.parse(cast(str, session.python))
-    if pandas == "0.25.3" and (
-        python_version >= version.parse("3.9")
-        # this is just a bandaid until support for 0.25.3 is dropped
-        or python_version == version.parse("3.7")
-    ):
-        print("Python 3.9 does not support pandas 0.25.3")
-        return True
-    return False
 
 
 EXTRA_NAMES = [
@@ -313,21 +291,12 @@ EXTRA_NAMES = [
 
 
 @nox.session(python=PYTHON_VERSIONS)
-@nox.parametrize("pandas", ["0.25.3", "latest"])
 @nox.parametrize("extra", EXTRA_NAMES)
-def tests(session: Session, pandas: str, extra: str) -> None:
+def tests(session: Session, extra: str) -> None:
     """Run the test suite."""
-    if _invalid_python_pandas_versions(session, pandas):
-        return
-    python_version = version.parse(cast(str, session.python))
     install_extras(
         session,
-        pandas,
         extra,
-        # this is a hack until typed-ast conda package starts working again,
-        # basically this issue comes up:
-        # https://github.com/python/mypy/pull/2906
-        force_pip=python_version == version.parse("3.7"),
     )
 
     if session.posargs:
@@ -356,38 +325,15 @@ def tests(session: Session, pandas: str, extra: str) -> None:
 
 
 @nox.session(python=PYTHON_VERSIONS)
-@nox.parametrize("pandas", ["0.25.3", "latest"])
-def docs(session: Session, pandas: str) -> None:
+def docs(session: Session) -> None:
     """Build the documentation."""
-    if _invalid_python_pandas_versions(session, pandas):
-        return
-    python_version = version.parse(cast(str, session.python))
-    install_extras(
-        session,
-        pandas,
-        extra="all",
-        # this is a hack until typed-ast conda package starts working again,
-        # basically this issue comes up:
-        # https://github.com/python/mypy/pull/2906
-        force_pip=python_version == version.parse("3.7"),
-    )
+    install_extras(session, extra="all", force_pip=True)
     session.chdir("docs")
-
-    shutil.rmtree(os.path.join("_build"), ignore_errors=True)
-    args = session.posargs or [
-        "-v",
-        "-v",
-        "-W",
-        "-E",
-        "-b=doctest",
-        "source",
-        "_build",
-    ]
-    session.run("sphinx-build", *args)
 
     # build html docs
     if not CI_RUN and not session.posargs:
-        shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
+        shutil.rmtree(os.path.join("_build"), ignore_errors=True)
+        shutil.rmtree(os.path.join("generated"), ignore_errors=True)
         session.run(
             "sphinx-build",
             "-W",
@@ -398,3 +344,15 @@ def docs(session: Session, pandas: str) -> None:
             "source",
             os.path.join("_build", "html", ""),
         )
+    else:
+        shutil.rmtree(os.path.join("_build"), ignore_errors=True)
+        args = session.posargs or [
+            "-v",
+            "-v",
+            "-W",
+            "-E",
+            "-b=doctest",
+            "source",
+            "_build",
+        ]
+        session.run("sphinx-build", *args)

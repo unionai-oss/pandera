@@ -80,7 +80,7 @@ nullable. In order to accept null values, you need to explicitly specify
    df = pd.DataFrame({"column1": [5, 1, np.nan]})
 
    non_null_schema = DataFrameSchema({
-       "column1": Column(pa.Int, Check(lambda x: x > 0))
+       "column1": Column(pa.Float, Check(lambda x: x > 0))
    })
 
    non_null_schema.validate(df)
@@ -91,18 +91,11 @@ nullable. In order to accept null values, you need to explicitly specify
     ...
     SchemaError: non-nullable series contains null values: {2: nan}
 
-.. note:: Due to a known limitation in
-    `pandas prior to version 0.24.0 <https://pandas.pydata.org/pandas-docs/stable/user_guide/integer_na.html>`_,
-    integer arrays cannot contain ``NaN`` values, so this schema will return
-    a DataFrame where ``column1`` is of type ``float``.
-    :class:`~pandera.dtypes.PandasDtype` does not currently support the nullable integer
-    array type, but you can still use the "Int64" string alias for nullable
-    integer arrays
 
 .. testcode:: null_values_in_columns
 
    null_schema = DataFrameSchema({
-       "column1": Column(pa.Int, Check(lambda x: x > 0), nullable=True)
+       "column1": Column(pa.Float, Check(lambda x: x > 0), nullable=True)
    })
 
    print(null_schema.validate(df))
@@ -401,7 +394,7 @@ schema, specify ``strict=True``:
 
     Traceback (most recent call last):
     ...
-    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int>}
+    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=DataType(int64)>}
 
 Alternatively, if your DataFrame contains columns that are not in the schema,
 and you would like these to be dropped on validation,
@@ -626,13 +619,17 @@ Some examples of where this can be provided to pandas are:
       },
   )
 
-  df = pd.DataFrame.from_dict(
-    {
-        "a": {"column1": 1, "column2": "valueA", "column3": True},
-        "b": {"column1": 1, "column2": "valueB", "column3": True},
-    },
-    orient="index"
-  ).astype(schema.dtype).sort_index(axis=1)
+  df = (
+      pd.DataFrame.from_dict(
+          {
+              "a": {"column1": 1, "column2": "valueA", "column3": True},
+              "b": {"column1": 1, "column2": "valueB", "column3": True},
+          },
+          orient="index",
+      )
+      .astype({col: str(dtype) for col, dtype in schema.dtypes.items()})
+      .sort_index(axis=1)
+  )
 
   print(schema.validate(df))
 
@@ -718,11 +715,11 @@ data pipeline:
 
     <Schema DataFrameSchema(
         columns={
-            'col1': <Schema Column(name=col1, type=int)>
+            'col1': <Schema Column(name=col1, type=DataType(int64))>
         },
         checks=[],
         coerce=False,
-        pandas_dtype=None,
+        dtype=None,
         index=None,
         strict=True
         name=None,
@@ -756,15 +753,15 @@ the pipeline output.
 
     <Schema DataFrameSchema(
         columns={
-            'column2': <Schema Column(name=column2, type=float)>
+            'column2': <Schema Column(name=column2, type=DataType(float64))>
         },
         checks=[],
         coerce=True,
-        pandas_dtype=None,
+        dtype=None,
         index=<Schema MultiIndex(
             indexes=[
-                <Schema Index(name=column3, type=int)>
-                <Schema Index(name=column1, type=int)>
+                <Schema Index(name=column3, type=DataType(int64))>
+                <Schema Index(name=column1, type=DataType(int64))>
             ]
             coerce=False,
             strict=False,

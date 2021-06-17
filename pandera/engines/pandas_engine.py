@@ -10,15 +10,18 @@ import builtins
 import dataclasses
 import datetime
 import inspect
+import platform
 import warnings
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 
-from .. import dtypes_
-from ..dtypes_ import immutable
+from .. import dtypes
+from ..dtypes import immutable
 from . import engine, numpy_engine
+
+WINDOWS_PLATFORM = platform.system() == "Windows"
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
 PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
@@ -34,7 +37,7 @@ def is_extension_dtype(pd_dtype: PandasDtype) -> bool:
 
 
 @immutable(init=True)
-class DataType(dtypes_.DataType):
+class DataType(dtypes.DataType):
     """Base `DataType` for boxing Pandas data types."""
 
     type: Any = dataclasses.field(repr=False, init=False)
@@ -56,7 +59,7 @@ class DataType(dtypes_.DataType):
     def coerce(self, data_container: PandasObject) -> PandasObject:
         return data_container.astype(self.type)
 
-    def check(self, pandera_dtype: dtypes_.DataType) -> bool:
+    def check(self, pandera_dtype: dtypes.DataType) -> bool:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
@@ -93,7 +96,8 @@ class Engine(  # pylint:disable=too-few-public-methods
                 except (TypeError, AttributeError) as err:
                     raise TypeError(
                         f" dtype {data_type} cannot be instantiated: {err}\n"
-                        "Usage Tip: Use an instance or a string representation."
+                        "Usage Tip: Use an instance or a string "
+                        "representation."
                     ) from None
             else:
                 # let pandas transform any acceptable value
@@ -104,18 +108,30 @@ class Engine(  # pylint:disable=too-few-public-methods
 
             try:
                 return engine.Engine.dtype(cls, np_or_pd_dtype)
-            except TypeError as err:
+            except TypeError:
                 return DataType(np_or_pd_dtype)
 
+    @classmethod
+    def numpy_dtype(cls, pandera_dtype: dtypes.DataType) -> np.dtype:
+        """Convert a pandera data type to a numpy data type."""
+        pandera_dtype = engine.Engine.dtype(cls, pandera_dtype)
 
-################################################################################
+        alias = str(pandera_dtype).lower()
+        if alias == "boolean":
+            alias = "bool"
+        elif alias == "string":
+            alias = "str"
+        return np.dtype(alias)
+
+
+###############################################################################
 # boolean
-################################################################################
+###############################################################################
 
 
 Engine.register_dtype(
     numpy_engine.Bool,
-    equivalents=["bool", bool, np.bool_, dtypes_.Bool, dtypes_.Bool()],
+    equivalents=["bool", bool, np.bool_, dtypes.Bool, dtypes.Bool()],
 )
 
 
@@ -123,15 +139,15 @@ Engine.register_dtype(
     equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()],
 )
 @immutable
-class Bool(DataType, dtypes_.Bool):
+class Bool(DataType, dtypes.Bool):
     type = pd.BooleanDtype()
 
 
 BOOL = Bool
 
-################################################################################
+###############################################################################
 # number
-################################################################################
+###############################################################################
 
 
 def _register_numpy_numbers(
@@ -141,7 +157,12 @@ def _register_numpy_numbers(
     with the pandas engine."""
 
     builtin_type = getattr(builtins, builtin_name, None)  # uint doesn't exist
-    default_pd_dtype = pd.Series([1], dtype=builtin_name).dtype
+
+    # default to int64 regardless of OS
+    default_pd_dtype = {
+        "int": np.dtype("int64"),
+        "uint": np.dtype("uint64"),
+    }.get(builtin_name, pd.Series([1], dtype=builtin_name).dtype)
 
     for bit_width in sizes:
         # e.g.: numpy.int64
@@ -150,21 +171,19 @@ def _register_numpy_numbers(
         equivalents = set(
             (
                 np_dtype,
-                getattr(np, f"{builtin_name}{bit_width}"),
                 # e.g.: pandera.dtypes.Int64
-                getattr(dtypes_, f"{pandera_name}{bit_width}"),
-                getattr(dtypes_, f"{pandera_name}{bit_width}")(),
+                getattr(dtypes, f"{pandera_name}{bit_width}"),
+                getattr(dtypes, f"{pandera_name}{bit_width}")(),
             )
         )
 
         if np_dtype == default_pd_dtype:
             equivalents |= set(
                 (
-                    # e.g: numpy.int_
                     default_pd_dtype,
-                    # e.g: pandera.dtypes.Int
-                    getattr(dtypes_, pandera_name),
-                    getattr(dtypes_, pandera_name)(),
+                    builtin_name,
+                    getattr(dtypes, pandera_name),
+                    getattr(dtypes, pandera_name)(),
                 )
             )
             if builtin_type:
@@ -178,12 +197,13 @@ def _register_numpy_numbers(
                 equivalents.add("integer")
 
         numpy_data_type = getattr(numpy_engine, f"{pandera_name}{bit_width}")
+        print(f"EQUIVALENTS FOR {numpy_data_type}: {list(equivalents)}")
         Engine.register_dtype(numpy_data_type, equivalents=list(equivalents))
 
 
-################################################################################
-## signed integer
-################################################################################
+###############################################################################
+# signed integer
+###############################################################################
 
 _register_numpy_numbers(
     builtin_name="int",
@@ -194,7 +214,7 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.Int64Dtype, pd.Int64Dtype()])
 @immutable
-class Int64(DataType, dtypes_.Int):
+class Int64(DataType, dtypes.Int):
     type = pd.Int64Dtype()
     bit_width: int = 64
 
@@ -231,9 +251,9 @@ class Int8(Int16):
 
 INT8 = Int8
 
-################################################################################
-## unsigned integer
-################################################################################
+###############################################################################
+# unsigned integer
+###############################################################################
 
 _register_numpy_numbers(
     builtin_name="uint",
@@ -244,7 +264,7 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.UInt64Dtype, pd.UInt64Dtype()])
 @immutable
-class UInt64(DataType, dtypes_.UInt):
+class UInt64(DataType, dtypes.UInt):
     type = pd.UInt64Dtype()
     bit_width: int = 64
 
@@ -275,41 +295,41 @@ UINT32 = UInt32
 UINT16 = UInt16
 UINT8 = UInt8
 
-# ################################################################################
-# ## float
-# ################################################################################
+# ###############################################################################
+# # float
+# ###############################################################################
 
 _register_numpy_numbers(
     builtin_name="float",
     pandera_name="Float",
-    sizes=[128, 64, 32, 16],
+    sizes=[64, 32, 16] if WINDOWS_PLATFORM else [128, 64, 32, 16],
 )
 
-# ################################################################################
-# ## complex
-# ################################################################################
+# ###############################################################################
+# # complex
+# ###############################################################################
 
 _register_numpy_numbers(
     builtin_name="complex",
     pandera_name="Complex",
-    sizes=[128, 64],
+    sizes=[128, 64] if WINDOWS_PLATFORM else [256, 128, 64],
 )
 
-# ################################################################################
+# ###############################################################################
 # # nominal
-# ################################################################################
+# ###############################################################################
 
 
 @Engine.register_dtype(
     equivalents=[
         "category",
         "categorical",
-        dtypes_.Category,
+        dtypes.Category,
         pd.CategoricalDtype,
     ]
 )
 @immutable(init=True)
-class Category(DataType, dtypes_.Category):
+class Category(DataType, dtypes.Category):
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
 
     def __init__(  # pylint:disable=super-init-not-called
@@ -317,7 +337,7 @@ class Category(DataType, dtypes_.Category):
         categories: Optional[Iterable[Any]] = None,
         ordered: bool = False,
     ) -> None:
-        dtypes_.Category.__init__(self, categories, ordered)
+        dtypes.Category.__init__(self, categories, ordered)
         object.__setattr__(
             self,
             "type",
@@ -326,7 +346,7 @@ class Category(DataType, dtypes_.Category):
 
     @classmethod
     def from_parametrized_dtype(
-        cls, cat: Union[dtypes_.Category, pd.CategoricalDtype]
+        cls, cat: Union[dtypes.Category, pd.CategoricalDtype]
     ):
         """Convert a categorical to
         a Pandera :class:`~pandera.dtypes.pandas_engine.Category`."""
@@ -339,7 +359,7 @@ class Category(DataType, dtypes_.Category):
     equivalents=["string", pd.StringDtype, pd.StringDtype()]
 )
 @immutable
-class String(DataType, dtypes_.String):
+class String(DataType, dtypes.String):
     type = pd.StringDtype()
 
 
@@ -347,7 +367,7 @@ STRING = String
 
 
 @Engine.register_dtype(
-    equivalents=["str", str, dtypes_.String, dtypes_.String(), np.str_]
+    equivalents=["str", str, dtypes.String, dtypes.String(), np.str_]
 )
 @immutable
 class NpString(numpy_engine.String):
@@ -361,7 +381,7 @@ class NpString(numpy_engine.String):
             data_container.isna(), data_container.astype(str)
         )
 
-    def check(self, pandera_dtype: dtypes_.DataType) -> bool:
+    def check(self, pandera_dtype: dtypes.DataType) -> bool:
         return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
 
 
@@ -379,9 +399,9 @@ Engine.register_dtype(
     ],
 )
 
-# ################################################################################
+# ###############################################################################
 # # time
-# ################################################################################
+# ###############################################################################
 
 
 _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
@@ -394,13 +414,13 @@ _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
         "datetime64",
         datetime.datetime,
         np.datetime64,
-        dtypes_.Timestamp,
-        dtypes_.Timestamp(),
+        dtypes.Timestamp,
+        dtypes.Timestamp(),
         pd.Timestamp,
     ]
 )
 @immutable(init=True)
-class DateTime(DataType, dtypes_.Timestamp):
+class DateTime(DataType, dtypes.Timestamp):
     type: Optional[_PandasDatetime] = dataclasses.field(
         default=None, init=False
     )
@@ -412,7 +432,7 @@ class DateTime(DataType, dtypes_.Timestamp):
 
     def __post_init__(self):
         if self.tz is None:
-            type_ = np.dtype("datetime64")
+            type_ = np.dtype("datetime64[ns]")
         else:
             type_ = pd.DatetimeTZDtype(self.unit, self.tz)
             # DatetimeTZDtype converted tz to tzinfo for us
@@ -438,21 +458,21 @@ class DateTime(DataType, dtypes_.Timestamp):
         return cls(unit=pd_dtype.unit, tz=pd_dtype.tz)  # type: ignore
 
     def __str__(self) -> str:
-        if self.type == np.dtype("datetime64"):
+        if self.type == np.dtype("datetime64[ns]"):
             return "datetime64[ns]"
         return str(self.type)
 
 
 Engine.register_dtype(
-    numpy_engine.DateTime64,
+    numpy_engine.Timedelta64,
     equivalents=[
         "timedelta",
         "timedelta64",
         datetime.timedelta,
         np.timedelta64,
         pd.Timedelta,
-        dtypes_.Timedelta,
-        dtypes_.Timedelta(),
+        dtypes.Timedelta,
+        dtypes.Timedelta(),
     ],
 )
 
@@ -475,9 +495,9 @@ class Period(DataType):
         return cls(freq=pd_dtype.freq)  # type: ignore
 
 
-# ################################################################################
+# ###############################################################################
 # # misc
-# ################################################################################
+# ###############################################################################
 
 
 @Engine.register_dtype(equivalents=[pd.SparseDtype])
@@ -522,4 +542,9 @@ class Interval(DataType):
     def from_parametrized_dtype(cls, pd_dtype: pd.IntervalDtype):
         """Convert a :class:`pandas.IntervalDtype` to
         a Pandera :class:`~pandera.engines.pandas_engine.Interval`."""
-        return cls(subdtype=pd_dtype.subtype)  # type: ignore
+        return cls(subtype=pd_dtype.subtype)  # type: ignore
+
+
+print("PANDAS ENGINE EQUIVALENTS")
+for k, v in engine.Engine._registry[Engine].equivalents.items():
+    print(f"{k}: equivalents={v}")

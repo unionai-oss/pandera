@@ -1,8 +1,6 @@
 # pylint: disable=undefined-variable,redefined-outer-name,invalid-name,undefined-loop-variable  # noqa
 """Unit tests for pandera data generating strategies."""
-
 import operator
-import platform
 import re
 from typing import Any
 from unittest.mock import MagicMock
@@ -14,6 +12,8 @@ import pytest
 import pandera as pa
 import pandera.strategies as strategies
 from pandera.checks import _CheckBase, register_check_statistics
+from pandera.dtypes import is_category, is_complex, is_float
+from pandera.engines import pandas_engine
 
 try:
     import hypothesis
@@ -27,88 +27,98 @@ else:
     HAS_HYPOTHESIS = True
 
 
-TYPE_ERROR_FMT = "data generation for the {} dtype is currently unsupported"
-
-SUPPORTED_DTYPES = []
-for pdtype in pa.PandasDtype:
+SUPPORTED_DTYPES = set()
+for data_type in pandas_engine.Engine.get_registered_dtypes():
     if (
-        pdtype is pa.PandasDtype.Complex256 and platform.system() == "Windows"
-    ) or pdtype is pa.Category:
+        # valid hypothesis.strategies.floats <=64
+        getattr(data_type, "bit_width", -1) > 64
+        or is_category(data_type)
+        or data_type
+        in (pandas_engine.Interval, pandas_engine.Period, pandas_engine.Sparse)
+    ):
         continue
-    SUPPORTED_DTYPES.append(pdtype)
+    SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype(data_type))
 
 NUMERIC_DTYPES = [
-    pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous
+    data_type for data_type in SUPPORTED_DTYPES if data_type.continuous
 ]
 
 NULLABLE_DTYPES = [
-    pdtype
-    for pdtype in SUPPORTED_DTYPES
-    if not pdtype.is_complex
-    and not pdtype.is_category
-    and not pdtype.is_object
+    data_type
+    for data_type in SUPPORTED_DTYPES
+    if not is_complex(data_type)
+    and not is_category(data_type)
+    and not data_type == pandas_engine.Engine.dtype("object")
 ]
 
 NUMERIC_RANGE_CONSTANT = 10
 DATE_RANGE_CONSTANT = np.timedelta64(NUMERIC_RANGE_CONSTANT, "D")
 COMPLEX_RANGE_CONSTANT = np.complex64(
-    complex(NUMERIC_RANGE_CONSTANT, NUMERIC_RANGE_CONSTANT)
+    complex(NUMERIC_RANGE_CONSTANT, NUMERIC_RANGE_CONSTANT)  # type: ignore
 )
 
 
-@pytest.mark.parametrize("pdtype", [pa.Category])
-def test_unsupported_pandas_dtype_strategy(pdtype):
+@pytest.mark.parametrize("data_type", [pa.Category])
+def test_unsupported_pandas_dtype_strategy(data_type):
     """Test unsupported pandas dtype strategy raises error."""
-    with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format(pdtype.name)):
-        strategies.pandas_dtype_strategy(pdtype)
+    with pytest.raises(
+        TypeError,
+        match="data generation for the Category dtype is currently unsupported",
+    ):
+        strategies.pandas_dtype_strategy(data_type)
 
 
-@pytest.mark.parametrize("pdtype", SUPPORTED_DTYPES)
+@pytest.mark.parametrize("data_type", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
-def test_pandas_dtype_strategy(pdtype, data):
+def test_pandas_dtype_strategy(data_type, data):
     """Test that series can be constructed from pandas dtype."""
 
-    strategy = strategies.pandas_dtype_strategy(pdtype)
+    strategy = strategies.pandas_dtype_strategy(data_type)
     example = data.draw(strategy)
 
-    expected_type = (
-        pdtype.String.numpy_dtype.type
-        if pdtype is pa.Object
-        else pdtype.numpy_dtype.type
-    )
-
+    expected_type = strategies.to_numpy_dtype(data_type).type
     assert example.dtype.type == expected_type
 
-    chained_strategy = strategies.pandas_dtype_strategy(pdtype, strategy)
+    chained_strategy = strategies.pandas_dtype_strategy(data_type, strategy)
     chained_example = data.draw(chained_strategy)
     assert chained_example.dtype.type == expected_type
 
 
-@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@pytest.mark.parametrize("data_type", NUMERIC_DTYPES)
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_check_strategy_continuous(pdtype, data):
+def test_check_strategy_continuous(data_type, data):
     """Test built-in check strategies can generate continuous data."""
+    np_dtype = strategies.to_numpy_dtype(data_type)
     value = data.draw(
         npst.from_dtype(
-            pdtype.numpy_dtype,
+            strategies.to_numpy_dtype(data_type),
             allow_nan=False,
             allow_infinity=False,
         )
     )
-    pdtype = pa.PandasDtype.Int
-    value = data.draw(npst.from_dtype(pdtype.numpy_dtype))
-    assert data.draw(strategies.ne_strategy(pdtype, value=value)) != value
-    assert data.draw(strategies.eq_strategy(pdtype, value=value)) == value
-    assert data.draw(strategies.gt_strategy(pdtype, min_value=value)) > value
-    assert data.draw(strategies.ge_strategy(pdtype, min_value=value)) >= value
-    assert data.draw(strategies.lt_strategy(pdtype, max_value=value)) < value
-    assert data.draw(strategies.le_strategy(pdtype, max_value=value)) <= value
+    # don't overstep bounds of representation
+    hypothesis.assume(np.finfo(np_dtype).min < value < np.finfo(np_dtype).max)
+
+    assert data.draw(strategies.ne_strategy(data_type, value=value)) != value
+    assert data.draw(strategies.eq_strategy(data_type, value=value)) == value
+    assert (
+        data.draw(strategies.gt_strategy(data_type, min_value=value)) > value
+    )
+    assert (
+        data.draw(strategies.ge_strategy(data_type, min_value=value)) >= value
+    )
+    assert (
+        data.draw(strategies.lt_strategy(data_type, max_value=value)) < value
+    )
+    assert (
+        data.draw(strategies.le_strategy(data_type, max_value=value)) <= value
+    )
 
 
-def value_ranges(pdtype: pa.PandasDtype):
+def value_ranges(data_type: pa.DataType):
     """Strategy to generate value range based on PandasDtype"""
     kwargs = dict(
         allow_nan=False,
@@ -118,15 +128,19 @@ def value_ranges(pdtype: pa.PandasDtype):
     )
     return (
         st.tuples(
-            strategies.pandas_dtype_strategy(pdtype, strategy=None, **kwargs),
-            strategies.pandas_dtype_strategy(pdtype, strategy=None, **kwargs),
+            strategies.pandas_dtype_strategy(
+                data_type, strategy=None, **kwargs
+            ),
+            strategies.pandas_dtype_strategy(
+                data_type, strategy=None, **kwargs
+            ),
         )
         .map(sorted)
         .filter(lambda x: x[0] < x[1])
     )
 
 
-@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@pytest.mark.parametrize("data_type", NUMERIC_DTYPES)
 @pytest.mark.parametrize(
     "strat_fn, arg_name, base_st_type, compare_op",
     [
@@ -143,17 +157,17 @@ def value_ranges(pdtype: pa.PandasDtype):
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_strategy_chained_continuous(
-    pdtype, strat_fn, arg_name, base_st_type, compare_op, data
+    data_type, strat_fn, arg_name, base_st_type, compare_op, data
 ):
     """
     Test built-in check strategies can generate continuous data building off
     of a parent strategy.
     """
-    min_value, max_value = data.draw(value_ranges(pdtype))
+    min_value, max_value = data.draw(value_ranges(data_type))
     hypothesis.assume(min_value < max_value)
     value = min_value
     base_st = strategies.pandas_dtype_strategy(
-        pdtype,
+        data_type,
         min_value=min_value,
         max_value=max_value,
         allow_nan=False,
@@ -165,7 +179,7 @@ def test_check_strategy_chained_continuous(
         assert_base_st = st.just(value)
     elif base_st_type == "limit":
         assert_base_st = strategies.pandas_dtype_strategy(
-            pdtype,
+            data_type,
             min_value=min_value,
             max_value=max_value,
             allow_nan=False,
@@ -177,25 +191,25 @@ def test_check_strategy_chained_continuous(
     local_vars = locals()
     assert_value = local_vars[arg_name]
     example = data.draw(
-        strat_fn(pdtype, assert_base_st, **{arg_name: assert_value})
+        strat_fn(data_type, assert_base_st, **{arg_name: assert_value})
     )
     assert compare_op(example, assert_value)
 
 
-@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@pytest.mark.parametrize("data_type", NUMERIC_DTYPES)
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_in_range_strategy(pdtype, chained, data):
+def test_in_range_strategy(data_type, chained, data):
     """Test the built-in in-range strategy can correctly generate data."""
-    min_value, max_value = data.draw(value_ranges(pdtype))
+    min_value, max_value = data.draw(value_ranges(data_type))
     hypothesis.assume(min_value < max_value)
 
     base_st_in_range = None
     if chained:
-        if pdtype.is_float:
+        if is_float(data_type):
             base_st_kwargs = {
                 "exclude_min": False,
                 "exclude_max": False,
@@ -205,13 +219,13 @@ def test_in_range_strategy(pdtype, chained, data):
 
         # constraining the strategy this way makes testing more efficient
         base_st_in_range = strategies.pandas_dtype_strategy(
-            pdtype,
+            data_type,
             min_value=min_value,
             max_value=max_value,
             **base_st_kwargs,
         )
     strat = strategies.in_range_strategy(
-        pdtype,
+        data_type,
         base_st_in_range,
         min_value=min_value,
         max_value=max_value,
@@ -221,18 +235,18 @@ def test_in_range_strategy(pdtype, chained, data):
 
 
 @pytest.mark.parametrize(
-    "pdtype",
-    [pdtype for pdtype in SUPPORTED_DTYPES if pdtype.is_continuous],
+    "data_type",
+    [data_type for data_type in SUPPORTED_DTYPES if data_type.continuous],
 )
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_isin_notin_strategies(pdtype, chained, data):
+def test_isin_notin_strategies(data_type, chained, data):
     """Test built-in check strategies that rely on discrete values."""
     value_st = strategies.pandas_dtype_strategy(
-        pdtype,
+        data_type,
         allow_nan=False,
         allow_infinity=False,
         exclude_min=False,
@@ -245,17 +259,17 @@ def test_isin_notin_strategies(pdtype, chained, data):
     if chained:
         base_values = values + [data.draw(value_st) for _ in range(10)]
         isin_base_st = strategies.isin_strategy(
-            pdtype, allowed_values=base_values
+            data_type, allowed_values=base_values
         )
         notin_base_st = strategies.notin_strategy(
-            pdtype, forbidden_values=base_values
+            data_type, forbidden_values=base_values
         )
 
     isin_st = strategies.isin_strategy(
-        pdtype, isin_base_st, allowed_values=values
+        data_type, isin_base_st, allowed_values=values
     )
     notin_st = strategies.notin_strategy(
-        pdtype, notin_base_st, forbidden_values=values
+        data_type, notin_base_st, forbidden_values=values
     )
     assert data.draw(isin_st) in values
     assert data.draw(notin_st) not in values
@@ -310,7 +324,7 @@ def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
             st.integers(min_value=0, max_value=100),
             st.integers(min_value=0, max_value=100),
         )
-        .map(sorted)
+        .map(sorted)  # type: ignore
         .filter(lambda x: x[0] < x[1])  # type: ignore
     ),
 )
@@ -337,12 +351,12 @@ def test_register_check_strategy(data):
 
     # pylint: disable=unused-argument
     def custom_eq_strategy(
-        pandas_dtype: pa.PandasDtype,
+        pandas_dtype: pa.DataType,
         strategy: st.SearchStrategy = None,
         *,
         value: Any,
     ):
-        return st.just(value).map(pandas_dtype.numpy_dtype.type)
+        return st.just(value).map(strategies.to_numpy_dtype(pandas_dtype).type)
 
     # pylint: disable=no-member
     class CustomCheck(_CheckBase):
@@ -366,7 +380,7 @@ def test_register_check_strategy(data):
             )
 
     check = CustomCheck.custom_equals(100)
-    result = data.draw(check.strategy(pa.Int))
+    result = data.draw(check.strategy(pa.Int()))
     assert result == 100
 
 
@@ -407,13 +421,13 @@ def test_register_check_strategy_exception():
 )
 def test_series_strategy(data):
     """Test SeriesSchema strategy."""
-    series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
+    series_schema = pa.SeriesSchema(pa.Int(), pa.Check.gt(0))
     series_schema(data.draw(series_schema.strategy()))
 
 
 def test_series_example():
     """Test SeriesSchema example method generate examples that pass."""
-    series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
+    series_schema = pa.SeriesSchema(pa.Int(), pa.Check.gt(0))
     for _ in range(10):
         series_schema(series_schema.example())
 
@@ -424,33 +438,25 @@ def test_series_example():
 )
 def test_column_strategy(data):
     """Test Column schema strategy."""
-    column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
+    column_schema = pa.Column(pa.Int(), pa.Check.gt(0), name="column")
     column_schema(data.draw(column_schema.strategy()))
 
 
 def test_column_example():
     """Test Column schema example method generate examples that pass."""
-    column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
+    column_schema = pa.Column(pa.Int(), pa.Check.gt(0), name="column")
     for _ in range(10):
         column_schema(column_schema.example())
 
 
-@pytest.mark.parametrize(
-    "pdtype",
-    SUPPORTED_DTYPES,
-)
-@pytest.mark.parametrize(
-    "size",
-    [None, 0, 1, 3, 5],
-)
+@pytest.mark.parametrize("data_type", SUPPORTED_DTYPES)
+@pytest.mark.parametrize("size", [None, 0, 1, 3, 5])
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
-def test_dataframe_strategy(pdtype, size, data):
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
+def test_dataframe_strategy(data_type, size, data):
     """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
-        {f"{pdtype.value}_col": pa.Column(pdtype)}
+        {f"{data_type}_col": pa.Column(data_type)}
     )
     df_sample = data.draw(dataframe_schema.strategy(size=size))
     if size == 0:
@@ -461,15 +467,17 @@ def test_dataframe_strategy(pdtype, size, data):
         )
     else:
         assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
-    with pytest.raises(pa.errors.BaseStrategyOnlyError):
-        strategies.dataframe_strategy(
-            pdtype, strategies.pandas_dtype_strategy(pdtype)
-        )
+    # with pytest.raises(pa.errors.BaseStrategyOnlyError):
+    #     strategies.dataframe_strategy(
+    #         data_type, strategies.pandas_dtype_strategy(data_type)
+    #     )
 
 
 def test_dataframe_example():
     """Test DataFrameSchema example method generate examples that pass."""
-    schema = pa.DataFrameSchema({"column": pa.Column(pa.Int, pa.Check.gt(0))})
+    schema = pa.DataFrameSchema(
+        {"column": pa.Column(pa.Int(), pa.Check.gt(0))}
+    )
     for _ in range(10):
         schema(schema.example())
 
@@ -503,21 +511,16 @@ def test_dataframe_with_regex(regex, data, n_regex_columns):
         assert df.shape[1] == n_regex_columns
 
 
-@pytest.mark.parametrize("pdtype", NUMERIC_DTYPES)
+@pytest.mark.parametrize("data_type", NUMERIC_DTYPES)
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 @hypothesis.given(st.data())
-def test_dataframe_checks(pdtype, data):
+def test_dataframe_checks(data_type, data):
     """Test dataframe strategy with checks defined at the dataframe level."""
-    if pa.LEGACY_PANDAS and pdtype in {
-        pa.PandasDtype.UInt64,
-        pa.PandasDtype.UINT64,
-    }:
-        pytest.xfail("pandas<1.0.0 leads to OverflowError for these dtypes.")
-    min_value, max_value = data.draw(value_ranges(pdtype))
+    min_value, max_value = data.draw(value_ranges(data_type))
     dataframe_schema = pa.DataFrameSchema(
-        {f"{pdtype.value}_col": pa.Column(pdtype) for _ in range(5)},
+        {f"{data_type}_col": pa.Column(data_type) for _ in range(5)},
         checks=pa.Check.in_range(min_value, max_value),
     )
     strat = dataframe_schema.strategy(size=5)
@@ -525,17 +528,19 @@ def test_dataframe_checks(pdtype, data):
     dataframe_schema(example)
 
 
-@pytest.mark.parametrize("pdtype", [pa.Int, pa.Float, pa.String, pa.DateTime])
+@pytest.mark.parametrize(
+    "data_type", [pa.Int(), pa.Float, pa.String, pa.DateTime]
+)
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_dataframe_strategy_with_indexes(pdtype, data):
+def test_dataframe_strategy_with_indexes(data_type, data):
     """Test dataframe strategy with index and multiindex components."""
-    dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(pdtype))
+    dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(data_type))
     dataframe_schema_multiindex = pa.DataFrameSchema(
         index=pa.MultiIndex(
-            [pa.Index(pdtype, name=f"index{i}") for i in range(3)]
+            [pa.Index(data_type, name=f"index{i}") for i in range(3)]
         )
     )
 
@@ -551,12 +556,14 @@ def test_dataframe_strategy_with_indexes(pdtype, data):
 )
 def test_index_strategy(data):
     """Test Index schema component strategy."""
-    pdtype = pa.PandasDtype.Int
-    index_schema = pa.Index(pdtype, allow_duplicates=False, name="index")
+    data_type = pa.Int()
+    index_schema = pa.Index(data_type, allow_duplicates=False, name="index")
     strat = index_schema.strategy(size=10)
     example = data.draw(strat)
+
     assert (~example.duplicated()).all()
-    assert example.dtype == pdtype.str_alias
+    actual_data_type = pandas_engine.Engine.dtype(example.dtype)
+    assert data_type.check(actual_data_type)
     index_schema(pd.DataFrame(index=example))
 
 
@@ -564,8 +571,8 @@ def test_index_example():
     """
     Test Index schema component example method generates examples that pass.
     """
-    pdtype = pa.PandasDtype.Int
-    index_schema = pa.Index(pdtype, allow_duplicates=False)
+    data_type = pa.Int()
+    index_schema = pa.Index(data_type, allow_duplicates=False)
     for _ in range(10):
         index_schema(pd.DataFrame(index=index_schema.example()))
 
@@ -576,22 +583,25 @@ def test_index_example():
 )
 def test_multiindex_strategy(data):
     """Test MultiIndex schema component strategy."""
-    pdtype = pa.PandasDtype.Float
+    data_type = pa.Float()
     multiindex = pa.MultiIndex(
         indexes=[
-            pa.Index(pdtype, allow_duplicates=False, name="level_0"),
-            pa.Index(pdtype, nullable=True),
-            pa.Index(pdtype),
+            pa.Index(data_type, allow_duplicates=False, name="level_0"),
+            pa.Index(data_type, nullable=True),
+            pa.Index(data_type),
         ]
     )
     strat = multiindex.strategy(size=10)
     example = data.draw(strat)
     for i in range(example.nlevels):
-        assert example.get_level_values(i).dtype == pdtype.str_alias
+        actual_data_type = pandas_engine.Engine.dtype(
+            example.get_level_values(i).dtype
+        )
+        assert data_type.check(actual_data_type)
 
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
         strategies.multiindex_strategy(
-            pdtype, strategies.pandas_dtype_strategy(pdtype)
+            data_type, strategies.pandas_dtype_strategy(data_type)
         )
 
 
@@ -600,12 +610,12 @@ def test_multiindex_example():
     Test MultiIndex schema component example method generates examples that
     pass.
     """
-    pdtype = pa.PandasDtype.Float
+    data_type = pa.Float()
     multiindex = pa.MultiIndex(
         indexes=[
-            pa.Index(pdtype, allow_duplicates=False, name="level_0"),
-            pa.Index(pdtype, nullable=True),
-            pa.Index(pdtype),
+            pa.Index(data_type, allow_duplicates=False, name="level_0"),
+            pa.Index(data_type, nullable=True),
+            pa.Index(data_type),
         ]
     )
     for _ in range(10):
@@ -613,21 +623,23 @@ def test_multiindex_example():
         multiindex(pd.DataFrame(index=example))
 
 
-@pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
+@pytest.mark.parametrize("data_type", NULLABLE_DTYPES)
 @hypothesis.given(st.data())
-def test_field_element_strategy(pdtype, data):
+def test_field_element_strategy(data_type, data):
     """Test strategy for generating elements in columns/indexes."""
-    strategy = strategies.field_element_strategy(pdtype)
+    strategy = strategies.field_element_strategy(data_type)
     element = data.draw(strategy)
-    assert element.dtype.type == pdtype.numpy_dtype.type
+
+    expected_type = strategies.to_numpy_dtype(data_type).type
+    assert element.dtype.type == expected_type
 
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
         strategies.field_element_strategy(
-            pdtype, strategies.pandas_dtype_strategy(pdtype)
+            data_type, strategies.pandas_dtype_strategy(data_type)
         )
 
 
-@pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
+@pytest.mark.parametrize("data_type", NULLABLE_DTYPES)
 @pytest.mark.parametrize(
     "field_strategy",
     [strategies.index_strategy, strategies.series_strategy],
@@ -637,20 +649,12 @@ def test_field_element_strategy(pdtype, data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
+def test_check_nullable_field_strategy(
+    data_type, field_strategy, nullable, data
+):
     """Test strategies for generating nullable column/index data."""
-
-    if (
-        pa.LEGACY_PANDAS
-        and field_strategy is strategies.index_strategy
-        and (pdtype.is_nullable_int or pdtype.is_nullable_uint)
-    ):
-        pytest.skip(
-            "pandas version<1 does not handle nullable integer indexes"
-        )
-
     size = 5
-    strat = field_strategy(pdtype, nullable=nullable, size=size)
+    strat = field_strategy(data_type, nullable=nullable, size=size)
     example = data.draw(strat)
 
     if nullable:
@@ -659,22 +663,18 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
         assert example.notna().all()
 
 
-@pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
+@pytest.mark.parametrize("data_type", NULLABLE_DTYPES)
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
+def test_check_nullable_dataframe_strategy(data_type, nullable, data):
     """Test strategies for generating nullable DataFrame data."""
     size = 5
     # pylint: disable=no-value-for-parameter
     strat = strategies.dataframe_strategy(
-        columns={
-            "col": pa.Column(
-                pandas_dtype=pdtype, nullable=nullable, name="col"
-            )
-        },
+        columns={"col": pa.Column(data_type, nullable=nullable, name="col")},
         size=size,
     )
     example = data.draw(strat)
@@ -689,7 +689,7 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     [
         [
             pa.SeriesSchema(
-                pa.Int,
+                pa.Int(),
                 checks=[
                     pa.Check(lambda x: x > 0, element_wise=True),
                     pa.Check(lambda x: x > -10, element_wise=True),
@@ -699,7 +699,7 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
         ],
         [
             pa.SeriesSchema(
-                pa.Int,
+                pa.Int(),
                 checks=[
                     pa.Check(lambda s: s > -10000),
                     pa.Check(lambda s: s > -9999),
@@ -731,7 +731,7 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
     [
         [
             pa.DataFrameSchema(
-                columns={"column": pa.Column(pa.Int)},
+                columns={"column": pa.Column(pa.Int())},
                 checks=[
                     pa.Check(lambda x: x > 0, element_wise=True),
                     pa.Check(lambda x: x > -10, element_wise=True),
@@ -743,7 +743,7 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
             pa.DataFrameSchema(
                 columns={
                     "column": pa.Column(
-                        pa.Int,
+                        pa.Int(),
                         checks=[
                             pa.Check(lambda s: s > -10000),
                             pa.Check(lambda s: s > -9999),
@@ -755,7 +755,7 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
         ],
         [
             pa.DataFrameSchema(
-                columns={"column": pa.Column(pa.Int)},
+                columns={"column": pa.Column(pa.Int())},
                 checks=[
                     pa.Check(lambda s: s > -10000),
                     pa.Check(lambda s: s > -9999),
@@ -835,4 +835,4 @@ def test_schema_component_with_no_pdtype():
         strategies.index_strategy,
     ]:
         with pytest.raises(pa.errors.SchemaDefinitionError):
-            schema_component_strategy(pandas_dtype=None)
+            schema_component_strategy(pandera_dtype=None)

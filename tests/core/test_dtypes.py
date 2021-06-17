@@ -5,6 +5,7 @@ coercion examples."""
 import dataclasses
 import datetime
 import inspect
+import platform
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
@@ -19,10 +20,12 @@ from hypothesis import strategies as st
 import pandera as pa
 from pandera.engines import pandas_engine
 
+WINDOWS_PLATFORM = platform.system() == "Windows"
+
 # List dtype classes and associated pandas alias,
 # except for parameterizable dtypes that should also list examples of instances.
 int_dtypes = {
-    int: "int",
+    int: "int64",
     pa.Int: "int64",
     pa.Int8: "int8",
     pa.Int16: "int16",
@@ -67,12 +70,11 @@ float_dtypes = {
     pa.Float16: "float16",
     pa.Float32: "float32",
     pa.Float64: "float64",
-    pa.Float128: "float128",
     np.float16: "float16",
     np.float32: "float32",
     np.float64: "float64",
-    np.float128: "float128",
 }
+
 
 complex_dtypes = {
     complex: "complex",
@@ -80,6 +82,21 @@ complex_dtypes = {
     pa.Complex64: "complex64",
     pa.Complex128: "complex128",
 }
+
+
+if not WINDOWS_PLATFORM:
+    float_dtypes.update(
+        {
+            pa.Float128: "float128",
+            np.float128: "float128",
+        }
+    )
+    complex_dtypes.update(
+        {
+            pa.Complex256: "complex256",
+            np.complex256: "complex256",
+        }
+    )
 
 boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
 nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
@@ -170,13 +187,12 @@ def pretty_param(*values: Any, **kw: Any) -> ParameterSet:
 
 
 def pytest_generate_tests(metafunc: Metafunc) -> None:
-    """Inject dtype, alias, data fixtures from `dtype_fixtures`.
-
-    Filter pandera.dtypes.pa.DataType classes if the test name contains "datatype".
+    """Inject `dtype`, `data_type` (filter pandera DataTypes), `alias`, `data`
+    fixtures from `dtype_fixtures`.
     """
     fixtures = [
         fixture
-        for fixture in ("dtype", "pd_dtype", "data")
+        for fixture in ("data_type", "dtype", "pd_dtype", "data")
         if fixture in metafunc.fixturenames
     ]
     arg_names = ",".join(fixtures)
@@ -185,7 +201,7 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
         arg_values = []
         for dtypes, data in dtype_fixtures:
             for dtype, pd_dtype in dtypes.items():
-                if "datatype" in metafunc.function.__name__ and not (
+                if "data_type" in fixtures and not (
                     isinstance(dtype, pa.DataType)
                     or (
                         inspect.isclass(dtype)
@@ -205,23 +221,23 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
         metafunc.parametrize(arg_names, arg_values)
 
 
-def test_datatype_init(dtype: Any):
+def test_datatype_init(data_type: Any):
     """Test that a default pa.DataType can be constructed."""
-    if not inspect.isclass(dtype):
+    if not inspect.isclass(data_type):
         pytest.skip(
             "test_datatype_init tests pa.DataType classes, not instances."
         )
-    assert isinstance(dtype(), pa.DataType)
+    assert isinstance(data_type(), pa.DataType)
 
 
-def test_datatype_alias(dtype: Any, pd_dtype: Any):
+def test_datatype_alias(data_type: Any, pd_dtype: Any):
     """Test that a default pa.DataType can be constructed."""
-    assert str(pandas_engine.Engine.dtype(dtype)) == str(pd_dtype)
+    assert str(pandas_engine.Engine.dtype(data_type)) == str(pd_dtype)
 
 
-def test_frozen_datatype(dtype: Any):
+def test_frozen_datatype(data_type: Any):
     """Test that pa.DataType instances are immutable."""
-    data_type = dtype() if inspect.isclass(dtype) else dtype
+    data_type = data_type() if inspect.isclass(data_type) else data_type
     with pytest.raises(dataclasses.FrozenInstanceError):
         data_type.foo = 1
 
@@ -254,28 +270,24 @@ def test_check_not_equivalent(dtype: Any):
 def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
     """Test that dtypes can be coerced without casting."""
     expected_dtype = pandas_engine.Engine.dtype(dtype)
-    print(pd_dtype)
     series = pd.Series(data, dtype=pd_dtype)
     coerced_series = expected_dtype.coerce(series)
+
     assert series.equals(coerced_series)
-    print(expected_dtype)
-    print(series)
-    print(coerced_series)
-    print(coerced_series.dtype)
-    print(pandas_engine.Engine.dtype(coerced_series.dtype))
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_series.dtype)
     )
 
     df = pd.DataFrame({"col": data}, dtype=pd_dtype)
     coerced_df = expected_dtype.coerce(df)
+
     assert df.equals(coerced_df)
     assert expected_dtype.check(
         pandas_engine.Engine.dtype(coerced_df["col"].dtype)
     )
 
 
-def _flatten_dtypes_dict(*dtype_kinds):
+def _flatten_dtypesdict(*dtype_kinds):
     return [
         (datatype, pd_dtype)
         for dtype_kind in dtype_kinds
@@ -283,7 +295,7 @@ def _flatten_dtypes_dict(*dtype_kinds):
     ]
 
 
-numeric_dtypes = _flatten_dtypes_dict(
+numeric_dtypes = _flatten_dtypesdict(
     int_dtypes,
     uint_dtypes,
     float_dtypes,
@@ -291,13 +303,13 @@ numeric_dtypes = _flatten_dtypes_dict(
     boolean_dtypes,
 )
 
-nullable_numeric_dtypes = _flatten_dtypes_dict(
+nullable_numeric_dtypes = _flatten_dtypesdict(
     nullable_int_dtypes,
     nullable_uint_dtypes,
     nullable_boolean_dtypes,
 )
 
-nominal_dtypes = _flatten_dtypes_dict(
+nominal_dtypes = _flatten_dtypesdict(
     string_dtypes,
     nullable_string_dtypes,
     category_dtypes,
@@ -339,21 +351,21 @@ def test_coerce_string():
 
 def test_default_numeric_dtypes():
     """Test that default numeric dtypes int, float and complex are consistent."""
-    default_int_dtype = pd.Series([1], dtype=int).dtype
+    default_int_dtype = pd.Series([1]).dtype
     assert (
         pandas_engine.Engine.dtype(default_int_dtype)
         == pandas_engine.Engine.dtype(int)
         == pandas_engine.Engine.dtype("int")
     )
 
-    default_float_dtype = pd.Series([1], dtype=float).dtype
+    default_float_dtype = pd.Series([1.0]).dtype
     assert (
         pandas_engine.Engine.dtype(default_float_dtype)
         == pandas_engine.Engine.dtype(float)
         == pandas_engine.Engine.dtype("float")
     )
 
-    default_complex_dtype = pd.Series([1], dtype=complex).dtype
+    default_complex_dtype = pd.Series([complex(1)]).dtype
     assert (
         pandas_engine.Engine.dtype(default_complex_dtype)
         == pandas_engine.Engine.dtype(complex)
@@ -393,3 +405,108 @@ def test_inferred_dtype(examples: pd.Series):
         inferred_datatype = pandas_engine.Engine.dtype(alias)
     actual_dtype = pandas_engine.Engine.dtype(pd.Series(examples).dtype)
     assert actual_dtype.check(inferred_datatype)
+
+
+@pytest.mark.parametrize(
+    "int_dtype, expected",
+    [(dtype, True) for dtype in (*int_dtypes, *nullable_int_dtypes)]
+    + [("string", False)],  # type:ignore
+)
+def test_is_int(int_dtype: Any, expected: bool):
+    """Test is_int."""
+    pandera_dtype = pandas_engine.Engine.dtype(int_dtype)
+    assert pa.dtypes.is_int(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "uint_dtype, expected",
+    [(dtype, True) for dtype in (*uint_dtypes, *nullable_uint_dtypes)]
+    + [("string", False)],  # type:ignore
+)
+def test_is_uint(uint_dtype: Any, expected: bool):
+    """Test is_uint."""
+    pandera_dtype = pandas_engine.Engine.dtype(uint_dtype)
+    assert pa.dtypes.is_uint(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "float_dtype, expected",
+    [(dtype, True) for dtype in float_dtypes] + [("string", False)],  # type: ignore
+)
+def test_is_float(float_dtype: Any, expected: bool):
+    """Test is_float."""
+    pandera_dtype = pandas_engine.Engine.dtype(float_dtype)
+    assert pa.dtypes.is_float(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "complex_dtype, expected",
+    [(dtype, True) for dtype in complex_dtypes]
+    + [("string", False)],  # type: ignore
+)
+def test_is_complex(complex_dtype: Any, expected: bool):
+    """Test is_complex."""
+    pandera_dtype = pandas_engine.Engine.dtype(complex_dtype)
+    assert pa.dtypes.is_complex(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "bool_dtype, expected",
+    [(dtype, True) for dtype in (*boolean_dtypes, *nullable_boolean_dtypes)]
+    + [("string", False)],
+)
+def test_is_bool(bool_dtype: Any, expected: bool):
+    """Test is_bool."""
+    pandera_dtype = pandas_engine.Engine.dtype(bool_dtype)
+    assert pa.dtypes.is_bool(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "string_dtype, expected",
+    [(dtype, True) for dtype in string_dtypes]
+    + [("int", False)],  # type:ignore
+)
+def test_is_string(string_dtype: Any, expected: bool):
+    """Test is_string."""
+    pandera_dtype = pandas_engine.Engine.dtype(string_dtype)
+    assert pa.dtypes.is_string(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "category_dtype, expected",
+    [(dtype, True) for dtype in category_dtypes] + [("string", False)],
+)
+def test_is_category(category_dtype: Any, expected: bool):
+    """Test is_category."""
+    pandera_dtype = pandas_engine.Engine.dtype(category_dtype)
+    assert pa.dtypes.is_category(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "datetime_dtype, expected",
+    [(dtype, True) for dtype in timestamp_dtypes] + [("string", False)],
+)
+def test_is_datetime(datetime_dtype: Any, expected: bool):
+    """Test is_datetime."""
+    pandera_dtype = pandas_engine.Engine.dtype(datetime_dtype)
+    assert pa.dtypes.is_datetime(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "timedelta_dtype, expected",
+    [(dtype, True) for dtype in timedelta_dtypes] + [("string", False)],
+)
+def test_is_timedelta(timedelta_dtype: Any, expected: bool):
+    """Test is_timedelta."""
+    pandera_dtype = pandas_engine.Engine.dtype(timedelta_dtype)
+    assert pa.dtypes.is_timedelta(pandera_dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "numeric_dtype, expected",
+    [(dtype, True) for dtype, _ in numeric_dtypes] + [("string", False)],
+)
+def test_is_numeric(numeric_dtype: Any, expected: bool):
+    """Test is_timedelta."""
+    pandera_dtype = pandas_engine.Engine.dtype(numeric_dtype)
+    assert pa.dtypes.is_numeric(pandera_dtype) == expected
