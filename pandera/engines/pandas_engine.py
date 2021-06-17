@@ -547,3 +547,8 @@ class Interval(DataType):
         """Convert a :class:`pandas.IntervalDtype` to
         a Pandera :class:`~pandera.engines.pandas_engine.Interval`."""
         return cls(subtype=pd_dtype.subtype)  # type: ignore
+
+
+print("PANDAS ENGINE EQUIVALENTS")
+for k, v in engine.Engine._registry[Engine].equivalents.items():
+    print(f"{k}: equivalents={v}")

@@ -191,7 +191,6 @@ class Engine(ABCMeta):
         equivalent_data_type = registry.equivalents.get(data_type)
         if equivalent_data_type is not None:
             return equivalent_data_type
-
         try:
             return registry.dispatch(data_type)
         except (KeyError, ValueError):
