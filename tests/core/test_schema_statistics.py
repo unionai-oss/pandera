@@ -170,7 +170,12 @@ def _test_statistics(statistics, expectations):
     [
         *[
             [
-                pd.Series([1, 2, 3]),
+                pd.Series(
+                    [1, 2, 3],
+                    dtype=None
+                    if pa.Int().check(data_type)
+                    else str(data_type),
+                ),
                 {
                     "dtype": pandas_engine.Engine.dtype(data_type),
                     "nullable": False,
