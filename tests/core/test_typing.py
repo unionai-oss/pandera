@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.dtypes_ import DataType
+from pandera.dtypes import DataType
 from pandera.typing import LEGACY_TYPING, Series
 
 if not LEGACY_TYPING:

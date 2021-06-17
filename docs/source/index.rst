@@ -155,7 +155,7 @@ Quick Start
 You can pass the built-in python types that are supported by
 pandas, or strings representing the
 `legal pandas datatypes <https://pandas.pydata.org/docs/user_guide/basics.html#dtypes>`_,
-or pandera's ``PandasDtype`` enum:
+or pandera's ``DataType``:
 
 .. testcode:: quick_start
 
@@ -171,13 +171,13 @@ or pandera's ``PandasDtype`` enum:
         # pandas > 1.0.0 support native "string" type
         "str_column2": pa.Column("str"),
 
-        # pandera PandasDtype enum
+        # pandera DataType
         "int_column3": pa.Column(pa.Int),
         "float_column3": pa.Column(pa.Float),
         "str_column3": pa.Column(pa.String),
     })
 
-For more details on data types, see :class:`~pandera.dtypes.PandasDtype`
+For more details on data types, see :class:`~pandera.dtypes.DataType`
 
 
 Schema Model

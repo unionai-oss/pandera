@@ -103,7 +103,7 @@ class Column(SeriesSchemaBase):
     def properties(self) -> Dict[str, Any]:
         """Get column properties."""
         return {
-            "dtype": self._dtype,
+            "dtype": self.dtype,
             "checks": self._checks,
             "nullable": self._nullable,
             "allow_duplicates": self._allow_duplicates,
@@ -301,6 +301,9 @@ class Column(SeriesSchemaBase):
             )
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+
         def _compare_dict(obj):
             return {
                 k: v if k != "_checks" else set(v)

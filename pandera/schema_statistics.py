@@ -1,31 +1,12 @@
 """Module for inferring the statistics of pandas objects."""
-
 import warnings
 from typing import Any, Dict, Union
 
 import pandas as pd
 
+from . import dtypes
 from .checks import Check
-from .dtypes import PandasDtype
-
-NUMERIC_DTYPES = frozenset(
-    [
-        PandasDtype.Float,
-        PandasDtype.Float16,
-        PandasDtype.Float32,
-        PandasDtype.Float64,
-        PandasDtype.Int,
-        PandasDtype.Int8,
-        PandasDtype.Int16,
-        PandasDtype.Int32,
-        PandasDtype.Int64,
-        PandasDtype.UInt8,
-        PandasDtype.UInt16,
-        PandasDtype.UInt32,
-        PandasDtype.UInt64,
-        PandasDtype.DateTime,
-    ]
-)
+from .engines import pandas_engine
 
 
 def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
@@ -34,7 +15,7 @@ def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     inferred_column_dtypes = {col: _get_array_type(df[col]) for col in df}
     column_statistics = {
         col: {
-            "pandas_dtype": dtype,
+            "dtype": dtype,
             "nullable": bool(nullable_columns[col]),
             "checks": _get_array_check_statistics(df[col], dtype),
         }
@@ -50,7 +31,7 @@ def infer_series_statistics(series: pd.Series) -> Dict[str, Any]:
     """Infer column and index statistics from a pandas Series."""
     dtype = _get_array_type(series)
     return {
-        "pandas_dtype": dtype,
+        "dtype": dtype,
         "nullable": bool(series.isna().any()),
         "checks": _get_array_check_statistics(series, dtype),
         "name": series.name,
@@ -63,7 +44,7 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
     def _index_stats(index_level):
         dtype = _get_array_type(index_level)
         return {
-            "pandas_dtype": dtype,
+            "dtype": dtype,
             "nullable": bool(index_level.isna().any()),
             "checks": _get_array_check_statistics(index_level, dtype),
             "name": index_level.name,
@@ -105,7 +86,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
     statistics = {
         "columns": {
             col_name: {
-                "pandas_dtype": column.pdtype,
+                "dtype": column.dtype,
                 "nullable": column.nullable,
                 "allow_duplicates": column.allow_duplicates,
                 "coerce": column.coerce,
@@ -128,7 +109,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
 
 def _get_series_base_schema_statistics(series_schema_base):
     return {
-        "pandas_dtype": series_schema_base._pandas_dtype,
+        "dtype": series_schema_base.dtype,
         "nullable": series_schema_base.nullable,
         "checks": parse_checks(series_schema_base.checks),
         "coerce": series_schema_base.coerce,
@@ -199,30 +180,31 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
 
 def _get_array_type(x):
     # get most granular type possible
-    dtype = PandasDtype.from_str_alias(str(x.dtype))
+
+    data_type = pandas_engine.Engine.dtype(x.dtype)
     # for object arrays, try to infer dtype
-    if dtype is PandasDtype.Object:
-        dtype = PandasDtype.from_pandas_api_type(
-            pd.api.types.infer_dtype(x, skipna=True)
-        )
-    return dtype
+    if data_type is pandas_engine.Engine.dtype("object"):
+        inferred_alias = pd.api.types.infer_dtype(x, skipna=True)
+        if inferred_alias != "string":
+            data_type = pandas_engine.Engine.dtype(inferred_alias)
+    return data_type
 
 
 def _get_array_check_statistics(
-    x, dtype: PandasDtype
+    x, data_type: dtypes.DataType
 ) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
-    if dtype is PandasDtype.DateTime:
+    if dtypes.is_datetime(data_type):
         check_stats = {
             "greater_than_or_equal_to": x.min(),
             "less_than_or_equal_to": x.max(),
         }
-    elif dtype in NUMERIC_DTYPES:
+    elif dtypes.is_numeric(data_type) and not dtypes.is_bool(data_type):
         check_stats = {
             "greater_than_or_equal_to": float(x.min()),
             "less_than_or_equal_to": float(x.max()),
         }
-    elif dtype is PandasDtype.Category:
+    elif dtypes.is_category(data_type):
         try:
             categories = x.cat.categories
         except AttributeError:

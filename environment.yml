@@ -24,13 +24,13 @@ dependencies:
   # testing
   - isort >= 5.7.0
   - codecov
-  - mypy
+  - mypy >= 0.902 # mypy no longer bundle stubs for third-party libraries
   - pylint >= 2.7.2
   - pytest
   - pytest-cov
   - pytest-xdist
   - setuptools >= 52.0.0
-  - nox
+  - nox = 2020.12.31  # pinning due to UnicodeDecodeError, see https://github.com/pandera-dev/pandera/pull/504/checks?check_run_id=2841360122
   - importlib_metadata # required if python < 3.8
 
   # documentation
@@ -51,3 +51,6 @@ dependencies:
 
   - pip:
     - furo
+    - types-click
+    - types-pyyaml
+    - types-pkg_resources

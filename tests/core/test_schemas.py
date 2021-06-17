@@ -828,8 +828,8 @@ def test_add_and_remove_columns():
         schema2.remove_columns(["foo", "bar"])
 
 
-def test_schema_get_dtype():
-    """Test that schema dtype and get_dtype methods handle regex columns."""
+def test_schema_get_dtypes():
+    """Test that schema dtype and get_dtypes methods handle regex columns."""
     schema = DataFrameSchema(
         {
             "col1": Column(int),
@@ -1311,6 +1311,10 @@ def test_schema_transformer_deprecated():
 )
 def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     """Test coercion logic for validation when inplace is True and False"""
+    from_dtype = (
+        from_dtype if from_dtype is not int else str(Engine.dtype(from_dtype))
+    )
+    to_dtype = to_dtype if to_dtype is not int else str(Engine.dtype(to_dtype))
     df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})
     schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})
     validated_df = schema.validate(df, inplace=inplace)

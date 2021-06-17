@@ -9,7 +9,6 @@
 import doctest
 import inspect
 import logging as pylogging
-import subprocess
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -17,6 +16,7 @@ import subprocess
 #
 import os
 import shutil
+import subprocess
 import sys
 
 from sphinx.util import logging

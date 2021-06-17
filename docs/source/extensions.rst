@@ -94,20 +94,20 @@ The corresponding strategy for this check would be:
    import pandera.strategies as st
 
    def equals_strategy(
-       pandas_dtype: pa.PandasDtype,
+       pandera_dtype: pa.DataType,
        strategy: Optional[st.SearchStrategy] = None,
        *,
        value,
    ):
        if strategy is None:
            return st.pandas_dtype_strategy(
-               pandas_dtype, strategy=hypothesis.strategies.just(value),
+               pandera_dtype, strategy=hypothesis.strategies.just(value),
            )
        return strategy.filter(lambda x: x == value)
 
 As you may notice, the ``pandera`` strategy interface is has two arguments
 followed by keyword-only arguments that match the check function keyword-only
-check statistics. The ``pandas_dtype`` positional argument is useful for
+check statistics. The ``pandera_dtype`` positional argument is useful for
 ensuring the correct data type. In the above example, we're using the
 :func:`~pandera.strategies.pandas_dtype_strategy` strategy to make sure the
 generated ``value`` is of the correct data type.
@@ -147,7 +147,7 @@ would look like:
    :skipif: SKIP_STRATEGY
 
    def in_between_strategy(
-       pandas_dtype: pa.PandasDtype,
+       pandera_dtype: pa.DataType,
        strategy: Optional[st.SearchStrategy] = None,
        *,
        min_value,
@@ -155,7 +155,7 @@ would look like:
    ):
        if strategy is None:
            return st.pandas_dtype_strategy(
-               pandas_dtype,
+               pandera_dtype,
                min_value=min_value,
                max_value=max_value,
                exclude_min=False,
