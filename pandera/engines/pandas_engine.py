@@ -185,6 +185,7 @@ def _register_numpy_numbers(
             if builtin_name in {"int", "uint"} and bit_width == 64:
                 print(f"ADDING {builtin_type}")
                 equivalents.add(builtin_type)
+                equivalents.add(builtin_name)
                 if builtin_type is int:
                     equivalents.add("integer")
                 equivalents |= set(
