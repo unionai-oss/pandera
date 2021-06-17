@@ -182,21 +182,22 @@ def _register_numpy_numbers(
         add_default = True
         if WINDOWS_PLATFORM:
             print("ON WINDOWS PLATFORM")
-            if np_dtype == np.dtype("int64"):
+            if builtin_name in {"int", "uint"} and bit_width == 64:
                 print(f"ADDING {builtin_type}")
                 equivalents.add(builtin_type)
-                equivalents.add("integer")
+                if builtin_type is int:
+                    equivalents.add("integer")
                 equivalents |= set(
                     (
                         getattr(dtypes, pandera_name),
                         getattr(dtypes, pandera_name)(),
                     )
                 )
-            elif np_dtype == np.dtype("int32"):
+            elif builtin_name in {"int", "uint"} and bit_width == 32:
                 add_default = False
 
         if np_dtype == default_pd_dtype:
-            equivalents |= set((default_pd_dtype))
+            equivalents |= set([default_pd_dtype])
             if add_default:
                 equivalents |= set(
                     (
