@@ -142,6 +142,7 @@ def install_from_requirements(session: Session, *packages: str) -> None:
 def install_extras(
     session: Session,
     extra: str = "core",
+    force_pip: bool = False,
 ) -> None:
     """Install dependencies."""
     specs = [
@@ -152,7 +153,10 @@ def install_extras(
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
-    if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
+    if (
+        isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
+        and not force_pip
+    ):
         print("using conda installer")
         session.conda_install(*CONDA_ARGS, *specs)
     else:
@@ -296,7 +300,7 @@ def tests(session: Session, extra: str) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def docs(session: Session) -> None:
     """Build the documentation."""
-    install_extras(session, extra="all")
+    install_extras(session, extra="all", force_pip=True)
     session.chdir("docs")
 
     # build html docs
