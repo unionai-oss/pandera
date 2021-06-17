@@ -172,11 +172,11 @@ def _register_numpy_numbers(
         )
 
         add_builtin = True
-        if WINDOWS_PLATFORM:
-            if np_dtype == np.dtype("int64"):
-                equivalents.add(builtin_type)
-            elif np_dtype == np.dtype("int32"):
-                add_builtin = False
+        # if WINDOWS_PLATFORM:
+        #     if np_dtype == np.dtype("int64"):
+        #         equivalents.add(builtin_type)
+        #     elif np_dtype == np.dtype("int32"):
+        #         add_builtin = False
 
         if np_dtype == default_pd_dtype:
             equivalents |= set(

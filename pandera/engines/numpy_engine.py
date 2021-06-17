@@ -107,6 +107,9 @@ def _build_number_equivalents(
     if builtin_type:
         default_equivalents.append(builtin_type)
 
+    if WINDOWS_PLATFORM and builtin_name == "int" and default_size == 32:
+        default_size = 64
+
     return {
         bit_width: list(
             set(
