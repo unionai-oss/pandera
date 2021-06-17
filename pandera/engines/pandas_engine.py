@@ -158,8 +158,9 @@ def _register_numpy_numbers(
     builtin_type = getattr(builtins, builtin_name, None)  # uint doesn't exist
     default_data = 1
     if builtin_type:
-        default_data = builtin_type(default_data)
-        default_pd_dtype = pd.Series([default_data]).dtype
+        # get default pandas dtype based on built-in type doesn't require a
+        # dtype parameter.
+        default_pd_dtype = pd.Series([builtin_type(default_data)]).dtype
     else:
         default_pd_dtype = pd.Series([default_data], dtype=builtin_name).dtype
 
@@ -179,7 +180,7 @@ def _register_numpy_numbers(
         add_default = True
         if WINDOWS_PLATFORM:
             print("ON WINDOWS PLATFORM")
-            if builtin_name in {"int"} and bit_width == 64:
+            if builtin_name in {"int", "uint"} and bit_width == 64:
                 print(f"ADDING {builtin_type}")
                 equivalents.add(builtin_type)
                 equivalents.add(builtin_name)
@@ -191,7 +192,7 @@ def _register_numpy_numbers(
                         getattr(dtypes, pandera_name)(),
                     )
                 )
-            elif builtin_name in {"int"} and bit_width == 32:
+            elif builtin_name in {"int", "uint"} and bit_width == 32:
                 add_default = False
 
         if np_dtype == default_pd_dtype:

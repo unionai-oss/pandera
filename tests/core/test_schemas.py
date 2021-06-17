@@ -1315,13 +1315,19 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})
     validated_df = schema.validate(df, inplace=inplace)
 
-    assert validated_df["column"].dtype == to_dtype
+    assert validated_df["column"].dtype == (
+        to_dtype if to_dtype is not int else Engine.dtype(to_dtype)
+    )
     if inplace:
         # inplace mutates original dataframe
-        assert df["column"].dtype == to_dtype
+        assert df["column"].dtype == (
+            to_dtype if to_dtype is not int else Engine.dtype(to_dtype)
+        )
     else:
         # not inplace preserves original dataframe type
-        assert df["column"].dtype == from_dtype
+        assert df["column"].dtype == (
+            to_dtype if to_dtype is not int else Engine.dtype(from_dtype)
+        )
 
 
 @pytest.fixture
