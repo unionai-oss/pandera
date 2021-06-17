@@ -1326,7 +1326,7 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
     else:
         # not inplace preserves original dataframe type
         assert df["column"].dtype == (
-            to_dtype if to_dtype is not int else Engine.dtype(from_dtype)
+            from_dtype if from_dtype is not int else Engine.dtype(from_dtype)
         )
 
 

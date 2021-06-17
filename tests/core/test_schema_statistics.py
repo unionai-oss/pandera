@@ -170,7 +170,7 @@ def _test_statistics(statistics, expectations):
     [
         *[
             [
-                pd.Series([1, 2, 3], dtype=str(data_type)),
+                pd.Series([1, 2, 3]),
                 {
                     "dtype": pandas_engine.Engine.dtype(data_type),
                     "nullable": False,
