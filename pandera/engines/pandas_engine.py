@@ -165,12 +165,18 @@ def _register_numpy_numbers(
         equivalents = set(
             (
                 np_dtype,
-                getattr(np, f"{builtin_name}{bit_width}"),
                 # e.g.: pandera.dtypes.Int64
                 getattr(dtypes, f"{pandera_name}{bit_width}"),
                 getattr(dtypes, f"{pandera_name}{bit_width}")(),
             )
         )
+
+        add_builtin = True
+        if WINDOWS_PLATFORM:
+            if np_dtype == np.dtype("int64"):
+                equivalents.add(builtin_type)
+            elif np_dtype == np.dtype("int32"):
+                add_builtin = False
 
         if np_dtype == default_pd_dtype:
             equivalents |= set(
@@ -182,7 +188,7 @@ def _register_numpy_numbers(
                     getattr(dtypes, pandera_name)(),
                 )
             )
-            if builtin_type:
+            if builtin_type and add_builtin:
                 equivalents.add(builtin_type)
 
             # results from pd.api.types.infer_dtype
