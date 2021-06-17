@@ -156,7 +156,15 @@ def _register_numpy_numbers(
     with the pandas engine."""
 
     builtin_type = getattr(builtins, builtin_name, None)  # uint doesn't exist
-    default_pd_dtype = pd.Series([1], dtype=builtin_name).dtype
+    default_data = 1
+    if builtin_type:
+        default_data = builtin_type(default_data)
+    default_pd_dtype = pd.Series([default_data], dtype=builtin_name).dtype
+    _default_pd_dtype = pd.Series([default_data]).dtype
+    print(
+        f"DEFAULT DATA TYPES: default_pd_dtype={default_pd_dtype} "
+        f"_default_pd_dtype={_default_pd_dtype}"
+    )
 
     for bit_width in sizes:
         # e.g.: numpy.int64
@@ -171,7 +179,7 @@ def _register_numpy_numbers(
             )
         )
 
-        add_builtin = True
+        add_default = True
         if WINDOWS_PLATFORM:
             print("ON WINDOWS PLATFORM")
             if np_dtype == np.dtype("int64"):
@@ -185,30 +193,25 @@ def _register_numpy_numbers(
                     )
                 )
             elif np_dtype == np.dtype("int32"):
-                add_builtin = False
+                add_default = False
 
         if np_dtype == default_pd_dtype:
-            equivalents |= set(
-                (
-                    # e.g: numpy.int_
-                    default_pd_dtype,
-                )
-            )
-            if add_builtin:
+            equivalents |= set((default_pd_dtype))
+            if add_default:
                 equivalents |= set(
                     (
                         getattr(dtypes, pandera_name),
                         getattr(dtypes, pandera_name)(),
                     )
                 )
-            if builtin_type and add_builtin:
+            if builtin_type and add_default:
                 equivalents.add(builtin_type)
 
             # results from pd.api.types.infer_dtype
             if builtin_type is float:
                 equivalents.add("floating")
                 equivalents.add("mixed-integer-float")
-            elif builtin_type is int and add_builtin:
+            elif builtin_type is int and add_default:
                 equivalents.add("integer")
 
         numpy_data_type = getattr(numpy_engine, f"{pandera_name}{bit_width}")

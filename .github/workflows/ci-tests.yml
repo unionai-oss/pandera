@@ -22,114 +22,114 @@ env:
   CACHE_VERSION: 2
 
 jobs:
-  codestyle:
-    name: Code Style
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
+  # codestyle:
+  #   name: Code Style
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       shell: bash -l {0}
 
-    steps:
-      - uses: actions/checkout@v2
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Cache conda
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            .nox
-          key: "${{ runner.os }}\
-            -codestyle-${{ env.CACHE_VERSION }}\
-            -${{ env.DEFAULT_PYTHON }}\
-            -${{ hashFiles('environment.yml') }}"
+  #     - name: Cache conda
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: |
+  #           ~/conda_pkgs_dir
+  #           .nox
+  #         key: "${{ runner.os }}\
+  #           -codestyle-${{ env.CACHE_VERSION }}\
+  #           -${{ env.DEFAULT_PYTHON }}\
+  #           -${{ hashFiles('environment.yml') }}"
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          channels: conda-forge
-          channel-priority: true
-          activate-environment: pandera-dev
-          auto-update-conda: false
-          environment-file: environment.yml
-          use-only-tar-bz2: true
-          auto-activate-base: false
+  #     - uses: conda-incubator/setup-miniconda@v2
+  #       with:
+  #         python-version: ${{ env.DEFAULT_PYTHON }}
+  #         channels: conda-forge
+  #         channel-priority: true
+  #         activate-environment: pandera-dev
+  #         auto-update-conda: false
+  #         environment-file: environment.yml
+  #         use-only-tar-bz2: true
+  #         auto-activate-base: false
 
-      - name: Conda info
-        run: |
-          conda info
-          conda list
+  #     - name: Conda info
+  #       run: |
+  #         conda info
+  #         conda list
 
-      - name: Check isort and black formatting
-        run: >
-          nox
-          -db conda -r
-          --non-interactive
-          --session black isort
+  #     - name: Check isort and black formatting
+  #       run: >
+  #         nox
+  #         -db conda -r
+  #         --non-interactive
+  #         --session black isort
 
-  lint:
-    name: Linters (${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.7", "3.8", "3.9"]
-    defaults:
-      run:
-        shell: bash -l {0}
+  # lint:
+  #   name: Linters (${{ matrix.python-version }})
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       python-version: ["3.7", "3.8", "3.9"]
+  #   defaults:
+  #     run:
+  #       shell: bash -l {0}
 
-    steps:
-      - uses: actions/checkout@v2
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Cache conda
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            .nox
-          key: "${{ runner.os }}\
-            -lint-${{ env.CACHE_VERSION }}\
-            -${{ matrix.python-version }}\
-            -${{ hashFiles('environment.yml') }}"
+  #     - name: Cache conda
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: |
+  #           ~/conda_pkgs_dir
+  #           .nox
+  #         key: "${{ runner.os }}\
+  #           -lint-${{ env.CACHE_VERSION }}\
+  #           -${{ matrix.python-version }}\
+  #           -${{ hashFiles('environment.yml') }}"
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          channels: conda-forge
-          channel-priority: true
-          activate-environment: pandera-dev
-          auto-update-conda: false
-          environment-file: environment.yml
-          use-only-tar-bz2: true
-          auto-activate-base: false
+  #     - uses: conda-incubator/setup-miniconda@v2
+  #       with:
+  #         python-version: ${{ env.DEFAULT_PYTHON }}
+  #         channels: conda-forge
+  #         channel-priority: true
+  #         activate-environment: pandera-dev
+  #         auto-update-conda: false
+  #         environment-file: environment.yml
+  #         use-only-tar-bz2: true
+  #         auto-activate-base: false
 
-      - name: Conda info
-        run: |
-          conda info
-          conda list
+  #     - name: Conda info
+  #       run: |
+  #         conda info
+  #         conda list
 
-      - name: Check requirements
-        run: >
-          nox
-          -db conda -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session requirements-${{ matrix.python-version }}
+  #     - name: Check requirements
+  #       run: >
+  #         nox
+  #         -db conda -r
+  #         --non-interactive
+  #         --python ${{ matrix.python-version }}
+  #         --session requirements-${{ matrix.python-version }}
 
-      - name: Pylint
-        run: >
-          nox
-          -db conda -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session lint-${{ matrix.python-version }}
+  #     - name: Pylint
+  #       run: >
+  #         nox
+  #         -db conda -r
+  #         --non-interactive
+  #         --python ${{ matrix.python-version }}
+  #         --session lint-${{ matrix.python-version }}
 
-      - name: Mypy Type Checking
-        run: >
-          nox
-          -db conda -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session mypy-${{ matrix.python-version }}
+  #     - name: Mypy Type Checking
+  #       run: >
+  #         nox
+  #         -db conda -r
+  #         --non-interactive
+  #         --python ${{ matrix.python-version }}
+  #         --session mypy-${{ matrix.python-version }}
 
   tests:
     name: >
