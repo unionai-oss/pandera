@@ -172,11 +172,13 @@ def _register_numpy_numbers(
         )
 
         add_builtin = True
-        # if WINDOWS_PLATFORM:
-        #     if np_dtype == np.dtype("int64"):
-        #         equivalents.add(builtin_type)
-        #     elif np_dtype == np.dtype("int32"):
-        #         add_builtin = False
+        if WINDOWS_PLATFORM:
+            print("ON WINDOWS PLATFORM")
+            if np_dtype == np.dtype("int64"):
+                print(f"ADDING {builtin_type}")
+                equivalents.add(builtin_type)
+            elif np_dtype == np.dtype("int32"):
+                add_builtin = False
 
         if np_dtype == default_pd_dtype:
             equivalents |= set(
@@ -199,6 +201,7 @@ def _register_numpy_numbers(
                 equivalents.add("integer")
 
         numpy_data_type = getattr(numpy_engine, f"{pandera_name}{bit_width}")
+        print(f"EQUIVALENTS FOR {numpy_data_type}: {list(equivalents)}")
         Engine.register_dtype(numpy_data_type, equivalents=list(equivalents))
 
 
