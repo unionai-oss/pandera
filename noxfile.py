@@ -114,12 +114,39 @@ CONDA_ARGS = [
 ]
 
 
+def conda_install(session: Session, *args):
+    """Use mamba to install conda dependencies."""
+    run_args = [
+        "install",
+        "--yes",
+        *CONDA_ARGS,
+        "--prefix",
+        session.virtualenv.location,  # type: ignore
+        *args,
+    ]
+
+    # By default, all dependencies are re-installed from scratch with each
+    # session. Specifying external=True allows access to cached packages, which
+    # decreases runtime of the test sessions.
+    try:
+        session.run(
+            *["mamba", *run_args],
+            external=True,
+        )
+    # pylint: disable=broad-except
+    except Exception:
+        session.run(
+            *["conda", *run_args],
+            external=True,
+        )
+
+
 def install(session: Session, *args: str):
     """Install dependencies in the appropriate virtual environment
     (conda or virtualenv) and return the type of the environmment."""
     if isinstance(session.virtualenv, nox.virtualenv.CondaEnv):
         print("using conda installer")
-        session.conda_install(*CONDA_ARGS, *args)
+        conda_install(session, *args)
     else:
         print("using pip installer")
         session.install(*args)
@@ -158,7 +185,7 @@ def install_extras(
         and not force_pip
     ):
         print("using conda installer")
-        session.conda_install(*CONDA_ARGS, *specs)
+        conda_install(session, *specs)
     else:
         print("using pip installer")
         session.install(*specs)

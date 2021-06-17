@@ -96,7 +96,8 @@ class Engine(  # pylint:disable=too-few-public-methods
                 except (TypeError, AttributeError) as err:
                     raise TypeError(
                         f" dtype {data_type} cannot be instantiated: {err}\n"
-                        "Usage Tip: Use an instance or a string representation."
+                        "Usage Tip: Use an instance or a string "
+                        "representation."
                     ) from None
             else:
                 # let pandas transform any acceptable value
@@ -107,7 +108,7 @@ class Engine(  # pylint:disable=too-few-public-methods
 
             try:
                 return engine.Engine.dtype(cls, np_or_pd_dtype)
-            except TypeError as err:
+            except TypeError:
                 return DataType(np_or_pd_dtype)
 
     @classmethod
@@ -156,13 +157,12 @@ def _register_numpy_numbers(
     with the pandas engine."""
 
     builtin_type = getattr(builtins, builtin_name, None)  # uint doesn't exist
-    default_data = 1
-    if builtin_type:
-        # get default pandas dtype based on built-in type doesn't require a
-        # dtype parameter.
-        default_pd_dtype = pd.Series([builtin_type(default_data)]).dtype
-    else:
-        default_pd_dtype = pd.Series([default_data], dtype=builtin_name).dtype
+
+    # default to int64 regardless of OS
+    default_pd_dtype = {
+        "int": np.dtype("int64"),
+        "uint": np.dtype("uint64"),
+    }.get(builtin_name, pd.Series([1], dtype=builtin_name).dtype)
 
     for bit_width in sizes:
         # e.g.: numpy.int64
@@ -177,41 +177,23 @@ def _register_numpy_numbers(
             )
         )
 
-        add_default = True
-        if WINDOWS_PLATFORM:
-            print("ON WINDOWS PLATFORM")
-            if builtin_name in {"int", "uint"} and bit_width == 64:
-                print(f"ADDING {builtin_type}")
-                equivalents.add(builtin_type)
-                equivalents.add(builtin_name)
-                if builtin_type is int:
-                    equivalents.add("integer")
-                equivalents |= set(
-                    (
-                        getattr(dtypes, pandera_name),
-                        getattr(dtypes, pandera_name)(),
-                    )
-                )
-            elif builtin_name in {"int", "uint"} and bit_width == 32:
-                add_default = False
-
         if np_dtype == default_pd_dtype:
-            equivalents |= set([default_pd_dtype])
-            if add_default:
-                equivalents |= set(
-                    (
-                        getattr(dtypes, pandera_name),
-                        getattr(dtypes, pandera_name)(),
-                    )
+            equivalents |= set(
+                (
+                    default_pd_dtype,
+                    builtin_name,
+                    getattr(dtypes, pandera_name),
+                    getattr(dtypes, pandera_name)(),
                 )
-            if builtin_type and add_default:
+            )
+            if builtin_type:
                 equivalents.add(builtin_type)
 
             # results from pd.api.types.infer_dtype
             if builtin_type is float:
                 equivalents.add("floating")
                 equivalents.add("mixed-integer-float")
-            elif builtin_type is int and add_default:
+            elif builtin_type is int:
                 equivalents.add("integer")
 
         numpy_data_type = getattr(numpy_engine, f"{pandera_name}{bit_width}")

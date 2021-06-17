@@ -596,7 +596,10 @@ def test_parse_checks_and_statistics_roundtrip(checks, expectation):
 
 # pylint: disable=unused-argument
 def test_parse_checks_and_statistics_no_param(extra_registered_checks):
-    """Ensure that an edge case where a check does not have parameters is appropriately handled."""
+    """
+    Ensure that an edge case where a check does not have parameters is
+    appropriately handled.
+    """
 
     checks = [pa.Check.no_param_check()]
     expectation = {"no_param_check": {}}
