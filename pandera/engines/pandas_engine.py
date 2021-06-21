@@ -197,7 +197,6 @@ def _register_numpy_numbers(
                 equivalents.add("integer")
 
         numpy_data_type = getattr(numpy_engine, f"{pandera_name}{bit_width}")
-        print(f"EQUIVALENTS FOR {numpy_data_type}: {list(equivalents)}")
         Engine.register_dtype(numpy_data_type, equivalents=list(equivalents))
 
 
@@ -543,8 +542,3 @@ class Interval(DataType):
         """Convert a :class:`pandas.IntervalDtype` to
         a Pandera :class:`~pandera.engines.pandas_engine.Interval`."""
         return cls(subtype=pd_dtype.subtype)  # type: ignore
-
-
-print("PANDAS ENGINE EQUIVALENTS")
-for k, v in engine.Engine._registry[Engine].equivalents.items():
-    print(f"{k}: equivalents={v}")
