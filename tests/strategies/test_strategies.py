@@ -310,7 +310,7 @@ def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
             st.integers(min_value=0, max_value=100),
             st.integers(min_value=0, max_value=100),
         )
-        .map(sorted)
+        .map(sorted)  # type: ignore[arg-type]
         .filter(lambda x: x[0] < x[1])  # type: ignore
     ),
 )
