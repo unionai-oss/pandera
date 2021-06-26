@@ -1149,6 +1149,52 @@ def test_lazy_dataframe_validation_error():
                 )
 
 
+def test_lazy_validation_multiple_checks():
+    """Lazy validation with multiple checks should report all failures."""
+    schema = DataFrameSchema(
+        {
+            "col1": Column(
+                Int,
+                checks=[
+                    Check.in_range(1, 4),
+                    Check(lambda s: s % 2 == 0, name="is_even"),
+                ],
+                coerce=True,
+                nullable=False,
+            ),
+            "col2": Column(Int, Check.gt(3), coerce=True, nullable=False),
+        }
+    )
+
+    data = pd.DataFrame(
+        {"col1": [0, 1, 2, 3, 4], "col2": [np.nan, 53, 23, np.nan, 2]}
+    )
+
+    expectation = {
+        "col1": {
+            "in_range(1, 4)": [0],
+            "is_even": [1, 3],
+        },
+        "col2": {
+            "coerce_dtype('int64')": ["float64"],
+        },
+    }
+
+    try:
+        schema.validate(data, lazy=True)
+    except errors.SchemaErrors as err:
+        for column_name, check_failure_cases in expectation.items():
+            err_df = err.failure_cases.loc[
+                err.failure_cases.column == column_name
+            ]
+            for check, failure_cases in check_failure_cases.items():
+                assert check in err_df.check.values
+                assert (
+                    list(err_df.loc[err_df.check == check].failure_case)
+                    == failure_cases
+                )
+
+
 def test_lazy_dataframe_validation_nullable():
     """
     Test that non-nullable column failure cases are correctly processed during
@@ -1174,7 +1220,20 @@ def test_lazy_dataframe_validation_nullable():
     try:
         schema.validate(df, lazy=True)
     except errors.SchemaErrors as err:
-        assert err.failure_cases.failure_case.isna().all()
+        # report not_nullable checks
+        assert (
+            err.failure_cases.query("check == 'not_nullable'")
+            .failure_case.isna()
+            .all()
+        )
+        # report invalid type in int_column
+        assert (
+            err.failure_cases.query(
+                "check == \"pandas_dtype('int64')\""
+            ).failure_case
+            == "float64"
+        ).all()
+
         for col, index in [
             ("int_column", 1),
             ("float_column", 2),

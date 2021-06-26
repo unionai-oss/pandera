@@ -332,6 +332,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 return coerce_fn(obj)
             except errors.SchemaError as exc:
                 error_handler.collect_error("dtype_coercion_error", exc)
+                return obj
 
         for colname, col_schema in self.columns.items():
             if col_schema.regex:
@@ -583,7 +584,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             try:
                 result = schema_component(
                     df_to_validate,
-                    lazy=lazy if schema_component.has_subcomponents else None,
+                    lazy=lazy,
                     # don't make a copy of the data
                     inplace=True,
                 )

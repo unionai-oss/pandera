@@ -26,8 +26,6 @@ def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
 class Column(SeriesSchemaBase):
     """Validate types and properties of DataFrame columns."""
 
-    has_subcomponents = False
-
     def __init__(
         self,
         pandas_dtype: PandasDtypeInputTypes = None,
@@ -315,8 +313,6 @@ class Column(SeriesSchemaBase):
 class Index(SeriesSchemaBase):
     """Validate types and properties of a DataFrame Index."""
 
-    has_subcomponents = False
-
     @property
     def names(self):
         """Get index names in the Index schema component."""
@@ -437,8 +433,6 @@ class MultiIndex(DataFrameSchema):
     This class inherits from :class:`~pandera.schemas.DataFrameSchema` to
     leverage its validation logic.
     """
-
-    has_subcomponents = True
 
     def __init__(
         self,
