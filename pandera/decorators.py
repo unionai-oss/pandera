@@ -1,11 +1,20 @@
 """Decorators for integrating pandera into existing data pipelines."""
 import functools
 import inspect
+import sys
 import typing
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, NoReturn, Optional
-from typing import OrderedDict as OrderedDictT
-from typing import Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    NoReturn,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import pandas as pd
 import wrapt
@@ -13,6 +22,13 @@ import wrapt
 from . import errors, schemas
 from .model import SchemaModel
 from .typing import AnnotationInfo
+
+if sys.version_info <= (3, 6):
+    from typing_extensions import OrderedDict as OrderedDictT
+else:
+    from typing import (
+        OrderedDict as OrderedDictT,  # pylint: disable=reimported
+    )
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
