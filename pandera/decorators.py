@@ -23,7 +23,7 @@ from . import errors, schemas
 from .model import SchemaModel
 from .typing import AnnotationInfo
 
-if sys.version_info <= (3, 6):
+if sys.version_info < (3, 7):
     from typing_extensions import OrderedDict as OrderedDictT
 else:
     from typing import (
