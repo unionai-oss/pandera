@@ -564,8 +564,8 @@ def test_dataframe_check() -> None:
 
 
 def test_registered_dataframe_checks(
-    extra_registered_checks: None,
-) -> None:  # pylint: disable=unused-argument
+    extra_registered_checks: None,  # pylint: disable=unused-argument
+) -> None:
     """Check that custom check inheritance works"""
     # pylint: disable=unused-variable
 

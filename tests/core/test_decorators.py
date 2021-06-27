@@ -349,7 +349,7 @@ def test_check_io() -> None:
     # invalid out schema types
     for out_schema in [1, 5.0, "foo", {"foo": "bar"}, ["foo"]]:
 
-        @check_io(out=out_schema)  # type: ignore[arg-type]  # mypy identifies the wrong usage correctly
+        @check_io(out=out_schema)  # type: ignore[arg-type]  # mypy correctly finds the wrong usage
         def invalid_out_schema_type(df):
             return df
 
@@ -467,6 +467,7 @@ def test_check_types_unchanged() -> None:
         notused: int,  # pylint: disable=unused-argument
     ) -> DataFrame[OnlyZeroesSchema]:
         return df
+
     df = pd.DataFrame({"a": [0]})
     pd.testing.assert_frame_equal(transform(df, 2), df)
 

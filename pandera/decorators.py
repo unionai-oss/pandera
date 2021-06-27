@@ -27,7 +27,7 @@ from .typing import AnnotationInfo
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
-F = TypeVar('F', bound=Callable)
+F = TypeVar("F", bound=Callable)
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
