@@ -24,11 +24,9 @@ from .model import SchemaModel
 from .typing import AnnotationInfo
 
 if sys.version_info < (3, 7):
-    from typing_extensions import OrderedDict as OrderedDictT
+    import typing_extensions as tpg
 else:
-    from typing import (
-        OrderedDict as OrderedDictT,  # pylint: disable=reimported
-    )
+    import typing as tpg  # pylint: disable=reimported
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
@@ -492,7 +490,9 @@ def check_types(
         args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
-        def validate_args(arguments: OrderedDictT[str, Any]) -> Dict[str, Any]:
+        def validate_args(
+            arguments: tpg.OrderedDict[str, Any]  # type: ignore[name-defined] # only for py3.6
+        ) -> Dict[str, Any]:
             return {
                 arg_name: _check_arg(arg_name, arg_value)
                 for arg_name, arg_value in arguments.items()
