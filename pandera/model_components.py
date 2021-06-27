@@ -64,9 +64,9 @@ class FieldInfo:
         allow_duplicates: bool = True,
         coerce: bool = False,
         regex: bool = False,
-        alias: str = None,
-        check_name: bool = None,
-        dtype_kwargs: Dict[str, Any] = None,
+        alias: Any = None,
+        check_name: Optional[bool] = None,
+        dtype_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
@@ -155,11 +155,11 @@ def Field(
     in_range: Dict[str, Any] = None,
     isin: Iterable = None,
     notin: Iterable = None,
-    str_contains: str = None,
-    str_endswith: str = None,
-    str_length: Dict[str, Any] = None,
-    str_matches: str = None,
-    str_startswith: str = None,
+    str_contains: Optional[str] = None,
+    str_endswith: Optional[str] = None,
+    str_length: Optional[Dict[str, Any]] = None,
+    str_matches: Optional[str] = None,
+    str_startswith: Optional[str] = None,
     nullable: bool = False,
     allow_duplicates: bool = True,
     coerce: bool = False,
@@ -167,9 +167,9 @@ def Field(
     ignore_na: bool = True,
     raise_warning: bool = False,
     n_failure_cases: int = 10,
-    alias: str = None,
-    check_name: bool = None,
-    dtype_kwargs: Dict[str, Any] = None,
+    alias: Any = None,
+    check_name: Optional[bool] = None,
+    dtype_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.

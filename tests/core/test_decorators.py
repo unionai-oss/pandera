@@ -31,7 +31,7 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 
-def test_check_function_decorators():
+def test_check_function_decorators() -> None:
     """
     Tests 5 different methods that are common across the @check_input and
     @check_output decorators.
@@ -153,7 +153,7 @@ def test_check_function_decorators():
     assert isinstance(df, pd.DataFrame)
 
 
-def test_check_function_decorator_errors():
+def test_check_function_decorator_errors() -> None:
     """Test that the check_input and check_output decorators error properly."""
     # case 1: checks that the input and output decorators error when different
     # types are passed in and out
@@ -192,7 +192,7 @@ def test_check_function_decorator_errors():
         test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]}))
 
 
-def test_check_input_method_decorators():
+def test_check_input_method_decorators() -> None:
     """Test the check_input and check_output decorator behaviours when the
     dataframe is changed within the function being checked"""
     in_schema = DataFrameSchema({"column1": Column(String)})
@@ -268,7 +268,7 @@ def test_check_input_method_decorators():
     )
 
 
-def test_check_io():
+def test_check_io() -> None:
     # pylint: disable=too-many-locals
     """Test that check_io correctly validates/invalidates data."""
 
@@ -338,7 +338,7 @@ def test_check_io():
         (validate_lazy, [df1], [invalid_df], df1),
         (validate_inplace, [df1], [invalid_df], df1),
     ]:
-        result = fn(*valid)
+        result = fn(*valid)  # type: ignore[operator]
         if isinstance(result, pd.Series):
             assert (result == out).all()
         if isinstance(result, pd.DataFrame):
@@ -350,12 +350,12 @@ def test_check_io():
             errors.SchemaErrors if fn is validate_lazy else errors.SchemaError
         )
         with pytest.raises(expected_error):
-            fn(*invalid)
+            fn(*invalid)  # type: ignore[operator]
 
     # invalid out schema types
     for out_schema in [1, 5.0, "foo", {"foo": "bar"}, ["foo"]]:
 
-        @check_io(out=out_schema)
+        @check_io(out=out_schema)  # type: ignore[arg-type]  # mypy finds correctly the wrong usage
         def invalid_out_schema_type(df):
             return df
 
@@ -366,7 +366,7 @@ def test_check_io():
 @pytest.mark.parametrize(
     "obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}]
 )
-def test_check_input_output_unrecognized_obj_getter(obj_getter):
+def test_check_input_output_unrecognized_obj_getter(obj_getter) -> None:
     """
     Test that check_input and check_output raise correct errors on unrecognized
     dataframe object getters
@@ -405,7 +405,7 @@ def test_check_input_output_unrecognized_obj_getter(obj_getter):
         ),
     ],
 )
-def test_check_io_unrecognized_obj_getter(out, error, msg):
+def test_check_io_unrecognized_obj_getter(out, error, msg) -> None:
     """
     Test that check_io raise correct errors on unrecognized decorator arguments
     """
@@ -426,7 +426,7 @@ class OnlyZeroesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     a: Series[int] = Field(eq=0)
 
 
-def test_check_types_arguments():
+def test_check_types_arguments() -> None:
     """Test that check_types forwards key-words arguments to validate."""
     df = pd.DataFrame({"a": [0, 0]})
 
@@ -464,7 +464,7 @@ def test_check_types_arguments():
         transform_lazy(df)
 
 
-def test_check_types_unchanged():
+def test_check_types_unchanged() -> None:
     """Test the check_types behaviour when the dataframe is unchanged within the
     function being checked."""
 
@@ -510,7 +510,7 @@ class OutSchema(SchemaModel):  # pylint: disable=too-few-public-methods
         coerce = True
 
 
-def test_check_types_multiple_inputs():
+def test_check_types_multiple_inputs() -> None:
     """Test that check_types behaviour when multiple inputs are annotated."""
 
     @check_types
@@ -527,7 +527,7 @@ def test_check_types_multiple_inputs():
         transform(correct, wrong)
 
 
-def test_check_types_error_input():
+def test_check_types_error_input() -> None:
     """Test that check_types raises an error when the input is not correct."""
 
     @check_types
@@ -547,7 +547,7 @@ def test_check_types_error_input():
         assert exc.data.equals(df)
 
 
-def test_check_types_error_output():
+def test_check_types_error_output() -> None:
     """Test that check_types raises an error when the output is not correct."""
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
@@ -587,7 +587,7 @@ def test_check_types_error_output():
         assert exc.data.equals(df)
 
 
-def test_check_types_optional_out():
+def test_check_types_optional_out() -> None:
     """Test the check_types behaviour when the output schema is Optional."""
 
     @check_types
@@ -609,7 +609,7 @@ def test_check_types_optional_out():
     assert optional_out(df) is None
 
 
-def test_check_types_optional_in():
+def test_check_types_optional_in() -> None:
     """Test the check_types behaviour when the input schema is Optional."""
 
     @check_types
@@ -622,7 +622,7 @@ def test_check_types_optional_in():
     assert optional_in(None) is None
 
 
-def test_check_types_optional_in_out():
+def test_check_types_optional_in_out() -> None:
     """
     Test the check_types behaviour when both input and outputs schemas are
     Optional.
@@ -647,7 +647,7 @@ def test_check_types_optional_in_out():
     assert transform(None) is None
 
 
-def test_check_types_coerce():
+def test_check_types_coerce() -> None:
     """Test that check_types return the result of validate."""
 
     @check_types()
