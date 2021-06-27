@@ -124,9 +124,9 @@ catch these errors and inspect the failure cases in a more granular form:
         schema.validate(df, lazy=True)
     except pa.errors.SchemaErrors as err:
         print("Schema errors and failure cases:")
-        print(err.failure_cases.head())
+        print(err.failure_cases)
         print("\nDataFrame object that failed validation:")
-        print(err.data.head())
+        print(err.data)
 
 .. testoutput:: lazy_validation
     :skipif: SKIP_PANDAS_LT_V1
@@ -137,14 +137,18 @@ catch these errors and inspect the failure cases in a more granular form:
     1  DataFrameSchema          None      column_in_dataframe         None
     2           Column    int_column    pandas_dtype('int64')         None
     3           Column  float_column  pandas_dtype('float64')         None
-    4           Column    str_column              equal_to(a)            0
+    4           Column  float_column          greater_than(0)            0
+    5           Column    str_column              equal_to(a)            0
+    6           Column    str_column              equal_to(a)            0
 
          failure_case index
     0  unknown_column  None
     1     date_column  None
     2          object  None
     3           int64  None
-    4               b     1
+    4               0     0
+    5               b     1
+    6               d     2
 
     DataFrame object that failed validation:
       int_column  float_column str_column unknown_column

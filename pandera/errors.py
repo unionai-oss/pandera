@@ -171,5 +171,6 @@ class SchemaErrors(Exception):
             pd.concat(check_failure_cases)
             .reset_index(drop=True)
             .sort_values("schema_context", ascending=False)
+            .drop_duplicates()
         )
         return error_counts, failure_cases
