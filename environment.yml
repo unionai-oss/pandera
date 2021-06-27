@@ -50,7 +50,7 @@ dependencies:
   - pre_commit
 
   - pip:
-    - furo
+    - furo==2021.6.18b36
     - types-click
     - types-pyyaml
     - types-pkg_resources
