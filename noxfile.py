@@ -332,8 +332,8 @@ def docs(session: Session) -> None:
 
     # build html docs
     if not CI_RUN and not session.posargs:
-        shutil.rmtree(os.path.join("_build"), ignore_errors=True)
-        shutil.rmtree(os.path.join("generated"), ignore_errors=True)
+        shutil.rmtree("_build", ignore_errors=True)
+        shutil.rmtree(os.path.join("source", "generated"), ignore_errors=True)
         session.run(
             "sphinx-build",
             "-W",
