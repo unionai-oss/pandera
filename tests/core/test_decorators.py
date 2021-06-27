@@ -22,6 +22,7 @@ from pandera import (
     check_types,
     errors,
 )
+from pandera.errors import SchemaError
 from pandera.typing import DataFrame, Index, Series
 
 try:
@@ -698,3 +699,79 @@ def test_check_types_with_literal_type(arg_examples):
         transform_with_literal(df, example)
         with pytest.raises(errors.SchemaError):
             transform_with_literal(invalid_df, example)
+
+
+def test_check_types_multiple_args() -> None:
+    # pylint: disable=unused-argument
+
+    class SchemaIn1(SchemaModel):
+        col1: Series[int]
+
+        class Config:
+            strict = True
+
+    class SchemaIn2(SchemaModel):
+        col2: Series[int]
+
+        class Config:
+            strict = True
+
+    class SchemaOut(SchemaIn1, SchemaIn2):
+        col3: Series[int]
+
+        class Config:
+            strict = True
+
+    in1 = DataFrame({SchemaIn1.col1: [1]})
+    in2 = DataFrame({SchemaIn2.col2: [2]})
+    out = DataFrame({SchemaOut.col1: [1], SchemaOut.col2: [2], SchemaOut.col3: [3]})
+
+    class SomeClass:
+        @check_types
+        def regular_method(self, df1: DataFrame[SchemaIn1], df2: DataFrame[SchemaIn2]) -> DataFrame[SchemaOut]:
+            return out
+
+        @classmethod
+        @check_types
+        def class_method(cls, df1: DataFrame[SchemaIn1], df2: DataFrame[SchemaIn2]) -> DataFrame[SchemaOut]:
+            return out
+
+        @classmethod
+        @check_types
+        def static_method(cls, df1: DataFrame[SchemaIn1], df2: DataFrame[SchemaIn2]) -> DataFrame[SchemaOut]:
+            return out
+
+    instance = SomeClass()
+
+    pd.testing.assert_frame_equal(out, instance.regular_method(in1, in2))  # Used to fail
+    pd.testing.assert_frame_equal(out, instance.regular_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(out, instance.regular_method(df1=in1, df2=in2))
+
+    with pytest.raises(errors.SchemaError):
+        instance.regular_method(in2, in1)   # Used to fail
+    with pytest.raises(errors.SchemaError):
+        instance.regular_method(in2, df2=in1)
+    with pytest.raises(errors.SchemaError):
+        instance.regular_method(df1=in2, df2=in1)
+
+    pd.testing.assert_frame_equal(out, instance.class_method(in1, in2))
+    pd.testing.assert_frame_equal(out, instance.class_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(out, instance.class_method(df1=in1, df2=in2))
+
+    with pytest.raises(errors.SchemaError):
+        instance.class_method(in2, in1)
+    with pytest.raises(errors.SchemaError):
+        instance.class_method(in2, df2=in1)
+    with pytest.raises(errors.SchemaError):
+        instance.class_method(df1=in2, df2=in1)
+
+    pd.testing.assert_frame_equal(out, instance.static_method(in1, in2))
+    pd.testing.assert_frame_equal(out, instance.static_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(out, instance.static_method(df1=in1, df2=in2))
+
+    with pytest.raises(errors.SchemaError):
+        instance.static_method(in2, in1)
+    with pytest.raises(errors.SchemaError):
+        instance.static_method(in2, df2=in1)
+    with pytest.raises(errors.SchemaError):
+        instance.static_method(df1=in2, df2=in1)
