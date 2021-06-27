@@ -2,18 +2,10 @@
 import functools
 import inspect
 import typing
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    NoReturn,
-    Optional,
-    OrderedDict,
-    Tuple,
-    Union,
-    cast,
-)
+from collections import OrderedDict
+from typing import Any, Callable, Dict, List, NoReturn, Optional
+from typing import OrderedDict as OrderedDictT
+from typing import Tuple, Union, cast
 
 import pandas as pd
 import wrapt
@@ -141,7 +133,7 @@ def check_input(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         # pylint: disable=unused-argument
@@ -281,7 +273,7 @@ def check_output(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         # pylint: disable=unused-argument
@@ -365,7 +357,7 @@ def check_io(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],  # pylint: disable=unused-argument
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         """Check pandas DataFrame or Series before calling the function.
@@ -481,11 +473,14 @@ def check_types(
     def _wrapper(
         wrapped: Callable,
         instance: Optional[Any],
-        args: Tuple[Any],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
-        def validate_args(arguments: OrderedDict[str, Any]) -> Dict[str, Any]:
-            return {arg_name: _check_arg(arg_name, arg_value) for arg_name, arg_value in arguments.items()}
+        def validate_args(arguments: OrderedDictT[str, Any]) -> Dict[str, Any]:
+            return {
+                arg_name: _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in arguments.items()
+            }
 
         if instance is not None:
             # If the wrapped function is a method -> add "self" as the first positional arg
@@ -495,7 +490,8 @@ def check_types(
         validated_kwd = validate_args(sig.bind_partial(**kwargs).arguments)
 
         if instance is not None:
-            # If the decorated func is a method, wrapped is already a bound method -> remove the "self" argument
+            # If the decorated func is a method, "wrapped" is a bound method
+            # -> remove "self" before passing positional args through
             first_pos_arg = list(sig.parameters)[0]
             del validated_pos[first_pos_arg]
 

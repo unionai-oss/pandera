@@ -671,9 +671,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         def _format_multiline(json_str, arg):
             return "\n".join(
-                "{}{}".format(indent, line)
-                if i != 0
-                else "{}{}={}".format(indent, arg, line)
+                f"{indent}{line}" if i != 0 else f"{indent}{arg}={line}"
                 for i, line in enumerate(json_str.split("\n"))
             )
 
