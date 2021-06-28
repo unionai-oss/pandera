@@ -3,7 +3,6 @@
 # pylint:disable=no-value-for-parameter
 import functools
 import inspect
-import warnings
 from abc import ABCMeta
 from dataclasses import dataclass
 from typing import (
@@ -155,11 +154,6 @@ class Engine(ABCMeta):
 
             if "from_parametrized_dtype" in pandera_dtype_cls.__dict__:
                 cls._register_from_parametrized_dtype(pandera_dtype_cls)
-            elif not equivalents:
-                warnings.warn(
-                    f"register_dtype({pandera_dtype_cls}) on a class without a "
-                    + "'from_parametrized_dtype' classmethod has no effect."
-                )
 
             cls._registered_dtypes.add(pandera_dtype_cls)
             return pandera_dtype_cls
