@@ -318,7 +318,7 @@ Submit issues, feature requests or bugfixes on
    :caption: Reference
    :hidden:
 
-   API_reference
+   reference/index
 
 .. toctree::
    :maxdepth: 6

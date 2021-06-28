@@ -162,7 +162,7 @@ rst_prolog = """
 .. role:: green
 """
 
-autosummary_generate = ["API_reference.rst"]
+autosummary_generate = True
 autosummary_filename_map = {
     "pandera.Check": "pandera.Check",
     "pandera.check": "pandera.check_decorator",
