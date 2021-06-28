@@ -139,11 +139,9 @@ Engine.register_dtype(
     equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()],
 )
 @immutable
-class Bool(DataType, dtypes.Bool):
+class BOOL(DataType, dtypes.Bool):
     type = pd.BooleanDtype()
 
-
-BOOL = Bool
 
 ###############################################################################
 # number
@@ -213,42 +211,31 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.Int64Dtype, pd.Int64Dtype()])
 @immutable
-class Int64(DataType, dtypes.Int):
+class INT64(DataType, dtypes.Int):
     type = pd.Int64Dtype()
     bit_width: int = 64
 
 
-INT64 = Int64
-
-
 @Engine.register_dtype(equivalents=[pd.Int32Dtype, pd.Int32Dtype()])
 @immutable
-class Int32(Int64):
+class INT32(INT64):
     type = pd.Int32Dtype()
     bit_width: int = 32
 
 
-INT32 = Int32
-
-
 @Engine.register_dtype(equivalents=[pd.Int16Dtype, pd.Int16Dtype()])
 @immutable
-class Int16(Int32):
+class INT16(INT32):
     type = pd.Int16Dtype()
     bit_width: int = 16
 
 
-INT16 = Int16
-
-
 @Engine.register_dtype(equivalents=[pd.Int8Dtype, pd.Int8Dtype()])
 @immutable
-class Int8(Int16):
+class INT8(INT16):
     type = pd.Int8Dtype()
     bit_width: int = 8
 
-
-INT8 = Int8
 
 ###############################################################################
 # unsigned integer
@@ -263,36 +250,31 @@ _register_numpy_numbers(
 
 @Engine.register_dtype(equivalents=[pd.UInt64Dtype, pd.UInt64Dtype()])
 @immutable
-class UInt64(DataType, dtypes.UInt):
+class UINT64(DataType, dtypes.UInt):
     type = pd.UInt64Dtype()
     bit_width: int = 64
 
 
 @Engine.register_dtype(equivalents=[pd.UInt32Dtype, pd.UInt32Dtype()])
 @immutable
-class UInt32(UInt64):
+class UINT32(UINT64):
     type = pd.UInt32Dtype()
     bit_width: int = 32
 
 
 @Engine.register_dtype(equivalents=[pd.UInt16Dtype, pd.UInt16Dtype()])
 @immutable
-class UInt16(UInt32):
+class UINT16(UINT32):
     type = pd.UInt16Dtype()
     bit_width: int = 16
 
 
 @Engine.register_dtype(equivalents=[pd.UInt8Dtype, pd.UInt8Dtype()])
 @immutable
-class UInt8(UInt16):
+class UINT8(UINT16):
     type = pd.UInt8Dtype()
     bit_width: int = 8
 
-
-UINT64 = UInt64
-UINT32 = UInt32
-UINT16 = UInt16
-UINT8 = UInt8
 
 # ###############################################################################
 # # float
@@ -358,11 +340,8 @@ class Category(DataType, dtypes.Category):
     equivalents=["string", pd.StringDtype, pd.StringDtype()]
 )
 @immutable
-class String(DataType, dtypes.String):
+class STRING(DataType, dtypes.String):
     type = pd.StringDtype()
-
-
-STRING = String
 
 
 @Engine.register_dtype(
