@@ -18,7 +18,8 @@ from typing import (
 class DataType(ABC):
     """Base class of all Pandera data types."""
 
-    continuous: bool = False
+    continuous: Optional[bool] = None
+    """Whether the number data type is continuous."""
 
     def __init__(self):
         if self.__class__ is DataType:
@@ -27,15 +28,16 @@ class DataType(ABC):
             )
 
     def coerce(self, data_container: Any):
-        """Coerce data container to the dtype."""
+        """Coerce data container to the data type."""
         raise NotImplementedError()
 
     def __call__(self, data_container: Any):
-        """Coerce data container to the dtype."""
+        """Coerce data container to the data type."""
         return self.coerce(data_container)
 
     def check(self, pandera_dtype: "DataType") -> bool:
-        """Check that pandera :class:`DataType`s are equivalent."""
+        """Check that pandera :class:`~pandera.dtypes.DataType` are
+        equivalent."""
         return self == pandera_dtype
 
     def __repr__(self) -> str:
@@ -64,7 +66,7 @@ def immutable(
     :param dtype: :class:`DataType` to decorate.
     :param dataclass_kwargs: Keywords arguments forwarded to
         :func:`dataclasses.dataclass`.
-    :returns: Immutable :class:`~pandera.dtypes.DataType`
+    :returns: Immutable :class:`DataType`
     """
     kwargs = {"frozen": True, "init": False, "repr": False}
     kwargs.update(dataclass_kwargs)
@@ -98,6 +100,7 @@ class _Number(DataType):
     """Semantic representation of a numeric data type."""
 
     exact: Optional[bool] = None
+    """Whether the data type is an exact representation of a number."""
 
     def check(self, pandera_dtype: "DataType") -> bool:
         if self.__class__ is _Number:
@@ -109,6 +112,7 @@ class _Number(DataType):
 class _PhysicalNumber(_Number):
 
     bit_width: Optional[int] = None
+    """Number of bits used by the machine representation."""
     _base_name: Optional[str] = dataclasses.field(
         default=None, init=False, repr=False
     )
@@ -149,6 +153,7 @@ class Int(_PhysicalNumber):  # type: ignore
     exact = True
     bit_width = 64
     signed: bool = dataclasses.field(default=True, init=False)
+    """Whether the integer data type is signed."""
 
     def check(self, pandera_dtype: DataType) -> bool:
         return (

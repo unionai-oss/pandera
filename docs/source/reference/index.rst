@@ -22,3 +22,4 @@ installation with the corresponding extension, see the
    strategies
    extensions
    errors
+   dtypes

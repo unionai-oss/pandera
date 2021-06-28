@@ -41,6 +41,7 @@ class DataType(dtypes.DataType):
     """Base `DataType` for boxing Pandas data types."""
 
     type: Any = dataclasses.field(repr=False, init=False)
+    """Native pandas dtype boxed by the data type."""
 
     def __init__(self, dtype: Any):
         super().__init__()
@@ -82,7 +83,7 @@ class Engine(  # pylint:disable=too-few-public-methods
     @classmethod
     def dtype(cls, data_type: Any) -> "DataType":
         """Convert input into a pandas-compatible
-        Pandera :class:`DataType` object."""
+        Pandera :class:`~pandera.dtypes.DataType` object."""
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -113,7 +114,8 @@ class Engine(  # pylint:disable=too-few-public-methods
 
     @classmethod
     def numpy_dtype(cls, pandera_dtype: dtypes.DataType) -> np.dtype:
-        """Convert a pandera data type to a numpy data type."""
+        """Convert a Pandera :class:`~pandera.dtypes.DataType
+        to a :class:`numpy.dtype`."""
         pandera_dtype = engine.Engine.dtype(cls, pandera_dtype)
 
         alias = str(pandera_dtype).lower()
@@ -140,6 +142,8 @@ Engine.register_dtype(
 )
 @immutable
 class BOOL(DataType, dtypes.Bool):
+    """Semantic representation of a :class:`pandas.BooleanDtype`."""
+
     type = pd.BooleanDtype()
 
 
@@ -212,6 +216,8 @@ _register_numpy_numbers(
 @Engine.register_dtype(equivalents=[pd.Int64Dtype, pd.Int64Dtype()])
 @immutable
 class INT64(DataType, dtypes.Int):
+    """Semantic representation of a :class:`pandas.Int64Dtype`."""
+
     type = pd.Int64Dtype()
     bit_width: int = 64
 
@@ -219,6 +225,8 @@ class INT64(DataType, dtypes.Int):
 @Engine.register_dtype(equivalents=[pd.Int32Dtype, pd.Int32Dtype()])
 @immutable
 class INT32(INT64):
+    """Semantic representation of a :class:`pandas.Int32Dtype`."""
+
     type = pd.Int32Dtype()
     bit_width: int = 32
 
@@ -226,6 +234,8 @@ class INT32(INT64):
 @Engine.register_dtype(equivalents=[pd.Int16Dtype, pd.Int16Dtype()])
 @immutable
 class INT16(INT32):
+    """Semantic representation of a :class:`pandas.Int16Dtype`."""
+
     type = pd.Int16Dtype()
     bit_width: int = 16
 
@@ -233,6 +243,8 @@ class INT16(INT32):
 @Engine.register_dtype(equivalents=[pd.Int8Dtype, pd.Int8Dtype()])
 @immutable
 class INT8(INT16):
+    """Semantic representation of a :class:`pandas.Int8Dtype`."""
+
     type = pd.Int8Dtype()
     bit_width: int = 8
 
@@ -251,6 +263,8 @@ _register_numpy_numbers(
 @Engine.register_dtype(equivalents=[pd.UInt64Dtype, pd.UInt64Dtype()])
 @immutable
 class UINT64(DataType, dtypes.UInt):
+    """Semantic representation of a :class:`pandas.UInt64Dtype`."""
+
     type = pd.UInt64Dtype()
     bit_width: int = 64
 
@@ -258,6 +272,8 @@ class UINT64(DataType, dtypes.UInt):
 @Engine.register_dtype(equivalents=[pd.UInt32Dtype, pd.UInt32Dtype()])
 @immutable
 class UINT32(UINT64):
+    """Semantic representation of a :class:`pandas.UInt32Dtype`."""
+
     type = pd.UInt32Dtype()
     bit_width: int = 32
 
@@ -265,6 +281,8 @@ class UINT32(UINT64):
 @Engine.register_dtype(equivalents=[pd.UInt16Dtype, pd.UInt16Dtype()])
 @immutable
 class UINT16(UINT32):
+    """Semantic representation of a :class:`pandas.UInt16Dtype`."""
+
     type = pd.UInt16Dtype()
     bit_width: int = 16
 
@@ -272,6 +290,8 @@ class UINT16(UINT32):
 @Engine.register_dtype(equivalents=[pd.UInt8Dtype, pd.UInt8Dtype()])
 @immutable
 class UINT8(UINT16):
+    """Semantic representation of a :class:`pandas.UInt8Dtype`."""
+
     type = pd.UInt8Dtype()
     bit_width: int = 8
 
@@ -330,7 +350,7 @@ class Category(DataType, dtypes.Category):
         cls, cat: Union[dtypes.Category, pd.CategoricalDtype]
     ):
         """Convert a categorical to
-        a Pandera :class:`~pandera.dtypes.pandas_engine.Category`."""
+        a Pandera :class:`pandera.dtypes.pandas_engine.Category`."""
         return cls(  # type: ignore
             categories=cat.categories, ordered=cat.ordered
         )
@@ -341,6 +361,8 @@ class Category(DataType, dtypes.Category):
 )
 @immutable
 class STRING(DataType, dtypes.String):
+    """Semantic representation of a :class:`pandas.StringDtype`."""
+
     type = pd.StringDtype()
 
 
@@ -432,7 +454,7 @@ class DateTime(DataType, dtypes.Timestamp):
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
         """Convert a :class:`pandas.DatetimeTZDtype` to
-        a Pandera :class:`~pandera.engines.pandas_engine.DateTime`."""
+        a Pandera :class:`pandera.engines.pandas_engine.DateTime`."""
         return cls(unit=pd_dtype.unit, tz=pd_dtype.tz)  # type: ignore
 
     def __str__(self) -> str:
@@ -469,7 +491,7 @@ class Period(DataType):
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.PeriodDtype):
         """Convert a :class:`pandas.PeriodDtype` to
-        a Pandera :class:`~pandera.engines.pandas_engine.Period`."""
+        a Pandera :class:`pandera.engines.pandas_engine.Period`."""
         return cls(freq=pd_dtype.freq)  # type: ignore
 
 
@@ -497,7 +519,7 @@ class Sparse(DataType):
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.SparseDtype):
         """Convert a :class:`pandas.SparseDtype` to
-        a Pandera :class:`~pandera.engines.pandas_engine.Sparse`."""
+        a Pandera :class:`pandera.engines.pandas_engine.Sparse`."""
         return cls(  # type: ignore
             dtype=pd_dtype.subtype, fill_value=pd_dtype.fill_value
         )
@@ -519,5 +541,5 @@ class Interval(DataType):
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.IntervalDtype):
         """Convert a :class:`pandas.IntervalDtype` to
-        a Pandera :class:`~pandera.engines.pandas_engine.Interval`."""
+        a Pandera :class:`pandera.engines.pandas_engine.Interval`."""
         return cls(subtype=pd_dtype.subtype)  # type: ignore
