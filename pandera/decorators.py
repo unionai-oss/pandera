@@ -486,7 +486,7 @@ def check_types(
         args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
-        def validate_args(arguments: OrderedDict) -> Dict[str, Any]:
+        def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
             return {
                 arg_name: _check_arg(arg_name, arg_value)
                 for arg_name, arg_value in arguments.items()
