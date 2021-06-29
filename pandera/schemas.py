@@ -232,9 +232,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     @property
     def dtypes(self) -> Dict[str, DataType]:
+        # pylint:disable=anomalous-backslash-in-string
         """
         A dict where the keys are column names and values are
-        :class:`~pandera.dtypes.DataType` for the column. Excludes columns
+        :class:`~pandera.dtypes.DataType`\s for the column. Excludes columns
         where `regex=True`.
 
         :returns: dictionary of columns and their associated dtypes.

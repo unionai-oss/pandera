@@ -130,14 +130,32 @@ class Engine(ABCMeta):
         *,
         equivalents: Optional[List[Any]] = None,
     ) -> Callable:
-        """Register a Pandera :class:`DataType`.
+        """Register a Pandera :class:`~pandera.dtypes.DataType` with the engine,
+        as class decorator.
 
         :param pandera_dtype: The DataType to register.
-        :param equivalents: Equivalent scalar data type class or
-            non-parametrized data type instance.
+        :param equivalents: Equivalent scalar data type classes or
+            non-parametrized data type instances.
 
         .. note::
             The classmethod ``from_parametrized_dtype`` will also be registered.
+            See :ref:`here<dtypes>` for more usage details.
+
+        :example:
+
+        >>> import pandera as pa
+        >>>
+        >>> class MyDataType(pa.DataType):
+        ...     pass
+        >>>
+        >>> class MyEngine(
+        ...     metaclass=pa.engines.engine.Engine, base_pandera_dtypes=MyDataType
+        ... ):
+        ...     pass
+        >>>
+        >>> @MyEngine.register_dtype(equivalents=[bool])
+        >>> class MyBool(MyDataType):
+        ...     pass
         """
 
         def _wrapper(pandera_dtype_cls: Type[_DataType]) -> Type[_DataType]:

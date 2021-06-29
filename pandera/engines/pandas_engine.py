@@ -65,7 +65,7 @@ class DataType(dtypes.DataType):
             pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
             return False
-        return super().check(pandera_dtype)
+        return self.type == pandera_dtype.type
 
     def __str__(self) -> str:
         return str(self.type)

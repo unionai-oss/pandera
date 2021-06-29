@@ -312,6 +312,7 @@ Submit issues, feature requests or bugfixes on
    lazy_validation
    data_synthesis_strategies
    extensions
+   dtypes
 
 .. toctree::
    :maxdepth: 6
