@@ -29,6 +29,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
+  - xdoctest
   - setuptools >= 52.0.0
   - nox = 2020.12.31 # pinning due to UnicodeDecodeError, see https://github.com/pandera-dev/pandera/pull/504/checks?check_run_id=2841360122
   - importlib_metadata # required if python < 3.8

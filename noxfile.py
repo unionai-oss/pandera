@@ -22,6 +22,7 @@ nox.options.sessions = (
     "mypy",
     "tests",
     "docs",
+    "doctests",
 )
 
 DEFAULT_PYTHON = "3.8"
@@ -294,10 +295,7 @@ EXTRA_NAMES = [
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, extra: str) -> None:
     """Run the test suite."""
-    install_extras(
-        session,
-        extra,
-    )
+    install_extras(session, extra)
 
     if session.posargs:
         args = session.posargs
@@ -322,6 +320,13 @@ def tests(session: Session, extra: str) -> None:
         args.append(path)
 
     session.run("pytest", *args)
+
+
+@nox.session(python=PYTHON_VERSIONS)
+def doctests(session: Session) -> None:
+    """Build the documentation."""
+    install_extras(session, extra="all")
+    session.run("xdoctest", PACKAGE, "--quiet")
 
 
 @nox.session(python=PYTHON_VERSIONS)
