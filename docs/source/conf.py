@@ -174,6 +174,11 @@ intersphinx_mapping = {
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
 }
 
+# strip prompts
+copybutton_prompt_text = (
+    r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+)
+copybutton_prompt_is_regexp = True
 
 # this is a workaround to filter out forward reference issue in
 # sphinx_autodoc_typehints
