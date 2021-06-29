@@ -65,7 +65,14 @@ class DataType(dtypes.DataType):
             pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
             return False
-        return self.type == pandera_dtype.type
+
+        # attempts to compare pandas native type if possible
+        # to let subclass inherit check
+        # (super will compare that DataType classes are exactly the same)
+        try:
+            return self.type == pandera_dtype.type
+        except Exception:
+            return super().check(pandera_dtype)
 
     def __str__(self) -> str:
         return str(self.type)
