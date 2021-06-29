@@ -1,5 +1,5 @@
 """Pytest fixtures for testing custom checks."""
-import unittest.mock as mock
+from unittest import mock
 
 import pandas as pd
 import pytest

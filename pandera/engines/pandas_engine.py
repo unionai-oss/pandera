@@ -71,7 +71,7 @@ class DataType(dtypes.DataType):
         # (super will compare that DataType classes are exactly the same)
         try:
             return self.type == pandera_dtype.type
-        except Exception:
+        except TypeError:
             return super().check(pandera_dtype)
 
     def __str__(self) -> str:
