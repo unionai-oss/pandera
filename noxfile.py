@@ -347,6 +347,7 @@ def docs(session: Session) -> None:
             "-W",
             "-T",
             "-b=html",
+            "-b=doctest",
             "-d",
             os.path.join("_build", "doctrees", ""),
             "source",
