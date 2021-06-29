@@ -49,7 +49,7 @@ An engine is in charge of mapping a pandera :class:`~pandera.dtypes.DataType`
 with a native data type counterpart belonging to a third-party library. The mapping
 can be queried with :meth:`pandera.engines.engine.Engine.dtype`. 
 
-As of pandera 0.7, only the pandas :class:`~pandera.engines.pandas_engine.Engine` 
+As of pandera 0.7.0, only the pandas :class:`~pandera.engines.pandas_engine.Engine` 
 is supported.
 
 
@@ -61,24 +61,28 @@ litterals "True" and "False".
 
 .. testcode:: dtypes
 
-   import pandas as pd
-   import pandera as pa
-   from pandera import dtypes
-   from pandera.engines import pandas_engine
-   
-   
-   @pandas_engine.Engine.register_dtype # 1
-   @dtypes.immutable # 2
-   class LiteralBool(pandas_engine.BOOL): # 3
-       def coerce(self, series: pd.Series) -> pd.Series:
-           """Coerce a pandas.Series to date types."""
-           if pd.api.types.is_string_dtype(series):
-               series = series.replace({"True": 1, "False": 0})
-           return series.astype("boolean")
-   
-   
-   data = pd.Series(["True", "False"], name="literal_bools")
-   pa.SeriesSchema(LiteralBool(), coerce=True, name="literal_bools").validate(data).dtype # 4
+    import pandas as pd
+    import pandera as pa
+    from pandera import dtypes
+    from pandera.engines import pandas_engine
+    
+    
+    @pandas_engine.Engine.register_dtype # 1
+    @dtypes.immutable # 2
+    class LiteralBool(pandas_engine.BOOL): # 3
+        def coerce(self, series: pd.Series) -> pd.Series:
+            """Coerce a pandas.Series to date types."""
+            if pd.api.types.is_string_dtype(series):
+                series = series.replace({"True": 1, "False": 0})
+            return series.astype("boolean")
+    
+    
+    data = pd.Series(["True", "False"], name="literal_bools")
+    print( # 4
+        pa.SeriesSchema(LiteralBool(), coerce=True, name="literal_bools")
+        .validate(data)
+        .dtype
+    ) 
 
 .. testoutput:: dtypes
 
@@ -97,16 +101,16 @@ So far we did not override the default behavior:
 
 .. testcode:: dtypes
 
-   import pandera as pa
-
-   pa.SeriesSchema("boolean", coerce=True).validate(data)
+    import pandera as pa
+ 
+    pa.SeriesSchema("boolean", coerce=True).validate(data)
   
 
 .. testoutput:: dtypes
    
-   Traceback (most recent call last):
-   ...
-   pandera.errors.SchemaError: Error while coercing 'literal_bools' to type boolean: Need to pass bool-like values
+    Traceback (most recent call last):
+    ...
+    pandera.errors.SchemaError: Error while coercing 'literal_bools' to type boolean: Need to pass bool-like values
 
 To completely replace the default :class:`~pandera.engines.pandas_engine.BOOL`, 
 we need to supply all the equivalent representations to 
@@ -116,33 +120,33 @@ is looked up using :meth:`pandera.engines.engine.Engine.dtype`.
 
 .. testcode:: dtypes
 
-   print(f"before: {pandas_engine.Engine.dtype('boolean').__class__}")
-
-
-   @pandas_engine.Engine.register_dtype
-       equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()], 
-   )
-   @dtypes.immutable
-   class LiteralBool(pandas_engine.BOOL):
-       def coerce(self, series: pd.Series) -> pd.Series:
-           """Coerce a pandas.Series to date types."""
-           if pd.api.types.is_string_dtype(series):
-                series = series.replace({"True": 1, "False": 0})
-           return series.astype("boolean")
-
-   print(f"after: {pandas_engine.Engine.dtype('boolean')}")
-
-   for dtype in ["boolean", pd.BooleanDtype, pd.BooleanDtype()]:
-       pa.SeriesSchema(dtype, coerce=True).validate(data)
+    print(f"before: {pandas_engine.Engine.dtype('boolean').__class__}")
+ 
+ 
+    @pandas_engine.Engine.register_dtype(
+        equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()], 
+    )
+    @dtypes.immutable
+    class LiteralBool(pandas_engine.BOOL):
+        def coerce(self, series: pd.Series) -> pd.Series:
+            """Coerce a pandas.Series to date types."""
+            if pd.api.types.is_string_dtype(series):
+                 series = series.replace({"True": 1, "False": 0})
+            return series.astype("boolean")
+ 
+    print(f"after: {pandas_engine.Engine.dtype('boolean').__class__}")
+ 
+    for dtype in ["boolean", pd.BooleanDtype, pd.BooleanDtype()]:
+        pa.SeriesSchema(dtype, coerce=True).validate(data)
 
 .. testoutput:: dtypes
    
-   before: <class 'pandera.engines.pandas_engine.BOOL'>
-   after: <class '__main__.LiteralBool'>
+    before: <class 'pandera.engines.pandas_engine.BOOL'>
+    after: <class 'LiteralBool'>
 
 .. note:: For convenience, we specified both ``pd.BooleanDtype`` and 
-   ``pd.BooleanDtype()`` as equivalents. That gives us more flexibility in
-   what pandera schemas can recognize (see last for-loop above).
+    ``pd.BooleanDtype()`` as equivalents. That gives us more flexibility in
+    what pandera schemas can recognize (see last for-loop above).
 
 Parametrized data types
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,21 +167,21 @@ For example, here is a snippet from :class:`pandera.engines.pandas_engine.Catego
 
 .. code-block:: python
 
-   import pandas as pd
-   from pandera import dtypes
-
-   ...
-
-   @classmethod
-   def from_parametrized_dtype(
-       cls, cat: Union[dtypes.Category, pd.CategoricalDtype]
-   ):
-       """Convert a categorical to
-       a Pandera :class:`pandera.dtypes.pandas_engine.Category`."""
-       return cls(  # type: ignore
-           categories=cat.categories, ordered=cat.ordered
-       )
+    import pandas as pd
+    from pandera import dtypes
+ 
+    ...
+ 
+    @classmethod
+    def from_parametrized_dtype(
+        cls, cat: Union[dtypes.Category, pd.CategoricalDtype]
+    ):
+        """Convert a categorical to
+        a Pandera :class:`pandera.dtypes.pandas_engine.Category`."""
+        return cls(  # type: ignore
+            categories=cat.categories, ordered=cat.ordered
+        )
 
 
 .. note:: The dispatch mechanism relies on :func:`functools.singledispatch`. 
-   Unlike the built-in implementation, :data:`typing.Union` is recognized. 
+    Unlike the built-in implementation, :data:`typing.Union` is recognized. 
