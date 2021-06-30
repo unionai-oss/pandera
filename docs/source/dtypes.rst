@@ -12,7 +12,7 @@ Extending Data Types (new)
 Motivations
 ~~~~~~~~~~~
 
-Pandera defines its own inferface for data types in order to abstract the
+Pandera defines its own interface for data types in order to abstract the
 specificities of dataframe-like data structures in the python ecosystem, such
 as Apache Spark, Apache Arrow and xarray.
 
