@@ -1,7 +1,6 @@
 """Decorators for integrating pandera into existing data pipelines."""
 import functools
 import inspect
-import sys
 import typing
 from collections import OrderedDict
 from typing import (
