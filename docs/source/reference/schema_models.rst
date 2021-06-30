@@ -1,9 +1,13 @@
+.. _api-schema-models:
+
 Schema Models
 =============
+
 .. currentmodule:: pandera
 
 Schema Model
-~~~~~~~~~~~~
+------------
+
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -11,7 +15,8 @@ Schema Model
    pandera.model.SchemaModel
 
 Model Components
-~~~~~~~~~~~~~~~~
+----------------
+
 .. autosummary::
    :toctree: generated
 
@@ -20,7 +25,7 @@ Model Components
    pandera.model_components.dataframe_check
 
 Typing
-~~~~~~
+------
 
 .. autosummary::
    :toctree: generated
@@ -30,7 +35,8 @@ Typing
    pandera.typing
 
 Config
-~~~~~~
+------
+
 .. autosummary::
    :toctree: generated
    :template: model_component_class.rst

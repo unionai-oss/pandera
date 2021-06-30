@@ -5,17 +5,33 @@
 API
 ===
 
-The ``io`` module and built-in ``Hypothesis`` checks require a pandera
-installation with the corresponding extension, see the
-:ref:`installation<installation>` instructions for more details.
+.. list-table::
+   :widths: 25 75
+
+   * - :ref:`Core <api-core>`
+     - The core objects for defining pandera schemas
+   * - :ref:`Data Types <api-dtypes>`
+     - Data types for type checking and coercion.
+   * - :ref:`Schema Models <api-schema-models>`
+     - Alternative class-based API for defining pandera schemas.
+   * - :ref:`Decorators <api-decorators>`
+     - Decorators for integrating pandera schemas with python functions.
+   * - :ref:`Schema Inference <api-schema-inference>`
+     - Bootstrap schemas from real data
+   * - :ref:`IO Utilities <api-io-utils>`
+     - Utility functions for reading/writing schemas
+   * - :ref:`Strategies <api-strategies>`
+     - Module of functions for generating data from schemas.
+   * - :ref:`Extensions <api-extensions>`
+     - Utility functions for extending pandera functionality
+   * - :ref:`Errors <api-errors>`
+     - Pandera-specific exceptions
 
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
-   schemas
-   schema_components
+   core
    schema_models
-   checks
    decorators
    schema_inference
    io

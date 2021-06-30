@@ -1,8 +1,11 @@
+.. _api-dtypes:
+
 Pandera Data Types
 ==================
 
 Library-agnostic dtypes
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
+
 .. autosummary::
    :toctree: generated
    :template: dtype.rst
@@ -37,7 +40,7 @@ Library-agnostic dtypes
 
 
 Pandas-specific Dtypes
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 Listed here for compatibility with pandera versions < 0.7.
 Passing native pandas dtypes to pandera components is preferred.
@@ -60,7 +63,8 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.numpy_engine.Object
 
 Utility functions
-~~~~~~~~~~~~~~~~~
+-----------------
+
 .. autosummary::
    :toctree: generated
    :nosignatures:
@@ -78,7 +82,8 @@ Utility functions
    pandera.dtypes.immutable
 
 Engines
-~~~~~~~
+-------
+
 .. autosummary::
    :toctree: generated
    :template: class.rst

@@ -338,6 +338,8 @@ _register_numpy_numbers(
 )
 @immutable(init=True)
 class Category(DataType, dtypes.Category):
+    """Semantic representation of a :class:`pandas.CategoricalDtype`."""
+
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
 
     def __init__(  # pylint:disable=super-init-not-called

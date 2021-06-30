@@ -1,3 +1,5 @@
+.. _api-extensions:
+
 Extensions
 ==========
 

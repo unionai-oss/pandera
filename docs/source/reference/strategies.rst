@@ -1,3 +1,5 @@
+.. _api-strategies:
+
 Data Synthesis Strategies
 =========================
 

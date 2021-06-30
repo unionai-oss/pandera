@@ -306,13 +306,13 @@ Submit issues, feature requests or bugfixes on
    series_schemas
    checks
    hypothesis
+   dtypes
    decorators
    schema_inference
    schema_models
    lazy_validation
    data_synthesis_strategies
    extensions
-   dtypes
 
 .. toctree::
    :maxdepth: 6

@@ -4,8 +4,8 @@
 
 .. _dtypes:
 
-Extending Data Types (new)
-==========================
+Pandera Data Types (new)
+========================
 
 *new in 0.7.0*
 
@@ -67,9 +67,9 @@ literals ``"True"`` and ``"False"``.
     from pandera.engines import pandas_engine
 
 
-    @pandas_engine.Engine.register_dtype  # 1
-    @dtypes.immutable  # 2
-    class LiteralBool(pandas_engine.BOOL):  # 3
+    @pandas_engine.Engine.register_dtype  # step 1
+    @dtypes.immutable  # step 2
+    class LiteralBool(pandas_engine.BOOL):  # step 3
         def coerce(self, series: pd.Series) -> pd.Series:
             """Coerce a pandas.Series to date types."""
             if pd.api.types.is_string_dtype(series):
@@ -78,7 +78,9 @@ literals ``"True"`` and ``"False"``.
 
 
     data = pd.Series(["True", "False"], name="literal_bools")
-    print(  # 4
+
+    # step 4
+    print(
         pa.SeriesSchema(LiteralBool(), coerce=True, name="literal_bools")
         .validate(data)
         .dtype
@@ -87,6 +89,8 @@ literals ``"True"`` and ``"False"``.
 .. testoutput:: dtypes
 
    boolean
+
+The example above performs the following steps:
 
 1. Register the data type with the pandas engine.
 2. :func:`pandera.dtypes.immutable` creates an immutable (and hashable)
@@ -153,7 +157,7 @@ Parametrized data types
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Some data types can be parametrized. One common example is
-`pandas.CategoricalDtype(categories=None, ordered=False) <(https://pandas.pydata.org/docs/reference/api/pandas.CategoricalDtype.html)>`_.
+:class:`pandas.CategoricalDtype`.
 
 The ``equivalents`` argument of
 :meth:`~pandera.engines.engine.Engine.register_dtype` does not handle
@@ -170,9 +174,6 @@ For example, here is a snippet from :class:`pandera.engines.pandas_engine.Catego
 
     import pandas as pd
     from pandera import dtypes
-
-    ...
-
 
     @classmethod
     def from_parametrized_dtype(

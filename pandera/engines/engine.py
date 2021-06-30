@@ -154,8 +154,9 @@ class Engine(ABCMeta):
         ...     pass
         >>>
         >>> @MyEngine.register_dtype(equivalents=[bool])
-        >>> class MyBool(MyDataType):
+        ... class MyBool(MyDataType):
         ...     pass
+
         """
 
         def _wrapper(pandera_dtype_cls: Type[_DataType]) -> Type[_DataType]:
