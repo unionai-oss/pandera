@@ -13,7 +13,7 @@ Motivations
 ~~~~~~~~~~~
 
 Pandera defines its own interface for data types in order to abstract the
-specificities of dataframe-like data structures in the python ecosystem, such
+specifics of dataframe-like data structures in the python ecosystem, such
 as Apache Spark, Apache Arrow and xarray.
 
 .. note:: In the following section ``Pandera Data Type`` refers to a
@@ -22,11 +22,11 @@ as Apache Spark, Apache Arrow and xarray.
 
 Most of the time, it is transparent to end users since pandera columns and
 indexes accept native data types. However, it is possible to extend the pandera
-interface to:
+interface by:
 
-* modify the **data type check** performed during schema validation.
-* modify the behavior of the **coerce** argument for :class:`~pandea.schemas.DataFrameSchema`.
-* add your **own custom data types**.
+* modifying the **data type check** performed during schema validation.
+* modifying the behavior of the **coerce** argument for :class:`~pandea.schemas.DataFrameSchema`.
+* adding your **own custom data types**.
 
 DataType basics
 ~~~~~~~~~~~~~~~
@@ -34,7 +34,7 @@ DataType basics
 All pandera data types inherit from :class:`pandera.dtypes.DataType` and must
 be hashable.
 
-A data type implements key methods:
+A data type implements three key methods:
 
 * :meth:`pandera.dtypes.DataType.check` which validates that data types are equivalent.
 * :meth:`pandera.dtypes.DataType.coerce` which coerces a data container
@@ -49,7 +49,7 @@ An engine is in charge of mapping a pandera :class:`~pandera.dtypes.DataType`
 with a native data type counterpart belonging to a third-party library. The mapping
 can be queried with :meth:`pandera.engines.engine.Engine.dtype`.
 
-As of pandera 0.7.0, only the pandas :class:`~pandera.engines.pandas_engine.Engine`
+As of pandera ``0.7.0``, only the pandas :class:`~pandera.engines.pandas_engine.Engine`
 is supported.
 
 
@@ -57,7 +57,7 @@ Example
 ~~~~~~~
 
 Let's extend :class:`pandas.BooleanDtype` coercion to handle the string
-litterals "True" and "False".
+literals ``"True"`` and ``"False"``.
 
 .. testcode:: dtypes
 
