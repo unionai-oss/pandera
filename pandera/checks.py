@@ -412,6 +412,10 @@ class _CheckBase(metaclass=_CheckMeta):
                 )
                 check_output = check_output | isna
             failure_cases = check_obj[~check_output]
+            if not failure_cases.empty and self.n_failure_cases is not None:
+                failure_cases = failure_cases.groupby(check_output).head(
+                    self.n_failure_cases
+                )
         elif isinstance(check_output, pd.DataFrame):
             # check results consisting of a boolean dataframe should be
             # reported at the most granular level.
@@ -424,15 +428,14 @@ class _CheckBase(metaclass=_CheckMeta):
                 .rename_axis(["column", "index"])
                 .reset_index()
             )
+            if not failure_cases.empty and self.n_failure_cases is not None:
+                failure_cases = failure_cases.drop_duplicates().head(
+                    self.n_failure_cases
+                )
         else:
             raise TypeError(
                 f"output type of check_fn not recognized: {type(check_output)}"
             )
-
-        if failure_cases is not None and self.n_failure_cases is not None:
-            failure_cases = failure_cases.drop_duplicates().iloc[
-                : self.n_failure_cases
-            ]
 
         check_passed = (
             check_output.all()
