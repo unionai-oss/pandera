@@ -173,11 +173,12 @@ def install_extras(
     force_pip: bool = False,
 ) -> None:
     """Install dependencies."""
-    specs = [
-        spec if spec != "pandas" else "pandas"
-        for spec in REQUIRES[extra].values()
-        if spec not in ALWAYS_USE_PIP
-    ]
+    specs, pip_specs = [], []
+    for spec in REQUIRES[extra].values():
+        if spec.split("==")[0] in ALWAYS_USE_PIP:
+            pip_specs.append(spec)
+        else:
+            specs.append(spec if spec != "pandas" else "pandas")
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
@@ -191,7 +192,7 @@ def install_extras(
         print("using pip installer")
         session.install(*specs)
 
-    session.install(*ALWAYS_USE_PIP)
+    session.install(*pip_specs)
     # always use pip for these packages
     session.install("-e", ".", "--no-deps")  # install pandera
 
