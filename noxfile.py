@@ -343,17 +343,17 @@ def docs(session: Session) -> None:
             os.path.join("source", "reference", "generated"),
             ignore_errors=True,
         )
-        session.run(
-            "sphinx-build",
-            "-W",
-            "-T",
-            "-b=html",
-            "-b=doctest",
-            "-d",
-            os.path.join("_build", "doctrees", ""),
-            "source",
-            os.path.join("_build", "html", ""),
-        )
+        for builder in ["doctest", "html"]:
+            session.run(
+                "sphinx-build",
+                "-W",
+                "-T",
+                f"-b={builder}",
+                "-d",
+                os.path.join("_build", "doctrees", ""),
+                "source",
+                os.path.join("_build", builder, ""),
+            )
     else:
         shutil.rmtree(os.path.join("_build"), ignore_errors=True)
         args = session.posargs or [
