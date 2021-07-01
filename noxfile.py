@@ -326,7 +326,7 @@ def tests(session: Session, extra: str) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def doctests(session: Session) -> None:
     """Build the documentation."""
-    install_extras(session, extra="all")
+    install_extras(session, extra="all", force_pip=True)
     session.run("xdoctest", PACKAGE, "--quiet")
 
 
