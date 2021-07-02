@@ -27,6 +27,7 @@ from pandera.dtypes import (
     _DEFAULT_NUMPY_INT_TYPE,
     _DEFAULT_PANDAS_FLOAT_TYPE,
     _DEFAULT_PANDAS_INT_TYPE,
+    PANDAS_1_3_0_PLUS,
 )
 from pandera.errors import SchemaError
 
@@ -360,9 +361,7 @@ def test_pandas_extension_types():
     test_params = [
         (
             pd.CategoricalDtype(
-                ["a", "b", "c"]
-                if PANDAS_VERSION.release >= (1, 3, 0)
-                else None
+                ["a", "b", "c"] if PANDAS_1_3_0_PLUS else None
             ),
             pd.Series(["a", "a", "b", "b", "c", "c"], dtype="category"),
             None,
@@ -398,7 +397,7 @@ def test_pandas_extension_types():
             (
                 # pylint:disable=unexpected-keyword-arg
                 pd.IntervalDtype(subtype="int64", closed="right")
-                if PANDAS_VERSION.release >= (1, 3, 0)
+                if PANDAS_1_3_0_PLUS
                 else pd.IntervalDtype(subtype="int64")
             ),
             pd.Series(pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])),

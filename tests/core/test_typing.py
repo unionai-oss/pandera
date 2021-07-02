@@ -6,14 +6,10 @@ from typing import Any, Dict, Type
 import numpy as np
 import pandas as pd
 import pytest
-from packaging import version
 
 import pandera as pa
-from pandera.dtypes import LEGACY_PANDAS, PandasDtype
+from pandera.dtypes import LEGACY_PANDAS, PANDAS_1_3_0_PLUS, PandasDtype
 from pandera.typing import LEGACY_TYPING, Series
-
-PANDAS_VERSION = version.parse(pd.__version__)
-
 
 if not LEGACY_TYPING:
     try:  # python 3.9+
@@ -317,7 +313,7 @@ if not LEGACY_TYPING:
     class SchemaAnnotatedDatetimeTZDtype(pa.SchemaModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
-    if PANDAS_VERSION.release >= (1, 3, 0):
+    if PANDAS_1_3_0_PLUS:
 
         class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
             col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
@@ -351,7 +347,7 @@ if not LEGACY_TYPING:
                 pd.IntervalDtype,
                 (
                     {"subtype": "int32", "closed": "both"}
-                    if PANDAS_VERSION.release >= (1, 3, 0)
+                    if PANDAS_1_3_0_PLUS
                     else {"subtype": "int32"}
                 ),
             ),

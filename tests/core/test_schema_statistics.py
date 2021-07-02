@@ -3,14 +3,13 @@
 
 import pandas as pd
 import pytest
-from packaging import version
 
 import pandera as pa
 from pandera import PandasDtype, dtypes, schema_statistics
+from pandera.dtypes import PANDAS_1_3_0_PLUS
 
 DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_INT_TYPE)
 DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)
-PANDAS_VERSION = version.parse(pd.__version__)
 
 
 def _create_dataframe(multi_index=False, nullable=False):
@@ -54,16 +53,16 @@ def test_infer_dataframe_statistics(multi_index, nullable):
     statistics = schema_statistics.infer_dataframe_statistics(dataframe)
     stat_columns = statistics["columns"]
 
-    if PANDAS_VERSION.release < (1, 3, 0):
+    if PANDAS_1_3_0_PLUS:
+        if nullable:
+            assert stat_columns["int"]["pandas_dtype"] is DEFAULT_FLOAT
+        else:
+            assert stat_columns["int"]["pandas_dtype"] is DEFAULT_INT
+    else:
         if nullable:
             assert stat_columns["boolean"]["pandas_dtype"] is DEFAULT_FLOAT
         else:
             assert stat_columns["boolean"]["pandas_dtype"] is pa.Bool
-
-    if nullable:
-        assert stat_columns["int"]["pandas_dtype"] is DEFAULT_FLOAT
-    else:
-        assert stat_columns["int"]["pandas_dtype"] is DEFAULT_INT
 
     assert stat_columns["float"]["pandas_dtype"] is DEFAULT_FLOAT
     assert stat_columns["string"]["pandas_dtype"] is pa.String
@@ -228,18 +227,16 @@ INTEGER_TYPES = [
             pd.Series([True, False, True, False]),
             {
                 "pandas_dtype": (
-                    DEFAULT_FLOAT
-                    if PANDAS_VERSION.release < (1, 3, 0)
-                    else pa.Bool
+                    pa.Bool if PANDAS_1_3_0_PLUS else DEFAULT_FLOAT
                 ),
                 "nullable": True,
                 "checks": (
-                    {
+                    None
+                    if PANDAS_1_3_0_PLUS
+                    else {
                         "greater_than_or_equal_to": 0,
                         "less_than_or_equal_to": 1,
                     }
-                    if PANDAS_VERSION.release < (1, 3, 0)
-                    else None
                 ),
                 "name": None,
             },
