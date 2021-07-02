@@ -306,6 +306,7 @@ Submit issues, feature requests or bugfixes on
    series_schemas
    checks
    hypothesis
+   dtypes
    decorators
    schema_inference
    schema_models
@@ -318,7 +319,7 @@ Submit issues, feature requests or bugfixes on
    :caption: Reference
    :hidden:
 
-   API_reference
+   reference/index
 
 .. toctree::
    :maxdepth: 6

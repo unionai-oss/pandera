@@ -3,7 +3,6 @@
 # pylint:disable=no-value-for-parameter
 import functools
 import inspect
-import warnings
 from abc import ABCMeta
 from dataclasses import dataclass
 from typing import (
@@ -12,11 +11,11 @@ from typing import (
     Callable,
     Dict,
     List,
+    Optional,
     Set,
     Tuple,
     Type,
     TypeVar,
-    Union,
     get_type_hints,
 )
 
@@ -118,9 +117,7 @@ class Engine(ABCMeta):
             cls._registry[cls].dispatch.register(source_dtype, _method)
 
     def _register_equivalents(
-        cls,
-        pandera_dtype_cls: Type[DataType],
-        *source_dtypes: Any,
+        cls, pandera_dtype_cls: Type[DataType], *source_dtypes: Any
     ) -> None:
         pandera_dtype = pandera_dtype_cls()  # type: ignore
         for source_dtype in source_dtypes:
@@ -129,21 +126,40 @@ class Engine(ABCMeta):
 
     def register_dtype(
         cls: _EngineType,
-        pandera_dtype_cls: Type[DataType] = None,
+        pandera_dtype_cls: Type[_DataType] = None,
         *,
-        equivalents: List[Any] = None,
-    ):
-        """Register a Pandera :class:`DataType`.
+        equivalents: Optional[List[Any]] = None,
+    ) -> Callable:
+        """Register a Pandera :class:`~pandera.dtypes.DataType` with the engine,
+        as class decorator.
 
         :param pandera_dtype: The DataType to register.
-        :param equivalents: Equivalent scalar data type class or
-            non-parametrized data type instance.
+        :param equivalents: Equivalent scalar data type classes or
+            non-parametrized data type instances.
 
         .. note::
             The classmethod ``from_parametrized_dtype`` will also be registered.
+            See :ref:`here<dtypes>` for more usage details.
+
+        :example:
+
+        >>> import pandera as pa
+        >>>
+        >>> class MyDataType(pa.DataType):
+        ...     pass
+        >>>
+        >>> class MyEngine(
+        ...     metaclass=pa.engines.engine.Engine, base_pandera_dtypes=MyDataType
+        ... ):
+        ...     pass
+        >>>
+        >>> @MyEngine.register_dtype(equivalents=[bool])
+        ... class MyBool(MyDataType):
+        ...     pass
+
         """
 
-        def _wrapper(pandera_dtype_cls: Union[DataType, Type[DataType]]):
+        def _wrapper(pandera_dtype_cls: Type[_DataType]) -> Type[_DataType]:
             if not inspect.isclass(pandera_dtype_cls):
                 raise ValueError(
                     f"{cls.__name__}.register_dtype can only decorate a class, "
@@ -155,11 +171,6 @@ class Engine(ABCMeta):
 
             if "from_parametrized_dtype" in pandera_dtype_cls.__dict__:
                 cls._register_from_parametrized_dtype(pandera_dtype_cls)
-            elif not equivalents:
-                warnings.warn(
-                    f"register_dtype({pandera_dtype_cls}) on a class without a "
-                    + "'from_parametrized_dtype' classmethod has no effect."
-                )
 
             cls._registered_dtypes.add(pandera_dtype_cls)
             return pandera_dtype_cls
@@ -199,7 +210,9 @@ class Engine(ABCMeta):
                 f"Data type '{data_type}' not understood by {cls.__name__}."
             ) from None
 
-    def get_registered_dtypes(cls) -> List[Type[DataType]]:
-        """Return :class:`pandera.dtypes.DataType`s registered
+    def get_registered_dtypes(  # pylint:disable=W1401
+        cls,
+    ) -> List[Type[DataType]]:
+        """Return the :class:`pandera.dtypes.DataType`\s registered
         with this engine."""
         return list(cls._registered_dtypes)

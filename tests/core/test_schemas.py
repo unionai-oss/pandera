@@ -88,7 +88,6 @@ def test_dataframe_schema():
     # checks if 'a' is converted to float, while schema says int, will a schema
     # error be thrown
     with pytest.raises(errors.SchemaError):
-        df.assign(a=[1.7, 2.3, 3.1]).info()
         schema.validate(df.assign(a=[1.7, 2.3, 3.1]))
 
 
@@ -191,10 +190,7 @@ def test_dataframe_dtype_coerce():
     assert (df.dtypes == float_alias).all()
 
     # raises ValueError if _coerce_dtype is called when dtype is None
-    print("---")
     schema.dtype = None
-    print("----=-")
-    print(schema.dtype)
     with pytest.raises(ValueError):
         schema._coerce_dtype(df)
 
@@ -316,7 +312,6 @@ def test_series_schema():
     )
 
     def f(series):
-        print(series)
         return series.isin(["foo", "bar", "baz"])
 
     str_schema = SeriesSchema(
@@ -1561,7 +1556,6 @@ def test_schema_str_repr(schema, fields):
         schema.__str__(),
         schema.__repr__(),
     ]:
-        print(x)
         assert x.startswith(f"<Schema {schema.__class__.__name__}(")
         assert x.endswith(")>")
         for field in fields:
