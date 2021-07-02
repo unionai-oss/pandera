@@ -30,4 +30,4 @@ recommonmark
 twine
 asv
 pre_commit
-furo
+furo==2021.6.18b36
