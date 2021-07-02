@@ -6,10 +6,14 @@ from typing import Any, Dict, Type
 import numpy as np
 import pandas as pd
 import pytest
+from packaging import version
 
 import pandera as pa
 from pandera.dtypes import LEGACY_PANDAS, PandasDtype
 from pandera.typing import LEGACY_TYPING, Series
+
+PANDAS_VERSION = version.parse(pd.__version__)
+
 
 if not LEGACY_TYPING:
     try:  # python 3.9+
@@ -292,7 +296,8 @@ class SchemaDefaultSparseDtype(pa.SchemaModel):
         # DatetimeTZDtype: tz is implictly required
         (SchemaDefaultDatetimeTZDtype, pd.DatetimeTZDtype, True),
         (SchemaDefaultIntervalDtype, pd.IntervalDtype, False),
-        # PeriodDtype: freq is implicitely required -> str(pd.PeriodDtype()) raises AttributeError
+        # PeriodDtype: freq is implicitely required -> str(pd.PeriodDtype())
+        # raises AttributeError
         (SchemaDefaultPeriodDtype, pd.PeriodDtype, True),
         (SchemaDefaultSparseDtype, pd.SparseDtype, False),
     ],
@@ -312,8 +317,15 @@ if not LEGACY_TYPING:
     class SchemaAnnotatedDatetimeTZDtype(pa.SchemaModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
-    class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
-        col: Series[Annotated[pd.IntervalDtype, "int32"]]
+    if PANDAS_VERSION.release >= (1, 3, 0):
+
+        class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
+            col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
+
+    else:
+
+        class SchemaAnnotatedIntervalDtype(pa.SchemaModel):  # type: ignore
+            col: Series[Annotated[pd.IntervalDtype, "int32"]]
 
     class SchemaAnnotatedPeriodDtype(pa.SchemaModel):
         col: Series[Annotated[pd.PeriodDtype, "D"]]
@@ -337,7 +349,11 @@ if not LEGACY_TYPING:
             (
                 SchemaAnnotatedIntervalDtype,
                 pd.IntervalDtype,
-                {"subtype": "int32"},
+                (
+                    {"subtype": "int32", "closed": "both"}
+                    if PANDAS_VERSION.release >= (1, 3, 0)
+                    else {"subtype": "int32"}
+                ),
             ),
             (SchemaAnnotatedPeriodDtype, pd.PeriodDtype, {"freq": "D"}),
             (
@@ -357,7 +373,10 @@ if not LEGACY_TYPING:
         col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
 
     def test_invalid_annotated_dtype():
-        """Test incorrect number of parameters for parametrized pandas extension dtypes."""
+        """
+        Test incorrect number of parameters for parametrized pandas extension
+        dtypes.
+        """
         err_msg = re.escape(
             "Annotation 'DatetimeTZDtype' requires all "
             r"positional arguments ['unit', 'tz']."
@@ -371,7 +390,10 @@ if not LEGACY_TYPING:
         )
 
     def test_pandas_extension_dtype_redundant_field():
-        """Test incorrect number of parameters for parametrized pandas extension dtypes."""
+        """
+        Test incorrect number of parameters for parametrized pandas extension
+        dtypes.
+        """
         err_msg = r"Cannot specify redundant 'dtype_kwargs' for"
         with pytest.raises(TypeError, match=err_msg):
             SchemaRedundantField.to_schema()
