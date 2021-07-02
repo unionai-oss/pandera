@@ -39,10 +39,10 @@ int_dtypes = {
 
 
 nullable_int_dtypes = {
-    pandas_engine.Int8: "Int8",
-    pandas_engine.Int16: "Int16",
-    pandas_engine.Int32: "Int32",
-    pandas_engine.Int64: "Int64",
+    pandas_engine.INT8: "Int8",
+    pandas_engine.INT16: "Int16",
+    pandas_engine.INT32: "Int32",
+    pandas_engine.INT64: "Int64",
 }
 
 uint_dtypes = {
@@ -58,10 +58,10 @@ uint_dtypes = {
 }
 
 nullable_uint_dtypes = {
-    pandas_engine.UInt8: "UInt8",
-    pandas_engine.UInt16: "UInt16",
-    pandas_engine.UInt32: "UInt32",
-    pandas_engine.UInt64: "UInt64",
+    pandas_engine.UINT8: "UInt8",
+    pandas_engine.UINT16: "UInt16",
+    pandas_engine.UINT32: "UInt32",
+    pandas_engine.UINT64: "UInt64",
 }
 
 float_dtypes = {

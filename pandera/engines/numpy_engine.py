@@ -25,6 +25,7 @@ class DataType(dtypes.DataType):
     type: np.dtype = dataclasses.field(
         default=np.dtype("object"), repr=False, init=False
     )
+    """Native numpy dtype boxed by the data type."""
 
     def __init__(self, dtype: Any):
         super().__init__()
@@ -58,7 +59,7 @@ class Engine(  # pylint:disable=too-few-public-methods
     @classmethod
     def dtype(cls, data_type: Any) -> dtypes.DataType:
         """Convert input into a numpy-compatible
-        Pandera :class:`DataType` object."""
+        Pandera :class:`~pandera.dtypes.DataType` object."""
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
@@ -324,6 +325,8 @@ class String(DataType, dtypes.String):
 @Engine.register_dtype(equivalents=["object", "O", object, np.object_])
 @immutable
 class Object(DataType):
+    """Semantic representation of a :class:`numpy.object_`."""
+
     type = np.dtype("object")
 
 

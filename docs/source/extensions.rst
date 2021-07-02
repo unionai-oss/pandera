@@ -4,8 +4,8 @@
 
 .. _extensions:
 
-Extensions (new)
-================
+Extensions
+==========
 
 *new in 0.6.0*
 

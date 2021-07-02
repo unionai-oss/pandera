@@ -41,14 +41,6 @@ def engine() -> Generator[Engine, None, None]:
     del FakeEngine
 
 
-def test_register_bare_dtype(engine: Engine):
-    """Test that a dtype without  equivalents nor 'from_parametrized_dtype'
-    classmethod can be registered.
-    """
-    with pytest.warns(UserWarning):
-        engine.register_dtype(SimpleDtype)
-
-
 def test_register_equivalents(engine: Engine, equivalents: List[Any]):
     """Test that a dtype with equivalents can be registered."""
     engine.register_dtype(SimpleDtype, equivalents=equivalents)

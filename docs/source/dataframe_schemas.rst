@@ -10,7 +10,7 @@ DataFrame Schemas
 The :class:`~pandera.schemas.DataFrameSchema` class enables the specification of a schema
 that verifies the columns and index of a pandas ``DataFrame`` object.
 
-The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
+The :class:`~pandera.schemas.DataFrameSchema` object consists of |column|_\s and an |index|_.
 
 .. |column| replace:: ``Column``
 .. |index| replace:: ``Index``
@@ -44,11 +44,24 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 Column Validation
 -----------------
 
-A :class:`~pandera.schema_components.Column` must specify the properties of a column in a dataframe
-object. It can be optionally verified for its data type, `null values`_ or
+A :class:`~pandera.schema_components.Column` must specify the properties of a
+column in a dataframe object. It can be optionally verified for its data type,
+`null values`_ or
 duplicate values. The column can be coerced_ into the specified type, and the
 required_ parameter allows control over whether or not the column is allowed to
 be missing.
+
+Similarly to pandas, the data type can be specified as:
+
+* a string alias, as long as it is recognized by pandas.
+* a python type: `int`, `float`, `double`, `bool`, `str`
+* a `numpy data type <(https://numpy.org/doc/stable/user/basics.types.html)>`_
+* a `pandas extension type <(https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#dtypes)>`_:
+  it can be an instance (e.g `pd.CategoricalDtype(["a", "b"])`) or a
+  class (e.g `pandas.CategoricalDtype`) if it can be initialized with default
+  values.
+* a pandera :class:`~pandera.dtypes.DataType`: it can also be an instance or a
+  class.
 
 :ref:`Column checks<checks>` allow for the DataFrame's values to be
 checked against a user-provided function. ``Check`` objects also support
@@ -270,7 +283,7 @@ objects can also be used to validate columns in a dataframe on its own:
     validated_df = df.pipe(column1_schema).pipe(column2_schema)
 
 
-For multi-column use cases, the ``DataFrameSchema`` is still recommended, but
+For multi-column use cases, the :class:`~pandera.schemas.DataFrameSchema` is still recommended, but
 if you have one or a small number of columns to verify, using ``Column``
 objects by themselves is appropriate.
 
@@ -594,12 +607,13 @@ indexes by composing a list of ``pandera.Index`` objects.
     foo    2             3
 
 
-Get Pandas Datatypes
---------------------
+Get Pandas Data Types
+---------------------
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
-schema. ``DataFrameSchema`` provides a `dtype` property which returns a pandas
-style dict. The keys of the dict are column names and values are the dtype.
+schema. :class:`~pandera.schemas.DataFrameSchema` provides
+a :attr:`~pandera.schemas.DataFrameSchema.dtypes` property which returns a
+dictionary whose keys are column names and values are :class:`~pandera.dtypes.DataType`.
 
 Some examples of where this can be provided to pandas are:
 

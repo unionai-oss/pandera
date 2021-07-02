@@ -22,6 +22,7 @@ nox.options.sessions = (
     "mypy",
     "tests",
     "docs",
+    "doctests",
 )
 
 DEFAULT_PYTHON = "3.8"
@@ -172,11 +173,12 @@ def install_extras(
     force_pip: bool = False,
 ) -> None:
     """Install dependencies."""
-    specs = [
-        spec if spec != "pandas" else "pandas"
-        for spec in REQUIRES[extra].values()
-        if spec not in ALWAYS_USE_PIP
-    ]
+    specs, pip_specs = [], []
+    for spec in REQUIRES[extra].values():
+        if spec.split("==")[0] in ALWAYS_USE_PIP:
+            pip_specs.append(spec)
+        else:
+            specs.append(spec if spec != "pandas" else "pandas")
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
@@ -190,7 +192,7 @@ def install_extras(
         print("using pip installer")
         session.install(*specs)
 
-    session.install(*ALWAYS_USE_PIP)
+    session.install(*pip_specs)
     # always use pip for these packages
     session.install("-e", ".", "--no-deps")  # install pandera
 
@@ -294,10 +296,7 @@ EXTRA_NAMES = [
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, extra: str) -> None:
     """Run the test suite."""
-    install_extras(
-        session,
-        extra,
-    )
+    install_extras(session, extra)
 
     if session.posargs:
         args = session.posargs
@@ -325,6 +324,13 @@ def tests(session: Session, extra: str) -> None:
 
 
 @nox.session(python=PYTHON_VERSIONS)
+def doctests(session: Session) -> None:
+    """Build the documentation."""
+    install_extras(session, extra="all", force_pip=True)
+    session.run("xdoctest", PACKAGE, "--quiet")
+
+
+@nox.session(python=PYTHON_VERSIONS)
 def docs(session: Session) -> None:
     """Build the documentation."""
     install_extras(session, extra="all", force_pip=True)
@@ -332,18 +338,22 @@ def docs(session: Session) -> None:
 
     # build html docs
     if not CI_RUN and not session.posargs:
-        shutil.rmtree(os.path.join("_build"), ignore_errors=True)
-        shutil.rmtree(os.path.join("generated"), ignore_errors=True)
-        session.run(
-            "sphinx-build",
-            "-W",
-            "-T",
-            "-b=html",
-            "-d",
-            os.path.join("_build", "doctrees", ""),
-            "source",
-            os.path.join("_build", "html", ""),
+        shutil.rmtree("_build", ignore_errors=True)
+        shutil.rmtree(
+            os.path.join("source", "reference", "generated"),
+            ignore_errors=True,
         )
+        for builder in ["doctest", "html"]:
+            session.run(
+                "sphinx-build",
+                "-W",
+                "-T",
+                f"-b={builder}",
+                "-d",
+                os.path.join("_build", "doctrees", ""),
+                "source",
+                os.path.join("_build", builder, ""),
+            )
     else:
         shutil.rmtree(os.path.join("_build"), ignore_errors=True)
         args = session.posargs or [

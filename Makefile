@@ -21,7 +21,7 @@ requirements:
 	pip install -r requirements-dev.txt
 
 docs:
-	rm -rf docs/source/generated && \
+	rm -rf docs/**/generated docs/**/methods docs/_build && \
 		python -m sphinx -E "docs/source" "docs/_build" -W && \
 		make -C docs doctest
 
