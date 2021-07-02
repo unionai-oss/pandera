@@ -22,7 +22,6 @@ from . import errors, schemas
 from .model import SchemaModel
 from .typing import AnnotationInfo
 
-
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
