@@ -396,6 +396,7 @@ def test_pandas_extension_types():
         (pd.BooleanDtype(), pd.Series([1, 0, 0, 1, 1], dtype="boolean"), None),
         (
             (
+                # pylint:disable=unexpected-keyword-arg
                 pd.IntervalDtype(subtype="int64", closed="right")
                 if PANDAS_VERSION.release >= (1, 3, 0)
                 else pd.IntervalDtype(subtype="int64")
