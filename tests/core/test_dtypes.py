@@ -269,7 +269,7 @@ def test_valid_numpy_type_conversions(type1, type2):
 
 
 @pytest.mark.skipif(
-    PANDAS_VERSION.release >= (1, 3, 0),
+    PANDAS_VERSION.release >= (1, 3, 0),  # type: ignore
     reason="pandas < 1.3.0 converts number types to default",
 )
 @pytest.mark.parametrize(
