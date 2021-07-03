@@ -1,6 +1,8 @@
 """Tests a variety of python and pandas dtypes, and tests some specific
 coercion examples."""
 
+import platform
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -27,10 +29,12 @@ from pandera.dtypes import (
     _DEFAULT_NUMPY_INT_TYPE,
     _DEFAULT_PANDAS_FLOAT_TYPE,
     _DEFAULT_PANDAS_INT_TYPE,
+    PANDAS_1_3_0_PLUS,
 )
 from pandera.errors import SchemaError
 
 PANDAS_VERSION = version.parse(pd.__version__)
+WINDOWS = platform.system() == "Windows"
 
 TESTABLE_DTYPES = [
     (Bool, "bool"),
@@ -242,41 +246,62 @@ def helper_type_validation(dataframe_type, schema_type, debugging=False):
 @pytest.mark.parametrize(
     "type1, type2",
     [
-        # Pandas always converts complex numbers to np.complex128
         (np.complex_, np.complex_),
         (np.complex_, np.complex128),
         (np.complex128, np.complex_),
-        (np.complex64, np.complex128),
-        (np.complex128, np.complex128),
-        # Pandas always converts float numbers to np.float64
         (np.float_, np.float_),
         (np.float_, np.float64),
-        (np.float16, np.float64),
-        (np.float32, np.float64),
-        (np.float64, np.float64),
-        # Pandas always converts int numbers to np.int64
-        (np.int_, np.int64),
-        (np.int8, np.int64),
-        (np.int16, np.int64),
-        (np.int32, np.int64),
-        (np.int64, np.int64),
-        # Pandas always converts int numbers to np.int64
-        (np.uint, np.int64),
-        (np.uint, np.int64),
-        (np.uint8, np.int64),
-        (np.uint16, np.int64),
-        (np.uint32, np.int64),
-        (np.uint64, np.int64),
+        (np.int_, np.int32 if WINDOWS and PANDAS_1_3_0_PLUS else np.int64),
+        # unsigned ints are converted to signed ints if passed as a scalar
+        (np.uint, np.int32 if WINDOWS and PANDAS_1_3_0_PLUS else np.int64),
         (np.bool_, np.bool_),
         (np.str_, np.str_)
         # np.object, np.void and bytes are not tested
     ],
 )
-def test_valid_numpy_type_conversions(type1, type2):
+def test_valid_numpy_type_scalar_conversions(type1, type2):
     """Test correct conversions of numpy dtypes"""
     try:
         helper_type_validation(type1, type2)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa E722
+        # No exceptions since it should cover all exceptions for debug
+        # purpose
+        # Rerun test with debug information
+        print(f"Error on types: {type1}, {type2}")
+        helper_type_validation(type1, type2, True)
+
+
+@pytest.mark.skipif(
+    PANDAS_VERSION.release >= (1, 3, 0),  # type: ignore
+    reason="pandas < 1.3.0 converts number types to default",
+)
+@pytest.mark.parametrize(
+    "type1, type2",
+    [
+        # Pandas < 1.3.0 always converts complex numbers to np.complex128
+        (np.complex64, np.complex128),
+        (np.complex128, np.complex128),
+        # Pandas < 1.3.0 always converts float numbers to np.float64
+        (np.float16, np.float64),
+        (np.float32, np.float64),
+        (np.float64, np.float64),
+        # Pandas < 1.3.0 always converts int numbers to np.int64
+        (np.int16, np.int64),
+        (np.int32, np.int64),
+        (np.int64, np.int64),
+        # Pandas < 1.3.0 always converts int numbers to np.int64
+        (np.uint8, np.int64),
+        (np.uint16, np.int64),
+        (np.uint32, np.int64),
+        (np.uint64, np.int64),
+        # np.object, np.void and bytes are not tested
+    ],
+)
+def test_valid_numpy_type_scalar_conversions_pandas_pre_1_3_0(type1, type2):
+    """Test correct conversions of numpy dtypes"""
+    try:
+        helper_type_validation(type1, type2)
+    except:  # pylint: disable=bare-except  # noqa E722
         # No exceptions since it should cover all exceptions for debug
         # purpose
         # Rerun test with debug inforation
@@ -338,7 +363,9 @@ def test_pandas_extension_types():
     # pylint: disable=no-member
     test_params = [
         (
-            pd.CategoricalDtype(),
+            pd.CategoricalDtype(
+                ["a", "b", "c"] if PANDAS_1_3_0_PLUS else None
+            ),
             pd.Series(["a", "a", "b", "b", "c", "c"], dtype="category"),
             None,
         ),
@@ -370,7 +397,12 @@ def test_pandas_extension_types():
         ),
         (pd.BooleanDtype(), pd.Series([1, 0, 0, 1, 1], dtype="boolean"), None),
         (
-            pd.IntervalDtype(subtype="int64"),
+            (
+                # pylint:disable=unexpected-keyword-arg
+                pd.IntervalDtype(subtype="int64", closed="right")
+                if PANDAS_1_3_0_PLUS
+                else pd.IntervalDtype(subtype="int64")
+            ),
             pd.Series(pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])),
             None,
         ),

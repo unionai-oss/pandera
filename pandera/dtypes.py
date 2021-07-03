@@ -10,7 +10,9 @@ from packaging import version
 
 PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
 
-LEGACY_PANDAS = version.parse(pd.__version__).major < 1  # type: ignore
+PANDAS_VERSION = version.parse(pd.__version__)
+LEGACY_PANDAS = PANDAS_VERSION.major < 1  # type: ignore
+PANDAS_1_3_0_PLUS = PANDAS_VERSION.release >= (1, 3, 0)  # type: ignore
 NUMPY_NONNULLABLE_INT_DTYPES = [
     "int",
     "int_",

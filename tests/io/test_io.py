@@ -2,8 +2,8 @@
 
 import platform
 import tempfile
-import unittest.mock as mock
 from pathlib import Path
+from unittest import mock
 
 import pandas as pd
 import pytest

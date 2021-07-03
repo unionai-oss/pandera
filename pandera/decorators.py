@@ -141,7 +141,7 @@ def check_input(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         # pylint: disable=unused-argument
@@ -281,7 +281,7 @@ def check_output(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         # pylint: disable=unused-argument
@@ -365,7 +365,7 @@ def check_io(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],  # pylint: disable=unused-argument
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         """Check pandas DataFrame or Series before calling the function.
@@ -450,13 +450,13 @@ def check_types(
 
     # Front-load annotation parsing
     annotated_schemas: Dict[str, Tuple[schemas.DataFrameSchema, bool]] = {}
-    for arg_name, annotation in typing.get_type_hints(wrapped).items():
+    for arg_name_, annotation in typing.get_type_hints(wrapped).items():
         annotation_info = AnnotationInfo(annotation)
         if not annotation_info.is_generic_df:
             continue
 
         schema = cast(SchemaModel, annotation_info.arg).to_schema()
-        annotated_schemas[arg_name] = (schema, annotation_info.optional)
+        annotated_schemas[arg_name_] = (schema, annotation_info.optional)
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
@@ -480,22 +480,30 @@ def check_types(
     @wrapt.decorator
     def _wrapper(
         wrapped: Callable,
-        instance: Optional[Any],  # pylint:disable=unused-argument
-        args: Union[List[Any], Tuple[Any]],
+        instance: Optional[Any],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
-        # 1st element for positional args, 2nd for keyword args
-        pos_kw_validated: List[Dict] = []
-        for arguments in (
-            sig.bind_partial(*args).arguments,
-            sig.bind_partial(**kwargs).arguments,
-        ):
-            validated_args = {}
-            for arg_name, arg_value in arguments.items():
-                validated_args[arg_name] = _check_arg(arg_name, arg_value)
-            pos_kw_validated.append(validated_args)
+        def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
+            return {
+                arg_name: _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in arguments.items()
+            }
 
-        out = wrapped(*pos_kw_validated[0].values(), **pos_kw_validated[1])
+        if instance is not None:
+            # If the wrapped function is a method -> add "self" as the first positional arg
+            args = (instance, *args)
+
+        validated_pos = validate_args(sig.bind_partial(*args).arguments)
+        validated_kwd = validate_args(sig.bind_partial(**kwargs).arguments)
+
+        if instance is not None:
+            # If the decorated func is a method, "wrapped" is a bound method
+            # -> remove "self" before passing positional args through
+            first_pos_arg = list(sig.parameters)[0]
+            del validated_pos[first_pos_arg]
+
+        out = wrapped(*validated_pos.values(), **validated_kwd)
         return _check_arg("return", out)
 
     return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
