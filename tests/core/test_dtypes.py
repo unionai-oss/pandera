@@ -1,6 +1,8 @@
 """Tests a variety of python and pandas dtypes, and tests some specific
 coercion examples."""
 
+import platform
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -32,6 +34,7 @@ from pandera.dtypes import (
 from pandera.errors import SchemaError
 
 PANDAS_VERSION = version.parse(pd.__version__)
+WINDOWS = platform.system() == "Windows"
 
 TESTABLE_DTYPES = [
     (Bool, "bool"),
@@ -240,6 +243,9 @@ def helper_type_validation(dataframe_type, schema_type, debugging=False):
     schema(df)
 
 
+np_dtype_int = np.int32 if WINDOWS else np.int64
+
+
 @pytest.mark.parametrize(
     "type1, type2",
     [
@@ -248,19 +254,19 @@ def helper_type_validation(dataframe_type, schema_type, debugging=False):
         (np.complex128, np.complex_),
         (np.float_, np.float_),
         (np.float_, np.float64),
-        (np.int_, np.int64),
-        (np.uint, np.int64),
-        (np.uint, np.int64),
+        (np.int_, np_dtype_int),
+        # unsigned ints are converted to signed ints if passed as a scalar
+        (np.uint, np_dtype_int),
         (np.bool_, np.bool_),
         (np.str_, np.str_)
         # np.object, np.void and bytes are not tested
     ],
 )
-def test_valid_numpy_type_conversions(type1, type2):
+def test_valid_numpy_type_scalar_conversions(type1, type2):
     """Test correct conversions of numpy dtypes"""
     try:
         helper_type_validation(type1, type2)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa E722
         # No exceptions since it should cover all exceptions for debug
         # purpose
         # Rerun test with debug inforation
@@ -294,11 +300,11 @@ def test_valid_numpy_type_conversions(type1, type2):
         # np.object, np.void and bytes are not tested
     ],
 )
-def test_valid_numpy_type_conversions_pandas_pre_1_3_0(type1, type2):
+def test_valid_numpy_type_scalar_conversions_pandas_pre_1_3_0(type1, type2):
     """Test correct conversions of numpy dtypes"""
     try:
         helper_type_validation(type1, type2)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa E722
         # No exceptions since it should cover all exceptions for debug
         # purpose
         # Rerun test with debug inforation
