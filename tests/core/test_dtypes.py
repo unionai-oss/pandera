@@ -243,9 +243,6 @@ def helper_type_validation(dataframe_type, schema_type, debugging=False):
     schema(df)
 
 
-np_dtype_int = np.int32 if WINDOWS else np.int64
-
-
 @pytest.mark.parametrize(
     "type1, type2",
     [
@@ -254,9 +251,9 @@ np_dtype_int = np.int32 if WINDOWS else np.int64
         (np.complex128, np.complex_),
         (np.float_, np.float_),
         (np.float_, np.float64),
-        (np.int_, np_dtype_int),
+        (np.int_, np.int32 if WINDOWS and PANDAS_1_3_0_PLUS else np.int64),
         # unsigned ints are converted to signed ints if passed as a scalar
-        (np.uint, np_dtype_int),
+        (np.uint, np.int32 if WINDOWS and PANDAS_1_3_0_PLUS else np.int64),
         (np.bool_, np.bool_),
         (np.str_, np.str_)
         # np.object, np.void and bytes are not tested
@@ -269,7 +266,7 @@ def test_valid_numpy_type_scalar_conversions(type1, type2):
     except:  # pylint: disable=bare-except  # noqa E722
         # No exceptions since it should cover all exceptions for debug
         # purpose
-        # Rerun test with debug inforation
+        # Rerun test with debug information
         print(f"Error on types: {type1}, {type2}")
         helper_type_validation(type1, type2, True)
 
