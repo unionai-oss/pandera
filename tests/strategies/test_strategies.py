@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-import pandera.strategies as strategies
+from pandera import strategies
 from pandera.checks import _CheckBase, register_check_statistics
 
 try:

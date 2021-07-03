@@ -31,5 +31,7 @@ code-cov:
 nox:
 	nox -r --envdir .nox-virtualenv
 
+NOX_FLAGS ?= "-r"
+
 nox-conda:
-	nox -r -db conda --envdir .nox-conda
+	nox -db conda --envdir .nox-conda ${NOX_FLAGS}

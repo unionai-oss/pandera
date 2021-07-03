@@ -323,8 +323,7 @@ def _format_checks(checks_dict):
             )
         else:
             args = ", ".join(
-                "{}={}".format(k, v.__repr__())
-                for k, v in check_kwargs.items()
+                f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
             )
             checks.append(f"Check.{check_name}({args})")
     return f"[{', '.join(checks)}]"
@@ -395,7 +394,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         else _format_index(statistics["index"])
     )
 
-    column_str = ", ".join("'{}': {}".format(k, v) for k, v in columns.items())
+    column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,

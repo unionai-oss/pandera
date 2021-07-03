@@ -49,4 +49,4 @@ dependencies:
   - pre_commit
 
   - pip:
-    - furo
+    - furo==2021.6.18b36

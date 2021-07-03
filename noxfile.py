@@ -175,12 +175,17 @@ def install_extras(
 ) -> None:
     """Install dependencies."""
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
-    specs = [
-        spec if spec != "pandas" else f"pandas{pandas_version}"
-        for spec in REQUIRES[extra].values()
-        if spec not in ALWAYS_USE_PIP
-    ]
-    session.install(*ALWAYS_USE_PIP)
+    specs, pip_specs = [], []
+    for spec in REQUIRES[extra].values():
+        if spec.split("==")[0] in ALWAYS_USE_PIP:
+            pip_specs.append(spec)
+        else:
+            specs.append(
+                spec if spec != "pandas" else f"pandas{pandas_version}"
+            )
+    if extra == "core":
+        specs.append(REQUIRES["all"]["hypothesis"])
+
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
         and not force_pip
@@ -190,6 +195,8 @@ def install_extras(
     else:
         print("using pip installer")
         session.install(*specs)
+
+    session.install(*pip_specs)
     # always use pip for these packages
     session.install("-e", ".", "--no-deps")  # install pandera
 
