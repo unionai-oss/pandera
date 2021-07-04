@@ -38,6 +38,7 @@ class Column(SeriesSchemaBase):
         required: bool = True,
         name: str = None,
         regex: bool = False,
+        pandas_dtype: PandasDtypeInputTypes = None,
     ) -> None:
         """Create column validator object.
 
@@ -56,6 +57,7 @@ class Column(SeriesSchemaBase):
         :param name: column name in dataframe to validate.
         :param regex: whether the ``name`` attribute should be treated as a
             regex pattern to apply to multiple columns in a dataframe.
+        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:

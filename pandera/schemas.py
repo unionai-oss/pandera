@@ -74,6 +74,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         strict: Union[bool, str] = False,
         name: str = None,
         ordered: bool = False,
+        pandas_dtype: PandasDtypeInputTypes = None,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -101,8 +102,13 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             are not present in the dataframe, will throw an error.
         :param name: name of the schema.
         :param ordered: whether or not to validate the columns order.
+        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
+
+            .. warning:: This option will be deprecated in 0.8.0
 
         :raises SchemaInitError: if impossible to build schema from parameters
+        :raises SchemaInitError: if ``dtype`` and ``pandas_dtype`` are both
+            supplied.
 
         :examples:
 
@@ -1465,6 +1471,7 @@ class SeriesSchemaBase:
         allow_duplicates: bool = True,
         coerce: bool = False,
         name: Any = None,
+        pandas_dtype: PandasDtypeInputTypes = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1477,11 +1484,14 @@ class SeriesSchemaBase:
             ``Callable[Any, bool]`` where the ``Any`` input is a scalar element
             in the column. Otherwise, the input is assumed to be a
             pandas.Series object.
-        :type checks: callable
         :param nullable: Whether or not column can contain null values.
-        :type nullable: bool
-        :param allow_duplicates:
-        :type allow_duplicates: bool
+        :param allow_duplicates: Whether or not column can contain duplicate
+            values.
+        :param coerce: If True, when schema.validate is called the column will
+            be coerced into the specified dtype. This has no effect on columns
+            where ``pandas_dtype=None``.
+        :param name: column name in dataframe to validate.
+        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
         """
         if checks is None:
             checks = []
