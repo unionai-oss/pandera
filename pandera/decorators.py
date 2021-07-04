@@ -11,8 +11,10 @@ from typing import (
     NoReturn,
     Optional,
     Tuple,
+    TypeVar,
     Union,
     cast,
+    overload,
 )
 
 import pandas as pd
@@ -25,6 +27,7 @@ from .typing import AnnotationInfo
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
+F = TypeVar("F", bound=Callable)
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
@@ -77,7 +80,7 @@ def check_input(
     random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
-) -> Callable:
+) -> Callable[[F], F]:
     # pylint: disable=duplicate-code
     """Validate function argument when function is called.
 
@@ -215,7 +218,7 @@ def check_output(
     random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
-) -> Callable:
+) -> Callable[[F], F]:
     # pylint: disable=duplicate-code
     """Validate function output.
 
@@ -330,8 +333,8 @@ def check_io(
         Tuple[OutputGetter, Schemas],
         List[Tuple[OutputGetter, Schemas]],
     ] = None,
-    **inputs: Dict[InputGetter, Schemas],
-) -> Callable:
+    **inputs: Schemas,
+) -> Callable[[F], F]:
     """Check schema for multiple inputs and outputs.
 
     See :ref:`here<decorators>` for more usage details.
@@ -408,6 +411,34 @@ def check_io(
         return wrapped_fn(*args, **kwargs)
 
     return _wrapper
+
+
+@overload
+def check_types(
+    wrapped: F,
+    *,
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
+    lazy: bool = False,
+    inplace: bool = False,
+) -> F:
+    ...
+
+
+@overload
+def check_types(
+    wrapped: None = None,
+    *,
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
+    lazy: bool = False,
+    inplace: bool = False,
+) -> Callable[[F], F]:
+    ...
 
 
 def check_types(
