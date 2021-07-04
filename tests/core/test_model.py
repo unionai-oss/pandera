@@ -12,7 +12,7 @@ import pandera.extensions as pax
 from pandera.typing import DataFrame, Index, Series, String
 
 
-def test_to_schema():
+def test_to_schema() -> None:
     """Test that SchemaModel.to_schema() can produce the correct schema."""
 
     class Schema(pa.SchemaModel):
@@ -31,7 +31,7 @@ def test_to_schema():
         Schema()
 
 
-def test_empty_schema():
+def test_empty_schema() -> None:
     """Test that SchemaModel supports empty schemas."""
 
     empty_schema = pa.DataFrameSchema()
@@ -56,7 +56,7 @@ def test_empty_schema():
     assert schema == EmptyParentSchema.to_schema()
 
 
-def test_invalid_annotations():
+def test_invalid_annotations() -> None:
     """Test that SchemaModel.to_schema() fails if annotations or types are not
     recognized.
     """
@@ -86,7 +86,7 @@ def test_invalid_annotations():
         InvalidDtype.to_schema()
 
 
-def test_optional_column():
+def test_optional_column() -> None:
     """Test that optional columns are not required."""
 
     class Schema(pa.SchemaModel):
@@ -100,7 +100,7 @@ def test_optional_column():
     assert not schema.columns["c"].required
 
 
-def test_optional_index():
+def test_optional_index() -> None:
     """Test that optional indices are not required."""
 
     class Schema(pa.SchemaModel):
@@ -116,7 +116,7 @@ def test_optional_index():
             model.to_schema()
 
 
-def test_schemamodel_with_fields():
+def test_schemamodel_with_fields() -> None:
     """Test that Fields are translated in the schema."""
 
     class Schema(pa.SchemaModel):
@@ -138,9 +138,9 @@ def test_schemamodel_with_fields():
     assert actual == expected
 
 
-def test_invalid_field():
+def test_invalid_field() -> None:
     class Schema(pa.SchemaModel):
-        a: Series[int] = 0
+        a: Series[int] = 0  # type: ignore[assignment]  # mypy identifies the wrong usage correctly
 
     with pytest.raises(
         pa.errors.SchemaInitError, match="'a' can only be assigned a 'Field'"
@@ -148,7 +148,7 @@ def test_invalid_field():
         Schema.to_schema()
 
 
-def test_multiindex():
+def test_multiindex() -> None:
     """Test that multiple Index annotations create a MultiIndex."""
 
     class Schema(pa.SchemaModel):
@@ -166,7 +166,7 @@ def test_multiindex():
     assert expected == Schema.to_schema()
 
 
-def test_column_check_name():
+def test_column_check_name() -> None:
     """Test that column name is mandatory."""
 
     class Schema(pa.SchemaModel):
@@ -176,7 +176,7 @@ def test_column_check_name():
         Schema.to_schema()
 
 
-def test_single_index_check_name():
+def test_single_index_check_name() -> None:
     """Test single index name."""
     df = pd.DataFrame(index=pd.Index(["cat", "dog"], name="animal"))
 
@@ -203,7 +203,7 @@ def test_single_index_check_name():
         SchemaNamedIndex.validate(df)
 
 
-def test_multiindex_check_name():
+def test_multiindex_check_name() -> None:
     """Test a MultiIndex name."""
 
     df = pd.DataFrame(
@@ -234,7 +234,7 @@ def test_multiindex_check_name():
     assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
 
 
-def test_check_validate_method():
+def test_check_validate_method() -> None:
     """Test validate method on valid data."""
 
     class Schema(pa.SchemaModel):
@@ -250,7 +250,7 @@ def test_check_validate_method():
     assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
 
 
-def test_check_validate_method_field():
+def test_check_validate_method_field() -> None:
     """Test validate method on valid data."""
 
     class Schema(pa.SchemaModel):
@@ -273,7 +273,7 @@ def test_check_validate_method_field():
     assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
 
 
-def test_check_validate_method_aliased_field():
+def test_check_validate_method_aliased_field() -> None:
     """Test validate method on valid data."""
 
     class Schema(pa.SchemaModel):
@@ -290,7 +290,7 @@ def test_check_validate_method_aliased_field():
     assert isinstance(Schema.validate(df, lazy=True), pd.DataFrame)
 
 
-def test_check_single_column():
+def test_check_single_column() -> None:
     """Test the behaviour of a check on a single column."""
 
     class Schema(pa.SchemaModel):
@@ -309,7 +309,7 @@ def test_check_single_column():
         schema.validate(df, lazy=True)
 
 
-def test_check_single_index():
+def test_check_single_index() -> None:
     """Test the behaviour of a check on a single index."""
 
     class Schema(pa.SchemaModel):
@@ -327,7 +327,7 @@ def test_check_single_index():
         Schema.validate(df, lazy=True)
 
 
-def test_field_and_check():
+def test_field_and_check() -> None:
     """Test the combination of a field and a check on the same column."""
 
     class Schema(pa.SchemaModel):
@@ -342,7 +342,7 @@ def test_field_and_check():
     assert len(schema.columns["a"].checks) == 2
 
 
-def test_check_non_existing():
+def test_check_non_existing() -> None:
     """Test a check on a non-existing column."""
 
     class Schema(pa.SchemaModel):
@@ -360,7 +360,7 @@ def test_check_non_existing():
         Schema.to_schema()
 
 
-def test_multiple_checks():
+def test_multiple_checks() -> None:
     """Test multiple checks on the same column."""
 
     class Schema(pa.SchemaModel):
@@ -390,7 +390,7 @@ def test_multiple_checks():
         schema.validate(df, lazy=True)
 
 
-def test_check_multiple_columns():
+def test_check_multiple_columns() -> None:
     """Test a single check decorator targeting multiple columns."""
 
     class Schema(pa.SchemaModel):
@@ -409,7 +409,7 @@ def test_check_multiple_columns():
         Schema.validate(df, lazy=True)
 
 
-def test_check_regex():
+def test_check_regex() -> None:
     """Test the regex argument of the check decorator."""
 
     class Schema(pa.SchemaModel):
@@ -429,7 +429,7 @@ def test_check_regex():
         Schema.validate(df, lazy=True)
 
 
-def test_inherit_schemamodel_fields():
+def test_inherit_schemamodel_fields() -> None:
     """Test that columns and indices are inherited."""
 
     class Base(pa.SchemaModel):
@@ -451,7 +451,7 @@ def test_inherit_schemamodel_fields():
     assert expected == Child.to_schema()
 
 
-def test_inherit_schemamodel_fields_alias():
+def test_inherit_schemamodel_fields_alias() -> None:
     """Test that columns and index aliases are inherited."""
 
     class Base(pa.SchemaModel):
@@ -497,7 +497,7 @@ def test_inherit_schemamodel_fields_alias():
     assert expected_mid == ChildEmpty.to_schema()
 
 
-def test_inherit_field_checks():
+def test_inherit_field_checks() -> None:
     """Test that checks are inherited and overridden."""
 
     class Base(pa.SchemaModel):
@@ -530,7 +530,7 @@ def test_inherit_field_checks():
         schema.validate(df, lazy=True)
 
 
-def test_dataframe_check():
+def test_dataframe_check() -> None:
     """Test dataframe checks."""
 
     class Base(pa.SchemaModel):
@@ -564,8 +564,8 @@ def test_dataframe_check():
 
 
 def test_registered_dataframe_checks(
-    extra_registered_checks,
-):  # pylint: disable=unused-argument
+    extra_registered_checks: None,  # pylint: disable=unused-argument
+) -> None:
     """Check that custom check inheritance works"""
     # pylint: disable=unused-variable
 
@@ -628,7 +628,7 @@ def test_registered_dataframe_checks(
 
         class ErrorSchema(pa.SchemaModel):
             class Config:
-                unknown_check = {}
+                unknown_check = {}  # type: ignore[var-annotated]
 
         # Check lookup happens at validation/to_schema conversion time
         # This means that you can register checks after defining a Config,
@@ -637,7 +637,7 @@ def test_registered_dataframe_checks(
         ErrorSchema.to_schema()
 
 
-def test_config():
+def test_config() -> None:
     """Test that Config can be inherited and translate into DataFrameSchema options."""
 
     class Base(pa.SchemaModel):
@@ -688,7 +688,7 @@ class Output(Input):
     c: Series[int]
 
 
-def test_check_types():
+def test_check_types() -> None:
     @pa.check_types
     def transform(df: DataFrame[Input]) -> DataFrame[Output]:
         return df.assign(c=lambda x: x.a + x.b)
@@ -709,7 +709,7 @@ def test_check_types():
             transform(invalid_data)
 
 
-def test_alias():
+def test_alias() -> None:
     """Test that columns and indices can be aliased."""
 
     class Schema(pa.SchemaModel):
@@ -740,7 +740,7 @@ def test_alias():
     assert actual == ["index0", "index1"]
 
 
-def test_inherit_alias():
+def test_inherit_alias() -> None:
     """Test that aliases are inherited and can be overwritten."""
 
     # Three cases to consider per annotation:
@@ -816,7 +816,7 @@ def test_field_name_access():
     assert Base.i2 == "i2"
 
 
-def test_field_name_access_inherit():
+def test_field_name_access_inherit() -> None:
     """Test that column and index names can be accessed through the class"""
 
     class Base(pa.SchemaModel):
@@ -885,7 +885,7 @@ def test_field_name_access_inherit():
     assert Child.i3 == "_i3"
 
 
-def test_column_access_regex():
+def test_column_access_regex() -> None:
     class Schema(pa.SchemaModel):
         col_regex: Series[str] = pa.Field(alias="column_([0-9])+", regex=True)
 
