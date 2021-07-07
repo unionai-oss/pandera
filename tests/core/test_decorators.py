@@ -806,11 +806,15 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
         class Config:
             strict = True
 
+    @check_output(Schema.to_schema())
+    @check_input(Schema.to_schema())
     @check_types
     async def coroutine(df1: DataFrame[Schema]) -> DataFrame[Schema]:
         return df1
 
     class SomeClass:
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema())
         @check_types
         async def regular_coroutine(  # pylint: disable=no-self-use
             self,
@@ -819,16 +823,20 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
             return df1
 
         @classmethod
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
         @check_types
         async def class_coroutine(
             cls, df1: DataFrame[Schema]
         ) -> DataFrame[Schema]:
             return df1
 
-        @classmethod
+        @staticmethod
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema())
         @check_types
         async def static_coroutine(
-            cls, df1: DataFrame[Schema]
+            df1: DataFrame[Schema],
         ) -> DataFrame[Schema]:
             return df1
 

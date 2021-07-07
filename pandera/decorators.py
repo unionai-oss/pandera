@@ -280,6 +280,24 @@ def check_output(
     See :ref:`here<decorators>` for more usage details.
     """
 
+    def validate(out: Any, fn: Callable) -> None:
+        if obj_getter is None:
+            obj = out
+        elif isinstance(obj_getter, (int, str)):
+            obj = out[obj_getter]
+        elif callable(obj_getter):
+            obj = obj_getter(out)
+        else:
+            raise TypeError(
+                f"obj_getter is unrecognized type: {type(obj_getter)}"
+            )
+        try:
+            schema.validate(
+                obj, head, tail, sample, random_state, lazy, inplace
+            )
+        except errors.SchemaError as e:
+            _handle_schema_error("check_output", fn, schema, obj, e)
+
     @wrapt.decorator
     def _wrapper(
         fn: Callable,
@@ -298,25 +316,18 @@ def check_output(
         :param kwargs: the dictionary of keyword arguments supplied when the
             decorated function was called.
         """
-        out = fn(*args, **kwargs)
-        if obj_getter is None:
-            obj = out
-        elif isinstance(obj_getter, (int, str)):
-            obj = out[obj_getter]
-        elif callable(obj_getter):
-            obj = obj_getter(out)
-        else:
-            raise TypeError(
-                f"obj_getter is unrecognized type: {type(obj_getter)}"
-            )
-        try:
-            schema.validate(
-                obj, head, tail, sample, random_state, lazy, inplace
-            )
-        except errors.SchemaError as e:
-            _handle_schema_error("check_output", fn, schema, obj, e)
+        if inspect.iscoroutinefunction(fn):
 
-        return out
+            async def aio_wrapper():
+                res = await fn(*args, **kwargs)
+                validate(res, fn)
+                return res
+
+            return aio_wrapper()
+        else:
+            out = fn(*args, **kwargs)
+            validate(out, fn)
+            return out
 
     return _wrapper
 
