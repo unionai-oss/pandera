@@ -72,6 +72,9 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
     *new in 0.5.0*
     """
 
+    def __get__(self, instance: object, owner: Type) -> str:
+        raise AttributeError("Series should resolve to Field-s")
+
 
 if TYPE_CHECKING:  # pragma: no cover
     # pylint:disable=too-few-public-methods,invalid-name
