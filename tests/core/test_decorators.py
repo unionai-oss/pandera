@@ -1,5 +1,6 @@
 """Testing the Decorators that check a functions input or output."""
 import typing
+from asyncio import AbstractEventLoop
 
 import numpy as np
 import pandas as pd
@@ -744,10 +745,10 @@ def test_check_types_method_args() -> None:
         ) -> DataFrame[SchemaOut]:
             return out
 
-        @classmethod
+        @staticmethod
         @check_types
         def static_method(
-            cls, df1: DataFrame[SchemaIn1], df2: DataFrame[SchemaIn2]
+            df1: DataFrame[SchemaIn1], df2: DataFrame[SchemaIn2]
         ) -> DataFrame[SchemaOut]:
             return out
 
@@ -768,9 +769,11 @@ def test_check_types_method_args() -> None:
     with pytest.raises(errors.SchemaError):
         instance.regular_method(df1=in2, df2=in1)
 
-    pd.testing.assert_frame_equal(out, instance.class_method(in1, in2))
-    pd.testing.assert_frame_equal(out, instance.class_method(in1, df2=in2))
-    pd.testing.assert_frame_equal(out, instance.class_method(df1=in1, df2=in2))
+    pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, in2))
+    pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(
+        out, SomeClass.class_method(df1=in1, df2=in2)
+    )
 
     with pytest.raises(errors.SchemaError):
         instance.class_method(in2, in1)
@@ -780,7 +783,9 @@ def test_check_types_method_args() -> None:
         instance.class_method(df1=in2, df2=in1)
 
     pd.testing.assert_frame_equal(out, instance.static_method(in1, in2))
+    pd.testing.assert_frame_equal(out, SomeClass.static_method(in1, in2))
     pd.testing.assert_frame_equal(out, instance.static_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(out, SomeClass.static_method(in1, df2=in2))
     pd.testing.assert_frame_equal(
         out, instance.static_method(df1=in1, df2=in2)
     )
@@ -791,3 +796,53 @@ def test_check_types_method_args() -> None:
         instance.static_method(in2, df2=in1)
     with pytest.raises(errors.SchemaError):
         instance.static_method(df1=in2, df2=in1)
+
+
+def test_coroutines(event_loop: AbstractEventLoop) -> None:
+    # pylint: disable=missing-class-docstring,too-few-public-methods,missing-function-docstring
+    class Schema(SchemaModel):
+        col1: Series[int]
+
+        class Config:
+            strict = True
+
+    @check_types
+    async def coroutine(df1: DataFrame[Schema]) -> DataFrame[Schema]:
+        return df1
+
+    class SomeClass:
+        @check_types
+        async def regular_coroutine(  # pylint: disable=no-self-use
+            self,
+            df1: DataFrame[Schema],
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @classmethod
+        @check_types
+        async def class_coroutine(
+            cls, df1: DataFrame[Schema]
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @classmethod
+        @check_types
+        async def static_coroutine(
+            cls, df1: DataFrame[Schema]
+        ) -> DataFrame[Schema]:
+            return df1
+
+    async def check_coros() -> None:
+        df: DataFrame[Schema] = DataFrame({Schema.col1: [1]})
+        instance = SomeClass()
+        for coro in [
+            coroutine,
+            instance.regular_coroutine,
+            SomeClass.class_coroutine,
+            instance.static_coroutine,
+            SomeClass.static_coroutine,
+        ]:
+            res = await coro(df)
+            pd.testing.assert_frame_equal(df, res)
+
+    event_loop.run_until_complete(check_coros())

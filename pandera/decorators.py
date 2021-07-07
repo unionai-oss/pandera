@@ -468,6 +468,7 @@ def check_types(
     :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
     """
+    # pylint: disable=too-many-locals
     if wrapped is None:
         return functools.partial(
             check_types,
@@ -508,18 +509,17 @@ def check_types(
 
     sig = inspect.signature(wrapped)
 
-    @wrapt.decorator
-    def _wrapper(
-        wrapped: Callable,
+    def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            arg_name: _check_arg(arg_name, arg_value)
+            for arg_name, arg_value in arguments.items()
+        }
+
+    def validate_inputs(
         instance: Optional[Any],
         args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
-    ):
-        def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
-            return {
-                arg_name: _check_arg(arg_name, arg_value)
-                for arg_name, arg_value in arguments.items()
-            }
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
         if instance is not None:
             # If the wrapped function is a method -> add "self" as the first positional arg
@@ -534,7 +534,36 @@ def check_types(
             first_pos_arg = list(sig.parameters)[0]
             del validated_pos[first_pos_arg]
 
-        out = wrapped(*validated_pos.values(), **validated_kwd)
-        return _check_arg("return", out)
+        return validated_pos, validated_kwd
+
+    if inspect.iscoroutinefunction(wrapped):
+
+        @wrapt.decorator
+        async def _wrapper(
+            wrapped_: Callable,
+            instance: Optional[Any],
+            args: Tuple[Any, ...],
+            kwargs: Dict[str, Any],
+        ):
+            validated_pos, validated_kwd = validate_inputs(
+                instance, args, kwargs
+            )
+            out = await wrapped_(*validated_pos.values(), **validated_kwd)
+            return _check_arg("return", out)
+
+    else:
+
+        @wrapt.decorator
+        def _wrapper(
+            wrapped_: Callable,
+            instance: Optional[Any],
+            args: Tuple[Any, ...],
+            kwargs: Dict[str, Any],
+        ):
+            validated_pos, validated_kwd = validate_inputs(
+                instance, args, kwargs
+            )
+            out = wrapped_(*validated_pos.values(), **validated_kwd)
+            return _check_arg("return", out)
 
     return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
