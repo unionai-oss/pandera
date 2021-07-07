@@ -72,15 +72,18 @@ def test_infer_dataframe_statistics(multi_index, nullable):
     statistics = schema_statistics.infer_dataframe_statistics(dataframe)
     stat_columns = statistics["columns"]
 
-    if nullable:
-        # bool and int dtypes are cast to float in the nullable case
-        assert DEFAULT_FLOAT.check(stat_columns["int"]["dtype"])
-        assert DEFAULT_FLOAT.check(stat_columns["boolean"]["dtype"])
+    if pa.pandas_version().release >= (1, 3, 0):
+        if nullable:
+            assert DEFAULT_FLOAT.check(stat_columns["int"]["dtype"])
+        else:
+            assert DEFAULT_INT.check(stat_columns["int"]["dtype"])
     else:
-        assert DEFAULT_INT.check(stat_columns["int"]["dtype"])
-        assert pandas_engine.Engine.dtype(bool).check(
-            stat_columns["boolean"]["dtype"]
-        )
+        if nullable:
+            assert DEFAULT_FLOAT.check(stat_columns["boolean"]["dtype"])
+        else:
+            assert pandas_engine.Engine.dtype(bool).check(
+                stat_columns["boolean"]["dtype"]
+            )
 
     assert DEFAULT_FLOAT.check(stat_columns["float"]["dtype"])
     assert pandas_engine.Engine.dtype(str).check(
@@ -244,16 +247,25 @@ def test_infer_series_schema_statistics(series, expectation):
             for data_type in INTEGER_TYPES
         ],
         [
-            # introducing nans to integer arrays upcasts to float
+            # introducing nans to bool arrays upcasts to float except
+            # for pandas >= 1.3.0
             0,
             pd.Series([True, False, True, False]),
             {
-                "dtype": DEFAULT_FLOAT,
+                "dtype": (
+                    pandas_engine.Engine.dtype(pa.BOOL)
+                    if pa.PANDAS_1_3_0_PLUS
+                    else DEFAULT_FLOAT
+                ),
                 "nullable": True,
-                "checks": {
-                    "greater_than_or_equal_to": 0,
-                    "less_than_or_equal_to": 1,
-                },
+                "checks": (
+                    None
+                    if pa.PANDAS_1_3_0_PLUS
+                    else {
+                        "greater_than_or_equal_to": 0,
+                        "less_than_or_equal_to": 1,
+                    }
+                ),
                 "name": None,
             },
         ],

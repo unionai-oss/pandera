@@ -15,6 +15,7 @@ import pandas as pd
 from . import constants, errors
 from . import strategies as st
 from .checks import Check
+from .deprecations import deprecate_pandas_dtype
 from .dtypes import DataType
 from .engines import pandas_engine
 from .error_formatters import (
@@ -63,6 +64,7 @@ def _inferred_schema_guard(method):
 class DataFrameSchema:  # pylint: disable=too-many-public-methods
     """A light-weight pandas DataFrame validator."""
 
+    @deprecate_pandas_dtype
     def __init__(
         self,
         columns: Dict[Any, Any] = None,
@@ -172,7 +174,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self.index = index
         self.strict = strict
         self.name = name
-        self.dtype = dtype  # type: ignore
+        self.dtype = dtype or pandas_dtype  # type: ignore
         self._coerce = coerce
         self._ordered = ordered
         self._validate_schema()
@@ -241,7 +243,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # pylint:disable=anomalous-backslash-in-string
         """
         A dict where the keys are column names and values are
-        :class:`~pandera.dtypes.DataType`\s for the column. Excludes columns
+        :class:`~pandera.dtypes.DataType` s for the column. Excludes columns
         where `regex=True`.
 
         :returns: dictionary of columns and their associated dtypes.
@@ -301,11 +303,13 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         try:
             return self.dtype.coerce(obj)
         except Exception as exc:
-            msg = f"Error while coercing '{self.name}' to type {self.dtype}: {exc}"
             raise errors.SchemaError(
                 self,
                 obj,
-                msg,
+                (
+                    f"Error while coercing '{self.name}' to type "
+                    f"{self.dtype}: {exc}"
+                ),
                 failure_cases=scalar_failure_case(str(obj.dtypes.to_dict())),
                 check=f"coerce_dtype('{self.dtype}')",
             ) from exc
@@ -1463,6 +1467,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 class SeriesSchemaBase:
     """Base series validator object."""
 
+    @deprecate_pandas_dtype
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
@@ -1489,15 +1494,18 @@ class SeriesSchemaBase:
             values.
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
-            where ``pandas_dtype=None``.
+            where ``dtype=None``.
         :param name: column name in dataframe to validate.
         :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
+
+            .. warning:: This option will be deprecated in 0.8.0
+
         """
         if checks is None:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
-        self.dtype = dtype  # type: ignore
+        self.dtype = dtype or pandas_dtype  # type: ignore
         self._nullable = nullable
         self._allow_duplicates = allow_duplicates
         self._coerce = coerce
@@ -1853,6 +1861,7 @@ class SeriesSchemaBase:
 class SeriesSchema(SeriesSchemaBase):
     """Series validator."""
 
+    @deprecate_pandas_dtype
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
@@ -1862,6 +1871,7 @@ class SeriesSchema(SeriesSchemaBase):
         allow_duplicates: bool = True,
         coerce: bool = False,
         name: str = None,
+        pandas_dtype: PandasDtypeInputTypes = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1874,15 +1884,27 @@ class SeriesSchema(SeriesSchemaBase):
             ``Callable[Any, bool]`` where the ``Any`` input is a scalar element
             in the column. Otherwise, the input is assumed to be a
             pandas.Series object.
-        :type checks: callable
         :param index: specify the datatypes and properties of the index.
         :param nullable: Whether or not column can contain null values.
-        :type nullable: bool
-        :param allow_duplicates:
-        :type allow_duplicates: bool
+        :param allow_duplicates: Whether or not column can contain duplicate
+            values.
+        :param coerce: If True, when schema.validate is called the column will
+            be coerced into the specified dtype. This has no effect on columns
+            where ``pandas_dtype=None``.
+        :param name: series name.
+        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
+
+            .. warning:: This option will be deprecated in 0.8.0
+
         """
         super().__init__(
-            dtype, checks, nullable, allow_duplicates, coerce, name
+            dtype,
+            checks,
+            nullable,
+            allow_duplicates,
+            coerce,
+            name,
+            pandas_dtype,
         )
         self.index = index
 

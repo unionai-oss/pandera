@@ -364,7 +364,7 @@ class Category(DataType):  # type: ignore
     ):
         # Define __init__ to avoid exposing pylint errors to end users.
         super().__init__()
-        if categories is not None and not isinstance(categories, tuple):
+        if categories is not None:
             object.__setattr__(self, "categories", tuple(categories))
         object.__setattr__(self, "ordered", ordered)
 

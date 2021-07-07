@@ -9,6 +9,7 @@ import pandas as pd
 
 from . import errors
 from . import strategies as st
+from .deprecations import deprecate_pandas_dtype
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -28,6 +29,7 @@ class Column(SeriesSchemaBase):
 
     has_subcomponents = False
 
+    @deprecate_pandas_dtype
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
@@ -58,6 +60,9 @@ class Column(SeriesSchemaBase):
         :param regex: whether the ``name`` attribute should be treated as a
             regex pattern to apply to multiple columns in a dataframe.
         :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
+
+            .. warning:: This option will be deprecated in 0.8.0
+
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:
@@ -77,7 +82,15 @@ class Column(SeriesSchemaBase):
 
         See :ref:`here<column>` for more usage details.
         """
-        super().__init__(dtype, checks, nullable, allow_duplicates, coerce)
+        super().__init__(
+            dtype,
+            checks,
+            nullable,
+            allow_duplicates,
+            coerce,
+            name,
+            pandas_dtype,
+        )
         if (
             name is not None
             and not isinstance(name, str)

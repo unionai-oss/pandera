@@ -138,8 +138,8 @@ class Engine(ABCMeta):
             non-parametrized data type instances.
 
         .. note::
-            The classmethod ``from_parametrized_dtype`` will also be registered.
-            See :ref:`here<dtypes>` for more usage details.
+            The classmethod ``from_parametrized_dtype`` will also be
+            registered. See :ref:`here<dtypes>` for more usage details.
 
         :example:
 
@@ -149,7 +149,8 @@ class Engine(ABCMeta):
         ...     pass
         >>>
         >>> class MyEngine(
-        ...     metaclass=pa.engines.engine.Engine, base_pandera_dtypes=MyDataType
+        ...     metaclass=pa.engines.engine.Engine,
+        ...     base_pandera_dtypes=MyDataType,
         ... ):
         ...     pass
         >>>
@@ -162,8 +163,8 @@ class Engine(ABCMeta):
         def _wrapper(pandera_dtype_cls: Type[_DataType]) -> Type[_DataType]:
             if not inspect.isclass(pandera_dtype_cls):
                 raise ValueError(
-                    f"{cls.__name__}.register_dtype can only decorate a class, "
-                    + f"got {pandera_dtype_cls}"
+                    f"{cls.__name__}.register_dtype can only decorate a class,"
+                    f" got {pandera_dtype_cls}"
                 )
 
             if equivalents:

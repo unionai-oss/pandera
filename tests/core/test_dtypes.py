@@ -23,7 +23,8 @@ from pandera.engines import pandas_engine
 WINDOWS_PLATFORM = platform.system() == "Windows"
 
 # List dtype classes and associated pandas alias,
-# except for parameterizable dtypes that should also list examples of instances.
+# except for parameterizable dtypes that should also list examples of
+# instances.
 int_dtypes = {
     int: "int64",
     pa.Int: "int64",
@@ -350,7 +351,9 @@ def test_coerce_string():
 
 
 def test_default_numeric_dtypes():
-    """Test that default numeric dtypes int, float and complex are consistent."""
+    """
+    Test that default numeric dtypes int, float and complex are consistent.
+    """
     default_int_dtype = pd.Series([1]).dtype
     assert (
         pandas_engine.Engine.dtype(default_int_dtype)
