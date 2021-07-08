@@ -35,6 +35,7 @@ setup(
     license="MIT",
     data_files=[("", ["LICENSE.txt"])],
     packages=["pandera"],
+    package_data={"pandera": ["py.typed"]},
     install_requires=[
         "packaging >= 20.0",
         "numpy >= 1.9.0",
