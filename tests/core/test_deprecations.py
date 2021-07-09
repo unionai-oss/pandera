@@ -28,3 +28,20 @@ def test_deprecate_pandas_dtype(schema_cls, as_pos_arg):
         assert schema_cls(int).dtype.check(pa.Int())
         with pytest.raises(pa.errors.SchemaInitError):
             schema_cls(int, pandas_dtype=int)
+
+
+@pytest.mark.parametrize(
+    "schema_cls",
+    [
+        pa.DataFrameSchema,
+        pa.SeriesSchema,
+        pa.Column,
+        pa.Index,
+    ],
+)
+def test_deprecate_pandas_dtype_enum(schema_cls):
+    """Test that using the PandasDtype enum raises a DeprecationWarning."""
+    for attr in pa.PandasDtype:
+        with pytest.warns(DeprecationWarning):
+            pandas_dtype = getattr(pa.PandasDtype, attr)
+            schema_cls(dtype=pandas_dtype)

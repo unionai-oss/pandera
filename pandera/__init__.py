@@ -40,6 +40,7 @@ from pandera.engines.pandas_engine import (
     UINT32,
     UINT64,
 )
+from pandera.engines.pandas_engine import _PandasDtype as PandasDtype
 
 from . import constants, errors, pandas_accessor
 from .checks import Check
