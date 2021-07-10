@@ -827,8 +827,9 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
         @classmethod
         @check_types
         @check_output(Schema.to_schema())
-        @check_input(Schema.to_schema(), "df1")
-        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        # Uncomment when https://github.com/GrahamDumpleton/wrapt/issues/182 is fixed
+        # @check_input(Schema.to_schema(), "df1")
+        # @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
         async def class_coroutine(
             cls, df1: DataFrame[Schema]
         ) -> DataFrame[Schema]:
