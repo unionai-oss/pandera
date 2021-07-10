@@ -72,9 +72,9 @@ def main(conda_file: Path, pip_file: Path, compare: bool = False) -> bool:
 
     Parameters
     ----------
-    conda_file : str
+    conda_file : Path
         Path to the conda file with dependencies (e.g. `environment.yml`).
-    pip_file : str
+    pip_file : Path
         Path to the pip file with dependencies (e.g. `requirements-dev.txt`).
     compare : bool, default False
         Whether to generate the pip file (``False``) or to compare if the
