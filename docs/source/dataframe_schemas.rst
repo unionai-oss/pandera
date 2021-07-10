@@ -315,12 +315,12 @@ a set of meaningfully grouped columns that have ``str`` names.
     })
 
     schema = pa.DataFrameSchema({
-        "num_var_*": pa.Column(
+        "num_var_.+": pa.Column(
             pa.Float,
             checks=pa.Check.greater_than_or_equal_to(0),
             regex=True,
         ),
-        "cat_var_*": pa.Column(
+        "cat_var_.+": pa.Column(
             pa.Category,
             checks=pa.Check.isin(categories),
             coerce=True,
@@ -353,12 +353,12 @@ You can also regex pattern match on ``pd.MultiIndex`` columns:
     })
 
     schema = pa.DataFrameSchema({
-        ("num_var_*", "x*"): pa.Column(
+        ("num_var_.+", "x.+"): pa.Column(
             pa.Float,
             checks=pa.Check.greater_than_or_equal_to(0),
             regex=True,
         ),
-        ("cat_var_*", "y*"): pa.Column(
+        ("cat_var_.+", "y.+"): pa.Column(
             pa.Category,
             checks=pa.Check.isin(categories),
             coerce=True,

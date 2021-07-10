@@ -24,12 +24,7 @@ xdoctest
 setuptools >= 52.0.0
 nox == 2020.12.31
 importlib_metadata
-<<<<<<< HEAD
-sphinx >= 3.2.0
-sphinx_rtd_theme
-=======
 sphinx
->>>>>>> 478d362 (Add DataTypes documentation (#536))
 sphinx-autodoc-typehints
 sphinx-copybutton
 recommonmark

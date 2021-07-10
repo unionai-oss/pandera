@@ -358,7 +358,6 @@ def docs(session: Session) -> None:
         shutil.rmtree(os.path.join("_build"), ignore_errors=True)
         args = session.posargs or [
             "-v",
-            "-v",
             "-W",
             "-E",
             "-b=doctest",
