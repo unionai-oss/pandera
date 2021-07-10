@@ -845,7 +845,8 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
             return df1
 
     async def check_coros() -> None:
-        df: DataFrame[Schema] = DataFrame({Schema.col1: [1]})
+        good_df: DataFrame[Schema] = DataFrame({Schema.col1: [1]})
+        bad_df: DataFrame[Schema] = DataFrame({"bad_schema": [1]})
         instance = SomeClass()
         for coro in [
             coroutine,
@@ -854,7 +855,10 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
             instance.static_coroutine,
             SomeClass.static_coroutine,
         ]:
-            res = await coro(df)
-            pd.testing.assert_frame_equal(df, res)
+            res = await coro(good_df)
+            pd.testing.assert_frame_equal(good_df, res)
+
+            with pytest.raises(errors.SchemaError):
+                await coro(bad_df)
 
     event_loop.run_until_complete(check_coros())
