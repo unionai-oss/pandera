@@ -106,6 +106,7 @@ string_dtypes = {
     str: "str",
     pa.String: "str",
     np.str_: "str",
+    pd.StringDtype(storage="pyarrow"): "string[pyarrow]",
 }
 nullable_string_dtypes = {pd.StringDtype: "string"}
 

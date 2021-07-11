@@ -22,6 +22,12 @@ from .. import dtypes
 from ..dtypes import immutable
 from . import engine, numpy_engine
 
+try:
+    from typing import Literal  # type: ignore
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
+
+
 WINDOWS_PLATFORM = platform.system() == "Windows"
 
 PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
@@ -131,7 +137,7 @@ class Engine(  # pylint:disable=too-few-public-methods
         alias = str(pandera_dtype).lower()
         if alias == "boolean":
             alias = "bool"
-        elif alias == "string":
+        elif alias.startswith("string"):
             alias = "str"
         return np.dtype(alias)
 
@@ -368,14 +374,25 @@ class Category(DataType, dtypes.Category):
         )
 
 
-@Engine.register_dtype(
-    equivalents=["string", pd.StringDtype, pd.StringDtype()]
-)
-@immutable
+@Engine.register_dtype(equivalents=["string", pd.StringDtype])
+@immutable(init=True)
 class STRING(DataType, dtypes.String):
     """Semantic representation of a :class:`pandas.StringDtype`."""
 
-    type = pd.StringDtype()
+    type: pd.PeriodDtype = dataclasses.field(default=None, init=False)
+    storage: Optional[Literal["python", "pyarrow"]] = "python"
+
+    def __post_init__(self):
+        object.__setattr__(self, "type", pd.StringDtype(self.storage))
+
+    @classmethod
+    def from_parametrized_dtype(cls, pd_dtype: pd.StringDtype):
+        """Convert a :class:`pandas.StringDtype` to
+        a Pandera :class:`pandera.engines.pandas_engine.STRING`."""
+        return cls(pd_dtype.storage)
+
+    def __str__(self) -> str:
+        return repr(self.type)
 
 
 @Engine.register_dtype(
