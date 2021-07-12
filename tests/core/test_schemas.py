@@ -1248,6 +1248,81 @@ def test_lazy_dataframe_validation_nullable():
             )
 
 
+def test_lazy_dataframe_validation_with_checks():
+    """Test that all failure cases are reported for schemas with checks."""
+    schema = DataFrameSchema(
+        columns={
+            "analysis_path": Column(String),
+            "run_id": Column(String),
+            "sample_type": Column(String, Check.isin(["DNA", "RNA"])),
+            "sample_valid": Column(String, Check.isin(["Yes", "No"])),
+        },
+        strict=False,
+        coerce=True,
+    )
+
+    df = pd.DataFrame.from_dict(
+        {
+            "analysis_path": ["/", "/", "/", "/", "/"],
+            "run_id": ["1", "2", "3", "4", "5"],
+            "sample_type": ["DNA", "RNA", "DNA", "RNA", "RNA"],
+            "sample_valid": ["Yes", "YES", "YES", "NO", "NO"],
+        }
+    )
+
+    try:
+        schema(df, lazy=True)
+    except errors.SchemaErrors as err:
+        failure_case = err.failure_cases.failure_case.tolist()
+        assert failure_case == ["YES", "YES", "NO", "NO"]
+
+
+def test_lazy_dataframe_validation_nullable_with_checks():
+    """
+    Test that checks in non-nullable column failure cases are correctly
+    processed during lazy validation.
+    """
+    schema = DataFrameSchema(
+        {
+            "id": Column(
+                String,
+                checks=Check.str_matches(r"^ID[\d]{3}$"),
+                name="id",
+                required=True,
+                allow_duplicates=False,
+            )
+        }
+    )
+    df = pd.DataFrame({"id": ["ID001", None, "XXX"]})
+    try:
+        schema(df, lazy=True)
+    except errors.SchemaErrors as err:
+        expected_failure_cases = pd.DataFrame.from_dict(
+            {
+                0: {
+                    "schema_context": "Column",
+                    "column": "id",
+                    "check": "not_nullable",
+                    "check_number": None,
+                    "failure_case": None,
+                    "index": 1,
+                },
+                1: {
+                    "schema_context": "Column",
+                    "column": "id",
+                    "check": r"str_matches(re.compile('^ID[\\d]{3}$'))",
+                    "check_number": 0,
+                    "failure_case": "XXX",
+                    "index": 2,
+                },
+            },
+            orient="index",
+        ).astype({"check_number": object})
+        pd.testing.assert_frame_equal(
+            err.failure_cases, expected_failure_cases
+        )
+
+
 @pytest.mark.parametrize(
     "schema_cls, data",
     [

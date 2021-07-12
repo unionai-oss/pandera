@@ -794,35 +794,51 @@ def test_unsatisfiable_checks():
             schema.example(size=10)
 
 
-@pytest.fixture(scope="module")
-def schema_model():
-    """Schema model fixture."""
+class Schema(pa.SchemaModel):
+    """Schema model for strategy testing."""
 
-    class Schema(pa.SchemaModel):
-        """Schema model for strategy testing."""
-
-        col1: pa.typing.Series[int]
-        col2: pa.typing.Series[float]
-        col3: pa.typing.Series[str]
-
-    return Schema
+    col1: pa.typing.Series[int]
+    col2: pa.typing.Series[float]
+    col3: pa.typing.Series[str]
 
 
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_schema_model_strategy(schema_model, data):
+def test_schema_model_strategy(data):
     """Test that strategy can be created from a SchemaModel."""
-    strat = schema_model.strategy(size=10)
+    strat = Schema.strategy(size=10)
     sample_data = data.draw(strat)
-    schema_model.validate(sample_data)
+    Schema.validate(sample_data)
 
 
-def test_schema_model_example(schema_model):
+@hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
+def test_schema_model_strategy_df_check(data):
+    """Test that schema with custom checks produce valid data."""
+
+    class SchemaWithDFCheck(Schema):
+        """Schema with a custom dataframe-level check with no strategy."""
+
+        # pylint:disable=no-self-use
+        @pa.dataframe_check
+        @classmethod
+        def non_empty(cls, df: pd.DataFrame) -> bool:
+            """Checks that dataframe is not empty."""
+            return not df.empty
+
+    strat = SchemaWithDFCheck.strategy(size=10)
+    sample_data = data.draw(strat)
+    Schema.validate(sample_data)
+
+
+def test_schema_model_example():
     """Test that examples can be drawn from a SchemaModel."""
-    sample_data = schema_model.example(size=10)
-    schema_model.validate(sample_data)
+    sample_data = Schema.example(size=10)
+    Schema.validate(sample_data)
 
 
 def test_schema_component_with_no_pdtype():
