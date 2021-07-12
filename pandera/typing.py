@@ -72,8 +72,9 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
     *new in 0.5.0*
     """
 
-    def __get__(self, instance: object, owner: Type) -> str:
-        # pragma: no cover
+    def __get__(
+        self, instance: object, owner: Type
+    ) -> str:  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
 
