@@ -372,25 +372,26 @@ def test_column_regex_multiindex():
     "column_name_regex, expected_matches, error",
     (
         # match all values in first level, only baz_* for second level
-        ((".", "baz_*"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
+        ((".", "baz_.+"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
         # match bar_* in first level, all values in second level
         (
-            ("bar_*", "."),
+            ("bar_.+", "."),
             [("bar_1", "biz_2"), ("bar_2", "biz_3"), ("bar_3", "biz_3")],
             None,
         ),
         # match specific columns in both levels
-        (("foo_*", "baz_*"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
-        (("foo_*", "^biz_1$"), [("foo_1", "biz_1")], None),
+        (("foo_.+", "baz_.+"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
+        (("foo_.+", "^biz_1$"), [("foo_1", "biz_1")], None),
         (("^foo_3$", "^baz_2$"), [("foo_3", "baz_2")], None),
         # no matches should raise a SchemaError
         (("fiz", "."), None, errors.SchemaError),
         # using a string name for a multi-index column raises IndexError
         ("foo_1", None, IndexError),
-        # mis-matching number of elements in a tuple column name raises IndexError
-        (("foo_*",), None, IndexError),
-        (("foo_*", ".", "."), None, IndexError),
-        (("foo_*", ".", ".", "."), None, IndexError),
+        # mis-matching number of elements in a tuple column name raises
+        # IndexError
+        (("foo_.+",), None, IndexError),
+        (("foo_.+", ".", "."), None, IndexError),
+        (("foo_.+", ".", ".", "."), None, IndexError),
     ),
 )
 def test_column_regex_matching(column_name_regex, expected_matches, error):
@@ -421,6 +422,77 @@ def test_column_regex_matching(column_name_regex, expected_matches, error):
     else:
         matched_columns = column_schema.get_regex_columns(columns)
         assert expected_matches == matched_columns.tolist()
+
+
+INT_REGEX = r"-?\d+$"
+FLOAT_REGEX = r"-?\d+\.\d+$"
+DATETIME_REGEX = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
+
+
+@pytest.mark.parametrize(
+    "column_name_regex, expected_matches",
+    [
+        # match all
+        [".+", [1, 2.2, 3.1415, -1, -3.6, pd.Timestamp("2018/01/01")]],
+        # match integers
+        [INT_REGEX, [1, -1]],
+        # match floats
+        [FLOAT_REGEX, [2.2, 3.1415, -3.6]],
+        # match datetimes
+        [DATETIME_REGEX, [pd.Timestamp("2018/01/01")]],
+    ],
+)
+def test_column_regex_matching_non_str_types(
+    column_name_regex, expected_matches
+):
+    """Non-string column names should be cast into str for regex matching."""
+    columns = pd.Index([1, 2.2, 3.1415, -1, -3.6, pd.Timestamp("2018/01/01")])
+    column_schema = Column(name=column_name_regex, regex=True)
+    matched_columns = column_schema.get_regex_columns(columns)
+    assert expected_matches == matched_columns.tolist()
+
+
+@pytest.mark.parametrize(
+    "column_name_regex, expected_matches",
+    [
+        # match all
+        [
+            (".+", ".+"),
+            [
+                ("foo", 1),
+                ("foo", pd.Timestamp("2018/01/01")),
+                (1, 2.2),
+                (3.14, -1),
+            ],
+        ],
+        # match (str, int)
+        [("foo", INT_REGEX), [("foo", 1)]],
+        # match (str, pd.Timestamp)
+        [("foo", DATETIME_REGEX), [("foo", pd.Timestamp("2018/01/01"))]],
+        # match (int, float)
+        [(INT_REGEX, FLOAT_REGEX), [(1, 2.2)]],
+        # match (float, int)
+        [(FLOAT_REGEX, INT_REGEX), [(3.14, -1)]],
+    ],
+)
+def test_column_regex_matching_non_str_types_multiindex(
+    column_name_regex, expected_matches
+):
+    """
+    Non-string column names should be cast into str for regex matching in
+    MultiIndex column case.
+    """
+    columns = pd.MultiIndex.from_tuples(
+        (
+            ("foo", 1),
+            ("foo", pd.Timestamp("2018/01/01")),
+            (1, 2.2),
+            (3.14, -1),
+        )
+    )
+    column_schema = Column(name=column_name_regex, regex=True)
+    matched_columns = column_schema.get_regex_columns(columns)
+    assert expected_matches == matched_columns.tolist()
 
 
 def test_column_regex_strict():
@@ -457,11 +529,18 @@ def test_column_regex_non_str_types():
             1: [1, 2, 3],
             2.2: [1, 2, 3],
             pd.Timestamp("2018/01/01"): [1, 2, 3],
-            "foo": [1, 2, 3],
+            "foo_1": [1, 2, 3],
+            "foo_2": [1, 2, 3],
+            "foo_3": [1, 2, 3],
         }
     )
     schema = DataFrameSchema(
-        columns={"foo_*": Column(Int, regex=True)},
+        columns={
+            "foo_": Column(Int, Check.gt(0), regex=True),
+            r"\d+": Column(Int, Check.gt(0), regex=True),
+            r"\d+\.\d+": Column(Int, Check.gt(0), regex=True),
+            "2018-01-01": Column(Int, Check.gt(0), regex=True),
+        },
     )
     assert isinstance(schema.validate(data), pd.DataFrame)
 
@@ -477,30 +556,6 @@ def test_column_regex_non_str_types():
         columns={("foo_*", "bar_*"): Column(Int, regex=True)},
     )
     schema.validate(data)
-
-
-@pytest.mark.parametrize("column_key", [1, 100, 0.543])
-def test_non_str_column_name_regex(column_key):
-    """Check that Columns with non-str names cannot have regex=True."""
-
-    with pytest.raises(ValueError):
-        DataFrameSchema(
-            {
-                column_key: Column(
-                    Float,
-                    checks=Check.greater_than_or_equal_to(0),
-                    regex=True,
-                ),
-            }
-        )
-
-    with pytest.raises(ValueError):
-        Column(
-            Float,
-            checks=Check.greater_than_or_equal_to(0),
-            name=column_key,
-            regex=True,
-        )
 
 
 def test_column_type_can_be_set():
