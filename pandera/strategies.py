@@ -990,7 +990,7 @@ def dataframe_strategy(
         }
 
         row_strategy = None
-        if checks:
+        if row_strategy_checks:
             row_strategy = st.fixed_dictionaries(
                 {
                     col_name: make_row_strategy(col, row_strategy_checks)
