@@ -54,6 +54,6 @@ repos:
     hooks:
       - id: mypy
         entry: mypy pandera tests
-        files: (^pandera/|^tests)
-        exclude: (^docs/|^scripts)
+        files: (^pandera/|^tests|^scripts)
+        exclude: (^docs/)
         pass_filenames: false
