@@ -315,8 +315,6 @@ def tests(session: Session, extra: str) -> None:
             "--cov-report=term-missing",
             "--cov-report=xml",
             "--cov-append",
-            "--verbose",
-            "--verbosity=10",
         ]
         if not CI_RUN:
             args.append("--cov-report=html")
