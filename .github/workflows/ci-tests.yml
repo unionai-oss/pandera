@@ -179,26 +179,26 @@ jobs:
           conda info
           conda list
 
-      # - name: Unit Tests - Core
-      #   run: >
-      #     nox
-      #     -db conda -r -v
-      #     --non-interactive
-      #     --session "tests-${{ matrix.python-version }}(extra='core')"
+      - name: Unit Tests - Core
+        run: >
+          nox
+          -db conda -r -v
+          --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='core')"
 
-      # - name: Unit Tests - Hypotheses
-      #   run: >
-      #     nox
-      #     -db conda -r -v
-      #     --non-interactive
-      #     --session "tests-${{ matrix.python-version }}(extra='hypotheses')"
+      - name: Unit Tests - Hypotheses
+        run: >
+          nox
+          -db conda -r -v
+          --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='hypotheses')"
 
-      # - name: Unit Tests - IO
-      #   run: >
-      #     nox
-      #     -db conda -r -v
-      #     --non-interactive
-      #     --session "tests-${{ matrix.python-version }}(extra='io')"
+      - name: Unit Tests - IO
+        run: >
+          nox
+          -db conda -r -v
+          --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='io')"
 
       - name: Unit Tests - Strategies
         run: >
@@ -210,16 +210,16 @@ jobs:
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"
 
-      # - name: Check Docstrings
-      #   run: >
-      #     nox
-      #     -db conda -r -v
-      #     --non-interactive
-      #     --session "doctests-${{ matrix.python-version }}"
+      - name: Check Docstrings
+        run: >
+          nox
+          -db conda -r -v
+          --non-interactive
+          --session "doctests-${{ matrix.python-version }}"
 
-      # - name: Check Docs
-      #   run: >
-      #     nox
-      #     -db conda -r -v
-      #     --non-interactive
-      #     --session "docs-${{ matrix.python-version }}"
+      - name: Check Docs
+        run: >
+          nox
+          -db conda -r -v
+          --non-interactive
+          --session "docs-${{ matrix.python-version }}"

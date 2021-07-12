@@ -306,8 +306,6 @@ def tests(session: Session, extra: str) -> None:
         if extra == "strategies":
             # enable threading via pytest-xdist
             args = [
-                "-n=auto",
-                "-q",
                 f"--hypothesis-profile={'ci' if CI_RUN else 'dev'}",
             ]
         args += [
