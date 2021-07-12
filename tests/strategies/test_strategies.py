@@ -328,6 +328,7 @@ def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
         .filter(lambda x: x[0] < x[1])  # type: ignore
     ),
 )
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_str_length_checks(chained, data, value_range):
     """Test built-in check strategies for string length."""
     min_value, max_value = value_range
