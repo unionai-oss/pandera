@@ -16,17 +16,22 @@ Usage:
     $ ./conda_to_pip --compare
 """
 import argparse
-import os
 import re
 import sys
+from pathlib import Path
+from typing import Dict, List, Optional
 
 import yaml
 
 EXCLUDE = {"python"}
-RENAME = {}
+RENAME: Dict[str, str] = {}
+
+REPO_PATH = Path(__file__).resolve().absolute().parents[1]
+CONDA_REQUIREMENTS_FILE = REPO_PATH / "environment.yml"
+PIP_REQUIREMENTS_FILE = REPO_PATH / "requirements-dev.txt"
 
 
-def conda_package_to_pip(package):
+def conda_package_to_pip(package: str) -> Optional[str]:
     """
     Convert a conda package to its pip equivalent.
 
@@ -44,7 +49,7 @@ def conda_package_to_pip(package):
 
         pkg, version = package.split(compare)
         if pkg in EXCLUDE:
-            return
+            return None
 
         if pkg in RENAME:
             return "".join((RENAME[pkg], compare, version))
@@ -52,7 +57,7 @@ def conda_package_to_pip(package):
         break
 
     if package in EXCLUDE:
-        return
+        return None
 
     if package in RENAME:
         return RENAME[package]
@@ -60,16 +65,16 @@ def conda_package_to_pip(package):
     return package
 
 
-def main(conda_fname, pip_fname, compare=False):
+def main(conda_file: Path, pip_file: Path, compare: bool = False) -> bool:
     """
     Generate the pip dependencies file from the conda file, or compare that
     they are synchronized (``compare=True``).
 
     Parameters
     ----------
-    conda_fname : str
+    conda_file : Path
         Path to the conda file with dependencies (e.g. `environment.yml`).
-    pip_fname : str
+    pip_file : Path
         Path to the pip file with dependencies (e.g. `requirements-dev.txt`).
     compare : bool, default False
         Whether to generate the pip file (``False``) or to compare if the
@@ -81,21 +86,21 @@ def main(conda_fname, pip_fname, compare=False):
     bool
         True if the comparison fails, False otherwise
     """
-    with open(conda_fname) as conda_fd:
+    with open(conda_file) as conda_fd:
         deps = yaml.safe_load(conda_fd)["dependencies"]
 
-    pip_deps = []
+    pip_deps: List[str] = []
     for dep in deps:
         if isinstance(dep, str):
             conda_dep = conda_package_to_pip(dep)
-            if conda_dep:
+            if conda_dep is not None:
                 pip_deps.append(conda_dep)
         elif isinstance(dep, dict) and len(dep) == 1 and "pip" in dep:
             pip_deps += dep["pip"]
         else:
             raise ValueError(f"Unexpected dependency {dep}")
 
-    fname = os.path.split(conda_fname)[1]
+    fname = conda_file.name
     header = (
         f"# This file is auto-generated from {fname}, do not modify.\n"
         "# See that file for comments about the need/usage of "
@@ -104,12 +109,9 @@ def main(conda_fname, pip_fname, compare=False):
     pip_content = header + "\n".join(pip_deps)
 
     if compare:
-        with open(pip_fname) as pip_fd:
-            return pip_content.strip() != pip_fd.read().strip()
-    else:
-        with open(pip_fname, "w") as pip_fd:
-            pip_fd.write(pip_content)
-        return False
+        return pip_file.read_text().strip() != pip_content.strip()
+    pip_file.write_text(pip_content)
+    return False
 
 
 if __name__ == "__main__":
@@ -128,16 +130,13 @@ if __name__ == "__main__":
     )
     args = argparser.parse_args()
 
-    repo_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
     res = main(
-        os.path.join(repo_path, "environment.yml"),
-        os.path.join(repo_path, "requirements-dev.txt"),
-        compare=args.compare,
+        CONDA_REQUIREMENTS_FILE, PIP_REQUIREMENTS_FILE, compare=args.compare
     )
     if res:
         msg = (
-            f"`requirements-dev.txt` has to be generated with `{sys.argv[0]}` after "
-            "`environment.yml` is modified.\n" % sys.argv[0]
+            f"`{PIP_REQUIREMENTS_FILE}` has to be generated with `{sys.argv[0]}` after "
+            f"`{CONDA_REQUIREMENTS_FILE}` is modified.\n"
         )
         if args.azure:
             msg = f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
