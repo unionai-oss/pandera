@@ -119,14 +119,6 @@ class Column(SeriesSchemaBase):
         :param str name: the name of the column object
 
         """
-        if (
-            not isinstance(name, str)
-            and not _is_valid_multiindex_tuple_str(name)
-            and self.regex
-        ):
-            raise ValueError(
-                "You cannot specify a non-string name when setting regex=True"
-            )
         self._name = name
         return self
 
@@ -229,7 +221,7 @@ class Column(SeriesSchemaBase):
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(self.name):
                 matched = pd.Index(
-                    columns.get_level_values(i).str.match(name)
+                    columns.get_level_values(i).astype(str).str.match(name)
                 ).fillna(False)
                 matches = matches & np.array(matched.tolist())
             column_keys_to_check = columns[matches]
@@ -243,7 +235,7 @@ class Column(SeriesSchemaBase):
             column_keys_to_check = columns[
                 # str.match will return nan values when the index value is
                 # not a string.
-                pd.Index(columns.str.match(self.name))
+                pd.Index(columns.astype(str).str.match(self.name))
                 .fillna(False)
                 .tolist()
             ]
