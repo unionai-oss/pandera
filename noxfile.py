@@ -199,8 +199,8 @@ def install_extras(
             print("using pip installer")
             session.install(*specs)
 
-    session.install(*pip_specs)
-    # always use pip for these packages
+        # always use pip for these packages
+        session.install(*pip_specs)
     session.install("-e", ".", "--no-deps")  # install pandera
 
 
