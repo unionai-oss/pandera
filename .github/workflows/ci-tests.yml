@@ -162,7 +162,7 @@ jobs:
         run: |
           if [[ "${{ matrix.pandas-version }}" != 'latest' ]]
           then
-            sed -i '' 's/pandas/pandas = ${{ matrix.pandas-version }}/g' environment.yml
+            sed -i 's/pandas/pandas = ${{ matrix.pandas-version }}/g' environment.yml
           fi
 
       - name: Cache conda
