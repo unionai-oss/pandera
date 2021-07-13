@@ -188,9 +188,6 @@ jobs:
             mamba install -c conda-forge pandas==${{ matrix.pandas-version }}
           fi
 
-      - name: Clean unused packages
-        run: mamba clean -p
-
       - name: Conda info
         run: |
           conda info
