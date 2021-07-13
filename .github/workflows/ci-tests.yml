@@ -135,7 +135,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}), pandas-${{ matrix.pandas-version }})
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
