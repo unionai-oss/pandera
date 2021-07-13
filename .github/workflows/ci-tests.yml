@@ -161,7 +161,7 @@ jobs:
       - name: Update pandas version in environment file
         run: |
           if [[ "${{ matrix.pandas-version }}" != latest' ]] \
-            sed -i '' 's/pandas/pandas = {{ matrix.pandas-version }}/g' environment.yml \
+            sed -i '' 's/pandas/pandas = ${{ matrix.pandas-version }}/g' environment.yml \
           fi
 
       - name: Cache conda
