@@ -158,13 +158,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Update pandas version in environment file
-        run: |
-          if [[ "${{ matrix.pandas-version }}" != 'latest' ]]
-          then
-            sed -i 's/pandas/pandas = ${{ matrix.pandas-version }}/g' environment.yml
-          fi
-
       - name: Cache conda
         uses: actions/cache@v2
         with:
@@ -187,6 +180,16 @@ jobs:
           environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false
+
+      - name: Install pandas
+        run: |
+          if [[ "${{ matrix.pandas-version }}" != 'latest' ]]
+          then
+            mamba install -c conda-forge pandas==${{ matrix.pandas-version }}
+          fi
+
+      - name: Clean unused packages
+        run: mamba clean -p
 
       - name: Conda info
         run: |
