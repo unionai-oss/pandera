@@ -110,19 +110,22 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
 
 REQUIRES: Dict[str, Dict[str, str]] = _build_requires()
 
-CONDA_ARGS = [
-    "--channel=conda-forge",
-    "--update-specs",
-    "-S",
-]
-
 
 def conda_install(session: Session, *args):
     """Use mamba to install conda dependencies."""
+
+    conda_args = ["--channel=conda-forge"]
+
+    if CI_RUN:
+        conda_args.append("--satisfied-skip-solve")
+    else:
+        conda_args.append("--update-specs")
+
     run_args = [
         "install",
         "--yes",
-        *CONDA_ARGS,
+        "--channel=conda-forge",
+        *conda_args,
         "--prefix",
         session.virtualenv.location,  # type: ignore
         *args,
