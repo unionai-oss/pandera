@@ -653,7 +653,6 @@ def test_field_element_strategy(data_type, data):
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
-    deadline=None,
 )
 def test_check_nullable_field_strategy(
     data_type, field_strategy, nullable, data

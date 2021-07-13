@@ -27,6 +27,7 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.7", "3.8", "3.9"]
+PANDAS_VERSIONS = ["1.2.5", "latest"]
 
 PACKAGE = "pandera"
 
@@ -171,14 +172,18 @@ def install_extras(
     session: Session,
     extra: str = "core",
     force_pip: bool = False,
+    pandas: str = "latest",
 ) -> None:
     """Install dependencies."""
     specs, pip_specs = [], []
+    pandas_version = "" if pandas == "latest" else f"=={pandas}"
     for spec in REQUIRES[extra].values():
         if spec.split("==")[0] in ALWAYS_USE_PIP:
             pip_specs.append(spec)
         else:
-            specs.append(spec if spec != "pandas" else "pandas")
+            specs.append(
+                spec if spec != "pandas" else f"pandas{pandas_version}"
+            )
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
@@ -293,10 +298,11 @@ EXTRA_NAMES = [
 
 
 @nox.session(python=PYTHON_VERSIONS)
+@nox.parametrize("pandas", PANDAS_VERSIONS)
 @nox.parametrize("extra", EXTRA_NAMES)
-def tests(session: Session, extra: str) -> None:
+def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
-    install_extras(session, extra)
+    install_extras(session, extra, pandas=pandas)
 
     if session.posargs:
         args = session.posargs
