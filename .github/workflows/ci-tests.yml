@@ -135,13 +135,21 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }})
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9"]
+        pandas-version: ["1.2.5", "latest"]
+        # exclude these configurations until issue tracked here is fixed:
+        # https://github.com/pandera-dev/pandera/issues/555
+        exclude:
+          - os: windows-latest
+            python-version: "3.7"
+          - os: windows-latest
+            python-version: "3.9"
 
     defaults:
       run:
@@ -173,6 +181,13 @@ jobs:
           use-only-tar-bz2: true
           auto-activate-base: false
 
+      - name: Install pandas
+        run: |
+          if [[ "${{ matrix.pandas-version }}" != 'latest' ]]
+          then
+            mamba install -c conda-forge pandas==${{ matrix.pandas-version }}
+          fi
+
       - name: Conda info
         run: |
           conda info
@@ -183,28 +198,28 @@ jobs:
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='core')"
+          --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Hypotheses
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='hypotheses')"
+          --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - IO
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='io')"
+          --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Strategies
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='strategies')"
+          --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"

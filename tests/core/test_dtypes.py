@@ -107,7 +107,12 @@ string_dtypes = {
     pa.String: "str",
     np.str_: "str",
 }
+
 nullable_string_dtypes = {pd.StringDtype: "string"}
+if pa.PANDAS_1_3_0_PLUS:
+    nullable_string_dtypes.update(
+        {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}
+    )
 
 object_dtypes = {object: "object", np.object_: "object"}
 

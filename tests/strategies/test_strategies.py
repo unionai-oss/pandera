@@ -70,6 +70,10 @@ def test_unsupported_pandas_dtype_strategy(data_type):
 
 @pytest.mark.parametrize("data_type", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+    max_examples=20,
+)
 def test_pandas_dtype_strategy(data_type, data):
     """Test that series can be constructed from pandas dtype."""
 
@@ -328,6 +332,7 @@ def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
         .filter(lambda x: x[0] < x[1])  # type: ignore
     ),
 )
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_str_length_checks(chained, data, value_range):
     """Test built-in check strategies for string length."""
     min_value, max_value = value_range

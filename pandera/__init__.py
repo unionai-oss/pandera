@@ -34,6 +34,7 @@ from pandera.engines.pandas_engine import (
     INT16,
     INT32,
     INT64,
+    PANDAS_1_3_0_PLUS,
     STRING,
     UINT8,
     UINT16,
@@ -41,6 +42,7 @@ from pandera.engines.pandas_engine import (
     UINT64,
 )
 from pandera.engines.pandas_engine import _PandasDtype as PandasDtype
+from pandera.engines.pandas_engine import pandas_version
 
 from . import constants, errors, pandas_accessor
 from .checks import Check
@@ -55,14 +57,3 @@ from .version import __version__
 
 if platform.system() != "Windows":
     from pandera.dtypes import Complex256, Float128
-
-
-def pandas_version():
-    # pylint:disable=missing-function-docstring,import-outside-toplevel
-    import pandas as pd
-    from packaging import version
-
-    return version.parse(pd.__version__)
-
-
-PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)

@@ -27,6 +27,7 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.7", "3.8", "3.9"]
+PANDAS_VERSIONS = ["1.2.5", "latest"]
 
 PACKAGE = "pandera"
 
@@ -171,20 +172,26 @@ def install_extras(
     session: Session,
     extra: str = "core",
     force_pip: bool = False,
+    pandas: str = "latest",
 ) -> None:
     """Install dependencies."""
     specs, pip_specs = [], []
+    pandas_version = "" if pandas == "latest" else f"=={pandas}"
     for spec in REQUIRES[extra].values():
         if spec.split("==")[0] in ALWAYS_USE_PIP:
             pip_specs.append(spec)
         else:
-            specs.append(spec if spec != "pandas" else "pandas")
+            specs.append(
+                spec if spec != "pandas" else f"pandas{pandas_version}"
+            )
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
+    # CI installs conda dependencies, so only run this for local runs
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
         and not force_pip
+        and not CI_RUN
     ):
         print("using conda installer")
         conda_install(session, *specs)
@@ -192,8 +199,8 @@ def install_extras(
         print("using pip installer")
         session.install(*specs)
 
-    session.install(*pip_specs)
     # always use pip for these packages
+    session.install(*pip_specs)
     session.install("-e", ".", "--no-deps")  # install pandera
 
 
@@ -293,10 +300,11 @@ EXTRA_NAMES = [
 
 
 @nox.session(python=PYTHON_VERSIONS)
+@nox.parametrize("pandas", PANDAS_VERSIONS)
 @nox.parametrize("extra", EXTRA_NAMES)
-def tests(session: Session, extra: str) -> None:
+def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
-    install_extras(session, extra)
+    install_extras(session, extra, pandas=pandas)
 
     if session.posargs:
         args = session.posargs
@@ -304,11 +312,15 @@ def tests(session: Session, extra: str) -> None:
         path = f"tests/{extra}/" if extra != "all" else "tests"
         args = []
         if extra == "strategies":
+            # strategies tests runs very slowly in python 3.7:
+            # https://github.com/pandera-dev/pandera/issues/556
+            # as a stop-gap, use the "dev" profile for 3.7
+            profile = "ci" if CI_RUN and session.python != "3.7" else "dev"
             # enable threading via pytest-xdist
             args = [
                 "-n=auto",
                 "-q",
-                f"--hypothesis-profile={'ci' if CI_RUN else 'dev'}",
+                f"--hypothesis-profile={profile}",
             ]
         args += [
             f"--cov={PACKAGE}",
