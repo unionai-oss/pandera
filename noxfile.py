@@ -110,22 +110,18 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
 
 REQUIRES: Dict[str, Dict[str, str]] = _build_requires()
 
+CONDA_ARGS = [
+    "--channel=conda-forge",
+    "--update-specs",
+]
+
 
 def conda_install(session: Session, *args):
     """Use mamba to install conda dependencies."""
-
-    conda_args = ["--channel=conda-forge"]
-
-    if CI_RUN:
-        conda_args.append("--satisfied-skip-solve")
-    else:
-        conda_args.append("--update-specs")
-
     run_args = [
         "install",
         "--yes",
-        "--channel=conda-forge",
-        *conda_args,
+        *CONDA_ARGS,
         "--prefix",
         session.virtualenv.location,  # type: ignore
         *args,
@@ -191,15 +187,17 @@ def install_extras(
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
-    if (
-        isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
-        and not force_pip
-    ):
-        print("using conda installer")
-        conda_install(session, *specs)
-    else:
-        print("using pip installer")
-        session.install(*specs)
+    # CI already installs all dependencies, so only run this for local runs
+    if not CI_RUN:
+        if (
+            isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
+            and not force_pip
+        ):
+            print("using conda installer")
+            conda_install(session, *specs)
+        else:
+            print("using pip installer")
+            session.install(*specs)
 
     session.install(*pip_specs)
     # always use pip for these packages
