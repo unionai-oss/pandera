@@ -158,6 +158,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Update pandas version in environment file
+        run: |
+          if [ "${{ matrix.pandas-version }}" != latest' ]
+            sed -i '' 's/pandas/pandas = {{ matrix.pandas-version }}/g' environment.yml
+          fi
+
       - name: Cache conda
         uses: actions/cache@v2
         with:
@@ -177,11 +183,9 @@ jobs:
           channel-priority: true
           activate-environment: pandera-dev
           auto-update-conda: false
+          environment-file: environment.yml
           use-only-tar-bz2: true
           auto-activate-base: false
-
-      - name: Install nox
-        run: mamba install -c conda-forge nox
 
       - name: Conda info
         run: |
