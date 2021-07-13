@@ -113,7 +113,7 @@ REQUIRES: Dict[str, Dict[str, str]] = _build_requires()
 CONDA_ARGS = [
     "--channel=conda-forge",
     "--update-specs",
-    "--satisfied-skip-solve",
+    "-S",
 ]
 
 
