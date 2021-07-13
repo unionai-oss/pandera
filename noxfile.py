@@ -187,20 +187,20 @@ def install_extras(
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
-    # CI already installs all dependencies, so only run this for local runs
-    if not CI_RUN:
-        if (
-            isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
-            and not force_pip
-        ):
-            print("using conda installer")
-            conda_install(session, *specs)
-        else:
-            print("using pip installer")
-            session.install(*specs)
+    # CI installs conda dependencies, so only run this for local runs
+    if (
+        isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
+        and not force_pip
+        and not CI_RUN
+    ):
+        print("using conda installer")
+        conda_install(session, *specs)
+    else:
+        print("using pip installer")
+        session.install(*specs)
 
-        # always use pip for these packages
-        session.install(*pip_specs)
+    # always use pip for these packages
+    session.install(*pip_specs)
     session.install("-e", ".", "--no-deps")  # install pandera
 
 
