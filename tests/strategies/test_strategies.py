@@ -70,6 +70,10 @@ def test_unsupported_pandas_dtype_strategy(data_type):
 
 @pytest.mark.parametrize("data_type", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+    max_examples=20,
+)
 def test_pandas_dtype_strategy(data_type, data):
     """Test that series can be constructed from pandas dtype."""
 
@@ -649,6 +653,7 @@ def test_field_element_strategy(data_type, data):
 @hypothesis.given(st.data())
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
+    deadline=None,
 )
 def test_check_nullable_field_strategy(
     data_type, field_strategy, nullable, data
