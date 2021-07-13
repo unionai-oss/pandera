@@ -304,11 +304,15 @@ def tests(session: Session, extra: str) -> None:
         path = f"tests/{extra}/" if extra != "all" else "tests"
         args = []
         if extra == "strategies":
+            # strategies tests runs very slowly in python 3.7:
+            # https://github.com/pandera-dev/pandera/issues/556
+            # as a stop-gap, use the "dev" profile for 3.7
+            profile = "ci" if CI_RUN and session.python != "3.7" else "dev"
             # enable threading via pytest-xdist
             args = [
                 "-n=auto",
                 "-q",
-                f"--hypothesis-profile={'ci' if CI_RUN else 'dev'}",
+                f"--hypothesis-profile={profile}",
             ]
         args += [
             f"--cov={PACKAGE}",
