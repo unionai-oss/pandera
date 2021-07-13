@@ -135,7 +135,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }})
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}), pandas-${{ matrix.pandas-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -191,28 +191,28 @@ jobs:
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='core', pandas='{{ matrix.pandas-version }}')"
+          --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Hypotheses
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='{{ matrix.pandas-version }}')"
+          --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - IO
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='io', pandas='{{ matrix.pandas-version }}')"
+          --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Strategies
         run: >
           nox
           -db conda -r -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='{{ matrix.pandas-version }}')"
+          --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"
