@@ -7,6 +7,20 @@ import pandas as pd
 from .checks import _CheckBase
 
 
+def format_generic_error_message(
+    parent_schema,
+    check: _CheckBase,
+    check_index: int,
+) -> str:
+    """Construct an error message when a check validator fails.
+
+    :param parent_schema: class of schema being validated.
+    :param check: check that generated error.
+    :param check_index: The validator that failed.
+    """
+    return f"{parent_schema} failed series or dataframe validator {check_index}:\n{check}"
+
+
 def format_vectorized_error_message(
     parent_schema,
     check: _CheckBase,
