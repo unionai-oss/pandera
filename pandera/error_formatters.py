@@ -7,20 +7,6 @@ import pandas as pd
 from .checks import _CheckBase
 
 
-def format_generic_error_message(
-    parent_schema,
-    check: _CheckBase,
-    check_index: int,
-) -> str:
-    """Construct an error message when a check validator fails.
-
-    :param parent_schema: class of schema being validated.
-    :param check: check that generated error.
-    :param check_index: The validator that failed.
-    """
-    return f"{parent_schema} failed series or dataframe validator {check_index}:\n{check}"
-
-
 def format_vectorized_error_message(
     parent_schema,
     check: _CheckBase,
@@ -73,7 +59,22 @@ def reshape_failure_cases(
     if "column" in failure_cases and "failure_case" in failure_cases:
         # handle case where failure cases occur at the index-column level
         reshaped_failure_cases = failure_cases
-    elif hasattr(failure_cases, "index") and isinstance(
+    elif isinstance(failure_cases, pd.DataFrame) and isinstance(
+        failure_cases.index, pd.MultiIndex
+    ):
+        reshaped_failure_cases = (
+            failure_cases.rename_axis("column", axis=1)
+            .assign(
+                index=lambda df: (
+                    df.index.to_frame().apply(tuple, axis=1).astype(str)
+                )
+            )
+            .set_index("index", drop=True)
+            .unstack()
+            .rename("failure_case")
+            .reset_index()
+        )
+    elif isinstance(failure_cases, pd.Series) and isinstance(
         failure_cases.index, pd.MultiIndex
     ):
         reshaped_failure_cases = (
