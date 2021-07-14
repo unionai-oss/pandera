@@ -19,6 +19,7 @@ pylint >= 2.7.2
 pytest
 pytest-cov
 pytest-xdist
+pytest-asyncio
 setuptools >= 52.0.0
 nox == 2020.12.31
 importlib_metadata
