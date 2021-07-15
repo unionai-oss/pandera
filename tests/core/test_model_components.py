@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 import pandera as pa
+from pandera.engines.pandas_engine import Engine
 
 
 def test_field_to_column() -> None:
@@ -15,7 +16,7 @@ def test_field_to_column() -> None:
                 pa.DateTime, required=value
             )
             assert isinstance(col, pa.Column)
-            assert col.dtype == pa.DateTime.value
+            assert col.dtype == Engine.dtype(pa.DateTime)
             assert col.properties[flag] == value
             assert col.required == value
 
@@ -26,7 +27,7 @@ def test_field_to_index() -> None:
         for value in [True, False]:
             index = pa.Field(**{flag: value}).to_index(pa.DateTime)  # type: ignore[arg-type]
             assert isinstance(index, pa.Index)
-            assert index.dtype == pa.DateTime.value
+            assert index.dtype == Engine.dtype(pa.DateTime)
             assert getattr(index, flag) == value
 
 

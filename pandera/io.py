@@ -10,8 +10,9 @@ import pandas as pd
 
 import pandera.errors
 
+from . import dtypes
 from .checks import Check
-from .dtypes import PandasDtype
+from .engines import pandas_engine
 from .schema_components import Column
 from .schema_statistics import get_dataframe_schema_statistics
 from .schemas import DataFrameSchema
@@ -29,18 +30,20 @@ except ImportError as exc:  # pragma: no cover
     ) from exc
 
 
-SCHEMA_TYPES = {"dataframe"}
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 
-def _serialize_check_stats(check_stats, pandas_dtype=None):
+def _get_qualified_name(cls: type) -> str:
+    return f"{cls.__module__}.{cls.__qualname__}"
+
+
+def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
-        if pandas_dtype == PandasDtype.DateTime:
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
             return stat.strftime(DATETIME_FORMAT)
-        elif pandas_dtype == PandasDtype.Timedelta:
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
             # serialize to int in nanoseconds
             return stat.delta
 
@@ -83,15 +86,15 @@ def _serialize_component_stats(component_stats):
         serialized_checks = {}
         for check_name, check_stats in component_stats["checks"].items():
             serialized_checks[check_name] = _serialize_check_stats(
-                check_stats, component_stats["pandas_dtype"]
+                check_stats, component_stats["dtype"]
             )
 
-    pandas_dtype = component_stats.get("pandas_dtype")
-    if pandas_dtype:
-        pandas_dtype = pandas_dtype.value
+    dtype = component_stats.get("dtype")
+    if dtype:
+        dtype = str(dtype)
 
     return {
-        "pandas_dtype": pandas_dtype,
+        "dtype": dtype,
         "nullable": component_stats["nullable"],
         "checks": serialized_checks,
         **{
@@ -141,11 +144,11 @@ def _serialize_schema(dataframe_schema):
     }
 
 
-def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
+def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     def handle_stat_dtype(stat):
-        if pandas_dtype == PandasDtype.DateTime:
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
             return pd.to_datetime(stat, format=DATETIME_FORMAT)
-        elif pandas_dtype == PandasDtype.Timedelta:
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
             # serialize to int in nanoseconds
             return pd.to_timedelta(stat, unit="ns")
         return stat
@@ -162,20 +165,20 @@ def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
 
 
 def _deserialize_component_stats(serialized_component_stats):
-    pandas_dtype = serialized_component_stats.get("pandas_dtype")
-    if pandas_dtype:
-        pandas_dtype = PandasDtype.from_str_alias(pandas_dtype)
+    dtype = serialized_component_stats.get("dtype")
+    if dtype:
+        dtype = pandas_engine.Engine.dtype(dtype)
 
     checks = serialized_component_stats.get("checks")
     if checks is not None:
         checks = [
             _deserialize_check_stats(
-                getattr(Check, check_name), check_stats, pandas_dtype
+                getattr(Check, check_name), check_stats, dtype
             )
             for check_name, check_stats in checks.items()
         ]
     return {
-        "pandas_dtype": pandas_dtype,
+        "dtype": dtype,
         "checks": checks,
         **{
             key: serialized_component_stats.get(key)
@@ -280,7 +283,7 @@ def to_yaml(dataframe_schema, stream=None):
 
 SCRIPT_TEMPLATE = """
 from pandera import (
-    DataFrameSchema, Column, Check, Index, MultiIndex, PandasDtype
+    DataFrameSchema, Column, Check, Index, MultiIndex
 )
 
 schema = DataFrameSchema(
@@ -294,7 +297,7 @@ schema = DataFrameSchema(
 
 COLUMN_TEMPLATE = """
 Column(
-    pandas_dtype={pandas_dtype},
+    dtype={dtype},
     checks={checks},
     nullable={nullable},
     allow_duplicates={allow_duplicates},
@@ -305,7 +308,7 @@ Column(
 """
 
 INDEX_TEMPLATE = (
-    "Index(pandas_dtype={pandas_dtype},checks={checks},"
+    "Index(dtype={dtype},checks={checks},"
     "nullable={nullable},coerce={coerce},name={name})"
 )
 
@@ -336,8 +339,9 @@ def _format_checks(checks_dict):
 def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
+        dtype = properties.get("dtype")
         index_code = INDEX_TEMPLATE.format(
-            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
+            dtype=f"{_get_qualified_name(dtype.__class__)}",
             checks=(
                 "None"
                 if properties["checks"] is None
@@ -376,12 +380,10 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     columns = {}
     for colname, properties in statistics["columns"].items():
-        pandas_dtype = properties.get("pandas_dtype")
+        dtype = properties.get("dtype")
         column_code = COLUMN_TEMPLATE.format(
-            pandas_dtype=(
-                None
-                if pandas_dtype is None
-                else f"PandasDtype.{properties['pandas_dtype'].name}"
+            dtype=(
+                None if dtype is None else _get_qualified_name(dtype.__class__)
             ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
@@ -444,9 +446,9 @@ class FrictionlessFieldParser:
         self.type = field.get("type", "string")
 
     @property
-    def pandas_dtype(self) -> str:
+    def dtype(self) -> str:
         """Determine what type of field this is, so we can feed that into
-        :class:`~pandera.dtypes.PandasDtype`. If no type is specified in the
+        :class:`~pandera.dtypes.DataType`. If no type is specified in the
         frictionless schema, we default to string values.
 
         :returns: the pandas-compatible representation of this field type as a
@@ -562,7 +564,7 @@ class FrictionlessFieldParser:
             "checks": self.checks,
             "coerce": self.coerce,
             "nullable": self.nullable,
-            "pandas_dtype": self.pandas_dtype,
+            "dtype": self.dtype,
             "required": self.required,
             "name": self.name,
             "regex": self.regex,

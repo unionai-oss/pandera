@@ -4,8 +4,8 @@
 
 .. _data synthesis strategies:
 
-Data Synthesis Strategies (new)
-===============================
+Data Synthesis Strategies
+=========================
 
 *new in 0.6.0*
 

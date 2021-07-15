@@ -81,7 +81,7 @@ def test_invalid_annotations() -> None:
         d: Series[Decimal]  # type: ignore
 
     with pytest.raises(
-        TypeError, match="python type '<class 'decimal.Decimal'>"
+        TypeError, match="dtype '<class 'decimal.Decimal'>' not understood"
     ):
         InvalidDtype.to_schema()
 
@@ -480,7 +480,7 @@ def test_inherit_schemamodel_fields_alias() -> None:
     )
     expected_child_override_attr = expected_mid.rename_columns(
         {"_b": "b"}
-    ).update_column("b", pandas_dtype=int)
+    ).update_column("b", dtype=int)
     expected_child_override_alias = expected_mid.rename_columns(
         {"_b": "new_b"}
     )

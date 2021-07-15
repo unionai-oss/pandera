@@ -470,13 +470,13 @@ class _CheckBase(metaclass=_CheckMeta):
             are_strategy_fn_objects_equal = True
 
         are_all_other_check_attributes_equal = {
-            i: v
-            for i, v in self.__dict__.items()
-            if i not in ["_check_fn", "strategy"]
+            k: v
+            for k, v in self.__dict__.items()
+            if k not in ["_check_fn", "strategy"]
         } == {
-            i: v
-            for i, v in other.__dict__.items()
-            if i not in ["_check_fn", "strategy"]
+            k: v
+            for k, v in other.__dict__.items()
+            if k not in ["_check_fn", "strategy"]
         }
 
         return (
