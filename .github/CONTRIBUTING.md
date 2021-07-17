@@ -14,15 +14,103 @@ ways in which we can improve the code and documentation.
 
 The code is hosted on [GitHub](https://github.com/pandera-dev/pandera/issues),
 so you will need to use [Git](http://git-scm.com/) to clone the project and make
-changes to the codebase. Once you have obtained a copy of the code, you should
-create a development environment that is separate from your existing Python
-environment so that you can make and test changes without compromising your
-own work environment.
+changes to the codebase.
+
+First create your own fork of pandera, then clone it:
+
+```
+# replace <my-username> with your github username
+git clone https://github.com/<my-username>/pandera.git
+```
+
+Once you've obtained a copy of the code, create a development environment that's
+separate from your existing Python environment so that you can make and test
+changes without compromising your own work environment.
 
 An excellent guide on setting up python environments can be found
 [here](https://pandas.pydata.org/docs/development/contributing.html#creating-a-python-environment).
 Pandera offers a `environment.yml` to set up a conda-based environment and
 `requirements-dev.txt` for a virtualenv.
+
+### Environment Setup
+
+#### Option 1: `miniconda` Setup
+
+Install [miniconda](https://docs.conda.io/en/latest/miniconda.html), then run:
+
+```bash
+conda create -n pandera-dev python=3.8  # or any python version 3.7+
+conda env update -n pandera-dev -f environment.yml
+conda activate pandera-dev
+pip install -e .
+```
+
+#### Option 2: `virtualenv` Setup
+
+```bash
+pip install virtualenv
+virtualenv .venv/pandera-dev
+pip install -r requirements-dev.txt
+pip install -e .
+```
+
+#### Run Tests
+
+```
+pytest tests
+```
+
+#### Set up `pre-commit`
+
+This project uses [pre-commit](https://pre-commit.com/) to ensure that code
+standard checks pass locally before pushing to the remote project repo. Follow
+the [installation instructions](https://pre-commit.com/#installation), then
+set up hooks with `pre-commit install`. After, `black`, `pylint` and `mypy`
+checks should be run with every commit.
+
+Make sure everything is working correctly by running
+
+```
+pre-commit run --all
+```
+
+### Making Changes
+
+Before making changes to the codebase or documentation, create a new branch with:
+
+```
+git checkout -b <my-branch>
+```
+
+We recommend following the branch-naming convention described in [Making Pull Requests](#making-pull-requests).
+
+### Run the Full Test Suite Locally
+
+Before submitting your changes for review, make sure to check that your changes
+do not break any tests by running:
+
+```
+# option 1: if you're working with conda (recommended)
+$ make nox-conda
+
+# option 2: if you're working with virtualenv
+$ make nox
+```
+
+Option 2 assumes that you have python environments for all of the versions
+that pandera supports.
+
+#### Using `mamba` (optional)
+
+You can also use [mamba](https://github.com/mamba-org/mamba), which is a faster
+implementation of [miniconda](https://docs.conda.io/en/latest/miniconda.html),
+to run the `nox` test suite. Simply install it via conda-forge, and
+`make nox-conda` should use it under the hood.
+
+```
+$ conda install -c conda-forge mamba
+$ make nox-conda
+```
 
 ### Project Releases
 
@@ -62,40 +150,6 @@ label, so if you find a bug create a new issue [here](https://github.com/pandera
 New feature issues can be found under the
 [enhancements](https://github.com/pandera-dev/pandera/labels/enhancement) label.
 You can request a feature by creating a new issue [here](https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=).
-
-### Set up `pre-commit`
-
-This project uses [pre-commit](https://pre-commit.com/) to ensure that code
-standard checks pass locally before pushing to the remote project repo. Follow
-the [installation instructions](https://pre-commit.com/#installation), then
-set up hooks with `pre-commit install`. After, `black`, `pylint` and `mypy`
-checks should be run with every commit.
-
-### Run the test suite locally
-
-Before submitting your changes for review, make sure to check that your changes
-do not break any tests by running:
-
-```
-# if you're working with virtualenv
-$ make nox
-
-# if you're working with conda
-$ make nox-conda
-```
-
-#### Using `mamba` (optional)
-
-You can also use [mamba](https://github.com/mamba-org/mamba), which is a faster
-implementation of [miniconda](https://docs.conda.io/en/latest/miniconda.html),
-to run the `nox` test suite. Simply install it via conda-forge, and
-`make nox-conda` should use it under the hood.
-
-```
-$ conda install -c conda-forge mamba
-$ make nox-conda
-```
-
 ### Making Pull Requests
 
 Once your changes are ready to be submitted, make sure to push your changes to
