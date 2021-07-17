@@ -60,6 +60,12 @@ pip install -e .
 pytest tests
 ```
 
+#### Build Documentation Locally
+
+```
+make docs
+```
+
 #### Set up `pre-commit`
 
 This project uses [pre-commit](https://pre-commit.com/) to ensure that code
