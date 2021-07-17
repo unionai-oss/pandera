@@ -50,6 +50,7 @@ pip install -e .
 ```bash
 pip install virtualenv
 virtualenv .venv/pandera-dev
+source .venv/pandera-dev/bin/activate
 pip install -r requirements-dev.txt
 pip install -e .
 ```
