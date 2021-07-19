@@ -47,8 +47,8 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
     - exclude self:
         if fn is a method (self being an implicit argument)
     - exclude cls:
-        if fn is a classmethod (defined with @classmethod decorator on a regular class
-        or as a regular method on a metaclass)
+        if fn is a decorated classmethod in Python 3.9+
+        if fn is declared as a regular method on a metaclass
     Note that for fn-s decorated with @classmethod, cls is excluded only in Python 3.9+
     because that is when Python's handling of classmethods changed and wrapt mirrors it.
     See: https://github.com/GrahamDumpleton/wrapt/issues/182
@@ -56,18 +56,19 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
     arg_spec_args = inspect.getfullargspec(fn).args
     first_arg_is_self = arg_spec_args[0] == "self"
     is_py_newer_than_39 = sys.version_info[:2] >= (3, 9)
+    # Exclusion criteria
+    is_regular_method = inspect.ismethod(fn) and first_arg_is_self
+    is_decorated_cls_method = (
+        is_decorated_classmethod(fn) and is_py_newer_than_39
+    )
+    is_cls_method_from_meta_method = is_classmethod_from_meta(fn)
     if (
-        inspect.ismethod(fn)
-        and first_arg_is_self
-        or is_decorated_classmethod(fn)  # regular method
-        and is_py_newer_than_39
-        or is_classmethod_from_meta(  # with @classmethod
-            fn
-        )  # regular method defined on a metaclass
+        is_regular_method
+        or is_decorated_cls_method
+        or is_cls_method_from_meta_method
     ):
-        arg_spec_args = arg_spec_args[
-            1:
-        ]  # don't include "self" / "cls" argument
+        # Don't include "self" / "cls" argument
+        arg_spec_args = arg_spec_args[1:]
     return arg_spec_args
 
 
