@@ -3,7 +3,17 @@
 
 import copy
 from functools import partial
-from typing import Dict
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 import pandas as pd
@@ -34,7 +44,7 @@ from pandera.schemas import SeriesSchemaBase
 from .test_dtypes import TESTABLE_DTYPES
 
 
-def test_dataframe_schema():
+def test_dataframe_schema() -> None:
     """Tests the Checking of a DataFrame that has a wide variety of types and
     conditions. Tests include: when the Schema works, when a column is dropped,
     and when a columns values change its type.
@@ -101,7 +111,7 @@ def test_dataframe_schema():
         schema.validate(df.assign(a=[1.7, 2.3, 3.1]))
 
 
-def test_dataframe_schema_equality():
+def test_dataframe_schema_equality() -> None:
     """Test DataframeSchema equality."""
     schema = DataFrameSchema({"a": Column(Int)})
     assert schema == copy.copy(schema)
@@ -111,7 +121,7 @@ def test_dataframe_schema_equality():
     assert schema != schema.update_column("a", checks=Check.eq(1))
 
 
-def test_dataframe_schema_strict():
+def test_dataframe_schema_strict() -> None:
     """
     Checks if strict=True whether a schema error is raised because 'a' is
     not present in the dataframe.
@@ -142,7 +152,7 @@ def test_dataframe_schema_strict():
         schema.validate(df.loc[:, ["a", "c"]])
 
 
-def test_dataframe_schema_strict_regex():
+def test_dataframe_schema_strict_regex() -> None:
     """Test that strict dataframe schema checks for regex matches."""
     schema = DataFrameSchema(
         {"foo_*": Column(Int, regex=True)},
@@ -160,7 +170,7 @@ def test_dataframe_schema_strict_regex():
         )
 
 
-def test_dataframe_pandas_dtype_coerce():
+def test_dataframe_pandas_dtype_coerce() -> None:
     """
     Test that pandas dtype specified at the dataframe level overrides
     column data types.
@@ -209,7 +219,7 @@ def test_dataframe_pandas_dtype_coerce():
     assert (schema(df).dtypes == "float64").all()
 
 
-def test_dataframe_coerce_regex():
+def test_dataframe_coerce_regex() -> None:
     """Test dataframe pandas dtype coercion for regex columns"""
     schema = DataFrameSchema(
         columns={"column_": Column(float, regex=True, required=False)},
@@ -236,7 +246,7 @@ def test_dataframe_coerce_regex():
         schema_required(no_match_df)
 
 
-def test_dataframe_reset_column_name():
+def test_dataframe_reset_column_name() -> None:
     """Test resetting column name at DataFrameSchema init on named column."""
     with pytest.warns(UserWarning):
         DataFrameSchema(columns={"new_name": Column(name="old_name")})
@@ -260,7 +270,9 @@ def test_dataframe_reset_column_name():
         ),
     ],
 )
-def test_ordered_dataframe(columns: Dict[str, Column], index: MultiIndex):
+def test_ordered_dataframe(
+    columns: Dict[str, Column], index: MultiIndex
+) -> None:
     """Test that columns are ordered."""
     schema = DataFrameSchema(columns=columns, index=index, ordered=True)
 
@@ -305,7 +317,7 @@ def test_ordered_dataframe(columns: Dict[str, Column], index: MultiIndex):
         schema.validate(df, lazy=True)
 
 
-def test_series_schema():
+def test_series_schema() -> None:
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues
     around float and integer handling of nulls"""
@@ -377,7 +389,7 @@ def test_series_schema():
         SeriesSchema(Float, coerce=True).validate(pd.Series(list("abcdefg")))
 
 
-def test_series_schema_checks():
+def test_series_schema_checks() -> None:
     """Test SeriesSchema check property."""
     series_schema_no_checks = SeriesSchema()
     series_schema_one_check = SeriesSchema(checks=Check.eq(0))
@@ -397,7 +409,7 @@ def test_series_schema_checks():
     assert len(series_schema_multiple_checks.checks) == 2
 
 
-def test_series_schema_multiple_validators():
+def test_series_schema_multiple_validators() -> None:
     """Tests how multiple Checks on a Series Schema are handled both
     successfully and when errors are expected."""
     schema = SeriesSchema(
@@ -416,7 +428,7 @@ def test_series_schema_multiple_validators():
 
 
 @pytest.mark.parametrize("coerce", [True, False])
-def test_series_schema_with_index(coerce):
+def test_series_schema_with_index(coerce: bool) -> None:
     """Test SeriesSchema with Index and MultiIndex components."""
     schema_with_index = SeriesSchema(
         pandas_dtype=Int,
@@ -453,7 +465,7 @@ class SeriesGreaterCheck:
     def __init__(self, lower_bound):
         self.lower_bound = lower_bound
 
-    def __call__(self, series: pd.Series):
+    def __call__(self, series: pd.Series) -> pd.Series:
         """Check if the elements of s are > lower_bound.
 
         :returns Series with bool elements
@@ -461,12 +473,12 @@ class SeriesGreaterCheck:
         return series > self.lower_bound
 
 
-def series_greater_than_zero(series: pd.Series):
+def series_greater_than_zero(series: pd.Series) -> pd.Series:
     """Return a bool series indicating whether the elements of s are > 0"""
     return series > 0
 
 
-def series_greater_than_ten(series: pd.Series):
+def series_greater_than_ten(series: pd.Series) -> pd.Series:
     """Return a bool series indicating whether the elements of s are > 10"""
     return series > 10
 
@@ -482,7 +494,9 @@ def series_greater_than_ten(series: pd.Series):
         (SeriesGreaterCheck(lower_bound=10), True),
     ],
 )
-def test_dataframe_schema_check_function_types(check_function, should_fail):
+def test_dataframe_schema_check_function_types(
+    check_function: Callable[[pd.Series], pd.Series], should_fail: bool
+) -> None:
     """Tests a DataFrameSchema against a variety of Check conditions."""
     schema = DataFrameSchema(
         {
@@ -498,7 +512,7 @@ def test_dataframe_schema_check_function_types(check_function, should_fail):
         schema.validate(df)
 
 
-def test_nullable_int_in_dataframe():
+def test_nullable_int_in_dataframe() -> None:
     """Tests handling of nullability when datatype is integers."""
     df = pd.DataFrame({"column1": [5, 1, np.nan]})
     null_schema = DataFrameSchema(
@@ -511,7 +525,7 @@ def test_nullable_int_in_dataframe():
     assert isinstance(null_schema.validate(df), pd.DataFrame)
 
 
-def test_coerce_dtype_in_dataframe():
+def test_coerce_dtype_in_dataframe() -> None:
     """Tests coercions of datatypes, especially regarding nullable integers."""
     df = pd.DataFrame(
         {
@@ -576,8 +590,8 @@ def test_coerce_dtype_in_dataframe():
 @pytest.mark.parametrize("string_type", [String, str, "str", STRING, "string"])
 @pytest.mark.parametrize("nullable", [True, False])
 def test_coerce_dtype_nullable_str(
-    data, dtype, nonnull_idx, string_type, nullable
-):
+    data, dtype, nonnull_idx: int, string_type, nullable: bool
+) -> None:
     """Tests how null values are handled with string dtypes."""
     if LEGACY_PANDAS and (
         dtype == "Int64" or string_type in {STRING, "string"}
@@ -612,7 +626,9 @@ def test_coerce_dtype_nullable_str(
     ],
 )
 @pytest.mark.parametrize("dtype", ["object", object, Object])
-def test_coerce_object_dtype(data, expected_type, dtype):
+def test_coerce_object_dtype(
+    data, expected_type: Type[Iterable], dtype
+) -> None:
     """Test coercing on object dtype."""
     schema = DataFrameSchema({"col": Column(dtype)}, coerce=True)
     df = pd.DataFrame({"col": [data] * 3})
@@ -622,7 +638,7 @@ def test_coerce_object_dtype(data, expected_type, dtype):
         assert isinstance(x, expected_type)
 
 
-def test_no_dtype_dataframe():
+def test_no_dtype_dataframe() -> None:
     """Test how nullability is handled in DataFrameSchemas where no type is
     specified."""
     schema = DataFrameSchema({"col": Column(nullable=False)})
@@ -638,7 +654,7 @@ def test_no_dtype_dataframe():
         schema.validate(pd.DataFrame({"col": [-123.1, None, 1.0]}))
 
 
-def test_no_dtype_series():
+def test_no_dtype_series() -> None:
     """Test how nullability is handled in SeriesSchemas where no type is
     specified."""
     schema = SeriesSchema(nullable=False)
@@ -654,7 +670,7 @@ def test_no_dtype_series():
         schema.validate(pd.Series([0, 1, 2, None, 4, 1]))
 
 
-def test_coerce_without_dtype():
+def test_coerce_without_dtype() -> None:
     """Test that an error is thrown when a dtype isn't specified and coerce
     is True."""
     df = pd.DataFrame({"col": [1, 2, 3]})
@@ -665,7 +681,7 @@ def test_coerce_without_dtype():
         assert isinstance(schema(df), pd.DataFrame)
 
 
-def test_required():
+def test_required() -> None:
     """
     Tests how a required Column is handled when it's not included, included
     and then not specified and a second column which is implicitly required
@@ -704,7 +720,7 @@ def test_required():
     ],
 )
 @pytest.mark.parametrize("required", [True, False])
-def test_coerce_not_required(data, required):
+def test_coerce_not_required(data: pd.DataFrame, required: bool) -> None:
     """Test that not required columns are not coerced."""
     schema = DataFrameSchema(
         {"col": Column(int, required=required)}, coerce=True
@@ -716,7 +732,7 @@ def test_coerce_not_required(data, required):
     schema(data)
 
 
-def test_head_dataframe_schema():
+def test_head_dataframe_schema() -> None:
     """Test that schema can validate head of dataframe, returns entire
     dataframe."""
 
@@ -734,7 +750,7 @@ def test_head_dataframe_schema():
         schema.validate(df)
 
 
-def test_tail_dataframe_schema():
+def test_tail_dataframe_schema() -> None:
     """Checks that validating the tail of a dataframe validates correctly."""
     df = pd.DataFrame(
         {"col1": list(range(0, 100)) + list(range(-1, -1001, -1))}
@@ -750,7 +766,7 @@ def test_tail_dataframe_schema():
         schema.validate(df)
 
 
-def test_sample_dataframe_schema():
+def test_sample_dataframe_schema() -> None:
     """Test the sample argument of schema.validate."""
     df = pd.DataFrame({"col1": range(1, 1001)})
 
@@ -765,7 +781,7 @@ def test_sample_dataframe_schema():
         assert schema.validate(df, sample=100, random_state=seed).equals(df)
 
 
-def test_dataframe_schema_str_repr():
+def test_dataframe_schema_str_repr() -> None:
     """Test the __str__ and __repr__ methods which are used for cleanly
     printing/logging of a DataFrameSchema."""
     schema = DataFrameSchema(
@@ -784,7 +800,7 @@ def test_dataframe_schema_str_repr():
             assert name in x
 
 
-def test_dataframe_schema_dtype_property():
+def test_dataframe_schema_dtype_property() -> None:
     """Test that schema.dtype returns the matching Column types."""
     schema = DataFrameSchema(
         columns={
@@ -805,12 +821,14 @@ def test_dataframe_schema_dtype_property():
 
 
 @pytest.mark.parametrize("pandas_dtype, expected", TESTABLE_DTYPES)
-def test_series_schema_dtype_property(pandas_dtype, expected):
+def test_series_schema_dtype_property(
+    pandas_dtype: Union[PandasDtype, str], expected: str
+) -> None:
     """Tests every type of allowed dtype."""
     assert SeriesSchema(pandas_dtype).dtype == expected
 
 
-def test_schema_equality_operators():
+def test_schema_equality_operators() -> None:
     """Test the usage of == for DataFrameSchema, SeriesSchema and
     SeriesSchemaBase."""
     df_schema = DataFrameSchema(
@@ -852,7 +870,7 @@ def test_schema_equality_operators():
     assert series_schema_base != not_equal_schema
 
 
-def test_add_and_remove_columns():
+def test_add_and_remove_columns() -> None:
     """Check that adding and removing columns works as expected and doesn't
     modify the original underlying DataFrameSchema."""
     schema1 = DataFrameSchema(
@@ -918,7 +936,7 @@ def test_add_and_remove_columns():
         schema2.remove_columns(["foo", "bar"])
 
 
-def test_schema_get_dtype():
+def test_schema_get_dtype() -> None:
     """Test that schema dtype and get_dtype methods handle regex columns."""
     schema = DataFrameSchema(
         {
@@ -940,7 +958,7 @@ def test_schema_get_dtype():
         assert schema.dtype == {"col1": Int.str_alias}
     assert len(record) == 1
     assert (
-        record[0]
+        record[0]  # type: ignore[union-attr]
         .message.args[0]
         .startswith("Schema has columns specified as regex column names:")
     )
@@ -953,17 +971,24 @@ def test_schema_get_dtype():
     }
 
 
-def _boolean_update_column_case(bool_kwarg):
+def _boolean_update_column_case(
+    bool_kwarg: str,
+) -> Tuple[
+    Column,
+    str,
+    Dict[str, bool],
+    Callable[[DataFrameSchema, DataFrameSchema], None],
+]:
     def _assert_bool_case(old_schema, new_schema):
         assert not getattr(old_schema.columns["col"], bool_kwarg)
         assert getattr(new_schema.columns["col"], bool_kwarg)
 
-    return [
-        Column(Int, **{bool_kwarg: False}),
+    return (
+        Column(Int, **{bool_kwarg: False}),  # type: ignore[arg-type]
         "col",
         {bool_kwarg: True},
         _assert_bool_case,
-    ]
+    )
 
 
 @pytest.mark.parametrize(
@@ -1003,8 +1028,11 @@ def _boolean_update_column_case(bool_kwarg):
     ],
 )
 def test_dataframe_schema_update_column(
-    column, column_to_update, update, assertion_fn
-):
+    column: Column,
+    column_to_update: str,
+    update: Dict[str, Any],
+    assertion_fn: Callable[[DataFrameSchema, DataFrameSchema], None],
+) -> None:
     """Test that DataFrameSchema columns create updated copies."""
     schema = DataFrameSchema({"col": column})
     if assertion_fn is ValueError:
@@ -1016,7 +1044,7 @@ def test_dataframe_schema_update_column(
     assertion_fn(schema, new_schema)
 
 
-def test_rename_columns():
+def test_rename_columns() -> None:
     """Check that DataFrameSchema.rename_columns() method does its job"""
 
     rename_dict = {"col1": "col1_new_name", "col2": "col2_new_name"}
@@ -1068,7 +1096,9 @@ def test_rename_columns():
         ),
     ],
 )
-def test_select_columns(select_columns, schema):
+def test_select_columns(
+    select_columns: List[Union[str, Tuple[str, str]]], schema: DataFrameSchema
+) -> None:
     """Check that select_columns method correctly creates new subset schema."""
     original_columns = list(schema.columns)
     schema_selected = schema.select_columns(select_columns)
@@ -1079,7 +1109,7 @@ def test_select_columns(select_columns, schema):
         schema.select_columns(["foo", "bar"])
 
 
-def test_lazy_dataframe_validation_error():
+def test_lazy_dataframe_validation_error() -> None:
     """Test exceptions on lazy dataframe validation."""
     schema = DataFrameSchema(
         columns={
@@ -1149,7 +1179,7 @@ def test_lazy_dataframe_validation_error():
                 )
 
 
-def test_lazy_validation_multiple_checks():
+def test_lazy_validation_multiple_checks() -> None:
     """Lazy validation with multiple checks should report all failures."""
     schema = DataFrameSchema(
         {
@@ -1187,7 +1217,7 @@ def test_lazy_validation_multiple_checks():
             err_df = err.failure_cases.loc[
                 err.failure_cases.column == column_name
             ]
-            for check, failure_cases in check_failure_cases.items():
+            for check, failure_cases in check_failure_cases.items():  # type: ignore
                 assert check in err_df.check.values
                 assert (
                     list(err_df.loc[err_df.check == check].failure_case)
@@ -1195,7 +1225,7 @@ def test_lazy_validation_multiple_checks():
                 )
 
 
-def test_lazy_dataframe_validation_nullable():
+def test_lazy_dataframe_validation_nullable() -> None:
     """
     Test that non-nullable column failure cases are correctly processed during
     lazy validation.
@@ -1248,7 +1278,7 @@ def test_lazy_dataframe_validation_nullable():
             )
 
 
-def test_lazy_dataframe_validation_with_checks():
+def test_lazy_dataframe_validation_with_checks() -> None:
     """Test that all failure cases are reported for schemas with checks."""
     schema = DataFrameSchema(
         columns={
@@ -1277,7 +1307,7 @@ def test_lazy_dataframe_validation_with_checks():
         assert failure_case == ["YES", "YES", "NO", "NO"]
 
 
-def test_lazy_dataframe_validation_nullable_with_checks():
+def test_lazy_dataframe_validation_nullable_with_checks() -> None:
     """
     Test that checks in non-nullable column failure cases are correctly
     processed during lazy validation.
@@ -1335,7 +1365,10 @@ def test_lazy_dataframe_validation_nullable_with_checks():
         ],
     ],
 )
-def test_lazy_dataframe_scalar_false_check(schema_cls, data):
+def test_lazy_dataframe_scalar_false_check(
+    schema_cls: Type[Union[DataFrameSchema, SeriesSchema, Column, Index]],
+    data: Union[pd.DataFrame, pd.Series, pd.Index],
+) -> None:
     """Lazy validation handles checks returning scalar False values."""
     # define a check that always returns a scalare False value
     check = Check(
@@ -1489,7 +1522,7 @@ def test_lazy_dataframe_scalar_false_check(schema_cls, data):
         ],
     ],
 )
-def test_lazy_series_validation_error(schema, data, expectation):
+def test_lazy_series_validation_error(schema, data, expectation) -> None:
     """Test exceptions on lazy series validation."""
     try:
         schema.validate(data, lazy=True)
@@ -1515,7 +1548,7 @@ def test_lazy_series_validation_error(schema, data, expectation):
                 )
 
 
-def test_schema_transformer_deprecated():
+def test_schema_transformer_deprecated() -> None:
     """Using the transformer argument should raise a deprecation warning."""
     with pytest.warns(DeprecationWarning):
         DataFrameSchema(transformer=lambda df: df)
@@ -1533,7 +1566,9 @@ def test_schema_transformer_deprecated():
         [float, object],
     ],
 )
-def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
+def test_schema_coerce_inplace_validation(
+    inplace: bool, from_dtype: Type, to_dtype: Type
+) -> None:
     """Test coercion logic for validation when inplace is True and False"""
 
     to_dtype = PandasDtype.from_python_type(to_dtype).str_alias
@@ -1553,7 +1588,7 @@ def test_schema_coerce_inplace_validation(inplace, from_dtype, to_dtype):
 
 
 @pytest.fixture
-def schema_simple():
+def schema_simple() -> DataFrameSchema:
     """Simple schema fixture."""
     schema = DataFrameSchema(
         columns={
@@ -1566,7 +1601,7 @@ def schema_simple():
 
 
 @pytest.fixture
-def schema_multiindex():
+def schema_multiindex() -> DataFrameSchema:
     """Fixture for schema with MultiIndex."""
     schema = DataFrameSchema(
         columns={
@@ -1584,7 +1619,7 @@ def schema_multiindex():
 
 
 @pytest.mark.parametrize("drop", [True, False])
-def test_set_index_drop(drop, schema_simple):
+def test_set_index_drop(drop: bool, schema_simple: DataFrameSchema) -> None:
     """Test that setting index correctly handles column dropping."""
     test_schema = schema_simple.set_index(keys=["col1"], drop=drop)
     if drop is True:
@@ -1597,7 +1632,9 @@ def test_set_index_drop(drop, schema_simple):
 
 
 @pytest.mark.parametrize("append", [True, False])
-def test_set_index_append(append, schema_simple):
+def test_set_index_append(
+    append: bool, schema_simple: DataFrameSchema
+) -> None:
     """
     Test that setting index correctly handles appending to existing index.
     """
@@ -1615,7 +1652,7 @@ def test_set_index_append(append, schema_simple):
 
 
 @pytest.mark.parametrize("drop", [True, False])
-def test_reset_index_drop(drop, schema_simple):
+def test_reset_index_drop(drop: bool, schema_simple: DataFrameSchema) -> None:
     """Test that resetting index correctly handles dropping index levels."""
     test_schema = schema_simple.reset_index(drop=drop)
     if drop:
@@ -1627,7 +1664,7 @@ def test_reset_index_drop(drop, schema_simple):
         assert test_schema.index is None
 
 
-def test_reset_index_level(schema_multiindex):
+def test_reset_index_level(schema_multiindex: DataFrameSchema):
     """Test that resetting index correctly handles specifying level."""
     test_schema = schema_multiindex.reset_index(level=["ind0"])
     assert test_schema.index.name == "ind1"
@@ -1635,17 +1672,21 @@ def test_reset_index_level(schema_multiindex):
 
     test_schema = schema_multiindex.reset_index(level=["ind0", "ind1"])
     assert test_schema.index is None
-    assert set(list(test_schema.columns.keys())) == set(
-        ["col1", "col2", "ind0", "ind1"]
-    )
+    assert set(list(test_schema.columns.keys())) == {
+        "col1",
+        "col2",
+        "ind0",
+        "ind1",
+    }
 
 
-def test_invalid_keys(schema_simple):
+def test_invalid_keys(schema_simple: DataFrameSchema) -> None:
     """Test that re/set_index raises expected exceptions."""
     with pytest.raises(errors.SchemaInitError):
         schema_simple.set_index(["foo", "bar"])
     with pytest.raises(TypeError):
-        schema_simple.set_index()
+        # mypy correctly identifies the bug
+        schema_simple.set_index()  # type: ignore[call-arg]
     with pytest.raises(errors.SchemaInitError):
         schema_simple.reset_index(["foo", "bar"])
 
@@ -1654,7 +1695,7 @@ def test_invalid_keys(schema_simple):
         schema_simple.reset_index()
 
 
-def test_update_columns(schema_simple):
+def test_update_columns(schema_simple: DataFrameSchema) -> None:
     """Catch-all test for update columns functionality"""
 
     # Basic function
@@ -1687,7 +1728,7 @@ def test_update_columns(schema_simple):
 
 
 @pytest.mark.parametrize("pdtype", list(PandasDtype) + [None])  # type: ignore
-def test_series_schema_pdtype(pdtype):
+def test_series_schema_pdtype(pdtype: Optional[PandasDtype]) -> None:
     """Series schema pdtype property should return PandasDtype."""
     if pdtype is None:
         series_schema = SeriesSchema(pdtype)
@@ -1730,7 +1771,7 @@ def test_series_schema_pdtype(pdtype):
         DataFrameSchema({"a": Column(int, regex=True), "b": Column(int)}),
     ],
 )
-def test_dataframe_duplicated_columns(data, error, schema):
+def test_dataframe_duplicated_columns(data, error, schema) -> None:
     """Test that schema can handle dataframes with duplicated columns."""
     if error is None:
         assert isinstance(schema(data), pd.DataFrame)
@@ -1787,7 +1828,7 @@ def test_dataframe_duplicated_columns(data, error, schema):
         [SeriesSchema(int, name="series_schema"), ["type", "name"]],
     ],
 )
-def test_schema_str_repr(schema, fields):
+def test_schema_str_repr(schema, fields: List[str]) -> None:
     """Test the __str__ and __repr__ methods for schemas."""
     for x in [
         schema.__str__(),

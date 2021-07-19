@@ -12,7 +12,9 @@ DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_INT_TYPE)
 DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)
 
 
-def _create_dataframe(multi_index=False, nullable=False):
+def _create_dataframe(
+    multi_index: bool = False, nullable: bool = False
+) -> pd.DataFrame:
     if multi_index:
         index = pd.MultiIndex.from_arrays(
             [[1, 1, 2], ["a", "b", "c"]],
@@ -47,7 +49,7 @@ def _create_dataframe(multi_index=False, nullable=False):
         [True, True],
     ],
 )
-def test_infer_dataframe_statistics(multi_index, nullable):
+def test_infer_dataframe_statistics(multi_index: bool, nullable: bool) -> None:
     """Test dataframe statistics are correctly inferred."""
     dataframe = _create_dataframe(multi_index, nullable)
     statistics = schema_statistics.infer_dataframe_statistics(dataframe)
@@ -117,7 +119,7 @@ def test_infer_dataframe_statistics(multi_index, nullable):
         [{}, None],
     ],
 )
-def test_parse_check_statistics(check_stats, expectation):
+def test_parse_check_statistics(check_stats, expectation) -> None:
     """Test that Checks are correctly parsed from check statistics."""
     if expectation is None:
         expectation = []
@@ -181,7 +183,7 @@ def test_parse_check_statistics(check_stats, expectation):
         ],
     ],
 )
-def test_infer_series_schema_statistics(series, expectation):
+def test_infer_series_schema_statistics(series, expectation) -> None:
     """Test series statistics are correctly inferred."""
     statistics = schema_statistics.infer_series_statistics(series)
     assert statistics == expectation

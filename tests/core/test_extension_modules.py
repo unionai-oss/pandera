@@ -5,7 +5,7 @@ import pytest
 from pandera.hypotheses import HAS_SCIPY, Hypothesis
 
 
-def test_hypotheses_module_import():
+def test_hypotheses_module_import() -> None:
     """Test that Hypothesis built-in methods raise import error."""
     if not HAS_SCIPY:
         for fn in [

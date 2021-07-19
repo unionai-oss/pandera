@@ -10,7 +10,7 @@ from pandera.schema_components import Column
 from pandera.schemas import DataFrameSchema, SeriesSchema
 
 
-def check_values(values, check, expected_failure_cases):
+def check_values(values, check, expected_failure_cases) -> None:
     """
     Creates a pd.Series from the given values and validates it with the check
     """
@@ -37,7 +37,7 @@ def check_values(values, check, expected_failure_cases):
     ), "Unexpected failure cases returned by Check.__call__()"
 
 
-def check_none_failures(values, check):
+def check_none_failures(values, check) -> None:
     """Like check_values but expects a failure and due to Null values.
 
     Asserts that the check fails on the given values and that the only
@@ -54,7 +54,7 @@ def check_none_failures(values, check):
     ), "Only null values should be failure cases"
 
 
-def check_raise_error_or_warning(failure_values, check):
+def check_raise_error_or_warning(failure_values, check) -> None:
     """
     Check that Series and DataFrameSchemas raise warnings instead of exceptions
 

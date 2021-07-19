@@ -1,4 +1,5 @@
 """Unit tests for pandas_accessor module."""
+from typing import Union
 
 import pandas as pd
 import pytest
@@ -22,7 +23,12 @@ import pandera as pa
     ],
 )
 @pytest.mark.parametrize("inplace", [False, True])
-def test_dataframe_series_add_schema(schema1, schema2, data, inplace):
+def test_dataframe_series_add_schema(
+    schema1: Union[pa.DataFrameSchema, pa.SeriesSchema],
+    schema2: Union[pa.DataFrameSchema, pa.SeriesSchema],
+    data: Union[pd.DataFrame, pd.Series],
+    inplace: bool,
+) -> None:
     """
     Test that pandas object contains schema metadata after pandera validation.
     """

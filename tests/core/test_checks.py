@@ -20,7 +20,7 @@ from pandera import (
 )
 
 
-def test_vectorized_checks():
+def test_vectorized_checks() -> None:
     """Test that using element-wise checking returns and errors as expected."""
     schema = SeriesSchema(
         Int, Check(lambda s: s.value_counts() == 2, element_wise=False)
@@ -33,7 +33,7 @@ def test_vectorized_checks():
         schema.validate(pd.Series([1, 2, 3]))
 
 
-def test_check_groupby():
+def test_check_groupby() -> None:
     """Tests uses of groupby to specify dependencies between one column and a
     single other column, including error handling."""
     schema = DataFrameSchema(
@@ -99,7 +99,7 @@ def test_check_groupby():
             schema.validate(df)
 
 
-def test_check_groupby_multiple_columns():
+def test_check_groupby_multiple_columns() -> None:
     """Tests uses of groupby to specify dependencies between one column and a
     number of other columns, including error handling."""
     schema = DataFrameSchema(
@@ -132,7 +132,7 @@ def test_check_groupby_multiple_columns():
     assert set(df.columns) == {"col1", "col2", "col3"}
 
 
-def test_check_groups():
+def test_check_groups() -> None:
     """Tests uses of groupby and groups (for values within columns)."""
     schema = DataFrameSchema(
         {
@@ -222,7 +222,7 @@ def test_check_groups():
         schema_fail_nonexistent_key_in_groups.validate(df)
 
 
-def test_groupby_init_exceptions():
+def test_groupby_init_exceptions() -> None:
     """Test that when using a groupby it errors properly across a variety of
     API-specific differences."""
 
@@ -277,7 +277,7 @@ def test_groupby_init_exceptions():
             schema_class(Int, Check(lambda s: s["bar"] == 1, groupby="foo"))
 
 
-def test_dataframe_checks():
+def test_dataframe_checks() -> None:
     """Tests that dataframe checks validate, error when a DataFrame doesn't
     comply with the schema, simple tests of the groupby checks which are
     covered in more detail above."""
@@ -340,7 +340,7 @@ def test_dataframe_checks():
     assert isinstance(element_wise_check_schema.validate(df), pd.DataFrame)
 
 
-def test_reshape_failure_cases_exceptions():
+def test_reshape_failure_cases_exceptions() -> None:
     """Tests that the reshape_failure_cases method correctly produces a
     TypeError."""
     # pylint: disable=W0212, E1121
@@ -349,10 +349,12 @@ def test_reshape_failure_cases_exceptions():
     check = Check(lambda x: x.isna().sum() == 0)
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):
-            error_formatters.reshape_failure_cases(data, check.n_failure_cases)
+            error_formatters.reshape_failure_cases(
+                data, bool(check.n_failure_cases)
+            )
 
 
-def test_check_equality_operators():
+def test_check_equality_operators() -> None:
     """Test the usage of == between a Check and an entirely different Check,
     and a non-Check."""
     check = Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3")
@@ -363,7 +365,7 @@ def test_check_equality_operators():
     assert check != "not a check"
 
 
-def test_equality_operators_functional_equivalence():
+def test_equality_operators_functional_equivalence() -> None:
     """Test the usage of == for Checks where the Check callable object has
     the same implementation."""
     main_check = Check(lambda g: g["foo"]["col1"].iat[0] == 1, groupby="col3")
@@ -372,7 +374,7 @@ def test_equality_operators_functional_equivalence():
     assert main_check == same_check
 
 
-def test_raise_warning_series():
+def test_raise_warning_series() -> None:
     """Test that checks with raise_warning=True raise a warning."""
     data = pd.Series([-1, -2, -3])
     error_schema = SeriesSchema(checks=Check(lambda s: s > 0))
@@ -387,7 +389,7 @@ def test_raise_warning_series():
         warning_schema(data)
 
 
-def test_raise_warning_dataframe():
+def test_raise_warning_dataframe() -> None:
     """Test that checks with raise_warning=True raise a warning."""
     data = pd.DataFrame({"positive_numbers": [-1, -2, -3]})
     error_schema = DataFrameSchema(
@@ -410,7 +412,7 @@ def test_raise_warning_dataframe():
         warning_schema(data)
 
 
-def test_dataframe_schema_check():
+def test_dataframe_schema_check() -> None:
     """Test that DataFrameSchema-level Checks work properly."""
     data = pd.DataFrame([range(10) for _ in range(10)])
 

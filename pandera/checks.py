@@ -106,7 +106,10 @@ class _CheckBase(metaclass=_CheckMeta):
 
     def __init__(
         self,
-        check_fn: Callable,
+        check_fn: Union[
+            Callable[[pd.Series], Union[pd.Series, bool]],
+            Callable[[pd.DataFrame], Union[pd.DataFrame, pd.Series, bool]],
+        ],
         groups: Optional[Union[str, List[str]]] = None,
         groupby: Optional[Union[str, List[str], Callable]] = None,
         ignore_na: bool = True,
