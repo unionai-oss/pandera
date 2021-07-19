@@ -190,6 +190,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         """Whether or not to validate the columns order."""
         return self._ordered
 
+    @ordered.setter
+    def ordered(self, value: bool) -> None:
+        """Set ordered attribute"""
+        self._ordered = value
+
     # the _is_inferred getter and setter methods are not public
     @property
     def _is_inferred(self):
