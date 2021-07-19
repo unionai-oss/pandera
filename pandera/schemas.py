@@ -385,7 +385,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Check if all columns in a dataframe have a column in the Schema.
 
-        :param pd.DataFrame dataframe: the dataframe to be validated.
+        :param pd.DataFrame check_obj: the dataframe to be validated.
         :param head: validate the first n rows. Rows overlapping with `tail` or
             `sample` are de-duplicated.
         :param tail: validate the last n rows. Rows overlapping with `head` or
