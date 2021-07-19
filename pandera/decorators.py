@@ -1,6 +1,7 @@
 """Decorators for integrating pandera into existing data pipelines."""
 import functools
 import inspect
+import sys
 import typing
 from collections import OrderedDict
 from typing import (
@@ -21,6 +22,10 @@ import pandas as pd
 import wrapt
 
 from . import errors, schemas
+from .inspection_utils import (
+    is_classmethod_from_meta,
+    is_decorated_classmethod,
+)
 from .model import SchemaModel
 from .typing import AnnotationInfo
 
@@ -34,13 +39,35 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
     """Get argument names of a function.
 
     :param fn: get argument names for this function.
-    :returns: list of argument names.
+    :returns: list of argument names to be matched with the positional
+    args passed in the decorator.
+
+    Notes:
+    Excludes first positional "self" or "cls" arguments if needed:
+    - exclude self:
+        if fn is a method (self being an implicit argument)
+    - exclude cls:
+        if fn is a classmethod (defined with @classmethod decorator on a regular class
+        or as a regular method on a metaclass)
+    Note that for fn-s decorated with @classmethod, cls is excluded only in Python 3.9+
+    because that is when Python's handling of classmethods changed and wrapt mirrors it.
+    See: https://github.com/GrahamDumpleton/wrapt/issues/182
     """
     arg_spec_args = inspect.getfullargspec(fn).args
-
-    if inspect.ismethod(fn) and arg_spec_args[0] == "self":
-        # don't include "self" argument
-        arg_spec_args = arg_spec_args[1:]
+    first_arg_is_self = arg_spec_args[0] == "self"
+    is_py_newer_than_39 = sys.version_info[:2] >= (3, 9)
+    if (
+        inspect.ismethod(fn)
+        and first_arg_is_self
+        or is_decorated_classmethod(fn)  # regular method
+        and is_py_newer_than_39
+        or is_classmethod_from_meta(  # with @classmethod
+            fn
+        )  # regular method defined on a metaclass
+    ):
+        arg_spec_args = arg_spec_args[
+            1:
+        ]  # don't include "self" / "cls" argument
     return arg_spec_args
 
 
