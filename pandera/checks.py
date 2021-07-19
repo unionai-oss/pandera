@@ -449,7 +449,7 @@ class _CheckBase(metaclass=_CheckMeta):
             check_output, check_passed, check_obj, failure_cases
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
 
@@ -492,10 +492,10 @@ class _CheckBase(metaclass=_CheckMeta):
 
         return code
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._get_check_fn_code())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<Check {self.name}: {self.error}>"
             if self.error is not None

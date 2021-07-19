@@ -4,7 +4,7 @@
 import operator
 import platform
 import re
-from typing import Any
+from typing import Any, Callable, Optional
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -57,7 +57,7 @@ COMPLEX_RANGE_CONSTANT = np.complex64(
 
 
 @pytest.mark.parametrize("pdtype", [pa.Category])
-def test_unsupported_pandas_dtype_strategy(pdtype):
+def test_unsupported_pandas_dtype_strategy(pdtype: pa.PandasDtype) -> None:
     """Test unsupported pandas dtype strategy raises error."""
     with pytest.raises(TypeError, match=TYPE_ERROR_FMT.format(pdtype.name)):
         strategies.pandas_dtype_strategy(pdtype)
@@ -65,14 +65,14 @@ def test_unsupported_pandas_dtype_strategy(pdtype):
 
 @pytest.mark.parametrize("pdtype", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
-def test_pandas_dtype_strategy(pdtype, data):
+def test_pandas_dtype_strategy(pdtype: pa.PandasDtype, data) -> None:
     """Test that series can be constructed from pandas dtype."""
 
     strategy = strategies.pandas_dtype_strategy(pdtype)
     example = data.draw(strategy)
 
     expected_type = (
-        pdtype.String.numpy_dtype.type
+        pdtype.String.numpy_dtype.type  # type: ignore[attr-defined]
         if pdtype is pa.Object
         else pdtype.numpy_dtype.type
     )
@@ -89,7 +89,7 @@ def test_pandas_dtype_strategy(pdtype, data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_check_strategy_continuous(pdtype, data):
+def test_check_strategy_continuous(pdtype: pa.PandasDtype, data) -> None:
     """Test built-in check strategies can generate continuous data."""
     value = data.draw(
         npst.from_dtype(
@@ -143,8 +143,13 @@ def value_ranges(pdtype: pa.PandasDtype):
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 def test_check_strategy_chained_continuous(
-    pdtype, strat_fn, arg_name, base_st_type, compare_op, data
-):
+    pdtype: pa.PandasDtype,
+    strat_fn: Callable,
+    arg_name: str,
+    base_st_type: str,
+    compare_op,
+    data,
+) -> None:
     """
     Test built-in check strategies can generate continuous data building off
     of a parent strategy.
@@ -188,7 +193,9 @@ def test_check_strategy_chained_continuous(
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_in_range_strategy(pdtype, chained, data):
+def test_in_range_strategy(
+    pdtype: pa.PandasDtype, chained: bool, data
+) -> None:
     """Test the built-in in-range strategy can correctly generate data."""
     min_value, max_value = data.draw(value_ranges(pdtype))
     hypothesis.assume(min_value < max_value)
@@ -208,7 +215,7 @@ def test_in_range_strategy(pdtype, chained, data):
             pdtype,
             min_value=min_value,
             max_value=max_value,
-            **base_st_kwargs,
+            **base_st_kwargs,  # type: ignore[arg-type]
         )
     strat = strategies.in_range_strategy(
         pdtype,
@@ -229,7 +236,9 @@ def test_in_range_strategy(pdtype, chained, data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_isin_notin_strategies(pdtype, chained, data):
+def test_isin_notin_strategies(
+    pdtype: pa.PandasDtype, chained: bool, data
+) -> None:
     """Test built-in check strategies that rely on discrete values."""
     value_st = strategies.pandas_dtype_strategy(
         pdtype,
@@ -275,7 +284,13 @@ def test_isin_notin_strategies(pdtype, chained, data):
 )
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data(), st.text())
-def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
+def test_str_pattern_checks(
+    str_strat: Callable,
+    pattern_fn: Optional[Callable[..., str]],
+    chained: bool,
+    data,
+    pattern,
+) -> None:
     """Test built-in check strategies for string pattern checks."""
     try:
         re.compile(pattern)
@@ -314,7 +329,7 @@ def test_str_pattern_checks(str_strat, pattern_fn, chained, data, pattern):
         .filter(lambda x: x[0] < x[1])  # type: ignore
     ),
 )
-def test_str_length_checks(chained, data, value_range):
+def test_str_length_checks(chained: bool, data, value_range) -> None:
     """Test built-in check strategies for string length."""
     min_value, max_value = value_range
     base_st = None
@@ -332,7 +347,7 @@ def test_str_length_checks(chained, data, value_range):
 
 
 @hypothesis.given(st.data())
-def test_register_check_strategy(data):
+def test_register_check_strategy(data) -> None:
     """Test registering check strategy on a custom check."""
 
     # pylint: disable=unused-argument
@@ -370,17 +385,18 @@ def test_register_check_strategy(data):
     assert result == 100
 
 
-def test_register_check_strategy_exception():
+def test_register_check_strategy_exception() -> None:
     """Check method needs statistics attr to register a strategy."""
 
-    def custom_strat():
+    def custom_strat() -> None:
         pass
 
     class CustomCheck(_CheckBase):
         """Custom check class."""
 
         @classmethod
-        @strategies.register_check_strategy(custom_strat)
+        @strategies.register_check_strategy(custom_strat)  # type: ignore[arg-type]
+        # mypy correctly identifies the error
         def custom_check(cls, **kwargs) -> "CustomCheck":
             """Built-in check with no statistics."""
 
@@ -405,13 +421,13 @@ def test_register_check_strategy_exception():
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_series_strategy(data):
+def test_series_strategy(data) -> None:
     """Test SeriesSchema strategy."""
     series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
     series_schema(data.draw(series_schema.strategy()))
 
 
-def test_series_example():
+def test_series_example() -> None:
     """Test SeriesSchema example method generate examples that pass."""
     series_schema = pa.SeriesSchema(pa.Int, pa.Check.gt(0))
     for _ in range(10):
@@ -422,7 +438,7 @@ def test_series_example():
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_column_strategy(data):
+def test_column_strategy(data) -> None:
     """Test Column schema strategy."""
     column_schema = pa.Column(pa.Int, pa.Check.gt(0), name="column")
     column_schema(data.draw(column_schema.strategy()))
@@ -447,7 +463,9 @@ def test_column_example():
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_dataframe_strategy(pdtype, size, data):
+def test_dataframe_strategy(
+    pdtype: pa.PandasDtype, size: Optional[int], data
+) -> None:
     """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
         {f"{pdtype.value}_col": pa.Column(pdtype)}
@@ -467,7 +485,7 @@ def test_dataframe_strategy(pdtype, size, data):
         )
 
 
-def test_dataframe_example():
+def test_dataframe_example() -> None:
     """Test DataFrameSchema example method generate examples that pass."""
     schema = pa.DataFrameSchema({"column": pa.Column(pa.Int, pa.Check.gt(0))})
     for _ in range(10):
@@ -486,7 +504,7 @@ def test_dataframe_example():
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_dataframe_with_regex(regex, data, n_regex_columns):
+def test_dataframe_with_regex(regex: str, data, n_regex_columns: int) -> None:
     """Test DataFrameSchema strategy with regex columns"""
     dataframe_schema = pa.DataFrameSchema({regex: pa.Column(int, regex=True)})
     if n_regex_columns < 1:
@@ -508,7 +526,7 @@ def test_dataframe_with_regex(regex, data, n_regex_columns):
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
 @hypothesis.given(st.data())
-def test_dataframe_checks(pdtype, data):
+def test_dataframe_checks(pdtype: pa.PandasDtype, data) -> None:
     """Test dataframe strategy with checks defined at the dataframe level."""
     if pa.LEGACY_PANDAS and pdtype in {
         pa.PandasDtype.UInt64,
@@ -530,7 +548,7 @@ def test_dataframe_checks(pdtype, data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_dataframe_strategy_with_indexes(pdtype, data):
+def test_dataframe_strategy_with_indexes(pdtype: pa.PandasDtype, data) -> None:
     """Test dataframe strategy with index and multiindex components."""
     dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(pdtype))
     dataframe_schema_multiindex = pa.DataFrameSchema(
@@ -549,7 +567,7 @@ def test_dataframe_strategy_with_indexes(pdtype, data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_index_strategy(data):
+def test_index_strategy(data) -> None:
     """Test Index schema component strategy."""
     pdtype = pa.PandasDtype.Int
     index_schema = pa.Index(pdtype, allow_duplicates=False, name="index")
@@ -560,7 +578,7 @@ def test_index_strategy(data):
     index_schema(pd.DataFrame(index=example))
 
 
-def test_index_example():
+def test_index_example() -> None:
     """
     Test Index schema component example method generates examples that pass.
     """
@@ -574,7 +592,7 @@ def test_index_example():
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_multiindex_strategy(data):
+def test_multiindex_strategy(data) -> None:
     """Test MultiIndex schema component strategy."""
     pdtype = pa.PandasDtype.Float
     multiindex = pa.MultiIndex(
@@ -595,7 +613,7 @@ def test_multiindex_strategy(data):
         )
 
 
-def test_multiindex_example():
+def test_multiindex_example() -> None:
     """
     Test MultiIndex schema component example method generates examples that
     pass.
@@ -615,7 +633,7 @@ def test_multiindex_example():
 
 @pytest.mark.parametrize("pdtype", NULLABLE_DTYPES)
 @hypothesis.given(st.data())
-def test_field_element_strategy(pdtype, data):
+def test_field_element_strategy(pdtype: pa.PandasDtype, data) -> None:
     """Test strategy for generating elements in columns/indexes."""
     strategy = strategies.field_element_strategy(pdtype)
     element = data.draw(strategy)
@@ -637,7 +655,9 @@ def test_field_element_strategy(pdtype, data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
+def test_check_nullable_field_strategy(
+    pdtype: pa.PandasDtype, field_strategy, nullable: bool, data
+) -> None:
     """Test strategies for generating nullable column/index data."""
 
     if (
@@ -665,7 +685,9 @@ def test_check_nullable_field_strategy(pdtype, field_strategy, nullable, data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
+def test_check_nullable_dataframe_strategy(
+    pdtype: pa.PandasDtype, nullable: bool, data
+) -> None:
     """Test strategies for generating nullable DataFrame data."""
     size = 5
     # pylint: disable=no-value-for-parameter
@@ -716,7 +738,9 @@ def test_check_nullable_dataframe_strategy(pdtype, nullable, data):
     ],
 )
 @hypothesis.given(st.data())
-def test_series_strategy_undefined_check_strategy(schema, warning, data):
+def test_series_strategy_undefined_check_strategy(
+    schema: pa.SeriesSchema, warning: str, data
+) -> None:
     """Test case where series check strategy is undefined."""
     with pytest.warns(
         UserWarning, match=f"{warning} check doesn't have a defined strategy"
@@ -772,7 +796,9 @@ def test_series_strategy_undefined_check_strategy(schema, warning, data):
     ],
 )
 @hypothesis.given(st.data())
-def test_dataframe_strategy_undefined_check_strategy(schema, warning, data):
+def test_dataframe_strategy_undefined_check_strategy(
+    schema: pa.DataFrameSchema, warning: str, data
+) -> None:
     """Test case where dataframe check strategy is undefined."""
     strat = schema.strategy(size=5)
     with pytest.warns(
@@ -806,7 +832,7 @@ class Schema(pa.SchemaModel):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_schema_model_strategy(data):
+def test_schema_model_strategy(data) -> None:
     """Test that strategy can be created from a SchemaModel."""
     strat = Schema.strategy(size=10)
     sample_data = data.draw(strat)
@@ -817,7 +843,7 @@ def test_schema_model_strategy(data):
 @hypothesis.settings(
     suppress_health_check=[hypothesis.HealthCheck.too_slow],
 )
-def test_schema_model_strategy_df_check(data):
+def test_schema_model_strategy_df_check(data) -> None:
     """Test that schema with custom checks produce valid data."""
 
     class SchemaWithDFCheck(Schema):
@@ -835,13 +861,13 @@ def test_schema_model_strategy_df_check(data):
     Schema.validate(sample_data)
 
 
-def test_schema_model_example():
+def test_schema_model_example() -> None:
     """Test that examples can be drawn from a SchemaModel."""
     sample_data = Schema.example(size=10)
     Schema.validate(sample_data)
 
 
-def test_schema_component_with_no_pdtype():
+def test_schema_component_with_no_pdtype() -> None:
     """
     Test that SchemaDefinitionError is raised if trying to create a strategy
     where pandas_dtype property is not specified.
@@ -851,4 +877,4 @@ def test_schema_component_with_no_pdtype():
         strategies.index_strategy,
     ]:
         with pytest.raises(pa.errors.SchemaDefinitionError):
-            schema_component_strategy(pandas_dtype=None)
+            schema_component_strategy(pandas_dtype=None)  # type: ignore[operator]

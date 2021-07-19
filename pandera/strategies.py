@@ -17,7 +17,17 @@ import warnings
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -49,6 +59,7 @@ else:
 StrategyFn = Callable[..., SearchStrategy]
 # Fix this when modules have been re-organized to avoid circular imports
 IndexComponent = Any
+F = TypeVar("F", bound=Callable)
 
 
 def _mask(
@@ -138,7 +149,7 @@ def verify_pandas_dtype(pandas_dtype, schema_type: str, name: Optional[str]):
         )
 
 
-def strategy_import_error(fn):
+def strategy_import_error(fn: F) -> F:
     """Decorator to generate input error if dependency is missing."""
 
     @wraps(fn)
@@ -152,7 +163,7 @@ def strategy_import_error(fn):
             )
         return fn(*args, **kwargs)
 
-    return _wrapper
+    return cast(F, _wrapper)
 
 
 def register_check_strategy(strategy_fn: StrategyFn):
