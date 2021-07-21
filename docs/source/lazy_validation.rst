@@ -132,14 +132,14 @@ catch these errors and inspect the failure cases in a more granular form:
     :skipif: SKIP_PANDAS_LT_V1
 
     Schema errors and failure cases:
-        schema_context        column                    check check_number  \
-    0  DataFrameSchema          None         column_in_schema         None
-    1  DataFrameSchema          None      column_in_dataframe         None
-    2           Column    int_column           dtype('int64')         None
-    3           Column  float_column         dtype('float64')         None
-    4           Column    str_column              equal_to(a)            0
-    5           Column    str_column              equal_to(a)            0
-    6           Column    str_column              equal_to(a)            0
+        schema_context        column                check check_number  \
+    0  DataFrameSchema          None     column_in_schema         None
+    1  DataFrameSchema          None  column_in_dataframe         None
+    2           Column    int_column       dtype('int64')         None
+    3           Column  float_column     dtype('float64')         None
+    4           Column  float_column      greater_than(0)            0
+    5           Column    str_column          equal_to(a)            0
+    6           Column    str_column          equal_to(a)            0
 
          failure_case index
     0  unknown_column  None

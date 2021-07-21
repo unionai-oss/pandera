@@ -171,13 +171,13 @@ is a convenience method for this functionality.
    # supply a file-like object, Path, or str to write to a file. If not
    # specified, to_yaml will output a yaml string.
    yaml_schema = schema.to_yaml()
-   print(yaml_schema)
+   print(yaml_schema.replace(f"{pa.__version__}", "{PANDERA_VERSION}"))
 
 .. testoutput:: infer_dataframe_schema
    :skipif: SKIP
 
     schema_type: dataframe
-    version: 0.6.5
+    version: {PANDERA_VERSION}
     columns:
       column1:
         dtype: int64
