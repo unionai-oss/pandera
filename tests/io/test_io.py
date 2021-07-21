@@ -403,7 +403,10 @@ def test_from_yaml(yaml_str, schema_creator):
 
 
 def test_from_yaml_unregistered_checks():
-    """Test that from_yaml raises an exception when deserializing unregistered checks."""
+    """
+    Test that from_yaml raises an exception when deserializing unregistered
+    checks.
+    """
 
     with pytest.raises(AttributeError, match=".*custom checks.*"):
         io.from_yaml(YAML_SCHEMA_MISSING_COLUMN_CHECK)
@@ -890,6 +893,8 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         {"check": "column_in_dataframe", "failure_case": "date_col"},
         {"check": "coerce_dtype('float64')", "failure_case": "object"},
         {"check": "no_duplicates", "failure_case": 12},
+        {"check": "in_range(10, 99)", "failure_case": 1},
+        {"check": "in_range(10, 99)", "failure_case": 180},
         {"check": "less_than_or_equal_to(30)", "failure_case": 113},
         {"check": "str_length(3, 80)", "failure_case": "a"},
         {"check": "str_length(3, 80)", "failure_case": "d" * 100},
@@ -900,4 +905,6 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         {"check": "str_length(3, None)", "failure_case": "1A"},
         {"check": "str_length(None, 3)", "failure_case": "123A"},
         {"check": "not_nullable", "failure_case": "NaN"},
+        {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 1.1},
+        {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 3.8},
     ], "validation failure cases not as expected"

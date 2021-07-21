@@ -39,7 +39,10 @@ class DataType(dtypes.DataType):
         )
 
     def __post_init__(self):
-        object.__setattr__(self, "type", np.dtype(self.type))
+        # this method isn't called if __init__ is defined
+        object.__setattr__(
+            self, "type", np.dtype(self.type)
+        )  # pragma: no cover
 
     def coerce(self, data_container: np.ndarray) -> np.ndarray:
         return data_container.astype(self.type)
@@ -309,7 +312,10 @@ class String(DataType, dtypes.String):
 
     def coerce(self, data_container: np.ndarray) -> np.ndarray:
         data_container = data_container.astype(object)
-        notna = ~np.isnan(data_container)
+        try:
+            notna = ~np.isnan(data_container)
+        except TypeError:
+            notna = np.ones_like(data_container).astype(bool)
         data_container[notna] = data_container[notna].astype(str)
         return data_container
 

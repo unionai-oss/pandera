@@ -71,7 +71,10 @@ def test_unsupported_pandas_dtype_strategy(data_type):
 @pytest.mark.parametrize("data_type", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
 @hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+    suppress_health_check=[
+        hypothesis.HealthCheck.too_slow,
+        hypothesis.HealthCheck.data_too_large,
+    ],
     max_examples=20,
 )
 def test_pandas_dtype_strategy(data_type, data):

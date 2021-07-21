@@ -72,7 +72,10 @@ class DataType(dtypes.DataType):
         )
 
     def __post_init__(self):
-        object.__setattr__(self, "type", pd.api.types.pandas_dtype(self.type))
+        # this method isn't called if __init__ is defined
+        object.__setattr__(
+            self, "type", pd.api.types.pandas_dtype(self.type)
+        )  # pragma: no cover
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         return data_container.astype(self.type)
@@ -133,16 +136,15 @@ class Engine(  # pylint:disable=too-few-public-methods
                 if isinstance(np_or_pd_dtype, np.dtype):
                     np_or_pd_dtype = np_or_pd_dtype.type
 
-            try:
-                return engine.Engine.dtype(cls, np_or_pd_dtype)
-            except TypeError:
-                return DataType(np_or_pd_dtype)
+            return engine.Engine.dtype(cls, np_or_pd_dtype)
 
     @classmethod
     def numpy_dtype(cls, pandera_dtype: dtypes.DataType) -> np.dtype:
         """Convert a Pandera :class:`~pandera.dtypes.DataType
         to a :class:`numpy.dtype`."""
-        pandera_dtype = engine.Engine.dtype(cls, pandera_dtype)
+        pandera_dtype: dtypes.DataType = engine.Engine.dtype(
+            cls, pandera_dtype
+        )
 
         alias = str(pandera_dtype).lower()
         if alias == "boolean":
@@ -395,10 +397,7 @@ if PANDAS_1_3_0_PLUS:
         storage: Optional[Literal["python", "pyarrow"]] = "python"
 
         def __post_init__(self):
-            if PANDAS_1_3_0_PLUS:
-                type_ = pd.StringDtype(self.storage)
-            else:
-                type_ = pd.StringDtype()
+            type_ = pd.StringDtype(self.storage)
             object.__setattr__(self, "type", type_)
 
         @classmethod

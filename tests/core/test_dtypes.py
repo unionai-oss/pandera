@@ -235,6 +235,24 @@ def test_datatype_init(data_type: Any):
         )
     assert isinstance(data_type(), pa.DataType)
 
+    with pytest.raises(TypeError, match="DataType may not be instantiated"):
+        pa.dtypes.DataType()
+
+
+def test_datatype_call():
+    """Test DataType call method."""
+
+    class CustomDataType(pa.dtypes.DataType):
+        """Custom data type."""
+
+        def coerce(self, data_container: List[int]) -> List[str]:
+            """Convert list of ints into a list of strings."""
+            return [str(x) for x in data_container]
+
+    custom_dtype = CustomDataType()
+    coerced_data = custom_dtype([1, 2, 3, 4, 5])
+    assert coerced_data == ["1", "2", "3", "4", "5"]
+
 
 def test_datatype_alias(data_type: Any, pd_dtype: Any):
     """Test that a default pa.DataType can be constructed."""

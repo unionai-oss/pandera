@@ -26,8 +26,10 @@ from pandera import (
     Column,
     DataFrameSchema,
     Index,
+    Int,
     MultiIndex,
     SeriesSchema,
+    String,
     errors,
 )
 from pandera.engines.pandas_engine import Engine
