@@ -176,8 +176,8 @@ decorator where you can specify input and output schemas more concisely:
     4       18    -40.8    -22.8
 
 
-Decorators' domain
-~~~~~~~~~~~~~~~~~~
+Decorate Functions and Coroutines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *All* pandera decorators work on synchronous as well as asynchronous code, on both bound and unbound
 functions/coroutines. For example, one can use the same decorators on:
