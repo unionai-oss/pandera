@@ -4,17 +4,7 @@
 import copy
 from datetime import datetime, timedelta
 from functools import partial
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -876,12 +866,7 @@ def test_schema_get_dtypes():
 
 def _boolean_update_column_case(
     bool_kwarg: str,
-) -> Tuple[
-    Column,
-    str,
-    Dict[str, bool],
-    Callable[[DataFrameSchema, DataFrameSchema], None],
-]:
+) -> List[Any]:
     def _assert_bool_case(old_schema, new_schema):
         assert not getattr(old_schema.columns["col"], bool_kwarg)
         assert getattr(new_schema.columns["col"], bool_kwarg)

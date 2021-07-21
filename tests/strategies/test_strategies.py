@@ -870,4 +870,4 @@ def test_schema_component_with_no_pdtype() -> None:
         strategies.index_strategy,
     ]:
         with pytest.raises(pa.errors.SchemaDefinitionError):
-            schema_component_strategy(pandera_dtype=None)
+            schema_component_strategy(pandera_dtype=None)  # type: ignore
