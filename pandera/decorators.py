@@ -42,14 +42,15 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
     :returns: list of argument names to be matched with the positional
     args passed in the decorator.
 
-    Notes:
-    Excludes first positional "self" or "cls" arguments if needed:
-    - exclude self:
-        if fn is a method (self being an implicit argument)
-    - exclude cls:
-        if fn is a decorated classmethod in Python 3.9+
-        if fn is declared as a regular method on a metaclass
-    Note that for fn-s decorated with @classmethod, cls is excluded only in Python 3.9+
+    .. note::
+       Excludes first positional "self" or "cls" arguments if needed:
+       - exclude self:
+           - if fn is a method (self being an implicit argument)
+       - exclude cls:
+           - if fn is a decorated classmethod in Python 3.9+
+           - if fn is declared as a regular method on a metaclass
+
+    For functions decorated with ``@classmethod``, cls is excluded only in Python 3.9+
     because that is when Python's handling of classmethods changed and wrapt mirrors it.
     See: https://github.com/GrahamDumpleton/wrapt/issues/182
     """
