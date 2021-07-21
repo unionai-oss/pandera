@@ -189,7 +189,7 @@ functions/coroutines. For example, one can use the same decorators on:
 
 All decorators work on sync/async regular/class/static methods of metaclasses as well.
 
-.. testoutput:: decorators_domain
+.. testcode:: decorators_domain
 
     import pandera as pa
     from pandera.typing import DataFrame, Series
