@@ -813,7 +813,38 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
     async def coroutine(df1: DataFrame[Schema]) -> DataFrame[Schema]:
         return df1
 
-    class SomeClass:
+    class Meta(type):
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def regular_meta_coroutine(
+            cls,
+            df1: DataFrame[Schema],
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @classmethod
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def class_meta_coroutine(  # pylint: disable=bad-mcs-classmethod-argument
+            mcs, df1: DataFrame[Schema]
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @staticmethod
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema())
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def static_meta_coroutine(
+            df1: DataFrame[Schema],
+        ) -> DataFrame[Schema]:
+            return df1
+
+    class SomeClass(metaclass=Meta):
         @check_types
         @check_output(Schema.to_schema())
         @check_input(Schema.to_schema(), "df1")
@@ -827,9 +858,8 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
         @classmethod
         @check_types
         @check_output(Schema.to_schema())
-        # Uncomment when https://github.com/GrahamDumpleton/wrapt/issues/182 is fixed
-        # @check_input(Schema.to_schema(), "df1")
-        # @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
         async def class_coroutine(
             cls, df1: DataFrame[Schema]
         ) -> DataFrame[Schema]:
@@ -855,6 +885,9 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
             SomeClass.class_coroutine,
             instance.static_coroutine,
             SomeClass.static_coroutine,
+            SomeClass.class_meta_coroutine,
+            SomeClass.static_meta_coroutine,
+            SomeClass.regular_meta_coroutine,
         ]:
             res = await coro(good_df)
             pd.testing.assert_frame_equal(good_df, res)
