@@ -109,7 +109,6 @@ class _Number(DataType):
 
 
 @immutable
-
 class _PhysicalNumber(_Number):
     bit_width: Optional[int] = None
     """Number of bits used by the machine representation."""
