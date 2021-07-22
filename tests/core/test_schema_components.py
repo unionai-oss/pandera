@@ -1,7 +1,7 @@
 """Testing the components of the Schema objects."""
 
 import copy
-from typing import Any, List, Optional, Tuple, Type, Union
+from typing import Any, List, Optional, Tuple, Type
 
 import pandas as pd
 import pytest

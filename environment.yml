@@ -37,7 +37,7 @@ dependencies:
   - importlib_metadata # required if python < 3.8
 
   # documentation
-  - sphinx
+  - sphinx = 4.0.3  # pinning sphinx
   - sphinx-autodoc-typehints
   - sphinx-copybutton
   - recommonmark

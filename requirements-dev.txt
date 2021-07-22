@@ -26,7 +26,7 @@ xdoctest
 setuptools >= 52.0.0
 nox == 2020.12.31
 importlib_metadata
-sphinx
+sphinx == 4.0.3
 sphinx-autodoc-typehints
 sphinx-copybutton
 recommonmark
