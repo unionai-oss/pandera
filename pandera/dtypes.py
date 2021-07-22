@@ -2,7 +2,7 @@
 """Schema datatypes."""
 
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -243,7 +243,7 @@ class PandasDtype(Enum):
         return pandas_dtype
 
     @classmethod
-    def from_python_type(cls, python_type: type) -> "PandasDtype":
+    def from_python_type(cls, python_type: Type) -> "PandasDtype":
         """Get PandasDtype enum from built-in python type.
 
         :param python_type: built-in python type. Allowable types are:
@@ -266,7 +266,7 @@ class PandasDtype(Enum):
         return pandas_dtype
 
     @classmethod
-    def from_numpy_type(cls, numpy_type: np.dtype) -> "PandasDtype":
+    def from_numpy_type(cls, numpy_type: Type[np.generic]) -> "PandasDtype":
         """Get PandasDtype enum from numpy type.
 
         :param numpy_type: numpy data type.

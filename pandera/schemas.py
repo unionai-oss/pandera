@@ -37,6 +37,7 @@ PandasDtypeInputTypes = Union[
     PandasDtype,
     PandasExtensionType,
     np.dtype,
+    None,
 ]
 
 
@@ -64,14 +65,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     def __init__(
         self,
-        columns: Dict[Any, Any] = None,
+        columns: Optional[Dict[Any, Any]] = None,
         checks: CheckList = None,
         index=None,
         pandas_dtype: PandasDtypeInputTypes = None,
-        transformer: Callable = None,
+        transformer: Optional[Callable[[pd.DataFrame], pd.DataFrame]] = None,
         coerce: bool = False,
         strict: Union[bool, str] = False,
-        name: str = None,
+        name: Optional[str] = None,
         ordered: bool = False,
     ) -> None:
         """Initialize DataFrameSchema validator.
@@ -176,7 +177,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._IS_INFERRED = False
 
     @property
-    def coerce(self):
+    def coerce(self) -> bool:
         """Whether to coerce series to specified type."""
         return self._coerce
 
@@ -186,7 +187,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = value
 
     @property
-    def ordered(self):
+    def ordered(self) -> bool:
         """Whether or not to validate the columns order."""
         return self._ordered
 
@@ -197,14 +198,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     # the _is_inferred getter and setter methods are not public
     @property
-    def _is_inferred(self):
+    def _is_inferred(self) -> bool:
         return self._IS_INFERRED
 
     @_is_inferred.setter
-    def _is_inferred(self, value: bool):
+    def _is_inferred(self, value: bool) -> None:
         self._IS_INFERRED = value
 
-    def _validate_schema(self):
+    def _validate_schema(self) -> None:
         for column_name, column in self.columns.items():
             for check in column.checks:
                 if check.groupby is None or callable(check.groupby):
@@ -219,7 +220,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         "specified in the DataFrameSchema."
                     )
 
-    def _set_column_names(self):
+    def _set_column_names(self) -> None:
         def _set_column_handler(column, column_name):
             if column.name is not None and column.name != column_name:
                 warnings.warn(
@@ -390,7 +391,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Check if all columns in a dataframe have a column in the Schema.
 
-        :param pd.DataFrame dataframe: the dataframe to be validated.
+        :param pd.DataFrame check_obj: the dataframe to be validated.
         :param head: validate the first n rows. Rows overlapping with `tail` or
             `sample` are de-duplicated.
         :param tail: validate the last n rows. Rows overlapping with `head` or
@@ -653,7 +654,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             dataframe, head, tail, sample, random_state, lazy, inplace
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent string for logging."""
         if isinstance(self._pandas_dtype, PandasDtype):
             dtype = self._pandas_dtype.value
@@ -672,7 +673,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             ")>"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Represent string for user inspection."""
 
         def _format_multiline(json_str, arg):
@@ -699,12 +700,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             checks_str = f"{indent}checks=[]"
 
         # add additional indents
-        index = str(self.index).split("\n")
-        if len(index) == 1:
+        index_ = str(self.index).split("\n")
+        if len(index_) == 1:
             index = str(self.index)
         else:
             index = "\n".join(
-                x if i == 0 else f"{indent}{x}" for i, x in enumerate(index)
+                x if i == 0 else f"{indent}{x}" for i, x in enumerate(index_)
             )
 
         if isinstance(self._pandas_dtype, PandasDtype):
@@ -725,7 +726,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             ")>"
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
 
@@ -737,7 +738,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return _compare_dict(self) == _compare_dict(other)
 
     @st.strategy_import_error
-    def strategy(self, *, size=None, n_regex_columns=1):
+    def strategy(
+        self, *, size: Optional[int] = None, n_regex_columns: int = 1
+    ):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
@@ -753,7 +756,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             n_regex_columns=n_regex_columns,
         )
 
-    def example(self, size=None, n_regex_columns=1) -> pd.DataFrame:
+    def example(
+        self, size: Optional[int] = None, n_regex_columns: int = 1
+    ) -> pd.DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
@@ -1105,7 +1110,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return new_schema
 
-    def select_columns(self, columns: List[str]) -> "DataFrameSchema":
+    def select_columns(self, columns: List[Any]) -> "DataFrameSchema":
         """Select subset of columns in the schema.
 
         *New in version 0.4.5*

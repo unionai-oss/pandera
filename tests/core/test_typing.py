@@ -1,7 +1,7 @@
 """Test typing annotations for the model api."""
 # pylint:disable=missing-class-docstring,too-few-public-methods
 import re
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Type
 
 import numpy as np
 import pandas as pd
@@ -195,7 +195,7 @@ class SchemaFieldCategoricalDtype(pa.SchemaModel):
 def _test_annotated_dtype(
     model: Type[pa.SchemaModel],
     dtype: Type,
-    dtype_kwargs: Dict[str, Any] = None,
+    dtype_kwargs: Optional[Dict[str, Any]] = None,
 ):
     dtype_kwargs = dtype_kwargs or {}
     schema = model.to_schema()

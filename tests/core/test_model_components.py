@@ -7,11 +7,11 @@ import pytest
 import pandera as pa
 
 
-def test_field_to_column():
+def test_field_to_column() -> None:
     """Test that Field outputs the correct column options."""
     for flag in ["nullable", "allow_duplicates", "coerce", "regex"]:
         for value in [True, False]:
-            col = pa.Field(**{flag: value}).to_column(
+            col = pa.Field(**{flag: value}).to_column(  # type: ignore[arg-type]
                 pa.DateTime, required=value
             )
             assert isinstance(col, pa.Column)
@@ -20,17 +20,17 @@ def test_field_to_column():
             assert col.required == value
 
 
-def test_field_to_index():
+def test_field_to_index() -> None:
     """Test that Field outputs the correct index options."""
     for flag in ["nullable", "allow_duplicates"]:
         for value in [True, False]:
-            index = pa.Field(**{flag: value}).to_index(pa.DateTime)
+            index = pa.Field(**{flag: value}).to_index(pa.DateTime)  # type: ignore[arg-type]
             assert isinstance(index, pa.Index)
             assert index.dtype == pa.DateTime.value
             assert getattr(index, flag) == value
 
 
-def test_field_no_checks():
+def test_field_no_checks() -> None:
     """Test Field without checks."""
     assert not pa.Field().to_column(str).checks
 
@@ -62,7 +62,7 @@ def test_field_no_checks():
         ("str_startswith", "a", pa.Check.str_startswith("a")),
     ],
 )
-def test_field_checks(arg: str, value: Any, expected: pa.Check):
+def test_field_checks(arg: str, value: Any, expected: pa.Check) -> None:
     """Test that all built-in checks are available in a Field."""
     checks = pa.Field(**{arg: value}).to_column(str).checks
     assert len(checks) == 1

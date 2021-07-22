@@ -18,7 +18,7 @@ from .schemas import (
 )
 
 
-def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
+def _is_valid_multiindex_tuple_str(x: Tuple[Any, ...]) -> bool:
     """Check that a multi-index tuple key has all string elements"""
     return isinstance(x, tuple) and all(isinstance(i, str) for i in x)
 
@@ -34,7 +34,7 @@ class Column(SeriesSchemaBase):
         allow_duplicates: bool = True,
         coerce: bool = False,
         required: bool = True,
-        name: str = None,
+        name: Union[str, Tuple[str, ...], None] = None,
         regex: bool = False,
     ) -> None:
         """Create column validator object.

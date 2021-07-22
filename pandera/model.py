@@ -14,7 +14,9 @@ from typing import (
     Set,
     Tuple,
     Type,
+    TypeVar,
     Union,
+    cast,
 )
 
 import pandas as pd
@@ -32,7 +34,7 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import LEGACY_TYPING, AnnotationInfo, Index, Series
+from .typing import LEGACY_TYPING, AnnotationInfo, DataFrame, Index, Series
 
 if LEGACY_TYPING:
 
@@ -58,6 +60,17 @@ _CONFIG_KEY = "Config"
 
 
 MODEL_CACHE: Dict[Type["SchemaModel"], DataFrameSchema] = {}
+F = TypeVar("F", bound=Callable)
+TSchemaModel = TypeVar("TSchemaModel", bound="SchemaModel")
+
+
+def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
+    """Typed wrapper around pd.util.Substitution."""
+
+    def decorator(func: F) -> F:
+        return cast(F, pd.util.Substitution(*args, **kwargs)(func))
+
+    return decorator
 
 
 class BaseConfig:  # pylint:disable=R0903
@@ -218,9 +231,9 @@ class SchemaModel:
         return cls.to_schema().to_yaml(stream)
 
     @classmethod
-    @pd.util.Substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def validate(
-        cls,
+        cls: Type[TSchemaModel],
         check_obj: pd.DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -228,23 +241,27 @@ class SchemaModel:
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> pd.DataFrame:
+    ) -> DataFrame[TSchemaModel]:
         """%(validate_doc)s"""
         return cls.to_schema().validate(
             check_obj, head, tail, sample, random_state, lazy, inplace
         )
 
     @classmethod
-    @pd.util.Substitution(strategy_doc=DataFrameSchema.strategy.__doc__)
+    @docstring_substitution(strategy_doc=DataFrameSchema.strategy.__doc__)
     @st.strategy_import_error
-    def strategy(cls, *, size=None):
+    def strategy(
+        cls: Type[TSchemaModel], *, size: Optional[int] = None
+    ) -> DataFrame[TSchemaModel]:
         """%(strategy_doc)s"""
         return cls.to_schema().strategy(size=size)
 
     @classmethod
-    @pd.util.Substitution(example_doc=DataFrameSchema.strategy.__doc__)
+    @docstring_substitution(example_doc=DataFrameSchema.strategy.__doc__)
     @st.strategy_import_error
-    def example(cls, *, size=None):
+    def example(
+        cls: Type[TSchemaModel], *, size: Optional[int] = None
+    ) -> DataFrame[TSchemaModel]:
         """%(example_doc)s"""
         return cls.to_schema().example(size=size)
 

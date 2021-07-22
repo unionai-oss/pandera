@@ -2,6 +2,7 @@
 coercion examples."""
 
 import platform
+from typing import Callable, List, Type
 
 import numpy as np
 import pandas as pd
@@ -52,7 +53,7 @@ TESTABLE_DTYPES = [
 ]
 
 
-def test_default_numeric_dtypes():
+def test_default_numeric_dtypes() -> None:
     """Test that default numeric dtypes int and float are consistent."""
     assert str(pd.Series([1]).dtype) == _DEFAULT_PANDAS_INT_TYPE
     assert pa.Int.str_alias == _DEFAULT_PANDAS_INT_TYPE
@@ -69,7 +70,7 @@ def test_default_numeric_dtypes():
     )
 
 
-def test_numeric_dtypes():
+def test_numeric_dtypes() -> None:
     """Test every numeric type can be validated properly by schema.validate"""
     for dtype in [pa.Float, pa.Float16, pa.Float32, pa.Float64]:
         assert all(
@@ -146,7 +147,9 @@ def test_numeric_dtypes():
     ],
 )
 @pytest.mark.parametrize("coerce", [True, False])
-def test_pandas_nullable_int_dtype(dtype, coerce):
+def test_pandas_nullable_int_dtype(
+    dtype: pa.PandasDtype, coerce: bool
+) -> None:
     """Test that pandas nullable int dtype can be specified in a schema."""
     assert all(
         isinstance(
@@ -171,13 +174,13 @@ def test_pandas_nullable_int_dtype(dtype, coerce):
 
 
 @pytest.mark.parametrize("str_alias", ["foo", "bar", "baz", "asdf", "qwerty"])
-def test_unrecognized_str_aliases(str_alias):
+def test_unrecognized_str_aliases(str_alias: str) -> None:
     """Test that unrecognized string aliases are supported."""
     with pytest.raises(TypeError):
         PandasDtype.from_str_alias(str_alias)
 
 
-def test_category_dtype():
+def test_category_dtype() -> None:
     """Test the category type can be validated properly by schema.validate"""
     schema = DataFrameSchema(
         columns={
@@ -203,7 +206,7 @@ def test_category_dtype():
     assert isinstance(validated_df, pd.DataFrame)
 
 
-def test_category_dtype_coerce():
+def test_category_dtype_coerce() -> None:
     """Test coercion of the category type is validated properly by
     schema.validate and fails safely."""
     columns = {
@@ -229,7 +232,9 @@ def test_category_dtype_coerce():
     assert isinstance(validated_df, pd.DataFrame)
 
 
-def helper_type_validation(dataframe_type, schema_type, debugging=False):
+def helper_type_validation(
+    dataframe_type, schema_type, debugging: bool = False
+) -> None:
     """
     Helper function for using same or different dtypes for the dataframe and
     the schema_type
@@ -259,7 +264,9 @@ def helper_type_validation(dataframe_type, schema_type, debugging=False):
         # np.object, np.void and bytes are not tested
     ],
 )
-def test_valid_numpy_type_scalar_conversions(type1, type2):
+def test_valid_numpy_type_scalar_conversions(
+    type1: np.generic, type2: np.generic
+) -> None:
     """Test correct conversions of numpy dtypes"""
     try:
         helper_type_validation(type1, type2)
@@ -297,7 +304,9 @@ def test_valid_numpy_type_scalar_conversions(type1, type2):
         # np.object, np.void and bytes are not tested
     ],
 )
-def test_valid_numpy_type_scalar_conversions_pandas_pre_1_3_0(type1, type2):
+def test_valid_numpy_type_scalar_conversions_pandas_pre_1_3_0(
+    type1: np.generic, type2: np.generic
+) -> None:
     """Test correct conversions of numpy dtypes"""
     try:
         helper_type_validation(type1, type2)
@@ -321,7 +330,9 @@ def test_valid_numpy_type_scalar_conversions_pandas_pre_1_3_0(type1, type2):
         (np.complex_, str),
     ],
 )
-def test_invalid_numpy_type_conversions(type1, type2):
+def test_invalid_numpy_type_conversions(
+    type1: np.generic, type2: np.generic
+) -> None:
     """Test various numpy dtypes"""
     with pytest.raises(SchemaError):
         helper_type_validation(type1, type2)
@@ -331,7 +342,7 @@ def test_invalid_numpy_type_conversions(type1, type2):
         PandasDtype.from_numpy_type(pd.DatetimeIndex)
 
 
-def test_datetime():
+def test_datetime() -> None:
     """Test datetime types can be validated properly by schema.validate"""
     schema = DataFrameSchema(
         columns={
@@ -358,7 +369,7 @@ def test_datetime():
     PANDAS_VERSION.release < (1, 0, 0),  # type: ignore
     reason="pandas >= 1.0.0 required",
 )
-def test_pandas_extension_types():
+def test_pandas_extension_types() -> None:
     """Test pandas extension data type happy path."""
     # pylint: disable=no-member
     test_params = [
@@ -409,11 +420,11 @@ def test_pandas_extension_types():
     ]
     for dtype, data, series_kwargs in test_params:
         series_kwargs = {} if series_kwargs is None else series_kwargs
-        series_schema = SeriesSchema(pandas_dtype=dtype, **series_kwargs)
+        series_schema = SeriesSchema(pandas_dtype=dtype, **series_kwargs)  # type: ignore
         assert isinstance(series_schema.validate(data), pd.Series)
 
 
-def test_python_builtin_types():
+def test_python_builtin_types() -> None:
     """Test support python data types can be used for validation."""
     schema = DataFrameSchema(
         {
@@ -445,7 +456,7 @@ def test_python_builtin_types():
 
 
 @pytest.mark.parametrize("python_type", [list, dict, set])
-def test_python_builtin_types_not_supported(python_type):
+def test_python_builtin_types_not_supported(python_type: Type) -> None:
     """Test unsupported python data types raise a type error."""
     with pytest.raises(TypeError):
         Column(python_type)
@@ -466,7 +477,9 @@ def test_python_builtin_types_not_supported(python_type):
         ["mixed-integer", PandasDtype.Object],
     ],
 )
-def test_pandas_api_types(pandas_api_type, pandas_dtype):
+def test_pandas_api_types(
+    pandas_api_type: str, pandas_dtype: pa.PandasDtype
+) -> None:
     """Test pandas api type conversion."""
     assert PandasDtype.from_pandas_api_type(pandas_api_type) is pandas_dtype
 
@@ -480,7 +493,7 @@ def test_pandas_api_types(pandas_api_type, pandas_dtype):
         "this is not a type",
     ],
 )
-def test_pandas_api_type_exception(invalid_pandas_api_type):
+def test_pandas_api_type_exception(invalid_pandas_api_type: str) -> None:
     """Test unsupported values for pandas api type conversion."""
     with pytest.raises(TypeError):
         PandasDtype.from_pandas_api_type(invalid_pandas_api_type)
@@ -489,14 +502,14 @@ def test_pandas_api_type_exception(invalid_pandas_api_type):
 @pytest.mark.parametrize(
     "pandas_dtype", (pandas_dtype for pandas_dtype in PandasDtype)
 )
-def test_pandas_dtype_equality(pandas_dtype):
+def test_pandas_dtype_equality(pandas_dtype: pa.PandasDtype) -> None:
     """Test __eq__ implementation."""
     assert pandas_dtype is not None  # pylint:disable=singleton-comparison
     assert pandas_dtype == pandas_dtype.value
 
 
 @pytest.mark.parametrize("pdtype", PandasDtype)
-def test_dtype_none_comparison(pdtype):
+def test_dtype_none_comparison(pdtype: pa.PandasDtype) -> None:
     """Test that comparing PandasDtype to None is False."""
     assert pdtype is not None
 
@@ -626,13 +639,15 @@ def test_dtype_none_comparison(pdtype):
         ],
     ],
 )
-def test_dtype_is_checks(property_fn, pdtypes):
+def test_dtype_is_checks(
+    property_fn: Callable[..., bool], pdtypes: List[pa.PandasDtype]
+) -> None:
     """Test all the pandas dtype is_* properties."""
     for pdtype in pdtypes:
         assert property_fn(pdtype)
 
 
-def test_category_dtype_exception():
+def test_category_dtype_exception() -> None:
     """Test that category dtype has no numpy dtype equivalent."""
     with pytest.raises(TypeError):
         # pylint: disable=pointless-statement

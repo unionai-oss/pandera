@@ -1,5 +1,6 @@
 # pylint: disable=W0212
 """Unit tests for schema inference module."""
+from typing import Type, Union
 
 import pandas as pd
 import pytest
@@ -8,7 +9,9 @@ import pandera as pa
 from pandera import schema_inference
 
 
-def _create_dataframe(multi_index=False, nullable=False):
+def _create_dataframe(
+    multi_index: bool = False, nullable: bool = False
+) -> pd.DataFrame:
     if multi_index:
         index = pd.MultiIndex.from_arrays(
             [[1, 1, 2], ["a", "b", "c"]],
@@ -48,7 +51,10 @@ def _create_dataframe(multi_index=False, nullable=False):
         [{"key": "value"}, TypeError],
     ],
 )
-def test_infer_schema(pandas_obj, expectation):
+def test_infer_schema(
+    pandas_obj,
+    expectation: Type[Union[pa.DataFrameSchema, pa.SeriesSchema, TypeError]],
+) -> None:
     """Test that convenience function correctly infers dataframe or series."""
     if expectation is TypeError:
         with pytest.raises(TypeError, match="^pandas_obj type not recognized"):
@@ -61,12 +67,9 @@ def test_infer_schema(pandas_obj, expectation):
 
 @pytest.mark.parametrize(
     "multi_index",
-    [
-        [False],
-        [True],
-    ],
+    [False, True],
 )
-def test_infer_dataframe_schema(multi_index):
+def test_infer_dataframe_schema(multi_index: bool) -> None:
     """Test dataframe schema is correctly inferred."""
     dataframe = _create_dataframe(multi_index=multi_index)
     schema = schema_inference.infer_dataframe_schema(dataframe)
@@ -112,7 +115,7 @@ def test_infer_dataframe_schema(multi_index):
         pd.Series(pd.to_datetime(["20180101", "20180102", "20180103"])),
     ],
 )
-def test_infer_series_schema(series):
+def test_infer_series_schema(series: pd.Series) -> None:
     """Test series schema is correctly inferred."""
     schema = schema_inference.infer_series_schema(series)
     assert isinstance(schema, pa.SeriesSchema)
