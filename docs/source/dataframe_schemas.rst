@@ -10,7 +10,7 @@ DataFrame Schemas
 The :class:`~pandera.schemas.DataFrameSchema` class enables the specification of a schema
 that verifies the columns and index of a pandas ``DataFrame`` object.
 
-The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
+The :class:`~pandera.schemas.DataFrameSchema` object consists of |column|_\s and an |index|_.
 
 .. |column| replace:: ``Column``
 .. |index| replace:: ``Index``
@@ -44,11 +44,24 @@ The ``DataFrameSchema`` object consists of |column|_\s and an |index|_.
 Column Validation
 -----------------
 
-A :class:`~pandera.schema_components.Column` must specify the properties of a column in a dataframe
-object. It can be optionally verified for its data type, `null values`_ or
+A :class:`~pandera.schema_components.Column` must specify the properties of a
+column in a dataframe object. It can be optionally verified for its data type,
+`null values`_ or
 duplicate values. The column can be coerced_ into the specified type, and the
 required_ parameter allows control over whether or not the column is allowed to
 be missing.
+
+Similarly to pandas, the data type can be specified as:
+
+* a string alias, as long as it is recognized by pandas.
+* a python type: `int`, `float`, `double`, `bool`, `str`
+* a `numpy data type <(https://numpy.org/doc/stable/user/basics.types.html)>`_
+* a `pandas extension type <(https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#dtypes)>`_:
+  it can be an instance (e.g `pd.CategoricalDtype(["a", "b"])`) or a
+  class (e.g `pandas.CategoricalDtype`) if it can be initialized with default
+  values.
+* a pandera :class:`~pandera.dtypes.DataType`: it can also be an instance or a
+  class.
 
 :ref:`Column checks<checks>` allow for the DataFrame's values to be
 checked against a user-provided function. ``Check`` objects also support
@@ -80,7 +93,7 @@ nullable. In order to accept null values, you need to explicitly specify
    df = pd.DataFrame({"column1": [5, 1, np.nan]})
 
    non_null_schema = DataFrameSchema({
-       "column1": Column(pa.Int, Check(lambda x: x > 0))
+       "column1": Column(pa.Float, Check(lambda x: x > 0))
    })
 
    non_null_schema.validate(df)
@@ -91,18 +104,11 @@ nullable. In order to accept null values, you need to explicitly specify
     ...
     SchemaError: non-nullable series contains null values: {2: nan}
 
-.. note:: Due to a known limitation in
-    `pandas prior to version 0.24.0 <https://pandas.pydata.org/pandas-docs/stable/user_guide/integer_na.html>`_,
-    integer arrays cannot contain ``NaN`` values, so this schema will return
-    a DataFrame where ``column1`` is of type ``float``.
-    :class:`~pandera.dtypes.PandasDtype` does not currently support the nullable integer
-    array type, but you can still use the "Int64" string alias for nullable
-    integer arrays
 
 .. testcode:: null_values_in_columns
 
    null_schema = DataFrameSchema({
-       "column1": Column(pa.Int, Check(lambda x: x > 0), nullable=True)
+       "column1": Column(pa.Float, Check(lambda x: x > 0), nullable=True)
    })
 
    print(null_schema.validate(df))
@@ -277,7 +283,7 @@ objects can also be used to validate columns in a dataframe on its own:
     validated_df = df.pipe(column1_schema).pipe(column2_schema)
 
 
-For multi-column use cases, the ``DataFrameSchema`` is still recommended, but
+For multi-column use cases, the :class:`~pandera.schemas.DataFrameSchema` is still recommended, but
 if you have one or a small number of columns to verify, using ``Column``
 objects by themselves is appropriate.
 
@@ -309,12 +315,12 @@ a set of meaningfully grouped columns that have ``str`` names.
     })
 
     schema = pa.DataFrameSchema({
-        "num_var_*": pa.Column(
+        "num_var_.+": pa.Column(
             pa.Float,
             checks=pa.Check.greater_than_or_equal_to(0),
             regex=True,
         ),
-        "cat_var_*": pa.Column(
+        "cat_var_.+": pa.Column(
             pa.Category,
             checks=pa.Check.isin(categories),
             coerce=True,
@@ -347,12 +353,12 @@ You can also regex pattern match on ``pd.MultiIndex`` columns:
     })
 
     schema = pa.DataFrameSchema({
-        ("num_var_*", "x*"): pa.Column(
+        ("num_var_.+", "x.+"): pa.Column(
             pa.Float,
             checks=pa.Check.greater_than_or_equal_to(0),
             regex=True,
         ),
-        ("cat_var_*", "y*"): pa.Column(
+        ("cat_var_.+", "y.+"): pa.Column(
             pa.Category,
             checks=pa.Check.isin(categories),
             coerce=True,
@@ -401,7 +407,7 @@ schema, specify ``strict=True``:
 
     Traceback (most recent call last):
     ...
-    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=int>}
+    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=DataType(int64)>}
 
 Alternatively, if your DataFrame contains columns that are not in the schema,
 and you would like these to be dropped on validation,
@@ -601,12 +607,13 @@ indexes by composing a list of ``pandera.Index`` objects.
     foo    2             3
 
 
-Get Pandas Datatypes
---------------------
+Get Pandas Data Types
+---------------------
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
-schema. ``DataFrameSchema`` provides a `dtype` property which returns a pandas
-style dict. The keys of the dict are column names and values are the dtype.
+schema. :class:`~pandera.schemas.DataFrameSchema` provides
+a :attr:`~pandera.schemas.DataFrameSchema.dtypes` property which returns a
+dictionary whose keys are column names and values are :class:`~pandera.dtypes.DataType`.
 
 Some examples of where this can be provided to pandas are:
 
@@ -626,13 +633,17 @@ Some examples of where this can be provided to pandas are:
       },
   )
 
-  df = pd.DataFrame.from_dict(
-    {
-        "a": {"column1": 1, "column2": "valueA", "column3": True},
-        "b": {"column1": 1, "column2": "valueB", "column3": True},
-    },
-    orient="index"
-  ).astype(schema.dtype).sort_index(axis=1)
+  df = (
+      pd.DataFrame.from_dict(
+          {
+              "a": {"column1": 1, "column2": "valueA", "column3": True},
+              "b": {"column1": 1, "column2": "valueB", "column3": True},
+          },
+          orient="index",
+      )
+      .astype({col: str(dtype) for col, dtype in schema.dtypes.items()})
+      .sort_index(axis=1)
+  )
 
   print(schema.validate(df))
 
@@ -718,11 +729,11 @@ data pipeline:
 
     <Schema DataFrameSchema(
         columns={
-            'col1': <Schema Column(name=col1, type=int)>
+            'col1': <Schema Column(name=col1, type=DataType(int64))>
         },
         checks=[],
         coerce=False,
-        pandas_dtype=None,
+        dtype=None,
         index=None,
         strict=True
         name=None,
@@ -756,15 +767,15 @@ the pipeline output.
 
     <Schema DataFrameSchema(
         columns={
-            'column2': <Schema Column(name=column2, type=float)>
+            'column2': <Schema Column(name=column2, type=DataType(float64))>
         },
         checks=[],
         coerce=True,
-        pandas_dtype=None,
+        dtype=None,
         index=<Schema MultiIndex(
             indexes=[
-                <Schema Index(name=column3, type=int)>
-                <Schema Index(name=column1, type=int)>
+                <Schema Index(name=column3, type=DataType(int64))>
+                <Schema Index(name=column1, type=DataType(int64))>
             ]
             coerce=False,
             strict=False,

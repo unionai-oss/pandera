@@ -8,17 +8,19 @@ import pandera as pa
 
 
 @pytest.mark.parametrize(
-    "schema1, schema2, data",
+    "schema1, schema2, data, invalid_data",
     [
         [
             pa.DataFrameSchema({"col": pa.Column(int)}, coerce=True),
             pa.DataFrameSchema({"col": pa.Column(float)}, coerce=True),
             pd.DataFrame({"col": [1, 2, 3]}),
+            pd.Series([1, 2, 3]),
         ],
         [
             pa.SeriesSchema(int, coerce=True),
             pa.SeriesSchema(float, coerce=True),
             pd.Series([1, 2, 3]),
+            pd.DataFrame({"col": [1, 2, 3]}),
         ],
     ],
 )
@@ -27,6 +29,7 @@ def test_dataframe_series_add_schema(
     schema1: Union[pa.DataFrameSchema, pa.SeriesSchema],
     schema2: Union[pa.DataFrameSchema, pa.SeriesSchema],
     data: Union[pd.DataFrame, pd.Series],
+    invalid_data: Union[pd.DataFrame, pd.Series],
     inplace: bool,
 ) -> None:
     """
@@ -45,3 +48,9 @@ def test_dataframe_series_add_schema(
     else:
         assert validated_data_1.pandera.schema == schema1
     assert validated_data_2.pandera.schema == schema2
+
+    with pytest.raises(TypeError):
+        schema1(invalid_data)
+
+    with pytest.raises(TypeError):
+        schema2(invalid_data)

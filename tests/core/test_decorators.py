@@ -14,7 +14,6 @@ from pandera import (
     Field,
     Float,
     Int,
-    PandasDtype,
     SchemaModel,
     String,
     check_input,
@@ -23,6 +22,7 @@ from pandera import (
     check_types,
     errors,
 )
+from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
 try:
@@ -356,7 +356,8 @@ def test_check_io() -> None:
     # invalid out schema types
     for out_schema in [1, 5.0, "foo", {"foo": "bar"}, ["foo"]]:
 
-        @check_io(out=out_schema)  # type: ignore[arg-type]  # mypy finds correctly the wrong usage
+        # mypy finds correctly the wrong usage
+        @check_io(out=out_schema)  # type: ignore[arg-type]
         def invalid_out_schema_type(df):
             return df
 
@@ -656,8 +657,8 @@ def test_check_types_coerce() -> None:
         return df
 
     df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))
-    expected = InSchema.to_schema().columns["a"].pandas_dtype
-    assert PandasDtype(str(df["a"].dtype)) == expected == PandasDtype("int")
+    expected = InSchema.to_schema().columns["a"].dtype
+    assert Engine.dtype(df["a"].dtype) == expected
 
     @check_types()
     def transform_out() -> DataFrame[OutSchema]:
@@ -665,10 +666,8 @@ def test_check_types_coerce() -> None:
         return pd.DataFrame({"b": ["1"]})
 
     out_df = transform_out()
-    expected = OutSchema.to_schema().columns["b"].pandas_dtype
-    assert (
-        PandasDtype(str(out_df["b"].dtype)) == expected == PandasDtype("int")
-    )
+    expected = OutSchema.to_schema().columns["b"].dtype
+    assert Engine.dtype(out_df["b"].dtype) == expected
 
 
 @pytest.mark.parametrize(

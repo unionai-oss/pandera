@@ -1,15 +1,34 @@
 # pylint: disable=W0212
 """Unit tests for inferring statistics of pandas objects."""
-
 import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import PandasDtype, dtypes, schema_statistics
-from pandera.dtypes import PANDAS_1_3_0_PLUS
+from pandera import dtypes, schema_statistics
+from pandera.engines import pandas_engine
 
-DEFAULT_INT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_INT_TYPE)
-DEFAULT_FLOAT = PandasDtype.from_str_alias(dtypes._DEFAULT_PANDAS_FLOAT_TYPE)
+DEFAULT_FLOAT = pandas_engine.Engine.dtype(float)
+DEFAULT_INT = pandas_engine.Engine.dtype(int)
+
+NUMERIC_TYPES = [
+    pa.Int(),
+    pa.UInt(),
+    pa.Float(),
+    pa.Complex(),
+    pandas_engine.Engine.dtype("Int32"),
+    pandas_engine.Engine.dtype("UInt32"),
+]
+INTEGER_TYPES = [
+    dtypes.Int(),
+    dtypes.Int8(),
+    dtypes.Int16(),
+    dtypes.Int32(),
+    dtypes.Int64(),
+    dtypes.UInt8(),
+    dtypes.UInt16(),
+    dtypes.UInt32(),
+    dtypes.UInt64(),
+]
 
 
 def _create_dataframe(
@@ -55,33 +74,41 @@ def test_infer_dataframe_statistics(multi_index: bool, nullable: bool) -> None:
     statistics = schema_statistics.infer_dataframe_statistics(dataframe)
     stat_columns = statistics["columns"]
 
-    if PANDAS_1_3_0_PLUS:
+    if pa.pandas_version().release >= (1, 3, 0):
         if nullable:
-            assert stat_columns["int"]["pandas_dtype"] is DEFAULT_FLOAT
+            assert DEFAULT_FLOAT.check(stat_columns["int"]["dtype"])
         else:
-            assert stat_columns["int"]["pandas_dtype"] is DEFAULT_INT
+            assert DEFAULT_INT.check(stat_columns["int"]["dtype"])
     else:
         if nullable:
-            assert stat_columns["boolean"]["pandas_dtype"] is DEFAULT_FLOAT
+            assert DEFAULT_FLOAT.check(stat_columns["boolean"]["dtype"])
         else:
-            assert stat_columns["boolean"]["pandas_dtype"] is pa.Bool
+            assert pandas_engine.Engine.dtype(bool).check(
+                stat_columns["boolean"]["dtype"]
+            )
 
-    assert stat_columns["float"]["pandas_dtype"] is DEFAULT_FLOAT
-    assert stat_columns["string"]["pandas_dtype"] is pa.String
-    assert stat_columns["datetime"]["pandas_dtype"] is pa.DateTime
+    assert DEFAULT_FLOAT.check(stat_columns["float"]["dtype"])
+    assert pandas_engine.Engine.dtype(str).check(
+        stat_columns["string"]["dtype"]
+    )
+    assert pandas_engine.Engine.dtype(pa.DateTime).check(
+        stat_columns["datetime"]["dtype"]
+    )
 
     if multi_index:
         stat_indices = statistics["index"]
         for stat_index, name, dtype in zip(
-            stat_indices, ["int_index", "str_index"], [DEFAULT_INT, pa.String]
+            stat_indices,
+            ["int_index", "str_index"],
+            [DEFAULT_INT, pandas_engine.Engine.dtype(str)],
         ):
             assert stat_index["name"] == name
-            assert stat_index["pandas_dtype"] is dtype
+            assert dtype.check(stat_index["dtype"])
             assert not stat_index["nullable"]
     else:
         stat_index = statistics["index"][0]
         assert stat_index["name"] == "int_index"
-        assert stat_index["pandas_dtype"] is DEFAULT_INT
+        assert stat_index["dtype"] == DEFAULT_INT
         assert not stat_index["nullable"]
 
     for properties in stat_columns.values():
@@ -129,14 +156,30 @@ def test_parse_check_statistics(check_stats, expectation) -> None:
     assert set(checks) == set(expectation)
 
 
+def _test_statistics(statistics, expectations):
+    if not isinstance(statistics, list):
+        statistics = [statistics]
+    if not isinstance(expectations, list):
+        expectations = [expectations]
+
+    for stats, expectation in zip(statistics, expectations):
+        stat_dtype = stats.pop("dtype")
+        expectation_dtype = expectation.pop("dtype")
+
+        assert stats == expectation
+        assert expectation_dtype.check(stat_dtype)
+
+
 @pytest.mark.parametrize(
     "series, expectation",
     [
         *[
             [
-                pd.Series([1, 2, 3], dtype=dtype.str_alias),
+                pd.Series(
+                    [1, 2, 3], dtype=str(pandas_engine.Engine.dtype(data_type))
+                ),
                 {
-                    "pandas_dtype": dtype,
+                    "dtype": pandas_engine.Engine.dtype(data_type),
                     "nullable": False,
                     "checks": {
                         "greater_than_or_equal_to": 1,
@@ -145,25 +188,21 @@ def test_parse_check_statistics(check_stats, expectation) -> None:
                     "name": None,
                 },
             ]
-            for dtype in (
-                x
-                for x in schema_statistics.NUMERIC_DTYPES
-                if x != PandasDtype.DateTime
-            )
+            for data_type in NUMERIC_TYPES
         ],
         [
             pd.Series(["a", "b", "c", "a"], dtype="category"),
             {
-                "pandas_dtype": pa.Category,
+                "dtype": pandas_engine.Engine.dtype(pa.Category),
                 "nullable": False,
                 "checks": {"isin": ["a", "b", "c"]},
                 "name": None,
             },
         ],
         [
-            pd.Series(["a", "b", "c", "a"], name="str_series"),
+            pd.Series(["a", "b", "c", "a"], dtype="string", name="str_series"),
             {
-                "pandas_dtype": pa.String,
+                "dtype": pandas_engine.Engine.dtype("string"),
                 "nullable": False,
                 "checks": None,
                 "name": "str_series",
@@ -172,7 +211,7 @@ def test_parse_check_statistics(check_stats, expectation) -> None:
         [
             pd.Series(pd.to_datetime(["20180101", "20180102", "20180103"])),
             {
-                "pandas_dtype": pa.DateTime,
+                "dtype": pandas_engine.Engine.dtype(pa.DateTime),
                 "nullable": False,
                 "checks": {
                     "greater_than_or_equal_to": pd.Timestamp("20180101"),
@@ -186,20 +225,7 @@ def test_parse_check_statistics(check_stats, expectation) -> None:
 def test_infer_series_schema_statistics(series, expectation) -> None:
     """Test series statistics are correctly inferred."""
     statistics = schema_statistics.infer_series_statistics(series)
-    assert statistics == expectation
-
-
-INTEGER_TYPES = [
-    PandasDtype.Int,
-    PandasDtype.Int8,
-    PandasDtype.Int16,
-    PandasDtype.Int32,
-    PandasDtype.Int64,
-    PandasDtype.UInt8,
-    PandasDtype.UInt16,
-    PandasDtype.UInt32,
-    PandasDtype.UInt64,
-]
+    _test_statistics(statistics, expectation)
 
 
 @pytest.mark.parametrize(
@@ -208,10 +234,10 @@ INTEGER_TYPES = [
         *[
             [
                 0,
-                pd.Series([1, 2, 3], dtype=dtype.value),
+                pd.Series([1, 2, 3], dtype=str(data_type)),
                 {
                     # introducing nans to integer arrays upcasts to float
-                    "pandas_dtype": DEFAULT_FLOAT,
+                    "dtype": DEFAULT_FLOAT,
                     "nullable": True,
                     "checks": {
                         "greater_than_or_equal_to": 2,
@@ -220,7 +246,7 @@ INTEGER_TYPES = [
                     "name": None,
                 },
             ]
-            for dtype in INTEGER_TYPES
+            for data_type in INTEGER_TYPES
         ],
         [
             # introducing nans to bool arrays upcasts to float except
@@ -228,13 +254,15 @@ INTEGER_TYPES = [
             0,
             pd.Series([True, False, True, False]),
             {
-                "pandas_dtype": (
-                    pa.Bool if PANDAS_1_3_0_PLUS else DEFAULT_FLOAT
+                "dtype": (
+                    pandas_engine.Engine.dtype(pa.BOOL)
+                    if pa.PANDAS_1_3_0_PLUS
+                    else DEFAULT_FLOAT
                 ),
                 "nullable": True,
                 "checks": (
                     None
-                    if PANDAS_1_3_0_PLUS
+                    if pa.PANDAS_1_3_0_PLUS
                     else {
                         "greater_than_or_equal_to": 0,
                         "less_than_or_equal_to": 1,
@@ -247,7 +275,7 @@ INTEGER_TYPES = [
             0,
             pd.Series(["a", "b", "c", "a"], dtype="category"),
             {
-                "pandas_dtype": pa.Category,
+                "dtype": pandas_engine.Engine.dtype(pa.Category),
                 "nullable": True,
                 "checks": {"isin": ["a", "b", "c"]},
                 "name": None,
@@ -257,7 +285,7 @@ INTEGER_TYPES = [
             0,
             pd.Series(["a", "b", "c", "a"], name="str_series"),
             {
-                "pandas_dtype": pa.String,
+                "dtype": pandas_engine.Engine.dtype(str),
                 "nullable": True,
                 "checks": None,
                 "name": "str_series",
@@ -267,7 +295,7 @@ INTEGER_TYPES = [
             2,
             pd.Series(pd.to_datetime(["20180101", "20180102", "20180103"])),
             {
-                "pandas_dtype": pa.DateTime,
+                "dtype": pandas_engine.Engine.dtype(pa.DateTime),
                 "nullable": True,
                 "checks": {
                     "greater_than_or_equal_to": pd.Timestamp("20180101"),
@@ -284,7 +312,7 @@ def test_infer_nullable_series_schema_statistics(
     """Test nullable series statistics are correctly inferred."""
     series.iloc[null_index] = None
     statistics = schema_statistics.infer_series_statistics(series)
-    assert statistics == expectation
+    _test_statistics(statistics, expectation)
 
 
 @pytest.mark.parametrize(
@@ -295,7 +323,7 @@ def test_infer_nullable_series_schema_statistics(
             [
                 {
                     "name": None,
-                    "pandas_dtype": PandasDtype.Int,
+                    "dtype": DEFAULT_INT,
                     "nullable": False,
                     "checks": {
                         "greater_than_or_equal_to": 0,
@@ -309,7 +337,7 @@ def test_infer_nullable_series_schema_statistics(
             [
                 {
                     "name": "int_index",
-                    "pandas_dtype": PandasDtype.Int,
+                    "dtype": DEFAULT_INT,
                     "nullable": False,
                     "checks": {
                         "greater_than_or_equal_to": 1,
@@ -323,7 +351,7 @@ def test_infer_nullable_series_schema_statistics(
             [
                 {
                     "name": "str_index",
-                    "pandas_dtype": PandasDtype.String,
+                    "dtype": pandas_engine.Engine.dtype("object"),
                     "nullable": False,
                     "checks": None,
                 },
@@ -337,7 +365,7 @@ def test_infer_nullable_series_schema_statistics(
             [
                 {
                     "name": "int_index",
-                    "pandas_dtype": PandasDtype.Int,
+                    "dtype": DEFAULT_INT,
                     "nullable": False,
                     "checks": {
                         "greater_than_or_equal_to": 10,
@@ -346,7 +374,7 @@ def test_infer_nullable_series_schema_statistics(
                 },
                 {
                     "name": "str_index",
-                    "pandas_dtype": PandasDtype.Category,
+                    "dtype": pandas_engine.Engine.dtype(pa.Category),
                     "nullable": False,
                     "checks": {"isin": ["a", "b", "c"]},
                 },
@@ -367,7 +395,9 @@ def test_infer_index_statistics(index, expectation):
         with pytest.warns(UserWarning, match="^index type .+ not recognized"):
             schema_statistics.infer_index_statistics(index)
     else:
-        assert schema_statistics.infer_index_statistics(index) == expectation
+        _test_statistics(
+            schema_statistics.infer_index_statistics(index), expectation
+        )
 
 
 def test_get_dataframe_schema_statistics():
@@ -375,7 +405,7 @@ def test_get_dataframe_schema_statistics():
     schema = pa.DataFrameSchema(
         columns={
             "int": pa.Column(
-                pa.Int,
+                int,
                 checks=[
                     pa.Check.greater_than_or_equal_to(0),
                     pa.Check.less_than_or_equal_to(100),
@@ -383,18 +413,19 @@ def test_get_dataframe_schema_statistics():
                 nullable=True,
             ),
             "float": pa.Column(
-                pa.Float,
+                float,
                 checks=[
                     pa.Check.greater_than_or_equal_to(50),
                     pa.Check.less_than_or_equal_to(100),
                 ],
             ),
             "str": pa.Column(
-                pa.String, checks=[pa.Check.isin(["foo", "bar", "baz"])]
+                str,
+                checks=[pa.Check.isin(["foo", "bar", "baz"])],
             ),
         },
         index=pa.Index(
-            pa.Int,
+            int,
             checks=pa.Check.greater_than_or_equal_to(0),
             nullable=False,
             name="int_index",
@@ -404,7 +435,7 @@ def test_get_dataframe_schema_statistics():
         "checks": None,
         "columns": {
             "int": {
-                "pandas_dtype": pa.Int,
+                "dtype": DEFAULT_INT,
                 "checks": {
                     "greater_than_or_equal_to": {"min_value": 0},
                     "less_than_or_equal_to": {"max_value": 100},
@@ -416,7 +447,7 @@ def test_get_dataframe_schema_statistics():
                 "regex": False,
             },
             "float": {
-                "pandas_dtype": pa.Float,
+                "dtype": DEFAULT_FLOAT,
                 "checks": {
                     "greater_than_or_equal_to": {"min_value": 50},
                     "less_than_or_equal_to": {"max_value": 100},
@@ -428,7 +459,7 @@ def test_get_dataframe_schema_statistics():
                 "regex": False,
             },
             "str": {
-                "pandas_dtype": pa.String,
+                "dtype": pandas_engine.Engine.dtype(str),
                 "checks": {"isin": {"allowed_values": ["foo", "bar", "baz"]}},
                 "nullable": False,
                 "allow_duplicates": True,
@@ -439,7 +470,7 @@ def test_get_dataframe_schema_statistics():
         },
         "index": [
             {
-                "pandas_dtype": pa.Int,
+                "dtype": DEFAULT_INT,
                 "checks": {"greater_than_or_equal_to": {"min_value": 0}},
                 "nullable": False,
                 "coerce": False,
@@ -455,7 +486,7 @@ def test_get_dataframe_schema_statistics():
 def test_get_series_schema_statistics():
     """Test that series schema statistics logic is correct."""
     schema = pa.SeriesSchema(
-        pa.Int,
+        int,
         nullable=False,
         checks=[
             pa.Check.greater_than_or_equal_to(0),
@@ -464,7 +495,7 @@ def test_get_series_schema_statistics():
     )
     statistics = schema_statistics.get_series_schema_statistics(schema)
     assert statistics == {
-        "pandas_dtype": pa.Int,
+        "dtype": pandas_engine.Engine.dtype(int),
         "nullable": False,
         "checks": {
             "greater_than_or_equal_to": {"min_value": 0},
@@ -480,7 +511,7 @@ def test_get_series_schema_statistics():
     [
         [
             pa.Index(
-                pa.Int,
+                int,
                 checks=[
                     pa.Check.greater_than_or_equal_to(10),
                     pa.Check.less_than_or_equal_to(20),
@@ -490,7 +521,7 @@ def test_get_series_schema_statistics():
             ),
             [
                 {
-                    "pandas_dtype": pa.Int,
+                    "dtype": pandas_engine.Engine.dtype(int),
                     "nullable": False,
                     "checks": {
                         "greater_than_or_equal_to": {"min_value": 10},
@@ -508,7 +539,7 @@ def test_get_index_schema_statistics(index_schema_component, expectation):
     statistics = schema_statistics.get_index_schema_statistics(
         index_schema_component
     )
-    assert statistics == expectation
+    _test_statistics(statistics, expectation)
 
 
 @pytest.mark.parametrize(
@@ -579,7 +610,10 @@ def test_parse_checks_and_statistics_roundtrip(checks, expectation):
 
 # pylint: disable=unused-argument
 def test_parse_checks_and_statistics_no_param(extra_registered_checks):
-    """Ensure that an edge case where a check does not have parameters is appropriately handled."""
+    """
+    Ensure that an edge case where a check does not have parameters is
+    appropriately handled.
+    """
 
     checks = [pa.Check.no_param_check()]
     expectation = {"no_param_check": {}}

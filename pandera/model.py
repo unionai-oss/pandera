@@ -220,8 +220,8 @@ class SchemaModel:
             ordered=cls.__config__.ordered,
         )
         if cls not in MODEL_CACHE:
-            MODEL_CACHE[cls] = cls.__schema__
-        return cls.__schema__
+            MODEL_CACHE[cls] = cls.__schema__  # type: ignore
+        return cls.__schema__  # type: ignore
 
     @classmethod
     def to_yaml(cls, stream: Optional[os.PathLike] = None):

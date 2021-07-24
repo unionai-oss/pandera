@@ -15,9 +15,9 @@ exception:
 
 * a column specified in the schema is not present in the dataframe.
 * if ``strict=True``, a column in the dataframe is not specified in the schema.
-* the ``pandas_dtype`` does not match.
+* the ``data type`` does not match.
 * if ``coerce=True``, the dataframe column cannot be coerced into the specified
-  ``pandas_dtype``.
+  ``data type``.
 * the :class:`~pandera.checks.Check` specified in one of the columns returns ``False`` or
   a boolean series containing at least one ``False`` value.
 
@@ -94,8 +94,8 @@ of all schemas and schema components gives you the option of doing just this:
     schema_context  column       check
     DataFrameSchema <NA>         column_in_dataframe         [date_column]                1
                                  column_in_schema         [unknown_column]                1
-    Column          float_column pandas_dtype('float64')           [int64]                1
-                    int_column   pandas_dtype('int64')            [object]                1
+    Column          float_column dtype('float64')                  [int64]                1
+                    int_column   dtype('int64')                   [object]                1
                     str_column   equal_to(a)                        [b, d]                2
 
     Usage Tip
@@ -132,14 +132,14 @@ catch these errors and inspect the failure cases in a more granular form:
     :skipif: SKIP_PANDAS_LT_V1
 
     Schema errors and failure cases:
-        schema_context        column                    check check_number  \
-    0  DataFrameSchema          None         column_in_schema         None
-    1  DataFrameSchema          None      column_in_dataframe         None
-    2           Column    int_column    pandas_dtype('int64')         None
-    3           Column  float_column  pandas_dtype('float64')         None
-    4           Column  float_column          greater_than(0)            0
-    5           Column    str_column              equal_to(a)            0
-    6           Column    str_column              equal_to(a)            0
+        schema_context        column                check check_number  \
+    0  DataFrameSchema          None     column_in_schema         None
+    1  DataFrameSchema          None  column_in_dataframe         None
+    2           Column    int_column       dtype('int64')         None
+    3           Column  float_column     dtype('float64')         None
+    4           Column  float_column      greater_than(0)            0
+    5           Column    str_column          equal_to(a)            0
+    6           Column    str_column          equal_to(a)            0
 
          failure_case index
     0  unknown_column  None

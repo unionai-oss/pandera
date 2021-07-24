@@ -113,7 +113,7 @@ venv.bak/
 /asv_bench/results/
 
 # Docs
-docs/source/generated
+docs/source/reference/generated
 
 # Nox
 .nox
