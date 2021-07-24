@@ -637,8 +637,7 @@ def from_frictionless_schema(
     >>> schema.columns["column_1"].allow_duplicates
     False
     >>> schema.columns["column_2"].checks
-    [<Check str_length: str_length(None, 10)>,
-     <Check str_matches: str_matches(re.compile('^\\S+$'))>]
+    [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches(re.compile('^\\\\S+$'))>]
     """
     if not isinstance(schema, FrictionlessSchema):
         schema = FrictionlessSchema(schema)
