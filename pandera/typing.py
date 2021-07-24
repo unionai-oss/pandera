@@ -103,26 +103,20 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
         raise AttributeError("Series should resolve to Field-s")
 
 
-if TYPE_CHECKING:  # pragma: no cover
-    # pylint:disable=too-few-public-methods,invalid-name
+# pylint:disable=invalid-name
+if TYPE_CHECKING:
     T = TypeVar("T")
-
-    class DataFrame(pd.DataFrame, Generic[T]):
-        """
-        Representation of pandas.DataFrame, only used for type annotation.
-
-        *new in 0.5.0*
-        """
-
-
 else:
-    # pylint:disable=too-few-public-methods
-    class DataFrame(pd.DataFrame, Generic[Schema]):
-        """
-        Representation of pandas.DataFrame, only used for type annotation.
+    T = Schema
 
-        *new in 0.5.0*
-        """
+
+# pylint:disable=too-few-public-methods
+class DataFrame(pd.DataFrame, Generic[T]):
+    """
+    Representation of pandas.DataFrame, only used for type annotation.
+
+    *new in 0.5.0*
+    """
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
