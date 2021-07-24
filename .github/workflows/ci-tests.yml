@@ -149,12 +149,6 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
-      - name: Install pandas
-        run: |
-          if [[ "${{ matrix.pandas-version }}" != 'latest' ]]
-          then
-            python -m pip install pandas==${{ matrix.pandas-version }}
-          fi
       - name: Pip info
         run: python -m pip list
 
