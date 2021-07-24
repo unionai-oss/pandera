@@ -83,7 +83,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas${{ matrix.pandas-version }})
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -98,13 +98,6 @@ jobs:
           path: ~/Library/Caches/pip
         - os: windows-latest
           path: ~\AppData\Local\pip\Cache
-        # # exclude these configurations until issue tracked here is fixed:
-        # # https://github.com/pandera-dev/pandera/issues/555
-        # exclude:
-        #   - os: windows-latest
-        #     python-version: "3.7"
-        #   - os: windows-latest
-        #     python-version: "3.9"
 
     steps:
       - uses: actions/checkout@v2
