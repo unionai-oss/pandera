@@ -58,6 +58,12 @@ jobs:
       #     conda info
       #     conda list
 
+      - name: Install Requirements
+        run: pip install -r requirements-dev.txt
+
+      - name: Pip info
+        run: pip list
+
       - name: Check isort and black formatting
         run: >
           nox
@@ -78,6 +84,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Install Requirements
+        run: pip install -r requirements-dev.txt
+
+      - name: Pip info
+        run: pip list
 
       # - name: Cache conda
       #   uses: actions/cache@v2
@@ -156,40 +168,41 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Cache conda
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            .nox
-          key: "${{ runner.os }}\
-            -tests-${{ env.CACHE_VERSION }}\
-            -${{ matrix.python-version }}\
-            -${{ hashFiles('environment.yml') }}"
+      # - name: Cache conda
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ~/conda_pkgs_dir
+      #       .nox
+      #     key: "${{ runner.os }}\
+      #       -tests-${{ env.CACHE_VERSION }}\
+      #       -${{ matrix.python-version }}\
+      #       -${{ hashFiles('environment.yml') }}"
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          mamba-version: "*"
-          channels: conda-forge
-          channel-priority: true
-          activate-environment: pandera-dev
-          auto-update-conda: false
-          environment-file: environment.yml
-          use-only-tar-bz2: true
-          auto-activate-base: false
+      # - uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     python-version: ${{ env.DEFAULT_PYTHON }}
+      #     mamba-version: "*"
+      #     channels: conda-forge
+      #     channel-priority: true
+      #     activate-environment: pandera-dev
+      #     auto-update-conda: false
+      #     environment-file: environment.yml
+      #     use-only-tar-bz2: true
+      #     auto-activate-base: false
 
       - name: Install pandas
         run: |
           if [[ "${{ matrix.pandas-version }}" != 'latest' ]]
           then
-            mamba install -c conda-forge pandas==${{ matrix.pandas-version }}
+            pip install pandas==${{ matrix.pandas-version }}
           fi
 
-      - name: Conda info
-        run: |
-          conda info
-          conda list
+      - name: Install Requirements
+        run: pip install -r requirements-dev.txt
+
+      - name: Pip info
+        run: pip list
 
       - name: Unit Tests - Core
         run: >
