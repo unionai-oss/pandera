@@ -30,37 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # - name: Cache conda
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ~/conda_pkgs_dir
-      #       .nox
-      #     key: "${{ runner.os }}\
-      #       -codestyle-${{ env.CACHE_VERSION }}\
-      #       -${{ env.DEFAULT_PYTHON }}\
-      #       -${{ hashFiles('environment.yml') }}"
-
-      # - uses: conda-incubator/setup-miniconda@v2
-      #   with:
-      #     python-version: ${{ env.DEFAULT_PYTHON }}
-      #     mamba-version: "*"
-      #     channels: conda-forge
-      #     channel-priority: true
-      #     activate-environment: pandera-dev
-      #     auto-update-conda: false
-      #     environment-file: environment.yml
-      #     use-only-tar-bz2: true
-      #     auto-activate-base: false
-
-      # - name: Conda info
-      #   run: |
-      #     conda info
-      #     conda list
-
-      - name: Install Requirements
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
         run: pip install -r requirements-dev.txt
-
       - name: Pip info
         run: pip list
 
@@ -85,39 +60,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Requirements
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
         run: pip install -r requirements-dev.txt
-
       - name: Pip info
         run: pip list
-
-      # - name: Cache conda
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ~/conda_pkgs_dir
-      #       .nox
-      #     key: "${{ runner.os }}\
-      #       -lint-${{ env.CACHE_VERSION }}\
-      #       -${{ matrix.python-version }}\
-      #       -${{ hashFiles('environment.yml') }}"
-
-      # - uses: conda-incubator/setup-miniconda@v2
-      #   with:
-      #     python-version: ${{ env.DEFAULT_PYTHON }}
-      #     mamba-version: "*"
-      #     channels: conda-forge
-      #     channel-priority: true
-      #     activate-environment: pandera-dev
-      #     auto-update-conda: false
-      #     environment-file: environment.yml
-      #     use-only-tar-bz2: true
-      #     auto-activate-base: false
-
-      # - name: Conda info
-      #   run: |
-      #     conda info
-      #     conda list
 
       - name: Check requirements
         run: >
@@ -168,39 +118,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # - name: Cache conda
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ~/conda_pkgs_dir
-      #       .nox
-      #     key: "${{ runner.os }}\
-      #       -tests-${{ env.CACHE_VERSION }}\
-      #       -${{ matrix.python-version }}\
-      #       -${{ hashFiles('environment.yml') }}"
-
-      # - uses: conda-incubator/setup-miniconda@v2
-      #   with:
-      #     python-version: ${{ env.DEFAULT_PYTHON }}
-      #     mamba-version: "*"
-      #     channels: conda-forge
-      #     channel-priority: true
-      #     activate-environment: pandera-dev
-      #     auto-update-conda: false
-      #     environment-file: environment.yml
-      #     use-only-tar-bz2: true
-      #     auto-activate-base: false
-
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
       - name: Install pandas
         run: |
           if [[ "${{ matrix.pandas-version }}" != 'latest' ]]
           then
             pip install pandas==${{ matrix.pandas-version }}
           fi
-
-      - name: Install Requirements
-        run: pip install -r requirements-dev.txt
-
       - name: Pip info
         run: pip list
 
