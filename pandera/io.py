@@ -615,20 +615,20 @@ def from_frictionless_schema(
     >>> from pandera.io import from_frictionless_schema
     >>>
     >>> FRICTIONLESS_SCHEMA = {
-    ...         "fields": [
-    ...             {
-    ...                 "name": "column_1",
-    ...                 "type": "integer",
-    ...                 "constraints": {"minimum": 10, "maximum": 99}
-    ...             },
-    ...             {
-    ...                 "name": "column_2",
-    ...                 "type": "string",
-    ...                 "constraints": {"maxLength": 10, "pattern": "\\S+"}
-    ...             },
-    ...         ],
-    ...         "primaryKey": "column_1"
-    ...     }
+    ...     "fields": [
+    ...         {
+    ...             "name": "column_1",
+    ...             "type": "integer",
+    ...             "constraints": {"minimum": 10, "maximum": 99}
+    ...         },
+    ...         {
+    ...             "name": "column_2",
+    ...             "type": "string",
+    ...             "constraints": {"maxLength": 10, "pattern": "\\S+"}
+    ...         },
+    ...     ],
+    ...     "primaryKey": "column_1"
+    ... }
     >>> schema = from_frictionless_schema(FRICTIONLESS_SCHEMA)
     >>> schema.columns["column_1"].checks
     [<Check in_range: in_range(10, 99)>]
