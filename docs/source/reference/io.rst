@@ -1,7 +1,7 @@
 .. _api-io-utils:
 
-IO Utils
-========
+IO Utilities
+============
 
 The ``io`` module and built-in ``Hypothesis`` checks require a pandera
 installation with the corresponding extension, see the

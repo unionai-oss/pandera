@@ -1,7 +1,10 @@
 .. _api-core:
 
+Core
+====
+
 Schemas
-=======
+-------
 
 .. autosummary::
    :toctree: generated
@@ -12,7 +15,7 @@ Schemas
    pandera.schemas.SeriesSchema
 
 Schema Components
-=================
+-----------------
 
 .. autosummary::
    :toctree: generated
@@ -24,7 +27,7 @@ Schema Components
    pandera.schema_components.MultiIndex
 
 Checks
-======
+------
 
 .. autosummary::
    :toctree: generated

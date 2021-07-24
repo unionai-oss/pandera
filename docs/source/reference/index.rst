@@ -6,7 +6,7 @@ API
 ===
 
 .. list-table::
-   :widths: 25 75
+   :widths: 30 70
 
    * - :ref:`Core <api-core>`
      - The core objects for defining pandera schemas
@@ -20,7 +20,7 @@ API
      - Bootstrap schemas from real data
    * - :ref:`IO Utilities <api-io-utils>`
      - Utility functions for reading/writing schemas
-   * - :ref:`Strategies <api-strategies>`
+   * - :ref:`Data Synthesis Strategies <api-strategies>`
      - Module of functions for generating data from schemas.
    * - :ref:`Extensions <api-extensions>`
      - Utility functions for extending pandera functionality
@@ -31,6 +31,7 @@ API
    :hidden:
 
    core
+   dtypes
    schema_models
    decorators
    schema_inference
@@ -38,4 +39,3 @@ API
    strategies
    extensions
    errors
-   dtypes

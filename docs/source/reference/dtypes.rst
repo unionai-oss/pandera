@@ -1,7 +1,7 @@
 .. _api-dtypes:
 
-Pandera Data Types
-==================
+Data Types
+==========
 
 Library-agnostic dtypes
 -----------------------

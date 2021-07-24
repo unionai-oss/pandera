@@ -103,9 +103,7 @@ exclude_patterns = []
 autoclass_content = "both"
 
 autodoc_default_options = {
-    # 'special-members': '__call__',
     "undoc-members": False,
-    # 'exclude-members': '__weakref__'
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -152,10 +150,7 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-html_css_files = [
-    "default.css",
-    "custom_furo.scss",
-]
+html_css_files = ["default.css"]
 
 rst_prolog = """
 .. role:: red
