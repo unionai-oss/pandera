@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md") as f:
     long_description = f.read()
@@ -14,7 +14,7 @@ _extras_require = {
 }
 extras_require = {
     **_extras_require,
-    "all": list(set(x for l in _extras_require.values() for x in l)),
+    "all": list(set(x for y in _extras_require.values() for x in y)),
 }
 
 setup(
@@ -34,7 +34,7 @@ setup(
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
     data_files=[("", ["LICENSE.txt"])],
-    packages=["pandera"],
+    packages=find_packages(),
     package_data={"pandera": ["py.typed"]},
     install_requires=[
         "packaging >= 20.0",
