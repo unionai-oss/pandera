@@ -20,6 +20,7 @@ env:
   CACHE_VERSION: 4
 
 jobs:
+
   lint:
     name: Linters (${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -52,7 +53,7 @@ jobs:
       - name: Check requirements
         run: >
           nox
-          -db none
+          -db none -r
           --non-interactive
           --python ${{ matrix.python-version }}
           --session requirements-${{ matrix.python-version }}
@@ -60,14 +61,14 @@ jobs:
       - name: Check isort and black formatting
         run: >
           nox
-          -db none
+          -db none -r
           --non-interactive
           --session black isort
 
       - name: Pylint
         run: >
           nox
-          -db none
+          -db none -r
           --non-interactive
           --python ${{ matrix.python-version }}
           --session lint-${{ matrix.python-version }}
@@ -75,7 +76,7 @@ jobs:
       - name: Mypy Type Checking
         run: >
           nox
-          -db none
+          -db none -r
           --non-interactive
           --python ${{ matrix.python-version }}
           --session mypy-${{ matrix.python-version }}
@@ -128,28 +129,28 @@ jobs:
       - name: Unit Tests - Core
         run: >
           nox
-          -db none -v
+          -db none -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Hypotheses
         run: >
           nox
-          -db none -v
+          -db none -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - IO
         run: >
           nox
-          -db none -v
+          -db none -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Strategies
         run: >
           nox
-          -db none -v
+          -db none -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
@@ -159,13 +160,13 @@ jobs:
       - name: Check Docstrings
         run: >
           nox
-          -db none -v
+          -db none -r -v
           --non-interactive
           --session "doctests-${{ matrix.python-version }}"
 
       - name: Check Docs
         run: >
           nox
-          -db none -v
+          -db none -r -v
           --non-interactive
           --session "docs-${{ matrix.python-version }}"
