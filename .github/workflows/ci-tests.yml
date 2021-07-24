@@ -6,14 +6,12 @@ on:
       - dev
       - bugfix
       - "release/*"
-      - dtypes
   pull_request:
     branches:
       - master
       - dev
       - bugfix
       - "release/*"
-      - dtypes
 
 env:
   DEFAULT_PYTHON: 3.8
@@ -32,38 +30,38 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Cache conda
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            .nox
-          key: "${{ runner.os }}\
-            -codestyle-${{ env.CACHE_VERSION }}\
-            -${{ env.DEFAULT_PYTHON }}\
-            -${{ hashFiles('environment.yml') }}"
+      # - name: Cache conda
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ~/conda_pkgs_dir
+      #       .nox
+      #     key: "${{ runner.os }}\
+      #       -codestyle-${{ env.CACHE_VERSION }}\
+      #       -${{ env.DEFAULT_PYTHON }}\
+      #       -${{ hashFiles('environment.yml') }}"
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          mamba-version: "*"
-          channels: conda-forge
-          channel-priority: true
-          activate-environment: pandera-dev
-          auto-update-conda: false
-          environment-file: environment.yml
-          use-only-tar-bz2: true
-          auto-activate-base: false
+      # - uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     python-version: ${{ env.DEFAULT_PYTHON }}
+      #     mamba-version: "*"
+      #     channels: conda-forge
+      #     channel-priority: true
+      #     activate-environment: pandera-dev
+      #     auto-update-conda: false
+      #     environment-file: environment.yml
+      #     use-only-tar-bz2: true
+      #     auto-activate-base: false
 
-      - name: Conda info
-        run: |
-          conda info
-          conda list
+      # - name: Conda info
+      #   run: |
+      #     conda info
+      #     conda list
 
       - name: Check isort and black formatting
         run: >
           nox
-          -db conda -r
+          -db virtualenv -r
           --non-interactive
           --session black isort
 
@@ -81,38 +79,38 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Cache conda
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            .nox
-          key: "${{ runner.os }}\
-            -lint-${{ env.CACHE_VERSION }}\
-            -${{ matrix.python-version }}\
-            -${{ hashFiles('environment.yml') }}"
+      # - name: Cache conda
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ~/conda_pkgs_dir
+      #       .nox
+      #     key: "${{ runner.os }}\
+      #       -lint-${{ env.CACHE_VERSION }}\
+      #       -${{ matrix.python-version }}\
+      #       -${{ hashFiles('environment.yml') }}"
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          mamba-version: "*"
-          channels: conda-forge
-          channel-priority: true
-          activate-environment: pandera-dev
-          auto-update-conda: false
-          environment-file: environment.yml
-          use-only-tar-bz2: true
-          auto-activate-base: false
+      # - uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     python-version: ${{ env.DEFAULT_PYTHON }}
+      #     mamba-version: "*"
+      #     channels: conda-forge
+      #     channel-priority: true
+      #     activate-environment: pandera-dev
+      #     auto-update-conda: false
+      #     environment-file: environment.yml
+      #     use-only-tar-bz2: true
+      #     auto-activate-base: false
 
-      - name: Conda info
-        run: |
-          conda info
-          conda list
+      # - name: Conda info
+      #   run: |
+      #     conda info
+      #     conda list
 
       - name: Check requirements
         run: >
           nox
-          -db conda -r
+          -db virtualenv -r
           --non-interactive
           --python ${{ matrix.python-version }}
           --session requirements-${{ matrix.python-version }}
@@ -120,7 +118,7 @@ jobs:
       - name: Pylint
         run: >
           nox
-          -db conda -r
+          -db virtualenv -r
           --non-interactive
           --python ${{ matrix.python-version }}
           --session lint-${{ matrix.python-version }}
@@ -128,7 +126,7 @@ jobs:
       - name: Mypy Type Checking
         run: >
           nox
-          -db conda -r
+          -db virtualenv -r
           --non-interactive
           --python ${{ matrix.python-version }}
           --session mypy-${{ matrix.python-version }}
@@ -196,28 +194,28 @@ jobs:
       - name: Unit Tests - Core
         run: >
           nox
-          -db conda -r -v
+          -db virtualenv -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Hypotheses
         run: >
           nox
-          -db conda -r -v
+          -db virtualenv -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - IO
         run: >
           nox
-          -db conda -r -v
+          -db virtualenv -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Strategies
         run: >
           nox
-          -db conda -r -v
+          -db virtualenv -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
@@ -227,13 +225,13 @@ jobs:
       - name: Check Docstrings
         run: >
           nox
-          -db conda -r -v
+          -db virtualenv -r -v
           --non-interactive
           --session "doctests-${{ matrix.python-version }}"
 
       - name: Check Docs
         run: >
           nox
-          -db conda -r -v
+          -db virtualenv -r -v
           --non-interactive
           --session "docs-${{ matrix.python-version }}"
