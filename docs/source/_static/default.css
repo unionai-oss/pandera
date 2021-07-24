@@ -36,3 +36,8 @@ li.toctree-l2 {
     font-size: 75%;
   }
 }
+
+/* autosummary table text */
+article .align-center, article .align-default {
+  text-align: left;
+}
