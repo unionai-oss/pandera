@@ -105,7 +105,7 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
 
 # pylint:disable=invalid-name
 if TYPE_CHECKING:
-    T = TypeVar("T")
+    T = TypeVar("T")  # pragma: no cover
 else:
     T = Schema
 
