@@ -205,9 +205,9 @@ class _CheckBase(metaclass=_CheckMeta):
         >>>
         >>> schema = pa.DataFrameSchema(
         ...     columns={
-        ...         "measure_1": pa.Column(pa.Int, checks=measure_checks),
-        ...         "measure_2": pa.Column(pa.Int, checks=measure_checks),
-        ...         "group": pa.Column(pa.String),
+        ...         "measure_1": pa.Column(int, checks=measure_checks),
+        ...         "measure_2": pa.Column(int, checks=measure_checks),
+        ...         "group": pa.Column(str),
         ...     },
         ...     checks=check_dataframe
         ... )

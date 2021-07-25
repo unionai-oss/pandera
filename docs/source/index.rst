@@ -240,7 +240,7 @@ In the case that a validation ``Check`` is violated:
 
     Traceback (most recent call last):
     ...
-    SchemaError: <Schema Column: 'column1' type=int> failed element-wise validator 0:
+    SchemaError: <Schema Column: 'column1' type=<class 'int'>> failed element-wise validator 0:
     <Check <lambda>: range checker [0, 10]>
     failure cases:
        index  failure_case

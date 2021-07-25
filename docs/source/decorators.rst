@@ -32,9 +32,9 @@ function.
     })
 
     in_schema = DataFrameSchema({
-       "column1": Column(pa.Int,
+       "column1": Column(int,
                          Check(lambda x: 0 <= x <= 10, element_wise=True)),
-       "column2": Column(pa.Float, Check(lambda x: x < -1.2)),
+       "column2": Column(float, Check(lambda x: x < -1.2)),
     })
 
     # by default, check_input assumes that the first argument is
@@ -94,7 +94,7 @@ DataFrame/Series of the decorated function.
 
     # assert that all elements in "column1" are zero
     out_schema = DataFrameSchema({
-        "column1": Column(pa.Int, Check(lambda x: x == 0))
+        "column1": Column(int, Check(lambda x: x == 0))
     })
 
 

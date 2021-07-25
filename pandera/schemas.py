@@ -118,9 +118,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> import pandera as pa
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "str_column": pa.Column(pa.String),
-        ...     "float_column": pa.Column(pa.Float),
-        ...     "int_column": pa.Column(pa.Int),
+        ...     "str_column": pa.Column(str),
+        ...     "float_column": pa.Column(float),
+        ...     "int_column": pa.Column(int),
         ...     "date_column": pa.Column(pa.DateTime),
         ... })
 
@@ -130,12 +130,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
-        ...         pa.Float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
+        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.String, [
+        ...         str, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
@@ -418,12 +418,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>>
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
-        ...         pa.Float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
+        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         pa.String, [
+        ...         str, [
         ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
         ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
@@ -782,8 +782,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...    {
-        ...        "category": pa.Column(pa.String),
-        ...        "probability": pa.Column(pa.Float),
+        ...        "category": pa.Column(str),
+        ...        "probability": pa.Column(float),
         ...    }
         ... )
         >>> print(
@@ -835,8 +835,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>>
         >>> example_schema = pa.DataFrameSchema(
         ...     {
-        ...         "category" : pa.Column(pa.String),
-        ...         "probability": pa.Column(pa.Float)
+        ...         "category" : pa.Column(str),
+        ...         "probability": pa.Column(float)
         ...     }
         ... )
         >>>
@@ -893,8 +893,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(pa.String),
-        ...     "probability": pa.Column(pa.Float)
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
         ... })
         >>> print(
         ...     example_schema.update_column(
@@ -952,8 +952,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(pa.String),
-        ...     "probability": pa.Column(pa.Float)
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
         ... })
         >>>
         >>> print(
@@ -1033,8 +1033,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(pa.String),
-        ...     "probability": pa.Column(pa.Float)
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
         ... })
         >>>
         >>> print(
@@ -1114,8 +1114,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(pa.String),
-        ...     "probability": pa.Column(pa.Float)
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
         ... })
         >>>
         >>> print(example_schema.select_columns(['category']))
@@ -1215,8 +1215,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(pa.String),
-        ...     "probability": pa.Column(pa.Float)})
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)})
         >>>
         >>> print(example_schema.set_index(['category']))
         <Schema DataFrameSchema(
@@ -1238,10 +1238,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         >>> example_schema = pa.DataFrameSchema(
         ...     {
-        ...         "column1": pa.Column(pa.String),
-        ...         "column2": pa.Column(pa.Int)
+        ...         "column1": pa.Column(str),
+        ...         "column2": pa.Column(int)
         ...     },
-        ...     index=pa.Index(name = "column3", dtype = pa.Int)
+        ...     index=pa.Index(name = "column3", dtype = int)
         ... )
         >>>
         >>> print(example_schema.set_index(["column2"], append = True))
@@ -1344,8 +1344,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         >>> import pandera as pa
         >>>
         >>> example_schema = pa.DataFrameSchema(
-        ...     {"probability" : pa.Column(pa.Float)},
-        ...     index = pa.Index(name="unique_id", dtype=pa.Int)
+        ...     {"probability" : pa.Column(float)},
+        ...     index = pa.Index(name="unique_id", dtype=int)
         ... )
         >>>
         >>> print(example_schema.reset_index())
@@ -1370,10 +1370,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         also decide whether to drop the levels with the ``drop`` parameter.
 
         >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(pa.String)},
+        ...     "category" : pa.Column(str)},
         ...     index = pa.MultiIndex([
-        ...         pa.Index(name = "unique_id1", dtype = pa.Int),
-        ...         pa.Index(name = "unique_id2", dtype = pa.String)
+        ...         pa.Index(name="unique_id1", dtype=int),
+        ...         pa.Index(name="unique_id2", dtype=str)
         ...         ]
         ...     )
         ... )
@@ -1961,7 +1961,7 @@ class SeriesSchema(SeriesSchemaBase):
         >>> import pandera as pa
         >>>
         >>> series_schema = pa.SeriesSchema(
-        ...     pa.Float, [
+        ...     float, [
         ...         pa.Check(lambda s: s > 0),
         ...         pa.Check(lambda s: s < 1000),
         ...         pa.Check(lambda s: s.mean() > 300),

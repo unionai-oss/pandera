@@ -26,15 +26,15 @@ The :class:`~pandera.schemas.DataFrameSchema` object consists of |column|_\s and
 
     schema = DataFrameSchema(
         {
-            "column1": Column(pa.Int),
-            "column2": Column(pa.Float, Check(lambda s: s < -1.2)),
+            "column1": Column(int),
+            "column2": Column(float, Check(lambda s: s < -1.2)),
             # you can provide a list of validators
-            "column3": Column(pa.String, [
+            "column3": Column(str, [
                Check(lambda s: s.str.startswith("value")),
                Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
             ]),
         },
-        index=Index(pa.Int),
+        index=Index(int),
         strict=True,
         coerce=True,
     )
@@ -93,7 +93,7 @@ nullable. In order to accept null values, you need to explicitly specify
    df = pd.DataFrame({"column1": [5, 1, np.nan]})
 
    non_null_schema = DataFrameSchema({
-       "column1": Column(pa.Float, Check(lambda x: x > 0))
+       "column1": Column(float, Check(lambda x: x > 0))
    })
 
    non_null_schema.validate(df)
@@ -108,7 +108,7 @@ nullable. In order to accept null values, you need to explicitly specify
 .. testcode:: null_values_in_columns
 
    null_schema = DataFrameSchema({
-       "column1": Column(pa.Float, Check(lambda x: x > 0), nullable=True)
+       "column1": Column(float, Check(lambda x: x > 0), nullable=True)
    })
 
    print(null_schema.validate(df))
@@ -138,7 +138,7 @@ checks.
     from pandera import Column, DataFrameSchema
 
     df = pd.DataFrame({"column1": [1, 2, 3]})
-    schema = DataFrameSchema({"column1": Column(pa.String, coerce=True)})
+    schema = DataFrameSchema({"column1": Column(str, coerce=True)})
 
     validated_df = schema.validate(df)
     assert isinstance(validated_df.column1.iloc[0], str)
@@ -151,7 +151,7 @@ checks.
 
     df = pd.DataFrame({"column1": [1., 2., 3, np.nan]})
     schema = DataFrameSchema({
-        "column1": Column(pa.Int, coerce=True, nullable=True)
+        "column1": Column(int, coerce=True, nullable=True)
     })
 
     validated_df = schema.validate(df)
@@ -170,10 +170,10 @@ The best way to handle this case is to simply specify the column as a
 .. testcode:: coercing_types_on_columns
 
     schema_object = DataFrameSchema({
-        "column1": Column(pa.Object, coerce=True, nullable=True)
+        "column1": Column(object, coerce=True, nullable=True)
     })
     schema_float = DataFrameSchema({
-        "column1": Column(pa.Float, coerce=True, nullable=True)
+        "column1": Column(float, coerce=True, nullable=True)
     })
 
     print(schema_object.validate(df).dtypes)
@@ -209,8 +209,8 @@ in the column constructor:
 
    df = pd.DataFrame({"column2": ["hello", "pandera"]})
    schema = DataFrameSchema({
-       "column1": Column(pa.Int, required=False),
-       "column2": Column(pa.String)
+       "column1": Column(int, required=False),
+       "column2": Column(str)
    })
 
    validated_df = schema.validate(df)
@@ -228,8 +228,8 @@ Since ``required=True`` by default, missing columns would raise an error:
 .. testcode:: required_columns
 
     schema = DataFrameSchema({
-        "column1": Column(pa.Int),
-        "column2": Column(pa.String),
+        "column1": Column(int),
+        "column2": Column(str),
     })
 
     schema.validate(df)
@@ -268,8 +268,8 @@ objects can also be used to validate columns in a dataframe on its own:
         "column2": ["a", "b", "c"],
     })
 
-    column1_schema = pa.Column(pa.Int, name="column1")
-    column2_schema = pa.Column(pa.String, name="column2")
+    column1_schema = pa.Column(int, name="column1")
+    column2_schema = pa.Column(str, name="column2")
 
     # pass the dataframe as an argument to the Column object callable
     df = column1_schema(df)
@@ -316,7 +316,7 @@ a set of meaningfully grouped columns that have ``str`` names.
 
     schema = pa.DataFrameSchema({
         "num_var_.+": pa.Column(
-            pa.Float,
+            float,
             checks=pa.Check.greater_than_or_equal_to(0),
             regex=True,
         ),
@@ -354,7 +354,7 @@ You can also regex pattern match on ``pd.MultiIndex`` columns:
 
     schema = pa.DataFrameSchema({
         ("num_var_.+", "x.+"): pa.Column(
-            pa.Float,
+            float,
             checks=pa.Check.greater_than_or_equal_to(0),
             regex=True,
         ),
@@ -396,7 +396,7 @@ schema, specify ``strict=True``:
     from pandera import Column, DataFrameSchema
 
     schema = DataFrameSchema(
-        {"column1": Column(pa.Int)},
+        {"column1": Column(int)},
         strict=True)
 
     df = pd.DataFrame({"column2": [1, 2, 3]})
@@ -421,7 +421,7 @@ you can specify ``strict='filter'``.
    from pandera import Column, DataFrameSchema
 
    df = pd.DataFrame({"column1": ["drop", "me"],"column2": ["keep", "me"]})
-   schema = DataFrameSchema({"column2": Column(pa.String)}, strict='filter')
+   schema = DataFrameSchema({"column2": Column(str)}, strict='filter')
 
    validated_df = schema.validate(df)
    print(validated_df)
@@ -454,7 +454,7 @@ To validate the order of the Dataframe columns, specify ``ordered=True``:
     import pandera as pa
 
     schema = pa.DataFrameSchema(
-        columns={"a": pa.Column(pa.Int), "b": pa.Column(pa.Int)}, ordered=True
+        columns={"a": pa.Column(int), "b": pa.Column(int)}, ordered=True
     )
     df = pd.DataFrame({"b": [1], "a": [1]})
     print(schema.validate(df))
@@ -480,9 +480,9 @@ You can also specify an :class:`~pandera.schema_components.Index` in the :class:
     from pandera import Column, DataFrameSchema, Index, Check
 
     schema = DataFrameSchema(
-       columns={"a": Column(pa.Int)},
+       columns={"a": Column(int)},
        index=Index(
-           pa.String,
+           str,
            Check(lambda x: x.str.startswith("index_"))))
 
     df = pd.DataFrame(
@@ -542,8 +542,8 @@ tuples for each level in the index hierarchy:
     from pandera import Column, DataFrameSchema, Index
 
     schema = DataFrameSchema({
-        ("foo", "bar"): Column(pa.Int),
-        ("foo", "baz"): Column(pa.String)
+        ("foo", "bar"): Column(int),
+        ("foo", "baz"): Column(str)
     })
 
     df = pd.DataFrame({
@@ -578,12 +578,12 @@ indexes by composing a list of ``pandera.Index`` objects.
   from pandera import Column, DataFrameSchema, Index, MultiIndex, Check
 
   schema = DataFrameSchema(
-      columns={"column1": Column(pa.Int)},
+      columns={"column1": Column(int)},
       index=MultiIndex([
-          Index(pa.String,
+          Index(str,
                 Check(lambda s: s.isin(["foo", "bar"])),
                 name="index0"),
-          Index(pa.Int, name="index1"),
+          Index(int, name="index1"),
       ])
   )
 
@@ -627,9 +627,9 @@ Some examples of where this can be provided to pandas are:
 
   schema = pa.DataFrameSchema(
       columns={
-        "column1": pa.Column(pa.Int),
+        "column1": pa.Column(int),
         "column2": pa.Column(pa.Category),
-        "column3": pa.Column(pa.Bool)
+        "column3": pa.Column(bool)
       },
   )
 
@@ -676,12 +676,12 @@ changed or perhaps where additional checks may be required.
     data = pd.DataFrame({"col1": range(1, 6)})
 
     schema = pa.DataFrameSchema(
-        columns={"col1": pa.Column(pa.Int, pa.Check(lambda s: s >= 0))},
+        columns={"col1": pa.Column(int, pa.Check(lambda s: s >= 0))},
         strict=True)
 
     transformed_schema = schema.add_columns({
-        "col2": pa.Column(pa.String, pa.Check(lambda s: s == "value")),
-        "col3": pa.Column(pa.Float, pa.Check(lambda x: x == 0.0)),
+        "col2": pa.Column(str, pa.Check(lambda s: s == "value")),
+        "col3": pa.Column(float, pa.Check(lambda x: x == 0.0)),
     })
 
     # validate original data
@@ -714,9 +714,9 @@ data pipeline:
 
     schema = pa.DataFrameSchema(
         columns={
-            "col1": pa.Column(pa.Int, pa.Check(lambda s: s >= 0)),
-            "col2": pa.Column(pa.String, pa.Check(lambda x: x <= 0)),
-            "col3": pa.Column(pa.Object, pa.Check(lambda x: x == 0)),
+            "col1": pa.Column(int, pa.Check(lambda s: s >= 0)),
+            "col2": pa.Column(str, pa.Check(lambda x: x <= 0)),
+            "col3": pa.Column(object, pa.Check(lambda x: x == 0)),
         },
         strict=True,
     )
@@ -753,10 +753,10 @@ the pipeline output.
 
     schema = DataFrameSchema(
         {
-            "column1": Column(pa.Int),
-            "column2": Column(pa.Float)
+            "column1": Column(int),
+            "column2": Column(float)
         },
-        index=Index(pa.Int, name = "column3"),
+        index=Index(int, name = "column3"),
         strict=True,
         coerce=True,
     )
