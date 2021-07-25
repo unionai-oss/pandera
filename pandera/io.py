@@ -427,14 +427,15 @@ def to_script(dataframe_schema, path_or_buf=None):
 
 class FrictionlessFieldParser:
     """Parses frictionless data schema field specifications so we can convert
-    them to an equivalent :class:`pandera.schema_components.Column` schema.
+    them to an equivalent Pandera :class:`~pandera.schema_components.Column`
+    schema.
 
     For this implementation, we are using field names, constraints and types
     but leaving other frictionless parameters out (e.g. foreign keys, type
     formats, titles, descriptions).
 
     :param field: a field object from a frictionless schema.
-    :primary_keys: the primary keys from a frictionless schema. These are used
+    :param primary_keys: the primary keys from a frictionless schema. These are used
         to ensure primary key fields are treated properly - no duplicates,
         no missing values etc.
     """
@@ -486,7 +487,7 @@ class FrictionlessFieldParser:
         `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
         and maps them into the equivalent pandera checks.
 
-        :returns: a dictionary of pandera :class:`pandera.checks.Check`
+        :returns: a dictionary of pandera :class:`~pandera.checks.Check`
             objects which capture the standard constraint logic of a
             frictionless schema field.
         """
@@ -530,31 +531,47 @@ class FrictionlessFieldParser:
 
     @property
     def nullable(self) -> bool:
-        """Determine whether this field can contain missing values."""
+        """Determine whether this field can contain missing values.
+
+        If a field is a primary key, this will return ``False``."""
         if self.is_a_primary_key:
             return False
         return not self.constraints.get("required", False)
 
     @property
     def allow_duplicates(self) -> bool:
-        """Determine whether this field can contain duplicate values."""
+        """Determine whether this field can contain duplicate values.
+
+        If a field is a primary key, this will return ``False``."""
         if self.is_a_primary_key:
             return False
         return not self.constraints.get("unique", False)
 
     @property
     def coerce(self) -> bool:
-        """Determine whether values within this field should be coerced."""
+        """Determine whether values within this field should be coerced.
+
+        This currently returns ``True`` for all fields within a frictionless
+        schema.
+        """
         return True
 
     @property
     def required(self) -> bool:
-        """Determine whether this field must exist within the data."""
+        """Determine whether this field must exist within the data.
+
+        This currently returns ``True`` for all fields within a frictionless
+        schema.
+        """
         return True
 
     @property
     def regex(self) -> bool:
-        """Determine whether this field name should be used for regex matches."""
+        """Determine whether this field name should be used for regex matches.
+
+        This currently returns ``False`` for all fields within a frictionless
+        schema.
+        """
         return False
 
     def to_pandera_column(self) -> Dict:
@@ -574,9 +591,10 @@ class FrictionlessFieldParser:
 def from_frictionless_schema(
     schema: Union[str, Path, Dict, FrictionlessSchema]
 ) -> DataFrameSchema:
-    """Create a :class:`~pandera.schemas.DataFrameSchema` from a frictionless
-    json/yaml schema file on disk, or a frictionless schema already loaded
-    into memory.
+    # pylint: disable=line-too-long
+    """Create a :class:`~pandera.schemas.DataFrameSchema` from either a
+    frictionless json/yaml schema file saved on disk, or from a frictionless
+    schema already loaded into memory.
 
     Each field from the frictionless schema will be converted to a pandera
     column specification using :class:`~pandera.io.FrictionlessFieldParser`
@@ -590,6 +608,11 @@ def from_frictionless_schema(
 
     :example:
 
+    Here, we're defining a very basic frictionless schema in memory before
+    parsing it and then querying the resulting
+    :class:`~pandera.schemas.DataFrameSchema` object as per any other Pandera
+    schema:
+
     >>> from pandera.io import from_frictionless_schema
     >>>
     >>> FRICTIONLESS_SCHEMA = {
@@ -598,7 +621,12 @@ def from_frictionless_schema(
     ...             "name": "column_1",
     ...             "type": "integer",
     ...             "constraints": {"minimum": 10, "maximum": 99}
-    ...         }
+    ...         },
+    ...         {
+    ...             "name": "column_2",
+    ...             "type": "string",
+    ...             "constraints": {"maxLength": 10, "pattern": "\\S+"}
+    ...         },
     ...     ],
     ...     "primaryKey": "column_1"
     ... }
@@ -609,6 +637,8 @@ def from_frictionless_schema(
     True
     >>> schema.columns["column_1"].allow_duplicates
     False
+    >>> schema.columns["column_2"].checks
+    [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches(re.compile('^\\\\S+$'))>]
     """
     if not isinstance(schema, FrictionlessSchema):
         schema = FrictionlessSchema(schema)
