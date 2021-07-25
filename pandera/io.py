@@ -591,6 +591,7 @@ class FrictionlessFieldParser:
 def from_frictionless_schema(
     schema: Union[str, Path, Dict, FrictionlessSchema]
 ) -> DataFrameSchema:
+    # pylint: disable=line-too-long
     """Create a :class:`~pandera.schemas.DataFrameSchema` from either a
     frictionless json/yaml schema file saved on disk, or from a frictionless
     schema already loaded into memory.
