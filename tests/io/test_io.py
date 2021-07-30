@@ -891,7 +891,7 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     ).to_dict(orient="records") == [
         {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {"check": "column_in_dataframe", "failure_case": "date_col"},
-        {"check": "coerce_dtype('float64')", "failure_case": "object"},
+        {"check": "coerce_dtype('float64')", "failure_case": "a"},
         {"check": "no_duplicates", "failure_case": 12},
         {"check": "in_range(10, 99)", "failure_case": 1},
         {"check": "in_range(10, 99)", "failure_case": 180},

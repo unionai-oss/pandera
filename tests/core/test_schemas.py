@@ -535,8 +535,8 @@ def test_coerce_dtype_in_dataframe():
         schema = DataFrameSchema({"column4": Column(int, coerce=True)})
         with pytest.raises(
             errors.SchemaError,
-            match=r"^Error while coercing .* to type u{0,1}int[0-9]{1,2}: "
-            r"Cannot convert non-finite values \(NA or inf\) to integer",
+            match=r"^Error while coercing .+ to type u{0,1}int[0-9]{1,2}: "
+            r"Could not coerce .+ data_container into type",
         ):
             schema.validate(df)
 
@@ -1094,7 +1094,7 @@ def test_lazy_validation_multiple_checks() -> None:
             "is_even": [1, 3],
         },
         "col2": {
-            "coerce_dtype('int64')": ["float64"],
+            "coerce_dtype('int64')": [np.nan, np.nan],
         },
     }
 
@@ -1107,10 +1107,11 @@ def test_lazy_validation_multiple_checks() -> None:
             ]
             for check, failure_cases in check_failure_cases.items():  # type: ignore
                 assert check in err_df.check.values
-                assert (
-                    list(err_df.loc[err_df.check == check].failure_case)
-                    == failure_cases
-                )
+                failed = list(err_df.loc[err_df.check == check].failure_case)
+                if pd.isna(failure_cases).all():
+                    assert pd.isna(failed).all()
+                else:
+                    assert failed == failure_cases
 
 
 def test_lazy_dataframe_validation_nullable() -> None:
@@ -1312,7 +1313,7 @@ def test_lazy_dataframe_scalar_false_check(
                 "schema_errors": {
                     "SeriesSchema": {
                         "dtype('float64')": ["object"],
-                        "coerce_dtype('float64')": ["object"],
+                        "coerce_dtype('float64')": ["foo", "bar"],
                     },
                 },
             },
@@ -1324,7 +1325,7 @@ def test_lazy_dataframe_scalar_false_check(
             {
                 "data": pd.Series([1, 2, 3], index=list("abc")),
                 "schema_errors": {
-                    "Index": {"coerce_dtype('int64')": ["object"]},
+                    "Index": {"coerce_dtype('int64')": ["a", "b", "c"]},
                 },
             },
         ],

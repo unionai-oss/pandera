@@ -19,9 +19,10 @@ import numpy as np
 import pandas as pd
 from packaging import version
 
-from .. import dtypes
+from .. import dtypes, errors
 from ..dtypes import immutable
-from . import engine, numpy_engine
+from . import engine, numpy_engine, utils
+from .type_aliases import PandasDataType, PandasExtensionType, PandasObject
 
 
 def pandas_version():
@@ -39,10 +40,6 @@ except ImportError:
 
 
 WINDOWS_PLATFORM = platform.system() == "Windows"
-
-PandasObject = Union[pd.Series, pd.Index, pd.DataFrame]
-PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
-PandasDataType = Union[pd.core.dtypes.base.ExtensionDtype, np.dtype, type]
 
 
 def is_extension_dtype(pd_dtype: PandasDataType) -> bool:
@@ -78,7 +75,16 @@ class DataType(dtypes.DataType):
         )  # pragma: no cover
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
-        return data_container.astype(self.type)
+        try:
+            return data_container.astype(self.type)
+        except (ValueError, TypeError) as exc:
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {self.type}",
+                failure_cases=utils.numpy_pandas_coerce_failure_cases(
+                    data_container, self.type
+                ),
+            ) from exc
 
     def check(self, pandera_dtype: dtypes.DataType) -> bool:
         try:

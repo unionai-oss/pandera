@@ -21,7 +21,7 @@ from typing import (
 
 import pandas as pd
 
-from . import constants, errors
+from . import check_utils, constants, errors
 from . import strategies as st
 
 CheckResult = namedtuple(
@@ -407,34 +407,26 @@ class _CheckBase(metaclass=_CheckMeta):
         ):
             failure_cases = None
         elif isinstance(check_output, pd.Series):
-            if self.ignore_na:
-                isna = (
-                    check_obj.isna().any(axis="columns")
-                    if isinstance(check_obj, pd.DataFrame)
-                    else check_obj.isna()
-                )
-                check_output = check_output | isna
-            failure_cases = check_obj[~check_output]
-            if not failure_cases.empty and self.n_failure_cases is not None:
-                failure_cases = failure_cases.groupby(check_output).head(
-                    self.n_failure_cases
-                )
-        elif isinstance(check_output, pd.DataFrame):
-            # check results consisting of a boolean dataframe should be
-            # reported at the most granular level.
-            check_output = check_output.unstack()
-            if self.ignore_na:
-                check_output = check_output | df_or_series.unstack().isna()
-            failure_cases = (
-                check_obj.unstack()[~check_output]
-                .rename("failure_case")
-                .rename_axis(["column", "index"])
-                .reset_index()
+            (
+                check_output,
+                failure_cases,
+            ) = check_utils.prepare_series_check_output(
+                check_obj,
+                check_output,
+                ignore_na=self.ignore_na,
+                n_failure_cases=self.n_failure_cases,
             )
-            if not failure_cases.empty and self.n_failure_cases is not None:
-                failure_cases = failure_cases.drop_duplicates().head(
-                    self.n_failure_cases
-                )
+        elif isinstance(check_output, pd.DataFrame):
+            (
+                check_output,
+                failure_cases,
+            ) = check_utils.prepare_dataframe_check_output(
+                check_obj,
+                check_output,
+                df_orig=df_or_series,
+                ignore_na=self.ignore_na,
+                n_failure_cases=self.n_failure_cases,
+            )
         else:
             raise TypeError(
                 f"output type of check_fn not recognized: {type(check_output)}"
