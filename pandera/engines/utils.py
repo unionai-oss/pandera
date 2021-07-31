@@ -58,7 +58,7 @@ def numpy_pandas_coerce_failure_cases(
     Get the failure cases resulting from trying to coerce a pandas/numpy object
     into particular data type.
     """
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel,cyclic-import
     from pandera import error_formatters
 
     if isinstance(data_container, np.ndarray):
