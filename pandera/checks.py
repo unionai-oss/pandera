@@ -21,7 +21,7 @@ from typing import (
 
 import pandas as pd
 
-from . import check_utils, constants, errors
+from . import constants, errors
 from . import strategies as st
 
 CheckResult = namedtuple(
@@ -368,6 +368,9 @@ class _CheckBase(metaclass=_CheckMeta):
 
             ``failure_cases``: subset of the check_object that failed.
         """
+        # pylint: disable=import-outside-toplevel
+        from pandera import check_utils
+
         # prepare check object
         if isinstance(df_or_series, pd.Series) or (
             column is not None and isinstance(df_or_series, pd.DataFrame)
