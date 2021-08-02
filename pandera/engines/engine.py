@@ -27,7 +27,8 @@ _DataType = TypeVar("_DataType", bound=DataType)
 _Engine = TypeVar("_Engine", bound="Engine")
 _EngineType = Type[_Engine]
 
-if TYPE_CHECKING:
+
+if TYPE_CHECKING:  # pragma: no cover
 
     class Dispatch:
         """Only used for type annotation."""

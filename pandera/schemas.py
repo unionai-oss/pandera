@@ -308,7 +308,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         try:
             return self.dtype.coerce(obj)
-        except Exception as exc:
+        except errors.ParserError as exc:
             raise errors.SchemaError(
                 self,
                 obj,
@@ -316,7 +316,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                     f"Error while coercing '{self.name}' to type "
                     f"{self.dtype}: {exc}"
                 ),
-                failure_cases=scalar_failure_case(str(obj.dtypes.to_dict())),
+                failure_cases=exc.failure_cases,
                 check=f"coerce_dtype('{self.dtype}')",
             ) from exc
 
@@ -1614,7 +1614,7 @@ class SeriesSchemaBase:
 
         try:
             return self.dtype.coerce(obj)
-        except (ValueError, TypeError) as exc:
+        except errors.ParserError as exc:
             msg = (
                 f"Error while coercing '{self.name}' to type "
                 f"{self.dtype}: {exc}"
@@ -1623,7 +1623,7 @@ class SeriesSchemaBase:
                 self,
                 obj,
                 msg,
-                failure_cases=scalar_failure_case(str(obj.dtype)),
+                failure_cases=exc.failure_cases,
                 check=f"coerce_dtype('{self.dtype}')",
             ) from exc
 

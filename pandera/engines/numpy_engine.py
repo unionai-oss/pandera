@@ -11,9 +11,10 @@ from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from .. import dtypes
+from .. import dtypes, errors
 from ..dtypes import immutable
-from . import engine
+from . import engine, utils
+from .type_aliases import PandasObject
 
 WINDOWS_PLATFORM = platform.system() == "Windows"
 
@@ -44,8 +45,19 @@ class DataType(dtypes.DataType):
             self, "type", np.dtype(self.type)
         )  # pragma: no cover
 
-    def coerce(self, data_container: np.ndarray) -> np.ndarray:
-        return data_container.astype(self.type)
+    def coerce(
+        self, data_container: Union[PandasObject, np.ndarray]
+    ) -> Union[PandasObject, np.ndarray]:
+        try:
+            return data_container.astype(self.type)
+        except (ValueError, TypeError) as exc:
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {self.type}",
+                failure_cases=utils.numpy_pandas_coerce_failure_cases(
+                    data_container, self.type
+                ),
+            ) from exc
 
     def __str__(self) -> str:
         return self.type.name

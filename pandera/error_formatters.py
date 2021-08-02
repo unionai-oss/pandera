@@ -18,7 +18,10 @@ def format_generic_error_message(
     :param check: check that generated error.
     :param check_index: The validator that failed.
     """
-    return f"{parent_schema} failed series or dataframe validator {check_index}:\n{check}"
+    return (
+        f"{parent_schema} failed series or dataframe validator "
+        f"{check_index}:\n{check}"
+    )
 
 
 def format_vectorized_error_message(
@@ -117,7 +120,8 @@ def reshape_failure_cases(
         )
     else:
         raise TypeError(
-            f"type of failure_cases argument not understood: {type(failure_cases)}"
+            "type of failure_cases argument not understood: "
+            f"{type(failure_cases)}"
         )
 
     return (

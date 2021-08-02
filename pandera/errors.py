@@ -17,6 +17,14 @@ ErrorData = namedtuple(
 )
 
 
+class ParserError(Exception):
+    """Raised when data cannot be parsed from the raw into its clean form."""
+
+    def __init__(self, message, failure_cases):
+        super().__init__(message)
+        self.failure_cases = failure_cases
+
+
 class SchemaInitError(Exception):
     """Raised when schema initialization fails."""
 
