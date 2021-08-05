@@ -24,7 +24,6 @@ def test_to_schema() -> None:
         columns={"a": pa.Column(int), "b": pa.Column(str)},
         index=pa.Index(str),
     )
-
     assert expected == Schema.to_schema()
 
     with pytest.raises(TypeError):

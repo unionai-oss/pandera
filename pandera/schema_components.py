@@ -33,13 +33,13 @@ class Column(SeriesSchemaBase):
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
         regex: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
-        unique: bool = False,
     ) -> None:
         """Create column validator object.
 
@@ -49,8 +49,15 @@ class Column(SeriesSchemaBase):
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
+        :param unique: whether column values should be unique
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
+
+            .. warning::
+
+                This option will be deprecated in 0.8.0. Use the ``unique``
+                argument instead.
+
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``pandas_dtype=None``.
@@ -62,7 +69,6 @@ class Column(SeriesSchemaBase):
 
             .. warning:: This option will be deprecated in 0.8.0
 
-        :param unique: whether column values should be unique
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:

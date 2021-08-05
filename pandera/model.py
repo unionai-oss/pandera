@@ -82,6 +82,9 @@ class BaseConfig:  # pylint:disable=R0903
     name: Optional[str] = None  #: name of schema
     coerce: bool = False  #: coerce types of all schema components
 
+    #: make sure certain column combinations are unique
+    unique: Optional[List[str]] = None
+
     #: make sure all specified columns are in the validated dataframe -
     #: if ``"filter"``, removes columns not specified in the schema
     strict: Union[bool, str] = False

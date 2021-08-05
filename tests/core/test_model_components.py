@@ -10,14 +10,19 @@ from pandera.engines.pandas_engine import Engine
 
 def test_field_to_column() -> None:
     """Test that Field outputs the correct column options."""
-    for flag in ["nullable", "allow_duplicates", "coerce", "regex"]:
+    for flag in ["nullable", "unique", "coerce", "regex"]:
         for value in [True, False]:
             col = pa.Field(**{flag: value}).to_column(  # type: ignore[arg-type]
                 pa.DateTime, required=value
             )
             assert isinstance(col, pa.Column)
             assert col.dtype == Engine.dtype(pa.DateTime)
-            assert col.properties[flag] == value
+            try:
+                assert col.properties[flag] == value
+            except:
+                import ipdb
+
+                ipdb.set_trace()
             assert col.required == value
 
 

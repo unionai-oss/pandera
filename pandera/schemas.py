@@ -1527,11 +1527,11 @@ class SeriesSchemaBase:
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         name: Any = None,
         pandas_dtype: PandasDtypeInputTypes = None,
-        unique: bool = False,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1545,8 +1545,16 @@ class SeriesSchemaBase:
             in the column. Otherwise, the input is assumed to be a
             pandas.Series object.
         :param nullable: Whether or not column can contain null values.
+        :param unique: Whether or not column can contain duplicate
+            values.
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
+
+        .. warning::
+
+            This option will be deprecated in 0.8.0. Use the ``unique``
+            argument instead.
+
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -1556,15 +1564,21 @@ class SeriesSchemaBase:
             .. warning:: This option will be deprecated in 0.8.0
 
         :type nullable: bool
-        :param allow_duplicates:
-        :type allow_duplicates: bool
-        :param unique:
-        :type unique: bool
         """
         if checks is None:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
+
+        if allow_duplicates is not None:
+            warnings.warn(
+                "The `allow_duplicates` will be deprecated in "
+                "favor of the `unique` keyword. The value of "
+                "`allow_duplicates` will be set to the opposite of "
+                "the `unique` keyword.",
+                DeprecationWarning,
+            )
+
         self.dtype = dtype or pandas_dtype  # type: ignore
         self._nullable = nullable
         self._coerce = coerce
@@ -1578,15 +1592,6 @@ class SeriesSchemaBase:
                 raise errors.SchemaInitError(
                     f"Cannot use groupby checks with type {type(self)}"
                 )
-
-        if not allow_duplicates:
-            warnings.warn(
-                "The `allow_duplicates` will be deprecated in "
-                "favor of the `unique` keyword. The value of "
-                "`allow_duplicates` will be set to the opposite of "
-                "the `unique` keyword.",
-                DeprecationWarning,
-            )
 
         # make sure pandas dtype is valid
         self.dtype  # pylint: disable=pointless-statement
@@ -1953,11 +1958,11 @@ class SeriesSchema(SeriesSchemaBase):
         checks: CheckList = None,
         index=None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         name: str = None,
         pandas_dtype: PandasDtypeInputTypes = None,
-        unique: bool = False,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1972,8 +1977,16 @@ class SeriesSchema(SeriesSchemaBase):
             pandas.Series object.
         :param index: specify the datatypes and properties of the index.
         :param nullable: Whether or not column can contain null values.
+        :param unique: Whether or not column can contain duplicate
+            values.
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
+
+        .. warning::
+
+            This option will be deprecated in 0.8.0. Use the ``unique``
+            argument instead.
+
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``pandas_dtype=None``.
