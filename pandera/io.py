@@ -41,10 +41,17 @@ def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
-        if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(
+            dtype
+        ) and hasattr(stat, "strftime"):
+            # try serializing stat as a string if it's datetime-like,
+            # otherwise return original value
             return stat.strftime(DATETIME_FORMAT)
-        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
-            # serialize to int in nanoseconds
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(
+            dtype
+        ) and hasattr(stat, "delta"):
+            # try serializing stat into an int in nanoseconds if it's
+            # timedelta-like, otherwise return original value
             return stat.delta
 
         return stat
@@ -146,11 +153,14 @@ def _serialize_schema(dataframe_schema):
 
 def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     def handle_stat_dtype(stat):
-        if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
-            return pd.to_datetime(stat, format=DATETIME_FORMAT)
-        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
-            # serialize to int in nanoseconds
-            return pd.to_timedelta(stat, unit="ns")
+        try:
+            if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
+                return pd.to_datetime(stat, format=DATETIME_FORMAT)
+            elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
+                # serialize to int in nanoseconds
+                return pd.to_timedelta(stat, unit="ns")
+        except (TypeError, ValueError):
+            return stat
         return stat
 
     if isinstance(serialized_check_stats, dict):

@@ -609,8 +609,8 @@ def test_to_yaml_custom_dataframe_check():
     # `test_to_yaml_lambda_check`
 
 
-def test_to_yaml_bugfix_419():
-    """Ensure that GH#419 is fixed"""
+def test_to_yaml_bugfix_warn_unregistered_global_checks():
+    """Ensure that unregistered global checks raises a warning."""
     # pylint: disable=no-self-use
 
     class CheckedSchemaModel(pandera.SchemaModel):
@@ -626,6 +626,34 @@ def test_to_yaml_bugfix_419():
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
         CheckedSchemaModel.to_yaml()
+
+
+def test_serialize_deserialize_custom_datetime_checks():
+    """
+    Test that custom checks for datetime columns can be serialized and
+    deserialized
+    """
+
+    # pylint: disable=unused-variable,unused-argument
+    @pandera.extensions.register_check_method(statistics=["stat"])
+    def datetime_check(pandas_obj, *, stat):
+        ...
+
+    schema = pandera.DataFrameSchema(
+        {
+            "dt_col": pandera.Column(
+                pandera.DateTime,
+                checks=pandera.Check.datetime_check("foobar"),
+            ),
+            "td_col": pandera.Column(
+                pandera.Timedelta,
+                checks=pandera.Check.datetime_check("foobar"),
+            ),
+        }
+    )
+    yaml_schema = schema.to_yaml()
+    schema_from_yaml = schema.from_yaml(yaml_schema)
+    assert schema_from_yaml == schema
 
 
 FRICTIONLESS_YAML = yaml.safe_load(
