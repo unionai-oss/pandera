@@ -898,6 +898,7 @@ def _boolean_update_column_case(
                 "coerce",
                 "required",
                 "regex",
+                "allow_duplicates",
                 "unique",
             ]
         ],
@@ -1599,7 +1600,7 @@ def test_update_columns(schema_simple: DataFrameSchema) -> None:
     test_schema = schema_simple.update_columns(
         {
             "col1": {"dtype": Category, "coerce": True},
-            "col2": {"pandas_dtype": Int, "unique": True},
+            "col2": {"dtype": Int, "unique": True},
         }
     )
     assert test_schema.columns["col1"].dtype == Engine.dtype(Category)
@@ -1733,22 +1734,26 @@ def test_schema_str_repr(schema, fields: List[str]) -> None:
     ],
 )
 def test_schema_level_unique_keyword(unique_kw, expected):
+    """
+    Test that dataframe schema-level unique keyword correctly validates
+    uniqueness of multiple columns.
+    """
     test_schema = DataFrameSchema(
         columns={"a": Column(int), "b": Column(int), "c": Column(int)},
         unique=unique_kw,
     )
-    d = pd.DataFrame({"a": [1, 2, 1], "b": [1, 5, 6], "c": [1, 5, 1]})
+    df = pd.DataFrame({"a": [1, 2, 1], "b": [1, 5, 6], "c": [1, 5, 1]})
     if expected == "SchemaError":
         with pytest.raises(errors.SchemaError):
-            test_schema.validate(d)
+            test_schema.validate(df)
     else:
-        assert isinstance(test_schema.validate(d), pd.DataFrame)
+        assert isinstance(test_schema.validate(df), pd.DataFrame)
 
 
-def test_for_review():
+def test_column_set_unique():
     """
-    This basic test is failing, for setting the value of the unique
-    keyword to a value other than the default.
+    Test that unique Column attribute can be set via property setter and
+    update_column method.
     """
 
     test_schema = DataFrameSchema(
@@ -1759,7 +1764,7 @@ def test_for_review():
         }
     )
     assert test_schema.columns["a"].unique
-
-    test_schema.columns["a"] = True
-
+    test_schema.columns["a"].unique = False
+    assert not test_schema.columns["a"].unique
+    test_schema = test_schema.update_column("a", unique=True)
     assert test_schema.columns["a"].unique

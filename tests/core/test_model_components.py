@@ -17,18 +17,13 @@ def test_field_to_column() -> None:
             )
             assert isinstance(col, pa.Column)
             assert col.dtype == Engine.dtype(pa.DateTime)
-            try:
-                assert col.properties[flag] == value
-            except:
-                import ipdb
-
-                ipdb.set_trace()
+            assert col.properties[flag] == value
             assert col.required == value
 
 
 def test_field_to_index() -> None:
     """Test that Field outputs the correct index options."""
-    for flag in ["nullable", "allow_duplicates"]:
+    for flag in ["nullable", "unique"]:
         for value in [True, False]:
             index = pa.Field(**{flag: value}).to_index(pa.DateTime)  # type: ignore[arg-type]
             assert isinstance(index, pa.Index)

@@ -48,6 +48,7 @@ class FieldInfo:
     __slots__ = (
         "checks",
         "nullable",
+        "unique",
         "allow_duplicates",
         "coerce",
         "regex",
@@ -55,7 +56,6 @@ class FieldInfo:
         "alias",
         "original_name",
         "dtype_kwargs",
-        "unique",
     )
 
     def __init__(
@@ -63,7 +63,7 @@ class FieldInfo:
         checks: Optional[_CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
-        allow_duplicates: bool = True,
+        allow_duplicates: Optional[bool] = True,
         coerce: bool = False,
         regex: bool = False,
         alias: Any = None,

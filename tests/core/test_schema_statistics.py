@@ -445,6 +445,7 @@ def test_get_dataframe_schema_statistics():
                 "coerce": False,
                 "required": True,
                 "regex": False,
+                "unique": False,
             },
             "float": {
                 "dtype": DEFAULT_FLOAT,
@@ -457,6 +458,7 @@ def test_get_dataframe_schema_statistics():
                 "coerce": False,
                 "required": True,
                 "regex": False,
+                "unique": False,
             },
             "str": {
                 "dtype": pandas_engine.Engine.dtype(str),
@@ -466,6 +468,7 @@ def test_get_dataframe_schema_statistics():
                 "coerce": False,
                 "required": True,
                 "regex": False,
+                "unique": False,
             },
         },
         "index": [

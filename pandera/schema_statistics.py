@@ -93,6 +93,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
                 "required": column.required,
                 "regex": column.regex,
                 "checks": parse_checks(column.checks),
+                "unique": column.unique,
             }
             for col_name, column in dataframe_schema.columns.items()
         },

@@ -205,13 +205,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return self._unique
 
     @unique.setter
-    def unique(self, value: Union[str, List[str]]) -> None:
+    def unique(self, value: Optional[Union[str, List[str]]]) -> None:
         """Set unique attribute"""
-        self._unique = (
-            [value]
-            if (value and (all([isinstance(c, str) for c in value])))
-            else value
-        )
+        if value is None or isinstance(value, list):
+            self._unique = value
+        else:
+            self._unique = [value]
 
     @property
     def ordered(self):
@@ -630,7 +629,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if self.unique:
             temp_unique: List[List] = (
                 [self.unique]
-                if all([isinstance(x, str) for x in self.unique])
+                if all(isinstance(x, str) for x in self.unique)
                 else self.unique
             )
             for lst in temp_unique:
@@ -1578,6 +1577,7 @@ class SeriesSchemaBase:
                 "the `unique` keyword.",
                 DeprecationWarning,
             )
+            unique = not allow_duplicates
 
         self.dtype = dtype or pandas_dtype  # type: ignore
         self._nullable = nullable
@@ -1585,7 +1585,7 @@ class SeriesSchemaBase:
         self._checks = checks
         self._name = name
         self._unique = unique
-        self._allow_duplicates = True if not unique else False
+        self._allow_duplicates = allow_duplicates
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
@@ -1647,12 +1647,12 @@ class SeriesSchemaBase:
     @property
     def allow_duplicates(self) -> bool:
         """Whether to allow duplicate values."""
-        return self._allow_duplicates
+        return not self._unique
 
     @allow_duplicates.setter
     def allow_duplicates(self, value: bool) -> None:
         """Set allow_duplicates attribute."""
-        self._allow_duplicates = True if not self._unique else False
+        self._unique = not value
 
     @property
     def coerce(self) -> bool:
@@ -2000,11 +2000,11 @@ class SeriesSchema(SeriesSchemaBase):
             dtype,
             checks,
             nullable,
+            unique,
             allow_duplicates,
             coerce,
             name,
             pandas_dtype,
-            unique,
         )
         self.index = index
 

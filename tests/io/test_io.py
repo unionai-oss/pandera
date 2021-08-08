@@ -130,6 +130,7 @@ columns:
     coerce: false
     required: true
     regex: false
+    unique: false
   float_column:
     dtype: float64
     nullable: false
@@ -143,6 +144,7 @@ columns:
     coerce: false
     required: true
     regex: false
+    unique: false
   str_column:
     dtype: str
     nullable: false
@@ -159,6 +161,7 @@ columns:
     coerce: false
     required: true
     regex: false
+    unique: false
   datetime_column:
     dtype: datetime64[ns]
     nullable: false
@@ -169,6 +172,7 @@ columns:
     coerce: false
     required: true
     regex: false
+    unique: false
   timedelta_column:
     dtype: timedelta64[ns]
     nullable: false
@@ -179,6 +183,7 @@ columns:
     coerce: false
     required: true
     regex: false
+    unique: false
   optional_props_column:
     dtype: str
     nullable: true
@@ -190,6 +195,7 @@ columns:
     coerce: true
     required: false
     regex: true
+    unique: false
   notype_column:
     dtype: null
     nullable: false
@@ -203,6 +209,7 @@ columns:
     coerce: false
     required: true
     regex: false
+    unique: false
 checks: null
 index:
 - dtype: int64
@@ -212,6 +219,7 @@ index:
   coerce: false
 coerce: false
 strict: true
+unique: null
 """
 
 
@@ -766,6 +774,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: true
   integer_col_2:
     dtype: {INT_DTYPE}
     nullable: true
@@ -775,6 +784,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
   string_col:
     dtype: {STR_DTYPE}
     nullable: true
@@ -786,6 +796,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
   string_col_2:
     dtype: {STR_DTYPE}
     nullable: true
@@ -795,6 +806,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
   string_col_3:
     dtype: {STR_DTYPE}
     nullable: true
@@ -804,6 +816,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
   string_col_4:
     dtype: {STR_DTYPE}
     nullable: true
@@ -813,6 +826,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
   float_col:
     dtype: category
     nullable: false
@@ -825,6 +839,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
   float_col_2:
     dtype: float64
     nullable: true
@@ -833,6 +848,7 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
   date_col:
     dtype: {STR_DTYPE}
     nullable: true
@@ -842,10 +858,12 @@ columns:
     coerce: true
     required: true
     regex: false
+    unique: false
 checks: null
 index: null
 coerce: true
 strict: true
+unique: null
 """
 
 VALID_FRICTIONLESS_DF = pd.DataFrame(

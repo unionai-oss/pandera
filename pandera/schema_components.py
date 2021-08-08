@@ -92,11 +92,11 @@ class Column(SeriesSchemaBase):
             dtype,
             checks,
             nullable,
+            unique,
             allow_duplicates,
             coerce,
             name,
             pandas_dtype,
-            unique,
         )
         if (
             name is not None

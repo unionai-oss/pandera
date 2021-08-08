@@ -258,7 +258,7 @@ def _deserialize_schema(serialized_schema):
         index=index,
         coerce=serialized_schema.get("coerce", False),
         strict=serialized_schema.get("strict", False),
-        unique=serialized_schema.get("unique", False),
+        unique=serialized_schema.get("unique", None),
     )
 
 
