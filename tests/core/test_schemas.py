@@ -1209,7 +1209,7 @@ def test_lazy_dataframe_validation_nullable_with_checks() -> None:
                 checks=Check.str_matches(r"^ID[\d]{3}$"),
                 name="id",
                 required=True,
-                allow_duplicates=False,
+                unique=True,
             )
         }
     )
@@ -1606,7 +1606,8 @@ def test_update_columns(schema_simple: DataFrameSchema) -> None:
     assert test_schema.columns["col1"].dtype == Engine.dtype(Category)
     assert test_schema.columns["col1"].coerce is True
     assert test_schema.columns["col2"].dtype == Engine.dtype(int)
-    assert test_schema.columns["col2"].allow_duplicates is False
+    assert test_schema.columns["col2"].unique
+    assert not test_schema.columns["col2"].allow_duplicates
 
     # Errors
     with pytest.raises(errors.SchemaInitError):

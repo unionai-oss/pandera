@@ -108,11 +108,10 @@ def _serialize_component_stats(component_stats):
             key: component_stats.get(key)
             for key in [
                 "name",
-                "allow_duplicates",
+                "unique",
                 "coerce",
                 "required",
                 "regex",
-                "unique",
             ]
             if key in component_stats
         },
@@ -197,11 +196,13 @@ def _deserialize_component_stats(serialized_component_stats):
             for key in [
                 "name",
                 "nullable",
+                "unique",
+                # deserialize allow_duplicates property for backwards
+                # compatibility. Remove this for 0.8.0 release
                 "allow_duplicates",
                 "coerce",
                 "required",
                 "regex",
-                "unique",
             ]
             if key in serialized_component_stats
         },
@@ -314,7 +315,7 @@ Column(
     dtype={dtype},
     checks={checks},
     nullable={nullable},
-    allow_duplicates={allow_duplicates},
+    unique={unique},
     coerce={coerce},
     required={required},
     regex={regex},
@@ -401,11 +402,10 @@ def to_script(dataframe_schema, path_or_buf=None):
             ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
-            allow_duplicates=properties["allow_duplicates"],
+            unique=properties["unique"],
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
-            unique=properties["unique"],
         )
         columns[colname] = column_code.strip()
 
@@ -651,8 +651,8 @@ def from_frictionless_schema(
     [<Check in_range: in_range(10, 99)>]
     >>> schema.columns["column_1"].required
     True
-    >>> schema.columns["column_1"].allow_duplicates
-    False
+    >>> schema.columns["column_1"].unique
+    True
     >>> schema.columns["column_2"].checks
     [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches(re.compile('^\\\\S+$'))>]
     """

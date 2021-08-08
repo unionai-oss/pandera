@@ -1573,8 +1573,8 @@ class SeriesSchemaBase:
             warnings.warn(
                 "The `allow_duplicates` will be deprecated in "
                 "favor of the `unique` keyword. The value of "
-                "`allow_duplicates` will be set to the opposite of "
-                "the `unique` keyword.",
+                "`unique` will be set to the opposite of "
+                "the `allow_duplicates` keyword.",
                 DeprecationWarning,
             )
             unique = not allow_duplicates
@@ -1585,7 +1585,6 @@ class SeriesSchemaBase:
         self._checks = checks
         self._name = name
         self._unique = unique
-        self._allow_duplicates = allow_duplicates
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
@@ -1920,7 +1919,7 @@ class SeriesSchemaBase:
             self.dtype,
             checks=self.checks,
             nullable=self.nullable,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
             size=size,
         )

@@ -126,11 +126,10 @@ columns:
       in_range:
         min_value: 0
         max_value: 10
-    allow_duplicates: null
+    unique: false
     coerce: false
     required: true
     regex: false
-    unique: false
   float_column:
     dtype: float64
     nullable: false
@@ -140,11 +139,10 @@ columns:
       in_range:
         min_value: -10
         max_value: 20
-    allow_duplicates: null
+    unique: false
     coerce: false
     required: true
     regex: false
-    unique: false
   str_column:
     dtype: str
     nullable: false
@@ -157,33 +155,30 @@ columns:
       str_length:
         min_value: 1
         max_value: 3
-    allow_duplicates: null
+    unique: false
     coerce: false
     required: true
     regex: false
-    unique: false
   datetime_column:
     dtype: datetime64[ns]
     nullable: false
     checks:
       greater_than: '2010-01-01 00:00:00'
       less_than: '2020-01-01 00:00:00'
-    allow_duplicates: null
+    unique: false
     coerce: false
     required: true
     regex: false
-    unique: false
   timedelta_column:
     dtype: timedelta64[ns]
     nullable: false
     checks:
       greater_than: 1000
       less_than: 10000
-    allow_duplicates: null
+    unique: false
     coerce: false
     required: true
     regex: false
-    unique: false
   optional_props_column:
     dtype: str
     nullable: true
@@ -191,11 +186,10 @@ columns:
       str_length:
         min_value: 1
         max_value: 3
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: false
     regex: true
-    unique: false
   notype_column:
     dtype: null
     nullable: false
@@ -205,11 +199,10 @@ columns:
       - bar
       - x
       - xy
-    allow_duplicates: null
+    unique: false
     coerce: false
     required: true
     regex: false
-    unique: false
 checks: null
 index:
 - dtype: int64
@@ -770,21 +763,19 @@ columns:
       in_range:
         min_value: 10
         max_value: 99
-    allow_duplicates: null
+    unique: true
     coerce: true
     required: true
     regex: false
-    unique: true
   integer_col_2:
     dtype: {INT_DTYPE}
     nullable: true
     checks:
       less_than_or_equal_to: 30
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
   string_col:
     dtype: {STR_DTYPE}
     nullable: true
@@ -792,41 +783,37 @@ columns:
       str_length:
         min_value: 3
         max_value: 80
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
   string_col_2:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_matches: ^\\d{{3}}[A-Z]$
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
   string_col_3:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length: 3
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
   string_col_4:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
       str_length: 3
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
   float_col:
     dtype: category
     nullable: false
@@ -835,30 +822,27 @@ columns:
       - 1.0
       - 2.0
       - 3.0
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
   float_col_2:
     dtype: float64
     nullable: true
     checks: null
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
   date_col:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
       greater_than_or_equal_to: '20201231'
-    allow_duplicates: null
+    unique: false
     coerce: true
     required: true
     regex: false
-    unique: false
 checks: null
 index: null
 coerce: true

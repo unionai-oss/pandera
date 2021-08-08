@@ -107,7 +107,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                     Check.less_than_or_equal_to(max_value=20.0),
                 ],
                 nullable=False,
-                allow_duplicates=True,
+                unique=False,
                 coerce=False,
                 required=True,
                 regex=False,
@@ -116,7 +116,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 dtype=pandera.engines.numpy_engine.Object,
                 checks=None,
                 nullable=False,
-                allow_duplicates=True,
+                unique=False,
                 coerce=False,
                 required=True,
                 regex=False,
@@ -132,7 +132,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                     ),
                 ],
                 nullable=False,
-                allow_duplicates=True,
+                unique=False,
                 coerce=False,
                 required=True,
                 regex=False,
@@ -185,7 +185,7 @@ is a convenience method for this functionality.
         checks:
           greater_than_or_equal_to: 5.0
           less_than_or_equal_to: 20.0
-        allow_duplicates: true
+        unique: false
         coerce: false
         required: true
         regex: false
@@ -193,7 +193,7 @@ is a convenience method for this functionality.
         dtype: object
         nullable: false
         checks: null
-        allow_duplicates: true
+        unique: false
         coerce: false
         required: true
         regex: false
@@ -203,7 +203,7 @@ is a convenience method for this functionality.
         checks:
           greater_than_or_equal_to: '2010-01-01 00:00:00'
           less_than_or_equal_to: '2012-01-01 00:00:00'
-        allow_duplicates: true
+        unique: false
         coerce: false
         required: true
         regex: false
@@ -218,6 +218,7 @@ is a convenience method for this functionality.
       coerce: false
     coerce: true
     strict: false
+    unique: null
 
 You can edit this yaml file by specifying column names under the ``column``
 key. The respective values map onto key-word arguments in the

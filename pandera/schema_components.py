@@ -128,12 +128,11 @@ class Column(SeriesSchemaBase):
             "dtype": self.dtype,
             "checks": self._checks,
             "nullable": self._nullable,
-            "allow_duplicates": self._allow_duplicates,
+            "unique": self._unique,
             "coerce": self._coerce,
             "required": self.required,
             "name": self._name,
             "regex": self._regex,
-            "unique": self._unique,
         }
 
     def set_name(self, name: str):
@@ -289,7 +288,7 @@ class Column(SeriesSchemaBase):
         return st.column_strategy(
             self.dtype,
             checks=self.checks,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
         )
 
@@ -410,7 +409,7 @@ class Index(SeriesSchemaBase):
             self.dtype,  # type: ignore
             checks=self.checks,
             nullable=self.nullable,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
             size=size,
         )
@@ -421,7 +420,7 @@ class Index(SeriesSchemaBase):
         return st.column_strategy(
             self.dtype,
             checks=self.checks,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
         )
 

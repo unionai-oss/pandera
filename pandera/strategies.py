@@ -747,7 +747,7 @@ def series_strategy(
     *,
     checks: Optional[Sequence] = None,
     nullable: Optional[bool] = False,
-    allow_duplicates: Optional[bool] = True,
+    unique: Optional[bool] = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):
@@ -759,8 +759,7 @@ def series_strategy(
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
-    :param allow_duplicates: whether or not generated Series contains
-        duplicates.
+    :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
@@ -773,7 +772,7 @@ def series_strategy(
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
-            unique=not allow_duplicates,
+            unique=unique,
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
@@ -807,7 +806,7 @@ def column_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    allow_duplicates: Optional[bool] = True,
+    unique: Optional[bool] = False,
     name: Optional[str] = None,
 ):
     # pylint: disable=line-too-long
@@ -818,8 +817,7 @@ def column_strategy(
         pandas dtype strategy will be chained onto this strategy.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
-    :param allow_duplicates: whether or not generated Series contains
-        duplicates.
+    :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
     :returns: a `column <https://hypothesis.readthedocs.io/en/latest/numpy.html#hypothesis.extra.pandas.column>`_ object.
     """
@@ -829,7 +827,7 @@ def column_strategy(
         name=name,
         elements=elements,
         dtype=to_numpy_dtype(pandera_dtype),
-        unique=not allow_duplicates,
+        unique=unique,
     )
 
 
@@ -839,7 +837,7 @@ def index_strategy(
     *,
     checks: Optional[Sequence] = None,
     nullable: Optional[bool] = False,
-    allow_duplicates: Optional[bool] = True,
+    unique: Optional[bool] = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):
@@ -851,8 +849,7 @@ def index_strategy(
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
-    :param allow_duplicates: whether or not generated Series contains
-        duplicates.
+    :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
@@ -864,7 +861,7 @@ def index_strategy(
         dtype=to_numpy_dtype(pandera_dtype),
         min_size=0 if size is None else size,
         max_size=size,
-        unique=not allow_duplicates,
+        unique=unique,
     ).map(lambda x: x.astype(str(pandera_dtype)))
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))

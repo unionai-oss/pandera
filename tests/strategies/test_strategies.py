@@ -572,7 +572,7 @@ def test_dataframe_strategy_with_indexes(data_type, data):
 def test_index_strategy(data) -> None:
     """Test Index schema component strategy."""
     data_type = pa.Int()
-    index_schema = pa.Index(data_type, allow_duplicates=False, name="index")
+    index_schema = pa.Index(data_type, unique=True, name="index")
     strat = index_schema.strategy(size=10)
     example = data.draw(strat)
 
@@ -587,7 +587,7 @@ def test_index_example() -> None:
     Test Index schema component example method generates examples that pass.
     """
     data_type = pa.Int()
-    index_schema = pa.Index(data_type, allow_duplicates=False)
+    index_schema = pa.Index(data_type, unique=True)
     for _ in range(10):
         index_schema(pd.DataFrame(index=index_schema.example()))
 
@@ -601,7 +601,7 @@ def test_multiindex_strategy(data) -> None:
     data_type = pa.Float()
     multiindex = pa.MultiIndex(
         indexes=[
-            pa.Index(data_type, allow_duplicates=False, name="level_0"),
+            pa.Index(data_type, unique=True, name="level_0"),
             pa.Index(data_type, nullable=True),
             pa.Index(data_type),
         ]
@@ -628,7 +628,7 @@ def test_multiindex_example() -> None:
     data_type = pa.Float()
     multiindex = pa.MultiIndex(
         indexes=[
-            pa.Index(data_type, allow_duplicates=False, name="level_0"),
+            pa.Index(data_type, unique=True, name="level_0"),
             pa.Index(data_type, nullable=True),
             pa.Index(data_type),
         ]

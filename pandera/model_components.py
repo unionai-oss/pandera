@@ -63,7 +63,7 @@ class FieldInfo:
         checks: Optional[_CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
-        allow_duplicates: Optional[bool] = True,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         regex: bool = False,
         alias: Any = None,
