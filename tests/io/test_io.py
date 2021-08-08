@@ -126,7 +126,7 @@ columns:
       in_range:
         min_value: 0
         max_value: 10
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: false
     required: true
     regex: false
@@ -140,7 +140,7 @@ columns:
       in_range:
         min_value: -10
         max_value: 20
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: false
     required: true
     regex: false
@@ -157,7 +157,7 @@ columns:
       str_length:
         min_value: 1
         max_value: 3
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: false
     required: true
     regex: false
@@ -168,7 +168,7 @@ columns:
     checks:
       greater_than: '2010-01-01 00:00:00'
       less_than: '2020-01-01 00:00:00'
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: false
     required: true
     regex: false
@@ -179,7 +179,7 @@ columns:
     checks:
       greater_than: 1000
       less_than: 10000
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: false
     required: true
     regex: false
@@ -205,7 +205,7 @@ columns:
       - bar
       - x
       - xy
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: false
     required: true
     regex: false
@@ -770,7 +770,7 @@ columns:
       in_range:
         min_value: 10
         max_value: 99
-    allow_duplicates: false
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -780,7 +780,7 @@ columns:
     nullable: true
     checks:
       less_than_or_equal_to: 30
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -792,7 +792,7 @@ columns:
       str_length:
         min_value: 3
         max_value: 80
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -802,7 +802,7 @@ columns:
     nullable: true
     checks:
       str_matches: ^\\d{{3}}[A-Z]$
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -812,7 +812,7 @@ columns:
     nullable: true
     checks:
       str_length: 3
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -822,7 +822,7 @@ columns:
     nullable: true
     checks:
       str_length: 3
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -835,7 +835,7 @@ columns:
       - 1.0
       - 2.0
       - 3.0
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -844,7 +844,7 @@ columns:
     dtype: float64
     nullable: true
     checks: null
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false
@@ -854,7 +854,7 @@ columns:
     nullable: true
     checks:
       greater_than_or_equal_to: '20201231'
-    allow_duplicates: true
+    allow_duplicates: null
     coerce: true
     required: true
     regex: false

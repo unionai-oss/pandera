@@ -88,7 +88,7 @@ def get_dataframe_schema_statistics(dataframe_schema):
             col_name: {
                 "dtype": column.dtype,
                 "nullable": column.nullable,
-                "allow_duplicates": column.allow_duplicates,
+                "allow_duplicates": column._allow_duplicates,
                 "coerce": column.coerce,
                 "required": column.required,
                 "regex": column.regex,

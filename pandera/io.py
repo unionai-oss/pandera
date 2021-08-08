@@ -555,13 +555,13 @@ class FrictionlessFieldParser:
         return not self.constraints.get("required", False)
 
     @property
-    def allow_duplicates(self) -> bool:
+    def unique(self) -> bool:
         """Determine whether this field can contain duplicate values.
 
         If a field is a primary key, this will return ``False``."""
         if self.is_a_primary_key:
-            return False
-        return not self.constraints.get("unique", False)
+            return True
+        return self.constraints.get("unique", False)
 
     @property
     def coerce(self) -> bool:
@@ -593,10 +593,10 @@ class FrictionlessFieldParser:
     def to_pandera_column(self) -> Dict:
         """Export this field to a column spec dictionary."""
         return {
-            "allow_duplicates": self.allow_duplicates,
             "checks": self.checks,
             "coerce": self.coerce,
             "nullable": self.nullable,
+            "unique": self.unique,
             "dtype": self.dtype,
             "required": self.required,
             "name": self.name,
