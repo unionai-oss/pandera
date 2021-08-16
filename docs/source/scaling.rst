@@ -5,16 +5,29 @@
 Scaling Pandera to Big Data
 =================================
 
-Pandera only support Pandas DataFrames at the moment. However, the same Pandera code
-can be used on Spark or Dask with Fugue. Because Dask is built on top of Pandas DataFrames,
-it may be easier to
+Validation on big data comes in two forms. The first is performing one set of
+validations on data that doesn't fit in memory. The second happens when a large dataset
+is comprised of multiple groups that require different validations. In Pandas semantics,
+this is equivalent to a groupby-validate operation. This section will cover using
+Pandera for both of these scenarios.
+
+Pandera only supports Pandas DataFrames at the moment. However, the same Pandera code
+can be used on top of Spark or Dask engines with Fugue. These computation engines
+allow validation to be performed in a distributed setting (with some limitations that
+will be explained). Because Dask dataframes are built on top of Pandas dataframes,
+bringing Pandera to Dask is relatively easier than with Spark if coded from scratch.
+
+In this example, we'll explore using Fugue, abstraction layer that ports Python, Pandas,
+and SQL code to Spark and Dask.
 
 Fugue
 -----
 
-Fugue is an abstraction layer that ports Python, Pandas, and SQL code to Spark and Dask. Here,
+Fugue was created to be an easy interface to Spark and Dask.
 
-To install:
+To run the code below, Fugue needs to:
+
+`pip install fugue[spark]`
 
 
 Example
@@ -35,7 +48,7 @@ columns.
 
 .. testoutput:: scaling_pandera
 
-    state           city  price
+      state           city  price
     0    FL        Orlando      8
     1    FL          Miami     12
     2    FL          Tampa     10
@@ -57,18 +70,18 @@ Validation is then applied using pandera.
         price_check.validate(data)
         return data
 
-    price_validation(data)
-
-Bringing this to Spark
-
 .. testcode:: scaling_pandera
+    :skipif: SKIP_SCALING
+
     from fugue import transform
     from fugue_spark import SparkExecutionEngine
 
-    spark_df = transform(data, using=price_validation, schema="*", engine=SparkExecutionEngine)
+    spark_df = transform(data, price_validation, schema="*", engine=SparkExecutionEngine)
     spark_df.show()
 
 .. testoutput:: scaling_pandera
+    :skipif: SKIP_SCALING
+
     +-----+-------------+-----+
     |state|         city|price|
     +-----+-------------+-----+
@@ -93,12 +106,13 @@ There is an interesting use case that comes up
     })
 
     price_check_CA = DataFrameSchema({
-        "price": Column(Int, Check.in_range(min_value=15,max_value=21)),
+        "price": Column(int, Check.in_range(min_value=15,max_value=21)),
     })
 
     price_checks = {'CA': price_check_CA, 'FL': price_check_FL}
 
 .. testcode:: scaling_pandera
+    :skipif: SKIP_SCALING
 
     from fugue import FugueWorkflow
 
@@ -110,10 +124,11 @@ There is an interesting use case that comes up
 
     with FugueWorkflow(SparkExecutionEngine) as dag:
         df = dag.df(data)
-        df = df.partition(by=["state"]).transform(price_validation)
+        df = df.partition(by=["state"]).transform(price_validation, schema="*")
         df.show()
 
 .. testoutput:: scaling_pandera
+    :skipif: SKIP_SCALING
 
     SparkDataFrame
     state:str|city:str                                                                       |price:long
