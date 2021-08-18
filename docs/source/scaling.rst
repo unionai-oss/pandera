@@ -7,34 +7,38 @@ Scaling Pandera to Big Data
 
 Validation on big data comes in two forms. The first is performing one set of
 validations on data that doesn't fit in memory. The second happens when a large dataset
-is comprised of multiple groups that require different validations. In Pandas semantics,
-this is equivalent to a groupby-validate operation. This section will cover using
-Pandera for both of these scenarios.
+is comprised of multiple groups that require different validations. In pandas semantics,
+this would be the equivalent of a ``groupby-validate`` operation. This section will cover
+using ``pandera`` for both of these scenarios.
 
-Pandera only supports Pandas DataFrames at the moment. However, the same Pandera code
-can be used on top of Spark or Dask engines with Fugue. These computation engines
-allow validation to be performed in a distributed setting (with some limitations that
-will be explained). Because Dask dataframes are built on top of Pandas dataframes,
-bringing Pandera to Dask is relatively easier than with Spark if coded from scratch.
-
-In this example, we'll explore using Fugue, abstraction layer that ports Python, Pandas,
-and SQL code to Spark and Dask.
+``Pandera`` only supports pandas ``DataFrames`` at the moment. However, the same ``pandera``
+code can be used on top of ``Spark`` or ``Dask`` engines with
+`Fugue <https://github.com/fugue-project/fugue/>`_ . These computation engines allow validation
+to be performed in a distributed setting. ``Fugue`` is an open source abstraction layer that
+ports ``Python``, ``pandas``, and ``SQL`` code to ``Spark`` and ``Dask``.
 
 Fugue
 -----
 
-Fugue was created to be an easy interface to Spark and Dask.
+``Fugue`` serves as an interface to distributed computing. Because of its non-invasive design,
+existing ``Python`` code can be scaled to a distributed setting without significant changes.
 
-To run the code below, Fugue needs to:
+To run the example, ``Fugue`` needs to installed separately. Using pip:
 
-`pip install fugue[spark]`
+.. code:: bash
+
+    pip install fugue[spark]
+
+This will also install ``PySpark`` because of the ``spark`` extra. ``Dask`` is available
+with the ``dask`` extra.
 
 
 Example
 -------
 
-In this example, a pandas ``DataFrame`` in created with ``state``, ``city`` and ``price``
-columns.
+In this example, a pandas ``DataFrame`` is created with ``state``, ``city`` and ``price``
+columns. ``Pandera`` will be used to validate that the ``price`` column values are within
+a certain range.
 
 .. testcode:: scaling_pandera
 
@@ -56,7 +60,9 @@ columns.
     4    CA    Los Angeles     20
     5    CA      San Diego     18
 
-Validation is then applied using pandera.
+
+Validation is then applied using pandera. A ``price_validation`` function is
+created that runs the validation. None of this will be new.
 
 .. testcode:: scaling_pandera
 
@@ -69,6 +75,16 @@ Validation is then applied using pandera.
     def price_validation(data:pd.DataFrame) -> pd.DataFrame:
         price_check.validate(data)
         return data
+
+The ``transform`` function in ``Fugue`` is the easiest way to use ``Fugue`` with existing ``Python``
+functions as seen in the following code snippet. The first two arguments are the ``DataFrame`` and
+function to apply. The keyword argument ``schema`` is required because schema is strictly enforced
+in distributed settings. Here, the ``schema`` is simply `*` because no new columns are added.
+
+The last part of the ``transform`` function is the ``engine``. Here, the ``SparkExecutionEngine`` is used
+to run the code on top of ``Spark``. ``Fugue`` also has a ``DaskExecutionEngine``, and passing nothing uses
+the default pandas-based ``ExecutionEngine``. Because the ``SparkExecutionEngine`` is used, the result
+becomes a ``Spark DataFrame``.
 
 .. testcode:: scaling_pandera
     :skipif: SKIP_SCALING
@@ -97,7 +113,11 @@ Validation is then applied using pandera.
 Validation by Partition
 -----------------------
 
-There is an interesting use case that comes up
+There is an interesting use case that arises with bigger datasets. Frequently, there are logical
+groupings of data that require different validations. In the earlier sample data, the
+price range for the records with ``state`` FL is lower than the range for the ``state`` CA.
+Two :class:`~pandera.schemas.DataFrameSchema` will be created to reflect this. Notice their ranges
+for the :class:`~pandera.checks.Check` differ.
 
 .. testcode:: scaling_pandera
 
@@ -110,6 +130,16 @@ There is an interesting use case that comes up
     })
 
     price_checks = {'CA': price_check_CA, 'FL': price_check_FL}
+
+A slight modification is needed to our ``price_validation`` function. ``Fugue`` will partition
+the whole dataset into multiple pandas ``DataFrames``. Think of this as a ``groupby``. By the
+time ``price_validation`` is used, it only contains the data for one ``state``. The appropriate
+``DataFrameSchema`` is pulled and then applied.
+
+On the ``Fugue`` side, the ``FugueWorkflow`` will be used instead of the ``transform`` function.
+Within the workflow, the data is partitioned by ``state``, and then the ``transform`` method
+is used to invoke ``price_validation``. Again, this is like a groupby-validation. Because
+the ``SparkExecutionEngine`` was used, this operation will run on Spark.
 
 .. testcode:: scaling_pandera
     :skipif: SKIP_SCALING
@@ -131,12 +161,21 @@ There is an interesting use case that comes up
     :skipif: SKIP_SCALING
 
     SparkDataFrame
-    state:str|city:str                                                                       |price:long
-    ---------+-------------------------------------------------------------------------------+----------
-    CA       |San Francisco                                                                  |16
-    CA       |Los Angeles                                                                    |20
-    CA       |San Diego                                                                      |18
-    FL       |Orlando                                                                        |8
-    FL       |Miami                                                                          |12
-    FL       |Tampa                                                                          |10
+    state:str|city:str                                                 |price:long
+    ---------+---------------------------------------------------------+----------
+    CA       |San Francisco                                            |16
+    CA       |Los Angeles                                              |20
+    CA       |San Diego                                                |18
+    FL       |Orlando                                                  |8
+    FL       |Miami                                                    |12
+    FL       |Tampa                                                    |10
     Total count: 6
+
+.. note::
+
+    Because operations in a distributed setting are applied per partition, statistical
+    validators will be applied on each partition rather than the global dataset. If no
+    partitioning scheme is specified, ``Spark`` and ``Dask`` use default partitions. Be
+    careful about using operations like mean, min, and max without partitioning beforehand.
+
+    All row-wise validations scale well with this set-up.
