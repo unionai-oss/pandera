@@ -136,15 +136,12 @@ the whole dataset into multiple pandas ``DataFrames``. Think of this as a ``grou
 time ``price_validation`` is used, it only contains the data for one ``state``. The appropriate
 ``DataFrameSchema`` is pulled and then applied.
 
-On the ``Fugue`` side, the ``FugueWorkflow`` will be used instead of the ``transform`` function.
-Within the workflow, the data is partitioned by ``state``, and then the ``transform`` method
-is used to invoke ``price_validation``. Again, this is like a groupby-validation. Because
-the ``SparkExecutionEngine`` was used, this operation will run on Spark.
+To partition our data by ``state``, all we need to do is pass it into the ``transform`` function
+through the ``partition`` argument. This splits up the data across different workers before they
+each run the ``price_validation`` function. Again, this is like a groupby-validation.
 
 .. testcode:: scaling_pandera
     :skipif: SKIP_SCALING
-
-    from fugue import FugueWorkflow
 
     def price_validation(df:pd.DataFrame) -> pd.DataFrame:
         location = df['state'].iloc[0]
@@ -152,10 +149,13 @@ the ``SparkExecutionEngine`` was used, this operation will run on Spark.
         check.validate(df)
         return df
 
-    with FugueWorkflow(SparkExecutionEngine) as dag:
-        df = dag.df(data)
-        df = df.partition(by=["state"]).transform(price_validation, schema="*")
-        df.show()
+    spark_df = transform(data,
+              price_validation,
+              schema="*",
+              partition=dict(by="state"),
+              engine=SparkExecutionEngine)
+
+    spark_df.show()
 
 .. testoutput:: scaling_pandera
     :skipif: SKIP_SCALING
