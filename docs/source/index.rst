@@ -311,10 +311,10 @@ Submit issues, feature requests or bugfixes on
    schema_inference
    schema_models
    lazy_validation
-   scaling
    data_synthesis_strategies
    extensions
    third_party_schema
+   scaling
 
 .. toctree::
    :maxdepth: 6
