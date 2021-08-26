@@ -73,8 +73,7 @@ created that runs the validation. None of this will be new.
     )
 
     def price_validation(data:pd.DataFrame) -> pd.DataFrame:
-        price_check.validate(data)
-        return data
+        return price_check.validate(data)
 
 The ``transform`` function in ``Fugue`` is the easiest way to use ``Fugue`` with existing ``Python``
 functions as seen in the following code snippet. The first two arguments are the ``DataFrame`` and
