@@ -48,6 +48,7 @@ class FieldInfo:
     __slots__ = (
         "checks",
         "nullable",
+        "unique",
         "allow_duplicates",
         "coerce",
         "regex",
@@ -61,16 +62,17 @@ class FieldInfo:
         self,
         checks: Optional[_CheckList] = None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         regex: bool = False,
-        alias: str = None,
-        check_name: bool = None,
-        dtype_kwargs: Dict[str, Any] = None,
-        unique: bool = False,
+        alias: Any = None,
+        check_name: Optional[bool] = None,
+        dtype_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
+        self.unique = unique
         self.allow_duplicates = allow_duplicates
         self.coerce = coerce
         self.regex = regex
@@ -78,7 +80,6 @@ class FieldInfo:
         self.check_name = check_name
         self.original_name = cast(str, None)  # always set by SchemaModel
         self.dtype_kwargs = dtype_kwargs
-        self.unique = unique
 
     @property
     def name(self) -> str:
@@ -120,13 +121,13 @@ class FieldInfo:
             pandas_dtype,
             Column,
             nullable=self.nullable,
+            unique=self.unique,
             allow_duplicates=self.allow_duplicates,
             coerce=self.coerce,
             regex=self.regex,
             required=required,
             name=name,
             checks=checks,
-            unique=self.unique,
         )
 
     def to_index(
@@ -140,11 +141,11 @@ class FieldInfo:
             pandas_dtype,
             Index,
             nullable=self.nullable,
+            unique=self.unique,
             allow_duplicates=self.allow_duplicates,
             coerce=self.coerce,
             name=name,
             checks=checks,
-            unique=self.unique,
         )
 
 
@@ -159,22 +160,22 @@ def Field(
     in_range: Dict[str, Any] = None,
     isin: Iterable = None,
     notin: Iterable = None,
-    str_contains: str = None,
-    str_endswith: str = None,
-    str_length: Dict[str, Any] = None,
-    str_matches: str = None,
-    str_startswith: str = None,
+    str_contains: Optional[str] = None,
+    str_endswith: Optional[str] = None,
+    str_length: Optional[Dict[str, Any]] = None,
+    str_matches: Optional[str] = None,
+    str_startswith: Optional[str] = None,
     nullable: bool = False,
-    allow_duplicates: bool = True,
+    unique: bool = False,
+    allow_duplicates: Optional[bool] = None,
     coerce: bool = False,
     regex: bool = False,
     ignore_na: bool = True,
     raise_warning: bool = False,
     n_failure_cases: int = 10,
-    alias: str = None,
-    check_name: bool = None,
-    dtype_kwargs: Dict[str, Any] = None,
-    unique: bool = False,
+    alias: Any = None,
+    check_name: Optional[bool] = None,
+    dtype_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
@@ -188,6 +189,7 @@ def Field(
     to the built-in `~pandera.checks.Check` methods.
 
     :param nullable: whether or not the column/index is nullable.
+    :param unique: whether column values should be unique
     :param allow_duplicates: whether or not to accept duplicate values.
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
@@ -199,8 +201,8 @@ def Field(
     :param check_name: Whether to check the name of the column/index during
         validation. `None` is the default behavior, which translates to `True`
         for columns and multi-index, and to `False` for a single index.
-    :param dtype_kwargs: The parameters to be forwarded to the type of the field.
-    :param unique: whether column values should be unique
+    :param dtype_kwargs: The parameters to be forwarded to the type of the
+        field.
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -235,13 +237,13 @@ def Field(
     return FieldInfo(
         checks=checks or None,
         nullable=nullable,
+        unique=unique,
         allow_duplicates=allow_duplicates,
         coerce=coerce,
         regex=regex,
         check_name=check_name,
         alias=alias,
         dtype_kwargs=dtype_kwargs,
-        unique=unique,
     )
 
 

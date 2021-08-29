@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md") as f:
     long_description = f.read()
@@ -10,11 +10,11 @@ with open("pandera/version.py") as fp:
 _extras_require = {
     "strategies": ["hypothesis >= 5.41.1"],
     "hypotheses": ["scipy"],
-    "io": ["pyyaml >= 5.1", "black"],
+    "io": ["pyyaml >= 5.1", "black", "frictionless"],
 }
 extras_require = {
     **_extras_require,
-    "all": list(set(x for l in _extras_require.values() for x in l)),
+    "all": list(set(x for y in _extras_require.values() for x in y)),
 }
 
 setup(
@@ -34,17 +34,20 @@ setup(
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
     data_files=[("", ["LICENSE.txt"])],
-    packages=["pandera"],
+    packages=find_packages(),
+    package_data={"pandera": ["py.typed"]},
     install_requires=[
         "packaging >= 20.0",
         "numpy >= 1.9.0",
-        "pandas >= 0.25.3",
+        "pandas >= 1.0",
         "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
         "typing_inspect >= 0.6.0",
         "wrapt",
+        "frictionless",
+        "pyarrow",
     ],
     extras_require=extras_require,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     platforms="any",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -53,7 +56,6 @@ setup(
         "Intended Audience :: Science/Research",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",

@@ -9,6 +9,7 @@ import pandas as pd
 
 from . import errors
 from . import strategies as st
+from .deprecations import deprecate_pandas_dtype
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -18,7 +19,7 @@ from .schemas import (
 )
 
 
-def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
+def _is_valid_multiindex_tuple_str(x: Tuple[Any, ...]) -> bool:
     """Check that a multi-index tuple key has all string elements"""
     return isinstance(x, tuple) and all(isinstance(i, str) for i in x)
 
@@ -26,37 +27,48 @@ def _is_valid_multiindex_tuple_str(x: Tuple[Any]) -> bool:
 class Column(SeriesSchemaBase):
     """Validate types and properties of DataFrame columns."""
 
-    has_subcomponents = False
-
+    @deprecate_pandas_dtype
     def __init__(
         self,
-        pandas_dtype: PandasDtypeInputTypes = None,
+        dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         required: bool = True,
-        name: str = None,
+        name: Union[str, Tuple[str, ...], None] = None,
         regex: bool = False,
-        unique: bool = False,
+        pandas_dtype: PandasDtypeInputTypes = None,
     ) -> None:
         """Create column validator object.
 
-        :param pandas_dtype: datatype of the column. A ``PandasDtype`` for
+        :param dtype: datatype of the column. A ``PandasDtype`` for
             type-checking dataframe. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
+        :param unique: whether column values should be unique
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
+
+            .. warning::
+
+                This option will be deprecated in 0.8.0. Use the ``unique``
+                argument instead.
+
         :param coerce: If True, when schema.validate is called the column will
-            be coerced into the specified dtype.
+            be coerced into the specified dtype. This has no effect on columns
+            where ``pandas_dtype=None``.
         :param required: Whether or not column is allowed to be missing
         :param name: column name in dataframe to validate.
         :param regex: whether the ``name`` attribute should be treated as a
             regex pattern to apply to multiple columns in a dataframe.
-        :param unique: whether column values should be unique
+        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
+
+            .. warning:: This option will be deprecated in 0.8.0
+
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:
@@ -66,7 +78,7 @@ class Column(SeriesSchemaBase):
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({
-        ...     "column": pa.Column(pa.String)
+        ...     "column": pa.Column(str)
         ... })
         >>>
         >>> schema.validate(pd.DataFrame({"column": ["foo", "bar"]}))
@@ -77,7 +89,14 @@ class Column(SeriesSchemaBase):
         See :ref:`here<column>` for more usage details.
         """
         super().__init__(
-            pandas_dtype, checks, nullable, allow_duplicates, coerce, unique
+            dtype,
+            checks,
+            nullable,
+            unique,
+            allow_duplicates,
+            coerce,
+            name,
+            pandas_dtype,
         )
         if (
             name is not None
@@ -91,11 +110,6 @@ class Column(SeriesSchemaBase):
         self.required = required
         self._name = name
         self._regex = regex
-
-        if coerce and self._pandas_dtype is None:
-            raise errors.SchemaInitError(
-                "Must specify dtype if coercing a Column's type"
-            )
 
     @property
     def regex(self) -> bool:
@@ -111,15 +125,14 @@ class Column(SeriesSchemaBase):
     def properties(self) -> Dict[str, Any]:
         """Get column properties."""
         return {
-            "pandas_dtype": self._pandas_dtype,
+            "dtype": self.dtype,
             "checks": self._checks,
             "nullable": self._nullable,
-            "allow_duplicates": self._allow_duplicates,
+            "unique": self._unique,
             "coerce": self._coerce,
             "required": self.required,
             "name": self._name,
             "regex": self._regex,
-            "unique": self._unique,
         }
 
     def set_name(self, name: str):
@@ -128,14 +141,6 @@ class Column(SeriesSchemaBase):
         :param str name: the name of the column object
 
         """
-        if (
-            not isinstance(name, str)
-            and not _is_valid_multiindex_tuple_str(name)
-            and self.regex
-        ):
-            raise ValueError(
-                "You cannot specify a non-string name when setting regex=True"
-            )
         self._name = name
         return self
 
@@ -231,28 +236,28 @@ class Column(SeriesSchemaBase):
             # handle MultiIndex case
             if len(self.name) != columns.nlevels:
                 raise IndexError(
-                    "Column regex name='%s' is a tuple, expected a MultiIndex "
-                    "columns with %d number of levels, found %d level(s)"
-                    % (self.name, len(self.name), columns.nlevels)
+                    f"Column regex name='{self.name}' is a tuple, expected a "
+                    f"MultiIndex columns with {len(self.name)} number of "
+                    f"levels, found {columns.nlevels} level(s)"
                 )
             matches = np.ones(len(columns)).astype(bool)
             for i, name in enumerate(self.name):
                 matched = pd.Index(
-                    columns.get_level_values(i).str.match(name)
+                    columns.get_level_values(i).astype(str).str.match(name)
                 ).fillna(False)
                 matches = matches & np.array(matched.tolist())
             column_keys_to_check = columns[matches]
         else:
             if isinstance(columns, pd.MultiIndex):
                 raise IndexError(
-                    "Column regex name %s is a string, expected a dataframe "
-                    "where the index is a pd.Index object, not a "
-                    "pd.MultiIndex object" % (self.name)
+                    f"Column regex name {self.name} is a string, expected a "
+                    "dataframe where the index is a pd.Index object, not a "
+                    "pd.MultiIndex object"
                 )
             column_keys_to_check = columns[
                 # str.match will return nan values when the index value is
                 # not a string.
-                pd.Index(columns.str.match(self.name))
+                pd.Index(columns.astype(str).str.match(self.name))
                 .fillna(False)
                 .tolist()
             ]
@@ -260,9 +265,9 @@ class Column(SeriesSchemaBase):
             raise errors.SchemaError(
                 self,
                 columns,
-                "Column regex name='%s' did not match any columns in the "
-                "dataframe. Update the regex pattern so that it matches at "
-                "least one column:\n%s" % (self.name, columns.tolist()),
+                f"Column regex name='{self.name}' did not match any columns "
+                "in the dataframe. Update the regex pattern so that it "
+                f"matches at least one column:\n{columns.tolist()}",
             )
         # drop duplicates to account for potential duplicated columns in the
         # dataframe.
@@ -281,9 +286,9 @@ class Column(SeriesSchemaBase):
     def strategy_component(self):
         """Generate column data object for use by DataFrame strategy."""
         return st.column_strategy(
-            self.pdtype,
+            self.dtype,
             checks=self.checks,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
         )
 
@@ -310,6 +315,9 @@ class Column(SeriesSchemaBase):
             )
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+
         def _compare_dict(obj):
             return {
                 k: v if k != "_checks" else set(v)
@@ -321,8 +329,6 @@ class Column(SeriesSchemaBase):
 
 class Index(SeriesSchemaBase):
     """Validate types and properties of a DataFrame Index."""
-
-    has_subcomponents = False
 
     @property
     def names(self):
@@ -361,13 +367,18 @@ class Index(SeriesSchemaBase):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
+        if isinstance(check_obj.index, pd.MultiIndex):
+            raise errors.SchemaError(
+                self, check_obj, "Attempting to validate mismatch index"
+            )
+
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
             # handles case where pandas native string type is not supported
             # by index.
-            obj_to_validate = pd.Series(
-                check_obj.index, name=check_obj.index.name
-            ).astype(self.dtype)
+            obj_to_validate = self.dtype.coerce(
+                pd.Series(check_obj.index, name=check_obj.index.name)
+            )
         else:
             obj_to_validate = pd.Series(
                 check_obj.index, name=check_obj.index.name
@@ -395,10 +406,10 @@ class Index(SeriesSchemaBase):
         :returns: index strategy.
         """
         return st.index_strategy(
-            self.pdtype,  # type: ignore
+            self.dtype,  # type: ignore
             checks=self.checks,
             nullable=self.nullable,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
             size=size,
         )
@@ -407,9 +418,9 @@ class Index(SeriesSchemaBase):
     def strategy_component(self):
         """Generate column data object for use by MultiIndex strategy."""
         return st.column_strategy(
-            self.pdtype,
+            self.dtype,
             checks=self.checks,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
         )
 
@@ -440,8 +451,6 @@ class MultiIndex(DataFrameSchema):
     leverage its validation logic.
     """
 
-    has_subcomponents = True
-
     def __init__(
         self,
         indexes: List[Index],
@@ -455,7 +464,7 @@ class MultiIndex(DataFrameSchema):
         :param indexes: list of Index validators for each level of the
             MultiIndex index.
         :param coerce: Whether or not to coerce the MultiIndex to the
-            specified pandas_dtypes before validation
+            specified dtypes before validation
         :param strict: whether or not to accept columns in the MultiIndex that
             aren't defined in the ``indexes`` argument.
         :param name: name of schema component
@@ -468,12 +477,12 @@ class MultiIndex(DataFrameSchema):
         >>>
         >>>
         >>> schema = pa.DataFrameSchema(
-        ...     columns={"column": pa.Column(pa.Int)},
+        ...     columns={"column": pa.Column(int)},
         ...     index=pa.MultiIndex([
-        ...         pa.Index(pa.String,
+        ...         pa.Index(str,
         ...               pa.Check(lambda s: s.isin(["foo", "bar"])),
         ...               name="index0"),
-        ...         pa.Index(pa.Int, name="index1"),
+        ...         pa.Index(int, name="index1"),
         ...     ])
         ... )
         >>>
@@ -495,6 +504,11 @@ class MultiIndex(DataFrameSchema):
         See :ref:`here<multiindex>` for more usage details.
 
         """
+        if any(not isinstance(i, Index) for i in indexes):
+            raise errors.SchemaInitError(
+                f"expected a list of Index objects, found {indexes} "
+                f"of type {[type(x) for x in indexes]}"
+            )
         self.indexes = indexes
         columns = {}
         for i, index in enumerate(indexes):
@@ -507,7 +521,7 @@ class MultiIndex(DataFrameSchema):
                     "component is not ordered."
                 )
             columns[i if index.name is None else index.name] = Column(
-                pandas_dtype=index._pandas_dtype,
+                dtype=index._dtype,
                 checks=index.checks,
                 nullable=index._nullable,
                 unique=index._unique,
@@ -536,7 +550,7 @@ class MultiIndex(DataFrameSchema):
         self._coerce = value
 
     def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:
-        """Coerce type of a pd.Series by type specified in pandas_dtype.
+        """Coerce type of a pd.Series by type specified in dtype.
 
         :param obj: multi-index to coerce.
         :returns: ``MultiIndex`` with coerced data type

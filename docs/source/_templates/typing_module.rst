@@ -11,11 +11,9 @@
 
    .. autosummary::
 
-   {% for item in classes %}
-     {% if item != "AnnotationInfo" %}
-      {{ item }}
-     {% endif %}
-   {%- endfor %}
+    DataFrame
+    Index
+    Series
 
    {% endblock %}
 

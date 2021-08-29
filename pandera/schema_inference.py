@@ -29,14 +29,14 @@ def infer_schema(
     else:
         raise TypeError(
             "pandas_obj type not recognized. Expected a pandas DataFrame or "
-            "Series, found %s" % type(pandas_obj)
+            f"Series, found {type(pandas_obj)}"
         )
 
 
 def _create_index(index_statistics):
     index = [
         Index(
-            properties["pandas_dtype"],
+            properties["dtype"],
             checks=parse_check_statistics(properties["checks"]),
             nullable=properties["nullable"],
             name=properties["name"],
@@ -58,11 +58,10 @@ def infer_dataframe_schema(df: pd.DataFrame) -> DataFrameSchema:
     :returns: DataFrameSchema
     """
     df_statistics = infer_dataframe_statistics(df)
-
     schema = DataFrameSchema(
         columns={
             colname: Column(
-                properties["pandas_dtype"],
+                properties["dtype"],
                 checks=parse_check_statistics(properties["checks"]),
                 nullable=properties["nullable"],
             )
@@ -83,7 +82,7 @@ def infer_series_schema(series) -> SeriesSchema:
     """
     series_statistics = infer_series_statistics(series)
     schema = SeriesSchema(
-        pandas_dtype=series_statistics["pandas_dtype"],
+        dtype=series_statistics["dtype"],
         checks=parse_check_statistics(series_statistics["checks"]),
         nullable=series_statistics["nullable"],
         name=series_statistics["name"],

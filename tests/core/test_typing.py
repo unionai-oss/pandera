@@ -1,14 +1,14 @@
 """Test typing annotations for the model api."""
 # pylint:disable=missing-class-docstring,too-few-public-methods
 import re
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Type
 
 import numpy as np
 import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.dtypes import LEGACY_PANDAS, PandasDtype
+from pandera.dtypes import DataType
 from pandera.typing import LEGACY_TYPING, Series
 
 if not LEGACY_TYPING:
@@ -127,7 +127,7 @@ class SchemaUINT64(pa.SchemaModel):
 
 
 def _test_literal_pandas_dtype(
-    model: Type[pa.SchemaModel], pandas_dtype: PandasDtype
+    model: Type[pa.SchemaModel], pandas_dtype: DataType
 ):
     schema = model.to_schema()
     expected = pa.Column(pandas_dtype, name="col").dtype
@@ -159,13 +159,12 @@ def _test_literal_pandas_dtype(
     ],
 )
 def test_literal_legacy_pandas_dtype(
-    model: Type[pa.SchemaModel], pandas_dtype: PandasDtype
+    model: Type[pa.SchemaModel], pandas_dtype: DataType
 ):
     """Test literal annotations with the legacy pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
 
 
-@pytest.mark.skipif(LEGACY_PANDAS, reason="pandas >= 1.0.0 required")
 @pytest.mark.parametrize(
     "model, pandas_dtype",
     [
@@ -180,7 +179,7 @@ def test_literal_legacy_pandas_dtype(
     ],
 )
 def test_literal_new_pandas_dtype(
-    model: Type[pa.SchemaModel], pandas_dtype: PandasDtype
+    model: Type[pa.SchemaModel], pandas_dtype: DataType
 ):
     """Test literal annotations with the new nullable pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
@@ -195,7 +194,7 @@ class SchemaFieldCategoricalDtype(pa.SchemaModel):
 def _test_annotated_dtype(
     model: Type[pa.SchemaModel],
     dtype: Type,
-    dtype_kwargs: Dict[str, Any] = None,
+    dtype_kwargs: Optional[Dict[str, Any]] = None,
 ):
     dtype_kwargs = dtype_kwargs or {}
     schema = model.to_schema()
@@ -292,7 +291,8 @@ class SchemaDefaultSparseDtype(pa.SchemaModel):
         # DatetimeTZDtype: tz is implictly required
         (SchemaDefaultDatetimeTZDtype, pd.DatetimeTZDtype, True),
         (SchemaDefaultIntervalDtype, pd.IntervalDtype, False),
-        # PeriodDtype: freq is implicitely required -> str(pd.PeriodDtype()) raises AttributeError
+        # PeriodDtype: freq is implicitely required -> str(pd.PeriodDtype())
+        # raises AttributeError
         (SchemaDefaultPeriodDtype, pd.PeriodDtype, True),
         (SchemaDefaultSparseDtype, pd.SparseDtype, False),
     ],
@@ -312,8 +312,15 @@ if not LEGACY_TYPING:
     class SchemaAnnotatedDatetimeTZDtype(pa.SchemaModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
-    class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
-        col: Series[Annotated[pd.IntervalDtype, "int32"]]
+    if pa.PANDAS_1_3_0_PLUS:
+
+        class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
+            col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
+
+    else:
+
+        class SchemaAnnotatedIntervalDtype(pa.SchemaModel):  # type: ignore
+            col: Series[Annotated[pd.IntervalDtype, "int32"]]
 
     class SchemaAnnotatedPeriodDtype(pa.SchemaModel):
         col: Series[Annotated[pd.PeriodDtype, "D"]]
@@ -337,7 +344,11 @@ if not LEGACY_TYPING:
             (
                 SchemaAnnotatedIntervalDtype,
                 pd.IntervalDtype,
-                {"subtype": "int32"},
+                (
+                    {"subtype": "int32", "closed": "both"}
+                    if pa.PANDAS_1_3_0_PLUS
+                    else {"subtype": "int32"}
+                ),
             ),
             (SchemaAnnotatedPeriodDtype, pd.PeriodDtype, {"freq": "D"}),
             (
@@ -357,7 +368,10 @@ if not LEGACY_TYPING:
         col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
 
     def test_invalid_annotated_dtype():
-        """Test incorrect number of parameters for parametrized pandas extension dtypes."""
+        """
+        Test incorrect number of parameters for parametrized pandas extension
+        dtypes.
+        """
         err_msg = re.escape(
             "Annotation 'DatetimeTZDtype' requires all "
             r"positional arguments ['unit', 'tz']."
@@ -371,64 +385,74 @@ if not LEGACY_TYPING:
         )
 
     def test_pandas_extension_dtype_redundant_field():
-        """Test incorrect number of parameters for parametrized pandas extension dtypes."""
+        """
+        Test incorrect number of parameters for parametrized pandas extension
+        dtypes.
+        """
         err_msg = r"Cannot specify redundant 'dtype_kwargs' for"
         with pytest.raises(TypeError, match=err_msg):
             SchemaRedundantField.to_schema()
 
 
-if not LEGACY_PANDAS:
+class SchemaInt8Dtype(pa.SchemaModel):
+    col: Series[pd.Int8Dtype]
 
-    class SchemaInt8Dtype(pa.SchemaModel):
-        col: Series[pd.Int8Dtype]
 
-    class SchemaInt16Dtype(pa.SchemaModel):
-        col: Series[pd.Int16Dtype]
+class SchemaInt16Dtype(pa.SchemaModel):
+    col: Series[pd.Int16Dtype]
 
-    class SchemaInt32Dtype(pa.SchemaModel):
-        col: Series[pd.Int32Dtype]
 
-    class SchemaInt64Dtype(pa.SchemaModel):
-        col: Series[pd.Int64Dtype]
+class SchemaInt32Dtype(pa.SchemaModel):
+    col: Series[pd.Int32Dtype]
 
-    class SchemaUInt8Dtype(pa.SchemaModel):
-        col: Series[pd.UInt8Dtype]
 
-    class SchemaUInt16Dtype(pa.SchemaModel):
-        col: Series[pd.UInt16Dtype]
+class SchemaInt64Dtype(pa.SchemaModel):
+    col: Series[pd.Int64Dtype]
 
-    class SchemaUInt32Dtype(pa.SchemaModel):
-        col: Series[pd.UInt32Dtype]
 
-    class SchemaUInt64Dtype(pa.SchemaModel):
-        col: Series[pd.UInt64Dtype]
+class SchemaUInt8Dtype(pa.SchemaModel):
+    col: Series[pd.UInt8Dtype]
 
-    class SchemaStringDtype(pa.SchemaModel):
-        col: Series[pd.StringDtype]
 
-    class SchemaBooleanDtype(pa.SchemaModel):
-        col: Series[pd.BooleanDtype]
+class SchemaUInt16Dtype(pa.SchemaModel):
+    col: Series[pd.UInt16Dtype]
 
-    @pytest.mark.skipif(LEGACY_PANDAS, reason="pandas >= 1.0.0 required")
-    @pytest.mark.parametrize(
-        "model, dtype, has_mandatory_args",
-        [
-            (SchemaInt8Dtype, pd.Int8Dtype, False),
-            (SchemaInt16Dtype, pd.Int16Dtype, False),
-            (SchemaInt32Dtype, pd.Int32Dtype, False),
-            (SchemaInt64Dtype, pd.Int64Dtype, False),
-            (SchemaUInt8Dtype, pd.UInt8Dtype, False),
-            (SchemaUInt16Dtype, pd.UInt16Dtype, False),
-            (SchemaUInt32Dtype, pd.UInt32Dtype, False),
-            (SchemaUInt64Dtype, pd.UInt64Dtype, False),
-            (SchemaStringDtype, pd.StringDtype, False),
-            (SchemaBooleanDtype, pd.BooleanDtype, False),
-        ],
-    )
-    def test_new_pandas_extension_dtype_class(
-        model,
-        dtype: pd.core.dtypes.base.ExtensionDtype,
-        has_mandatory_args: bool,
-    ):
-        """Test type annotations with the new nullable pandas dtypes."""
-        _test_default_annotated_dtype(model, dtype, has_mandatory_args)
+
+class SchemaUInt32Dtype(pa.SchemaModel):
+    col: Series[pd.UInt32Dtype]
+
+
+class SchemaUInt64Dtype(pa.SchemaModel):
+    col: Series[pd.UInt64Dtype]
+
+
+class SchemaStringDtype(pa.SchemaModel):
+    col: Series[pd.StringDtype]
+
+
+class SchemaBooleanDtype(pa.SchemaModel):
+    col: Series[pd.BooleanDtype]
+
+
+@pytest.mark.parametrize(
+    "model, dtype, has_mandatory_args",
+    [
+        (SchemaInt8Dtype, pd.Int8Dtype, False),
+        (SchemaInt16Dtype, pd.Int16Dtype, False),
+        (SchemaInt32Dtype, pd.Int32Dtype, False),
+        (SchemaInt64Dtype, pd.Int64Dtype, False),
+        (SchemaUInt8Dtype, pd.UInt8Dtype, False),
+        (SchemaUInt16Dtype, pd.UInt16Dtype, False),
+        (SchemaUInt32Dtype, pd.UInt32Dtype, False),
+        (SchemaUInt64Dtype, pd.UInt64Dtype, False),
+        (SchemaStringDtype, pd.StringDtype, False),
+        (SchemaBooleanDtype, pd.BooleanDtype, False),
+    ],
+)
+def test_new_pandas_extension_dtype_class(
+    model,
+    dtype: pd.core.dtypes.base.ExtensionDtype,
+    has_mandatory_args: bool,
+):
+    """Test type annotations with the new nullable pandas dtypes."""
+    _test_default_annotated_dtype(model, dtype, has_mandatory_args)

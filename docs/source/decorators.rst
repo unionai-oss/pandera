@@ -32,9 +32,9 @@ function.
     })
 
     in_schema = DataFrameSchema({
-       "column1": Column(pa.Int,
+       "column1": Column(int,
                          Check(lambda x: 0 <= x <= 10, element_wise=True)),
-       "column2": Column(pa.Float, Check(lambda x: x < -1.2)),
+       "column2": Column(float, Check(lambda x: x < -1.2)),
     })
 
     # by default, check_input assumes that the first argument is
@@ -94,7 +94,7 @@ DataFrame/Series of the decorated function.
 
     # assert that all elements in "column1" are zero
     out_schema = DataFrameSchema({
-        "column1": Column(pa.Int, Check(lambda x: x == 0))
+        "column1": Column(int, Check(lambda x: x == 0))
     })
 
 
@@ -174,3 +174,51 @@ decorator where you can specify input and output schemas more concisely:
     2        0     -5.8     -5.8
     3       20    -20.2     -0.2
     4       18    -40.8    -22.8
+
+
+Decorate Functions and Coroutines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*All* pandera decorators work on synchronous as well as asynchronous code, on both bound and unbound
+functions/coroutines. For example, one can use the same decorators on:
+
+* sync/async functions
+* sync/async methods
+* sync/async class methods
+* sync/async static methods
+
+All decorators work on sync/async regular/class/static methods of metaclasses as well.
+
+.. testcode:: decorators_domain
+
+    import pandera as pa
+    from pandera.typing import DataFrame, Series
+
+    class Schema(pa.SchemaModel):
+        col1: Series[int]
+
+        class Config:
+            strict = True
+
+    @pa.check_types
+    async def coroutine(df: DataFrame[Schema]) -> DataFrame[Schema]:
+        return df
+
+    @pa.check_types
+    async def function(df: DataFrame[Schema]) -> DataFrame[Schema]:
+        return df
+
+    class SomeClass:
+        @pa.check_output(Schema.to_schema())
+        async def regular_coroutine(self, df) -> DataFrame[Schema]:
+            return df
+
+        @classmethod
+        @pa.check_input(Schema.to_schema(), "df")
+        async def class_coroutine(cls, df):
+            return Schema.validate(df)
+
+        @staticmethod
+        @pa.check_io(df=Schema.to_schema(), out=Schema.to_schema())
+        def static_method(df):
+            return df

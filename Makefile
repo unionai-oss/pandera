@@ -21,7 +21,7 @@ requirements:
 	pip install -r requirements-dev.txt
 
 docs:
-	rm -rf docs/source/generated && \
+	rm -rf docs/**/generated docs/**/methods docs/_build && \
 		python -m sphinx -E "docs/source" "docs/_build" -W && \
 		make -C docs doctest
 
@@ -31,5 +31,7 @@ code-cov:
 nox:
 	nox -r --envdir .nox-virtualenv
 
+NOX_FLAGS ?= "-r"
+
 nox-conda:
-	nox -r -db conda --envdir .nox-conda
+	nox -db conda --envdir .nox-conda ${NOX_FLAGS}

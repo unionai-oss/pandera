@@ -1,38 +1,57 @@
 """Module for reading and writing schema objects."""
 
 import warnings
+from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
+from typing import Dict, Optional, Union
 
 import pandas as pd
 
-from .dtypes import PandasDtype
+import pandera.errors
+
+from . import dtypes
+from .checks import Check
+from .engines import pandas_engine
+from .schema_components import Column
 from .schema_statistics import get_dataframe_schema_statistics
+from .schemas import DataFrameSchema
 
 try:
     import black
     import yaml
+    from frictionless import Schema as FrictionlessSchema
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        'IO and formatting requires "pyyaml" and "black" to be installed. \n'
-        "You can install pandera together with the IO dependencies with: \n"
+        "IO and formatting requires 'pyyaml', 'black' and 'frictionless'"
+        "to be installed.\n"
+        "You can install pandera together with the IO dependencies with:\n"
         "pip install pandera[io]\n"
     ) from exc
 
 
-SCHEMA_TYPES = {"dataframe"}
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-NOT_JSON_SERIALIZABLE = {PandasDtype.DateTime, PandasDtype.Timedelta}
 
 
-def _serialize_check_stats(check_stats, pandas_dtype=None):
+def _get_qualified_name(cls: type) -> str:
+    return f"{cls.__module__}.{cls.__qualname__}"
+
+
+def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
-        if pandas_dtype == PandasDtype.DateTime:
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(
+            dtype
+        ) and hasattr(stat, "strftime"):
+            # try serializing stat as a string if it's datetime-like,
+            # otherwise return original value
             return stat.strftime(DATETIME_FORMAT)
-        elif pandas_dtype == PandasDtype.Timedelta:
-            # serialize to int in nanoseconds
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(
+            dtype
+        ) and hasattr(stat, "delta"):
+            # try serializing stat into an int in nanoseconds if it's
+            # timedelta-like, otherwise return original value
             return stat.delta
 
         return stat
@@ -50,13 +69,14 @@ def _serialize_check_stats(check_stats, pandas_dtype=None):
 
 def _serialize_dataframe_stats(dataframe_checks):
     """
-    Serialize global dataframe check statistics into json/yaml-compatible format.
+    Serialize global dataframe check statistics into json/yaml-compatible
+    format.
     """
     serialized_checks = {}
 
     for check_name, check_stats in dataframe_checks.items():
-        # The case that `check_name` is not registered is handled in `parse_checks`,
-        # so we know that `check_name` exists.
+        # The case that `check_name` is not registered is handled in
+        # `parse_checks` so we know that `check_name` exists.
 
         # infer dtype of statistics and serialize them
         serialized_checks[check_name] = _serialize_check_stats(check_stats)
@@ -73,26 +93,25 @@ def _serialize_component_stats(component_stats):
         serialized_checks = {}
         for check_name, check_stats in component_stats["checks"].items():
             serialized_checks[check_name] = _serialize_check_stats(
-                check_stats, component_stats["pandas_dtype"]
+                check_stats, component_stats["dtype"]
             )
 
-    pandas_dtype = component_stats.get("pandas_dtype")
-    if pandas_dtype:
-        pandas_dtype = pandas_dtype.value
+    dtype = component_stats.get("dtype")
+    if dtype:
+        dtype = str(dtype)
 
     return {
-        "pandas_dtype": pandas_dtype,
+        "dtype": dtype,
         "nullable": component_stats["nullable"],
         "checks": serialized_checks,
         **{
             key: component_stats.get(key)
             for key in [
                 "name",
-                "allow_duplicates",
+                "unique",
                 "coerce",
                 "required",
                 "regex",
-                "unique",
             ]
             if key in component_stats
         },
@@ -133,13 +152,16 @@ def _serialize_schema(dataframe_schema):
     }
 
 
-def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
+def _deserialize_check_stats(check, serialized_check_stats, dtype=None):
     def handle_stat_dtype(stat):
-        if pandas_dtype == PandasDtype.DateTime:
-            return pd.to_datetime(stat, format=DATETIME_FORMAT)
-        elif pandas_dtype == PandasDtype.Timedelta:
-            # serialize to int in nanoseconds
-            return pd.to_timedelta(stat, unit="ns")
+        try:
+            if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype):
+                return pd.to_datetime(stat, format=DATETIME_FORMAT)
+            elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
+                # serialize to int in nanoseconds
+                return pd.to_timedelta(stat, unit="ns")
+        except (TypeError, ValueError):
+            return stat
         return stat
 
     if isinstance(serialized_check_stats, dict):
@@ -154,35 +176,33 @@ def _deserialize_check_stats(check, serialized_check_stats, pandas_dtype=None):
 
 
 def _deserialize_component_stats(serialized_component_stats):
-    from pandera import Check  # pylint: disable=import-outside-toplevel
+    dtype = serialized_component_stats.get("dtype")
+    if dtype:
+        dtype = pandas_engine.Engine.dtype(dtype)
 
-    pandas_dtype = serialized_component_stats.get("pandas_dtype")
-    if pandas_dtype:
-        pandas_dtype = PandasDtype.from_str_alias(pandas_dtype)
-
-    checks = None
-    if serialized_component_stats.get("checks") is not None:
+    checks = serialized_component_stats.get("checks")
+    if checks is not None:
         checks = [
             _deserialize_check_stats(
-                getattr(Check, check_name), check_stats, pandas_dtype
+                getattr(Check, check_name), check_stats, dtype
             )
-            for check_name, check_stats in serialized_component_stats[
-                "checks"
-            ].items()
+            for check_name, check_stats in checks.items()
         ]
     return {
-        "pandas_dtype": pandas_dtype,
+        "dtype": dtype,
         "checks": checks,
         **{
             key: serialized_component_stats.get(key)
             for key in [
                 "name",
                 "nullable",
+                "unique",
+                # deserialize allow_duplicates property for backwards
+                # compatibility. Remove this for 0.8.0 release
                 "allow_duplicates",
                 "coerce",
                 "required",
                 "regex",
-                "unique",
             ]
             if key in serialized_component_stats
         },
@@ -191,26 +211,37 @@ def _deserialize_component_stats(serialized_component_stats):
 
 def _deserialize_schema(serialized_schema):
     # pylint: disable=import-outside-toplevel
-    from pandera import Check, Column, DataFrameSchema, Index, MultiIndex
+    from pandera import Index, MultiIndex
 
-    columns, index, checks = None, None, None
-    if serialized_schema["columns"] is not None:
+    # GH#475
+    serialized_schema = serialized_schema if serialized_schema else {}
+
+    if not isinstance(serialized_schema, Mapping):
+        raise pandera.errors.SchemaDefinitionError(
+            "Schema representation must be a mapping."
+        )
+
+    columns = serialized_schema.get("columns")
+    index = serialized_schema.get("index")
+    checks = serialized_schema.get("checks")
+
+    if columns is not None:
         columns = {
             col_name: Column(**_deserialize_component_stats(column_stats))
-            for col_name, column_stats in serialized_schema["columns"].items()
+            for col_name, column_stats in columns.items()
         }
 
-    if serialized_schema["index"] is not None:
+    if index is not None:
         index = [
             _deserialize_component_stats(index_component)
-            for index_component in serialized_schema["index"]
+            for index_component in index
         ]
 
-    if serialized_schema["checks"] is not None:
+    if checks is not None:
         # handles unregistered checks by raising AttributeErrors from getattr
         checks = [
             _deserialize_check_stats(getattr(Check, check_name), check_stats)
-            for check_name, check_stats in serialized_schema["checks"].items()
+            for check_name, check_stats in checks.items()
         ]
 
     if index is None:
@@ -226,9 +257,9 @@ def _deserialize_schema(serialized_schema):
         columns=columns,
         checks=checks,
         index=index,
-        coerce=serialized_schema["coerce"],
-        strict=serialized_schema["strict"],
-        unique=serialized_schema["unique"],
+        coerce=serialized_schema.get("coerce", False),
+        strict=serialized_schema.get("strict", False),
+        unique=serialized_schema.get("unique", None),
     )
 
 
@@ -267,7 +298,7 @@ def to_yaml(dataframe_schema, stream=None):
 
 SCRIPT_TEMPLATE = """
 from pandera import (
-    DataFrameSchema, Column, Check, Index, MultiIndex, PandasDtype
+    DataFrameSchema, Column, Check, Index, MultiIndex
 )
 
 schema = DataFrameSchema(
@@ -281,10 +312,10 @@ schema = DataFrameSchema(
 
 COLUMN_TEMPLATE = """
 Column(
-    pandas_dtype={pandas_dtype},
+    dtype={dtype},
     checks={checks},
     nullable={nullable},
-    allow_duplicates={allow_duplicates},
+    unique={unique},
     coerce={coerce},
     required={required},
     regex={regex},
@@ -292,7 +323,7 @@ Column(
 """
 
 INDEX_TEMPLATE = (
-    "Index(pandas_dtype={pandas_dtype},checks={checks},"
+    "Index(dtype={dtype},checks={checks},"
     "nullable={nullable},coerce={coerce},name={name})"
 )
 
@@ -309,12 +340,12 @@ def _format_checks(checks_dict):
     for check_name, check_kwargs in checks_dict.items():
         if check_kwargs is None:
             warnings.warn(
-                f"Check {check_name} cannot be serialized. This check will be ignored"
+                f"Check {check_name} cannot be serialized. "
+                "This check will be ignored"
             )
         else:
             args = ", ".join(
-                "{}={}".format(k, v.__repr__())
-                for k, v in check_kwargs.items()
+                f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
             )
             checks.append(f"Check.{check_name}({args})")
     return f"[{', '.join(checks)}]"
@@ -323,8 +354,9 @@ def _format_checks(checks_dict):
 def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
+        dtype = properties.get("dtype")
         index_code = INDEX_TEMPLATE.format(
-            pandas_dtype=f"PandasDtype.{properties['pandas_dtype'].name}",
+            dtype=f"{_get_qualified_name(dtype.__class__)}",
             checks=(
                 "None"
                 if properties["checks"] is None
@@ -363,20 +395,17 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     columns = {}
     for colname, properties in statistics["columns"].items():
-        pandas_dtype = properties.get("pandas_dtype")
+        dtype = properties.get("dtype")
         column_code = COLUMN_TEMPLATE.format(
-            pandas_dtype=(
-                None
-                if pandas_dtype is None
-                else f"PandasDtype.{properties['pandas_dtype'].name}"
+            dtype=(
+                None if dtype is None else _get_qualified_name(dtype.__class__)
             ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
-            allow_duplicates=properties["allow_duplicates"],
+            unique=properties["unique"],
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
-            unique=properties["unique"],
         )
         columns[colname] = column_code.strip()
 
@@ -386,7 +415,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         else _format_index(statistics["index"])
     )
 
-    column_str = ", ".join("'{}': {}".format(k, v) for k, v in columns.items())
+    column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
@@ -410,3 +439,236 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     with Path(path_or_buf).open("w") as f:
         f.write(formatted_script)
+
+
+class FrictionlessFieldParser:
+    """Parses frictionless data schema field specifications so we can convert
+    them to an equivalent Pandera :class:`~pandera.schema_components.Column`
+    schema.
+
+    For this implementation, we are using field names, constraints and types
+    but leaving other frictionless parameters out (e.g. foreign keys, type
+    formats, titles, descriptions).
+
+    :param field: a field object from a frictionless schema.
+    :param primary_keys: the primary keys from a frictionless schema. These are used
+        to ensure primary key fields are treated properly - no duplicates,
+        no missing values etc.
+    """
+
+    def __init__(self, field, primary_keys) -> None:
+        self.constraints = field.constraints or {}
+        self.name = field.name
+        self.is_a_primary_key = self.name in primary_keys
+        self.type = field.get("type", "string")
+
+    @property
+    def dtype(self) -> str:
+        """Determine what type of field this is, so we can feed that into
+        :class:`~pandera.dtypes.DataType`. If no type is specified in the
+        frictionless schema, we default to string values.
+
+        :returns: the pandas-compatible representation of this field type as a
+            string.
+        """
+        types = {
+            "string": "string",
+            "number": "float",
+            "integer": "int",
+            "boolean": "bool",
+            "object": "object",
+            "array": "object",
+            "date": "string",
+            "time": "string",
+            "datetime": "datetime64[ns]",
+            "year": "int",
+            "yearmonth": "string",
+            "duration": "timedelta64[ns]",
+            "geopoint": "object",
+            "geojson": "object",
+            "any": "string",
+        }
+        return (
+            "category"
+            if self.constraints.get("enum", None)
+            else types[self.type]
+        )
+
+    @property
+    def checks(self) -> Optional[Dict]:
+        """Convert a set of frictionless schema field constraints into checks.
+
+        This parses the standard set of frictionless constraints which can be
+        found
+        `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
+        and maps them into the equivalent pandera checks.
+
+        :returns: a dictionary of pandera :class:`~pandera.checks.Check`
+            objects which capture the standard constraint logic of a
+            frictionless schema field.
+        """
+        if not self.constraints:
+            return None
+        constraints = self.constraints.copy()
+        checks = {}
+
+        def _combine_constraints(check_name, min_constraint, max_constraint):
+            """Catches bounded constraints where we need to combine a min and max
+            pair of constraints into a single check."""
+            if min_constraint in constraints and max_constraint in constraints:
+                checks[check_name] = {
+                    "min_value": constraints.pop(min_constraint),
+                    "max_value": constraints.pop(max_constraint),
+                }
+
+        _combine_constraints("in_range", "minimum", "maximum")
+        _combine_constraints("str_length", "minLength", "maxLength")
+
+        for constraint_type, constraint_value in constraints.items():
+            if constraint_type == "maximum":
+                checks["less_than_or_equal_to"] = constraint_value
+            elif constraint_type == "minimum":
+                checks["greater_than_or_equal_to"] = constraint_value
+            elif constraint_type == "maxLength":
+                checks["str_length"] = {
+                    "min_value": None,
+                    "max_value": constraint_value,
+                }
+            elif constraint_type == "minLength":
+                checks["str_length"] = {
+                    "min_value": constraint_value,
+                    "max_value": None,
+                }
+            elif constraint_type == "pattern":
+                checks["str_matches"] = rf"^{constraint_value}$"
+            elif constraint_type == "enum":
+                checks["isin"] = constraint_value
+        return checks or None
+
+    @property
+    def nullable(self) -> bool:
+        """Determine whether this field can contain missing values.
+
+        If a field is a primary key, this will return ``False``."""
+        if self.is_a_primary_key:
+            return False
+        return not self.constraints.get("required", False)
+
+    @property
+    def unique(self) -> bool:
+        """Determine whether this field can contain duplicate values.
+
+        If a field is a primary key, this will return ``False``."""
+        if self.is_a_primary_key:
+            return True
+        return self.constraints.get("unique", False)
+
+    @property
+    def coerce(self) -> bool:
+        """Determine whether values within this field should be coerced.
+
+        This currently returns ``True`` for all fields within a frictionless
+        schema.
+        """
+        return True
+
+    @property
+    def required(self) -> bool:
+        """Determine whether this field must exist within the data.
+
+        This currently returns ``True`` for all fields within a frictionless
+        schema.
+        """
+        return True
+
+    @property
+    def regex(self) -> bool:
+        """Determine whether this field name should be used for regex matches.
+
+        This currently returns ``False`` for all fields within a frictionless
+        schema.
+        """
+        return False
+
+    def to_pandera_column(self) -> Dict:
+        """Export this field to a column spec dictionary."""
+        return {
+            "checks": self.checks,
+            "coerce": self.coerce,
+            "nullable": self.nullable,
+            "unique": self.unique,
+            "dtype": self.dtype,
+            "required": self.required,
+            "name": self.name,
+            "regex": self.regex,
+        }
+
+
+def from_frictionless_schema(
+    schema: Union[str, Path, Dict, FrictionlessSchema]
+) -> DataFrameSchema:
+    # pylint: disable=line-too-long
+    """Create a :class:`~pandera.schemas.DataFrameSchema` from either a
+    frictionless json/yaml schema file saved on disk, or from a frictionless
+    schema already loaded into memory.
+
+    Each field from the frictionless schema will be converted to a pandera
+    column specification using :class:`~pandera.io.FrictionlessFieldParser`
+    to map field characteristics to pandera column specifications.
+
+    :param schema: the frictionless schema object (or a
+        string/Path to the location on disk of a schema specification) to
+        parse.
+    :returns: dataframe schema with frictionless field specs converted to
+        pandera column checks and constraints for use as normal.
+
+    :example:
+
+    Here, we're defining a very basic frictionless schema in memory before
+    parsing it and then querying the resulting
+    :class:`~pandera.schemas.DataFrameSchema` object as per any other Pandera
+    schema:
+
+    >>> from pandera.io import from_frictionless_schema
+    >>>
+    >>> FRICTIONLESS_SCHEMA = {
+    ...     "fields": [
+    ...         {
+    ...             "name": "column_1",
+    ...             "type": "integer",
+    ...             "constraints": {"minimum": 10, "maximum": 99}
+    ...         },
+    ...         {
+    ...             "name": "column_2",
+    ...             "type": "string",
+    ...             "constraints": {"maxLength": 10, "pattern": "\\S+"}
+    ...         },
+    ...     ],
+    ...     "primaryKey": "column_1"
+    ... }
+    >>> schema = from_frictionless_schema(FRICTIONLESS_SCHEMA)
+    >>> schema.columns["column_1"].checks
+    [<Check in_range: in_range(10, 99)>]
+    >>> schema.columns["column_1"].required
+    True
+    >>> schema.columns["column_1"].unique
+    True
+    >>> schema.columns["column_2"].checks
+    [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches(re.compile('^\\\\S+$'))>]
+    """
+    if not isinstance(schema, FrictionlessSchema):
+        schema = FrictionlessSchema(schema)
+
+    assembled_schema = {
+        "columns": {
+            field.name: FrictionlessFieldParser(
+                field, schema.primary_key
+            ).to_pandera_column()
+            for field in schema.fields
+        },
+        "index": None,
+        "checks": None,
+        "coerce": True,
+        "strict": True,
+    }
+    return _deserialize_schema(assembled_schema)

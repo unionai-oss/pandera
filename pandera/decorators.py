@@ -1,7 +1,8 @@
 """Decorators for integrating pandera into existing data pipelines."""
-
 import functools
 import inspect
+import sys
+import typing
 from collections import OrderedDict
 from typing import (
     Any,
@@ -11,32 +12,63 @@ from typing import (
     NoReturn,
     Optional,
     Tuple,
+    TypeVar,
     Union,
     cast,
+    overload,
 )
 
 import pandas as pd
 import wrapt
 
 from . import errors, schemas
+from .inspection_utils import (
+    is_classmethod_from_meta,
+    is_decorated_classmethod,
+)
 from .model import SchemaModel
 from .typing import AnnotationInfo
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
+F = TypeVar("F", bound=Callable)
 
 
 def _get_fn_argnames(fn: Callable) -> List[str]:
     """Get argument names of a function.
 
     :param fn: get argument names for this function.
-    :returns: list of argument names.
+    :returns: list of argument names to be matched with the positional
+    args passed in the decorator.
+
+    .. note::
+       Excludes first positional "self" or "cls" arguments if needed:
+       - exclude self:
+           - if fn is a method (self being an implicit argument)
+       - exclude cls:
+           - if fn is a decorated classmethod in Python 3.9+
+           - if fn is declared as a regular method on a metaclass
+
+    For functions decorated with ``@classmethod``, cls is excluded only in Python 3.9+
+    because that is when Python's handling of classmethods changed and wrapt mirrors it.
+    See: https://github.com/GrahamDumpleton/wrapt/issues/182
     """
     arg_spec_args = inspect.getfullargspec(fn).args
-
-    if inspect.ismethod(fn) and arg_spec_args[0] == "self":
-        # don't include "self" argument
+    first_arg_is_self = arg_spec_args[0] == "self"
+    is_py_newer_than_39 = sys.version_info[:2] >= (3, 9)
+    # Exclusion criteria
+    is_regular_method = inspect.ismethod(fn) and first_arg_is_self
+    is_decorated_cls_method = (
+        is_decorated_classmethod(fn) and is_py_newer_than_39
+    )
+    is_cls_method_from_meta_method = is_classmethod_from_meta(fn)
+    if (
+        is_regular_method
+        or is_decorated_cls_method
+        or is_cls_method_from_meta_method
+    ):
+        # Don't include "self" / "cls" argument
         arg_spec_args = arg_spec_args[1:]
     return arg_spec_args
 
@@ -57,11 +89,7 @@ def _handle_schema_error(
     :raises SchemaError: when ``DataFrame`` violates built-in or custom
         checks.
     """
-    msg = "error in %s decorator of function '%s': %s" % (
-        decorator_name,
-        fn.__name__,
-        schema_error,
-    )
+    msg = f"error in {decorator_name} decorator of function '{fn.__name__}': {schema_error}"
     raise errors.SchemaError(
         schema,
         arg_df,
@@ -81,7 +109,7 @@ def check_input(
     random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
-) -> Callable:
+) -> Callable[[F], F]:
     # pylint: disable=duplicate-code
     """Validate function argument when function is called.
 
@@ -118,7 +146,7 @@ def check_input(
     >>> import pandera as pa
     >>>
     >>>
-    >>> schema = pa.DataFrameSchema({"column": pa.Column(pa.Int)})
+    >>> schema = pa.DataFrameSchema({"column": pa.Column(int)})
     >>>
     >>> @pa.check_input(schema)
     ... def transform_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -145,7 +173,7 @@ def check_input(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         # pylint: disable=unused-argument
@@ -166,17 +194,10 @@ def check_input(
                 args[obj_getter] = schema.validate(args[obj_getter])
             except IndexError as exc:
                 raise IndexError(
-                    "error in check_input decorator of function '%s': the "
-                    "index '%s' was supplied to the check but this "
-                    "function accepts '%s' arguments, so the maximum "
-                    "index is '%s'. The full error is: '%s'"
-                    % (
-                        fn.__name__,
-                        obj_getter,
-                        len(_get_fn_argnames(fn)),
-                        max(0, len(_get_fn_argnames(fn)) - 1),
-                        exc,
-                    )
+                    f"error in check_input decorator of function '{fn.__name__}': the "
+                    f"index '{obj_getter}' was supplied to the check but this "
+                    f"function accepts '{len(_get_fn_argnames(fn))}' arguments, so the maximum "
+                    f"index is 'max(0, len(_get_fn_argnames(fn)) - 1)'. The full error is: '{exc}'"
                 ) from exc
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:
@@ -226,7 +247,7 @@ def check_output(
     random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
-) -> Callable:
+) -> Callable[[F], F]:
     # pylint: disable=duplicate-code
     """Validate function output.
 
@@ -264,7 +285,7 @@ def check_output(
     >>>
     >>>
     >>> schema = pa.DataFrameSchema(
-    ...     columns={"doubled_column": pa.Column(pa.Int)},
+    ...     columns={"doubled_column": pa.Column(int)},
     ...     checks=pa.Check(
     ...         lambda df: df["doubled_column"] == df["column"] * 2
     ...     )
@@ -288,25 +309,7 @@ def check_output(
     See :ref:`here<decorators>` for more usage details.
     """
 
-    @wrapt.decorator
-    def _wrapper(
-        fn: Callable,
-        instance: Union[None, Any],
-        args: Union[List[Any], Tuple[Any]],
-        kwargs: Dict[str, Any],
-    ):
-        # pylint: disable=unused-argument
-        """Check pandas DataFrame or Series before calling the function.
-
-        :param fn: check the DataFrame or Series output of this function
-        :param instance: the object to which the wrapped function was bound
-            when it was called. Only applies to methods.
-        :param args: the list of positional arguments supplied when the
-            decorated function was called.
-        :param kwargs: the dictionary of keyword arguments supplied when the
-            decorated function was called.
-        """
-        out = fn(*args, **kwargs)
+    def validate(out: Any, fn: Callable) -> None:
         if obj_getter is None:
             obj = out
         elif isinstance(obj_getter, (int, str)):
@@ -324,7 +327,36 @@ def check_output(
         except errors.SchemaError as e:
             _handle_schema_error("check_output", fn, schema, obj, e)
 
-        return out
+    @wrapt.decorator
+    def _wrapper(
+        fn: Callable,
+        instance: Union[None, Any],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+    ):
+        # pylint: disable=unused-argument
+        """Check pandas DataFrame or Series before calling the function.
+
+        :param fn: check the DataFrame or Series output of this function
+        :param instance: the object to which the wrapped function was bound
+            when it was called. Only applies to methods.
+        :param args: the list of positional arguments supplied when the
+            decorated function was called.
+        :param kwargs: the dictionary of keyword arguments supplied when the
+            decorated function was called.
+        """
+        if inspect.iscoroutinefunction(fn):
+
+            async def aio_wrapper():
+                res = await fn(*args, **kwargs)
+                validate(res, fn)
+                return res
+
+            return aio_wrapper()
+        else:
+            out = fn(*args, **kwargs)
+            validate(out, fn)
+            return out
 
     return _wrapper
 
@@ -341,8 +373,8 @@ def check_io(
         Tuple[OutputGetter, Schemas],
         List[Tuple[OutputGetter, Schemas]],
     ] = None,
-    **inputs: Dict[InputGetter, Schemas],
-) -> Callable:
+    **inputs: Schemas,
+) -> Callable[[F], F]:
     """Check schema for multiple inputs and outputs.
 
     See :ref:`here<decorators>` for more usage details.
@@ -376,7 +408,7 @@ def check_io(
     def _wrapper(
         fn: Callable,
         instance: Union[None, Any],  # pylint: disable=unused-argument
-        args: Union[List[Any], Tuple[Any]],
+        args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ):
         """Check pandas DataFrame or Series before calling the function.
@@ -421,6 +453,34 @@ def check_io(
     return _wrapper
 
 
+@overload
+def check_types(
+    wrapped: F,
+    *,
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
+    lazy: bool = False,
+    inplace: bool = False,
+) -> F:
+    ...  # pragma: no cover
+
+
+@overload
+def check_types(
+    wrapped: None = None,
+    *,
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
+    lazy: bool = False,
+    inplace: bool = False,
+) -> Callable[[F], F]:
+    ...  # pragma: no cover
+
+
 def check_types(
     wrapped=None,
     *,
@@ -448,6 +508,7 @@ def check_types(
     :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
     """
+    # pylint: disable=too-many-locals
     if wrapped is None:
         return functools.partial(
             check_types,
@@ -459,53 +520,90 @@ def check_types(
             inplace=inplace,
         )
 
-    @wrapt.decorator
-    def _wrapper(
-        wrapped: Callable,
-        instance: Optional[Any],  # pylint:disable=unused-argument
-        args: Union[List[Any], Tuple[Any]],
-        kwargs: Dict[str, Any],
-    ):
-        sig = inspect.signature(wrapped)
+    # Front-load annotation parsing
+    annotated_schemas: Dict[str, Tuple[schemas.DataFrameSchema, bool]] = {}
+    for arg_name_, annotation in typing.get_type_hints(wrapped).items():
+        annotation_info = AnnotationInfo(annotation)
+        if not annotation_info.is_generic_df:
+            continue
 
-        arguments = sig.bind(*args, **kwargs).arguments
-        for arg_name, arg_value in arguments.items():
-            annotation = sig.parameters[arg_name].annotation
-            annotation_info = AnnotationInfo(annotation)
+        schema = cast(SchemaModel, annotation_info.arg).to_schema()
+        annotated_schemas[arg_name_] = (schema, annotation_info.optional)
 
-            if annotation_info.optional and arg_value is None:
-                continue
-
-            if not annotation_info.is_generic_df:
-                continue
-
-            model = cast(SchemaModel, annotation_info.arg)
-            schema = model.to_schema()
+    def _check_arg(arg_name: str, arg_value: Any) -> Any:
+        """
+        Validate function's argument if annoted with a schema, else
+        pass-through.
+        """
+        schema, optional = annotated_schemas.get(arg_name, (None, None))
+        if schema and not (optional and arg_value is None):
             try:
-                schema.validate(
+                return schema.validate(
                     arg_value, head, tail, sample, random_state, lazy, inplace
                 )
             except errors.SchemaError as e:
                 _handle_schema_error(
                     "check_types", wrapped, schema, arg_value, e
                 )
+        return arg_value
 
-        out = wrapped(*args, **kwargs)
+    sig = inspect.signature(wrapped)
 
-        annotation_info = AnnotationInfo(sig.return_annotation)
-        if annotation_info.optional and out is None:
-            return out
+    def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            arg_name: _check_arg(arg_name, arg_value)
+            for arg_name, arg_value in arguments.items()
+        }
 
-        if annotation_info.is_generic_df:
-            model = cast(SchemaModel, annotation_info.arg)
-            schema = model.to_schema()
-            try:
-                schema.validate(
-                    out, head, tail, sample, random_state, lazy, inplace
-                )
-            except errors.SchemaError as e:
-                _handle_schema_error("check_types", wrapped, schema, out, e)
+    def validate_inputs(
+        instance: Optional[Any],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
-        return out
+        if instance is not None:
+            # If the wrapped function is a method -> add "self" as the first positional arg
+            args = (instance, *args)
+
+        validated_pos = validate_args(sig.bind_partial(*args).arguments)
+        validated_kwd = validate_args(sig.bind_partial(**kwargs).arguments)
+
+        if instance is not None:
+            # If the decorated func is a method, "wrapped" is a bound method
+            # -> remove "self" before passing positional args through
+            first_pos_arg = list(sig.parameters)[0]
+            del validated_pos[first_pos_arg]
+
+        return validated_pos, validated_kwd
+
+    if inspect.iscoroutinefunction(wrapped):
+
+        @wrapt.decorator
+        async def _wrapper(
+            wrapped_: Callable,
+            instance: Optional[Any],
+            args: Tuple[Any, ...],
+            kwargs: Dict[str, Any],
+        ):
+            validated_pos, validated_kwd = validate_inputs(
+                instance, args, kwargs
+            )
+            out = await wrapped_(*validated_pos.values(), **validated_kwd)
+            return _check_arg("return", out)
+
+    else:
+
+        @wrapt.decorator
+        def _wrapper(
+            wrapped_: Callable,
+            instance: Optional[Any],
+            args: Tuple[Any, ...],
+            kwargs: Dict[str, Any],
+        ):
+            validated_pos, validated_kwd = validate_inputs(
+                instance, args, kwargs
+            )
+            out = wrapped_(*validated_pos.values(), **validated_kwd)
+            return _check_arg("return", out)
 
     return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter

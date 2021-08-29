@@ -2,14 +2,14 @@
 # pylint: disable=unused-variable
 """Unit tests for pandera API extensions."""
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import pandas as pd
 import pytest
 
 import pandera as pa
 import pandera.strategies as st
-from pandera import PandasDtype, extensions
+from pandera import DataType, extensions
 from pandera.checks import Check
 
 
@@ -25,7 +25,9 @@ def test_custom_checks_in_dir(extra_registered_checks):
         pd.DataFrame([[10, 10, 10], [10, 10, 10]]),
     ],
 )
-def test_register_vectorized_custom_check(custom_check_teardown, data):
+def test_register_vectorized_custom_check(
+    custom_check_teardown: None, data: Union[pd.Series, pd.DataFrame]
+) -> None:
     """Test registering a vectorized custom check."""
 
     @extensions.register_check_method(
@@ -66,7 +68,9 @@ def test_register_vectorized_custom_check(custom_check_teardown, data):
         pd.DataFrame([[10, 10, 10], [10, 10, 10]]),
     ],
 )
-def test_register_element_wise_custom_check(custom_check_teardown, data):
+def test_register_element_wise_custom_check(
+    custom_check_teardown: None, data: Union[pd.Series, pd.DataFrame]
+) -> None:
     """Test registering an element-wise custom check."""
 
     @extensions.register_check_method(
@@ -104,7 +108,7 @@ def test_register_element_wise_custom_check(custom_check_teardown, data):
             pass
 
 
-def test_register_custom_groupby_check(custom_check_teardown):
+def test_register_custom_groupby_check(custom_check_teardown: None) -> None:
     """Test registering a custom groupby check."""
 
     @extensions.register_check_method(
@@ -184,7 +188,7 @@ def test_register_custom_groupby_check(custom_check_teardown):
         (1, 10),
     ],
 )
-def test_register_check_invalid_supported_types(supported_types):
+def test_register_check_invalid_supported_types(supported_types: Any) -> None:
     """Test that TypeError is raised on invalid supported_types arg."""
     with pytest.raises(TypeError):
 
@@ -196,13 +200,13 @@ def test_register_check_invalid_supported_types(supported_types):
 @pytest.mark.skipif(
     not st.HAS_HYPOTHESIS, reason='needs "strategies" module dependencies'
 )
-def test_register_check_with_strategy(custom_check_teardown):
+def test_register_check_with_strategy(custom_check_teardown: None) -> None:
     """Test registering a custom check with a data generation strategy."""
 
     import hypothesis  # pylint: disable=import-outside-toplevel,import-error
 
     def custom_ge_strategy(
-        pandas_dtype: PandasDtype,
+        pandas_dtype: DataType,
         strategy: Optional[st.SearchStrategy] = None,
         *,
         min_value: Any,
@@ -222,12 +226,12 @@ def test_register_check_with_strategy(custom_check_teardown):
         return pandas_obj >= min_value
 
     check = Check.custom_ge_check(min_value=0)
-    strat = check.strategy(PandasDtype.Int)
+    strat = check.strategy(pa.Int)
     with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
         assert strat.example() >= 0
 
 
-def test_schema_model_field_kwarg(custom_check_teardown):
+def test_schema_model_field_kwarg(custom_check_teardown: None) -> None:
     """Test that registered checks can be specified in a Field."""
     # pylint: disable=missing-class-docstring,too-few-public-methods
 
@@ -274,7 +278,7 @@ def test_schema_model_field_kwarg(custom_check_teardown):
             Schema.validate(invalid_data)
 
 
-def test_register_before_schema_definitions():
+def test_register_before_schema_definitions() -> None:
     """Test that custom checks need to be registered before use."""
     # pylint: disable=missing-class-docstring,too-few-public-methods
     # pylint: disable=function-redefined
@@ -284,7 +288,7 @@ def test_register_before_schema_definitions():
         match="custom check 'custom_eq' is not available",
     ):
 
-        class Schema(pa.SchemaModel):
+        class Schema1(pa.SchemaModel):
             col: pa.typing.Series[int] = pa.Field(custom_eq=1)
 
     with pytest.raises(AttributeError):
@@ -294,7 +298,7 @@ def test_register_before_schema_definitions():
     def custom_eq(pandas_obj, val):
         return pandas_obj == val
 
-    class Schema(pa.SchemaModel):  # noqa F811
+    class Schema2(pa.SchemaModel):  # noqa F811
         col: pa.typing.Series[int] = pa.Field(custom_eq=1)
 
     pa.Check.custom_eq(1)

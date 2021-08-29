@@ -8,7 +8,7 @@ import pandas as pd
 from docs.source import conf
 
 
-def test_sphinx_doctest_setting_global_pandas_conditions():
+def test_sphinx_doctest_setting_global_pandas_conditions() -> None:
     """Checks that no limit is set on the height/width of the __repr__/__str__
     print of a pd.DataFrame to ensure doctest performs consistently across
     different Operating Systems."""

@@ -72,7 +72,7 @@ Basic Usage
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaError: <Schema Column: 'year' type=<class 'int'>> failed element-wise validator 0:
+    pandera.errors.SchemaError: <Schema Column: 'year' type=DataType(int64)> failed element-wise validator 0:
     <Check greater_than: greater_than(2000)>
     failure cases:
        index  failure_case
@@ -121,13 +121,13 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
 
     <Schema DataFrameSchema(
         columns={
-            'year': <Schema Column(name=year, type=<class 'int'>)>
-            'month': <Schema Column(name=month, type=<class 'int'>)>
-            'day': <Schema Column(name=day, type=<class 'int'>)>
+            'year': <Schema Column(name=year, type=DataType(int64))>
+            'month': <Schema Column(name=month, type=DataType(int64))>
+            'day': <Schema Column(name=day, type=DataType(int64))>
         },
         checks=[],
         coerce=False,
-        pandas_dtype=None,
+        dtype=None,
         index=None,
         strict=False
         name=None,
@@ -165,12 +165,8 @@ however, a couple of gotchas.
 Dtype aliases
 ^^^^^^^^^^^^^
 
-The enumeration :class:`~pandera.dtypes.PandasDtype` is not directly supported because
-the type parameter of a :class:`typing.Generic` cannot be an enumeration [#dtypes]_.
-Instead, you can use the :mod:`pandera.typing` counterparts:
-:data:`pandera.typing.Category`, :data:`pandera.typing.Float32`, ...
-
-:green:`✔` Good:
+:mod:`pandera.typing` aliases will be deprecated in a future version,
+please use :class:`~pandera.dtypes.DataType` subclasses instead.
 
 .. code-block::
 
@@ -179,21 +175,6 @@ Instead, you can use the :mod:`pandera.typing` counterparts:
 
     class Schema(pa.SchemaModel):
         a: Series[String]
-
-:red:`✘` Bad:
-
-.. testcode:: dataframe_schema_model
-    :skipif: SKIP_PANDAS_LT_V1
-
-    class Schema(pa.SchemaModel):
-        a: Series[pa.PandasDtype.String]
-
-.. testoutput:: dataframe_schema_model
-    :skipif: SKIP_PANDAS_LT_V1
-
-    Traceback (most recent call last):
-    ...
-    TypeError: python type '<class 'typing.Generic'>' not recognized as pandas data type
 
 Type Vs instance
 ^^^^^^^^^^^^^^^^
@@ -400,10 +381,12 @@ class.
             name = "BaseSchema"
             strict = True
             coerce = True
-            foo = "bar"  # not a valid option, ignored
+            foo = "bar"  # Interpreted as dataframe check
 
 It is not required for the ``Config`` to subclass :class:`~pandera.model.BaseConfig` but
 it **must** be named '**Config**'.
+
+See :ref:`class_based_api_dataframe_checks` for details on using registered dataframe checks.
 
 MultiIndex
 ----------
@@ -435,8 +418,8 @@ the class-based API:
 
     <Schema MultiIndex(
         indexes=[
-            <Schema Index(name=year, type=<class 'int'>)>
-            <Schema Index(name=month, type=<class 'int'>)>
+            <Schema Index(name=year, type=DataType(int64))>
+            <Schema Index(name=month, type=DataType(int64))>
         ]
         coerce=True,
         strict=True,
@@ -529,7 +512,7 @@ Column/Index checks
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaError: <Schema Column: 'value' type=<class 'int'>> failed series validator 1:
+    pandera.errors.SchemaError: <Schema Column: 'value' type=DataType(int64)> failed series validator 1:
     <Check check_means>
 
 .. _schema_model_dataframe_check:
@@ -609,7 +592,7 @@ The custom checks are inherited and therefore can be overwritten by the subclass
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaError: <Schema Column: 'a' type=<class 'int'>> failed element-wise validator 0:
+    pandera.errors.SchemaError: <Schema Column: 'a' type=DataType(int64)> failed element-wise validator 0:
     <Check foobar>
     failure cases:
         index  failure_case
@@ -698,11 +681,3 @@ the class scope, and it will respect the alias.
 
           2020    a
     0       99  101
-
-
-Footnotes
----------
-
-.. [#dtypes] It is actually possible to use a PandasDtype by encasing it in a
-    :class:`typing.Literal` like ``Series[Literal[PandasDtype.Category]]``.
-    :mod:`pandera.typing` defines aliases to reduce boilerplate.

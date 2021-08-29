@@ -5,32 +5,33 @@ from typing import Any
 import pytest
 
 import pandera as pa
+from pandera.engines.pandas_engine import Engine
 
 
-def test_field_to_column():
+def test_field_to_column() -> None:
     """Test that Field outputs the correct column options."""
-    for flag in ["nullable", "allow_duplicates", "coerce", "regex"]:
+    for flag in ["nullable", "unique", "coerce", "regex"]:
         for value in [True, False]:
-            col = pa.Field(**{flag: value}).to_column(
+            col = pa.Field(**{flag: value}).to_column(  # type: ignore[arg-type]
                 pa.DateTime, required=value
             )
             assert isinstance(col, pa.Column)
-            assert col.dtype == pa.DateTime.value
+            assert col.dtype == Engine.dtype(pa.DateTime)
             assert col.properties[flag] == value
             assert col.required == value
 
 
-def test_field_to_index():
+def test_field_to_index() -> None:
     """Test that Field outputs the correct index options."""
-    for flag in ["nullable", "allow_duplicates"]:
+    for flag in ["nullable", "unique"]:
         for value in [True, False]:
-            index = pa.Field(**{flag: value}).to_index(pa.DateTime)
+            index = pa.Field(**{flag: value}).to_index(pa.DateTime)  # type: ignore[arg-type]
             assert isinstance(index, pa.Index)
-            assert index.dtype == pa.DateTime.value
+            assert index.dtype == Engine.dtype(pa.DateTime)
             assert getattr(index, flag) == value
 
 
-def test_field_no_checks():
+def test_field_no_checks() -> None:
     """Test Field without checks."""
     assert not pa.Field().to_column(str).checks
 
@@ -62,7 +63,7 @@ def test_field_no_checks():
         ("str_startswith", "a", pa.Check.str_startswith("a")),
     ],
 )
-def test_field_checks(arg: str, value: Any, expected: pa.Check):
+def test_field_checks(arg: str, value: Any, expected: pa.Check) -> None:
     """Test that all built-in checks are available in a Field."""
     checks = pa.Field(**{arg: value}).to_column(str).checks
     assert len(checks) == 1

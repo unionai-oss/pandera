@@ -17,6 +17,14 @@ ErrorData = namedtuple(
 )
 
 
+class ParserError(Exception):
+    """Raised when data cannot be parsed from the raw into its clean form."""
+
+    def __init__(self, message, failure_cases):
+        super().__init__(message)
+        self.failure_cases = failure_cases
+
+
 class SchemaInitError(Exception):
     """Raised when schema initialization fails."""
 
@@ -94,7 +102,7 @@ class SchemaErrors(Exception):
         msg += "\nError Counts"
         msg += "\n------------\n"
         for k, v in error_counts.items():
-            msg += "- %s: %d\n" % (k, v)
+            msg += f"- {k}: {v}\n"
 
         def failure_cases(x):
             return list(set(x))
@@ -171,5 +179,6 @@ class SchemaErrors(Exception):
             pd.concat(check_failure_cases)
             .reset_index(drop=True)
             .sort_values("schema_context", ascending=False)
+            .drop_duplicates()
         )
         return error_counts, failure_cases

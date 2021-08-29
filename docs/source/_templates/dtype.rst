@@ -2,17 +2,6 @@
 
 .. currentmodule:: {{ module }}
 
-.. autoclass:: PandasDtype
-   :show-inheritance:
-   :exclude-members:
-
-   .. autoattribute:: str_alias
-   .. automethod:: from_str_alias
-   .. automethod:: from_pandas_api_type
-
-
-
-
 .. autoclass:: {{ objname }}
 
    {% block attributes %}
@@ -37,15 +26,16 @@
       :nosignatures:
       :toctree: methods
 
-   {% for item in methods %}
-   {%- if item not in inherited_members %}
-      ~{{ name }}.{{ item }}
-   {%- endif %}
-   {%- endfor %}
-   {% endif %}
+   {# Ignore the DateTime alias to avoid `WARNING: document isn't included in any toctree`#}
+   {% if objname != "DateTime" %}
+     {% for item in methods %}
+       ~{{ name }}.{{ item }}
+     {%- endfor %}
 
-   {%- if '__call__' in members %}
-      ~{{ name }}.__call__
+     {%- if members and '__call__' in members %}
+       ~{{ name }}.__call__
+     {%- endif %}
    {%- endif %}
 
+   {%- endif %}
    {% endblock %}

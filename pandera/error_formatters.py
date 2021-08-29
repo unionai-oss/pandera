@@ -18,10 +18,9 @@ def format_generic_error_message(
     :param check: check that generated error.
     :param check_index: The validator that failed.
     """
-    return "%s failed series validator %d:\n%s" % (
-        parent_schema,
-        check_index,
-        check,
+    return (
+        f"{parent_schema} failed series or dataframe validator "
+        f"{check_index}:\n{check}"
     )
 
 
@@ -41,14 +40,8 @@ def format_vectorized_error_message(
 
     """
     return (
-        "%s failed element-wise validator %d:\n"
-        "%s\nfailure cases:\n%s"
-        % (
-            parent_schema,
-            check_index,
-            check,
-            reshaped_failure_cases,
-        )
+        f"{parent_schema} failed element-wise validator {check_index}:\n"
+        f"{check}\nfailure cases:\n{reshaped_failure_cases}"
     )
 
 
@@ -83,7 +76,22 @@ def reshape_failure_cases(
     if "column" in failure_cases and "failure_case" in failure_cases:
         # handle case where failure cases occur at the index-column level
         reshaped_failure_cases = failure_cases
-    elif hasattr(failure_cases, "index") and isinstance(
+    elif isinstance(failure_cases, pd.DataFrame) and isinstance(
+        failure_cases.index, pd.MultiIndex
+    ):
+        reshaped_failure_cases = (
+            failure_cases.rename_axis("column", axis=1)
+            .assign(
+                index=lambda df: (
+                    df.index.to_frame().apply(tuple, axis=1).astype(str)
+                )
+            )
+            .set_index("index", drop=True)
+            .unstack()
+            .rename("failure_case")
+            .reset_index()
+        )
+    elif isinstance(failure_cases, pd.Series) and isinstance(
         failure_cases.index, pd.MultiIndex
     ):
         reshaped_failure_cases = (
@@ -112,7 +120,8 @@ def reshape_failure_cases(
         )
     else:
         raise TypeError(
-            f"type of failure_cases argument not understood: {type(failure_cases)}"
+            "type of failure_cases argument not understood: "
+            f"{type(failure_cases)}"
         )
 
     return (

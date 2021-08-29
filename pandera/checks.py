@@ -21,7 +21,7 @@ from typing import (
 
 import pandas as pd
 
-from . import constants, errors
+from . import check_utils, constants, errors
 from . import strategies as st
 
 CheckResult = namedtuple(
@@ -106,7 +106,10 @@ class _CheckBase(metaclass=_CheckMeta):
 
     def __init__(
         self,
-        check_fn: Callable,
+        check_fn: Union[
+            Callable[[pd.Series], Union[pd.Series, bool]],
+            Callable[[pd.DataFrame], Union[pd.DataFrame, pd.Series, bool]],
+        ],
         groups: Optional[Union[str, List[str]]] = None,
         groupby: Optional[Union[str, List[str], Callable]] = None,
         ignore_na: bool = True,
@@ -202,9 +205,9 @@ class _CheckBase(metaclass=_CheckMeta):
         >>>
         >>> schema = pa.DataFrameSchema(
         ...     columns={
-        ...         "measure_1": pa.Column(pa.Int, checks=measure_checks),
-        ...         "measure_2": pa.Column(pa.Int, checks=measure_checks),
-        ...         "group": pa.Column(pa.String),
+        ...         "measure_1": pa.Column(int, checks=measure_checks),
+        ...         "measure_2": pa.Column(int, checks=measure_checks),
+        ...         "group": pa.Column(str),
         ...     },
         ...     checks=check_dataframe
         ... )
@@ -284,8 +287,8 @@ class _CheckBase(metaclass=_CheckMeta):
         invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:
             raise KeyError(
-                "groups %s provided in `groups` argument not a valid group "
-                "key. Valid group keys: %s" % (invalid_groups, group_keys)
+                f"groups {invalid_groups} provided in `groups` argument not a valid group "
+                f"key. Valid group keys: {group_keys}"
             )
         return {
             group_key: group
@@ -374,8 +377,8 @@ class _CheckBase(metaclass=_CheckMeta):
             check_obj = self._prepare_dataframe_input(df_or_series)
         else:
             raise ValueError(
-                "object of type %s not supported. Must be a "
-                "Series, a dictionary of Series, or DataFrame" % df_or_series
+                f"object of type {df_or_series} not supported. Must be a "
+                "Series, a dictionary of Series, or DataFrame"
             )
 
         # apply check function to check object
@@ -404,35 +407,30 @@ class _CheckBase(metaclass=_CheckMeta):
         ):
             failure_cases = None
         elif isinstance(check_output, pd.Series):
-            if self.ignore_na:
-                isna = (
-                    check_obj.isna().any(axis="columns")
-                    if isinstance(check_obj, pd.DataFrame)
-                    else check_obj.isna()
-                )
-                check_output = check_output | isna
-            failure_cases = check_obj[~check_output]
+            (
+                check_output,
+                failure_cases,
+            ) = check_utils.prepare_series_check_output(
+                check_obj,
+                check_output,
+                ignore_na=self.ignore_na,
+                n_failure_cases=self.n_failure_cases,
+            )
         elif isinstance(check_output, pd.DataFrame):
-            # check results consisting of a boolean dataframe should be
-            # reported at the most granular level.
-            check_output = check_output.unstack()
-            if self.ignore_na:
-                check_output = check_output | df_or_series.unstack().isna()
-            failure_cases = (
-                check_obj.unstack()[~check_output]
-                .rename("failure_case")
-                .rename_axis(["column", "index"])
-                .reset_index()
+            (
+                check_output,
+                failure_cases,
+            ) = check_utils.prepare_dataframe_check_output(
+                check_obj,
+                check_output,
+                df_orig=df_or_series,
+                ignore_na=self.ignore_na,
+                n_failure_cases=self.n_failure_cases,
             )
         else:
             raise TypeError(
                 f"output type of check_fn not recognized: {type(check_output)}"
             )
-
-        if failure_cases is not None and self.n_failure_cases is not None:
-            failure_cases = failure_cases.drop_duplicates().iloc[
-                : self.n_failure_cases
-            ]
 
         check_passed = (
             check_output.all()
@@ -446,7 +444,7 @@ class _CheckBase(metaclass=_CheckMeta):
             check_output, check_passed, check_obj, failure_cases
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
 
@@ -464,13 +462,13 @@ class _CheckBase(metaclass=_CheckMeta):
             are_strategy_fn_objects_equal = True
 
         are_all_other_check_attributes_equal = {
-            i: self.__dict__[i]
-            for i in self.__dict__
-            if i not in ["_check_fn", "strategy"]
+            k: v
+            for k, v in self.__dict__.items()
+            if k not in ["_check_fn", "strategy"]
         } == {
-            i: other.__dict__[i]
-            for i in other.__dict__
-            if i not in ["_check_fn", "strategy"]
+            k: v
+            for k, v in other.__dict__.items()
+            if k not in ["_check_fn", "strategy"]
         }
 
         return (
@@ -489,10 +487,10 @@ class _CheckBase(metaclass=_CheckMeta):
 
         return code
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._get_check_fn_code())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<Check {self.name}: {self.error}>"
             if self.error is not None
@@ -723,8 +721,8 @@ class Check(_CheckBase):
             min_value == max_value and (not include_min or not include_max)
         ):
             raise ValueError(
-                "The combination of min_value = %s and max_value = %s "
-                "defines an empty interval!" % (min_value, max_value)
+                f"The combination of min_value = {min_value} and max_value = {max_value} "
+                "defines an empty interval!"
             )
         # Using functions from operator module to keep conditions out of the
         # closure

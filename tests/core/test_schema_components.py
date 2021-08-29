@@ -1,8 +1,8 @@
 """Testing the components of the Schema objects."""
 
 import copy
+from typing import Any, List, Optional, Tuple, Type
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -15,15 +15,14 @@ from pandera import (
     Index,
     Int,
     MultiIndex,
-    Object,
+    SeriesSchema,
     String,
     errors,
 )
+from pandera.engines.pandas_engine import Engine
 
-from .test_dtypes import TESTABLE_DTYPES
 
-
-def test_column():
+def test_column() -> None:
     """Test that the Column object can be used to check dataframe."""
     data = pd.DataFrame(
         {
@@ -43,25 +42,6 @@ def test_column():
 
     with pytest.raises(errors.SchemaError):
         Column(Int)(data)
-
-
-def test_coerce_nullable_object_column():
-    """Test that Object dtype coercing preserves object types."""
-    df_objects_with_na = pd.DataFrame(
-        {"col": [1, 2.0, [1, 2, 3], {"a": 1}, np.nan, None]}
-    )
-
-    column_schema = Column(Object, name="col", coerce=True, nullable=True)
-
-    validated_df = column_schema.validate(df_objects_with_na)
-    assert isinstance(validated_df, pd.DataFrame)
-    assert pd.isna(validated_df["col"].iloc[-1])
-    assert pd.isna(validated_df["col"].iloc[-2])
-    for i in range(4):
-        isinstance(
-            validated_df["col"].iloc[i],
-            type(df_objects_with_na["col"].iloc[i]),
-        )
 
 
 def test_column_in_dataframe_schema():
@@ -93,21 +73,16 @@ def test_index_schema():
         schema.validate(pd.DataFrame(index=range(1, 20)))
 
 
-@pytest.mark.parametrize("pdtype", [Float, Int, String, String])
-def test_index_schema_coerce(pdtype):
+@pytest.mark.parametrize("dtype", [Float, Int, String])
+def test_index_schema_coerce(dtype):
     """Test that index can be type-coerced."""
-    schema = DataFrameSchema(index=Index(pdtype, coerce=True))
+    schema = DataFrameSchema(index=Index(dtype, coerce=True))
     df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
-    validated_df = schema(df)
-    # pandas-native "string" dtype doesn't apply to indexes
-    assert (
-        validated_df.index.dtype == "object"
-        if pdtype is String
-        else pdtype.str_alias
-    )
+    validated_index_dtype = Engine.dtype(schema(df).index.dtype)
+    assert schema.index.dtype.check(validated_index_dtype)
 
 
-def test_multi_index_columns():
+def test_multi_index_columns() -> None:
     """Tests that multi-index Columns within DataFrames validate correctly."""
     schema = DataFrameSchema(
         {
@@ -134,7 +109,7 @@ def test_multi_index_columns():
     assert isinstance(validated_df, pd.DataFrame)
 
 
-def test_multi_index_index():
+def test_multi_index_index() -> None:
     """Tests that multi-index Indexes within DataFrames validate correctly."""
     schema = DataFrameSchema(
         columns={
@@ -178,7 +153,22 @@ def test_multi_index_index():
         schema.validate(df_fail)
 
 
-def test_multi_index_schema_coerce():
+def test_single_index_multi_index_mismatch() -> None:
+    """Tests the failure case that attempting to validate a MultiIndex DataFrame
+    against a single index schema raises a SchemaError with a constructive error
+    message."""
+    ind = pd.MultiIndex.from_tuples(
+        [("a", "b"), ("c", "d"), ("e", "f")],
+        names=("one", "two"),
+    )
+    df_fail = pd.DataFrame(index=ind)
+    schema = DataFrameSchema(index=Index(name="key"))
+
+    with pytest.raises(errors.SchemaError):
+        schema.validate(df_fail)
+
+
+def test_multi_index_schema_coerce() -> None:
     """Test that multi index can be type-coerced."""
     indexes = [
         Index(Float),
@@ -197,13 +187,11 @@ def test_multi_index_schema_coerce():
     )
     validated_df = schema(df)
     for level_i in range(validated_df.index.nlevels):
-        assert (
-            validated_df.index.get_level_values(level_i).dtype
-            == indexes[level_i].dtype
-        )
+        index_dtype = validated_df.index.get_level_values(level_i).dtype
+        assert indexes[level_i].dtype.check(Engine.dtype(index_dtype))
 
 
-def tests_multi_index_subindex_coerce():
+def tests_multi_index_subindex_coerce() -> None:
     """MultIndex component should override sub indexes."""
     indexes = [
         Index(String, coerce=True),
@@ -235,12 +223,6 @@ def tests_multi_index_subindex_coerce():
         schema(data, lazy=True)
 
 
-@pytest.mark.parametrize("pandas_dtype, expected", TESTABLE_DTYPES)
-def test_column_dtype_property(pandas_dtype, expected):
-    """Tests that the dtypes provided by Column match pandas dtypes"""
-    assert Column(pandas_dtype).dtype == expected
-
-
 def test_schema_component_equality_operators():
     """Test the usage of == for Column, Index and MultiIndex."""
     column = Column(Int, Check(lambda s: s >= 0))
@@ -265,7 +247,7 @@ def test_schema_component_equality_operators():
     assert multi_index != not_equal_schema
 
 
-def test_column_regex():
+def test_column_regex() -> None:
     """Test that column regex work on single-level column index."""
     column_schema = Column(
         Int, Check(lambda s: s >= 0), name="foo_*", regex=True
@@ -307,7 +289,7 @@ def test_column_regex():
         dataframe_schema.validate(data)
 
 
-def test_column_regex_multiindex():
+def test_column_regex_multiindex() -> None:
     """Text that column regex works on multi-index column."""
     column_schema = Column(
         Int,
@@ -356,28 +338,33 @@ def test_column_regex_multiindex():
     "column_name_regex, expected_matches, error",
     (
         # match all values in first level, only baz_* for second level
-        ((".", "baz_*"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
+        ((".", "baz_.+"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
         # match bar_* in first level, all values in second level
         (
-            ("bar_*", "."),
+            ("bar_.+", "."),
             [("bar_1", "biz_2"), ("bar_2", "biz_3"), ("bar_3", "biz_3")],
             None,
         ),
         # match specific columns in both levels
-        (("foo_*", "baz_*"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
-        (("foo_*", "^biz_1$"), [("foo_1", "biz_1")], None),
+        (("foo_.+", "baz_.+"), [("foo_2", "baz_1"), ("foo_3", "baz_2")], None),
+        (("foo_.+", "^biz_1$"), [("foo_1", "biz_1")], None),
         (("^foo_3$", "^baz_2$"), [("foo_3", "baz_2")], None),
         # no matches should raise a SchemaError
         (("fiz", "."), None, errors.SchemaError),
         # using a string name for a multi-index column raises IndexError
         ("foo_1", None, IndexError),
-        # mis-matching number of elements in a tuple column name raises IndexError
-        (("foo_*",), None, IndexError),
-        (("foo_*", ".", "."), None, IndexError),
-        (("foo_*", ".", ".", "."), None, IndexError),
+        # mis-matching number of elements in a tuple column name raises
+        # IndexError
+        (("foo_.+",), None, IndexError),
+        (("foo_.+", ".", "."), None, IndexError),
+        (("foo_.+", ".", ".", "."), None, IndexError),
     ),
 )
-def test_column_regex_matching(column_name_regex, expected_matches, error):
+def test_column_regex_matching(
+    column_name_regex: str,
+    expected_matches: Optional[List[Tuple[str, str]]],
+    error: Type[BaseException],
+) -> None:
     """
     Column regex pattern matching should yield correct matches and raise
     expected errors.
@@ -407,7 +394,78 @@ def test_column_regex_matching(column_name_regex, expected_matches, error):
         assert expected_matches == matched_columns.tolist()
 
 
-def test_column_regex_strict():
+INT_REGEX = r"-?\d+$"
+FLOAT_REGEX = r"-?\d+\.\d+$"
+DATETIME_REGEX = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
+
+
+@pytest.mark.parametrize(
+    "column_name_regex, expected_matches",
+    [
+        # match all
+        [".+", [1, 2.2, 3.1415, -1, -3.6, pd.Timestamp("2018/01/01")]],
+        # match integers
+        [INT_REGEX, [1, -1]],
+        # match floats
+        [FLOAT_REGEX, [2.2, 3.1415, -3.6]],
+        # match datetimes
+        [DATETIME_REGEX, [pd.Timestamp("2018/01/01")]],
+    ],
+)
+def test_column_regex_matching_non_str_types(
+    column_name_regex: str, expected_matches: List
+) -> None:
+    """Non-string column names should be cast into str for regex matching."""
+    columns = pd.Index([1, 2.2, 3.1415, -1, -3.6, pd.Timestamp("2018/01/01")])
+    column_schema = Column(name=column_name_regex, regex=True)
+    matched_columns = column_schema.get_regex_columns(columns)
+    assert expected_matches == matched_columns.tolist()
+
+
+@pytest.mark.parametrize(
+    "column_name_regex, expected_matches",
+    [
+        # match all
+        [
+            (".+", ".+"),
+            [
+                ("foo", 1),
+                ("foo", pd.Timestamp("2018/01/01")),
+                (1, 2.2),
+                (3.14, -1),
+            ],
+        ],
+        # match (str, int)
+        [("foo", INT_REGEX), [("foo", 1)]],
+        # match (str, pd.Timestamp)
+        [("foo", DATETIME_REGEX), [("foo", pd.Timestamp("2018/01/01"))]],
+        # match (int, float)
+        [(INT_REGEX, FLOAT_REGEX), [(1, 2.2)]],
+        # match (float, int)
+        [(FLOAT_REGEX, INT_REGEX), [(3.14, -1)]],
+    ],
+)
+def test_column_regex_matching_non_str_types_multiindex(
+    column_name_regex: Tuple[str, str], expected_matches: List[Tuple[Any, Any]]
+) -> None:
+    """
+    Non-string column names should be cast into str for regex matching in
+    MultiIndex column case.
+    """
+    columns = pd.MultiIndex.from_tuples(
+        (
+            ("foo", 1),
+            ("foo", pd.Timestamp("2018/01/01")),
+            (1, 2.2),
+            (3.14, -1),
+        )
+    )
+    column_schema = Column(name=column_name_regex, regex=True)
+    matched_columns = column_schema.get_regex_columns(columns)
+    assert expected_matches == matched_columns.tolist()
+
+
+def test_column_regex_strict() -> None:
     """Test that Column regex patterns correctly parsed in DataFrameSchema."""
     data = pd.DataFrame(
         {
@@ -434,18 +492,25 @@ def test_column_regex_strict():
     assert isinstance(validated_data, pd.DataFrame)
 
 
-def test_column_regex_non_str_types():
+def test_column_regex_non_str_types() -> None:
     """Check that column name regex matching excludes non-string types."""
     data = pd.DataFrame(
         {
             1: [1, 2, 3],
             2.2: [1, 2, 3],
             pd.Timestamp("2018/01/01"): [1, 2, 3],
-            "foo": [1, 2, 3],
+            "foo_1": [1, 2, 3],
+            "foo_2": [1, 2, 3],
+            "foo_3": [1, 2, 3],
         }
     )
     schema = DataFrameSchema(
-        columns={"foo_*": Column(Int, regex=True)},
+        columns={
+            "foo_": Column(Int, Check.gt(0), regex=True),
+            r"\d+": Column(Int, Check.gt(0), regex=True),
+            r"\d+\.\d+": Column(Int, Check.gt(0), regex=True),
+            "2018-01-01": Column(Int, Check.gt(0), regex=True),
+        },
     )
     assert isinstance(schema.validate(data), pd.DataFrame)
 
@@ -463,48 +528,23 @@ def test_column_regex_non_str_types():
     schema.validate(data)
 
 
-@pytest.mark.parametrize("column_key", [1, 100, 0.543])
-def test_non_str_column_name_regex(column_key):
-    """Check that Columns with non-str names cannot have regex=True."""
-
-    with pytest.raises(ValueError):
-        DataFrameSchema(
-            {
-                column_key: Column(
-                    Float,
-                    checks=Check.greater_than_or_equal_to(0),
-                    regex=True,
-                ),
-            }
-        )
-
-    with pytest.raises(ValueError):
-        Column(
-            Float,
-            checks=Check.greater_than_or_equal_to(0),
-            name=column_key,
-            regex=True,
-        )
-
-
-def test_column_type_can_be_set():
+def test_column_type_can_be_set() -> None:
     """Test that the Column dtype can be edited during schema construction."""
 
     column_a = Column(Int, name="a")
     changed_type = Float
 
-    column_a.pandas_dtype = Float
+    column_a.dtype = Float
 
-    assert column_a.pandas_dtype == changed_type
-    assert column_a.dtype == changed_type.str_alias
+    assert column_a.dtype == Engine.dtype(changed_type)
 
     for invalid_dtype in ("foobar", "bar"):
         with pytest.raises(TypeError):
-            column_a.pandas_dtype = invalid_dtype
+            column_a.dtype = invalid_dtype
 
     for invalid_dtype in (1, 2.2, ["foo", 1, 1.1], {"b": 1}):
         with pytest.raises(TypeError):
-            column_a.pandas_dtype = invalid_dtype
+            column_a.dtype = invalid_dtype
 
 
 @pytest.mark.parametrize(
@@ -531,7 +571,9 @@ def test_column_type_can_be_set():
         MultiIndex([Index(int, name="a"), Index(int, name="a")], coerce=True),
     ],
 )
-def test_multiindex_duplicate_index_names(multiindex, error, schema):
+def test_multiindex_duplicate_index_names(
+    multiindex: pd.MultiIndex, error: bool, schema: MultiIndex
+) -> None:
     """Test MultiIndex schema component can handle duplicate index names."""
     if error:
         with pytest.raises(errors.SchemaError):
@@ -616,13 +658,14 @@ def test_multiindex_duplicate_index_names(multiindex, error, schema):
         ],
     ],
 )
-def test_multiindex_ordered(multiindex, schema, error):
+def test_multiindex_ordered(
+    multiindex: pd.MultiIndex, schema: MultiIndex, error: bool
+) -> None:
     """Test that MultiIndex schema checks index name order."""
     if error:
-        raises_kwargs = {}
-        if isinstance(error, str):
-            raises_kwargs["match"] = error
-        with pytest.raises(errors.SchemaError, **raises_kwargs):
+        with pytest.raises(
+            errors.SchemaError, match=error if isinstance(error, str) else None
+        ):
             schema(pd.DataFrame(index=multiindex))
         with pytest.raises(errors.SchemaErrors):
             schema(pd.DataFrame(index=multiindex), lazy=True)
@@ -686,7 +729,9 @@ def test_multiindex_ordered(multiindex, schema, error):
         ],
     ],
 )
-def test_multiindex_unordered(multiindex, schema, error):
+def test_multiindex_unordered(
+    multiindex: pd.MultiIndex, schema: MultiIndex, error: bool
+) -> None:
     """Test MultiIndex schema unordered validation."""
     if error:
         with pytest.raises(errors.SchemaError):
@@ -705,7 +750,25 @@ def test_multiindex_unordered(multiindex, schema, error):
         [Index(int), Index(int, name="a")],
     ],
 )
-def test_multiindex_unordered_init_exception(indexes):
+def test_multiindex_unordered_init_exception(indexes: List[Index]) -> None:
     """Un-named indexes in unordered MultiIndex raises an exception."""
     with pytest.raises(errors.SchemaInitError):
         MultiIndex(indexes, ordered=False)
+
+
+@pytest.mark.parametrize(
+    "indexes",
+    [
+        [Column(int)],
+        [Column(int, name="a"), Index(int)],
+        [Index(int), Column(int, name="a")],
+        [SeriesSchema(int)],
+        1,
+        1.0,
+        "foo",
+    ],
+)
+def test_multiindex_incorrect_input(indexes) -> None:
+    """Passing in non-Index object raises SchemaInitError."""
+    with pytest.raises((errors.SchemaInitError, TypeError)):
+        MultiIndex(indexes)

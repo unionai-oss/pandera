@@ -4,8 +4,8 @@
 
 .. _extensions:
 
-Extensions (new)
-================
+Extensions
+==========
 
 *new in 0.6.0*
 
@@ -94,20 +94,20 @@ The corresponding strategy for this check would be:
    import pandera.strategies as st
 
    def equals_strategy(
-       pandas_dtype: pa.PandasDtype,
+       pandera_dtype: pa.DataType,
        strategy: Optional[st.SearchStrategy] = None,
        *,
        value,
    ):
        if strategy is None:
            return st.pandas_dtype_strategy(
-               pandas_dtype, strategy=hypothesis.strategies.just(value),
+               pandera_dtype, strategy=hypothesis.strategies.just(value),
            )
        return strategy.filter(lambda x: x == value)
 
 As you may notice, the ``pandera`` strategy interface is has two arguments
 followed by keyword-only arguments that match the check function keyword-only
-check statistics. The ``pandas_dtype`` positional argument is useful for
+check statistics. The ``pandera_dtype`` positional argument is useful for
 ensuring the correct data type. In the above example, we're using the
 :func:`~pandera.strategies.pandas_dtype_strategy` strategy to make sure the
 generated ``value`` is of the correct data type.
@@ -147,7 +147,7 @@ would look like:
    :skipif: SKIP_STRATEGY
 
    def in_between_strategy(
-       pandas_dtype: pa.PandasDtype,
+       pandera_dtype: pa.DataType,
        strategy: Optional[st.SearchStrategy] = None,
        *,
        min_value,
@@ -155,7 +155,7 @@ would look like:
    ):
        if strategy is None:
            return st.pandas_dtype_strategy(
-               pandas_dtype,
+               pandera_dtype,
                min_value=min_value,
                max_value=max_value,
                exclude_min=False,
@@ -234,6 +234,8 @@ In this groupby check, we're verifying that the values of one column for
     3      15      y
 
 
+.. _class_based_api_dataframe_checks:
+
 Registered Custom Checks with the Class-based API
 -------------------------------------------------
 
@@ -264,3 +266,64 @@ you can also use custom checks with the :ref:`class-based API<schema_models>`:
     2  value     2
     3  value     3
     4  value     4
+
+DataFrame checks can be attached by using the :ref:`schema_model_config` class. Any field names that
+do not conflict with existing fields of :class:`~pandera.model.BaseConfig` and do not start
+with an underscore (``_``) are interpreted as the name of registered checks. If the value
+is a tuple or dict, it is interpreted as the positional or keyword arguments of the check, and
+as the first argument otherwise.
+
+For example, to register zero, one, and two statistic dataframe checks one could do the following:
+
+.. testcode:: extensions_df_checks
+
+    import pandera as pa
+    import pandera.extensions as extensions
+    import numpy as np
+    import pandas as pd
+
+
+    @extensions.register_check_method()
+    def is_small(df):
+        return sum(df.shape) < 1000
+
+
+    @extensions.register_check_method(statistics=["fraction"])
+    def total_missing_fraction_less_than(df, *, fraction: float):
+        return (1 - df.count().sum().item() / sum(df.shape)) < fraction
+
+
+    @extensions.register_check_method(statistics=["col_a", "colb"])
+    def col_mean_a_greater_than_b(df, *, col_a: str, col_b: str):
+        return df[col_a].mean() > df[col_b].mean()
+
+
+    from pandera.typing import Series
+
+
+    class Schema(pa.SchemaModel):
+        col1: Series[float] = pa.Field(nullable=True, ignore_na=False)
+        col2: Series[float] = pa.Field(nullable=True, ignore_na=False)
+
+        class Config:
+            is_small = ()
+            total_missing_fraction_less_than = 0.6
+            col_mean_a_greater_than_b = {"col_a": "col2", "col_b": "col1"}
+
+
+    data = pd.DataFrame({
+        "col1": [float('nan')] * 3 + [0.5, 0.3, 0.1],
+        "col2": np.arange(6.),
+    })
+
+    print(Schema.validate(data))
+
+.. testoutput:: extensions_df_checks
+
+       col1  col2
+    0   NaN   0.0
+    1   NaN   1.0
+    2   NaN   2.0
+    3   0.5   3.0
+    4   0.3   4.0
+    5   0.1   5.0

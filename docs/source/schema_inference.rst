@@ -36,14 +36,14 @@ is a simple example:
 
     <Schema DataFrameSchema(
         columns={
-            'column1': <Schema Column(name=column1, type=int64)>
-            'column2': <Schema Column(name=column2, type=str)>
-            'column3': <Schema Column(name=column3, type=datetime64[ns])>
+            'column1': <Schema Column(name=column1, type=DataType(int64))>
+            'column2': <Schema Column(name=column2, type=DataType(object))>
+            'column3': <Schema Column(name=column3, type=DataType(datetime64[ns]))>
         },
         checks=[],
         coerce=True,
-        pandas_dtype=None,
-        index=<Schema Index(name=None, type=int64)>,
+        dtype=None,
+        index=<Schema Index(name=None, type=DataType(int64))>,
         strict=False
         name=None,
         ordered=False
@@ -96,40 +96,33 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
    :skipif: SKIP
 
     from pandas import Timestamp
-    from pandera import (
-        DataFrameSchema,
-        Column,
-        Check,
-        Index,
-        MultiIndex,
-        PandasDtype,
-    )
+    from pandera import DataFrameSchema, Column, Check, Index, MultiIndex
 
     schema = DataFrameSchema(
         columns={
             "column1": Column(
-                pandas_dtype=PandasDtype.Int64,
+                dtype=pandera.engines.numpy_engine.Int64,
                 checks=[
                     Check.greater_than_or_equal_to(min_value=5.0),
                     Check.less_than_or_equal_to(max_value=20.0),
                 ],
                 nullable=False,
-                allow_duplicates=True,
+                unique=False,
                 coerce=False,
                 required=True,
                 regex=False,
             ),
             "column2": Column(
-                pandas_dtype=PandasDtype.String,
+                dtype=pandera.engines.numpy_engine.Object,
                 checks=None,
                 nullable=False,
-                allow_duplicates=True,
+                unique=False,
                 coerce=False,
                 required=True,
                 regex=False,
             ),
             "column3": Column(
-                pandas_dtype=PandasDtype.DateTime,
+                dtype=pandera.engines.pandas_engine.DateTime,
                 checks=[
                     Check.greater_than_or_equal_to(
                         min_value=Timestamp("2010-01-01 00:00:00")
@@ -139,14 +132,14 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                     ),
                 ],
                 nullable=False,
-                allow_duplicates=True,
+                unique=False,
                 coerce=False,
                 required=True,
                 regex=False,
             ),
         },
         index=Index(
-            pandas_dtype=PandasDtype.Int64,
+            dtype=pandera.engines.numpy_engine.Int64,
             checks=[
                 Check.greater_than_or_equal_to(min_value=0.0),
                 Check.less_than_or_equal_to(max_value=2.0),
@@ -178,45 +171,45 @@ is a convenience method for this functionality.
    # supply a file-like object, Path, or str to write to a file. If not
    # specified, to_yaml will output a yaml string.
    yaml_schema = schema.to_yaml()
-   print(yaml_schema)
+   print(yaml_schema.replace(f"{pa.__version__}", "{PANDERA_VERSION}"))
 
 .. testoutput:: infer_dataframe_schema
    :skipif: SKIP
 
     schema_type: dataframe
-    version: 0.6.3
+    version: {PANDERA_VERSION}
     columns:
       column1:
-        pandas_dtype: int64
+        dtype: int64
         nullable: false
         checks:
           greater_than_or_equal_to: 5.0
           less_than_or_equal_to: 20.0
-        allow_duplicates: true
+        unique: false
         coerce: false
         required: true
         regex: false
       column2:
-        pandas_dtype: str
+        dtype: object
         nullable: false
         checks: null
-        allow_duplicates: true
+        unique: false
         coerce: false
         required: true
         regex: false
       column3:
-        pandas_dtype: datetime64[ns]
+        dtype: datetime64[ns]
         nullable: false
         checks:
           greater_than_or_equal_to: '2010-01-01 00:00:00'
           less_than_or_equal_to: '2012-01-01 00:00:00'
-        allow_duplicates: true
+        unique: false
         coerce: false
         required: true
         regex: false
     checks: null
     index:
-    - pandas_dtype: int64
+    - dtype: int64
       nullable: false
       checks:
         greater_than_or_equal_to: 0.0
@@ -225,6 +218,7 @@ is a convenience method for this functionality.
       coerce: false
     coerce: true
     strict: false
+    unique: null
 
 You can edit this yaml file by specifying column names under the ``column``
 key. The respective values map onto key-word arguments in the

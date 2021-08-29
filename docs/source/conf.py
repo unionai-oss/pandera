@@ -17,6 +17,7 @@ import subprocess
 #
 import os
 import shutil
+import subprocess
 import sys
 
 from sphinx.util import logging
@@ -103,9 +104,7 @@ exclude_patterns = []
 autoclass_content = "both"
 
 autodoc_default_options = {
-    # 'special-members': '__call__',
     "undoc-members": False,
-    # 'exclude-members': '__weakref__'
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -152,17 +151,14 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-html_css_files = [
-    "default.css",
-    "custom_furo.scss",
-]
+html_css_files = ["default.css"]
 
 rst_prolog = """
 .. role:: red
 .. role:: green
 """
 
-autosummary_generate = ["API_reference.rst"]
+autosummary_generate = True
 autosummary_filename_map = {
     "pandera.Check": "pandera.Check",
     "pandera.check": "pandera.check_decorator",
@@ -174,6 +170,11 @@ intersphinx_mapping = {
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
 }
 
+# strip prompts
+copybutton_prompt_text = (
+    r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+)
+copybutton_prompt_is_regexp = True
 
 # this is a workaround to filter out forward reference issue in
 # sphinx_autodoc_typehints

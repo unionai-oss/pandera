@@ -11,23 +11,29 @@ wrapt
 pyyaml >=5.1
 typing_inspect >= 0.6.0
 typing_extensions >= 3.7.4.3
+frictionless
+pyarrow
 black >= 20.8b1
 isort >= 5.7.0
 codecov
-mypy
-pylint == 2.6.0
+mypy >= 0.902
+pylint >= 2.7.2
 pytest
 pytest-cov
 pytest-xdist
+pytest-asyncio
+xdoctest
 setuptools >= 52.0.0
-nox
+nox == 2020.12.31
 importlib_metadata
-sphinx >= 3.2.0
-sphinx_rtd_theme
+sphinx
 sphinx-autodoc-typehints
 sphinx-copybutton
 recommonmark
-furo
 twine
 asv
 pre_commit
+furo
+types-click
+types-pyyaml
+types-pkg_resources

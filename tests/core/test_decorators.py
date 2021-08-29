@@ -1,6 +1,6 @@
 """Testing the Decorators that check a functions input or output."""
-
-from typing import Optional
+import typing
+from asyncio import AbstractEventLoop
 
 import numpy as np
 import pandas as pd
@@ -22,10 +22,17 @@ from pandera import (
     check_types,
     errors,
 )
+from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
+try:
+    from typing import Literal  # type: ignore
+except ImportError:
+    # Remove this after dropping python 3.6
+    from typing_extensions import Literal  # type: ignore
 
-def test_check_function_decorators():
+
+def test_check_function_decorators() -> None:
     """
     Tests 5 different methods that are common across the @check_input and
     @check_output decorators.
@@ -147,7 +154,7 @@ def test_check_function_decorators():
     assert isinstance(df, pd.DataFrame)
 
 
-def test_check_function_decorator_errors():
+def test_check_function_decorator_errors() -> None:
     """Test that the check_input and check_output decorators error properly."""
     # case 1: checks that the input and output decorators error when different
     # types are passed in and out
@@ -186,7 +193,7 @@ def test_check_function_decorator_errors():
         test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]}))
 
 
-def test_check_input_method_decorators():
+def test_check_input_method_decorators() -> None:
     """Test the check_input and check_output decorator behaviours when the
     dataframe is changed within the function being checked"""
     in_schema = DataFrameSchema({"column1": Column(String)})
@@ -262,7 +269,7 @@ def test_check_input_method_decorators():
     )
 
 
-def test_check_io():
+def test_check_io() -> None:
     # pylint: disable=too-many-locals
     """Test that check_io correctly validates/invalidates data."""
 
@@ -332,7 +339,7 @@ def test_check_io():
         (validate_lazy, [df1], [invalid_df], df1),
         (validate_inplace, [df1], [invalid_df], df1),
     ]:
-        result = fn(*valid)
+        result = fn(*valid)  # type: ignore[operator]
         if isinstance(result, pd.Series):
             assert (result == out).all()
         if isinstance(result, pd.DataFrame):
@@ -344,12 +351,13 @@ def test_check_io():
             errors.SchemaErrors if fn is validate_lazy else errors.SchemaError
         )
         with pytest.raises(expected_error):
-            fn(*invalid)
+            fn(*invalid)  # type: ignore[operator]
 
     # invalid out schema types
     for out_schema in [1, 5.0, "foo", {"foo": "bar"}, ["foo"]]:
 
-        @check_io(out=out_schema)
+        # mypy finds correctly the wrong usage
+        @check_io(out=out_schema)  # type: ignore[arg-type]
         def invalid_out_schema_type(df):
             return df
 
@@ -360,7 +368,7 @@ def test_check_io():
 @pytest.mark.parametrize(
     "obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}]
 )
-def test_check_input_output_unrecognized_obj_getter(obj_getter):
+def test_check_input_output_unrecognized_obj_getter(obj_getter) -> None:
     """
     Test that check_input and check_output raise correct errors on unrecognized
     dataframe object getters
@@ -399,7 +407,7 @@ def test_check_input_output_unrecognized_obj_getter(obj_getter):
         ),
     ],
 )
-def test_check_io_unrecognized_obj_getter(out, error, msg):
+def test_check_io_unrecognized_obj_getter(out, error, msg) -> None:
     """
     Test that check_io raise correct errors on unrecognized decorator arguments
     """
@@ -412,14 +420,15 @@ def test_check_io_unrecognized_obj_getter(out, error, msg):
         test_check_io_fn(pd.DataFrame({"column": [1, 2, 3]}))
 
 
-# required to be a global: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+# required to be a global: see
+# https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
 class OnlyZeroesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     """Schema with a single column containing zeroes."""
 
     a: Series[int] = Field(eq=0)
 
 
-def test_check_types_arguments():
+def test_check_types_arguments() -> None:
     """Test that check_types forwards key-words arguments to validate."""
     df = pd.DataFrame({"a": [0, 0]})
 
@@ -457,7 +466,7 @@ def test_check_types_arguments():
         transform_lazy(df)
 
 
-def test_check_types_unchanged():
+def test_check_types_unchanged() -> None:
     """Test the check_types behaviour when the dataframe is unchanged within the
     function being checked."""
 
@@ -472,12 +481,18 @@ def test_check_types_unchanged():
     pd.testing.assert_frame_equal(transform(df, 2), df)
 
 
-# required to be globals: see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
+# required to be globals:
+# see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
 class InSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     """Test schema used as input."""
 
     a: Series[int]
     idx: Index[str]
+
+    class Config:  # pylint: disable=too-few-public-methods
+        """Set coerce."""
+
+        coerce = True
 
 
 class DerivedOutSchema(InSchema):
@@ -491,8 +506,13 @@ class OutSchema(SchemaModel):  # pylint: disable=too-few-public-methods
 
     b: Series[int]
 
+    class Config:  # pylint: disable=too-few-public-methods
+        """Set coerce."""
 
-def test_check_types_multiple_inputs():
+        coerce = True
+
+
+def test_check_types_multiple_inputs() -> None:
     """Test that check_types behaviour when multiple inputs are annotated."""
 
     @check_types
@@ -500,7 +520,7 @@ def test_check_types_multiple_inputs():
         return pd.concat([df_1, df_2])
 
     correct = pd.DataFrame({"a": [1]}, index=["1"])
-    transform(correct, correct)
+    transform(correct, df_2=correct)
 
     wrong = pd.DataFrame({"b": [1]})
     with pytest.raises(
@@ -509,7 +529,7 @@ def test_check_types_multiple_inputs():
         transform(correct, wrong)
 
 
-def test_check_types_error_input():
+def test_check_types_error_input() -> None:
     """Test that check_types raises an error when the input is not correct."""
 
     @check_types
@@ -529,14 +549,32 @@ def test_check_types_error_input():
         assert exc.data.equals(df)
 
 
-@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
-def test_check_types_error_output(out_schema_cls):
+def test_check_types_error_output() -> None:
     """Test that check_types raises an error when the output is not correct."""
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
     @check_types
-    def transform(df: DataFrame[InSchema]) -> DataFrame[out_schema_cls]:
+    def transform_derived(
+        df: DataFrame[InSchema],
+    ) -> DataFrame[DerivedOutSchema]:
+        return df
+
+    with pytest.raises(
+        errors.SchemaError, match="column 'b' not in dataframe"
+    ):
+        transform_derived(df)
+
+    try:
+        transform_derived(df)
+    except errors.SchemaError as exc:
+        assert exc.schema == DerivedOutSchema.to_schema()
+        assert exc.data.equals(df)
+
+    df = pd.DataFrame({"a": [1]}, index=["1"])
+
+    @check_types
+    def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
         return df
 
     with pytest.raises(
@@ -547,44 +585,313 @@ def test_check_types_error_output(out_schema_cls):
     try:
         transform(df)
     except errors.SchemaError as exc:
-        assert exc.schema == out_schema_cls.to_schema()
+        assert exc.schema == OutSchema.to_schema()
         assert exc.data.equals(df)
 
 
-@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
-def test_check_types_optional_out(out_schema_cls):
-    """Test the check_types behaviour when the output schema is optional."""
+def test_check_types_optional_out() -> None:
+    """Test the check_types behaviour when the output schema is Optional."""
+
+    @check_types
+    def optional_derived_out(
+        df: DataFrame[InSchema],  # pylint: disable=unused-argument
+    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+        return None
+
+    df = pd.DataFrame({"a": [1]}, index=["1"])
+    assert optional_derived_out(df) is None
 
     @check_types
     def optional_out(
         df: DataFrame[InSchema],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[out_schema_cls]]:
+    ) -> typing.Optional[DataFrame[OutSchema]]:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
     assert optional_out(df) is None
 
 
-def test_check_types_optional_in():
-    """Test the check_types behaviour when the input schema is optional."""
+def test_check_types_optional_in() -> None:
+    """Test the check_types behaviour when the input schema is Optional."""
 
     @check_types
     def optional_in(
-        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
+        # pylint: disable=unused-argument
+        df: typing.Optional[DataFrame[InSchema]],
     ) -> None:
         return None
 
     assert optional_in(None) is None
 
 
-@pytest.mark.parametrize("out_schema_cls", [DerivedOutSchema, OutSchema])
-def test_check_types_optional_in_out(out_schema_cls):
-    """Test the check_types behaviour when both input and outputs schemas are optional."""
+def test_check_types_optional_in_out() -> None:
+    """
+    Test the check_types behaviour when both input and outputs schemas are
+    Optional.
+    """
+
+    @check_types
+    def transform_derived(
+        # pylint: disable=unused-argument
+        df: typing.Optional[DataFrame[InSchema]],
+    ) -> typing.Optional[DataFrame[DerivedOutSchema]]:
+        return None
+
+    assert transform_derived(None) is None
 
     @check_types
     def transform(
-        df: Optional[DataFrame[InSchema]],  # pylint: disable=unused-argument
-    ) -> Optional[DataFrame[out_schema_cls]]:
+        # pylint: disable=unused-argument
+        df: typing.Optional[DataFrame[InSchema]],
+    ) -> typing.Optional[DataFrame[OutSchema]]:
         return None
 
     assert transform(None) is None
+
+
+def test_check_types_coerce() -> None:
+    """Test that check_types return the result of validate."""
+
+    @check_types()
+    def transform_in(df: DataFrame[InSchema]):
+        return df
+
+    df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))
+    expected = InSchema.to_schema().columns["a"].dtype
+    assert Engine.dtype(df["a"].dtype) == expected
+
+    @check_types()
+    def transform_out() -> DataFrame[OutSchema]:
+        # OutSchema.b should be coerced to an integer.
+        return pd.DataFrame({"b": ["1"]})
+
+    out_df = transform_out()
+    expected = OutSchema.to_schema().columns["b"].dtype
+    assert Engine.dtype(out_df["b"].dtype) == expected
+
+
+@pytest.mark.parametrize(
+    "arg_examples",
+    [
+        [1, 5, 10, 123],
+        list("abcdefg"),
+        [1.0, 1.1, 1.3, 10.2],
+        [None],
+    ],
+)
+def test_check_types_with_literal_type(arg_examples):
+    """Test that using typing module types works with check_types"""
+
+    for example in arg_examples:
+        arg_type = Literal[example]
+
+        @check_types
+        def transform_with_literal(
+            df: DataFrame[InSchema],
+            arg: arg_type,  # pylint: disable=unused-argument
+        ) -> DataFrame[OutSchema]:
+            return df.assign(b=100)
+
+        df = pd.DataFrame({"a": [1]})
+        invalid_df = pd.DataFrame()
+
+        transform_with_literal(df, example)
+        with pytest.raises(errors.SchemaError):
+            transform_with_literal(invalid_df, example)
+
+
+def test_check_types_method_args() -> None:
+    """Test that @check_types works with positional and keyword args in methods,
+    classmethods and staticmethods.
+    """
+    # pylint: disable=unused-argument,missing-class-docstring,too-few-public-methods,missing-function-docstring
+
+    class SchemaIn1(SchemaModel):
+        col1: Series[int]
+
+        class Config:
+            strict = True
+
+    class SchemaIn2(SchemaModel):
+        col2: Series[int]
+
+        class Config:
+            strict = True
+
+    class SchemaOut(SchemaModel):
+        col3: Series[int]
+
+        class Config:
+            strict = True
+
+    in1: DataFrame[SchemaIn1] = DataFrame({SchemaIn1.col1: [1]})
+    in2: DataFrame[SchemaIn2] = DataFrame({SchemaIn2.col2: [2]})
+    out: DataFrame[SchemaOut] = DataFrame({SchemaOut.col3: [3]})
+
+    class SomeClass:
+        @check_types
+        def regular_method(  # pylint: disable=no-self-use
+            self,
+            df1: DataFrame[SchemaIn1],
+            df2: DataFrame[SchemaIn2],
+        ) -> DataFrame[SchemaOut]:
+            return out
+
+        @classmethod
+        @check_types
+        def class_method(
+            cls, df1: DataFrame[SchemaIn1], df2: DataFrame[SchemaIn2]
+        ) -> DataFrame[SchemaOut]:
+            return out
+
+        @staticmethod
+        @check_types
+        def static_method(
+            df1: DataFrame[SchemaIn1], df2: DataFrame[SchemaIn2]
+        ) -> DataFrame[SchemaOut]:
+            return out
+
+    instance = SomeClass()
+
+    pd.testing.assert_frame_equal(
+        out, instance.regular_method(in1, in2)
+    )  # Used to fail
+    pd.testing.assert_frame_equal(out, instance.regular_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(
+        out, instance.regular_method(df1=in1, df2=in2)
+    )
+
+    with pytest.raises(errors.SchemaError):
+        instance.regular_method(in2, in1)  # Used to fail
+    with pytest.raises(errors.SchemaError):
+        instance.regular_method(in2, df2=in1)
+    with pytest.raises(errors.SchemaError):
+        instance.regular_method(df1=in2, df2=in1)
+
+    pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, in2))
+    pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(
+        out, SomeClass.class_method(df1=in1, df2=in2)
+    )
+
+    with pytest.raises(errors.SchemaError):
+        instance.class_method(in2, in1)
+    with pytest.raises(errors.SchemaError):
+        instance.class_method(in2, df2=in1)
+    with pytest.raises(errors.SchemaError):
+        instance.class_method(df1=in2, df2=in1)
+
+    pd.testing.assert_frame_equal(out, instance.static_method(in1, in2))
+    pd.testing.assert_frame_equal(out, SomeClass.static_method(in1, in2))
+    pd.testing.assert_frame_equal(out, instance.static_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(out, SomeClass.static_method(in1, df2=in2))
+    pd.testing.assert_frame_equal(
+        out, instance.static_method(df1=in1, df2=in2)
+    )
+
+    with pytest.raises(errors.SchemaError):
+        instance.static_method(in2, in1)
+    with pytest.raises(errors.SchemaError):
+        instance.static_method(in2, df2=in1)
+    with pytest.raises(errors.SchemaError):
+        instance.static_method(df1=in2, df2=in1)
+
+
+def test_coroutines(event_loop: AbstractEventLoop) -> None:
+    # pylint: disable=missing-class-docstring,too-few-public-methods,missing-function-docstring
+    class Schema(SchemaModel):
+        col1: Series[int]
+
+        class Config:
+            strict = True
+
+    @check_types
+    @check_output(Schema.to_schema())
+    @check_input(Schema.to_schema())
+    @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+    async def coroutine(df1: DataFrame[Schema]) -> DataFrame[Schema]:
+        return df1
+
+    class Meta(type):
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def regular_meta_coroutine(
+            cls,
+            df1: DataFrame[Schema],
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @classmethod
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def class_meta_coroutine(  # pylint: disable=bad-mcs-classmethod-argument
+            mcs, df1: DataFrame[Schema]
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @staticmethod
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema())
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def static_meta_coroutine(
+            df1: DataFrame[Schema],
+        ) -> DataFrame[Schema]:
+            return df1
+
+    class SomeClass(metaclass=Meta):
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def regular_coroutine(  # pylint: disable=no-self-use
+            self,
+            df1: DataFrame[Schema],
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @classmethod
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema(), "df1")
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def class_coroutine(
+            cls, df1: DataFrame[Schema]
+        ) -> DataFrame[Schema]:
+            return df1
+
+        @staticmethod
+        @check_types
+        @check_output(Schema.to_schema())
+        @check_input(Schema.to_schema())
+        @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
+        async def static_coroutine(
+            df1: DataFrame[Schema],
+        ) -> DataFrame[Schema]:
+            return df1
+
+    async def check_coros() -> None:
+        good_df: DataFrame[Schema] = DataFrame({Schema.col1: [1]})
+        bad_df: DataFrame[Schema] = DataFrame({"bad_schema": [1]})
+        instance = SomeClass()
+        for coro in [
+            coroutine,
+            instance.regular_coroutine,
+            SomeClass.class_coroutine,
+            instance.static_coroutine,
+            SomeClass.static_coroutine,
+            SomeClass.class_meta_coroutine,
+            SomeClass.static_meta_coroutine,
+            SomeClass.regular_meta_coroutine,
+        ]:
+            res = await coro(good_df)
+            pd.testing.assert_frame_equal(good_df, res)
+
+            with pytest.raises(errors.SchemaError):
+                await coro(bad_df)
+
+    event_loop.run_until_complete(check_coros())

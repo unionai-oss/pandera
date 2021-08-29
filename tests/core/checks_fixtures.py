@@ -1,5 +1,6 @@
 """Pytest fixtures for testing custom checks."""
-import unittest.mock as mock
+from typing import Generator
+from unittest import mock
 
 import pandas as pd
 import pytest
@@ -11,7 +12,7 @@ __all__ = "custom_check_teardown", "extra_registered_checks"
 
 
 @pytest.fixture(scope="function")
-def custom_check_teardown():
+def custom_check_teardown() -> Generator[None, None, None]:
     """Remove all custom checks after execution of each pytest function."""
     yield
     for check_name in list(pa.Check.REGISTERED_CUSTOM_CHECKS):
@@ -19,7 +20,7 @@ def custom_check_teardown():
 
 
 @pytest.fixture(scope="function")
-def extra_registered_checks():
+def extra_registered_checks() -> Generator[None, None, None]:
     """temporarily registers custom checks onto the Check class"""
     # pylint: disable=unused-variable
     with mock.patch(
