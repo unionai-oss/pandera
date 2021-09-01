@@ -881,30 +881,33 @@ def test_schema_component_with_no_pdtype() -> None:
 def test_datetime_example() -> None:
     """Test Column schema example method generate examples of
     timezone-naive datetimes that pass."""
-    column_schema = pa.Column(
-        "datetime",
-        checks=[
-            pa.Check.eq(pd.Timestamp("2006-01-01")),
-            pa.Check.ne(np.datetime64("2005-02-25")),
-            pa.Check.isin([np.datetime64("2006-01-01")]),
-        ],
-        name="test_datetime",
-    )
-    for _ in range(10):
-        column_schema(column_schema.example())
+
+    for checks in [
+        pa.Check.le(pd.Timestamp("2006-01-01")),
+        pa.Check.ge(np.datetime64("2006-01-01")),
+        pa.Check.eq(pd.Timestamp("2006-01-01")),
+        pa.Check.isin([np.datetime64("2006-01-01")]),
+    ]:
+        column_schema = pa.Column(
+            "datetime", checks=checks, name="test_datetime"
+        )
+        for _ in range(5):
+            column_schema(column_schema.example())
 
 
 def test_datetime_tz_example() -> None:
     """Test Column schema example method generate examples of
     timezone-aware datetimes that pass."""
-    column_schema = pa.Column(
-        pd.DatetimeTZDtype(tz="UTC"),
-        checks=[
-            pa.Check.eq(pd.Timestamp("2006-01-01", tz="UTC")),
-            pa.Check.ne(pd.Timestamp("2006-01-02")),
-            pa.Check.isin([pd.Timestamp("2006-01-01", tz="UTC")]),
-        ],
-        name="test_datetime_tz",
-    )
-    for _ in range(1):
-        column_schema(column_schema.example())
+    for checks in [
+        pa.Check.le(pd.Timestamp("2006-01-01", tz="CET")),
+        pa.Check.ge(pd.Timestamp("2006-01-01", tz="UTC")),
+        pa.Check.eq(pd.Timestamp("2006-01-01", tz="CET")),
+        pa.Check.isin([pd.Timestamp("2006-01-01", tz="UTC")]),
+    ]:
+        column_schema = pa.Column(
+            pd.DatetimeTZDtype(tz="UTC"),
+            checks=checks,
+            name="test_datetime_tz",
+        )
+        for _ in range(5):
+            column_schema(column_schema.example())

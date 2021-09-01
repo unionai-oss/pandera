@@ -245,6 +245,10 @@ def _datetime_strategy(
         return st.builds(dtype.type, strategy, res)
 
 
+def _to_unix_timestamp(value: Any) -> int:
+    return pd.Timestamp(value).value
+
+
 def numpy_time_dtypes(
     dtype: Union[np.dtype, pd.DatetimeTZDtype], min_value=None, max_value=None
 ):
@@ -255,13 +259,13 @@ def numpy_time_dtypes(
     :param max_value: maximum value of the datatype to create
     :returns: ``hypothesis`` strategy
     """
-    return _datetime_strategy(
-        dtype,
-        st.integers(
-            min_value=MIN_DT_VALUE if min_value is None else min_value,
-            max_value=MAX_DT_VALUE if max_value is None else max_value,
-        ),
+    min_value = (
+        MIN_DT_VALUE if min_value is None else _to_unix_timestamp(min_value)
     )
+    max_value = (
+        MAX_DT_VALUE if max_value is None else _to_unix_timestamp(max_value)
+    )
+    return _datetime_strategy(dtype, st.integers(min_value, max_value))
 
 
 def numpy_complex_dtypes(
@@ -1063,7 +1067,8 @@ def dataframe_strategy(
         }
 
         nullable_columns = {
-            col_name: col.nullable for col_name, col in expanded_columns.items()
+            col_name: col.nullable
+            for col_name, col in expanded_columns.items()
         }
 
         row_strategy = None
