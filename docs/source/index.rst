@@ -314,6 +314,7 @@ Submit issues, feature requests or bugfixes on
    data_synthesis_strategies
    extensions
    third_party_schema
+   scaling
 
 .. toctree::
    :maxdepth: 6
