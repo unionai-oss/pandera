@@ -1269,6 +1269,29 @@ def test_lazy_dataframe_scalar_false_check(
         schema(data, lazy=True)
 
 
+def test_lazy_dataframe_unique() -> None:
+    """ Tests the lazy evaluation of the unique keyword """
+    data = pd.DataFrame.from_dict(
+        {"A": [1, 2, 3, 4], "B": [1, 2, 3, 1], "C": [1, 2, 3, 1]}
+    )
+    schema = DataFrameSchema(
+        columns={"A": Column(Int), "B": Column(Int), "C": Column(Int)},
+        strict=False,
+        coerce=True,
+        unique=None,
+    )
+    assert isinstance(schema.validate(data, lazy=False), pd.DataFrame)
+    schema.unique = ["A", "B"]
+    assert isinstance(schema.validate(data, lazy=False), pd.DataFrame)
+    schema.unique = ["B", "C"]
+    try:
+        schema.validate(data, lazy=True)
+    except errors.SchemaErrors as err:
+        errors_df = pd.DataFrame(err.failure_cases)
+        assert list(errors_df["column"].values) == ["B", "B", "C", "C"]
+        assert list(errors_df["index"].values) == [0, 3, 0, 3]
+
+
 @pytest.mark.parametrize(
     "schema, data, expectation",
     [
@@ -1769,3 +1792,27 @@ def test_column_set_unique():
     assert not test_schema.columns["a"].unique
     test_schema = test_schema.update_column("a", unique=True)
     assert test_schema.columns["a"].unique
+
+
+def test_unique_and_set_duplicates_setters() -> None:
+    """ Test the setting of `unique` and `allow_duplicates` properties """
+    test_schema = DataFrameSchema(
+        columns={
+            "a": Column(int, unique=True),
+        },
+        unique=None,
+    )
+    assert not test_schema.columns["a"].allow_duplicates
+    test_schema.columns["a"].unique = False
+    assert test_schema.columns["a"].allow_duplicates
+    test_schema.columns["a"].allow_duplicates = False
+    assert test_schema.columns["a"].unique
+    test_schema.columns["a"].allow_duplicates = True
+    assert not test_schema.columns["a"].unique
+
+    test_schema.unique = "a"
+    assert test_schema.unique == ["a"]
+    test_schema.unique = ["a"]
+    assert test_schema.unique == ["a"]
+    test_schema.unique = None
+    assert not test_schema.unique
