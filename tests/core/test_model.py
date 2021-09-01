@@ -2,7 +2,7 @@
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
 from decimal import Decimal  # pylint:disable=C0415
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 import pandas as pd
 import pytest
@@ -18,10 +18,11 @@ def test_to_schema() -> None:
     class Schema(pa.SchemaModel):
         a: Series[int]
         b: Series[str]
+        c: Series[Any]
         idx: Index[str]
 
     expected = pa.DataFrameSchema(
-        columns={"a": pa.Column(int), "b": pa.Column(str)},
+        columns={"a": pa.Column(int), "b": pa.Column(str), "c": pa.Column()},
         index=pa.Index(str),
     )
 
