@@ -357,6 +357,7 @@ def test_check_io() -> None:
     for out_schema in [1, 5.0, "foo", {"foo": "bar"}, ["foo"]]:
 
         # mypy finds correctly the wrong usage
+        # pylint: disable=cell-var-from-loop
         @check_io(out=out_schema)  # type: ignore[arg-type]
         def invalid_out_schema_type(df):
             return df
@@ -688,7 +689,8 @@ def test_check_types_with_literal_type(arg_examples):
         @check_types
         def transform_with_literal(
             df: DataFrame[InSchema],
-            arg: arg_type,  # pylint: disable=unused-argument
+            # pylint: disable=unused-argument,cell-var-from-loop
+            arg: arg_type,
         ) -> DataFrame[OutSchema]:
             return df.assign(b=100)
 

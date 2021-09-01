@@ -298,6 +298,8 @@ class SchemaModel:
             else:
                 dtype = annotation.arg
 
+            dtype = None if dtype is Any else dtype
+
             if annotation.origin is Series:
                 col_constructor = (
                     field.to_column if field else schema_components.Column
