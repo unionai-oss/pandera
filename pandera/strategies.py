@@ -230,10 +230,10 @@ def _datetime_strategy(
 
     if isinstance(dtype, pd.DatetimeTZDtype):
 
-        def _to_datetime(value: Any) -> pd.DatetimeTZDtype:
+        def _to_datetime(value) -> pd.DatetimeTZDtype:
             if isinstance(value, pd.Timestamp):
-                return value.tz_convert(tz=dtype.tz)
-            return pd.Timestamp(value, unit=dtype.unit, tz=dtype.tz)
+                return value.tz_convert(tz=dtype.tz)  # type: ignore[union-attr]
+            return pd.Timestamp(value, unit=dtype.unit, tz=dtype.tz)  # type: ignore[union-attr]
 
         return st.builds(_to_datetime, strategy)
     else:
