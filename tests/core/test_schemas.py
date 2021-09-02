@@ -1270,7 +1270,7 @@ def test_lazy_dataframe_scalar_false_check(
 
 
 def test_lazy_dataframe_unique() -> None:
-    """ Tests the lazy evaluation of the unique keyword """
+    """Tests the lazy evaluation of the unique keyword"""
     data = pd.DataFrame.from_dict(
         {"A": [1, 2, 3, 4], "B": [1, 2, 3, 1], "C": [1, 2, 3, 1]}
     )
@@ -1795,7 +1795,7 @@ def test_column_set_unique():
 
 
 def test_unique_and_set_duplicates_setters() -> None:
-    """ Test the setting of `unique` and `allow_duplicates` properties """
+    """Test the setting of `unique` and `allow_duplicates` properties"""
     test_schema = DataFrameSchema(
         columns={
             "a": Column(int, unique=True),
