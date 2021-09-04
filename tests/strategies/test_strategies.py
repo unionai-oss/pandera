@@ -482,19 +482,36 @@ def test_dataframe_strategy(data_type, size, data):
         )
     else:
         assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
-    # with pytest.raises(pa.errors.BaseStrategyOnlyError):
-    #     strategies.dataframe_strategy(
-    #         data_type, strategies.pandas_dtype_strategy(data_type)
-    #     )
+
+    with pytest.raises(pa.errors.BaseStrategyOnlyError):
+        strategies.dataframe_strategy(
+            data_type, strategies.pandas_dtype_strategy(data_type)
+        )
 
 
-def test_dataframe_example() -> None:
+@hypothesis.given(st.data())
+def test_dataframe_example(data) -> None:
     """Test DataFrameSchema example method generate examples that pass."""
+    schema = pa.DataFrameSchema({"column": pa.Column(int, pa.Check.gt(0))})
+    df_sample = data.draw(schema.strategy(size=10))
+    schema(df_sample)
+
+
+@pytest.mark.parametrize("size", [3, 5, 10])
+@hypothesis.given(st.data())
+def test_dataframe_unique(size, data) -> None:
+    """Test that DataFrameSchemas with unique columns are actually unique."""
     schema = pa.DataFrameSchema(
-        {"column": pa.Column(pa.Int(), pa.Check.gt(0))}
+        {
+            "col1": pa.Column(int),
+            "col2": pa.Column(float),
+            "col3": pa.Column(str),
+            "col4": pa.Column(int),
+        },
+        unique=["col1", "col2", "col3"],
     )
-    for _ in range(10):
-        schema(schema.example())
+    df_sample = data.draw(schema.strategy(size=size))
+    schema(df_sample)
 
 
 @pytest.mark.parametrize(

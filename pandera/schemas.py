@@ -781,6 +781,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             self.dtype,
             columns=self.columns,
             checks=self.checks,
+            unique=self.unique,
             index=self.index,
             size=size,
             n_regex_columns=n_regex_columns,

@@ -876,6 +876,7 @@ def dataframe_strategy(
     *,
     columns: Optional[Dict] = None,
     checks: Optional[Sequence] = None,
+    unique: Optional[List[str]] = None,
     index: Optional[IndexComponent] = None,
     size: Optional[int] = None,
     n_regex_columns: int = 1,
@@ -889,12 +890,13 @@ def dataframe_strategy(
         are :class:`~pandera.schema_components.Column` objects.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data at the dataframe level.
+    :param unique: a list of column names that should be jointly unique.
     :param index: Index or MultiIndex schema component.
     :param size: number of elements in the Series.
     :param n_regex_columns: number of regex columns to generate.
     :returns: ``hypothesis`` strategy.
     """
-    # pylint: disable=too-many-locals,too-many-branches
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     if n_regex_columns < 1:
         raise ValueError(
             "`n_regex_columns` must be a positive integer, found: "
@@ -982,6 +984,15 @@ def dataframe_strategy(
         # regex=True.
         expanded_columns = {}
         for col_name, column in columns.items():
+            if unique and col_name in unique:
+                # if the column is in the set of columns specified in `unique`,
+                # make the column strategy independently unique. This is
+                # technically stricter than it should be, since the list of
+                # columns in `unique` are required to be jointly unique, but
+                # this is a simple solution that produces synthetic data that
+                # fulfills the uniqueness constraints of the dataframe.
+                column = deepcopy(column)
+                column.unique = True
             if not column.regex:
                 expanded_columns[col_name] = column
             else:
