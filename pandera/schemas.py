@@ -646,7 +646,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                             check_obj,
                             f"columns '{*lst,}' not unique:\n{failure_cases}",
                             failure_cases=failure_cases,
-                            check="unique",
+                            check="multiple_fields_uniqueness",
                         ),
                     )
 
@@ -1825,7 +1825,7 @@ class SeriesSchemaBase:
                         failure_cases=reshape_failure_cases(
                             series[duplicates]
                         ),
-                        check="no_duplicates",
+                        check="field_uniqueness",
                     ),
                 )
 
