@@ -96,6 +96,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             pandas.DataFrame -> pandas.DataFrame. If specified, calling
             `validate` will verify properties of the columns and return the
             transformed dataframe object.
+
+            .. warning:: This feature is deprecated and no longer has an effect
+                on validated dataframes.
+
         :param coerce: whether or not to coerce all of the columns on
             validation. This has no effect on columns where
             ``pandas_dtype=None``
@@ -201,16 +205,13 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     @property
     def unique(self):
-        """Whether to check for duplicates in check object"""
+        """List of columns that should be jointly unique."""
         return self._unique
 
     @unique.setter
     def unique(self, value: Optional[Union[str, List[str]]]) -> None:
-        """Set unique attribute"""
-        if value is None or isinstance(value, list):
-            self._unique = value
-        else:
-            self._unique = [value]
+        """Set unique attribute."""
+        self._unique = [value] if isinstance(value, str) else value
 
     @property
     def ordered(self):
@@ -635,22 +636,18 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             for lst in temp_unique:
                 duplicates = df_to_validate.duplicated(subset=lst, keep=False)
                 if any(duplicates):
-                    failure_cases = df_to_validate.loc[duplicates, lst]
-                    print(reshape_failure_cases(failure_cases))
-                    msg = f"columns '{*lst,}' not unique"
-                    e = errors.SchemaError(
-                        self,
-                        check_obj,
-                        msg,
-                        failure_cases=reshape_failure_cases(failure_cases),
-                        check="duplicates",
+                    failure_cases = reshape_failure_cases(
+                        df_to_validate.loc[duplicates, lst]
                     )
-                    if not lazy:
-                        raise e
-
                     error_handler.collect_error(
                         "duplicates",
-                        e,
+                        errors.SchemaError(
+                            self,
+                            check_obj,
+                            f"columns '{*lst,}' not unique:\n{failure_cases}",
+                            failure_cases=failure_cases,
+                            check="unique",
+                        ),
                     )
 
         if lazy and error_handler.collected_errors:

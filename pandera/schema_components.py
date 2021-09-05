@@ -458,6 +458,7 @@ class MultiIndex(DataFrameSchema):
         strict: bool = False,
         name: str = None,
         ordered: bool = True,
+        unique: Optional[Union[str, List[str]]] = None,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -469,6 +470,7 @@ class MultiIndex(DataFrameSchema):
             aren't defined in the ``indexes`` argument.
         :param name: name of schema component
         :param ordered: whether or not to validate the indexes order.
+        :param unique: a list of index names that should be jointly unique.
 
         :example:
 
@@ -532,6 +534,7 @@ class MultiIndex(DataFrameSchema):
             strict=strict,
             name=name,
             ordered=ordered,
+            unique=unique,
         )
 
     @property
