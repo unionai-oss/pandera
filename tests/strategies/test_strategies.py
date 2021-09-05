@@ -39,6 +39,8 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         continue
     SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype(data_type))
 
+SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype("datetime64[ns, UTC]"))
+
 NUMERIC_DTYPES = [
     data_type for data_type in SUPPORTED_DTYPES if data_type.continuous
 ]
@@ -51,20 +53,19 @@ NULLABLE_DTYPES = [
     and not data_type == pandas_engine.Engine.dtype("object")
 ]
 
-NUMERIC_RANGE_CONSTANT = 10
-DATE_RANGE_CONSTANT = np.timedelta64(NUMERIC_RANGE_CONSTANT, "D")
-COMPLEX_RANGE_CONSTANT = np.complex64(
-    complex(NUMERIC_RANGE_CONSTANT, NUMERIC_RANGE_CONSTANT)  # type: ignore
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        pa.Category,
+        pandas_engine.Interval(  # type: ignore # pylint:disable=unexpected-keyword-arg,no-value-for-parameter
+            subtype=np.int64
+        ),
+    ],
 )
-
-
-@pytest.mark.parametrize("data_type", [pa.Category])
 def test_unsupported_pandas_dtype_strategy(data_type):
     """Test unsupported pandas dtype strategy raises error."""
-    with pytest.raises(
-        TypeError,
-        match="data generation for the Category dtype is currently unsupported",
-    ):
+    with pytest.raises(TypeError, match=r"is currently unsupported"):
         strategies.pandas_dtype_strategy(data_type)
 
 
@@ -84,10 +85,14 @@ def test_pandas_dtype_strategy(data_type, data):
     example = data.draw(strategy)
 
     expected_type = strategies.to_numpy_dtype(data_type).type
+    if isinstance(example, pd.Timestamp):
+        example = example.to_numpy()
     assert example.dtype.type == expected_type
 
     chained_strategy = strategies.pandas_dtype_strategy(data_type, strategy)
     chained_example = data.draw(chained_strategy)
+    if isinstance(chained_example, pd.Timestamp):
+        chained_example = chained_example.to_numpy()
     assert chained_example.dtype.type == expected_type
 
 
@@ -888,3 +893,38 @@ def test_schema_component_with_no_pdtype() -> None:
     ]:
         with pytest.raises(pa.errors.SchemaDefinitionError):
             schema_component_strategy(pandera_dtype=None)  # type: ignore
+
+
+def test_datetime_example() -> None:
+    """Test Column schema example method generate examples of
+    timezone-naive datetimes that pass."""
+
+    for checks in [
+        pa.Check.le(pd.Timestamp("2006-01-01")),
+        pa.Check.ge(np.datetime64("2006-01-01")),
+        pa.Check.eq(pd.Timestamp("2006-01-01")),
+        pa.Check.isin([np.datetime64("2006-01-01")]),
+    ]:
+        column_schema = pa.Column(
+            "datetime", checks=checks, name="test_datetime"
+        )
+        for _ in range(5):
+            column_schema(column_schema.example())
+
+
+def test_datetime_tz_example() -> None:
+    """Test Column schema example method generate examples of
+    timezone-aware datetimes that pass."""
+    for checks in [
+        pa.Check.le(pd.Timestamp("2006-01-01", tz="CET")),
+        pa.Check.ge(pd.Timestamp("2006-01-01", tz="UTC")),
+        pa.Check.eq(pd.Timestamp("2006-01-01", tz="CET")),
+        pa.Check.isin([pd.Timestamp("2006-01-01", tz="UTC")]),
+    ]:
+        column_schema = pa.Column(
+            pd.DatetimeTZDtype(tz="UTC"),
+            checks=checks,
+            name="test_datetime_tz",
+        )
+        for _ in range(5):
+            column_schema(column_schema.example())

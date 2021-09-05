@@ -219,7 +219,39 @@ MIN_DT_VALUE = -(2 ** 63)
 MAX_DT_VALUE = 2 ** 63 - 1
 
 
-def numpy_time_dtypes(dtype: np.dtype, min_value=None, max_value=None):
+def _is_datetime_tz(pandera_dtype: DataType) -> bool:
+    native_type = getattr(pandera_dtype, "type", None)
+    return isinstance(native_type, pd.DatetimeTZDtype)
+
+
+def _datetime_strategy(
+    dtype: Union[np.dtype, pd.DatetimeTZDtype], strategy
+) -> SearchStrategy:
+
+    if isinstance(dtype, pd.DatetimeTZDtype):
+
+        def _to_datetime(value) -> pd.DatetimeTZDtype:
+            if isinstance(value, pd.Timestamp):
+                return value.tz_convert(tz=dtype.tz)  # type: ignore[union-attr]
+            return pd.Timestamp(value, unit=dtype.unit, tz=dtype.tz)  # type: ignore[union-attr]
+
+        return st.builds(_to_datetime, strategy)
+    else:
+        res = (
+            st.just(dtype.str.split("[")[-1][:-1])
+            if "[" in dtype.str
+            else st.sampled_from(npst.TIME_RESOLUTIONS)
+        )
+        return st.builds(dtype.type, strategy, res)
+
+
+def _to_unix_timestamp(value: Any) -> int:
+    return pd.Timestamp(value).value
+
+
+def numpy_time_dtypes(
+    dtype: Union[np.dtype, pd.DatetimeTZDtype], min_value=None, max_value=None
+):
     """Create numpy strategy for datetime and timedelta data types.
 
     :param dtype: numpy datetime or timedelta datatype
@@ -227,19 +259,13 @@ def numpy_time_dtypes(dtype: np.dtype, min_value=None, max_value=None):
     :param max_value: maximum value of the datatype to create
     :returns: ``hypothesis`` strategy
     """
-    res = (
-        st.just(dtype.str.split("[")[-1][:-1])
-        if "[" in dtype.str
-        else st.sampled_from(npst.TIME_RESOLUTIONS)
+    min_value = (
+        MIN_DT_VALUE if min_value is None else _to_unix_timestamp(min_value)
     )
-    return st.builds(
-        dtype.type,
-        st.integers(
-            MIN_DT_VALUE if min_value is None else min_value.astype(np.int64),
-            MAX_DT_VALUE if max_value is None else max_value.astype(np.int64),
-        ),
-        res,
+    max_value = (
+        MAX_DT_VALUE if max_value is None else _to_unix_timestamp(max_value)
     )
+    return _datetime_strategy(dtype, st.integers(min_value, max_value))
 
 
 def numpy_complex_dtypes(
@@ -307,7 +333,17 @@ def numpy_complex_dtypes(
 def to_numpy_dtype(pandera_dtype: DataType):
     """Convert a :class:`~pandera.dtypes.DataType` to numpy dtype compatible
     with hypothesis."""
-    np_dtype = pandas_engine.Engine.numpy_dtype(pandera_dtype)
+    try:
+        np_dtype = pandas_engine.Engine.numpy_dtype(pandera_dtype)
+    except TypeError as err:
+        if is_datetime(pandera_dtype):
+            return np.dtype("datetime64[ns]")
+
+        raise TypeError(
+            f"Data generation for the '{pandera_dtype}' data type is currently "
+            "unsupported."
+        ) from err
+
     if np_dtype == np.dtype("object"):
         np_dtype = np.dtype(str)
     return np_dtype
@@ -346,10 +382,12 @@ def pandas_dtype_strategy(
 
     np_dtype = to_numpy_dtype(pandera_dtype)
     if strategy:
+        if _is_datetime_tz(pandera_dtype):
+            return _datetime_strategy(pandera_dtype.type, strategy)  # type: ignore
         return strategy.map(np_dtype.type)
     elif is_datetime(pandera_dtype) or is_timedelta(pandera_dtype):
         return numpy_time_dtypes(
-            np_dtype,
+            pandera_dtype.type if _is_datetime_tz(pandera_dtype) else np_dtype,  # type: ignore
             **compat_kwargs("min_value", "max_value"),
         )
     elif is_complex(pandera_dtype):
@@ -384,9 +422,8 @@ def eq_strategy(
     :returns: ``hypothesis`` strategy
     """
     # override strategy preceding this one and generate value of the same type
-    if strategy is None:
-        strategy = pandas_dtype_strategy(pandera_dtype)
-    return st.just(value).map(to_numpy_dtype(pandera_dtype).type)
+    # pylint: disable=unused-argument
+    return pandas_dtype_strategy(pandera_dtype, st.just(value))
 
 
 def ne_strategy(
@@ -550,8 +587,8 @@ def isin_strategy(
     :returns: ``hypothesis`` strategy
     """
     if strategy is None:
-        return st.sampled_from(allowed_values).map(
-            to_numpy_dtype(pandera_dtype).type
+        return pandas_dtype_strategy(
+            pandera_dtype, st.sampled_from(allowed_values)
         )
     return strategy.filter(lambda x: x in allowed_values)
 
@@ -693,6 +730,17 @@ def str_length_strategy(
     return strategy.filter(lambda x: min_value <= len(x) <= max_value)
 
 
+def _timestamp_to_datetime64_strategy(
+    strategy: SearchStrategy,
+) -> SearchStrategy:
+    """Convert timestamp to numpy.datetime64
+    Hypothesis only supports pure numpy dtypes but numpy.datetime64() truncates
+    nanoseconds if given a pandas.Timestamp. We need to pass the unix epoch via
+    the pandas.Timestamp.value attribute.
+    """
+    return st.builds(lambda x: np.datetime64(x.value, "ns"), strategy)
+
+
 def field_element_strategy(
     pandera_dtype: Union[numpy_engine.DataType, pandas_engine.DataType],
     strategy: Optional[SearchStrategy] = None,
@@ -738,6 +786,13 @@ def field_element_strategy(
         # by the series/dataframe strategy.
     if elements is None:
         elements = pandas_dtype_strategy(pandera_dtype)
+
+    # Hypothesis only supports pure numpy datetime64 (i.e. timezone naive).
+    # We cast to datetime64 after applying the check strategy so that checks
+    # can see timezone-aware values.
+    if _is_datetime_tz(pandera_dtype):
+        elements = _timestamp_to_datetime64_strategy(elements)
+
     return elements
 
 
@@ -856,6 +911,7 @@ def index_strategy(
     """
     verify_dtype(pandera_dtype, schema_type="index", name=name)
     elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
+
     strategy = pdst.indexes(
         elements=elements,
         dtype=to_numpy_dtype(pandera_dtype),

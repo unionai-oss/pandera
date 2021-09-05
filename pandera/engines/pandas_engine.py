@@ -157,7 +157,13 @@ class Engine(  # pylint:disable=too-few-public-methods
             alias = "bool"
         elif alias.startswith("string"):
             alias = "str"
-        return np.dtype(alias)
+
+        try:
+            return np.dtype(alias)
+        except TypeError as err:
+            raise TypeError(
+                f"Data type '{pandera_dtype}' cannot be cast to a numpy dtype."
+            ) from err
 
 
 ###############################################################################
