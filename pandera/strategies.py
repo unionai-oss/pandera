@@ -746,8 +746,8 @@ def series_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    nullable: Optional[bool] = False,
-    allow_duplicates: Optional[bool] = True,
+    nullable: bool = False,
+    unique: bool = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):
@@ -759,8 +759,7 @@ def series_strategy(
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
-    :param allow_duplicates: whether or not generated Series contains
-        duplicates.
+    :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
@@ -773,7 +772,7 @@ def series_strategy(
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
-            unique=not allow_duplicates,
+            unique=unique,
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
@@ -807,7 +806,7 @@ def column_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    allow_duplicates: Optional[bool] = True,
+    unique: bool = False,
     name: Optional[str] = None,
 ):
     # pylint: disable=line-too-long
@@ -818,8 +817,7 @@ def column_strategy(
         pandas dtype strategy will be chained onto this strategy.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
-    :param allow_duplicates: whether or not generated Series contains
-        duplicates.
+    :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
     :returns: a `column <https://hypothesis.readthedocs.io/en/latest/numpy.html#hypothesis.extra.pandas.column>`_ object.
     """
@@ -829,7 +827,7 @@ def column_strategy(
         name=name,
         elements=elements,
         dtype=to_numpy_dtype(pandera_dtype),
-        unique=not allow_duplicates,
+        unique=unique,
     )
 
 
@@ -838,8 +836,8 @@ def index_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    nullable: Optional[bool] = False,
-    allow_duplicates: Optional[bool] = True,
+    nullable: bool = False,
+    unique: bool = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):
@@ -851,8 +849,7 @@ def index_strategy(
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
-    :param allow_duplicates: whether or not generated Series contains
-        duplicates.
+    :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
@@ -864,7 +861,7 @@ def index_strategy(
         dtype=to_numpy_dtype(pandera_dtype),
         min_size=0 if size is None else size,
         max_size=size,
-        unique=not allow_duplicates,
+        unique=unique,
     ).map(lambda x: x.astype(str(pandera_dtype)))
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
@@ -879,6 +876,7 @@ def dataframe_strategy(
     *,
     columns: Optional[Dict] = None,
     checks: Optional[Sequence] = None,
+    unique: Optional[List[str]] = None,
     index: Optional[IndexComponent] = None,
     size: Optional[int] = None,
     n_regex_columns: int = 1,
@@ -892,12 +890,13 @@ def dataframe_strategy(
         are :class:`~pandera.schema_components.Column` objects.
     :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
         the values of the data at the dataframe level.
+    :param unique: a list of column names that should be jointly unique.
     :param index: Index or MultiIndex schema component.
     :param size: number of elements in the Series.
     :param n_regex_columns: number of regex columns to generate.
     :returns: ``hypothesis`` strategy.
     """
-    # pylint: disable=too-many-locals,too-many-branches
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     if n_regex_columns < 1:
         raise ValueError(
             "`n_regex_columns` must be a positive integer, found: "
@@ -985,6 +984,15 @@ def dataframe_strategy(
         # regex=True.
         expanded_columns = {}
         for col_name, column in columns.items():
+            if unique and col_name in unique:
+                # if the column is in the set of columns specified in `unique`,
+                # make the column strategy independently unique. This is
+                # technically stricter than it should be, since the list of
+                # columns in `unique` are required to be jointly unique, but
+                # this is a simple solution that produces synthetic data that
+                # fulfills the uniqueness constraints of the dataframe.
+                column = deepcopy(column)
+                column.unique = True
             if not column.regex:
                 expanded_columns[col_name] = column
             else:

@@ -78,6 +78,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         name: Optional[str] = None,
         ordered: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
+        unique: Optional[Union[str, List[str]]] = None,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -95,6 +96,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             pandas.DataFrame -> pandas.DataFrame. If specified, calling
             `validate` will verify properties of the columns and return the
             transformed dataframe object.
+
+            .. warning:: This feature is deprecated and no longer has an effect
+                on validated dataframes.
+
         :param coerce: whether or not to coerce all of the columns on
             validation. This has no effect on columns where
             ``pandas_dtype=None``
@@ -108,6 +113,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
 
             .. warning:: This option will be deprecated in 0.8.0
+
+        :param unique: a list of columns that should be jointly unique.
 
         :raises SchemaInitError: if impossible to build schema from parameters
         :raises SchemaInitError: if ``dtype`` and ``pandas_dtype`` are both
@@ -178,6 +185,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self.dtype = dtype or pandas_dtype  # type: ignore
         self._coerce = coerce
         self._ordered = ordered
+        self._unique = unique
         self._validate_schema()
         self._set_column_names()
 
@@ -196,7 +204,17 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = value
 
     @property
-    def ordered(self) -> bool:
+    def unique(self):
+        """List of columns that should be jointly unique."""
+        return self._unique
+
+    @unique.setter
+    def unique(self, value: Optional[Union[str, List[str]]]) -> None:
+        """Set unique attribute."""
+        self._unique = [value] if isinstance(value, str) else value
+
+    @property
+    def ordered(self):
         """Whether or not to validate the columns order."""
         return self._ordered
 
@@ -609,6 +627,29 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
 
+        if self.unique:
+            temp_unique: List[List] = (
+                [self.unique]
+                if all(isinstance(x, str) for x in self.unique)
+                else self.unique
+            )
+            for lst in temp_unique:
+                duplicates = df_to_validate.duplicated(subset=lst, keep=False)
+                if any(duplicates):
+                    failure_cases = reshape_failure_cases(
+                        df_to_validate.loc[duplicates, lst]
+                    )
+                    error_handler.collect_error(
+                        "duplicates",
+                        errors.SchemaError(
+                            self,
+                            check_obj,
+                            f"columns '{*lst,}' not unique:\n{failure_cases}",
+                            failure_cases=failure_cases,
+                            check="unique",
+                        ),
+                    )
+
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
                 error_handler.collected_errors, check_obj
@@ -737,6 +778,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             self.dtype,
             columns=self.columns,
             checks=self.checks,
+            unique=self.unique,
             index=self.index,
             size=size,
             n_regex_columns=n_regex_columns,
@@ -1305,7 +1347,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                     name=col,
                     checks=new_schema.columns[col].checks,
                     nullable=new_schema.columns[col].nullable,
-                    allow_duplicates=new_schema.columns[col].allow_duplicates,
+                    unique=new_schema.columns[col].unique,
                     coerce=new_schema.columns[col].coerce,
                 )
             )
@@ -1438,9 +1480,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 nullable=new_index.columns[
                     list(new_index.columns)[0]
                 ].nullable,
-                allow_duplicates=new_index.columns[
-                    list(new_index.columns)[0]
-                ].allow_duplicates,
+                unique=new_index.columns[list(new_index.columns)[0]].unique,
                 coerce=new_index.columns[list(new_index.columns)[0]].coerce,
                 name=new_index.columns[list(new_index.columns)[0]].name,
             )
@@ -1462,7 +1502,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         dtype=v.dtype,
                         checks=v.checks,
                         nullable=v.nullable,
-                        allow_duplicates=v.allow_duplicates,
+                        unique=v.unique,
                         coerce=v.coerce,
                         name=v.name,
                     )
@@ -1484,7 +1524,8 @@ class SeriesSchemaBase:
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         name: Any = None,
         pandas_dtype: PandasDtypeInputTypes = None,
@@ -1501,8 +1542,16 @@ class SeriesSchemaBase:
             in the column. Otherwise, the input is assumed to be a
             pandas.Series object.
         :param nullable: Whether or not column can contain null values.
+        :param unique: Whether or not column can contain duplicate
+            values.
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
+
+        .. warning::
+
+            This option will be deprecated in 0.8.0. Use the ``unique``
+            argument instead.
+
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -1511,17 +1560,29 @@ class SeriesSchemaBase:
 
             .. warning:: This option will be deprecated in 0.8.0
 
+        :type nullable: bool
         """
         if checks is None:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
+
+        if allow_duplicates is not None:
+            warnings.warn(
+                "The `allow_duplicates` will be deprecated in "
+                "favor of the `unique` keyword. The value of "
+                "`unique` will be set to the opposite of "
+                "the `allow_duplicates` keyword.",
+                DeprecationWarning,
+            )
+            unique = not allow_duplicates
+
         self.dtype = dtype or pandas_dtype  # type: ignore
         self._nullable = nullable
-        self._allow_duplicates = allow_duplicates
         self._coerce = coerce
         self._checks = checks
         self._name = name
+        self._unique = unique
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
@@ -1571,9 +1632,24 @@ class SeriesSchemaBase:
         return self._nullable
 
     @property
+    def unique(self) -> bool:
+        """Whether to check for duplicates in check object"""
+        return self._unique
+
+    @unique.setter
+    def unique(self, value: bool) -> None:
+        """Set unique attribute"""
+        self._unique = value
+
+    @property
     def allow_duplicates(self) -> bool:
         """Whether to allow duplicate values."""
-        return self._allow_duplicates
+        return not self._unique
+
+    @allow_duplicates.setter
+    def allow_duplicates(self, value: bool) -> None:
+        """Set allow_duplicates attribute."""
+        self._unique = not value
 
     @property
     def coerce(self) -> bool:
@@ -1731,7 +1807,7 @@ class SeriesSchemaBase:
                 )
 
         # Check if the series contains duplicate values
-        if not self._allow_duplicates:
+        if self._unique:
             duplicates = series.duplicated()
             if any(duplicates):
                 msg = "series '%s' contains duplicate values: %s" % (
@@ -1841,7 +1917,7 @@ class SeriesSchemaBase:
             self.dtype,
             checks=self.checks,
             nullable=self.nullable,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
             size=size,
         )
@@ -1879,7 +1955,8 @@ class SeriesSchema(SeriesSchemaBase):
         checks: CheckList = None,
         index=None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         name: str = None,
         pandas_dtype: PandasDtypeInputTypes = None,
@@ -1897,8 +1974,16 @@ class SeriesSchema(SeriesSchemaBase):
             pandas.Series object.
         :param index: specify the datatypes and properties of the index.
         :param nullable: Whether or not column can contain null values.
+        :param unique: Whether or not column can contain duplicate
+            values.
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
+
+        .. warning::
+
+            This option will be deprecated in 0.8.0. Use the ``unique``
+            argument instead.
+
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``pandas_dtype=None``.
@@ -1912,6 +1997,7 @@ class SeriesSchema(SeriesSchemaBase):
             dtype,
             checks,
             nullable,
+            unique,
             allow_duplicates,
             coerce,
             name,

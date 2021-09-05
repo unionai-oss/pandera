@@ -82,6 +82,9 @@ class BaseConfig:  # pylint:disable=R0903
     name: Optional[str] = None  #: name of schema
     coerce: bool = False  #: coerce types of all schema components
 
+    #: make sure certain column combinations are unique
+    unique: Optional[Union[str, List[str]]] = None
+
     #: make sure all specified columns are in the validated dataframe -
     #: if ``"filter"``, removes columns not specified in the schema
     strict: Union[bool, str] = False
@@ -218,6 +221,7 @@ class SchemaModel:
             strict=cls.__config__.strict,
             name=cls.__config__.name,
             ordered=cls.__config__.ordered,
+            unique=cls.__config__.unique,
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore

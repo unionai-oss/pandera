@@ -341,7 +341,7 @@ def test_series_schema() -> None:
         with pytest.raises(TypeError):
             int_schema.validate(TypeError)
 
-    non_duplicate_schema = SeriesSchema(int, allow_duplicates=False)
+    non_duplicate_schema = SeriesSchema(Int, unique=True)
     with pytest.raises(errors.SchemaError):
         non_duplicate_schema.validate(pd.Series([0, 1, 2, 3, 4, 1]))
 
@@ -742,14 +742,14 @@ def test_schema_equality_operators():
         str,
         checks=[Check(lambda s: s.str.startswith("foo"))],
         nullable=False,
-        allow_duplicates=True,
+        unique=False,
         name="my_series",
     )
     series_schema_base = SeriesSchemaBase(
         str,
         checks=[Check(lambda s: s.str.startswith("foo"))],
         nullable=False,
-        allow_duplicates=True,
+        unique=False,
         name="my_series",
     )
     not_equal_schema = DataFrameSchema({"col1": Column(str)}, strict=False)
@@ -895,10 +895,11 @@ def _boolean_update_column_case(
             _boolean_update_column_case(bool_kwarg)
             for bool_kwarg in [
                 "nullable",
-                "allow_duplicates",
                 "coerce",
                 "required",
                 "regex",
+                "allow_duplicates",
+                "unique",
             ]
         ],
         [
@@ -1208,7 +1209,7 @@ def test_lazy_dataframe_validation_nullable_with_checks() -> None:
                 checks=Check.str_matches(r"^ID[\d]{3}$"),
                 name="id",
                 required=True,
-                allow_duplicates=False,
+                unique=True,
             )
         }
     )
@@ -1266,6 +1267,29 @@ def test_lazy_dataframe_scalar_false_check(
     schema = schema_cls(checks=check)
     with pytest.raises(errors.SchemaErrors):
         schema(data, lazy=True)
+
+
+def test_lazy_dataframe_unique() -> None:
+    """Tests the lazy evaluation of the unique keyword"""
+    data = pd.DataFrame.from_dict(
+        {"A": [1, 2, 3, 4], "B": [1, 2, 3, 1], "C": [1, 2, 3, 1]}
+    )
+    schema = DataFrameSchema(
+        columns={"A": Column(Int), "B": Column(Int), "C": Column(Int)},
+        strict=False,
+        coerce=True,
+        unique=None,
+    )
+    assert isinstance(schema.validate(data, lazy=False), pd.DataFrame)
+    schema.unique = ["A", "B"]
+    assert isinstance(schema.validate(data, lazy=False), pd.DataFrame)
+    schema.unique = ["B", "C"]
+    try:
+        schema.validate(data, lazy=True)
+    except errors.SchemaErrors as err:
+        errors_df = pd.DataFrame(err.failure_cases)
+        assert list(errors_df["column"].values) == ["B", "B", "C", "C"]
+        assert list(errors_df["index"].values) == [0, 3, 0, 3]
 
 
 @pytest.mark.parametrize(
@@ -1599,13 +1623,14 @@ def test_update_columns(schema_simple: DataFrameSchema) -> None:
     test_schema = schema_simple.update_columns(
         {
             "col1": {"dtype": Category, "coerce": True},
-            "col2": {"dtype": int, "allow_duplicates": False},
+            "col2": {"dtype": Int, "unique": True},
         }
     )
     assert test_schema.columns["col1"].dtype == Engine.dtype(Category)
     assert test_schema.columns["col1"].coerce is True
     assert test_schema.columns["col2"].dtype == Engine.dtype(int)
-    assert test_schema.columns["col2"].allow_duplicates is False
+    assert test_schema.columns["col2"].unique
+    assert not test_schema.columns["col2"].allow_duplicates
 
     # Errors
     with pytest.raises(errors.SchemaInitError):
@@ -1719,3 +1744,75 @@ def test_schema_str_repr(schema, fields: List[str]) -> None:
         assert x.endswith(")>")
         for field in fields:
             assert field in x
+
+
+@pytest.mark.parametrize(
+    "unique_kw,expected",
+    [
+        (["a", "c"], "SchemaError"),
+        (["a", "b"], True),
+        ([["a", "b"], ["b", "c"]], True),
+        ([["a", "b"], ["a", "c"]], "SchemaError"),
+        (False, True),
+        ((("a", "b"), ["b", "c"]), True),
+    ],
+)
+def test_schema_level_unique_keyword(unique_kw, expected):
+    """
+    Test that dataframe schema-level unique keyword correctly validates
+    uniqueness of multiple columns.
+    """
+    test_schema = DataFrameSchema(
+        columns={"a": Column(int), "b": Column(int), "c": Column(int)},
+        unique=unique_kw,
+    )
+    df = pd.DataFrame({"a": [1, 2, 1], "b": [1, 5, 6], "c": [1, 5, 1]})
+    if expected == "SchemaError":
+        with pytest.raises(errors.SchemaError):
+            test_schema.validate(df)
+    else:
+        assert isinstance(test_schema.validate(df), pd.DataFrame)
+
+
+def test_column_set_unique():
+    """
+    Test that unique Column attribute can be set via property setter and
+    update_column method.
+    """
+
+    test_schema = DataFrameSchema(
+        columns={
+            "a": Column(int, unique=True),
+            "b": Column(int),
+            "c": Column(int),
+        }
+    )
+    assert test_schema.columns["a"].unique
+    test_schema.columns["a"].unique = False
+    assert not test_schema.columns["a"].unique
+    test_schema = test_schema.update_column("a", unique=True)
+    assert test_schema.columns["a"].unique
+
+
+def test_unique_and_set_duplicates_setters() -> None:
+    """Test the setting of `unique` and `allow_duplicates` properties"""
+    test_schema = DataFrameSchema(
+        columns={
+            "a": Column(int, unique=True),
+        },
+        unique=None,
+    )
+    assert not test_schema.columns["a"].allow_duplicates
+    test_schema.columns["a"].unique = False
+    assert test_schema.columns["a"].allow_duplicates
+    test_schema.columns["a"].allow_duplicates = False
+    assert test_schema.columns["a"].unique
+    test_schema.columns["a"].allow_duplicates = True
+    assert not test_schema.columns["a"].unique
+
+    test_schema.unique = "a"
+    assert test_schema.unique == ["a"]
+    test_schema.unique = ["a"]
+    assert test_schema.unique == ["a"]
+    test_schema.unique = None
+    assert not test_schema.unique

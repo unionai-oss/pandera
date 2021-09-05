@@ -467,6 +467,38 @@ To validate the order of the Dataframe columns, specify ``ordered=True``:
 
 .. _index:
 
+Validating the joint uniqueness of columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases you might want to ensure that a group of columns are unique:
+
+.. testcode:: joint_column_uniqueness
+
+    import pandas as pd
+    import pandera as pa
+
+    schema = pa.DataFrameSchema(
+        columns={col: pa.Column(int) for col in ["a", "b", "c"]},
+        unique=["a", "c"],
+    )
+    df = pd.DataFrame.from_records([
+        {"a": 1, "b": 2, "c": 3},
+        {"a": 1, "b": 2, "c": 3},
+    ])
+    schema.validate(df)
+
+.. testoutput:: joint_column_uniqueness
+
+    Traceback (most recent call last):
+    ...
+    SchemaError: columns '('a', 'c')' not unique:
+    column  index  failure_case
+    0      a      0             1
+    1      a      1             1
+    2      c      0             3
+    3      c      1             3
+
+
 Index Validation
 ----------------
 
