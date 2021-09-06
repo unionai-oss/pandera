@@ -109,6 +109,18 @@ def test_multi_index_columns() -> None:
     assert isinstance(validated_df, pd.DataFrame)
 
 
+def test_multi_index_column_errors() -> None:
+    """
+    Test that schemas with MultiIndex columns correctly raise SchemaErrors on
+    lazy validation.
+    """
+    schema = DataFrameSchema({("foo", "baz"): Column(int)})
+    df = pd.DataFrame({("foo", "baz"): ["a", "b", "c"]})
+
+    with pytest.raises(errors.SchemaErrors):
+        schema.validate(df, lazy=True)
+
+
 def test_multi_index_index() -> None:
     """Tests that multi-index Indexes within DataFrames validate correctly."""
     schema = DataFrameSchema(
