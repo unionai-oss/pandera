@@ -770,7 +770,7 @@ def test_series_strategy_undefined_check_strategy(
     [
         [
             pa.DataFrameSchema(
-                columns={"column": pa.Column(pa.Int())},
+                columns={"column": pa.Column(int)},
                 checks=[
                     pa.Check(lambda x: x > 0, element_wise=True),
                     pa.Check(lambda x: x > -10, element_wise=True),
@@ -782,7 +782,7 @@ def test_series_strategy_undefined_check_strategy(
             pa.DataFrameSchema(
                 columns={
                     "column": pa.Column(
-                        pa.Int(),
+                        int,
                         checks=[
                             pa.Check(lambda s: s > -10000),
                             pa.Check(lambda s: s > -9999),
@@ -792,9 +792,22 @@ def test_series_strategy_undefined_check_strategy(
             ),
             "Column",
         ],
+        # schema with regex column and custom undefined strategy
         [
             pa.DataFrameSchema(
-                columns={"column": pa.Column(pa.Int())},
+                columns={
+                    "[0-9]+": pa.Column(
+                        int,
+                        checks=[pa.Check(lambda s: True)],
+                        regex=True,
+                    )
+                },
+            ),
+            "Column",
+        ],
+        [
+            pa.DataFrameSchema(
+                columns={"column": pa.Column(int)},
                 checks=[
                     pa.Check(lambda s: s > -10000),
                     pa.Check(lambda s: s > -9999),

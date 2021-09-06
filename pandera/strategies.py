@@ -1027,15 +1027,6 @@ def dataframe_strategy(
             else:
                 undefined_strat_df_checks.append(check)
 
-        # collect all non-element-wise column checks with undefined strategies
-        undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
-        for col_name, column in columns.items():
-            undefined_strat_column_checks[col_name].extend(
-                check
-                for check in column.checks
-                if not hasattr(check, "strategy") and not check.element_wise
-            )
-
         # expand column set to generate column names for columns where
         # regex=True.
         expanded_columns = {}
@@ -1064,6 +1055,15 @@ def dataframe_strategy(
                     expanded_columns[regex_col] = deepcopy(column).set_name(
                         regex_col
                     )
+
+        # collect all non-element-wise column checks with undefined strategies
+        undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
+        for col_name, column in expanded_columns.items():
+            undefined_strat_column_checks[col_name].extend(
+                check
+                for check in column.checks
+                if not hasattr(check, "strategy") and not check.element_wise
+            )
 
         # override the column datatype with dataframe-level datatype if
         # specified
