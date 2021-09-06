@@ -171,7 +171,9 @@ class SchemaErrors(Exception):
                     schema_context=err.schema.__class__.__name__,
                     check=check_identifier,
                     check_number=err.check_index,
-                    column=column,
+                    # explicitly wrap `column` in a list of the column key is
+                    # a tuple in the case of MultiIndex column names.
+                    column=[column] if isinstance(column, tuple) else column,
                 )
                 check_failure_cases.append(failure_cases[column_order])
 
