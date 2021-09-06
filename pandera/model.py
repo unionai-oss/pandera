@@ -34,21 +34,9 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import LEGACY_TYPING, AnnotationInfo, DataFrame, Index, Series
+from .typing import AnnotationInfo, DataFrame, Index, Series
 
-if LEGACY_TYPING:
-
-    def get_type_hints(
-        obj: Callable[..., Any],
-        globalns: Optional[Dict[str, Any]] = None,
-        localns: Optional[Dict[str, Any]] = None,
-        include_extras: bool = False,
-    ) -> Dict[str, Any]:
-        # pylint:disable=function-redefined, missing-function-docstring, unused-argument
-        return typing.get_type_hints(obj, globalns, localns)
-
-
-elif sys.version_info[:2] < (3, 9):
+if sys.version_info[:2] < (3, 9):
     from typing_extensions import get_type_hints
 else:
     from typing import get_type_hints

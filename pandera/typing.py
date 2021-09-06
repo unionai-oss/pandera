@@ -1,6 +1,5 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
-import sys
 from typing import TYPE_CHECKING, Generic, Type, TypeVar
 
 import pandas as pd
@@ -8,8 +7,6 @@ import typing_inspect
 
 from . import dtypes
 from .engines import numpy_engine, pandas_engine
-
-LEGACY_TYPING = sys.version_info[:2] < (3, 7)
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
@@ -156,18 +153,12 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.optional = typing_inspect.is_optional_type(raw_annotation)
         if self.optional and typing_inspect.is_union_type(raw_annotation):
             # Annotated with Optional or Union[..., NoneType]
-            if LEGACY_TYPING:  # pragma: no cover
-                # get_args -> ((pandera.typing.Index, <class 'str'>), <class 'NoneType'>)
-                self.origin, self.arg = typing_inspect.get_args(
-                    raw_annotation
-                )[0]
             # get_args -> (pandera.typing.Index[str], <class 'NoneType'>)
             raw_annotation = typing_inspect.get_args(raw_annotation)[0]
 
-        if not (self.optional and LEGACY_TYPING):
-            self.origin = typing_inspect.get_origin(raw_annotation)
-            args = typing_inspect.get_args(raw_annotation)
-            self.arg = args[0] if args else args
+        self.origin = typing_inspect.get_origin(raw_annotation)
+        args = typing_inspect.get_args(raw_annotation)
+        self.arg = args[0] if args else args
 
         self.metadata = getattr(self.arg, "__metadata__", None)
         if self.metadata:
