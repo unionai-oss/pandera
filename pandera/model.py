@@ -292,7 +292,10 @@ class SchemaModel:
 
             dtype = None if dtype is Any else dtype
 
-            if annotation.origin is Series:
+            if (
+                annotation.origin is Series
+                or annotation.raw_annotation is Series
+            ):
                 col_constructor = (
                     field.to_column if field else schema_components.Column
                 )
@@ -308,7 +311,10 @@ class SchemaModel:
                     checks=field_checks,
                     name=field_name,
                 )
-            elif annotation.origin is Index:
+            elif (
+                annotation.origin is Index
+                or annotation.raw_annotation is Index
+            ):
                 if annotation.optional:
                     raise SchemaInitError(
                         f"Index '{field_name}' cannot be Optional."

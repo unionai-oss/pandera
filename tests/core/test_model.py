@@ -116,6 +116,15 @@ def test_optional_index() -> None:
             model.to_schema()
 
 
+def test_empty_dtype() -> None:
+    expected = pa.DataFrameSchema({"empty_column": pa.Column()})
+
+    class EmptyDtypeSchema(pa.SchemaModel):
+        empty_column: pa.typing.Series
+
+    assert EmptyDtypeSchema.to_schema() == expected
+
+
 def test_schemamodel_with_fields() -> None:
     """Test that Fields are translated in the schema."""
 

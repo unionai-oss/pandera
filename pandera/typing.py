@@ -157,7 +157,8 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
             raw_annotation = typing_inspect.get_args(raw_annotation)[0]
 
         self.origin = typing_inspect.get_origin(raw_annotation)
-        args = typing_inspect.get_args(raw_annotation)
+        # Replace empty tuple returned from get_args by None
+        args = typing_inspect.get_args(raw_annotation) or None
         self.arg = args[0] if args else args
 
         self.metadata = getattr(self.arg, "__metadata__", None)
