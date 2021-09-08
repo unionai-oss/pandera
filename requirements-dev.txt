@@ -11,7 +11,7 @@ wrapt
 pyyaml >=5.1
 typing_inspect >= 0.6.0
 typing_extensions >= 3.7.4.3
-frictionless>=4.16.6
+frictionless
 pyarrow
 black >= 20.8b1
 isort >= 5.7.0
@@ -23,7 +23,7 @@ pytest-cov
 pytest-xdist
 pytest-asyncio
 xdoctest
-setuptools >= 52.0.0
+setuptools == 57.5.0
 nox == 2020.12.31
 importlib_metadata
 sphinx
