@@ -922,7 +922,7 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {"check": "column_in_dataframe", "failure_case": "date_col"},
         {"check": "coerce_dtype('float64')", "failure_case": "a"},
-        {"check": "no_duplicates", "failure_case": 12},
+        {"check": "field_uniqueness", "failure_case": 12},
         {"check": "in_range(10, 99)", "failure_case": 1},
         {"check": "in_range(10, 99)", "failure_case": 180},
         {"check": "less_than_or_equal_to(30)", "failure_case": 113},
@@ -938,3 +938,38 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 1.1},
         {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 3.8},
     ], "validation failure cases not as expected"
+
+
+@pytest.mark.parametrize(
+    "frictionless_schema",
+    [
+        {
+            "fields": [
+                {"name": "key1", "type": "integer"},
+                {"name": "key2", "type": "integer"},
+                {"name": "key3", "type": "integer"},
+            ],
+            "primaryKey": ["key1", "key2", "key3"],
+        },
+        {
+            "fields": [
+                {"name": "key1", "type": "integer"},
+            ],
+            "primaryKey": ["key1"],
+        },
+    ],
+)
+def test_frictionless_schema_primary_key(frictionless_schema):
+    """Test frictionless primary key is correctly converted to pandera schema.
+
+    If the primary key is only one field, the unique field should be in the
+    column level and not the dataframe level.
+    """
+    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    if len(frictionless_schema["primaryKey"]) == 1:
+        assert schema.columns[frictionless_schema["primaryKey"][0]].unique
+        assert schema.unique is None
+    else:
+        assert schema.unique == frictionless_schema["primaryKey"]
+        for key in frictionless_schema["primaryKey"]:
+            assert not schema.columns[key].unique

@@ -451,15 +451,15 @@ class FrictionlessFieldParser:
     formats, titles, descriptions).
 
     :param field: a field object from a frictionless schema.
-    :param primary_keys: the primary keys from a frictionless schema. These are used
-        to ensure primary key fields are treated properly - no duplicates,
-        no missing values etc.
+    :param primary_keys: the primary keys from a frictionless schema. These
+        are used to ensure primary key fields are treated properly - no
+        duplicates, no missing values etc.
     """
 
     def __init__(self, field, primary_keys) -> None:
         self.constraints = field.constraints or {}
+        self.primary_keys = primary_keys
         self.name = field.name
-        self.is_a_primary_key = self.name in primary_keys
         self.type = field.get("type", "string")
 
     @property
@@ -550,7 +550,7 @@ class FrictionlessFieldParser:
         """Determine whether this field can contain missing values.
 
         If a field is a primary key, this will return ``False``."""
-        if self.is_a_primary_key:
+        if self.name in self.primary_keys:
             return False
         return not self.constraints.get("required", False)
 
@@ -558,8 +558,12 @@ class FrictionlessFieldParser:
     def unique(self) -> bool:
         """Determine whether this field can contain duplicate values.
 
-        If a field is a primary key, this will return ``False``."""
-        if self.is_a_primary_key:
+        If a field is a primary key, this will return ``True``.
+        """
+
+        # only set column-level uniqueness property if `primary_keys` contains
+        # more than one field name.
+        if len(self.primary_keys) == 1 and self.name in self.primary_keys:
             return True
         return self.constraints.get("unique", False)
 
@@ -670,5 +674,10 @@ def from_frictionless_schema(
         "checks": None,
         "coerce": True,
         "strict": True,
+        # only set dataframe-level uniqueness if the frictionless primary
+        # key property specifies more than one field
+        "unique": (
+            None if len(schema.primary_key) == 1 else list(schema.primary_key)
+        ),
     }
     return _deserialize_schema(assembled_schema)
