@@ -1,0 +1,2 @@
+# pin this due to issue described here: https://github.com/pandera-dev/pandera/pull/602#issuecomment-915622823
+setuptools < 58.0.0
