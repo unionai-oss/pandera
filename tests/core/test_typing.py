@@ -9,13 +9,12 @@ import pytest
 
 import pandera as pa
 from pandera.dtypes import DataType
-from pandera.typing import LEGACY_TYPING, Series
+from pandera.typing import Series
 
-if not LEGACY_TYPING:
-    try:  # python 3.9+
-        from typing import Annotated  # type: ignore
-    except ImportError:
-        from typing_extensions import Annotated  # type: ignore
+try:  # python 3.9+
+    from typing import Annotated  # type: ignore
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
 
 
 class SchemaBool(pa.SchemaModel):
@@ -304,23 +303,24 @@ def test_legacy_default_pandas_extension_dtype(
     _test_default_annotated_dtype(model, dtype, has_mandatory_args)
 
 
-if not LEGACY_TYPING:
+class SchemaAnnotatedCategoricalDtype(pa.SchemaModel):
+    col: Series[Annotated[pd.CategoricalDtype, ["b", "a"], True]]
 
-    class SchemaAnnotatedCategoricalDtype(pa.SchemaModel):
-        col: Series[Annotated[pd.CategoricalDtype, ["b", "a"], True]]
 
-    class SchemaAnnotatedDatetimeTZDtype(pa.SchemaModel):
-        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
+class SchemaAnnotatedDatetimeTZDtype(pa.SchemaModel):
+    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
-    if pa.PANDAS_1_3_0_PLUS:
 
-        class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
-            col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
+if pa.PANDAS_1_3_0_PLUS:
 
-    else:
+    class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
+        col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
 
-        class SchemaAnnotatedIntervalDtype(pa.SchemaModel):  # type: ignore
-            col: Series[Annotated[pd.IntervalDtype, "int32"]]
+
+else:
+
+    class SchemaAnnotatedIntervalDtype(pa.SchemaModel):  # type: ignore
+        col: Series[Annotated[pd.IntervalDtype, "int32"]]
 
     class SchemaAnnotatedPeriodDtype(pa.SchemaModel):
         col: Series[Annotated[pd.PeriodDtype, "D"]]
