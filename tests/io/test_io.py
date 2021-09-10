@@ -126,7 +126,7 @@ columns:
       in_range:
         min_value: 0
         max_value: 10
-    allow_duplicates: true
+    unique: false
     coerce: false
     required: true
     regex: false
@@ -139,7 +139,7 @@ columns:
       in_range:
         min_value: -10
         max_value: 20
-    allow_duplicates: true
+    unique: false
     coerce: false
     required: true
     regex: false
@@ -155,7 +155,7 @@ columns:
       str_length:
         min_value: 1
         max_value: 3
-    allow_duplicates: true
+    unique: false
     coerce: false
     required: true
     regex: false
@@ -165,7 +165,7 @@ columns:
     checks:
       greater_than: '2010-01-01 00:00:00'
       less_than: '2020-01-01 00:00:00'
-    allow_duplicates: true
+    unique: false
     coerce: false
     required: true
     regex: false
@@ -175,7 +175,7 @@ columns:
     checks:
       greater_than: 1000
       less_than: 10000
-    allow_duplicates: true
+    unique: false
     coerce: false
     required: true
     regex: false
@@ -186,7 +186,7 @@ columns:
       str_length:
         min_value: 1
         max_value: 3
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: false
     regex: true
@@ -199,7 +199,7 @@ columns:
       - bar
       - x
       - xy
-    allow_duplicates: true
+    unique: false
     coerce: false
     required: true
     regex: false
@@ -212,6 +212,7 @@ index:
   coerce: false
 coerce: false
 strict: true
+unique: null
 """
 
 
@@ -762,7 +763,7 @@ columns:
       in_range:
         min_value: 10
         max_value: 99
-    allow_duplicates: false
+    unique: true
     coerce: true
     required: true
     regex: false
@@ -771,7 +772,7 @@ columns:
     nullable: true
     checks:
       less_than_or_equal_to: 30
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -782,7 +783,7 @@ columns:
       str_length:
         min_value: 3
         max_value: 80
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -791,7 +792,7 @@ columns:
     nullable: true
     checks:
       str_matches: ^\\d{{3}}[A-Z]$
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -800,7 +801,7 @@ columns:
     nullable: true
     checks:
       str_length: 3
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -809,7 +810,7 @@ columns:
     nullable: true
     checks:
       str_length: 3
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -821,7 +822,7 @@ columns:
       - 1.0
       - 2.0
       - 3.0
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -829,7 +830,7 @@ columns:
     dtype: float64
     nullable: true
     checks: null
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -838,7 +839,7 @@ columns:
     nullable: true
     checks:
       greater_than_or_equal_to: '20201231'
-    allow_duplicates: true
+    unique: false
     coerce: true
     required: true
     regex: false
@@ -846,6 +847,7 @@ checks: null
 index: null
 coerce: true
 strict: true
+unique: null
 """
 
 VALID_FRICTIONLESS_DF = pd.DataFrame(
@@ -920,7 +922,7 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {"check": "column_in_dataframe", "failure_case": "date_col"},
         {"check": "coerce_dtype('float64')", "failure_case": "a"},
-        {"check": "no_duplicates", "failure_case": 12},
+        {"check": "field_uniqueness", "failure_case": 12},
         {"check": "in_range(10, 99)", "failure_case": 1},
         {"check": "in_range(10, 99)", "failure_case": 180},
         {"check": "less_than_or_equal_to(30)", "failure_case": 113},
@@ -936,3 +938,38 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 1.1},
         {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 3.8},
     ], "validation failure cases not as expected"
+
+
+@pytest.mark.parametrize(
+    "frictionless_schema",
+    [
+        {
+            "fields": [
+                {"name": "key1", "type": "integer"},
+                {"name": "key2", "type": "integer"},
+                {"name": "key3", "type": "integer"},
+            ],
+            "primaryKey": ["key1", "key2", "key3"],
+        },
+        {
+            "fields": [
+                {"name": "key1", "type": "integer"},
+            ],
+            "primaryKey": ["key1"],
+        },
+    ],
+)
+def test_frictionless_schema_primary_key(frictionless_schema):
+    """Test frictionless primary key is correctly converted to pandera schema.
+
+    If the primary key is only one field, the unique field should be in the
+    column level and not the dataframe level.
+    """
+    schema = pandera.io.from_frictionless_schema(frictionless_schema)
+    if len(frictionless_schema["primaryKey"]) == 1:
+        assert schema.columns[frictionless_schema["primaryKey"][0]].unique
+        assert schema.unique is None
+    else:
+        assert schema.unique == frictionless_schema["primaryKey"]
+        for key in frictionless_schema["primaryKey"]:
+            assert not schema.columns[key].unique

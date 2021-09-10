@@ -33,7 +33,8 @@ class Column(SeriesSchemaBase):
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        allow_duplicates: bool = True,
+        unique: bool = False,
+        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
@@ -48,8 +49,15 @@ class Column(SeriesSchemaBase):
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
+        :param unique: whether column values should be unique
         :param allow_duplicates: Whether or not column can contain duplicate
             values.
+
+            .. warning::
+
+                This option will be deprecated in 0.8.0. Use the ``unique``
+                argument instead.
+
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``pandas_dtype=None``.
@@ -84,6 +92,7 @@ class Column(SeriesSchemaBase):
             dtype,
             checks,
             nullable,
+            unique,
             allow_duplicates,
             coerce,
             name,
@@ -119,7 +128,7 @@ class Column(SeriesSchemaBase):
             "dtype": self.dtype,
             "checks": self._checks,
             "nullable": self._nullable,
-            "allow_duplicates": self._allow_duplicates,
+            "unique": self._unique,
             "coerce": self._coerce,
             "required": self.required,
             "name": self._name,
@@ -279,7 +288,7 @@ class Column(SeriesSchemaBase):
         return st.column_strategy(
             self.dtype,
             checks=self.checks,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
         )
 
@@ -400,7 +409,7 @@ class Index(SeriesSchemaBase):
             self.dtype,  # type: ignore
             checks=self.checks,
             nullable=self.nullable,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
             size=size,
         )
@@ -411,7 +420,7 @@ class Index(SeriesSchemaBase):
         return st.column_strategy(
             self.dtype,
             checks=self.checks,
-            allow_duplicates=self.allow_duplicates,
+            unique=self.unique,
             name=self.name,
         )
 
@@ -449,6 +458,7 @@ class MultiIndex(DataFrameSchema):
         strict: bool = False,
         name: str = None,
         ordered: bool = True,
+        unique: Optional[Union[str, List[str]]] = None,
     ) -> None:
         """Create MultiIndex validator.
 
@@ -460,6 +470,7 @@ class MultiIndex(DataFrameSchema):
             aren't defined in the ``indexes`` argument.
         :param name: name of schema component
         :param ordered: whether or not to validate the indexes order.
+        :param unique: a list of index names that should be jointly unique.
 
         :example:
 
@@ -515,7 +526,7 @@ class MultiIndex(DataFrameSchema):
                 dtype=index._dtype,
                 checks=index.checks,
                 nullable=index._nullable,
-                allow_duplicates=index._allow_duplicates,
+                unique=index._unique,
             )
         super().__init__(
             columns=columns,
@@ -523,6 +534,7 @@ class MultiIndex(DataFrameSchema):
             strict=strict,
             name=name,
             ordered=ordered,
+            unique=unique,
         )
 
     @property

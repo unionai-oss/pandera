@@ -25,7 +25,6 @@ def test_to_schema() -> None:
         columns={"a": pa.Column(int), "b": pa.Column(str), "c": pa.Column()},
         index=pa.Index(str),
     )
-
     assert expected == Schema.to_schema()
 
     with pytest.raises(TypeError):
@@ -115,6 +114,15 @@ def test_optional_index() -> None:
             pa.errors.SchemaInitError, match="Index 'idx' cannot be Optional."
         ):
             model.to_schema()
+
+
+def test_empty_dtype() -> None:
+    expected = pa.DataFrameSchema({"empty_column": pa.Column()})
+
+    class EmptyDtypeSchema(pa.SchemaModel):
+        empty_column: pa.typing.Series
+
+    assert EmptyDtypeSchema.to_schema() == expected
 
 
 def test_schemamodel_with_fields() -> None:

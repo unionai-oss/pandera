@@ -88,11 +88,11 @@ def get_dataframe_schema_statistics(dataframe_schema):
             col_name: {
                 "dtype": column.dtype,
                 "nullable": column.nullable,
-                "allow_duplicates": column.allow_duplicates,
                 "coerce": column.coerce,
                 "required": column.required,
                 "regex": column.regex,
                 "checks": parse_checks(column.checks),
+                "unique": column.unique,
             }
             for col_name, column in dataframe_schema.columns.items()
         },

@@ -39,6 +39,8 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         continue
     SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype(data_type))
 
+SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype("datetime64[ns, UTC]"))
+
 NUMERIC_DTYPES = [
     data_type for data_type in SUPPORTED_DTYPES if data_type.continuous
 ]
@@ -51,20 +53,19 @@ NULLABLE_DTYPES = [
     and not data_type == pandas_engine.Engine.dtype("object")
 ]
 
-NUMERIC_RANGE_CONSTANT = 10
-DATE_RANGE_CONSTANT = np.timedelta64(NUMERIC_RANGE_CONSTANT, "D")
-COMPLEX_RANGE_CONSTANT = np.complex64(
-    complex(NUMERIC_RANGE_CONSTANT, NUMERIC_RANGE_CONSTANT)  # type: ignore
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        pa.Category,
+        pandas_engine.Interval(  # type: ignore # pylint:disable=unexpected-keyword-arg,no-value-for-parameter
+            subtype=np.int64
+        ),
+    ],
 )
-
-
-@pytest.mark.parametrize("data_type", [pa.Category])
 def test_unsupported_pandas_dtype_strategy(data_type):
     """Test unsupported pandas dtype strategy raises error."""
-    with pytest.raises(
-        TypeError,
-        match="data generation for the Category dtype is currently unsupported",
-    ):
+    with pytest.raises(TypeError, match=r"is currently unsupported"):
         strategies.pandas_dtype_strategy(data_type)
 
 
@@ -84,10 +85,14 @@ def test_pandas_dtype_strategy(data_type, data):
     example = data.draw(strategy)
 
     expected_type = strategies.to_numpy_dtype(data_type).type
+    if isinstance(example, pd.Timestamp):
+        example = example.to_numpy()
     assert example.dtype.type == expected_type
 
     chained_strategy = strategies.pandas_dtype_strategy(data_type, strategy)
     chained_example = data.draw(chained_strategy)
+    if isinstance(chained_example, pd.Timestamp):
+        chained_example = chained_example.to_numpy()
     assert chained_example.dtype.type == expected_type
 
 
@@ -482,19 +487,36 @@ def test_dataframe_strategy(data_type, size, data):
         )
     else:
         assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
-    # with pytest.raises(pa.errors.BaseStrategyOnlyError):
-    #     strategies.dataframe_strategy(
-    #         data_type, strategies.pandas_dtype_strategy(data_type)
-    #     )
+
+    with pytest.raises(pa.errors.BaseStrategyOnlyError):
+        strategies.dataframe_strategy(
+            data_type, strategies.pandas_dtype_strategy(data_type)
+        )
 
 
-def test_dataframe_example() -> None:
+@hypothesis.given(st.data())
+def test_dataframe_example(data) -> None:
     """Test DataFrameSchema example method generate examples that pass."""
+    schema = pa.DataFrameSchema({"column": pa.Column(int, pa.Check.gt(0))})
+    df_sample = data.draw(schema.strategy(size=10))
+    schema(df_sample)
+
+
+@pytest.mark.parametrize("size", [3, 5, 10])
+@hypothesis.given(st.data())
+def test_dataframe_unique(size, data) -> None:
+    """Test that DataFrameSchemas with unique columns are actually unique."""
     schema = pa.DataFrameSchema(
-        {"column": pa.Column(pa.Int(), pa.Check.gt(0))}
+        {
+            "col1": pa.Column(int),
+            "col2": pa.Column(float),
+            "col3": pa.Column(str),
+            "col4": pa.Column(int),
+        },
+        unique=["col1", "col2", "col3"],
     )
-    for _ in range(10):
-        schema(schema.example())
+    df_sample = data.draw(schema.strategy(size=size))
+    schema(df_sample)
 
 
 @pytest.mark.parametrize(
@@ -572,7 +594,7 @@ def test_dataframe_strategy_with_indexes(data_type, data):
 def test_index_strategy(data) -> None:
     """Test Index schema component strategy."""
     data_type = pa.Int()
-    index_schema = pa.Index(data_type, allow_duplicates=False, name="index")
+    index_schema = pa.Index(data_type, unique=True, name="index")
     strat = index_schema.strategy(size=10)
     example = data.draw(strat)
 
@@ -587,7 +609,7 @@ def test_index_example() -> None:
     Test Index schema component example method generates examples that pass.
     """
     data_type = pa.Int()
-    index_schema = pa.Index(data_type, allow_duplicates=False)
+    index_schema = pa.Index(data_type, unique=True)
     for _ in range(10):
         index_schema(pd.DataFrame(index=index_schema.example()))
 
@@ -601,7 +623,7 @@ def test_multiindex_strategy(data) -> None:
     data_type = pa.Float()
     multiindex = pa.MultiIndex(
         indexes=[
-            pa.Index(data_type, allow_duplicates=False, name="level_0"),
+            pa.Index(data_type, unique=True, name="level_0"),
             pa.Index(data_type, nullable=True),
             pa.Index(data_type),
         ]
@@ -628,7 +650,7 @@ def test_multiindex_example() -> None:
     data_type = pa.Float()
     multiindex = pa.MultiIndex(
         indexes=[
-            pa.Index(data_type, allow_duplicates=False, name="level_0"),
+            pa.Index(data_type, unique=True, name="level_0"),
             pa.Index(data_type, nullable=True),
             pa.Index(data_type),
         ]
@@ -748,7 +770,7 @@ def test_series_strategy_undefined_check_strategy(
     [
         [
             pa.DataFrameSchema(
-                columns={"column": pa.Column(pa.Int())},
+                columns={"column": pa.Column(int)},
                 checks=[
                     pa.Check(lambda x: x > 0, element_wise=True),
                     pa.Check(lambda x: x > -10, element_wise=True),
@@ -760,7 +782,7 @@ def test_series_strategy_undefined_check_strategy(
             pa.DataFrameSchema(
                 columns={
                     "column": pa.Column(
-                        pa.Int(),
+                        int,
                         checks=[
                             pa.Check(lambda s: s > -10000),
                             pa.Check(lambda s: s > -9999),
@@ -770,9 +792,22 @@ def test_series_strategy_undefined_check_strategy(
             ),
             "Column",
         ],
+        # schema with regex column and custom undefined strategy
         [
             pa.DataFrameSchema(
-                columns={"column": pa.Column(pa.Int())},
+                columns={
+                    "[0-9]+": pa.Column(
+                        int,
+                        checks=[pa.Check(lambda s: True)],
+                        regex=True,
+                    )
+                },
+            ),
+            "Column",
+        ],
+        [
+            pa.DataFrameSchema(
+                columns={"column": pa.Column(int)},
                 checks=[
                     pa.Check(lambda s: s > -10000),
                     pa.Check(lambda s: s > -9999),
@@ -871,3 +906,38 @@ def test_schema_component_with_no_pdtype() -> None:
     ]:
         with pytest.raises(pa.errors.SchemaDefinitionError):
             schema_component_strategy(pandera_dtype=None)  # type: ignore
+
+
+def test_datetime_example() -> None:
+    """Test Column schema example method generate examples of
+    timezone-naive datetimes that pass."""
+
+    for checks in [
+        pa.Check.le(pd.Timestamp("2006-01-01")),
+        pa.Check.ge(np.datetime64("2006-01-01")),
+        pa.Check.eq(pd.Timestamp("2006-01-01")),
+        pa.Check.isin([np.datetime64("2006-01-01")]),
+    ]:
+        column_schema = pa.Column(
+            "datetime", checks=checks, name="test_datetime"
+        )
+        for _ in range(5):
+            column_schema(column_schema.example())
+
+
+def test_datetime_tz_example() -> None:
+    """Test Column schema example method generate examples of
+    timezone-aware datetimes that pass."""
+    for checks in [
+        pa.Check.le(pd.Timestamp("2006-01-01", tz="CET")),
+        pa.Check.ge(pd.Timestamp("2006-01-01", tz="UTC")),
+        pa.Check.eq(pd.Timestamp("2006-01-01", tz="CET")),
+        pa.Check.isin([pd.Timestamp("2006-01-01", tz="UTC")]),
+    ]:
+        column_schema = pa.Column(
+            pd.DatetimeTZDtype(tz="UTC"),
+            checks=checks,
+            name="test_datetime_tz",
+        )
+        for _ in range(5):
+            column_schema(column_schema.example())

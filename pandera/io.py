@@ -108,7 +108,7 @@ def _serialize_component_stats(component_stats):
             key: component_stats.get(key)
             for key in [
                 "name",
-                "allow_duplicates",
+                "unique",
                 "coerce",
                 "required",
                 "regex",
@@ -148,6 +148,7 @@ def _serialize_schema(dataframe_schema):
         "index": index,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
+        "unique": dataframe_schema.unique,
     }
 
 
@@ -195,6 +196,9 @@ def _deserialize_component_stats(serialized_component_stats):
             for key in [
                 "name",
                 "nullable",
+                "unique",
+                # deserialize allow_duplicates property for backwards
+                # compatibility. Remove this for 0.8.0 release
                 "allow_duplicates",
                 "coerce",
                 "required",
@@ -255,6 +259,7 @@ def _deserialize_schema(serialized_schema):
         index=index,
         coerce=serialized_schema.get("coerce", False),
         strict=serialized_schema.get("strict", False),
+        unique=serialized_schema.get("unique", None),
     )
 
 
@@ -310,7 +315,7 @@ Column(
     dtype={dtype},
     checks={checks},
     nullable={nullable},
-    allow_duplicates={allow_duplicates},
+    unique={unique},
     coerce={coerce},
     required={required},
     regex={regex},
@@ -397,7 +402,7 @@ def to_script(dataframe_schema, path_or_buf=None):
             ),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
-            allow_duplicates=properties["allow_duplicates"],
+            unique=properties["unique"],
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
@@ -418,6 +423,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         coerce=dataframe_schema.coerce,
         strict=dataframe_schema.strict,
         name=dataframe_schema.name.__repr__(),
+        unique=dataframe_schema.unique,
     ).strip()
 
     # add pandas imports to handle datetime and timedelta.
@@ -445,15 +451,15 @@ class FrictionlessFieldParser:
     formats, titles, descriptions).
 
     :param field: a field object from a frictionless schema.
-    :param primary_keys: the primary keys from a frictionless schema. These are used
-        to ensure primary key fields are treated properly - no duplicates,
-        no missing values etc.
+    :param primary_keys: the primary keys from a frictionless schema. These
+        are used to ensure primary key fields are treated properly - no
+        duplicates, no missing values etc.
     """
 
     def __init__(self, field, primary_keys) -> None:
         self.constraints = field.constraints or {}
+        self.primary_keys = primary_keys
         self.name = field.name
-        self.is_a_primary_key = self.name in primary_keys
         self.type = field.get("type", "string")
 
     @property
@@ -544,18 +550,22 @@ class FrictionlessFieldParser:
         """Determine whether this field can contain missing values.
 
         If a field is a primary key, this will return ``False``."""
-        if self.is_a_primary_key:
+        if self.name in self.primary_keys:
             return False
         return not self.constraints.get("required", False)
 
     @property
-    def allow_duplicates(self) -> bool:
+    def unique(self) -> bool:
         """Determine whether this field can contain duplicate values.
 
-        If a field is a primary key, this will return ``False``."""
-        if self.is_a_primary_key:
-            return False
-        return not self.constraints.get("unique", False)
+        If a field is a primary key, this will return ``True``.
+        """
+
+        # only set column-level uniqueness property if `primary_keys` contains
+        # more than one field name.
+        if len(self.primary_keys) == 1 and self.name in self.primary_keys:
+            return True
+        return self.constraints.get("unique", False)
 
     @property
     def coerce(self) -> bool:
@@ -587,10 +597,10 @@ class FrictionlessFieldParser:
     def to_pandera_column(self) -> Dict:
         """Export this field to a column spec dictionary."""
         return {
-            "allow_duplicates": self.allow_duplicates,
             "checks": self.checks,
             "coerce": self.coerce,
             "nullable": self.nullable,
+            "unique": self.unique,
             "dtype": self.dtype,
             "required": self.required,
             "name": self.name,
@@ -645,8 +655,8 @@ def from_frictionless_schema(
     [<Check in_range: in_range(10, 99)>]
     >>> schema.columns["column_1"].required
     True
-    >>> schema.columns["column_1"].allow_duplicates
-    False
+    >>> schema.columns["column_1"].unique
+    True
     >>> schema.columns["column_2"].checks
     [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches(re.compile('^\\\\S+$'))>]
     """
@@ -664,5 +674,10 @@ def from_frictionless_schema(
         "checks": None,
         "coerce": True,
         "strict": True,
+        # only set dataframe-level uniqueness if the frictionless primary
+        # key property specifies more than one field
+        "unique": (
+            None if len(schema.primary_key) == 1 else list(schema.primary_key)
+        ),
     }
     return _deserialize_schema(assembled_schema)
