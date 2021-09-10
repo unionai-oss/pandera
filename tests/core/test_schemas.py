@@ -1461,6 +1461,36 @@ def test_lazy_series_validation_error(schema, data, expectation) -> None:
                 )
 
 
+def test_capture_check_errors() -> None:
+    """Test that exceptions raised within checks can be captured."""
+
+    def fail_with_msg(data):
+        raise KeyError("fail")
+
+    def fail_without_msg(data):
+        raise ValueError()
+
+    schema = SeriesSchema(
+        checks=[Check(fail_with_msg), Check(fail_without_msg)]
+    )
+    with pytest.raises(errors.SchemaError):
+        schema.validate(pd.Series([1, 2, 3]))
+
+    try:
+        schema.validate(pd.Series([1, 2, 3]), lazy=True)
+    except errors.SchemaErrors as err:
+        cases = err.failure_cases
+        failure_with_msg = cases.loc[
+            cases.check == "fail_with_msg", "failure_case"
+        ].iloc[0]
+        assert failure_with_msg == 'KeyError("fail")'
+
+        failure_without_msg = cases.loc[
+            cases.check == "fail_without_msg", "failure_case"
+        ].iloc[0]
+        assert failure_without_msg == "ValueError()"
+
+
 def test_schema_transformer_deprecated() -> None:
     """Using the transformer argument should raise a deprecation warning."""
     with pytest.warns(DeprecationWarning):

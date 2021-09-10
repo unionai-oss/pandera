@@ -4,6 +4,7 @@
 import copy
 import itertools
 import os
+import traceback
 import warnings
 from functools import wraps
 from pathlib import Path
@@ -1865,8 +1866,12 @@ class SeriesSchemaBase:
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the
                 # Check
-                err_str = f'{err.__class__.__name__}("{err.args[0]}")'
-                msg = f"Error while executing check function: {err_str}"
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing check function: {err_str}\n"
+                    + traceback.format_exc()
+                )
                 error_handler.collect_error(
                     "check_error",
                     errors.SchemaError(
