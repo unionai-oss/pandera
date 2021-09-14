@@ -831,7 +831,7 @@ def series_strategy(
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
-        .map(lambda x: x.astype(str(pandera_dtype)))
+        .map(lambda x: x.astype(pandera_dtype.type))
     )
     if nullable:
         strategy = null_field_masks(strategy)
@@ -918,7 +918,7 @@ def index_strategy(
         min_size=0 if size is None else size,
         max_size=size,
         unique=unique,
-    ).map(lambda x: x.astype(str(pandera_dtype)))
+    ).map(lambda x: x.astype(pandera_dtype.type))
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
     if nullable:
@@ -1068,12 +1068,11 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: str(col.dtype)
+            col_name: col.dtype.type
             if pandera_dtype is None
-            else str(pandera_dtype)
+            else pandera_dtype.type
             for col_name, col in expanded_columns.items()
         }
-
         nullable_columns = {
             col_name: col.nullable
             for col_name, col in expanded_columns.items()
@@ -1132,7 +1131,7 @@ def multiindex_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param indexes: a list of :class:`~pandera.schema_components.Inded`
+    :param indexes: a list of :class:`~pandera.schema_components.Index`
         objects.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
@@ -1145,7 +1144,7 @@ def multiindex_strategy(
         )
     indexes = [] if indexes is None else indexes
     index_dtypes = {
-        index.name if index.name is not None else i: str(index.dtype)
+        index.name if index.name is not None else i: index.dtype.type
         for i, index in enumerate(indexes)
     }
     nullable_index = {

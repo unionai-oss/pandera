@@ -908,15 +908,18 @@ def test_schema_component_with_no_pdtype() -> None:
             schema_component_strategy(pandera_dtype=None)  # type: ignore
 
 
-def test_datetime_example() -> None:
+@pytest.mark.parametrize(
+    "check_arg", [pd.Timestamp("2006-01-01"), np.datetime64("2006-01-01")]
+)
+def test_datetime_example(check_arg) -> None:
     """Test Column schema example method generate examples of
     timezone-naive datetimes that pass."""
 
     for checks in [
-        pa.Check.le(pd.Timestamp("2006-01-01")),
-        pa.Check.ge(np.datetime64("2006-01-01")),
-        pa.Check.eq(pd.Timestamp("2006-01-01")),
-        pa.Check.isin([np.datetime64("2006-01-01")]),
+        pa.Check.le(check_arg),
+        pa.Check.ge(check_arg),
+        pa.Check.eq(check_arg),
+        pa.Check.isin([check_arg]),
     ]:
         column_schema = pa.Column(
             "datetime", checks=checks, name="test_datetime"
@@ -925,17 +928,31 @@ def test_datetime_example() -> None:
             column_schema(column_schema.example())
 
 
-def test_datetime_tz_example() -> None:
+@pytest.mark.parametrize(
+    "dtype",
+    (
+        pd.DatetimeTZDtype(tz="UTC"),
+        pd.DatetimeTZDtype(tz="dateutil/US/Central"),
+    ),
+)
+@pytest.mark.parametrize(
+    "check_arg",
+    [
+        pd.Timestamp("2006-01-01", tz="CET"),
+        pd.Timestamp("2006-01-01", tz="UTC"),
+    ],
+)
+def test_datetime_tz_example(check_arg, dtype) -> None:
     """Test Column schema example method generate examples of
     timezone-aware datetimes that pass."""
     for checks in [
-        pa.Check.le(pd.Timestamp("2006-01-01", tz="CET")),
-        pa.Check.ge(pd.Timestamp("2006-01-01", tz="UTC")),
-        pa.Check.eq(pd.Timestamp("2006-01-01", tz="CET")),
-        pa.Check.isin([pd.Timestamp("2006-01-01", tz="UTC")]),
+        pa.Check.le(check_arg),
+        pa.Check.ge(check_arg),
+        pa.Check.eq(check_arg),
+        pa.Check.isin([check_arg]),
     ]:
         column_schema = pa.Column(
-            pd.DatetimeTZDtype(tz="UTC"),
+            dtype,
             checks=checks,
             name="test_datetime_tz",
         )
