@@ -334,11 +334,11 @@ def to_numpy_dtype(pandera_dtype: DataType):
             return np.dtype("datetime64[ns]")
 
         raise TypeError(
-            f"Data generation for the '{pandera_dtype}' data type is currently "
-            "unsupported."
+            f"Data generation for the '{pandera_dtype}' data type is "
+            "currently unsupported."
         ) from err
 
-    if np_dtype == np.dtype("object"):
+    if np_dtype == np.dtype("object") or str(pandera_dtype) == "str":
         np_dtype = np.dtype(str)
     return np_dtype
 
@@ -913,6 +913,13 @@ def index_strategy(
         max_size=size,
         unique=unique,
     ).map(lambda x: x.astype(pandera_dtype.type))
+
+    # this is a hack to convert np.str_ data values into native python str.
+    col_dtype = str(pandera_dtype)
+    if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
+        # pylint: disable=cell-var-from-loop,undefined-loop-variable
+        strategy = strategy.map(lambda index: index.map(str))
+
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
     if nullable:
@@ -1062,9 +1069,9 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: col.dtype.type
+            col_name: str(col.dtype)
             if pandera_dtype is None
-            else pandera_dtype.type
+            else str(pandera_dtype)
             for col_name, col in expanded_columns.items()
         }
         nullable_columns = {
@@ -1090,7 +1097,21 @@ def dataframe_strategy(
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
-        ).map(lambda df: df if df.empty else df.astype(col_dtypes))
+        )
+
+        # this is a hack to convert np.str_ data values into native python str.
+        for col_name, col_dtype in col_dtypes.items():
+            if col_dtype in {"object", "str"} or col_dtype.startswith(
+                "string"
+            ):
+                # pylint: disable=cell-var-from-loop,undefined-loop-variable
+                strategy = strategy.map(
+                    lambda df: df.assign(**{col_name: df[col_name].map(str)})
+                )
+
+        strategy = strategy.map(
+            lambda df: df if df.empty else df.astype(col_dtypes)
+        )
 
         if size is not None and size > 0 and any(nullable_columns.values()):
             strategy = null_dataframe_masks(strategy, nullable_columns)
@@ -1138,7 +1159,7 @@ def multiindex_strategy(
         )
     indexes = [] if indexes is None else indexes
     index_dtypes = {
-        index.name if index.name is not None else i: index.dtype.type
+        index.name if index.name is not None else i: str(index.dtype)
         for i, index in enumerate(indexes)
     }
     nullable_index = {
@@ -1151,6 +1172,15 @@ def multiindex_strategy(
             min_size=0 if size is None else size, max_size=size
         ),
     ).map(lambda x: x.astype(index_dtypes))
+
+    # this is a hack to convert np.str_ data values into native python str.
+    for name, dtype in index_dtypes.items():
+        if dtype in {"object", "str"} or dtype.startswith("string"):
+            # pylint: disable=cell-var-from-loop,undefined-loop-variable
+            strategy = strategy.map(
+                lambda df: df.assign(**{name: df[name].map(str)})
+            )
+
     if any(nullable_index.values()):
         strategy = null_dataframe_masks(strategy, nullable_index)
     return strategy.map(pd.MultiIndex.from_frame)
