@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from . import errors
+from . import check_utils, constants, errors
 from . import strategies as st
 from .checks import Check
 from .deprecations import deprecate_pandas_dtype
@@ -472,7 +472,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if not inplace:
             check_obj = check_obj.copy()
 
-        check_obj = check_obj.pandera.add_schema(self)
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(self)
 
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
@@ -607,7 +608,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                     # don't make a copy of the data
                     inplace=True,
                 )
-                check_results.append(isinstance(result, pd.DataFrame))
+                check_results.append(check_utils.is_table(result))
             except errors.SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
             except errors.SchemaErrors as err:
@@ -655,7 +656,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 error_handler.collected_errors, check_obj
             )
 
-        assert all(check_results)
+        assert all(check_results), "all check results must be True."
         return check_obj
 
     def __call__(
@@ -1786,7 +1787,7 @@ class SeriesSchemaBase:
 
         if not self._nullable:
             nulls = series.isna()
-            if sum(nulls) > 0:
+            if nulls.sum() > 0:
                 failed = series[nulls]
                 msg = (
                     f"non-nullable series '{series.name}' contains null "

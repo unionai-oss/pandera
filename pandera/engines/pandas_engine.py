@@ -439,12 +439,15 @@ class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
 
     def coerce(self, data_container: PandasObject) -> np.ndarray:
-        # Convert to object first to avoid
-        # TypeError: object cannot be converted to an IntegerDtype
-        data_container = data_container.astype(object)
-        return data_container.where(
-            data_container.isna(), data_container.astype(str)
-        )
+        def _to_str(obj):
+            return obj.where(obj.isna(), obj.astype(str))
+
+        try:
+            return _to_str(data_container)
+        except TypeError:
+            # Handle case:
+            # TypeError: object cannot be converted to an IntegerDtype
+            return _to_str(data_container.astype(object))
 
     def check(self, pandera_dtype: dtypes.DataType) -> bool:
         return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))

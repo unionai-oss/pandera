@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from . import errors
+from . import check_utils, errors
 from . import strategies as st
 from .deprecations import deprecate_pandas_dtype
 from .error_handlers import SchemaErrorHandler
@@ -147,7 +147,7 @@ class Column(SeriesSchemaBase):
     def coerce_dtype(self, obj: Union[pd.DataFrame, pd.Series, pd.Index]):
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
-        if isinstance(obj, (pd.Series, pd.Index)):
+        if check_utils.is_field(obj) or check_utils.is_index(obj):
             return super(Column, self).coerce_dtype(obj)
         return obj.apply(
             lambda x: super(Column, self).coerce_dtype(x), axis="columns"
