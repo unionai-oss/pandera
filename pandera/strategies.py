@@ -245,10 +245,6 @@ def _datetime_strategy(
         return st.builds(dtype.type, strategy, res)
 
 
-def _to_unix_timestamp(value: Any) -> int:
-    return pd.Timestamp(value).value
-
-
 def numpy_time_dtypes(
     dtype: Union[np.dtype, pd.DatetimeTZDtype], min_value=None, max_value=None
 ):
@@ -259,12 +255,14 @@ def numpy_time_dtypes(
     :param max_value: maximum value of the datatype to create
     :returns: ``hypothesis`` strategy
     """
-    min_value = (
-        MIN_DT_VALUE if min_value is None else _to_unix_timestamp(min_value)
-    )
-    max_value = (
-        MAX_DT_VALUE if max_value is None else _to_unix_timestamp(max_value)
-    )
+
+    def _to_unix(value: Any) -> int:
+        if dtype.type is np.timedelta64:
+            return pd.Timedelta(value).value
+        return pd.Timestamp(value).value
+
+    min_value = MIN_DT_VALUE if min_value is None else _to_unix(min_value)
+    max_value = MAX_DT_VALUE if max_value is None else _to_unix(max_value)
     return _datetime_strategy(dtype, st.integers(min_value, max_value))
 
 
