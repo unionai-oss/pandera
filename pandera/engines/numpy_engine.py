@@ -5,7 +5,6 @@ import builtins
 import dataclasses
 import datetime
 import inspect
-import platform
 import warnings
 from typing import Any, Dict, List, Union
 
@@ -13,10 +12,9 @@ import numpy as np
 
 from .. import dtypes, errors
 from ..dtypes import immutable
+from ..system import MAC_M1_PLATFORM, WINDOWS_PLATFORM
 from . import engine, utils
 from .type_aliases import PandasObject
-
-WINDOWS_PLATFORM = platform.system() == "Windows"
 
 
 @immutable(init=True)
@@ -226,11 +224,15 @@ class UInt8(UInt16):
 _float_equivalents = _build_number_equivalents(
     builtin_name="float",
     pandera_name="Float",
-    sizes=[64, 32, 16] if WINDOWS_PLATFORM else [128, 64, 32, 16],
+    sizes=(
+        [64, 32, 16]
+        if WINDOWS_PLATFORM or MAC_M1_PLATFORM
+        else [128, 64, 32, 16]
+    ),
 )
 
 
-if not WINDOWS_PLATFORM:
+if not WINDOWS_PLATFORM or MAC_M1_PLATFORM:
     # not supported in windows
     # https://github.com/winpython/winpython/issues/613
     @Engine.register_dtype(equivalents=_float_equivalents[128])
@@ -276,11 +278,11 @@ class Float16(Float32):
 _complex_equivalents = _build_number_equivalents(
     builtin_name="complex",
     pandera_name="Complex",
-    sizes=[128, 64] if WINDOWS_PLATFORM else [256, 128, 64],
+    sizes=[128, 64] if WINDOWS_PLATFORM or MAC_M1_PLATFORM else [256, 128, 64],
 )
 
 
-if not WINDOWS_PLATFORM:
+if not WINDOWS_PLATFORM or MAC_M1_PLATFORM:
     # not supported in windows
     # https://github.com/winpython/winpython/issues/613
     @Engine.register_dtype(equivalents=_complex_equivalents[256])

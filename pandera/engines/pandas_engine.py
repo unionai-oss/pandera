@@ -10,7 +10,6 @@ import builtins
 import dataclasses
 import datetime
 import inspect
-import platform
 import warnings
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -21,6 +20,7 @@ from packaging import version
 
 from .. import dtypes, errors
 from ..dtypes import immutable
+from ..system import MAC_M1_PLATFORM, WINDOWS_PLATFORM
 from . import engine, numpy_engine, utils
 from .type_aliases import PandasDataType, PandasExtensionType, PandasObject
 
@@ -37,9 +37,6 @@ try:
     from typing import Literal  # type: ignore
 except ImportError:
     from typing_extensions import Literal  # type: ignore
-
-
-WINDOWS_PLATFORM = platform.system() == "Windows"
 
 
 def is_extension_dtype(pd_dtype: PandasDataType) -> bool:
@@ -343,7 +340,9 @@ class UINT8(UINT16):
 _register_numpy_numbers(
     builtin_name="float",
     pandera_name="Float",
-    sizes=[64, 32, 16] if WINDOWS_PLATFORM else [128, 64, 32, 16],
+    sizes=[64, 32, 16]
+    if WINDOWS_PLATFORM or MAC_M1_PLATFORM
+    else [128, 64, 32, 16],
 )
 
 # ###############################################################################
@@ -353,7 +352,7 @@ _register_numpy_numbers(
 _register_numpy_numbers(
     builtin_name="complex",
     pandera_name="Complex",
-    sizes=[128, 64] if WINDOWS_PLATFORM else [256, 128, 64],
+    sizes=[128, 64] if WINDOWS_PLATFORM or MAC_M1_PLATFORM else [256, 128, 64],
 )
 
 # ###############################################################################
