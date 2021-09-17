@@ -26,7 +26,7 @@ dependencies:
   - isort >= 5.7.0
   - codecov
   - mypy >= 0.902 # mypy no longer bundle stubs for third-party libraries
-  - pylint >= 2.7.2
+  - pylint = 2.10.2
   - pytest
   - pytest-cov
   - pytest-xdist
