@@ -1,8 +1,7 @@
-"""System/OS global variables."""
+"""Global variables relating to OS."""
 
-import platform
+import numpy as np
 
-WINDOWS_PLATFORM = platform.system() == "Windows"
-MAC_M1_PLATFORM = (
-    platform.platform() == "Darwin" and platform.machine().startswith("arm")
-)
+# Windows and Mac M1 don't support floats of this precision:
+# https://github.com/pandera-dev/pandera/issues/623
+FLOAT_128_AVAILABLE = hasattr(np, "float128")

@@ -20,7 +20,7 @@ from packaging import version
 
 from .. import dtypes, errors
 from ..dtypes import immutable
-from ..system import MAC_M1_PLATFORM, WINDOWS_PLATFORM
+from ..system import FLOAT_128_AVAILABLE
 from . import engine, numpy_engine, utils
 from .type_aliases import PandasDataType, PandasExtensionType, PandasObject
 
@@ -340,9 +340,7 @@ class UINT8(UINT16):
 _register_numpy_numbers(
     builtin_name="float",
     pandera_name="Float",
-    sizes=[64, 32, 16]
-    if WINDOWS_PLATFORM or MAC_M1_PLATFORM
-    else [128, 64, 32, 16],
+    sizes=[128, 64, 32, 16] if FLOAT_128_AVAILABLE else [64, 32, 16],
 )
 
 # ###############################################################################
@@ -352,7 +350,7 @@ _register_numpy_numbers(
 _register_numpy_numbers(
     builtin_name="complex",
     pandera_name="Complex",
-    sizes=[128, 64] if WINDOWS_PLATFORM or MAC_M1_PLATFORM else [256, 128, 64],
+    sizes=[256, 128, 64] if FLOAT_128_AVAILABLE else [128, 64],
 )
 
 # ###############################################################################

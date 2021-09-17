@@ -12,7 +12,7 @@ import numpy as np
 
 from .. import dtypes, errors
 from ..dtypes import immutable
-from ..system import MAC_M1_PLATFORM, WINDOWS_PLATFORM
+from ..system import FLOAT_128_AVAILABLE
 from . import engine, utils
 from .type_aliases import PandasObject
 
@@ -224,17 +224,16 @@ class UInt8(UInt16):
 _float_equivalents = _build_number_equivalents(
     builtin_name="float",
     pandera_name="Float",
-    sizes=(
-        [64, 32, 16]
-        if WINDOWS_PLATFORM or MAC_M1_PLATFORM
-        else [128, 64, 32, 16]
-    ),
+    sizes=[128, 64, 32, 16] if FLOAT_128_AVAILABLE else [64, 32, 16],
 )
 
 
-if not WINDOWS_PLATFORM or MAC_M1_PLATFORM:
-    # not supported in windows
+if FLOAT_128_AVAILABLE:
+    # not supported in windows:
     # https://github.com/winpython/winpython/issues/613
+    #
+    # or Mac M1:
+    # https://github.com/pandera-dev/pandera/issues/623
     @Engine.register_dtype(equivalents=_float_equivalents[128])
     @immutable
     class Float128(DataType, dtypes.Float128):
@@ -278,11 +277,11 @@ class Float16(Float32):
 _complex_equivalents = _build_number_equivalents(
     builtin_name="complex",
     pandera_name="Complex",
-    sizes=[128, 64] if WINDOWS_PLATFORM or MAC_M1_PLATFORM else [256, 128, 64],
+    sizes=[256, 128, 64] if FLOAT_128_AVAILABLE else [128, 64],
 )
 
 
-if not WINDOWS_PLATFORM or MAC_M1_PLATFORM:
+if FLOAT_128_AVAILABLE:
     # not supported in windows
     # https://github.com/winpython/winpython/issues/613
     @Engine.register_dtype(equivalents=_complex_equivalents[256])
