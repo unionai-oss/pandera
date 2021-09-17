@@ -8,6 +8,12 @@ import typing_inspect
 from . import dtypes
 from .engines import numpy_engine, pandas_engine
 
+try:
+    from typing import _GenericAlias
+except ImportError:
+    _GenericAlias = None
+
+
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
 Timedelta = dtypes.Timedelta  #: ``"timedelta64[ns]"`` numpy dtype
@@ -94,6 +100,15 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
     *new in 0.5.0*
     """
 
+    if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
+
+        def __class_getitem__(cls, item):
+            """Define this to override the patch that koalas performs on pandas.
+
+            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
+            """
+            return _GenericAlias(cls, item)
+
     def __get__(
         self, instance: object, owner: Type
     ) -> str:  # pragma: no cover
@@ -114,6 +129,15 @@ class DataFrame(pd.DataFrame, Generic[T]):
 
     *new in 0.5.0*
     """
+
+    if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
+
+        def __class_getitem__(cls, item):
+            """Define this to override the patch that koalas performs on pandas.
+
+            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
+            """
+            return _GenericAlias(cls, item)
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods

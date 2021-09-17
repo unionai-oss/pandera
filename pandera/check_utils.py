@@ -1,38 +1,54 @@
 """Utility functions for validation."""
 
-from typing import Optional, Tuple, Union
+from functools import lru_cache
+from typing import NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
-TABLE_TYPES = [pd.DataFrame]
-FIELD_TYPES = [pd.Series]
-INDEX_TYPES = [pd.Index]
-MULTIINDEX_TYPES = [pd.MultiIndex]
-
-try:
-    import databricks.koalas as ks
-
-    TABLE_TYPES.append(ks.DataFrame)
-    FIELD_TYPES.append(ks.Series)
-    INDEX_TYPES.append(ks.Index)
-    MULTIINDEX_TYPES.append(ks.MultiIndex)
-except ImportError:
-    pass
-try:
-    import modin.pandas as mpd
-
-    TABLE_TYPES.append(mpd.DataFrame)
-    FIELD_TYPES.append(mpd.Series)
-    INDEX_TYPES.append(mpd.Index)
-    MULTIINDEX_TYPES.append(mpd.MultiIndex)
-except ImportError:
-    pass
+SupportedTypes = NamedTuple(
+    "SupportedTypes",
+    (
+        ("table_types", Tuple[type]),
+        ("field_types", Tuple[type]),
+        ("index_types", Tuple[type]),
+        ("multiindex_types", Tuple[type]),
+    ),
+)
 
 
-TABLE_TYPES = tuple(TABLE_TYPES)
-FIELD_TYPES = tuple(FIELD_TYPES)
-INDEX_TYPES = tuple(INDEX_TYPES)
-MULTIINDEX_TYPES = tuple(MULTIINDEX_TYPES)
+@lru_cache
+def _supported_types():
+    # pylint: disable=import-outside-toplevel
+    table_types = [pd.DataFrame]
+    field_types = [pd.Series]
+    index_types = [pd.Index]
+    multiindex_types = [pd.MultiIndex]
+
+    try:
+        import databricks.koalas as ks
+
+        table_types.append(ks.DataFrame)
+        field_types.append(ks.Series)
+        index_types.append(ks.Index)
+        multiindex_types.append(ks.MultiIndex)
+    except ImportError:
+        pass
+    try:
+        import modin.pandas as mpd
+
+        table_types.append(mpd.DataFrame)
+        field_types.append(mpd.Series)
+        index_types.append(mpd.Index)
+        multiindex_types.append(mpd.MultiIndex)
+    except ImportError:
+        pass
+
+    return SupportedTypes(
+        tuple(table_types),
+        tuple(field_types),
+        tuple(index_types),
+        tuple(multiindex_types),
+    )
 
 
 def is_table(obj):
@@ -41,7 +57,7 @@ def is_table(obj):
     Where a table is a 2-dimensional data matrix of rows and columns, which
     can be indexed in multiple different ways.
     """
-    return isinstance(obj, TABLE_TYPES)
+    return isinstance(obj, _supported_types().table_types)
 
 
 def is_field(obj):
@@ -50,17 +66,17 @@ def is_field(obj):
     Where a field is a columnar representation of data in a table-like
     data structure.
     """
-    return isinstance(obj, FIELD_TYPES)
+    return isinstance(obj, _supported_types().field_types)
 
 
 def is_index(obj):
     """Verifies whether an object is a table index."""
-    return isinstance(obj, INDEX_TYPES)
+    return isinstance(obj, _supported_types().index_types)
 
 
 def is_multiindex(obj):
     """Verifies whether an object is a multi-level table index."""
-    return isinstance(obj, MULTIINDEX_TYPES)
+    return isinstance(obj, _supported_types().multiindex_types)
 
 
 def is_supported_check_obj(obj):
