@@ -23,7 +23,6 @@ pytest-cov
 pytest-xdist
 pytest-asyncio
 xdoctest
-setuptools < 58.0.0
 nox == 2020.12.31
 importlib_metadata
 sphinx
