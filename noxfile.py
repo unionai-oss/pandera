@@ -187,6 +187,10 @@ def install_extras(
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
+    # this is a temporary measure to install setuptools due to this issue:
+    # https://github.com/pandera-dev/pandera/pull/602#issuecomment-915622823
+    session.install(["setuptools < 58.0.0"])
+
     # CI installs conda dependencies, so only run this for local runs
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
