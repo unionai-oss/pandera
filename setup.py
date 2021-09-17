@@ -44,6 +44,7 @@ setup(
         "typing_inspect >= 0.6.0",
         "wrapt",
         "pyarrow",
+        "setuptools < 58.0.0",
     ],
     extras_require=extras_require,
     python_requires=">=3.7",
