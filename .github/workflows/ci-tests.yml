@@ -112,6 +112,10 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+      # this is a temporary measure to install setuptools due to this issue:
+      # https://github.com/pandera-dev/pandera/pull/602#issuecomment-915622823
+      - name: Build dependencies
+        run: python -m pip install -r docs/requirements-dev.txt
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
       - name: Pip info
