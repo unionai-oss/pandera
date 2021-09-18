@@ -101,6 +101,12 @@ def test_dataframe_single_element_coerce() -> None:
         schema(pd.DataFrame({"x": [None]}))
 
 
+def test_dataframe_empty_coerce() -> None:
+    """Test that coercing an empty element dataframe works correctly."""
+    schema = DataFrameSchema({"x": Column(int, coerce=True)})
+    assert isinstance(schema(pd.DataFrame({"x": []})), pd.DataFrame)
+
+
 def test_dataframe_schema_equality() -> None:
     """Test DataframeSchema equality."""
     schema = DataFrameSchema({"a": Column(int)})
