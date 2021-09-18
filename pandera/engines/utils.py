@@ -30,7 +30,7 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
         except (ValueError, TypeError):
             return False
 
-    search_list = _bisect(series)
+    search_list = [series] if series.size == 1 else _bisect(series)
     failure_index = []
     while search_list:
         candidates = []
