@@ -187,6 +187,12 @@ def install_extras(
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
+    if extra == "io":
+        # install this until this issue is fixed:
+        # https://github.com/danthedeckie/simpleeval/issues/90
+        # frictionless depends on this package
+        session.install("simpleeval")
+
     # CI installs conda dependencies, so only run this for local runs
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
