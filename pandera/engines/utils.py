@@ -16,9 +16,6 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
     Bisects the series until all the failure cases are found.
     """
 
-    if series.empty:
-        return pd.Series(dtype=bool)
-
     def _bisect(series):
         assert (
             series.shape[0] >= 2
