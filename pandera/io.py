@@ -270,7 +270,7 @@ def from_yaml(yaml_schema):
     :returns: dataframe schema.
     """
     try:
-        with Path(yaml_schema).open("r") as f:
+        with Path(yaml_schema).open("r", encoding="utf-8") as f:
             serialized_schema = yaml.safe_load(f)
     except (TypeError, OSError):
         serialized_schema = yaml.safe_load(yaml_schema)
@@ -290,7 +290,7 @@ def to_yaml(dataframe_schema, stream=None):
         return yaml.safe_dump(obj, stream=stream, sort_keys=False)
 
     try:
-        with Path(stream).open("w") as f:
+        with Path(stream).open("w", encoding="utf-8") as f:
             _write_yaml(statistics, f)
     except (TypeError, OSError):
         return _write_yaml(statistics, stream)
@@ -437,7 +437,7 @@ def to_script(dataframe_schema, path_or_buf=None):
     if path_or_buf is None:
         return formatted_script
 
-    with Path(path_or_buf).open("w") as f:
+    with Path(path_or_buf).open("w", encoding="utf-8") as f:
         f.write(formatted_script)
 
 
