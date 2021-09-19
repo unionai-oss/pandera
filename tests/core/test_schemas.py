@@ -160,7 +160,7 @@ def test_dataframe_schema_strict_regex() -> None:
         {"foo_*": Column(int, regex=True)},
         strict=True,
     )
-    df = pd.DataFrame({"foo_%d" % i: range(10) for i in range(5)})
+    df = pd.DataFrame({f"foo_{i}": range(10) for i in range(5)})
 
     assert isinstance(schema.validate(df), pd.DataFrame)
 
@@ -168,7 +168,7 @@ def test_dataframe_schema_strict_regex() -> None:
     # no matches
     with pytest.raises(errors.SchemaError):
         schema.validate(
-            pd.DataFrame({"bar_%d" % i: range(10) for i in range(5)})
+            pd.DataFrame({f"bar_{i}": range(10) for i in range(5)})
         )
 
 

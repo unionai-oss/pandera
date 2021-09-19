@@ -17,13 +17,12 @@ black >= 20.8b1
 isort >= 5.7.0
 codecov
 mypy >= 0.902
-pylint == 2.10.2
+pylint == v2.11.1
 pytest
 pytest-cov
 pytest-xdist
 pytest-asyncio
 xdoctest
-setuptools < 58.0.0
 nox == 2020.12.31
 importlib_metadata
 sphinx

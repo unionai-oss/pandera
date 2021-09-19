@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from . import constants, errors
+from . import errors
 from . import strategies as st
 from .checks import Check
 from .deprecations import deprecate_pandas_dtype
@@ -278,9 +278,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ]
         if regex_columns:
             warnings.warn(
-                "Schema has columns specified as regex column names: %s "
-                "Use the `get_dtypes` to get the datatypes for these "
-                "columns." % regex_columns,
+                "Schema has columns specified as regex column names: "
+                f"{regex_columns}. Use the `get_dtypes` to get the datatypes "
+                "for these columns.",
                 UserWarning,
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
@@ -460,11 +460,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         if self._is_inferred:
             warnings.warn(
-                "This %s is an inferred schema that hasn't been "
+                f"This {type(self)} is an inferred schema that hasn't been "
                 "modified. It's recommended that you refine the schema "
                 "by calling `add_columns`, `remove_columns`, or "
-                "`update_columns` before using it to validate data."
-                % type(self),
+                "`update_columns` before using it to validate data.",
                 UserWarning,
             )
 
@@ -1744,10 +1743,9 @@ class SeriesSchemaBase:
 
         if self._is_inferred:
             warnings.warn(
-                "This %s is an inferred schema that hasn't been "
+                f"This {type(self)} is an inferred schema that hasn't been "
                 "modified. It's recommended that you refine the schema "
-                "by calling `set_checks` before using it to validate data."
-                % type(self),
+                "by calling `set_checks` before using it to validate data.",
                 UserWarning,
             )
 
@@ -1771,10 +1769,9 @@ class SeriesSchemaBase:
         )
 
         if self.name is not None and series.name != self._name:
-            msg = "Expected %s to have name '%s', found '%s'" % (
-                type(self),
-                self._name,
-                series.name,
+            msg = (
+                f"Expected {type(self)} to have name '{self._name}', found "
+                f"'{series.name}'"
             )
             error_handler.collect_error(
                 "wrong_field_name",
@@ -1790,9 +1787,10 @@ class SeriesSchemaBase:
         if not self._nullable:
             nulls = series.isna()
             if sum(nulls) > 0:
-                msg = "non-nullable series '%s' contains null values: %s" % (
-                    series.name,
-                    series[nulls].head(constants.N_FAILURE_CASES).to_dict(),
+                failed = series[nulls]
+                msg = (
+                    f"non-nullable series '{series.name}' contains null "
+                    f"values:\n{failed}"
                 )
                 error_handler.collect_error(
                     "series_contains_nulls",
@@ -1811,11 +1809,10 @@ class SeriesSchemaBase:
         if self._unique:
             duplicates = series.duplicated()
             if any(duplicates):
-                msg = "series '%s' contains duplicate values: %s" % (
-                    series.name,
-                    series[duplicates]
-                    .head(constants.N_FAILURE_CASES)
-                    .to_dict(),
+                failed = series[duplicates]
+                msg = (
+                    f"series '{series.name}' contains duplicate values:\n"
+                    f"{series[duplicates]}"
                 )
                 error_handler.collect_error(
                     "series_contains_duplicates",
