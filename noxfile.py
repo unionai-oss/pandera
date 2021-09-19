@@ -187,11 +187,9 @@ def install_extras(
     if extra == "core":
         specs.append(REQUIRES["all"]["hypothesis"])
 
-    if extra == "io":
-        # install this until this issue is fixed:
-        # https://github.com/danthedeckie/simpleeval/issues/90
-        # frictionless depends on this package
-        session.install("simpleeval")
+    # this is a temporary measure to install setuptools due to this issue:
+    # https://github.com/pandera-dev/pandera/pull/602#issuecomment-915622823
+    session.install("setuptools < 58.0.0")
 
     # CI installs conda dependencies, so only run this for local runs
     if (
