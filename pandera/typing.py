@@ -9,7 +9,7 @@ from . import dtypes
 from .engines import numpy_engine, pandas_engine
 
 try:
-    from typing import _GenericAlias
+    from typing import _GenericAlias  # type: ignore[attr-defined]
 except ImportError:
     _GenericAlias = None
 

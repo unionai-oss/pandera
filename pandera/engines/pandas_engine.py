@@ -464,6 +464,7 @@ Engine.register_dtype(
         "mixed",
         object,
         np.object_,
+        np.string_,
     ],
 )
 
@@ -510,7 +511,15 @@ class DateTime(DataType, dtypes.Timestamp):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         def _to_datetime(col: pd.Series) -> pd.Series:
-            col = pd.to_datetime(col, **self.to_datetime_kwargs)
+            # NOTE: this is a hack to get koalas working, this needs a more
+            # principled implementation
+            to_datetime_fn = pd.to_datetime
+            if type(col).__module__ == "databricks.koalas.series":
+                # pylint: disable=import-outside-toplevel
+                import databricks.koalas as ks
+
+                to_datetime_fn = ks.to_datetime
+            col = to_datetime_fn(col, **self.to_datetime_kwargs)
             return col.astype(self.type)
 
         if isinstance(data_container, pd.DataFrame):

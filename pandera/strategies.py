@@ -338,11 +338,11 @@ def to_numpy_dtype(pandera_dtype: DataType):
             return np.dtype("datetime64[ns]")
 
         raise TypeError(
-            f"Data generation for the '{pandera_dtype}' data type is currently "
-            "unsupported."
+            f"Data generation for the '{pandera_dtype}' data type is "
+            "currently unsupported."
         ) from err
 
-    if np_dtype == np.dtype("object"):
+    if np_dtype == np.dtype("object") or str(pandas_engine) == "str":
         np_dtype = np.dtype(str)
     return np_dtype
 
@@ -1094,7 +1094,21 @@ def dataframe_strategy(
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
-        ).map(lambda df: df if df.empty else df.astype(col_dtypes))
+        )
+
+        # this is a hack to convert np.str_ data values into native python str.
+        for col_name, col_dtype in col_dtypes.items():
+            if col_dtype in {"object", "str"} or col_dtype.startswith(
+                "string"
+            ):
+                # pylint: disable=cell-var-from-loop,undefined-loop-variable
+                strategy = strategy.map(
+                    lambda df: df.assign(**{col_name: df[col_name].map(str)})
+                )
+
+        strategy = strategy.map(
+            lambda df: df if df.empty else df.astype(col_dtypes)
+        )
 
         if any(nullable_columns.values()):
             strategy = null_dataframe_masks(strategy, nullable_columns)

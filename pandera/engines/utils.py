@@ -38,7 +38,7 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
             if _series.shape[0] == 1 and not _coercible(_series):
                 # if series is reduced to a single value and isn't coercible,
                 # keep track of its index value.
-                failure_index.append(_series.index[0])
+                failure_index.append(_series.index.item())
             elif not _coercible(_series):
                 # if the series length > 1, add it to the candidates list
                 # to be further bisected
@@ -71,10 +71,10 @@ def numpy_pandas_coerce_failure_cases(
                 "only numpy arrays of 1 or 2 dimensions are supported"
             )
 
-    if isinstance(data_container, pd.Index):
+    if check_utils.is_index(data_container):
         data_container = data_container.to_series()
 
-    if isinstance(data_container, pd.DataFrame):
+    if check_utils.is_table(data_container):
         check_output = data_container.apply(
             numpy_pandas_coercible,
             args=(type_,),
@@ -84,7 +84,7 @@ def numpy_pandas_coerce_failure_cases(
             check_output,
             ignore_na=False,
         )
-    elif isinstance(data_container, pd.Series):
+    elif check_utils.is_field(data_container):
         check_output = numpy_pandas_coercible(data_container, type_)
         _, failure_cases = check_utils.prepare_series_check_output(
             data_container,
