@@ -1,5 +1,6 @@
-# pylint: disable=undefined-variable,redefined-outer-name,invalid-name,undefined-loop-variable  # noqa
+# pylint: disable=undefined-variable,redefined-outer-name,invalid-name,undefined-loop-variable,too-many-lines  # noqa
 """Unit tests for pandera data generating strategies."""
+import datetime
 import operator
 import re
 from typing import Any, Callable, Optional
@@ -908,36 +909,122 @@ def test_schema_component_with_no_pdtype() -> None:
             schema_component_strategy(pandera_dtype=None)  # type: ignore
 
 
-def test_datetime_example() -> None:
+@pytest.mark.parametrize(
+    "check_arg", [pd.Timestamp("2006-01-01"), np.datetime64("2006-01-01")]
+)
+@hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
+def test_datetime_example(check_arg, data) -> None:
     """Test Column schema example method generate examples of
     timezone-naive datetimes that pass."""
 
     for checks in [
-        pa.Check.le(pd.Timestamp("2006-01-01")),
-        pa.Check.ge(np.datetime64("2006-01-01")),
-        pa.Check.eq(pd.Timestamp("2006-01-01")),
-        pa.Check.isin([np.datetime64("2006-01-01")]),
+        pa.Check.le(check_arg),
+        pa.Check.ge(check_arg),
+        pa.Check.eq(check_arg),
+        pa.Check.isin([check_arg]),
     ]:
         column_schema = pa.Column(
             "datetime", checks=checks, name="test_datetime"
         )
-        for _ in range(5):
-            column_schema(column_schema.example())
+        column_schema(data.draw(column_schema.strategy()))
 
 
-def test_datetime_tz_example() -> None:
+@pytest.mark.parametrize(
+    "dtype",
+    (
+        pd.DatetimeTZDtype(tz="UTC"),
+        pd.DatetimeTZDtype(tz="dateutil/US/Central"),
+    ),
+)
+@pytest.mark.parametrize(
+    "check_arg",
+    [
+        pd.Timestamp("2006-01-01", tz="CET"),
+        pd.Timestamp("2006-01-01", tz="UTC"),
+    ],
+)
+@hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
+def test_datetime_tz_example(dtype, check_arg, data) -> None:
     """Test Column schema example method generate examples of
     timezone-aware datetimes that pass."""
     for checks in [
-        pa.Check.le(pd.Timestamp("2006-01-01", tz="CET")),
-        pa.Check.ge(pd.Timestamp("2006-01-01", tz="UTC")),
-        pa.Check.eq(pd.Timestamp("2006-01-01", tz="CET")),
-        pa.Check.isin([pd.Timestamp("2006-01-01", tz="UTC")]),
+        pa.Check.le(check_arg),
+        pa.Check.ge(check_arg),
+        pa.Check.eq(check_arg),
+        pa.Check.isin([check_arg]),
     ]:
         column_schema = pa.Column(
-            pd.DatetimeTZDtype(tz="UTC"),
+            dtype,
             checks=checks,
             name="test_datetime_tz",
         )
-        for _ in range(5):
-            column_schema(column_schema.example())
+        column_schema(data.draw(column_schema.strategy()))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    (pd.Timedelta,),
+)
+@pytest.mark.parametrize(
+    "check_arg",
+    [
+        # nanoseconds
+        pd.Timedelta(int(1e9), unit="nanoseconds"),
+        np.timedelta64(int(1e9), "ns"),
+        # microseconds
+        pd.Timedelta(int(1e6), unit="microseconds"),
+        datetime.timedelta(microseconds=int(1e6)),
+        # milliseconds
+        pd.Timedelta(int(1e3), unit="milliseconds"),
+        np.timedelta64(int(1e3), "ms"),
+        datetime.timedelta(milliseconds=int(1e3)),
+        # seconds
+        pd.Timedelta(1, unit="s"),
+        np.timedelta64(1, "s"),
+        datetime.timedelta(seconds=1),
+        # minutes
+        pd.Timedelta(1, unit="m"),
+        np.timedelta64(1, "m"),
+        datetime.timedelta(minutes=1),
+        # hours
+        pd.Timedelta(1, unit="h"),
+        np.timedelta64(1, "h"),
+        datetime.timedelta(hours=1),
+        # days
+        pd.Timedelta(1, unit="day"),
+        np.timedelta64(1, "D"),
+        datetime.timedelta(days=1),
+        # weeks
+        pd.Timedelta(1, unit="W"),
+        np.timedelta64(1, "W"),
+        datetime.timedelta(weeks=1),
+    ],
+)
+@hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
+def test_timedelta(dtype, check_arg, data):
+    """
+    Test Column schema example method generate examples of timedeltas
+    that pass tests.
+    """
+    for checks in [
+        pa.Check.le(check_arg),
+        pa.Check.ge(check_arg),
+        pa.Check.eq(check_arg),
+        pa.Check.isin([check_arg]),
+        pa.Check.in_range(check_arg, check_arg + check_arg),
+    ]:
+        column_schema = pa.Column(
+            dtype,
+            checks=checks,
+            name="test_datetime_tz",
+        )
+        column_schema(data.draw(column_schema.strategy()))

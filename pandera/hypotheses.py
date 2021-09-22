@@ -210,8 +210,8 @@ class Hypothesis(_CheckBase):
             relationship = self.RELATIONSHIPS[relationship]
         elif not callable(relationship):
             raise ValueError(
-                "expected relationship to be str or callable, found %s"
-                % type(relationship)
+                "expected relationship to be str or callable, found "
+                f"{type(relationship)}"
             )
         return relationship
 

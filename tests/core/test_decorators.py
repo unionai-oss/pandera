@@ -819,7 +819,7 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
         @check_output(Schema.to_schema())
         @check_input(Schema.to_schema(), "df1")
         @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
-        async def regular_meta_coroutine(
+        async def regular_meta_coroutine(  # pylint: disable=no-self-use
             cls,
             df1: DataFrame[Schema],
         ) -> DataFrame[Schema]:

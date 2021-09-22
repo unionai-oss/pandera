@@ -41,7 +41,7 @@ repos:
         args: ["--line-length=79"]
 
   - repo: https://github.com/pycqa/pylint
-    rev: v2.10.2
+    rev: v2.11.1
     hooks:
       - id: pylint
         args: ["--disable=import-error"]

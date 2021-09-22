@@ -5,7 +5,6 @@ coercion examples."""
 import dataclasses
 import datetime
 import inspect
-import platform
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
@@ -19,8 +18,7 @@ from hypothesis import strategies as st
 
 import pandera as pa
 from pandera.engines import pandas_engine
-
-WINDOWS_PLATFORM = platform.system() == "Windows"
+from pandera.system import FLOAT_128_AVAILABLE
 
 # List dtype classes and associated pandas alias,
 # except for parameterizable dtypes that should also list examples of
@@ -85,7 +83,7 @@ complex_dtypes = {
 }
 
 
-if not WINDOWS_PLATFORM:
+if FLOAT_128_AVAILABLE:
     float_dtypes.update(
         {
             pa.Float128: "float128",

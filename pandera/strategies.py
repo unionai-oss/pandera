@@ -245,10 +245,6 @@ def _datetime_strategy(
         return st.builds(dtype.type, strategy, res)
 
 
-def _to_unix_timestamp(value: Any) -> int:
-    return pd.Timestamp(value).value
-
-
 def numpy_time_dtypes(
     dtype: Union[np.dtype, pd.DatetimeTZDtype], min_value=None, max_value=None
 ):
@@ -259,12 +255,14 @@ def numpy_time_dtypes(
     :param max_value: maximum value of the datatype to create
     :returns: ``hypothesis`` strategy
     """
-    min_value = (
-        MIN_DT_VALUE if min_value is None else _to_unix_timestamp(min_value)
-    )
-    max_value = (
-        MAX_DT_VALUE if max_value is None else _to_unix_timestamp(max_value)
-    )
+
+    def _to_unix(value: Any) -> int:
+        if dtype.type is np.timedelta64:
+            return pd.Timedelta(value).value
+        return pd.Timestamp(value).value
+
+    min_value = MIN_DT_VALUE if min_value is None else _to_unix(min_value)
+    max_value = MAX_DT_VALUE if max_value is None else _to_unix(max_value)
     return _datetime_strategy(dtype, st.integers(min_value, max_value))
 
 
@@ -831,7 +829,7 @@ def series_strategy(
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
-        .map(lambda x: x.astype(str(pandera_dtype)))
+        .map(lambda x: x.astype(pandera_dtype.type))
     )
     if nullable:
         strategy = null_field_masks(strategy)
@@ -918,7 +916,7 @@ def index_strategy(
         min_size=0 if size is None else size,
         max_size=size,
         unique=unique,
-    ).map(lambda x: x.astype(str(pandera_dtype)))
+    ).map(lambda x: x.astype(pandera_dtype.type))
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
     if nullable:
@@ -1068,12 +1066,11 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: str(col.dtype)
+            col_name: col.dtype.type
             if pandera_dtype is None
-            else str(pandera_dtype)
+            else pandera_dtype.type
             for col_name, col in expanded_columns.items()
         }
-
         nullable_columns = {
             col_name: col.nullable
             for col_name, col in expanded_columns.items()
@@ -1132,7 +1129,7 @@ def multiindex_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param indexes: a list of :class:`~pandera.schema_components.Inded`
+    :param indexes: a list of :class:`~pandera.schema_components.Index`
         objects.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.
@@ -1145,7 +1142,7 @@ def multiindex_strategy(
         )
     indexes = [] if indexes is None else indexes
     index_dtypes = {
-        index.name if index.name is not None else i: str(index.dtype)
+        index.name if index.name is not None else i: index.dtype.type
         for i, index in enumerate(indexes)
     }
     nullable_index = {

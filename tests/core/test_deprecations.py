@@ -1,12 +1,9 @@
 """Unit tests for deprecated features."""
 
-import platform
-
 import pytest
 
 import pandera as pa
-
-WINDOWS_PLATFORM = platform.system() == "Windows"
+from pandera.system import FLOAT_128_AVAILABLE
 
 
 @pytest.mark.parametrize(
@@ -46,7 +43,10 @@ def test_deprecate_pandas_dtype(schema_cls, as_pos_arg):
 def test_deprecate_pandas_dtype_enum(schema_cls):
     """Test that using the PandasDtype enum raises a DeprecationWarning."""
     for attr in pa.PandasDtype:
-        if WINDOWS_PLATFORM and attr in {"Float128", "Complex256"}:
+        if not FLOAT_128_AVAILABLE and attr in {
+            "Float128",
+            "Complex256",
+        }:
             continue
         with pytest.warns(DeprecationWarning):
             pandas_dtype = getattr(pa.PandasDtype, attr)
