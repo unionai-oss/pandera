@@ -455,7 +455,7 @@ class NpString(numpy_engine.String):
 
             obj = (
                 obj.astype(str)
-                if obj.isna().sum() == 0
+                if obj.notna().all(axis=None)
                 else obj.where(obj.isna(), obj.astype(str))
             )
             return obj if reverter is None else reverter(obj)
