@@ -312,7 +312,7 @@ def test_required_column():
     schema(ks.DataFrame({"another_field": [1, 2, 3]}))
 
 
-@pytest.mark.parametrize("from_dtype", [float, int, str, bool])
+@pytest.mark.parametrize("from_dtype", [str])
 @pytest.mark.parametrize("to_dtype", [float, int, str, bool])
 @hypothesis.given(st.data())
 def test_dtype_coercion(from_dtype, to_dtype, data):
@@ -320,7 +320,8 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
     from_schema = pa.DataFrameSchema({"field": pa.Column(from_dtype)})
     to_schema = pa.DataFrameSchema({"field": pa.Column(to_dtype, coerce=True)})
 
-    sample = ks.DataFrame(data.draw(from_schema.strategy(size=3)))
+    pd_sample = data.draw(from_schema.strategy(size=3))
+    sample = ks.DataFrame(pd_sample)
     if from_dtype is to_dtype:
         assert isinstance(to_schema(sample), ks.DataFrame)
         return

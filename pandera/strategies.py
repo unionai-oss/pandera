@@ -1073,9 +1073,9 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: col.dtype.type
+            col_name: str(col.dtype)
             if pandera_dtype is None
-            else pandera_dtype.type
+            else str(pandera_dtype)
             for col_name, col in expanded_columns.items()
         }
         nullable_columns = {
@@ -1163,7 +1163,7 @@ def multiindex_strategy(
         )
     indexes = [] if indexes is None else indexes
     index_dtypes = {
-        index.name if index.name is not None else i: index.dtype.type
+        index.name if index.name is not None else i: str(index.dtype)
         for i, index in enumerate(indexes)
     }
     nullable_index = {
