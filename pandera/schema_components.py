@@ -214,7 +214,7 @@ class Column(SeriesSchemaBase):
                 check_obj.loc[:, column_name] = self.coerce_dtype(
                     check_obj.loc[:, column_name]
                 )
-            if isinstance(check_obj[column_name], pd.DataFrame):
+            if check_utils.is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):
                     validate_column(
                         check_obj[column_name].iloc[:, [i]], column_name
@@ -248,7 +248,7 @@ class Column(SeriesSchemaBase):
                 matches = matches & np.array(matched.tolist())
             column_keys_to_check = columns[matches]
         else:
-            if isinstance(columns, pd.MultiIndex):
+            if check_utils.is_multiindex(columns):
                 raise IndexError(
                     f"Column regex name {self.name} is a string, expected a "
                     "dataframe where the index is a pd.Index object, not a "
@@ -367,24 +367,33 @@ class Index(SeriesSchemaBase):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-        if isinstance(check_obj.index, pd.MultiIndex):
+        if check_utils.is_multiindex(check_obj.index):
             raise errors.SchemaError(
                 self, check_obj, "Attempting to validate mismatch index"
             )
+
+        series_cls = pd.Series
+        # NOTE: this is a hack to get koalas working, this needs a more
+        # principled implementation
+        if type(check_obj).__module__ == "databricks.koalas.frame":
+            # pylint: disable=import-outside-toplevel
+            import databricks.koalas as ks
+
+            series_cls = ks.Series
 
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
             # handles case where pandas native string type is not supported
             # by index.
             obj_to_validate = self.dtype.coerce(
-                pd.Series(check_obj.index, name=check_obj.index.name)
+                series_cls(check_obj.index.values, name=check_obj.index.name)
             )
         else:
-            obj_to_validate = pd.Series(
-                check_obj.index, name=check_obj.index.name
+            obj_to_validate = series_cls(
+                check_obj.index.values, name=check_obj.index.name
             )
 
-        assert isinstance(
+        assert check_utils.is_field(
             super().validate(
                 obj_to_validate,
                 head,
@@ -394,7 +403,6 @@ class Index(SeriesSchemaBase):
                 lazy,
                 inplace,
             ),
-            pd.Series,
         )
         return check_obj
 
@@ -583,9 +591,16 @@ class MultiIndex(DataFrameSchema):
         if error_handler.collected_errors:
             raise errors.SchemaErrors(error_handler.collected_errors, obj)
 
-        return pd.MultiIndex.from_arrays(
+        multiindex_cls = pd.MultiIndex
+        # NOTE: this is a hack to support koalas
+        if type(obj).__module__.startswith("databricks.koalas"):
+            # pylint: disable=import-outside-toplevel
+            import databricks.koalas as ks
+
+            multiindex_cls = ks.MultiIndex
+        return multiindex_cls.from_arrays(
             [
-                v
+                v.values
                 for k, v in sorted(
                     coerced_multi_index.items(), key=lambda x: x[0]
                 )
@@ -662,17 +677,21 @@ class MultiIndex(DataFrameSchema):
             Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
             duplicate index names if they exist.
             """
-            df = pd.DataFrame(
-                {
-                    i: multiindex.get_level_values(i)
-                    for i in range(multiindex.nlevels)
-                }
-            )
-            df.columns = [
-                i if name is None else name
-                for i, name in enumerate(multiindex.names)
-            ]
-            df.index = multiindex
+            # NOTE: this is a hack to support koalas
+            if type(multiindex).__module__.startswith("databricks.koalas"):
+                df = multiindex.to_frame()
+            else:
+                df = pd.DataFrame(
+                    {
+                        i: multiindex.get_level_values(i)
+                        for i in range(multiindex.nlevels)
+                    }
+                )
+                df.columns = [
+                    i if name is None else name
+                    for i, name in enumerate(multiindex.names)
+                ]
+                df.index = multiindex
             return df
 
         try:
@@ -705,7 +724,7 @@ class MultiIndex(DataFrameSchema):
 
             raise errors.SchemaErrors(schema_error_dicts, check_obj)
 
-        assert isinstance(validation_result, pd.DataFrame)
+        assert check_utils.is_table(validation_result)
         return check_obj
 
     @st.strategy_import_error

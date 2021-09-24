@@ -917,6 +917,13 @@ def index_strategy(
         max_size=size,
         unique=unique,
     ).map(lambda x: x.astype(pandera_dtype.type))
+
+    # this is a hack to convert np.str_ data values into native python str.
+    col_dtype = str(pandera_dtype)
+    if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
+        # pylint: disable=cell-var-from-loop,undefined-loop-variable
+        strategy = strategy.map(lambda index: index.map(str))
+
     if name is not None:
         strategy = strategy.map(lambda index: index.rename(name))
     if nullable:
@@ -1169,6 +1176,15 @@ def multiindex_strategy(
             min_size=0 if size is None else size, max_size=size
         ),
     ).map(lambda x: x.astype(index_dtypes))
+
+    # this is a hack to convert np.str_ data values into native python str.
+    for name, dtype in index_dtypes.items():
+        if dtype in {"object", "str"} or dtype.startswith("string"):
+            # pylint: disable=cell-var-from-loop,undefined-loop-variable
+            strategy = strategy.map(
+                lambda df: df.assign(**{name: df[name].map(str)})
+            )
+
     if any(nullable_index.values()):
         strategy = null_dataframe_masks(strategy, nullable_index)
     return strategy.map(pd.MultiIndex.from_frame)

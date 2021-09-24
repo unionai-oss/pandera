@@ -74,7 +74,10 @@ def reshape_failure_cases(
         representing how many failures of that case occurred.
 
     """
-    if "column" in failure_cases and "failure_case" in failure_cases:
+    if (
+        "column" in failure_cases.values
+        and "failure_case" in failure_cases.values
+    ):
         # handle case where failure cases occur at the index-column level
         reshaped_failure_cases = failure_cases
     elif check_utils.is_table(failure_cases) and check_utils.is_multiindex(

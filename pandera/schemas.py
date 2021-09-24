@@ -371,7 +371,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 and self.dtype is None
                 and colname in obj
             ):
-                obj.loc[:, colname] = _try_coercion(
+                obj[colname] = _try_coercion(
                     col_schema.coerce_dtype, obj[colname]
                 )
 
@@ -636,7 +636,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             )
             for lst in temp_unique:
                 duplicates = df_to_validate.duplicated(subset=lst, keep=False)
-                if any(duplicates):
+                if duplicates.any():
                     failure_cases = reshape_failure_cases(
                         df_to_validate.loc[duplicates, lst]
                     )
@@ -1337,7 +1337,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             []
             if new_schema.index is None or not append
             else list(new_schema.index.indexes)
-            if isinstance(new_schema.index, MultiIndex) and append
+            if check_utils.is_multiindex(new_schema.index) and append
             else [new_schema.index]
         )
 
@@ -1439,7 +1439,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
-        from pandera.schema_components import Column, Index, MultiIndex
+        from pandera.schema_components import Column, Index
 
         new_schema = copy.deepcopy(self)
 
@@ -1456,9 +1456,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # ensure all specified keys are present in the index
         level_not_in_index: Union[List[Any], List[str], None] = (
             [x for x in level_temp if x not in new_schema.index.names]
-            if isinstance(new_schema.index, MultiIndex) and level_temp
+            if check_utils.is_multiindex(new_schema.index) and level_temp
             else []
-            if isinstance(new_schema.index, Index)
+            if check_utils.is_index(new_schema.index)
             and (level_temp == [new_schema.index.name])
             else level_temp
         )
@@ -1469,7 +1469,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         new_index = (
             None
-            if (level_temp == []) or isinstance(new_schema.index, Index)
+            if (level_temp == []) or check_utils.is_index(new_schema.index)
             else new_schema.index.remove_columns(level_temp)
         )
         new_index = (
@@ -1494,7 +1494,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if not drop:
             additional_columns: Dict[str, Any] = (
                 {col: new_schema.index.columns.get(col) for col in level_temp}
-                if isinstance(new_schema.index, MultiIndex)
+                if check_utils.is_multiindex(new_schema.index)
                 else {new_schema.index.name: new_schema.index}
             )
             new_schema = new_schema.add_columns(
@@ -1757,7 +1757,7 @@ class SeriesSchemaBase:
 
         series = (
             check_obj
-            if isinstance(check_obj, pd.Series)
+            if check_utils.is_field(check_obj)
             else check_obj[self.name]
         )
 
@@ -1808,8 +1808,17 @@ class SeriesSchemaBase:
 
         # Check if the series contains duplicate values
         if self._unique:
-            duplicates = series.duplicated()
-            if any(duplicates):
+            if type(series).__module__.startswith("databricks.koalas"):
+                duplicates = type(series)(
+                    ~series.index.isin(series.drop_duplicates().index.values)
+                    .to_series()
+                    .values,
+                    index=series.index.values,
+                    name=series.name,
+                )
+            else:
+                duplicates = series.duplicated()
+            if duplicates.any():
                 failed = series[duplicates]
                 msg = (
                     f"series '{series.name}' contains duplicate values:\n"
@@ -1847,7 +1856,7 @@ class SeriesSchemaBase:
             )
 
         check_results = []
-        if isinstance(check_obj, pd.Series):
+        if check_utils.is_field(check_obj):
             check_obj, check_args = series, [None]
         else:
             check_args = [self.name]  # type: ignore
@@ -2023,6 +2032,7 @@ class SeriesSchema(SeriesSchemaBase):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.Series:
+        # pylint: disable=too-many-branches
         """Validate a Series object.
 
         :param check_obj: One-dimensional ndarray with axis labels
@@ -2065,20 +2075,21 @@ class SeriesSchema(SeriesSchemaBase):
         dtype: float64
 
         """
-        if not isinstance(check_obj, pd.Series):
+        if not check_utils.is_field(check_obj):
             raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
 
         if not inplace:
             check_obj = check_obj.copy()
 
-        check_obj = check_obj.pandera.add_schema(self)
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(self)
         error_handler = SchemaErrorHandler(lazy=lazy)
 
         if self.coerce:
             try:
-                check_obj = self.coerce_dtype(check_obj).pandera.add_schema(
-                    self
-                )
+                check_obj = self.coerce_dtype(check_obj)
+                if hasattr(check_obj, "pandera"):
+                    check_obj = check_obj.pandera.add_schema(self)
             except errors.SchemaError as exc:
                 error_handler.collect_error("dtype_coercion_error", exc)
 

@@ -19,3 +19,12 @@ else:
     settings.register_profile("ci", max_examples=100, deadline=None)
     settings.register_profile("dev", max_examples=10, deadline=None)
     settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "dev"))
+
+
+try:
+    # pylint: disable=import-outside-toplevel,unused-import
+    import databricks.koalas
+
+    os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+except ImportError:
+    pass

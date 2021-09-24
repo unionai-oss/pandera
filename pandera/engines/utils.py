@@ -48,6 +48,16 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
         search_list = list(
             itertools.chain.from_iterable([_bisect(c) for c in candidates])
         )
+
+    # NOTE: this is a hack to support koalas
+    if type(series).__module__.startswith("databricks.koalas"):
+        out = type(series)(
+            series.index.isin(failure_index).to_series().values,
+            index=series.index.values,
+            name=series.name,
+        )
+        out.index.name = series.index.name
+        return out
     return pd.Series(~series.index.isin(failure_index), index=series.index)
 
 

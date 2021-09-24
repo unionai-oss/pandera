@@ -440,7 +440,17 @@ class NpString(numpy_engine.String):
 
     def coerce(self, data_container: PandasObject) -> np.ndarray:
         def _to_str(obj):
-            return obj.where(obj.isna(), obj.astype(str))
+            # NOTE: this is a hack to handle the following case:
+            # koalas.Index doesn't support .where method yet, use numpy
+            reverter = None
+            if type(obj).__module__.startswith("databricks.koalas.indexes"):
+                # pylint: disable=import-outside-toplevel
+                import databricks.koalas as ks
+
+                obj = obj.to_series()
+                reverter = ks.Index
+            obj = obj.where(obj.isna(), obj.astype(str))
+            return obj if reverter is None else reverter(obj)
 
         try:
             return _to_str(data_container)

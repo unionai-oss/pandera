@@ -57,3 +57,14 @@ from .version import __version__
 
 if platform.system() != "Windows":
     from pandera.dtypes import Complex256, Float128
+
+
+try:
+    # NOTE: don't rely on this, due to potential performance issues. For more
+    # details, see:
+    # https://koalas.readthedocs.io/en/latest/user_guide/options.html#operations-on-different-dataframes
+    import databricks.koalas as ks
+
+    ks.set_option("compute.ops_on_diff_frames", True)
+except ImportError:
+    pass
