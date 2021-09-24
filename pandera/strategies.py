@@ -342,7 +342,7 @@ def to_numpy_dtype(pandera_dtype: DataType):
             "currently unsupported."
         ) from err
 
-    if np_dtype == np.dtype("object") or str(pandas_engine) == "str":
+    if np_dtype == np.dtype("object") or str(pandera_dtype) == "str":
         np_dtype = np.dtype(str)
     return np_dtype
 

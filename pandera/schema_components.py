@@ -386,11 +386,13 @@ class Index(SeriesSchemaBase):
             # handles case where pandas native string type is not supported
             # by index.
             obj_to_validate = self.dtype.coerce(
-                series_cls(check_obj.index.values, name=check_obj.index.name)
+                series_cls(
+                    check_obj.index.to_numpy(), name=check_obj.index.name
+                )
             )
         else:
             obj_to_validate = series_cls(
-                check_obj.index.values, name=check_obj.index.name
+                check_obj.index.to_numpy(), name=check_obj.index.name
             )
 
         assert check_utils.is_field(
@@ -600,7 +602,7 @@ class MultiIndex(DataFrameSchema):
             multiindex_cls = ks.MultiIndex
         return multiindex_cls.from_arrays(
             [
-                v.values
+                v.to_numpy()
                 for k, v in sorted(
                     coerced_multi_index.items(), key=lambda x: x[0]
                 )

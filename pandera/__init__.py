@@ -55,10 +55,6 @@ from .schema_inference import infer_schema
 from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
 
-if platform.system() != "Windows":
-    from pandera.dtypes import Complex256, Float128
-
-
 try:
     # NOTE: don't rely on this, due to potential performance issues. For more
     # details, see:
@@ -68,3 +64,7 @@ try:
     ks.set_option("compute.ops_on_diff_frames", True)
 except ImportError:
     pass
+
+if platform.system() != "Windows":
+    # pylint: disable=ungrouped-imports
+    from pandera.dtypes import Complex256, Float128

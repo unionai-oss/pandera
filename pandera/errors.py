@@ -104,6 +104,20 @@ class SchemaErrors(Exception):
         for k, v in error_counts.items():
             msg += f"- {k}: {v}\n"
 
+        # def failure_cases(x):
+        #     return list(set(x))
+
+        # agg_schema_errors = (
+        #     schema_errors.fillna({"column": "<NA>"})
+        #     .groupby(["schema_context", "column", "check"])
+        #     .failure_case.agg([failure_cases])
+        #     .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
+        #     .sort_index(
+        #         level=["schema_context", "column"],
+        #         ascending=[False, True],
+        #     )
+        # )
+
         agg_schema_errors = (
             schema_errors.fillna({"column": "<NA>"})
             .groupby(["schema_context", "column", "check"])
@@ -194,7 +208,6 @@ class SchemaErrors(Exception):
             import databricks.koalas as ks
 
             concat_fn = ks.concat
-
             check_failure_cases = [
                 x if isinstance(x, ks.DataFrame) else ks.DataFrame(x)
                 for x in check_failure_cases

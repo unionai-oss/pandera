@@ -443,21 +443,24 @@ class NpString(numpy_engine.String):
             # NOTE: this is a hack to handle the following case:
             # koalas.Index doesn't support .where method yet, use numpy
             reverter = None
-            if type(obj).__module__.startswith("databricks.koalas.indexes"):
+            if type(obj).__module__.startswith("databricks.koalas"):
                 # pylint: disable=import-outside-toplevel
                 import databricks.koalas as ks
 
-                obj = obj.to_series()
-                reverter = ks.Index
-            obj = obj.where(obj.isna(), obj.astype(str))
+                if isinstance(obj, ks.Index):
+                    obj = obj.to_series()
+                    reverter = ks.Index
+            else:
+                obj = obj.astype(object)
+
+            obj = (
+                obj.astype(str)
+                if obj.isna().sum() == 0
+                else obj.where(obj.isna(), obj.astype(str))
+            )
             return obj if reverter is None else reverter(obj)
 
-        try:
-            return _to_str(data_container)
-        except TypeError:
-            # Handle case:
-            # TypeError: object cannot be converted to an IntegerDtype
-            return _to_str(data_container.astype(object))
+        return _to_str(data_container)
 
     def check(self, pandera_dtype: dtypes.DataType) -> bool:
         return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
@@ -474,7 +477,6 @@ Engine.register_dtype(
         "mixed",
         object,
         np.object_,
-        np.string_,
     ],
 )
 

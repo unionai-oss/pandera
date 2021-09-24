@@ -14,6 +14,9 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
     """Checks whether a series is coercible with respect to a type.
 
     Bisects the series until all the failure cases are found.
+
+    NOTE: this does not account for koalas .astype behavior, which defaults
+    to converting uncastable values to NA values.
     """
 
     def _bisect(series):
@@ -52,8 +55,8 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
     # NOTE: this is a hack to support koalas
     if type(series).__module__.startswith("databricks.koalas"):
         out = type(series)(
-            series.index.isin(failure_index).to_series().values,
-            index=series.index.values,
+            series.index.isin(failure_index).to_series().to_numpy(),
+            index=series.index.values.to_numpy(),
             name=series.name,
         )
         out.index.name = series.index.name

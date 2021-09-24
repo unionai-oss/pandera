@@ -74,11 +74,20 @@ def reshape_failure_cases(
         representing how many failures of that case occurred.
 
     """
-    if (
-        "column" in failure_cases.values
-        and "failure_case" in failure_cases.values
+    if not (
+        check_utils.is_table(failure_cases)
+        or check_utils.is_field(failure_cases)
     ):
-        # handle case where failure cases occur at the index-column level
+        raise TypeError(
+            "Expected failure_cases to be a DataFrame or Series, found "
+            f"{type(failure_cases)}"
+        )
+
+    if (
+        check_utils.is_table(failure_cases)
+        and "column" in failure_cases.columns
+        and "failure_case" in failure_cases.columns
+    ):
         reshaped_failure_cases = failure_cases
     elif check_utils.is_table(failure_cases) and check_utils.is_multiindex(
         failure_cases.index

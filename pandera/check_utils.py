@@ -81,9 +81,7 @@ def is_multiindex(obj):
 
 def is_supported_check_obj(obj):
     """Verifies whether an object is table- or field-like."""
-    return (
-        is_table(obj) or is_field(obj) or is_index(obj) or is_multiindex(obj)
-    )
+    return is_table(obj) or is_field(obj)
 
 
 def prepare_series_check_output(

@@ -1439,7 +1439,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
-        from pandera.schema_components import Column, Index
+        from pandera.schema_components import Column, Index, MultiIndex
 
         new_schema = copy.deepcopy(self)
 
@@ -1456,9 +1456,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # ensure all specified keys are present in the index
         level_not_in_index: Union[List[Any], List[str], None] = (
             [x for x in level_temp if x not in new_schema.index.names]
-            if check_utils.is_multiindex(new_schema.index) and level_temp
+            if isinstance(new_schema.index, MultiIndex) and level_temp
             else []
-            if check_utils.is_index(new_schema.index)
+            if isinstance(new_schema.index, Index)
             and (level_temp == [new_schema.index.name])
             else level_temp
         )
@@ -1469,7 +1469,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         new_index = (
             None
-            if (level_temp == []) or check_utils.is_index(new_schema.index)
+            if (level_temp == []) or isinstance(new_schema.index, Index)
             else new_schema.index.remove_columns(level_temp)
         )
         new_index = (
@@ -1494,7 +1494,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if not drop:
             additional_columns: Dict[str, Any] = (
                 {col: new_schema.index.columns.get(col) for col in level_temp}
-                if check_utils.is_multiindex(new_schema.index)
+                if isinstance(new_schema.index, MultiIndex)
                 else {new_schema.index.name: new_schema.index}
             )
             new_schema = new_schema.add_columns(
@@ -1809,12 +1809,8 @@ class SeriesSchemaBase:
         # Check if the series contains duplicate values
         if self._unique:
             if type(series).__module__.startswith("databricks.koalas"):
-                duplicates = type(series)(
-                    ~series.index.isin(series.drop_duplicates().index.values)
-                    .to_series()
-                    .values,
-                    index=series.index.values,
-                    name=series.name,
+                duplicates = (
+                    series.to_frame().duplicated().reindex(series.index)
                 )
             else:
                 duplicates = series.duplicated()
