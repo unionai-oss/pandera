@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from . import check_utils, constants, errors
+from . import check_utils, errors
 from . import strategies as st
 from .checks import Check
 from .deprecations import deprecate_pandas_dtype
@@ -637,9 +637,23 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             for lst in temp_unique:
                 duplicates = df_to_validate.duplicated(subset=lst, keep=False)
                 if duplicates.any():
-                    failure_cases = reshape_failure_cases(
-                        df_to_validate.loc[duplicates, lst]
-                    )
+                    # NOTE: this is a hack to support koalas, need to figure
+                    # out a workaround to error: "Cannot combine the series or
+                    # dataframe because it comes from a different dataframe."
+                    if type(duplicates).__module__.startswith(
+                        "databricks.koalas"
+                    ):
+                        # pylint: disable=import-outside-toplevel
+                        import databricks.koalas as ks
+
+                        with ks.option_context(
+                            "compute.ops_on_diff_frames", True
+                        ):
+                            failure_cases = df_to_validate.loc[duplicates, lst]
+                    else:
+                        failure_cases = df_to_validate.loc[duplicates, lst]
+
+                    failure_cases = reshape_failure_cases(failure_cases)
                     error_handler.collect_error(
                         "duplicates",
                         errors.SchemaError(
@@ -1812,13 +1826,19 @@ class SeriesSchemaBase:
                 duplicates = (
                     series.to_frame().duplicated().reindex(series.index)
                 )
+                # pylint: disable=import-outside-toplevel
+                import databricks.koalas as ks
+
+                with ks.option_context("compute.ops_on_diff_frames", True):
+                    failed = series[duplicates]
             else:
                 duplicates = series.duplicated()
-            if duplicates.any():
                 failed = series[duplicates]
+
+            if duplicates.any():
                 msg = (
                     f"series '{series.name}' contains duplicate values:\n"
-                    f"{series[duplicates]}"
+                    f"{failed}"
                 )
                 error_handler.collect_error(
                     "series_contains_duplicates",
@@ -1826,9 +1846,7 @@ class SeriesSchemaBase:
                         self,
                         check_obj,
                         msg,
-                        failure_cases=reshape_failure_cases(
-                            series[duplicates]
-                        ),
+                        failure_cases=reshape_failure_cases(failed),
                         check="field_uniqueness",
                     ),
                 )

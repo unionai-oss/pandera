@@ -104,9 +104,20 @@ def prepare_series_check_output(
         check_output = check_output | isna
     failure_cases = check_obj[~check_output]
     if not failure_cases.empty and n_failure_cases is not None:
-        failure_cases = failure_cases.groupby(check_output).head(
-            n_failure_cases
-        )
+        # NOTE: this is a hack to support koalas, since you can't use groupby
+        # on a dataframe with another dataframe
+        if type(failure_cases).__module__.startswith("databricks.koalas"):
+            failure_cases = (
+                failure_cases.rename("failure_cases")
+                .to_frame()
+                .assign(check_output=check_output)
+                .groupby("check_output")
+                .head(n_failure_cases)["failure_cases"]
+            )
+        else:
+            failure_cases = failure_cases.groupby(check_output).head(
+                n_failure_cases
+            )
     return check_output, failure_cases
 
 
