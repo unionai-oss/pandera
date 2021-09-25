@@ -33,7 +33,7 @@ def _supported_types():
         multiindex_types.append(ks.MultiIndex)
     except ImportError:
         pass
-    try:
+    try:  # pragma: no cover
         import modin.pandas as mpd
 
         table_types.append(mpd.DataFrame)
