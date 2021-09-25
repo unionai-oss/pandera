@@ -88,7 +88,7 @@ def numpy_pandas_coerce_failure_cases(
         data_container = data_container.to_series()  # type: ignore[union-attr]
 
     if check_utils.is_table(data_container):
-        check_output = data_container.apply(
+        check_output = data_container.apply(  # type: ignore[union-attr]
             numpy_pandas_coercible,
             args=(type_,),
         )
