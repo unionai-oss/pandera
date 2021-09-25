@@ -55,7 +55,7 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
     # NOTE: this is a hack to support koalas
     if type(series).__module__.startswith("databricks.koalas"):
         out = type(series)(
-            series.index.isin(failure_index).to_series().to_numpy(),
+            series.index.isin(failure_index).to_series().to_numpy(),  # type: ignore[union-attr]
             index=series.index.values.to_numpy(),
             name=series.name,
         )
@@ -85,7 +85,7 @@ def numpy_pandas_coerce_failure_cases(
             )
 
     if check_utils.is_index(data_container):
-        data_container = data_container.to_series()
+        data_container = data_container.to_series()  # type: ignore[union-attr]
 
     if check_utils.is_table(data_container):
         check_output = data_container.apply(
