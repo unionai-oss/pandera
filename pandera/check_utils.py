@@ -16,7 +16,7 @@ SupportedTypes = NamedTuple(
 )
 
 
-@lru_cache
+@lru_cache(maxsize=None)
 def _supported_types():
     # pylint: disable=import-outside-toplevel
     table_types = [pd.DataFrame]
