@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import dtypes, extensions
+from pandera import dtypes, extensions, system
 from pandera.engines import numpy_engine, pandas_engine
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
@@ -30,29 +30,28 @@ UNSUPPORTED_STRATEGY_DTYPES = set(UNSUPPORTED_STRATEGY_DTYPES)
 UNSUPPORTED_STRATEGY_DTYPES.add(numpy_engine.Object)
 
 
-KOALAS_UNSUPPORTED = frozenset(
-    {
-        numpy_engine.Complex256,
-        numpy_engine.Complex128,
-        numpy_engine.Complex64,
-        numpy_engine.Float128,
-        numpy_engine.Float16,
-        numpy_engine.Object,
-        numpy_engine.Timedelta64,
-        numpy_engine.UInt64,
-        numpy_engine.UInt32,
-        numpy_engine.UInt16,
-        numpy_engine.UInt8,
-        pandas_engine.Category,
-        pandas_engine.Interval,
-        pandas_engine.Period,
-        pandas_engine.Sparse,
-        pandas_engine.UINT64,
-        pandas_engine.UINT32,
-        pandas_engine.UINT16,
-        pandas_engine.UINT8,
-    }
-)
+KOALAS_UNSUPPORTED = {
+    numpy_engine.Complex128,
+    numpy_engine.Complex64,
+    numpy_engine.Float16,
+    numpy_engine.Object,
+    numpy_engine.Timedelta64,
+    numpy_engine.UInt64,
+    numpy_engine.UInt32,
+    numpy_engine.UInt16,
+    numpy_engine.UInt8,
+    pandas_engine.Category,
+    pandas_engine.Interval,
+    pandas_engine.Period,
+    pandas_engine.Sparse,
+    pandas_engine.UINT64,
+    pandas_engine.UINT32,
+    pandas_engine.UINT16,
+    pandas_engine.UINT8,
+}
+
+if system.FLOAT_128_AVAILABLE:
+    KOALAS_UNSUPPORTED.update({numpy_engine.Float128, numpy_engine.Complex256})
 
 MIN_TIMESTAMP = pd.Timestamp("1900-01-01 00:04:00")
 
@@ -382,6 +381,7 @@ def test_schema_model():
     # pylint: disable=missing-class-docstring
     """Test that SchemaModel subclasses work on koalas dataframes."""
 
+    # pylint: disable=too-few-public-methods
     class Schema(pa.SchemaModel):
         int_field: pa.typing.Series[int] = pa.Field(gt=0)
         float_field: pa.typing.Series[float] = pa.Field(lt=0)
@@ -446,6 +446,7 @@ def test_check_decorators():
     in_schema = pa.DataFrameSchema({"a": pa.Column(int)})
     out_schema = in_schema.add_columns({"b": pa.Column(int)})
 
+    # pylint: disable=too-few-public-methods
     class InSchema(pa.SchemaModel):
         a: pa.typing.Series[int]
 
