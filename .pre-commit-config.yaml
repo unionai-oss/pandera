@@ -50,10 +50,14 @@ repos:
   - repo: https://github.com/pre-commit/mirrors-mypy
     # TODO: in mypy 0.900+ one needs to pip install type stubs separately (i.e. typeshed is no longer included)
     # TODO: but pre-commit downloads mypy in a different location (~/.cache)
-    rev: v0.812
+    rev: v0.910
     hooks:
       - id: mypy
         entry: mypy pandera tests
         files: (^pandera/|^tests|^scripts)
         exclude: (^docs/)
         pass_filenames: false
+        additional_dependencies:
+        - types-click
+        - types-pyyaml
+        - types-pkg_resources
