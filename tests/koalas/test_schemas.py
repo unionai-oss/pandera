@@ -53,7 +53,11 @@ KOALAS_UNSUPPORTED = {
 if system.FLOAT_128_AVAILABLE:
     KOALAS_UNSUPPORTED.update({numpy_engine.Float128, numpy_engine.Complex256})
 
-MIN_TIMESTAMP = pd.Timestamp("1900-01-01 00:04:00")
+try:
+    ks.Series(pd.to_datetime(["1900-01-01 00:03:59.999999999"]))
+    MIN_TIMESTAMP = None
+except OverflowError:
+    MIN_TIMESTAMP = pd.Timestamp("1900-01-01 00:04:00")
 
 
 @pytest.mark.parametrize("coerce", [True, False])
@@ -104,12 +108,13 @@ def _test_datatype_with_schema(
 
     sample = data.draw(schema.strategy(size=3))
 
-    if dtype is pandas_engine.DateTime:
+    if dtype is pandas_engine.DateTime and MIN_TIMESTAMP is not None:
         if (sample < MIN_TIMESTAMP).any(axis=None):
             with pytest.raises(
                 OverflowError, match="mktime argument out of range"
             ):
                 data_container_cls(sample)
+        return
     else:
         assert isinstance(data_container_cls(sample), data_container_cls)
 
@@ -190,7 +195,7 @@ def test_index_dtypes(
         )
     sample = data.draw(schema.strategy(size=3))
 
-    if dtype is pandas_engine.DateTime:
+    if dtype is pandas_engine.DateTime and MIN_TIMESTAMP is not None:
         # handle datetimes
         if (sample.to_frame() < MIN_TIMESTAMP).any(axis=None):
             with pytest.raises(
@@ -225,7 +230,7 @@ def test_nullable(
 ):
     """Test nullable checks on koalas dataframes."""
     checks = None
-    if dtypes.is_datetime(type(dtype)):
+    if dtypes.is_datetime(type(dtype)) and MIN_TIMESTAMP is not None:
         checks = [pa.Check.gt(MIN_TIMESTAMP)]
     nullable_schema = pa.DataFrameSchema(
         {"field": pa.Column(dtype, checks=checks, nullable=True)}
@@ -234,11 +239,24 @@ def test_nullable(
         {"field": pa.Column(dtype, checks=checks, nullable=False)}
     )
     null_sample = data.draw(nullable_schema.strategy(size=5))
-    ks_null_sample = ks.DataFrame(null_sample)
-
     nonnull_sample = data.draw(nonnullable_schema.strategy(size=5))
-    ks_nonnull_sample = ks.DataFrame(nonnull_sample)
 
+    # for some reason values less than MIN_TIMESTAMP are still sampled.
+    if dtype is pandas_engine.DateTime and MIN_TIMESTAMP is not None:
+        if (null_sample < MIN_TIMESTAMP).any(axis=None):
+            with pytest.raises(
+                OverflowError, match="mktime argument out of range"
+            ):
+                ks.DataFrame(null_sample)
+        if (nonnull_sample < MIN_TIMESTAMP).any(axis=None):
+            with pytest.raises(
+                OverflowError, match="mktime argument out of range"
+            ):
+                ks.DataFrame(nonnull_sample)
+        return
+
+    ks_null_sample = ks.DataFrame(null_sample)
+    ks_nonnull_sample = ks.DataFrame(nonnull_sample)
     n_nulls = ks_null_sample.isna().sum().item()
     assert ks_nonnull_sample.notna().all().item()
     assert n_nulls >= 0
