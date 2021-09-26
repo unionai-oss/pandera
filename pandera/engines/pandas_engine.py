@@ -526,7 +526,7 @@ class DateTime(DataType, dtypes.Timestamp):
             # NOTE: this is a hack to get koalas working, this needs a more
             # principled implementation
             to_datetime_fn = pd.to_datetime
-            if type(col).__module__ == "databricks.koalas.series":
+            if type(col).__module__.startswith("databricks.koalas"):
                 # pylint: disable=import-outside-toplevel
                 import databricks.koalas as ks
 
