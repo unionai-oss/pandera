@@ -108,7 +108,9 @@ def _test_datatype_with_schema(
 
     sample = data.draw(schema.strategy(size=3))
 
-    if dtype is pandas_engine.DateTime:
+    if dtype is pandas_engine.DateTime or isinstance(
+        dtype, pandas_engine.DateTime
+    ):
         if MIN_TIMESTAMP is not None and (sample < MIN_TIMESTAMP).any(
             axis=None
         ):
@@ -117,8 +119,7 @@ def _test_datatype_with_schema(
             ):
                 data_container_cls(sample)
             return
-    else:
-        assert isinstance(data_container_cls(sample), data_container_cls)
+    assert isinstance(data_container_cls(sample), data_container_cls)
 
 
 @pytest.mark.parametrize("dtype", pandas_engine.Engine.get_registered_dtypes())
@@ -202,7 +203,9 @@ def test_index_dtypes(
         )
     sample = data.draw(schema.strategy(size=3))
 
-    if dtype is pandas_engine.DateTime:
+    if dtype is pandas_engine.DateTime or isinstance(
+        dtype, pandas_engine.DateTime
+    ):
         # handle datetimes
         if MIN_TIMESTAMP is not None and (
             sample.to_frame() < MIN_TIMESTAMP
@@ -212,10 +215,9 @@ def test_index_dtypes(
             ):
                 ks.DataFrame(pd.DataFrame(index=sample))
             return
-    else:
-        assert isinstance(
-            schema(ks.DataFrame(pd.DataFrame(index=sample))), ks.DataFrame
-        )
+    assert isinstance(
+        schema(ks.DataFrame(pd.DataFrame(index=sample))), ks.DataFrame
+    )
 
 
 @pytest.mark.parametrize(
@@ -251,7 +253,9 @@ def test_nullable(
     nonnull_sample = data.draw(nonnullable_schema.strategy(size=5))
 
     # for some reason values less than MIN_TIMESTAMP are still sampled.
-    if dtype is pandas_engine.DateTime:
+    if dtype is pandas_engine.DateTime or isinstance(
+        dtype, pandas_engine.DateTime
+    ):
         if MIN_TIMESTAMP is not None and (null_sample < MIN_TIMESTAMP).any(
             axis=None
         ):
