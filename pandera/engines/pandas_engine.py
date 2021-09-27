@@ -459,8 +459,11 @@ Engine.register_dtype(
         "decimal",
         "mixed-integer",
         "mixed",
+        "bytes",
+        bytes,
         object,
         np.object_,
+        np.bytes_,
     ],
 )
 
