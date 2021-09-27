@@ -119,7 +119,8 @@ def _test_datatype_with_schema(
             ):
                 data_container_cls(sample)
             return
-    assert isinstance(data_container_cls(sample), data_container_cls)
+    else:
+        assert isinstance(data_container_cls(sample), data_container_cls)
 
 
 @pytest.mark.parametrize("dtype", pandas_engine.Engine.get_registered_dtypes())
@@ -215,9 +216,10 @@ def test_index_dtypes(
             ):
                 ks.DataFrame(pd.DataFrame(index=sample))
             return
-    assert isinstance(
-        schema(ks.DataFrame(pd.DataFrame(index=sample))), ks.DataFrame
-    )
+    else:
+        assert isinstance(
+            schema(ks.DataFrame(pd.DataFrame(index=sample))), ks.DataFrame
+        )
 
 
 @pytest.mark.parametrize(
@@ -272,15 +274,15 @@ def test_nullable(
             ):
                 ks.DataFrame(nonnull_sample)
             return
-
-    ks_null_sample = ks.DataFrame(null_sample)
-    ks_nonnull_sample = ks.DataFrame(nonnull_sample)
-    n_nulls = ks_null_sample.isna().sum().item()
-    assert ks_nonnull_sample.notna().all().item()
-    assert n_nulls >= 0
-    if n_nulls > 0:
-        with pytest.raises(pa.errors.SchemaError):
-            nonnullable_schema(ks_null_sample)
+    else:
+        ks_null_sample = ks.DataFrame(null_sample)
+        ks_nonnull_sample = ks.DataFrame(nonnull_sample)
+        n_nulls = ks_null_sample.isna().sum().item()
+        assert ks_nonnull_sample.notna().all().item()
+        assert n_nulls >= 0
+        if n_nulls > 0:
+            with pytest.raises(pa.errors.SchemaError):
+                nonnullable_schema(ks_null_sample)
 
 
 def test_unique():
