@@ -454,6 +454,8 @@ Engine.register_dtype(
     numpy_engine.Object,
     equivalents=[
         "object",
+        "object_",
+        "object0",
         "O",
         "bytes",
         "decimal",
