@@ -1028,3 +1028,14 @@ def test_timedelta(dtype, check_arg, data):
             name="test_datetime_tz",
         )
         column_schema(data.draw(column_schema.strategy()))
+
+
+@pytest.mark.parametrize("dtype", [int, float, str])
+@hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
+def test_empty_nullable_schema(dtype, data):
+    """Test that empty nullable schema strategy draws empty examples."""
+    schema = pa.DataFrameSchema({"myval": pa.Column(dtype, nullable=True)})
+    assert data.draw(schema.strategy(size=0)).empty

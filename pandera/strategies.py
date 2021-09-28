@@ -1096,7 +1096,7 @@ def dataframe_strategy(
             ),
         ).map(lambda df: df if df.empty else df.astype(col_dtypes))
 
-        if any(nullable_columns.values()):
+        if size is not None and size > 0 and any(nullable_columns.values()):
             strategy = null_dataframe_masks(strategy, nullable_columns)
 
         if index is not None:
