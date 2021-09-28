@@ -398,6 +398,28 @@ def test_default_numeric_dtypes():
 
 
 @pytest.mark.parametrize(
+    "alias, np_dtype",
+    [
+        (alias, np_dtype)
+        for alias, np_dtype in np.sctypeDict.items()
+        # int, uint have different bitwidth under pandas and numpy.
+        if np_dtype != np.void and alias not in ("int", "uint")
+    ],
+)
+def test_numpy_dtypes(alias, np_dtype):
+    """Test that all pandas-compatible numpy dtypes are understood."""
+    try:
+        np.dtype(alias)
+    except TypeError:
+        # not a valid alias
+        assert pandas_engine.Engine.dtype(np_dtype)
+    else:
+        assert pandas_engine.Engine.dtype(alias) == pandas_engine.Engine.dtype(
+            np_dtype
+        )
+
+
+@pytest.mark.parametrize(
     "examples",
     [
         pretty_param(param)
