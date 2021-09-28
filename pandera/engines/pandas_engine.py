@@ -137,7 +137,10 @@ class Engine(  # pylint:disable=too-few-public-methods
                 # into a numpy or pandas dtype.
                 np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
                 if isinstance(np_or_pd_dtype, np.dtype):
-                    np_or_pd_dtype = np_or_pd_dtype.type
+                    # cast alias to platform-agnostic dtype
+                    # e.g.: np.intc -> np.int32
+                    common_np_dtype = np.dtype(np_or_pd_dtype.name)
+                    np_or_pd_dtype = common_np_dtype.type
 
             return engine.Engine.dtype(cls, np_or_pd_dtype)
 
@@ -454,13 +457,18 @@ Engine.register_dtype(
     numpy_engine.Object,
     equivalents=[
         "object",
+        "object_",
+        "object0",
         "O",
         "bytes",
         "decimal",
         "mixed-integer",
         "mixed",
+        "bytes",
+        bytes,
         object,
         np.object_,
+        np.bytes_,
     ],
 )
 
