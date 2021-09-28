@@ -52,8 +52,12 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
             itertools.chain.from_iterable([_bisect(c) for c in candidates])
         )
 
-    # NOTE: this is a hack to support koalas
-    if type(series).__module__.startswith("databricks.koalas"):
+    # NOTE: this is a hack to support koalas. This needs to be thoroughly
+    # tested, right now koalas returns NA when a dtype value can't be coerced
+    # into the target dtype.
+    if type(series).__module__.startswith(
+        "databricks.koalas"
+    ):  # pragma: no cover
         out = type(series)(
             series.index.isin(failure_index).to_series().to_numpy(),  # type: ignore[union-attr]
             index=series.index.values.to_numpy(),

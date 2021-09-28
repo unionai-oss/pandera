@@ -523,10 +523,13 @@ class DateTime(DataType, dtypes.Timestamp):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         def _to_datetime(col: pd.Series) -> pd.Series:
-            # NOTE: this is a hack to get koalas working, this needs a more
-            # principled implementation
+            # NOTE: this is a hack to support koalas. This needs to be
+            # thoroughly tested, right now koalas returns NA when a dtype value
+            # can't be coerced into the target dtype.
             to_datetime_fn = pd.to_datetime
-            if type(col).__module__.startswith("databricks.koalas"):
+            if type(col).__module__.startswith(
+                "databricks.koalas"
+            ):  # pragma: no cover
                 # pylint: disable=import-outside-toplevel
                 import databricks.koalas as ks
 

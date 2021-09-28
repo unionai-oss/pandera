@@ -10,7 +10,7 @@ from .engines import numpy_engine, pandas_engine
 
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
-except ImportError:
+except ImportError:  # pragma: no cover
     _GenericAlias = None
 
 
