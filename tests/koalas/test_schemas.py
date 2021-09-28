@@ -237,6 +237,9 @@ def test_index_dtypes(
     ],
 )
 @hypothesis.given(st.data())
+@hypothesis.settings(
+    suppress_health_check=[hypothesis.HealthCheck.too_slow],
+)
 def test_nullable(
     dtype: pandas_engine.DataType,
     data: st.DataObject,
