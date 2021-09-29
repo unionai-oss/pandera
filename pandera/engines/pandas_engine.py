@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+from dateutil.parser import ParserError
 from packaging import version
 
 from .. import dtypes, errors
@@ -518,11 +519,21 @@ class DateTime(DataType, dtypes.Timestamp):
             col = pd.to_datetime(col, **self.to_datetime_kwargs)
             return col.astype(self.type)
 
-        if isinstance(data_container, pd.DataFrame):
-            # pd.to_datetime transforms a df input into a series.
-            # We actually want to coerce every columns.
-            return data_container.transform(_to_datetime)
-        return _to_datetime(data_container)
+        try:
+            if isinstance(data_container, pd.DataFrame):
+                # pd.to_datetime transforms a df input into a series.
+                # We actually want to coerce every columns.
+                return data_container.transform(_to_datetime)
+
+            return _to_datetime(data_container)
+        except (ValueError, TypeError, ParserError) as exc:
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {self.type}",
+                failure_cases=utils.numpy_pandas_coerce_failure_cases(
+                    data_container, self.type, **self.to_datetime_kwargs
+                ),
+            ) from exc
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):

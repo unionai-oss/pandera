@@ -5,12 +5,15 @@ from typing import Any, Union
 
 import numpy as np
 import pandas as pd
+from dateutil.parser import ParserError
 
 from .. import check_utils
 from .type_aliases import PandasObject
 
 
-def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
+def numpy_pandas_coercible(
+    series: pd.Series, type_: Any, **to_datetime_kwargs
+) -> pd.Series:
     """Checks whether a series is coercible with respect to a type.
 
     Bisects the series until all the failure cases are found.
@@ -25,9 +28,11 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
     def _coercible(series):
         try:
+            if to_datetime_kwargs:
+                series = pd.to_datetime(series, **to_datetime_kwargs)
             series.astype(type_)
             return True
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, ParserError):
             return False
 
     search_list = [series] if series.size == 1 else _bisect(series)
@@ -52,7 +57,9 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
 
 def numpy_pandas_coerce_failure_cases(
-    data_container: Union[PandasObject, np.ndarray], type_: Any
+    data_container: Union[PandasObject, np.ndarray],
+    type_: Any,
+    **to_datetime_kwargs,
 ) -> PandasObject:
     """
     Get the failure cases resulting from trying to coerce a pandas/numpy object
@@ -78,6 +85,7 @@ def numpy_pandas_coerce_failure_cases(
         check_output = data_container.apply(
             numpy_pandas_coercible,
             args=(type_,),
+            **to_datetime_kwargs,
         )
         _, failure_cases = check_utils.prepare_dataframe_check_output(
             data_container,
@@ -85,7 +93,9 @@ def numpy_pandas_coerce_failure_cases(
             ignore_na=False,
         )
     elif isinstance(data_container, pd.Series):
-        check_output = numpy_pandas_coercible(data_container, type_)
+        check_output = numpy_pandas_coercible(
+            data_container, type_, **to_datetime_kwargs
+        )
         _, failure_cases = check_utils.prepare_series_check_output(
             data_container,
             check_output,

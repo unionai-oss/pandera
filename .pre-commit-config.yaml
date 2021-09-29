@@ -59,5 +59,6 @@ repos:
         pass_filenames: false
         additional_dependencies:
         - types-click
+        - types-python-dateutil
         - types-pyyaml
-        - types-pkg_resources
+        - types-python-dateutil

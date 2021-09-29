@@ -15,6 +15,7 @@ from pandera import (
     Check,
     Column,
     DataFrameSchema,
+    DateTime,
     Index,
     Int,
     MultiIndex,
@@ -647,6 +648,20 @@ def test_coerce_not_required(data: pd.DataFrame, required: bool) -> None:
             schema(data)
         return
     schema(data)
+
+
+def test_coerce_datetime_parsing_error():
+    """Test that datetime parsing errors are caught by pandera."""
+    schema = DataFrameSchema(
+        {f"dt_col_{i}": Column(DateTime, coerce=True) for i in range(3)}
+    )
+    data = ["2021-09-01", datetime(2021, 1, 7), pd.NaT, "not_a_date"]
+    df = pd.DataFrame({f"dt_col_{i}": data for i in range(3)})
+    try:
+        schema.validate(df, lazy=True)
+    except errors.SchemaErrors as exc:
+        assert (exc.failure_cases.failure_case == "not_a_date").all()
+        assert exc.failure_cases.column.tolist() == list(schema.columns.keys())
 
 
 def test_head_dataframe_schema() -> None:

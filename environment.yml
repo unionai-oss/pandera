@@ -7,6 +7,7 @@ dependencies:
   - pip
 
   # pandera dependencies
+  - python-dateutil
   - packaging >= 20.0
   - hypothesis >= 5.41.1
   - numpy >= 1.9.0
@@ -53,5 +54,6 @@ dependencies:
   - pip:
     - furo
     - types-click
+    - types-python-dateutil
     - types-pyyaml
     - types-pkg_resources
