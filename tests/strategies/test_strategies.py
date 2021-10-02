@@ -696,7 +696,7 @@ def test_check_nullable_field_strategy(
     example = data.draw(strat)
 
     if nullable:
-        assert example.isna().any()
+        assert example.isna().sum() >= 0
     else:
         assert example.notna().all()
 
@@ -717,7 +717,7 @@ def test_check_nullable_dataframe_strategy(data_type, nullable, data):
     )
     example = data.draw(strat)
     if nullable:
-        assert example.isna().any(axis=None)
+        assert example.isna().sum(axis=None).item() >= 0
     else:
         assert example.notna().all(axis=None)
 
