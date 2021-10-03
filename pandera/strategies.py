@@ -87,8 +87,6 @@ def null_field_masks(draw, strategy: Optional[SearchStrategy]):
     val = draw(strategy)
     size = val.shape[0]
     null_mask = draw(st.lists(st.booleans(), min_size=size, max_size=size))
-    # assume that there is at least one masked value
-    hypothesis.assume(any(null_mask))
     if isinstance(val, pd.Index):
         val = val.to_series()
         val = _mask(val, null_mask)
@@ -127,8 +125,6 @@ def null_dataframe_masks(
         index=pdst.range_indexes(min_size=size, max_size=size),
     )
     null_mask = draw(mask_st)
-    # assume that there is at least one masked value
-    hypothesis.assume(null_mask.any(axis=None))
     for column in val:
         val[column] = _mask(val[column], null_mask[column])
     return val
