@@ -363,6 +363,36 @@ def test_coerce_cast(dtypes, examples, data):
     assert expected_dtype.check(pandas_engine.Engine.dtype(coerced_dtype))
 
 
+@pytest.mark.parametrize(
+    "examples, type_, failure_indices",
+    [
+        (["a", 0, "b"], int, [0, 2]),
+        (
+            [
+                "2021-09-01",
+                datetime.datetime(2021, 1, 7),
+                pd.NaT,
+                "not_a_date",
+            ],
+            datetime.datetime,
+            [3],
+        ),
+    ],
+)
+def test_coerce_error(examples, type_, failure_indices):
+    """Test that coerce errors are transformed to ParseError."""
+    data_type = pandas_engine.Engine.dtype(type_)
+    data = pd.Series(examples)
+
+    with pytest.raises(pa.errors.ParserError):
+        data_type.coerce(data)
+
+    try:
+        data_type.coerce(data)
+    except pa.errors.ParserError as exc:
+        assert exc.failure_cases["index"].to_list() == failure_indices
+
+
 def test_coerce_string():
     """Test that strings can be coerced."""
     data = pd.Series([1, None], dtype="Int32")
@@ -487,8 +517,7 @@ def test_is_float(float_dtype: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "complex_dtype, expected",
-    [(dtype, True) for dtype in complex_dtypes]
-    + [("string", False)],  # type: ignore
+    [(dtype, True) for dtype in complex_dtypes] + [("string", False)],  # type: ignore
 )
 def test_is_complex(complex_dtype: Any, expected: bool):
     """Test is_complex."""
