@@ -71,15 +71,19 @@ class DataType(dtypes.DataType):
             self, "type", pd.api.types.pandas_dtype(self.type)
         )  # pragma: no cover
 
+    def _coerce(self, data_container: PandasObject) -> PandasObject:
+        """Pure coerce without catching exceptions."""
+        return data_container.astype(self.type)
+
     def coerce(self, data_container: PandasObject) -> PandasObject:
         try:
-            return data_container.astype(self.type)
-        except (ValueError, TypeError) as exc:
+            return self._coerce(data_container)
+        except Exception as exc:  # pylint:disable=broad-except
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {self.type}",
                 failure_cases=utils.numpy_pandas_coerce_failure_cases(
-                    data_container, self.type
+                    data_container, self
                 ),
             ) from exc
 
@@ -376,9 +380,7 @@ class Category(DataType, dtypes.Category):
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
 
     def __init__(  # pylint:disable=super-init-not-called
-        self,
-        categories: Optional[Iterable[Any]] = None,
-        ordered: bool = False,
+        self, categories: Optional[Iterable[Any]] = None, ordered: bool = False
     ) -> None:
         dtypes.Category.__init__(self, categories, ordered)
         object.__setattr__(
@@ -441,7 +443,7 @@ else:
 class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
 
-    def coerce(self, data_container: PandasObject) -> np.ndarray:
+    def _coerce(self, data_container: PandasObject) -> np.ndarray:
         # Convert to object first to avoid
         # TypeError: object cannot be converted to an IntegerDtype
         data_container = data_container.astype(object)
@@ -513,7 +515,7 @@ class DateTime(DataType, dtypes.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
-    def coerce(self, data_container: PandasObject) -> PandasObject:
+    def _coerce(self, data_container: PandasObject) -> PandasObject:
         def _to_datetime(col: pd.Series) -> pd.Series:
             col = pd.to_datetime(col, **self.to_datetime_kwargs)
             return col.astype(self.type)
