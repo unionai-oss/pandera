@@ -71,13 +71,13 @@ class DataType(dtypes.DataType):
             self, "type", pd.api.types.pandas_dtype(self.type)
         )  # pragma: no cover
 
-    def _coerce(self, data_container: PandasObject) -> PandasObject:
+    def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
         return data_container.astype(self.type)
 
-    def coerce(self, data_container: PandasObject) -> PandasObject:
+    def try_coerce(self, data_container: PandasObject) -> PandasObject:
         try:
-            return self._coerce(data_container)
+            return self.coerce(data_container)
         except Exception as exc:  # pylint:disable=broad-except
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
@@ -443,7 +443,7 @@ else:
 class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
 
-    def _coerce(self, data_container: PandasObject) -> np.ndarray:
+    def coerce(self, data_container: PandasObject) -> np.ndarray:
         # Convert to object first to avoid
         # TypeError: object cannot be converted to an IntegerDtype
         data_container = data_container.astype(object)
@@ -515,7 +515,7 @@ class DateTime(DataType, dtypes.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
-    def _coerce(self, data_container: PandasObject) -> PandasObject:
+    def coerce(self, data_container: PandasObject) -> PandasObject:
         def _to_datetime(col: pd.Series) -> pd.Series:
             col = pd.to_datetime(col, **self.to_datetime_kwargs)
             return col.astype(self.type)

@@ -29,7 +29,7 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
     def _coercible(series):
         try:
-            data_type._coerce(series)
+            data_type.coerce(series)
             return True
         except Exception:  # pylint:disable=broad-except
             return False

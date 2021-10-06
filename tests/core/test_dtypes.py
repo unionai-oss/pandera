@@ -379,16 +379,16 @@ def test_coerce_cast(dtypes, examples, data):
         ),
     ],
 )
-def test_coerce_error(examples, type_, failure_indices):
-    """Test that coerce errors are transformed to ParseError."""
+def test_try_coerce(examples, type_, failure_indices):
+    """Test that try_coerce raises a ParseError."""
     data_type = pandas_engine.Engine.dtype(type_)
     data = pd.Series(examples)
 
     with pytest.raises(pa.errors.ParserError):
-        data_type.coerce(data)
+        data_type.try_coerce(data)
 
     try:
-        data_type.coerce(data)
+        data_type.try_coerce(data)
     except pa.errors.ParserError as exc:
         assert exc.failure_cases["index"].to_list() == failure_indices
 

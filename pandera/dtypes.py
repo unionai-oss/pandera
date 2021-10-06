@@ -31,6 +31,14 @@ class DataType(ABC):
         """Coerce data container to the data type."""
         raise NotImplementedError()
 
+    def try_coerce(self, data_container: Any):
+        """Coerce data container to the data type,
+        raises a `~pandera.errors.ParserError` if the coercion fails
+
+        :raises: :class:`~pandera.errors.ParserError`: if coercion fails
+        """
+        raise NotImplementedError()
+
     def __call__(self, data_container: Any):
         """Coerce data container to the data type."""
         return self.coerce(data_container)

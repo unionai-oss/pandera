@@ -43,15 +43,15 @@ class DataType(dtypes.DataType):
             self, "type", np.dtype(self.type)
         )  # pragma: no cover
 
-    def _coerce(self, data_container: PandasObject) -> PandasObject:
+    def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
         return data_container.astype(self.type)
 
-    def coerce(
+    def try_coerce(
         self, data_container: Union[PandasObject, np.ndarray]
     ) -> Union[PandasObject, np.ndarray]:
         try:
-            return self._coerce(data_container)
+            return self.coerce(data_container)
         except Exception as exc:  # pylint:disable=broad-except
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
@@ -338,7 +338,7 @@ class Bytes(DataType):
 class String(DataType, dtypes.String):
     type = np.dtype("str")
 
-    def _coerce(self, data_container: np.ndarray) -> np.ndarray:
+    def coerce(self, data_container: np.ndarray) -> np.ndarray:
         data_container = data_container.astype(object)
         try:
             notna = ~np.isnan(data_container)
