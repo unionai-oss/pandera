@@ -72,14 +72,18 @@ class DataType(dtypes.DataType):
         )  # pragma: no cover
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
+        """Pure coerce without catching exceptions."""
+        return data_container.astype(self.type)
+
+    def try_coerce(self, data_container: PandasObject) -> PandasObject:
         try:
-            return data_container.astype(self.type)
-        except (ValueError, TypeError) as exc:
+            return self.coerce(data_container)
+        except Exception as exc:  # pylint:disable=broad-except
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {self.type}",
                 failure_cases=utils.numpy_pandas_coerce_failure_cases(
-                    data_container, self.type
+                    data_container, self
                 ),
             ) from exc
 
@@ -376,9 +380,7 @@ class Category(DataType, dtypes.Category):
     type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
 
     def __init__(  # pylint:disable=super-init-not-called
-        self,
-        categories: Optional[Iterable[Any]] = None,
-        ordered: bool = False,
+        self, categories: Optional[Iterable[Any]] = None, ordered: bool = False
     ) -> None:
         dtypes.Category.__init__(self, categories, ordered)
         object.__setattr__(
