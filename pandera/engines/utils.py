@@ -15,6 +15,10 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
     Bisects the series until all the failure cases are found.
     """
+    # pylint: disable=import-outside-toplevel,cyclic-import
+    from pandera.engines import pandas_engine
+
+    data_type = pandas_engine.Engine.dtype(type_)
 
     def _bisect(series):
         assert (
@@ -25,9 +29,9 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
     def _coercible(series):
         try:
-            series.astype(type_)
+            data_type.coerce(series)
             return True
-        except (ValueError, TypeError):
+        except Exception:  # pylint:disable=broad-except
             return False
 
     search_list = [series] if series.size == 1 else _bisect(series)
@@ -60,6 +64,9 @@ def numpy_pandas_coerce_failure_cases(
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
     from pandera import error_formatters
+    from pandera.engines import pandas_engine
+
+    data_type = pandas_engine.Engine.dtype(type_)
 
     if isinstance(data_container, np.ndarray):
         if len(data_container.shape) == 1:
@@ -76,8 +83,7 @@ def numpy_pandas_coerce_failure_cases(
 
     if isinstance(data_container, pd.DataFrame):
         check_output = data_container.apply(
-            numpy_pandas_coercible,
-            args=(type_,),
+            numpy_pandas_coercible, args=(data_type,)
         )
         _, failure_cases = check_utils.prepare_dataframe_check_output(
             data_container,
@@ -85,7 +91,7 @@ def numpy_pandas_coerce_failure_cases(
             ignore_na=False,
         )
     elif isinstance(data_container, pd.Series):
-        check_output = numpy_pandas_coercible(data_container, type_)
+        check_output = numpy_pandas_coercible(data_container, data_type)
         _, failure_cases = check_utils.prepare_series_check_output(
             data_container,
             check_output,

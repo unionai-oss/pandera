@@ -39,6 +39,6 @@ def test_pandas_data_type_coerce(data_type):
         # don't test data types that require parameters e.g. Category
         return
     try:
-        data_type().coerce(pd.Series(["1", "2", "a"]))
+        data_type().try_coerce(pd.Series(["1", "2", "a"]))
     except ParserError as exc:
         assert exc.failure_cases.shape[0] > 0
