@@ -178,6 +178,7 @@ Here are a few other alternatives for validating Python data structures.
 - [PandasSchema](https://github.com/TMiguelT/PandasSchema)
 - [pandas-validator](https://github.com/c-data/pandas-validator)
 - [table_enforcer](https://github.com/xguse/table_enforcer)
+- [strictly typed pandas](https://github.com/nanne-aben/strictly_typed_pandas)
 
 **Other tools for data validation**
 
