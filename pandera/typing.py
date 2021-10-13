@@ -163,10 +163,6 @@ class DataFrameBase(pd.DataFrame):
                 self = schema_model.validate(self)
                 self.pandera.add_schema(schema_model.to_schema())
 
-    def __getattribute__(self, name: str) -> Any:
-        attribute = object.__getattribute__(self, name)
-        return attribute
-
 
 # pylint:disable=too-few-public-methods
 class DataFrame(Generic[T], DataFrameBase):
