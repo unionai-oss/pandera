@@ -33,6 +33,10 @@ class PanderaAccessor:
         """Access schema metadata."""
         return self._schema
 
+    def validate(self, **kwargs):
+        """A utility to validate a dataframe."""
+        return self.schema(self._pandas_obj, **kwargs)
+
 
 @pd.api.extensions.register_dataframe_accessor("pandera")
 class PanderaDataFrameAccessor(PanderaAccessor):

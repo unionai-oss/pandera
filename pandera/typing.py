@@ -1,5 +1,6 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
+import inspect
 from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar
 
 import pandas as pd
@@ -134,8 +135,41 @@ else:
     T = Schema
 
 
+class DataFrameBase(pd.DataFrame):
+    """
+    Pandera pandas.Dataframe base class for validating dataframes on
+    initialization.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        object.__setattr__(self, name, value)
+        if name == "__orig_class__":
+            class_args = getattr(self.__orig_class__, "__args__", None)
+            if any(
+                x.__name__ == "SchemaModel"
+                for x in inspect.getmro(class_args[0])
+            ):
+                schema_model = value.__args__[0]
+
+            # prevent the double validation problem by preventing checks for
+            # dataframes with a defined pandera.schema
+            if (
+                self.pandera.schema is None
+                or self.pandera.schema != schema_model.to_schema()
+            ):
+                self = schema_model.validate(self)
+                self.pandera.add_schema(schema_model.to_schema())
+
+    def __getattribute__(self, name: str) -> Any:
+        attribute = object.__getattribute__(self, name)
+        return attribute
+
+
 # pylint:disable=too-few-public-methods
-class DataFrame(pd.DataFrame, Generic[T]):
+class DataFrame(Generic[T], DataFrameBase):
     """
     Representation of pandas.DataFrame, only used for type annotation.
 

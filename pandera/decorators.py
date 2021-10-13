@@ -536,7 +536,17 @@ def check_types(
         pass-through.
         """
         schema, optional = annotated_schemas.get(arg_name, (None, None))
-        if schema and not (optional and arg_value is None):
+        if (
+            schema
+            and not (optional and arg_value is None)
+            # the pandera.schema attribute should only be available when
+            # scheam.validate has been called in the DF. There's probably
+            # a better way of doing this
+            and (
+                arg_value.pandera.schema is None
+                or arg_value.pandera.schema != schema
+            )
+        ):
             try:
                 return schema.validate(
                     arg_value, head, tail, sample, random_state, lazy, inplace
