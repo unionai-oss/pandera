@@ -104,8 +104,8 @@ class SchemaErrors(Exception):
         for k, v in error_counts.items():
             msg += f"- {k}: {v}\n"
 
-        def failure_cases(x):
-            return list(set(x))
+        def failure_cases(x: pd.Series):
+            return list(set(x.drop_duplicates()))
 
         agg_schema_errors = (
             schema_errors.fillna({"column": "<NA>"})
