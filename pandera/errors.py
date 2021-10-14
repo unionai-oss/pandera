@@ -182,5 +182,10 @@ class SchemaErrors(Exception):
                 )
                 check_failure_cases.append(failure_cases[column_order])
 
-        failure_cases = pd.concat(check_failure_cases).reset_index(drop=True)
+        failure_cases = (
+            pd.concat(check_failure_cases)
+            .reset_index(drop=True)
+            .sort_values("schema_context", ascending=False)
+            .drop_duplicates()
+        )
         return error_counts, failure_cases
