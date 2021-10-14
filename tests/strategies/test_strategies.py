@@ -505,6 +505,7 @@ def test_dataframe_example(data) -> None:
 
 @pytest.mark.parametrize("size", [3, 5, 10])
 @hypothesis.given(st.data())
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_dataframe_unique(size, data) -> None:
     """Test that DataFrameSchemas with unique columns are actually unique."""
     schema = pa.DataFrameSchema(
