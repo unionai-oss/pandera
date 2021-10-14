@@ -33,7 +33,7 @@ def fn(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
     return df.assign(age=30).pipe(DataFrame[SchemaOut])
 
 
-def fn_pipe_correct_type(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
+def fn_pipe_incorrect_type(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
     return df.assign(age=30).pipe(DataFrame[AnotherSchema])  # mypy error
 
 
