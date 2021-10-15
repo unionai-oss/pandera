@@ -127,10 +127,10 @@ def test_seriesschema():
 def test_invalid_seriesschema():
     """Test that an invalid SeriesSchemaBase is recognized by pydantic."""
     with pytest.raises(pydantic.ValidationError):
-        DataFrameSchemaPydantic(pa_series_schema=1)
+        SeriesSchemaPydantic(pa_series_schema=1)
 
     with pytest.raises(pydantic.ValidationError):
-        DataFrameSchemaPydantic(pa_column="1")
+        SeriesSchemaPydantic(pa_column="1")
 
     with pytest.raises(pydantic.ValidationError):
-        DataFrameSchemaPydantic(pa_index="1")
+        SeriesSchemaPydantic(pa_index="1")
