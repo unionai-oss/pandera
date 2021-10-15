@@ -110,7 +110,6 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
 
         def __class_getitem__(cls, item):
             """Define this to override the patch that koalas performs on pandas.
-
             https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
             """
             return _GenericAlias(cls, item)
@@ -137,17 +136,16 @@ class DataFrame(pd.DataFrame, Generic[T]):
     """
 
     if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
-    @classmethod
-    def __get_validators__(cls):
-        yield cls._pydantic_validate
 
         def __class_getitem__(cls, item):
             """Define this to override the patch that koalas performs on pandas.
-
             https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
             """
             return _GenericAlias(cls, item)
 
+    @classmethod
+    def __get_validators__(cls):
+        yield cls._pydantic_validate
 
     @classmethod
     def _pydantic_validate(
