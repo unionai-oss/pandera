@@ -10,6 +10,12 @@ from .engines import numpy_engine, pandas_engine
 from .errors import SchemaError, SchemaInitError
 
 try:
+    from typing import _GenericAlias  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
+    _GenericAlias = None
+
+
+try:
     from pydantic.fields import ModelField
 except ImportError:
     ModelField = Any
@@ -100,6 +106,15 @@ class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
     *new in 0.5.0*
     """
 
+    if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
+
+        def __class_getitem__(cls, item):
+            """Define this to override the patch that koalas performs on pandas.
+
+            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
+            """
+            return _GenericAlias(cls, item)
+
     def __get__(
         self, instance: object, owner: Type
     ) -> str:  # pragma: no cover
@@ -121,9 +136,18 @@ class DataFrame(pd.DataFrame, Generic[T]):
     *new in 0.5.0*
     """
 
+    if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
     @classmethod
     def __get_validators__(cls):
         yield cls._pydantic_validate
+
+        def __class_getitem__(cls, item):
+            """Define this to override the patch that koalas performs on pandas.
+
+            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
+            """
+            return _GenericAlias(cls, item)
+
 
     @classmethod
     def _pydantic_validate(

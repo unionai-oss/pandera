@@ -194,13 +194,13 @@ You must give a **type**, not an **instance**.
 :red:`✘` Bad:
 
 .. testcode:: dataframe_schema_model
-    :skipif: SKIP_PANDAS_LT_V1
+    :skipif: SKIP_SCHEMA_MODEL
 
     class Schema(pa.SchemaModel):
         a: Series[pd.StringDtype()]
 
 .. testoutput:: dataframe_schema_model
-    :skipif: SKIP_PANDAS_LT_V1
+    :skipif: SKIP_SCHEMA_MODEL
 
     Traceback (most recent call last):
     ...

@@ -353,7 +353,8 @@ class SchemaModel(metaclass=_MetaSchema):
                 indices.append(index)
             else:
                 raise SchemaInitError(
-                    f"Invalid annotation '{field_name}: {annotation.raw_annotation}'"
+                    f"Invalid annotation '{field_name}: "
+                    f"{annotation.raw_annotation}'"
                 )
 
         return columns, _build_schema_index(indices, **multiindex_kwargs)

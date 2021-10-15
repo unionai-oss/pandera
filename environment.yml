@@ -20,6 +20,10 @@ dependencies:
   - pyarrow
   - pydantic
 
+  # koalas extra
+  - koalas
+  - pyspark
+
   # testing and dependencies
   - black >= 20.8b1
 
@@ -27,7 +31,7 @@ dependencies:
   - isort >= 5.7.0
   - codecov
   - mypy >= 0.902 # mypy no longer bundle stubs for third-party libraries
-  - pylint = v2.11.1
+  - pylint = 2.11.1
   - pytest
   - pytest-cov
   - pytest-xdist

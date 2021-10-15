@@ -357,7 +357,6 @@ def test_coerce_cast(dtypes, examples, data):
     series = pd.Series(examples, dtype=from_pd_dtype)
     coerced_dtype = expected_dtype.coerce(series).dtype
     assert expected_dtype.check(pandas_engine.Engine.dtype(coerced_dtype))
-
     df = pd.DataFrame({"col": examples}, dtype=from_pd_dtype)
     coerced_dtype = expected_dtype.coerce(df)["col"].dtype
     assert expected_dtype.check(pandas_engine.Engine.dtype(coerced_dtype))

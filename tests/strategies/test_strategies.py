@@ -3,7 +3,7 @@
 import datetime
 import operator
 import re
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Set
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -28,14 +28,20 @@ else:
     HAS_HYPOTHESIS = True
 
 
+UNSUPPORTED_DTYPES: Set[Any] = set(
+    [
+        pandas_engine.Interval,
+        pandas_engine.Period,
+        pandas_engine.Sparse,
+    ]
+)
 SUPPORTED_DTYPES = set()
 for data_type in pandas_engine.Engine.get_registered_dtypes():
     if (
         # valid hypothesis.strategies.floats <=64
         getattr(data_type, "bit_width", -1) > 64
         or is_category(data_type)
-        or data_type
-        in (pandas_engine.Interval, pandas_engine.Period, pandas_engine.Sparse)
+        or data_type in UNSUPPORTED_DTYPES
     ):
         continue
     SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype(data_type))
@@ -505,6 +511,7 @@ def test_dataframe_example(data) -> None:
 
 @pytest.mark.parametrize("size", [3, 5, 10])
 @hypothesis.given(st.data())
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_dataframe_unique(size, data) -> None:
     """Test that DataFrameSchemas with unique columns are actually unique."""
     schema = pa.DataFrameSchema(

@@ -4,6 +4,7 @@ from typing import Union
 
 import pandas as pd
 
+from . import check_utils
 from .checks import _CheckBase
 
 
@@ -73,11 +74,23 @@ def reshape_failure_cases(
         representing how many failures of that case occurred.
 
     """
-    if "column" in failure_cases and "failure_case" in failure_cases:
-        # handle case where failure cases occur at the index-column level
+    if not (
+        check_utils.is_table(failure_cases)
+        or check_utils.is_field(failure_cases)
+    ):
+        raise TypeError(
+            "Expected failure_cases to be a DataFrame or Series, found "
+            f"{type(failure_cases)}"
+        )
+
+    if (
+        check_utils.is_table(failure_cases)
+        and "column" in failure_cases.columns
+        and "failure_case" in failure_cases.columns
+    ):
         reshaped_failure_cases = failure_cases
-    elif isinstance(failure_cases, pd.DataFrame) and isinstance(
-        failure_cases.index, pd.MultiIndex
+    elif check_utils.is_table(failure_cases) and check_utils.is_multiindex(
+        failure_cases.index
     ):
         reshaped_failure_cases = (
             failure_cases.rename_axis("column", axis=1)
@@ -91,8 +104,8 @@ def reshape_failure_cases(
             .rename("failure_case")
             .reset_index()
         )
-    elif isinstance(failure_cases, pd.Series) and isinstance(
-        failure_cases.index, pd.MultiIndex
+    elif check_utils.is_field(failure_cases) and check_utils.is_multiindex(
+        failure_cases.index
     ):
         reshaped_failure_cases = (
             failure_cases.rename("failure_case")
@@ -104,7 +117,7 @@ def reshape_failure_cases(
             )[["failure_case", "index"]]
             .reset_index(drop=True)
         )
-    elif isinstance(failure_cases, pd.DataFrame):
+    elif check_utils.is_table(failure_cases):
         reshaped_failure_cases = (
             failure_cases.rename_axis("column", axis=1)
             .rename_axis("index", axis=0)
@@ -112,7 +125,7 @@ def reshape_failure_cases(
             .rename("failure_case")
             .reset_index()
         )
-    elif isinstance(failure_cases, pd.Series):
+    elif check_utils.is_field(failure_cases):
         reshaped_failure_cases = (
             failure_cases.rename("failure_case")
             .rename_axis("index")
