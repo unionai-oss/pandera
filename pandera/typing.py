@@ -1,12 +1,18 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
-from typing import TYPE_CHECKING, Generic, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
 
 from . import dtypes
 from .engines import numpy_engine, pandas_engine
+from .errors import SchemaError, SchemaInitError
+
+try:
+    from pydantic.fields import ModelField
+except ImportError:
+    ModelField = Any
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
@@ -114,6 +120,40 @@ class DataFrame(pd.DataFrame, Generic[T]):
 
     *new in 0.5.0*
     """
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls._pydantic_validate
+
+    @classmethod
+    def _pydantic_validate(
+        cls, df: pd.DataFrame, field: ModelField
+    ) -> pd.DataFrame:
+        """Verify that the input is a pandas dataframe that meets all
+        schema requirements."""
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("Expected a pandas DataFrame")
+
+        if not field.sub_fields:
+            raise TypeError(
+                "Expected a typed pandera.typing.DataFrame,"
+                " e.g. DataFrame[Schema]"
+            )
+        schema_model = field.sub_fields[0].type_
+        try:
+            schema = schema_model.to_schema()
+        except SchemaInitError as exc:
+            raise ValueError(
+                f"Cannot use {cls.__name__} as a pydantic type as its "
+                "SchemaModel cannot be converted to a DataFrameSchema.\n"
+                f"Please revisit the model to address the following errors:"
+                f"\n{exc}"
+            ) from exc
+
+        try:
+            return schema.validate(df)
+        except SchemaError as exc:
+            raise ValueError(str(exc)) from exc
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
