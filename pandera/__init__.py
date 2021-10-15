@@ -1,6 +1,7 @@
 """A flexible and expressive pandas validation library."""
 import platform
 
+from pandera import external_config
 from pandera.dtypes import (
     Bool,
     Category,
@@ -56,4 +57,5 @@ from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
 
 if platform.system() != "Windows":
+    # pylint: disable=ungrouped-imports
     from pandera.dtypes import Complex256, Float128
