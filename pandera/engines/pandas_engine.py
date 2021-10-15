@@ -444,12 +444,28 @@ class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
 
     def coerce(self, data_container: PandasObject) -> np.ndarray:
-        # Convert to object first to avoid
-        # TypeError: object cannot be converted to an IntegerDtype
-        data_container = data_container.astype(object)
-        return data_container.where(
-            data_container.isna(), data_container.astype(str)
-        )
+        def _to_str(obj):
+            # NOTE: this is a hack to handle the following case:
+            # koalas.Index doesn't support .where method yet, use numpy
+            reverter = None
+            if type(obj).__module__.startswith("databricks.koalas"):
+                # pylint: disable=import-outside-toplevel
+                import databricks.koalas as ks
+
+                if isinstance(obj, ks.Index):
+                    obj = obj.to_series()
+                    reverter = ks.Index
+            else:
+                obj = obj.astype(object)
+
+            obj = (
+                obj.astype(str)
+                if obj.notna().all(axis=None)
+                else obj.where(obj.isna(), obj.astype(str))
+            )
+            return obj if reverter is None else reverter(obj)
+
+        return _to_str(data_container)
 
     def check(self, pandera_dtype: dtypes.DataType) -> bool:
         return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
@@ -471,6 +487,7 @@ Engine.register_dtype(
         object,
         np.object_,
         np.bytes_,
+        np.string_,
     ],
 )
 
@@ -517,7 +534,18 @@ class DateTime(DataType, dtypes.Timestamp):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         def _to_datetime(col: pd.Series) -> pd.Series:
-            col = pd.to_datetime(col, **self.to_datetime_kwargs)
+            # NOTE: this is a hack to support koalas. This needs to be
+            # thoroughly tested, right now koalas returns NA when a dtype value
+            # can't be coerced into the target dtype.
+            to_datetime_fn = pd.to_datetime
+            if type(col).__module__.startswith(
+                "databricks.koalas"
+            ):  # pragma: no cover
+                # pylint: disable=import-outside-toplevel
+                import databricks.koalas as ks
+
+                to_datetime_fn = ks.to_datetime
+            col = to_datetime_fn(col, **self.to_datetime_kwargs)
             return col.astype(self.type)
 
         if isinstance(data_container, pd.DataFrame):

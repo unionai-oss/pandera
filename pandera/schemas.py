@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from . import errors
+from . import check_utils, errors
 from . import strategies as st
 from .checks import Check
 from .deprecations import deprecate_pandas_dtype
@@ -371,7 +371,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 and self.dtype is None
                 and colname in obj
             ):
-                obj.loc[:, colname] = _try_coercion(
+                obj[colname] = _try_coercion(
                     col_schema.coerce_dtype, obj[colname]
                 )
 
@@ -472,7 +472,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if not inplace:
             check_obj = check_obj.copy()
 
-        check_obj = check_obj.pandera.add_schema(self)
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(self)
 
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
@@ -607,7 +608,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                     # don't make a copy of the data
                     inplace=True,
                 )
-                check_results.append(isinstance(result, pd.DataFrame))
+                check_results.append(check_utils.is_table(result))
             except errors.SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
             except errors.SchemaErrors as err:
@@ -635,10 +636,24 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             )
             for lst in temp_unique:
                 duplicates = df_to_validate.duplicated(subset=lst, keep=False)
-                if any(duplicates):
-                    failure_cases = reshape_failure_cases(
-                        df_to_validate.loc[duplicates, lst]
-                    )
+                if duplicates.any():
+                    # NOTE: this is a hack to support koalas, need to figure
+                    # out a workaround to error: "Cannot combine the series or
+                    # dataframe because it comes from a different dataframe."
+                    if type(duplicates).__module__.startswith(
+                        "databricks.koalas"
+                    ):
+                        # pylint: disable=import-outside-toplevel
+                        import databricks.koalas as ks
+
+                        with ks.option_context(
+                            "compute.ops_on_diff_frames", True
+                        ):
+                            failure_cases = df_to_validate.loc[duplicates, lst]
+                    else:
+                        failure_cases = df_to_validate.loc[duplicates, lst]
+
+                    failure_cases = reshape_failure_cases(failure_cases)
                     error_handler.collect_error(
                         "duplicates",
                         errors.SchemaError(
@@ -655,7 +670,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 error_handler.collected_errors, check_obj
             )
 
-        assert all(check_results)
+        assert all(check_results), "all check results must be True."
         return check_obj
 
     def __call__(
@@ -1336,7 +1351,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             []
             if new_schema.index is None or not append
             else list(new_schema.index.indexes)
-            if isinstance(new_schema.index, MultiIndex) and append
+            if check_utils.is_multiindex(new_schema.index) and append
             else [new_schema.index]
         )
 
@@ -1756,7 +1771,7 @@ class SeriesSchemaBase:
 
         series = (
             check_obj
-            if isinstance(check_obj, pd.Series)
+            if check_utils.is_field(check_obj)
             else check_obj[self.name]
         )
 
@@ -1786,7 +1801,7 @@ class SeriesSchemaBase:
 
         if not self._nullable:
             nulls = series.isna()
-            if sum(nulls) > 0:
+            if nulls.sum() > 0:
                 failed = series[nulls]
                 msg = (
                     f"non-nullable series '{series.name}' contains null "
@@ -1807,12 +1822,23 @@ class SeriesSchemaBase:
 
         # Check if the series contains duplicate values
         if self._unique:
-            duplicates = series.duplicated()
-            if any(duplicates):
+            if type(series).__module__.startswith("databricks.koalas"):
+                duplicates = (
+                    series.to_frame().duplicated().reindex(series.index)
+                )
+                # pylint: disable=import-outside-toplevel
+                import databricks.koalas as ks
+
+                with ks.option_context("compute.ops_on_diff_frames", True):
+                    failed = series[duplicates]
+            else:
+                duplicates = series.duplicated()
                 failed = series[duplicates]
+
+            if duplicates.any():
                 msg = (
                     f"series '{series.name}' contains duplicate values:\n"
-                    f"{series[duplicates]}"
+                    f"{failed}"
                 )
                 error_handler.collect_error(
                     "series_contains_duplicates",
@@ -1820,9 +1846,7 @@ class SeriesSchemaBase:
                         self,
                         check_obj,
                         msg,
-                        failure_cases=reshape_failure_cases(
-                            series[duplicates]
-                        ),
+                        failure_cases=reshape_failure_cases(failed),
                         check="field_uniqueness",
                     ),
                 )
@@ -1846,7 +1870,7 @@ class SeriesSchemaBase:
             )
 
         check_results = []
-        if isinstance(check_obj, pd.Series):
+        if check_utils.is_field(check_obj):
             check_obj, check_args = series, [None]
         else:
             check_args = [self.name]  # type: ignore
@@ -2022,6 +2046,7 @@ class SeriesSchema(SeriesSchemaBase):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.Series:
+        # pylint: disable=too-many-branches
         """Validate a Series object.
 
         :param check_obj: One-dimensional ndarray with axis labels
@@ -2064,20 +2089,21 @@ class SeriesSchema(SeriesSchemaBase):
         dtype: float64
 
         """
-        if not isinstance(check_obj, pd.Series):
+        if not check_utils.is_field(check_obj):
             raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
 
         if not inplace:
             check_obj = check_obj.copy()
 
-        check_obj = check_obj.pandera.add_schema(self)
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(self)
         error_handler = SchemaErrorHandler(lazy=lazy)
 
         if self.coerce:
             try:
-                check_obj = self.coerce_dtype(check_obj).pandera.add_schema(
-                    self
-                )
+                check_obj = self.coerce_dtype(check_obj)
+                if hasattr(check_obj, "pandera"):
+                    check_obj = check_obj.pandera.add_schema(self)
             except errors.SchemaError as exc:
                 error_handler.collect_error("dtype_coercion_error", exc)
 
