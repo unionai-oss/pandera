@@ -18,7 +18,8 @@ from pandera.system import FLOAT_128_AVAILABLE
 def test_deprecate_pandas_dtype(schema_cls, as_pos_arg):
     """Test that pandas_dtype deprecation warnings/errors are raised."""
     assert schema_cls(dtype=int).dtype.check(pa.Int())
-    assert schema_cls(pandas_dtype=int).dtype.check(pa.Int())
+    with pytest.warns(DeprecationWarning):
+        assert schema_cls(pandas_dtype=int).dtype.check(pa.Int())
 
     with pytest.warns(DeprecationWarning):
         schema_cls(pandas_dtype=int)

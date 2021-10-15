@@ -369,16 +369,16 @@ class _CheckBase(metaclass=_CheckMeta):
             ``failure_cases``: subset of the check_object that failed.
         """
         # prepare check object
-        if isinstance(df_or_series, pd.Series) or (
-            column is not None and isinstance(df_or_series, pd.DataFrame)
+        if check_utils.is_field(df_or_series) or (
+            column is not None and check_utils.is_table(df_or_series)
         ):
             check_obj = self._prepare_series_input(df_or_series, column)
-        elif isinstance(df_or_series, pd.DataFrame):
+        elif check_utils.is_table(df_or_series):
             check_obj = self._prepare_dataframe_input(df_or_series)
         else:
             raise ValueError(
-                f"object of type {df_or_series} not supported. Must be a "
-                "Series, a dictionary of Series, or DataFrame"
+                f"object of type {type(df_or_series)} not supported. Must be "
+                "a Series, a dictionary of Series, or DataFrame"
             )
 
         # apply check function to check object
@@ -386,10 +386,10 @@ class _CheckBase(metaclass=_CheckMeta):
 
         if self.element_wise:
             check_output = (
-                check_obj.apply(check_fn, axis=1)
-                if isinstance(check_obj, pd.DataFrame)
-                else check_obj.map(check_fn)
-                if isinstance(check_obj, pd.Series)
+                check_obj.apply(check_fn, axis=1)  # type: ignore
+                if check_utils.is_table(check_obj)
+                else check_obj.map(check_fn)  # type: ignore
+                if check_utils.is_field(check_obj)
                 else check_fn(check_obj)
             )
         else:
@@ -401,12 +401,12 @@ class _CheckBase(metaclass=_CheckMeta):
         if (
             isinstance(check_obj, dict)
             or isinstance(check_output, bool)
-            or not isinstance(check_output, (pd.Series, pd.DataFrame))
+            or not check_utils.is_supported_check_obj(check_output)
             or check_obj.shape[0] != check_output.shape[0]
             or (check_obj.index != check_output.index).all()
         ):
             failure_cases = None
-        elif isinstance(check_output, pd.Series):
+        elif check_utils.is_field(check_output):
             (
                 check_output,
                 failure_cases,
@@ -416,7 +416,7 @@ class _CheckBase(metaclass=_CheckMeta):
                 ignore_na=self.ignore_na,
                 n_failure_cases=self.n_failure_cases,
             )
-        elif isinstance(check_output, pd.DataFrame):
+        elif check_utils.is_table(check_output):
             (
                 check_output,
                 failure_cases,
@@ -434,12 +434,11 @@ class _CheckBase(metaclass=_CheckMeta):
 
         check_passed = (
             check_output.all()
-            if isinstance(check_output, pd.Series)
+            if check_utils.is_field(check_output)
             else check_output.all(axis=None)
-            if isinstance(check_output, pd.DataFrame)
+            if check_utils.is_table(check_output)
             else check_output
         )
-
         return CheckResult(
             check_output, check_passed, check_obj, failure_cases
         )
