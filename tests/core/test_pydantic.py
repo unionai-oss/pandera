@@ -3,11 +3,15 @@
 from typing import Optional
 
 import pandas as pd
-import pydantic
 import pytest
 
 import pandera as pa
 from pandera.typing import DataFrame, Series
+
+try:
+    import pydantic
+except ImportError:
+    pytest.skip("Pydantic not available", allow_module_level=True)
 
 
 class SimpleSchema(pa.SchemaModel):
