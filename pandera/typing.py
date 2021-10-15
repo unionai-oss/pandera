@@ -18,7 +18,7 @@ except ImportError:  # pragma: no cover
 try:
     from pydantic.fields import ModelField
 except ImportError:
-    ModelField = Any
+    ModelField = Any  # type: ignore
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
