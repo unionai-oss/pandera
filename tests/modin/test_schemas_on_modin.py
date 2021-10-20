@@ -1,63 +1,64 @@
-"""Test pandera on koalas data structures."""
+"""Unit tests for modin data structures."""
 
+import os
 import typing
 from unittest.mock import MagicMock
 
-import databricks.koalas as ks
+import modin.pandas as mpd
 import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import dtypes, extensions, system
+from pandera import extensions
 from pandera.engines import numpy_engine, pandas_engine
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
-    UNSUPPORTED_DTYPES as UNSUPPORTED_STRATEGY_DTYPES,
+    SUPPORTED_DTYPES as SUPPORTED_STRATEGY_DTYPES,
+)
+from tests.strategies.test_strategies import (
+    UNSUPPORTED_DTYPE_CLS as UNSUPPORTED_STRATEGY_DTYPE_CLS,
 )
 
 try:
     import hypothesis
     import hypothesis.strategies as st
 except ImportError:
-    HAS_HYPOTHESIS = False
     hypothesis = MagicMock()
     st = MagicMock()
-else:
-    HAS_HYPOTHESIS = True
-
-
-UNSUPPORTED_STRATEGY_DTYPES = set(UNSUPPORTED_STRATEGY_DTYPES)
-UNSUPPORTED_STRATEGY_DTYPES.add(numpy_engine.Object)
-
-
-KOALAS_UNSUPPORTED = {
-    numpy_engine.Complex128,
-    numpy_engine.Complex64,
-    numpy_engine.Float16,
-    numpy_engine.Object,
-    numpy_engine.Timedelta64,
-    numpy_engine.UInt64,
-    numpy_engine.UInt32,
-    numpy_engine.UInt16,
-    numpy_engine.UInt8,
-    pandas_engine.Category,
-    pandas_engine.Interval,
-    pandas_engine.Period,
-    pandas_engine.Sparse,
-    pandas_engine.UINT64,
-    pandas_engine.UINT32,
-    pandas_engine.UINT16,
-    pandas_engine.UINT8,
-}
-
-if system.FLOAT_128_AVAILABLE:
-    KOALAS_UNSUPPORTED.update({numpy_engine.Float128, numpy_engine.Complex256})
 
 try:
-    ks.Series(pd.to_datetime(["1900-01-01 00:03:59.999999999"]))
-    MIN_TIMESTAMP = None
-except OverflowError:
-    MIN_TIMESTAMP = pd.Timestamp("1900-01-01 00:04:00")
+    import ray
+except ImportError:
+    ray = MagicMock()
+
+
+UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
+UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
+
+TEST_DTYPES_ON_MODIN = []
+# pylint: disable=redefined-outer-name
+for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
+    if (
+        dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS
+        or pandas_engine.Engine.dtype(dtype_cls)
+        not in SUPPORTED_STRATEGY_DTYPES
+    ):
+        continue
+    TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))
+
+
+@pytest.fixture(scope="module", params=["ray"], autouse=True)
+def setup_modin_engine(request):
+    """Set up the modin engine.
+
+    Eventually this will also support dask execution backend.
+    """
+    os.environ["MODIN_ENGINE"] = request.param
+    if request.param == "ray":
+        ray.init()
+    yield
+    if request.param == "ray":
+        ray.shutdown()
 
 
 @pytest.mark.parametrize("coerce", [True, False])
@@ -71,99 +72,65 @@ def test_dataframe_schema_case(coerce):
         },
         coerce=coerce,
     )
-    kdf = ks.DataFrame(
+    mdf = mpd.DataFrame(
         {
             "int_column": range(10),
             "float_column": [float(-x) for x in range(10)],
             "str_column": list("aabbcceedd"),
         }
     )
-    assert isinstance(schema.validate(kdf), ks.DataFrame)
+    assert isinstance(schema.validate(mdf), mpd.DataFrame)
 
 
 def _test_datatype_with_schema(
-    dtype: pandas_engine.DataType,
     schema: typing.Union[pa.DataFrameSchema, pa.SeriesSchema],
     data: st.DataObject,
 ):
-    """Test pandera datatypes against koalas data containers.
-
-    Handle case where koalas can't handle datetimes before 1900-01-01 00:04:00,
-    raising an overflow
-    """
+    """Test pandera datatypes against modin data containers."""
     data_container_cls = {
-        pa.DataFrameSchema: ks.DataFrame,
-        pa.SeriesSchema: ks.Series,
-        pa.Column: ks.DataFrame,
+        pa.DataFrameSchema: mpd.DataFrame,
+        pa.SeriesSchema: mpd.Series,
+        pa.Column: mpd.DataFrame,
     }[type(schema)]
 
-    # pandas automatically upcasts numeric datatypes when defining Indexes,
-    # so we want to skip this pytest.raises expectation for types that are
-    # technically unsupported by koalas
-    if dtype in KOALAS_UNSUPPORTED:
-        with pytest.raises(TypeError):
-            sample = data.draw(schema.strategy(size=3))
-            data_container_cls(sample)
-        return
-
     sample = data.draw(schema.strategy(size=3))
-
-    if dtype is pandas_engine.DateTime or isinstance(
-        dtype, pandas_engine.DateTime
-    ):
-        if MIN_TIMESTAMP is not None and (sample < MIN_TIMESTAMP).any(
-            axis=None
-        ):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
-                data_container_cls(sample)
-            return
-    else:
-        assert isinstance(data_container_cls(sample), data_container_cls)
+    assert isinstance(schema(data_container_cls(sample)), data_container_cls)
 
 
-@pytest.mark.parametrize("dtype", pandas_engine.Engine.get_registered_dtypes())
+@pytest.mark.parametrize("dtype_cls", TEST_DTYPES_ON_MODIN)
 @pytest.mark.parametrize("coerce", [True, False])
 @hypothesis.given(st.data())
 def test_dataframe_schema_dtypes(
-    dtype: pandas_engine.DataType,
+    dtype_cls: pandas_engine.DataType,
     coerce: bool,
     data: st.DataObject,
 ):
     """
-    Test that all supported koalas data types work as expected for dataframes.
+    Test that all supported modin data types work as expected for dataframes.
     """
-    if dtype in UNSUPPORTED_STRATEGY_DTYPES:
-        pytest.skip(
-            f"type {dtype} currently not supported by the strategies module"
-        )
-
-    schema = pa.DataFrameSchema({"column": pa.Column(dtype)})
-    schema.coerce = coerce
-    _test_datatype_with_schema(dtype, schema, data)
+    dtype = pandas_engine.Engine.dtype(dtype_cls)
+    schema = pa.DataFrameSchema({"column": pa.Column(dtype)}, coerce=coerce)
+    with pytest.warns(
+        UserWarning, match="Distributing .+ object. This may take some time."
+    ):
+        _test_datatype_with_schema(schema, data)
 
 
-@pytest.mark.parametrize("dtype", pandas_engine.Engine.get_registered_dtypes())
+@pytest.mark.parametrize("dtype_cls", TEST_DTYPES_ON_MODIN)
 @pytest.mark.parametrize("coerce", [True, False])
 @pytest.mark.parametrize("schema_cls", [pa.SeriesSchema, pa.Column])
 @hypothesis.given(st.data())
 def test_field_schema_dtypes(
-    dtype: pandas_engine.DataType,
+    dtype_cls: pandas_engine.DataType,
     coerce: bool,
     schema_cls,
     data: st.DataObject,
 ):
     """
-    Test that all supported koalas data types work as expected for series.
+    Test that all supported modin data types work as expected for series.
     """
-    if dtype in UNSUPPORTED_STRATEGY_DTYPES:
-        pytest.skip(
-            f"type {dtype} currently not supported by the strategies module"
-        )
-    schema = schema_cls(dtype, name="field")
-    schema.coerce = coerce
-    _test_datatype_with_schema(dtype, schema, data)
+    schema = schema_cls(dtype_cls, name="field", coerce=coerce)
+    _test_datatype_with_schema(schema, data)
 
 
 @pytest.mark.parametrize(
@@ -185,56 +152,29 @@ def test_index_dtypes(
     schema_cls,
     data: st.DataObject,
 ):
-    """Test koalas Index and MultiIndex on subset of datatypes.
+    """Test modin Index and MultiIndex on subset of datatypes.
 
     Only test basic datatypes since index handling in pandas is already a
     little finicky.
     """
-    if coerce and dtype is pandas_engine.DateTime:
-        pytest.skip(
-            "koalas cannot coerce a koalas DateTime index to datetime."
-        )
-
     if schema_cls is pa.Index:
-        schema = schema_cls(dtype, name="field")
+        schema = schema_cls(dtype, name="field", coerce=coerce)
+    else:
+        schema = schema_cls(indexes=[pa.Index(dtype, name="field")])
         schema.coerce = coerce
-    else:
-        schema = schema_cls(
-            indexes=[pa.Index(dtype, name="field")], coerce=True
-        )
     sample = data.draw(schema.strategy(size=3))
-
-    if dtype is pandas_engine.DateTime or isinstance(
-        dtype, pandas_engine.DateTime
-    ):
-        # handle datetimes
-        if MIN_TIMESTAMP is not None and (
-            sample.to_frame() < MIN_TIMESTAMP
-        ).any(axis=None):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
-                ks.DataFrame(pd.DataFrame(index=sample))
-            return
-    else:
-        assert isinstance(
-            schema(ks.DataFrame(pd.DataFrame(index=sample))), ks.DataFrame
-        )
+    # pandas (and modin) use object arrays to store boolean data
+    if dtype is bool:
+        assert sample.dtype == "object"
+        return
+    assert isinstance(
+        schema(mpd.DataFrame(pd.DataFrame(index=sample))), mpd.DataFrame
+    )
 
 
 @pytest.mark.parametrize(
     "dtype",
-    [
-        dt
-        for dt in NULLABLE_DTYPES
-        if type(dt) not in KOALAS_UNSUPPORTED
-        # pylint: disable=no-value-for-parameter,unexpected-keyword-arg
-        and dt
-        not in {
-            pandas_engine.Engine.dtype(pandas_engine.BOOL),
-            pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
-        }
-    ],
+    [dt for dt in TEST_DTYPES_ON_MODIN if dt in NULLABLE_DTYPES],
 )
 @hypothesis.given(st.data())
 @hypothesis.settings(
@@ -244,10 +184,8 @@ def test_nullable(
     dtype: pandas_engine.DataType,
     data: st.DataObject,
 ):
-    """Test nullable checks on koalas dataframes."""
+    """Test nullable checks on modin dataframes."""
     checks = None
-    if dtypes.is_datetime(type(dtype)) and MIN_TIMESTAMP is not None:
-        checks = [pa.Check.gt(MIN_TIMESTAMP)]
     nullable_schema = pa.DataFrameSchema(
         {"field": pa.Column(dtype, checks=checks, nullable=True)}
     )
@@ -257,49 +195,28 @@ def test_nullable(
     null_sample = data.draw(nullable_schema.strategy(size=5))
     nonnull_sample = data.draw(nonnullable_schema.strategy(size=5))
 
-    # for some reason values less than MIN_TIMESTAMP are still sampled.
-    if dtype is pandas_engine.DateTime or isinstance(
-        dtype, pandas_engine.DateTime
-    ):
-        if MIN_TIMESTAMP is not None and (null_sample < MIN_TIMESTAMP).any(
-            axis=None
-        ):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
-                ks.DataFrame(null_sample)
-            return
-        if MIN_TIMESTAMP is not None and (nonnull_sample < MIN_TIMESTAMP).any(
-            axis=None
-        ):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
-                ks.DataFrame(nonnull_sample)
-            return
-    else:
-        ks_null_sample = ks.DataFrame(null_sample)
-        ks_nonnull_sample = ks.DataFrame(nonnull_sample)
-        n_nulls = ks_null_sample.isna().sum().item()
-        assert ks_nonnull_sample.notna().all().item()
-        assert n_nulls >= 0
-        if n_nulls > 0:
-            with pytest.raises(pa.errors.SchemaError):
-                nonnullable_schema(ks_null_sample)
+    ks_null_sample = mpd.DataFrame(null_sample)
+    ks_nonnull_sample = mpd.DataFrame(nonnull_sample)
+    n_nulls = ks_null_sample.isna().sum().item()
+    assert ks_nonnull_sample.notna().all().item()
+    assert n_nulls >= 0
+    if n_nulls > 0:
+        with pytest.raises(pa.errors.SchemaError):
+            nonnullable_schema(ks_null_sample)
 
 
 def test_unique():
-    """Test uniqueness checks on koalas dataframes."""
+    """Test uniqueness checks on modin dataframes."""
     schema = pa.DataFrameSchema({"field": pa.Column(int)}, unique=["field"])
     column_schema = pa.Column(int, unique=True, name="field")
     series_schema = pa.SeriesSchema(int, unique=True, name="field")
 
-    data_unique = ks.DataFrame({"field": [1, 2, 3]})
-    data_non_unique = ks.DataFrame({"field": [1, 1, 1]})
+    data_unique = mpd.DataFrame({"field": [1, 2, 3]})
+    data_non_unique = mpd.DataFrame({"field": [1, 1, 1]})
 
-    assert isinstance(schema(data_unique), ks.DataFrame)
-    assert isinstance(column_schema(data_unique), ks.DataFrame)
-    assert isinstance(series_schema(data_unique["field"]), ks.Series)
+    assert isinstance(schema(data_unique), mpd.DataFrame)
+    assert isinstance(column_schema(data_unique), mpd.DataFrame)
+    assert isinstance(series_schema(data_unique["field"]), mpd.Series)
 
     with pytest.raises(pa.errors.SchemaError, match="columns .+ not unique"):
         schema(data_non_unique)
@@ -316,23 +233,9 @@ def test_unique():
     column_schema.unique = False
     series_schema.unique = False
 
-    assert isinstance(schema(data_non_unique), ks.DataFrame)
-    assert isinstance(column_schema(data_non_unique), ks.DataFrame)
-    assert isinstance(series_schema(data_non_unique["field"]), ks.Series)
-
-
-def test_regex_columns():
-    """Test regex column selection works on on koalas dataframes."""
-    schema = pa.DataFrameSchema({r"field_\d+": pa.Column(int, regex=True)})
-    n_fields = 3
-    data = ks.DataFrame({f"field_{i}": [1, 2, 3] for i in range(n_fields)})
-    schema(data)
-
-    for i in range(n_fields):
-        invalid_data = data.copy()
-        invalid_data[f"field_{i}"] = ["a", "b", "c"]
-        with pytest.raises(pa.errors.SchemaError):
-            schema(invalid_data)
+    assert isinstance(schema(data_non_unique), mpd.DataFrame)
+    assert isinstance(column_schema(data_non_unique), mpd.DataFrame)
+    assert isinstance(series_schema(data_non_unique["field"]), mpd.Series)
 
 
 def test_required_column():
@@ -342,14 +245,14 @@ def test_required_column():
     )
     schema = pa.DataFrameSchema({"field_": pa.Column(int, required=False)})
 
-    data = ks.DataFrame({"field": [1, 2, 3]})
+    data = mpd.DataFrame({"field": [1, 2, 3]})
 
-    assert isinstance(required_schema(data), ks.DataFrame)
-    assert isinstance(schema(data), ks.DataFrame)
+    assert isinstance(required_schema(data), mpd.DataFrame)
+    assert isinstance(schema(data), mpd.DataFrame)
 
     with pytest.raises(pa.errors.SchemaError):
-        required_schema(ks.DataFrame({"another_field": [1, 2, 3]}))
-    schema(ks.DataFrame({"another_field": [1, 2, 3]}))
+        required_schema(mpd.DataFrame({"another_field": [1, 2, 3]}))
+    schema(mpd.DataFrame({"another_field": [1, 2, 3]}))
 
 
 @pytest.mark.parametrize("from_dtype", [str])
@@ -361,18 +264,23 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
     to_schema = pa.DataFrameSchema({"field": pa.Column(to_dtype, coerce=True)})
 
     pd_sample = data.draw(from_schema.strategy(size=3))
-    sample = ks.DataFrame(pd_sample)
+    sample = mpd.DataFrame(pd_sample)
+
     if from_dtype is to_dtype:
-        assert isinstance(to_schema(sample), ks.DataFrame)
+        assert isinstance(to_schema(sample), mpd.DataFrame)
         return
 
-    # strings that can't be intepreted as numbers are converted to NA
     if from_dtype is str and to_dtype in {int, float}:
-        with pytest.raises(pa.errors.SchemaError, match="non-nullable series"):
-            to_schema(sample)
+        try:
+            result = to_schema(sample)
+            assert result["field"].dtype == to_dtype
+        except pa.errors.SchemaError as err:
+            for x in err.failure_cases.failure_case:
+                with pytest.raises(ValueError):
+                    to_dtype(x)
         return
 
-    assert isinstance(to_schema(sample), ks.DataFrame)
+    assert isinstance(to_schema(sample), mpd.DataFrame)
 
 
 def test_strict_schema():
@@ -380,8 +288,8 @@ def test_strict_schema():
     strict_schema = pa.DataFrameSchema({"field": pa.Column()}, strict=True)
     non_strict_schema = pa.DataFrameSchema({"field": pa.Column()})
 
-    strict_df = ks.DataFrame({"field": [1]})
-    non_strict_df = ks.DataFrame({"field": [1], "foo": [2]})
+    strict_df = mpd.DataFrame({"field": [1]})
+    non_strict_df = mpd.DataFrame({"field": [1], "foo": [2]})
 
     strict_schema(strict_df)
     non_strict_schema(strict_df)
@@ -394,33 +302,34 @@ def test_strict_schema():
     non_strict_schema(non_strict_df)
 
 
-def test_custom_checks():
+# pylint: disable=unused-argument
+def test_custom_checks(custom_check_teardown):
     """Test that custom checks can be executed."""
 
     @extensions.register_check_method(statistics=["value"])
-    def koalas_eq(koalas_obj, *, value):
-        return koalas_obj == value
+    def modin_eq(modin_obj, *, value):
+        return modin_obj == value
 
     custom_schema = pa.DataFrameSchema(
         {"field": pa.Column(checks=pa.Check(lambda s: s == 0, name="custom"))}
     )
 
     custom_registered_schema = pa.DataFrameSchema(
-        {"field": pa.Column(checks=pa.Check.koalas_eq(0))}
+        {"field": pa.Column(checks=pa.Check.modin_eq(0))}
     )
 
     for schema in (custom_schema, custom_registered_schema):
-        schema(ks.DataFrame({"field": [0] * 100}))
+        schema(mpd.DataFrame({"field": [0] * 100}))
 
         try:
-            schema(ks.DataFrame({"field": [-1] * 100}))
+            schema(mpd.DataFrame({"field": [-1] * 100}))
         except pa.errors.SchemaError as err:
             assert (err.failure_cases["failure_case"] == -1).all()
 
 
 def test_schema_model():
     # pylint: disable=missing-class-docstring
-    """Test that SchemaModel subclasses work on koalas dataframes."""
+    """Test that SchemaModel subclasses work on modin dataframes."""
 
     # pylint: disable=too-few-public-methods
     class Schema(pa.SchemaModel):
@@ -428,14 +337,14 @@ def test_schema_model():
         float_field: pa.typing.Series[float] = pa.Field(lt=0)
         str_field: pa.typing.Series[str] = pa.Field(isin=["a", "b", "c"])
 
-    valid_df = ks.DataFrame(
+    valid_df = mpd.DataFrame(
         {
             "int_field": [1, 2, 3],
             "float_field": [-1.1, -2.1, -3.1],
             "str_field": ["a", "b", "c"],
         }
     )
-    invalid_df = ks.DataFrame(
+    invalid_df = mpd.DataFrame(
         {
             "int_field": [-1],
             "field_field": [1],
@@ -447,7 +356,7 @@ def test_schema_model():
     try:
         Schema.validate(invalid_df, lazy=True)
     except pa.errors.SchemaErrors as err:
-        expected_failures = {"-1", "d", "float_field"}
+        expected_failures = {-1, "d", "float_field"}
         assert (
             set(err.failure_cases["failure_case"].tolist())
             == expected_failures
@@ -475,8 +384,8 @@ def test_schema_model():
 )
 def test_check_comparison_operators(check, valid, invalid):
     """Test simple comparison operators."""
-    valid_check_result = check(ks.Series([valid] * 3))
-    invalid_check_result = check(ks.Series([invalid] * 3))
+    valid_check_result = check(mpd.Series([valid] * 3))
+    invalid_check_result = check(mpd.Series([invalid] * 3))
     assert valid_check_result.check_passed
     assert not invalid_check_result.check_passed
 
@@ -496,22 +405,24 @@ def test_check_decorators():
 
     @pa.check_input(in_schema)
     @pa.check_output(out_schema)
-    def function_check_input_output(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_input_output(df: mpd.DataFrame) -> mpd.DataFrame:
         df["b"] = df["a"] + 1
         return df
 
     @pa.check_input(in_schema)
     @pa.check_output(out_schema)
-    def function_check_input_output_invalid(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_input_output_invalid(
+        df: mpd.DataFrame,
+    ) -> mpd.DataFrame:
         return df
 
     @pa.check_io(df=in_schema, out=out_schema)
-    def function_check_io(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_io(df: mpd.DataFrame) -> mpd.DataFrame:
         df["b"] = df["a"] + 1
         return df
 
     @pa.check_io(df=in_schema, out=out_schema)
-    def function_check_io_invalid(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_io_invalid(df: mpd.DataFrame) -> mpd.DataFrame:
         return df
 
     @pa.check_types
@@ -527,8 +438,8 @@ def test_check_decorators():
     ) -> pa.typing.DataFrame[OutSchema]:
         return df
 
-    valid_df = ks.DataFrame({"a": [1, 2, 3]})
-    invalid_df = ks.DataFrame({"b": [1, 2, 3]})
+    valid_df = mpd.DataFrame({"a": [1, 2, 3]})
+    invalid_df = mpd.DataFrame({"b": [1, 2, 3]})
 
     function_check_input_output(valid_df)
     function_check_io(valid_df)

@@ -45,7 +45,11 @@ class DataType(dtypes.DataType):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
-        return data_container.astype(self.type)
+        coerced = data_container.astype(self.type)
+        if type(data_container).__module__.startswith("modin.pandas"):
+            # NOTE: this is a hack to enable catching of errors in modin
+            coerced.__str__()
+        return coerced
 
     def try_coerce(
         self, data_container: Union[PandasObject, np.ndarray]

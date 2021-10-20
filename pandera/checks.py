@@ -311,7 +311,7 @@ class _CheckBase(metaclass=_CheckMeta):
             to be used by `_check_fn` and `_vectorized_check`
 
         """
-        if isinstance(df_or_series, pd.Series):
+        if check_utils.is_field(df_or_series):
             return df_or_series
         elif self.groupby is None:
             return df_or_series[column]
