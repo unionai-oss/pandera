@@ -315,6 +315,7 @@ Submit issues, feature requests or bugfixes on
    extensions
    third_party_schema
    scaling
+   integrations
 
 .. toctree::
    :maxdepth: 6

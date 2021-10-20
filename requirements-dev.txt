@@ -13,6 +13,7 @@ typing_inspect >= 0.6.0
 typing_extensions >= 3.7.4.3
 frictionless
 pyarrow
+pydantic
 koalas
 pyspark
 black >= 20.8b1

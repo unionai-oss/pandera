@@ -8,7 +8,7 @@ import traceback
 import warnings
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -42,6 +42,8 @@ PandasDtypeInputTypes = Union[
     np.dtype,
     None,
 ]
+
+TSeriesSchemaBase = TypeVar("TSeriesSchemaBase", bound="SeriesSchemaBase")
 
 
 def _inferred_schema_guard(method):
@@ -1529,6 +1531,18 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return new_schema
 
+    @classmethod
+    def __get_validators__(cls):
+        yield cls._pydantic_validate
+
+    @classmethod
+    def _pydantic_validate(cls, schema: Any) -> "DataFrameSchema":
+        """Verify that the input is a compatible DataFrameSchema."""
+        if not isinstance(schema, cls):  # type: ignore
+            raise TypeError(f"{schema} is not a {cls}.")
+
+        return cast("DataFrameSchema", schema)
+
 
 class SeriesSchemaBase:
     """Base series validator object."""
@@ -1969,6 +1983,20 @@ class SeriesSchemaBase:
             f"<Schema {self.__class__.__name__}"
             f"(name={self._name}, type={self.dtype!r})>"
         )
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls._pydantic_validate
+
+    @classmethod
+    def _pydantic_validate(  # type: ignore
+        cls: TSeriesSchemaBase, schema: Any
+    ) -> TSeriesSchemaBase:
+        """Verify that the input is a compatible DataFrameSchema."""
+        if not isinstance(schema, cls):  # type: ignore
+            raise TypeError(f"{schema} is not a {cls}.")
+
+        return cast(TSeriesSchemaBase, schema)
 
 
 class SeriesSchema(SeriesSchemaBase):

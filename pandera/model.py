@@ -41,6 +41,13 @@ if sys.version_info[:2] < (3, 9):
 else:
     from typing import get_type_hints
 
+try:
+    from pydantic.fields import ModelField  # pylint:disable=unused-import
+
+    HAS_PYDANTIC = True
+except ImportError:
+    HAS_PYDANTIC = False
+
 SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
 
 
@@ -139,7 +146,17 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
     return checks
 
 
-class SchemaModel:
+class _MetaSchema(type):
+    """Add string representations, mainly for pydantic."""
+
+    def __repr__(cls):
+        return str(cls)
+
+    def __str__(cls):
+        return cls.__name__
+
+
+class SchemaModel(metaclass=_MetaSchema):
     """Definition of a :class:`~pandera.DataFrameSchema`.
 
     *new in 0.5.0*
@@ -459,6 +476,31 @@ class SchemaModel:
     def _extract_df_checks(cls, check_infos: List[CheckInfo]) -> List[Check]:
         """Collect field annotations from bases in mro reverse order."""
         return [check_info.to_check(cls) for check_info in check_infos]
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls._pydantic_validate
+
+    @classmethod
+    def _pydantic_validate(cls, schema_model: Any) -> "SchemaModel":
+        """Verify that the input is a compatible schema model."""
+        if not inspect.isclass(schema_model):  # type: ignore
+            raise TypeError(f"{schema_model} is not a pandera.SchemaModel")
+
+        if not issubclass(schema_model, cls):  # type: ignore
+            raise TypeError(f"{schema_model} does not inherit {cls}.")
+
+        try:
+            schema_model.to_schema()
+        except SchemaInitError as exc:
+            raise ValueError(
+                f"Cannot use {cls} as a pydantic type as its "
+                "SchemaModel cannot be converted to a DataFrameSchema.\n"
+                f"Please revisit the model to address the following errors:"
+                f"\n{exc}"
+            ) from exc
+
+        return cast("SchemaModel", schema_model)
 
 
 def _build_schema_index(
