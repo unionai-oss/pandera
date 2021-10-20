@@ -15,6 +15,9 @@ frictionless
 pyarrow
 koalas
 pyspark
+modin
+ray
+dask
 black >= 20.8b1
 isort >= 5.7.0
 codecov
