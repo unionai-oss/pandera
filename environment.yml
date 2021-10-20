@@ -18,6 +18,7 @@ dependencies:
   - typing_extensions >= 3.7.4.3
   - frictionless
   - pyarrow
+  - pydantic
 
   # koalas extra
   - koalas
