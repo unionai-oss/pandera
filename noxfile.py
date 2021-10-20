@@ -184,7 +184,7 @@ def install_extras(
             specs.append(
                 spec if spec != "pandas" else f"pandas{pandas_version}"
             )
-    if extra in {"core", "koalas"}:
+    if extra in {"core", "koalas", "modin"}:
         specs.append(REQUIRES["all"]["hypothesis"])
 
     # this is a temporary measure to install setuptools due to this issue:
