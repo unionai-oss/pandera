@@ -53,7 +53,7 @@ def setup_modin_engine(request):
 
     Eventually this will also support dask execution backend.
     """
-    os.environ["MODIN_MEMORY"] = 1000000000
+    os.environ["MODIN_MEMORY"] = "1000000000"
     os.environ["MODIN_ENGINE"] = request.param
     if request.param == "ray":
         ray.init()
