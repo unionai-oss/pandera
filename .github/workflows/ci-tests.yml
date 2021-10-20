@@ -152,6 +152,13 @@ jobs:
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
 
+      - name: Unit Tests - Modin
+        run: >
+          nox
+          -db virtualenv -r -v
+          --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
+
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"
 
