@@ -90,7 +90,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9"]
-        pandas-version: ["1.2.5", "latest"]
+        pandas-version: ["1.3.0", "latest"]
         include:
         - os: ubuntu-latest
           path: ~/.cache/pip
