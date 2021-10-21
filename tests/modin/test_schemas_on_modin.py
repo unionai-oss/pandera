@@ -1,5 +1,6 @@
 """Unit tests for modin data structures."""
 
+import os
 import typing
 from unittest.mock import MagicMock
 
@@ -25,11 +26,6 @@ except ImportError:
     hypothesis = MagicMock()
     st = MagicMock()
 
-try:
-    import ray
-except ImportError:
-    ray = MagicMock()
-
 
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
@@ -44,6 +40,26 @@ for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
     ):
         continue
     TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_modin_engine():
+    """Set up the modin engine.
+
+    Eventually this will also support dask execution backend.
+    """
+    engine = os.environ["MODIN_ENGINE"]
+    if engine == "ray":
+        import ray
+
+        ray.init()
+    elif engine == "dask":
+        from distributed import Client
+
+        Client()
+    yield
+    if engine == "ray":
+        ray.shutdown()
 
 
 @pytest.mark.parametrize("coerce", [True, False])
