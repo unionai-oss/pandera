@@ -337,7 +337,6 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             "--cov-report=term-missing",
             "--cov-report=xml",
             "--cov-append",
-            "-vv",
         ]
         if not CI_RUN:
             args.append("--cov-report=html")

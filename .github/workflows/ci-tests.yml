@@ -159,33 +159,38 @@ jobs:
       #   env:
       #     MODIN_ENGINE: ray
       #     MODIN_MEMORY: 100000000
-      #   run: >
-      #     pytest
-      #     --cov=pandera
-      #     --cov-report=term-missing
-      #     --cov-report=xml
-      #     --cov-append
-      #     -vv
-      #     tests/modin
 
-      - name: Unit Tests - Modin Ray
+      # modin and nox don't play well for some reason?
+      - name: Unit Tests - Modin Ray [windows]
+        if: ${{ runner.os == 'windows-latest'}}
+        env:
+          MODIN_ENGINE: ray
+          MODIN_MEMORY: 100000000
+        run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
+
+      - name: Unit Tests - Modin Dask [windows]
+        if: ${{ runner.os == 'windows-latest'}}
+        env:
+          MODIN_ENGINE: dask
+          MODIN_MEMORY: 100000000
+        run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
+
+      - name: Unit Tests - Modin Ray [macos, ubuntu]
+        if: ${{ runner.os != 'windows-latest'}}
         env:
           MODIN_ENGINE: ray
           MODIN_MEMORY: 100000000
         run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
+          nox -db virtualenv -r -v --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Modin Dask
+      - name: Unit Tests - Modin Dask [macos, ubuntu]
+        if: ${{ runner.os != 'windows-latest'}}
         env:
           MODIN_ENGINE: dask
           MODIN_MEMORY: 100000000
         run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
+          nox -db virtualenv -r -v --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
 
       # - name: Upload coverage to Codecov
