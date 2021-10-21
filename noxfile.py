@@ -34,7 +34,11 @@ PACKAGE = "pandera"
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
 ALWAYS_USE_PIP = [
-    "ray", "furo", "types-click", "types-pyyaml", "types-pkg_resources",
+    "ray",
+    "furo",
+    "types-click",
+    "types-pyyaml",
+    "types-pkg_resources",
 ]
 
 CI_RUN = os.environ.get("CI") == "true"
@@ -340,11 +344,13 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         args.append(path)
 
     env = {}
+    external = False
     if extra == "modin":
+        external = True
         env["MODIN_ENGINE"] = os.getenv("MODIN_ENGINE")
         env["MODIN_MEMORY"] = os.getenv("MODIN_MEMORY")
 
-    session.run("pytest", *args, env=env)
+    session.run("pytest", *args, env=env, external=external)
 
 
 @nox.session(python=PYTHON_VERSIONS)
