@@ -33,7 +33,9 @@ PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = ["furo", "types-click", "types-pyyaml", "types-pkg_resources"]
+ALWAYS_USE_PIP = [
+    "ray", "furo", "types-click", "types-pyyaml", "types-pkg_resources",
+]
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -336,7 +338,12 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             args.append("--cov-report=html")
         args.append(path)
 
-    session.run("pytest", *args)
+    env = {}
+    if extra == "modin":
+        env["MODIN_ENGINE"] = os.getenv("MODIN_ENGINE")
+        env["MODIN_MEMORY"] = os.getenv("MODIN_MEMORY")
+
+    session.run("pytest", *args, env=env)
 
 
 @nox.session(python=PYTHON_VERSIONS)
