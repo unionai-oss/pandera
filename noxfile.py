@@ -343,13 +343,11 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         args.append(path)
 
     env = {}
-    external = False
     if extra == "modin":
-        external = True
         env["MODIN_ENGINE"] = os.getenv("MODIN_ENGINE")
         env["MODIN_MEMORY"] = os.getenv("MODIN_MEMORY")
 
-    session.run("pytest", *args, env=env, external=external)
+    session.run("pytest", *args, env=env)
 
 
 @nox.session(python=PYTHON_VERSIONS)
