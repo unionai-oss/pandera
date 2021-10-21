@@ -18,6 +18,7 @@ pyspark
 modin
 ray
 dask
+distributed
 black >= 20.8b1
 isort >= 5.7.0
 codecov
