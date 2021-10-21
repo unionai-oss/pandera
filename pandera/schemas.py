@@ -415,7 +415,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         lazy: bool = False,
         inplace: bool = False,
     ) -> DataFrame:
-        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame check_obj: the dataframe to be validated.
@@ -522,60 +521,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         inplace: bool = False,
     ) -> pd.DataFrame:
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-        """Check if all columns in a dataframe have a column in the Schema.
-
-        :param pd.DataFrame check_obj: the dataframe to be validated.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated ``DataFrame``
-
-        :raises SchemaError: when ``DataFrame`` violates built-in or custom
-            checks.
-
-        :example:
-
-        Calling ``schema.validate`` returns the dataframe.
-
-        >>> import pandas as pd
-        >>> import pandera as pa
-        >>>
-        >>> df = pd.DataFrame({
-        ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
-        ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
-        ... })
-        >>>
-        >>> schema_withchecks = pa.DataFrameSchema({
-        ...     "probability": pa.Column(
-        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
-        ...
-        ...     # check that the "category" column contains a few discrete
-        ...     # values, and the majority of the entries are dogs.
-        ...     "category": pa.Column(
-        ...         str, [
-        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
-        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
-        ...         ]),
-        ... })
-        >>>
-        >>> schema_withchecks.validate(df)[["probability", "category"]]
-           probability category
-        0         0.10      dog
-        1         0.40      dog
-        2         0.52      cat
-        3         0.23     duck
-        4         0.80      dog
-        5         0.76      dog
-        """
 
         if self._is_inferred:
             warnings.warn(
@@ -2191,6 +2136,48 @@ class SeriesSchema(SeriesSchemaBase):
         lazy: bool = False,
         inplace: bool = False,
     ) -> Series:
+        """Validate a Series object.
+
+        :param check_obj: One-dimensional ndarray with axis labels
+            (including time series).
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated Series.
+
+        :raises SchemaError: when ``DataFrame`` violates built-in or custom
+            checks.
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>> series_schema = pa.SeriesSchema(
+        ...     float, [
+        ...         pa.Check(lambda s: s > 0),
+        ...         pa.Check(lambda s: s < 1000),
+        ...         pa.Check(lambda s: s.mean() > 300),
+        ...     ])
+        >>> series = pd.Series([1, 100, 800, 900, 999], dtype=float)
+        >>> print(series_schema.validate(series))
+        0      1.0
+        1    100.0
+        2    800.0
+        3    900.0
+        4    999.0
+        dtype: float64
+
+        """
         if isinstance(check_obj, pd.Series):
             return self._validate(
                 check_obj=check_obj,
@@ -2243,48 +2230,6 @@ class SeriesSchema(SeriesSchemaBase):
         inplace: bool = False,
     ) -> pd.Series:
         # pylint: disable=too-many-branches
-        """Validate a Series object.
-
-        :param check_obj: One-dimensional ndarray with axis labels
-            (including time series).
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated Series.
-
-        :raises SchemaError: when ``DataFrame`` violates built-in or custom
-            checks.
-
-        :example:
-
-        >>> import pandas as pd
-        >>> import pandera as pa
-        >>>
-        >>> series_schema = pa.SeriesSchema(
-        ...     float, [
-        ...         pa.Check(lambda s: s > 0),
-        ...         pa.Check(lambda s: s < 1000),
-        ...         pa.Check(lambda s: s.mean() > 300),
-        ...     ])
-        >>> series = pd.Series([1, 100, 800, 900, 999], dtype=float)
-        >>> print(series_schema.validate(series))
-        0      1.0
-        1    100.0
-        2    800.0
-        3    900.0
-        4    999.0
-        dtype: float64
-
-        """
         if not check_utils.is_field(check_obj):
             raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
 
