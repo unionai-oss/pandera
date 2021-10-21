@@ -43,6 +43,17 @@ PandasDtypeInputTypes = Union[
     None,
 ]
 
+try:
+    import dask.dataframe as dd
+
+    _DASK_INSTALLED = True
+    Series = Union[pd.Series, dd.Series]
+    DataFrame = Union[pd.DataFrame, dd.DataFrame]
+except ImportError:
+    _DASK_INSTALLED = False
+    Series = pd.Series  # type: ignore
+    DataFrame = pd.DataFrame  # type: ignore
+
 
 def _inferred_schema_guard(method):
     """
@@ -393,6 +404,112 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return obj
 
     def validate(
+        self,
+        check_obj: DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> DataFrame:
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+        """Check if all columns in a dataframe have a column in the Schema.
+
+        :param pd.DataFrame check_obj: the dataframe to be validated.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated ``DataFrame``
+
+        :raises SchemaError: when ``DataFrame`` violates built-in or custom
+            checks.
+
+        :example:
+
+        Calling ``schema.validate`` returns the dataframe.
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>> df = pd.DataFrame({
+        ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
+        ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
+        ... })
+        >>>
+        >>> schema_withchecks = pa.DataFrameSchema({
+        ...     "probability": pa.Column(
+        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
+        ...
+        ...     # check that the "category" column contains a few discrete
+        ...     # values, and the majority of the entries are dogs.
+        ...     "category": pa.Column(
+        ...         str, [
+        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
+        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
+        ...         ]),
+        ... })
+        >>>
+        >>> schema_withchecks.validate(df)[["probability", "category"]]
+           probability category
+        0         0.10      dog
+        1         0.40      dog
+        2         0.52      cat
+        3         0.23     duck
+        4         0.80      dog
+        5         0.76      dog
+        """
+        if isinstance(check_obj, pd.DataFrame):
+            return self._validate(
+                check_obj=check_obj,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+            )
+
+        if hasattr(check_obj, "dask"):
+            if not _DASK_INSTALLED:
+                raise ImportError(
+                    "Dask must be installed to validate Dask DataFrames"
+                )
+
+            if inplace:
+                check_obj = check_obj.pandera.add_schema(self)
+            else:
+                check_obj = check_obj.copy()
+
+            check_obj = check_obj.map_partitions(
+                self._validate,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+                meta=check_obj,
+            )
+
+            check_obj = check_obj.pandera.add_schema(self)
+
+            return check_obj
+
+        raise TypeError(
+            f"expected either a Pandas or Dask DataFrame, got {type(check_obj)}"
+        )
+
+    def _validate(
         self,
         check_obj: pd.DataFrame,
         head: Optional[int] = None,
@@ -2013,6 +2130,57 @@ class SeriesSchema(SeriesSchemaBase):
         return False
 
     def validate(
+        self,
+        check_obj: Series,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> Series:
+        if isinstance(check_obj, pd.Series):
+            return self._validate(
+                check_obj=check_obj,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+            )
+
+        if hasattr(check_obj, "dask"):
+            if not _DASK_INSTALLED:
+                raise ImportError(
+                    "Dask must be installed to validate Dask Series"
+                )
+
+            if inplace:
+                check_obj = check_obj.pandera.add_schema(self)
+            else:
+                check_obj = check_obj.copy()
+
+            check_obj = check_obj.map_partitions(
+                self._validate,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+                meta=check_obj,
+            )
+
+            check_obj = check_obj.pandera.add_schema(self)
+
+            return check_obj
+
+        raise TypeError(
+            f"expected either a Pandas or Dask Series, got {type(check_obj)}"
+        )
+
+    def _validate(
         self,
         check_obj: pd.Series,
         head: Optional[int] = None,

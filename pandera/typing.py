@@ -8,6 +8,13 @@ import typing_inspect
 from . import dtypes
 from .engines import numpy_engine, pandas_engine
 
+try:
+    import dask.dataframe as dd
+
+    _DASK_INSTALLED = True
+except ImportError:
+    _DASK_INSTALLED = False
+
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
 Timedelta = dtypes.Timedelta  #: ``"timedelta64[ns]"`` numpy dtype
@@ -116,6 +123,15 @@ class DataFrame(pd.DataFrame, Generic[T]):
     """
 
 
+if _DASK_INSTALLED:
+    # pylint:disable=too-few-public-methods
+    class DaskDataFrame(dd.DataFrame, Generic[T]):
+        """
+        Representation of dask.dataframe.DataFrame, only used for type
+        annotation.
+        """
+
+
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
     """Captures extra information about an annotation.
 
@@ -133,11 +149,16 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
 
     @property
     def is_generic_df(self) -> bool:
-        """True if the annotation is a pandera.typing.DataFrame."""
+        """True if the annotation is a pandera.typing.DataFrame or
+        pandera.typing.DaskDataFrame.
+        """
         try:
-            return self.origin is not None and issubclass(
-                self.origin, DataFrame
-            )
+            if self.origin is None:
+                return False
+            if _DASK_INSTALLED:
+                return issubclass(self.origin, (DataFrame, DaskDataFrame))
+            else:
+                return issubclass(self.origin, DataFrame)
         except TypeError:
             return False
 

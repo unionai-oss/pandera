@@ -57,3 +57,11 @@ from .version import __version__
 
 if platform.system() != "Windows":
     from pandera.dtypes import Complex256, Float128
+
+
+try:
+    import dask.dataframe
+
+    from . import dask_accessor
+except ImportError:
+    pass
