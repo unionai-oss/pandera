@@ -3,7 +3,7 @@
 import os
 import shutil
 import sys
-from typing import Dict, List
+from typing import Dict, List, Mapping
 
 # setuptools must be imported before distutils !
 import setuptools  # pylint:disable=unused-import  # noqa: F401
@@ -342,7 +342,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             args.append("--cov-report=html")
         args.append(path)
 
-    env = {}
+    env: Mapping[str, str] = {}
     if extra == "modin":
         env["MODIN_ENGINE"] = os.getenv("MODIN_ENGINE")
         env["MODIN_MEMORY"] = os.getenv("MODIN_MEMORY")
