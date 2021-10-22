@@ -42,18 +42,22 @@ for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
     TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))
 
 
-@pytest.fixture(scope="module", autouse=True)
-def setup_modin_engine():
+@pytest.fixture(scope="module", params=["ray", "dask"], autouse=True)
+def setup_modin_engine(request):
     """Set up the modin engine.
 
     Eventually this will also support dask execution backend.
     """
-    engine = os.environ["MODIN_ENGINE"]
+    engine = request.param
+    os.environ["MODIN_ENGINE"] = engine
+    os.environ["MODIN_MEMORY"] = "100000000"
     if engine == "ray":
+        # pylint: disable=import-outside-toplevel
         import ray
 
         ray.init()
     elif engine == "dask":
+        # pylint: disable=import-outside-toplevel
         from distributed import Client
 
         Client()

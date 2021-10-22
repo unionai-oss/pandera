@@ -155,40 +155,13 @@ jobs:
       #     --non-interactive
       #     --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
 
-      # - name: Unit Tests - Modin Ray
-      #   env:
-      #     MODIN_ENGINE: ray
-      #     MODIN_MEMORY: 100000000
-
       # modin and nox don't play well on windows for some reason?
-      - name: Unit Tests - Modin Ray [Windows]
+      - name: Unit Tests - Modin [Windows]
         if: ${{ matrix.os == 'windows-latest'}}
-        env:
-          MODIN_ENGINE: ray
-          MODIN_MEMORY: 100000000
         run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
 
-      - name: Unit Tests - Modin Dask [Windows]
-        if: ${{ matrix.os == 'windows-latest'}}
-        env:
-          MODIN_ENGINE: dask
-          MODIN_MEMORY: 100000000
-        run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
-
-      - name: Unit Tests - Modin Ray [MacOS, Ubuntu]
+      - name: Unit Tests - Modin [MacOS, Ubuntu]
         if: ${{ matrix.os != 'windows-latest'}}
-        env:
-          MODIN_ENGINE: ray
-          MODIN_MEMORY: 100000000
-        run: >
-          nox -db virtualenv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
-
-      - name: Unit Tests - Modin Dask [MacOS, Ubuntu]
-        if: ${{ matrix.os != 'windows-latest'}}
-        env:
-          MODIN_ENGINE: dask
-          MODIN_MEMORY: 100000000
         run: >
           nox -db virtualenv -r -v --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
