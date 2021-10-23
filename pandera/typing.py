@@ -141,9 +141,6 @@ class DataFrameBase(pd.DataFrame):
     initialization.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def __setattr__(self, name: str, value: Any) -> None:
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
@@ -160,6 +157,7 @@ class DataFrameBase(pd.DataFrame):
                 self.pandera.schema is None
                 or self.pandera.schema != schema_model.to_schema()
             ):
+                # pylint: disable=self-cls-assignment
                 self = schema_model.validate(self)
                 self.pandera.add_schema(schema_model.to_schema())
 

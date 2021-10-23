@@ -34,7 +34,11 @@ class PanderaAccessor:
         return self._schema
 
     def validate(self, **kwargs):
-        """A utility to validate a dataframe."""
+        """A utility to validate a dataframe.
+
+        Forwards **kwargs to the schema.validate method.
+        """
+        # pylint: disable=not-callable
         return self.schema(self._pandas_obj, **kwargs)
 
 
