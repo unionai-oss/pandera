@@ -27,13 +27,19 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.7", "3.8", "3.9"]
-PANDAS_VERSIONS = ["1.2.5", "latest"]
+PANDAS_VERSIONS = ["1.3.0", "latest"]
 
 PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = ["furo", "types-click", "types-pyyaml", "types-pkg_resources"]
+ALWAYS_USE_PIP = [
+    "ray",
+    "furo",
+    "types-click",
+    "types-pyyaml",
+    "types-pkg_resources",
+]
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -184,7 +190,7 @@ def install_extras(
             specs.append(
                 spec if spec != "pandas" else f"pandas{pandas_version}"
             )
-    if extra in {"core", "koalas"}:
+    if extra in {"core", "koalas", "modin"}:
         specs.append(REQUIRES["all"]["hypothesis"])
 
     # this is a temporary measure to install setuptools due to this issue:

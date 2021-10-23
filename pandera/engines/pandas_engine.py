@@ -73,7 +73,11 @@ class DataType(dtypes.DataType):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
-        return data_container.astype(self.type)
+        coerced = data_container.astype(self.type)
+        if type(data_container).__module__.startswith("modin.pandas"):
+            # NOTE: this is a hack to enable catching of errors in modin
+            coerced.__str__()
+        return coerced
 
     def try_coerce(self, data_container: PandasObject) -> PandasObject:
         try:
@@ -545,6 +549,12 @@ class DateTime(DataType, dtypes.Timestamp):
                 import databricks.koalas as ks
 
                 to_datetime_fn = ks.to_datetime
+            if type(col).__module__.startswith("modin.pandas"):
+                # pylint: disable=import-outside-toplevel
+                import modin.pandas as mpd
+
+                to_datetime_fn = mpd.to_datetime
+
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
             return col.astype(self.type)
 

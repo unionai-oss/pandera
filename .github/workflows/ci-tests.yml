@@ -90,7 +90,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9"]
-        pandas-version: ["1.2.5", "latest"]
+        pandas-version: ["1.3.0", "latest"]
         include:
         - os: ubuntu-latest
           path: ~/.cache/pip
@@ -151,6 +151,17 @@ jobs:
           -db virtualenv -r -v
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
+
+      - name: Unit Tests - Modin [MacOS, Ubuntu]
+        if: ${{ matrix.os != 'windows-latest'}}
+        run: >
+          nox -db virtualenv -r -v --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
+
+      # modin and nox don't play well on windows for some reason?
+      - name: Unit Tests - Modin [Windows]
+        if: ${{ matrix.os == 'windows-latest'}}
+        run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
 
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"

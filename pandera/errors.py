@@ -104,10 +104,21 @@ class SchemaErrors(Exception):
         for k, v in error_counts.items():
             msg += f"- {k}: {v}\n"
 
+        def agg_failure_cases(df):
+            # NOTE: this is a hack to add modin support
+            if type(df).__module__.startswith("modin.pandas"):
+                return (
+                    df.groupby(["schema_context", "column", "check"])
+                    .agg({"failure_case": "unique"})
+                    .failure_case
+                )
+            return df.groupby(
+                ["schema_context", "column", "check"]
+            ).failure_case.unique()
+
         agg_schema_errors = (
             schema_errors.fillna({"column": "<NA>"})
-            .groupby(["schema_context", "column", "check"])
-            .failure_case.unique()
+            .pipe(agg_failure_cases)
             .rename("failure_cases")
             .to_frame()
             .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
@@ -184,7 +195,7 @@ class SchemaErrors(Exception):
                 )
                 check_failure_cases.append(failure_cases[column_order])
 
-        # NOTE: this is a hack to support koalas
+        # NOTE: this is a hack to support koalas and modin
         concat_fn = pd.concat
         if any(
             type(x).__module__.startswith("databricks.koalas")
@@ -196,6 +207,18 @@ class SchemaErrors(Exception):
             concat_fn = ks.concat
             check_failure_cases = [
                 x if isinstance(x, ks.DataFrame) else ks.DataFrame(x)
+                for x in check_failure_cases
+            ]
+        elif any(
+            type(x).__module__.startswith("modin.pandas")
+            for x in check_failure_cases
+        ):
+            # pylint: disable=import-outside-toplevel
+            import modin.pandas as mpd
+
+            concat_fn = mpd.concat
+            check_failure_cases = [
+                x if isinstance(x, mpd.DataFrame) else mpd.DataFrame(x)
                 for x in check_failure_cases
             ]
 

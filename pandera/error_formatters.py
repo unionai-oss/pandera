@@ -126,11 +126,9 @@ def reshape_failure_cases(
             .reset_index()
         )
     elif check_utils.is_field(failure_cases):
-        reshaped_failure_cases = (
-            failure_cases.rename("failure_case")
-            .rename_axis("index")
-            .reset_index()
-        )
+        reshaped_failure_cases = failure_cases.rename("failure_case")
+        reshaped_failure_cases.index.name = "index"
+        reshaped_failure_cases = reshaped_failure_cases.reset_index()
     else:
         raise TypeError(
             "type of failure_cases argument not understood: "

@@ -12,7 +12,7 @@ from pandera import dtypes, extensions, system
 from pandera.engines import numpy_engine, pandas_engine
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
-    UNSUPPORTED_DTYPES as UNSUPPORTED_STRATEGY_DTYPES,
+    UNSUPPORTED_DTYPE_CLS as UNSUPPORTED_STRATEGY_DTYPE_CLS,
 )
 
 try:
@@ -26,8 +26,8 @@ else:
     HAS_HYPOTHESIS = True
 
 
-UNSUPPORTED_STRATEGY_DTYPES = set(UNSUPPORTED_STRATEGY_DTYPES)
-UNSUPPORTED_STRATEGY_DTYPES.add(numpy_engine.Object)
+UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
+UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
 
 KOALAS_UNSUPPORTED = {
@@ -123,33 +123,38 @@ def _test_datatype_with_schema(
         assert isinstance(data_container_cls(sample), data_container_cls)
 
 
-@pytest.mark.parametrize("dtype", pandas_engine.Engine.get_registered_dtypes())
+@pytest.mark.parametrize(
+    "dtype_cls", pandas_engine.Engine.get_registered_dtypes()
+)
 @pytest.mark.parametrize("coerce", [True, False])
 @hypothesis.given(st.data())
 def test_dataframe_schema_dtypes(
-    dtype: pandas_engine.DataType,
+    dtype_cls: pandas_engine.DataType,
     coerce: bool,
     data: st.DataObject,
 ):
     """
     Test that all supported koalas data types work as expected for dataframes.
     """
-    if dtype in UNSUPPORTED_STRATEGY_DTYPES:
+    if dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS:
         pytest.skip(
-            f"type {dtype} currently not supported by the strategies module"
+            f"type {dtype_cls} currently not supported by the strategies "
+            "module"
         )
 
-    schema = pa.DataFrameSchema({"column": pa.Column(dtype)})
+    schema = pa.DataFrameSchema({"column": pa.Column(dtype_cls)})
     schema.coerce = coerce
-    _test_datatype_with_schema(dtype, schema, data)
+    _test_datatype_with_schema(dtype_cls, schema, data)
 
 
-@pytest.mark.parametrize("dtype", pandas_engine.Engine.get_registered_dtypes())
+@pytest.mark.parametrize(
+    "dtype_cls", pandas_engine.Engine.get_registered_dtypes()
+)
 @pytest.mark.parametrize("coerce", [True, False])
 @pytest.mark.parametrize("schema_cls", [pa.SeriesSchema, pa.Column])
 @hypothesis.given(st.data())
 def test_field_schema_dtypes(
-    dtype: pandas_engine.DataType,
+    dtype_cls: pandas_engine.DataType,
     coerce: bool,
     schema_cls,
     data: st.DataObject,
@@ -157,13 +162,14 @@ def test_field_schema_dtypes(
     """
     Test that all supported koalas data types work as expected for series.
     """
-    if dtype in UNSUPPORTED_STRATEGY_DTYPES:
+    if dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS:
         pytest.skip(
-            f"type {dtype} currently not supported by the strategies module"
+            f"type {dtype_cls} currently not supported by the strategies "
+            "module"
         )
-    schema = schema_cls(dtype, name="field")
+    schema = schema_cls(dtype_cls, name="field")
     schema.coerce = coerce
-    _test_datatype_with_schema(dtype, schema, data)
+    _test_datatype_with_schema(dtype_cls, schema, data)
 
 
 @pytest.mark.parametrize(
