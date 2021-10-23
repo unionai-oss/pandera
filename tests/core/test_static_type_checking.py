@@ -7,6 +7,7 @@ of calling mypy on the python modules in the tests/core/static folder.
 import os
 import re
 import subprocess
+import sys
 import typing
 from pathlib import Path
 
@@ -18,26 +19,34 @@ from tests.core.static import pandas_dataframe
 test_module_dir = Path(os.path.dirname(__file__))
 
 
-def _get_mypy_errors(stdout) -> typing.Dict[int, str]:
+def _get_mypy_errors(stdout) -> typing.Dict[int, typing.Dict[str, str]]:
     """Parse line number and error message."""
-    errors = {}
+    errors: typing.Dict[int, typing.Dict[str, typing.Any]] = {}
     # last line is summary of errors
     for error in [x for x in stdout.split("\n") if x != ""][:-1]:
         matches = re.match(
             r".+\.py:(?P<lineno>\d+): error: (?P<msg>.+)  \[(?P<errcode>.+)\]",
             error,
-        ).groupdict()
-        errors[int(matches["lineno"])] = {
-            "msg": matches["msg"],
-            "errcode": matches["errcode"],
-        }
+        )
+        if matches is not None:
+            match_dict = matches.groupdict()
+            errors[int(match_dict["lineno"])] = {
+                "msg": match_dict["msg"],
+                "errcode": match_dict["errcode"],
+            }
     return errors
 
 
 def test_mypy_pandas_dataframe(capfd) -> None:
     """Test that mypy raises expected errors on pandera-decorated functions."""
+    # pylint: disable=subprocess-run-check
     subprocess.run(
-        ["mypy", str(test_module_dir / "static" / "pandas_dataframe.py")],
+        [
+            sys.executable,
+            "-m",
+            "mypy",
+            str(test_module_dir / "static" / "pandas_dataframe.py"),
+        ],
         text=True,
     )
     errors = _get_mypy_errors(capfd.readouterr().out)
