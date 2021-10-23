@@ -104,9 +104,11 @@ def prepare_series_check_output(
         check_output = check_output | isna
     failure_cases = check_obj[~check_output]
     if not failure_cases.empty and n_failure_cases is not None:
-        # NOTE: this is a hack to support koalas, since you can't use groupby
-        # on a dataframe with another dataframe
-        if type(failure_cases).__module__.startswith("databricks.koalas"):
+        # NOTE: this is a hack to support koalas and modin, since you can't
+        # use groupby on a dataframe with another dataframe
+        if type(failure_cases).__module__.startswith(
+            "databricks.koalas"
+        ) or type(failure_cases).__module__.startswith("modin.pandas"):
             failure_cases = (
                 failure_cases.rename("failure_cases")
                 .to_frame()
