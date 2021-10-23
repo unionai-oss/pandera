@@ -211,8 +211,8 @@ class Column(SeriesSchemaBase):
 
         for column_name in column_keys_to_check:
             if self.coerce:
-                check_obj.loc[:, column_name] = self.coerce_dtype(
-                    check_obj.loc[:, column_name]
+                check_obj[column_name] = self.coerce_dtype(
+                    check_obj[column_name]
                 )
             if check_utils.is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):

@@ -28,7 +28,7 @@ else:
     HAS_HYPOTHESIS = True
 
 
-UNSUPPORTED_DTYPES: Set[Any] = set(
+UNSUPPORTED_DTYPE_CLS: Set[Any] = set(
     [
         pandas_engine.Interval,
         pandas_engine.Period,
@@ -41,7 +41,7 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         # valid hypothesis.strategies.floats <=64
         getattr(data_type, "bit_width", -1) > 64
         or is_category(data_type)
-        or data_type in UNSUPPORTED_DTYPES
+        or data_type in UNSUPPORTED_DTYPE_CLS
     ):
         continue
     SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype(data_type))
