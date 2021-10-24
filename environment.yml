@@ -24,13 +24,13 @@ dependencies:
   - koalas
   - pyspark
 
-  # dask extra
-  - dask
-  - distributed
-
   # modin extra
   - modin
   - ray
+
+  # dask extra
+  - dask
+  - distributed
 
   # testing and dependencies
   - black >= 20.8b1

@@ -45,17 +45,6 @@ PandasDtypeInputTypes = Union[
 
 TSeriesSchemaBase = TypeVar("TSeriesSchemaBase", bound="SeriesSchemaBase")
 
-try:
-    import dask.dataframe as dd
-
-    _DASK_INSTALLED = True
-    Series = Union[pd.Series, dd.Series]
-    DataFrame = Union[pd.DataFrame, dd.DataFrame]
-except ImportError:
-    _DASK_INSTALLED = False
-    Series = pd.Series  # type: ignore
-    DataFrame = pd.DataFrame  # type: ignore
-
 
 def _inferred_schema_guard(method):
     """
@@ -407,14 +396,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     def validate(
         self,
-        check_obj: DataFrame,
+        check_obj: pd.DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> DataFrame:
+    ) -> pd.DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame check_obj: the dataframe to be validated.
@@ -469,23 +458,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         4         0.80      dog
         5         0.76      dog
         """
-        if isinstance(check_obj, pd.DataFrame):
-            return self._validate(
-                check_obj=check_obj,
-                head=head,
-                tail=tail,
-                sample=sample,
-                random_state=random_state,
-                lazy=lazy,
-                inplace=inplace,
-            )
+
+        if not check_utils.is_table(check_obj):
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
         if hasattr(check_obj, "dask"):
-            if not _DASK_INSTALLED:
-                raise ImportError(
-                    "Dask must be installed to validate Dask DataFrames"
-                )
-
+            # special case for dask dataframes
             if inplace:
                 check_obj = check_obj.pandera.add_schema(self)
             else:
@@ -502,12 +480,16 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 meta=check_obj,
             )
 
-            check_obj = check_obj.pandera.add_schema(self)
+            return check_obj.pandera.add_schema(self)
 
-            return check_obj
-
-        raise TypeError(
-            f"expected either a Pandas or Dask DataFrame, got {type(check_obj)}"
+        return self._validate(
+            check_obj=check_obj,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
         )
 
     def _validate(
@@ -2128,14 +2110,14 @@ class SeriesSchema(SeriesSchemaBase):
 
     def validate(
         self,
-        check_obj: Series,
+        check_obj: pd.Series,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> Series:
+    ) -> pd.Series:
         """Validate a Series object.
 
         :param check_obj: One-dimensional ndarray with axis labels
@@ -2178,23 +2160,12 @@ class SeriesSchema(SeriesSchemaBase):
         dtype: float64
 
         """
-        if isinstance(check_obj, pd.Series):
-            return self._validate(
-                check_obj=check_obj,
-                head=head,
-                tail=tail,
-                sample=sample,
-                random_state=random_state,
-                lazy=lazy,
-                inplace=inplace,
-            )
+
+        if not check_utils.is_field(check_obj):
+            raise TypeError(f"expected pd.Series, got {type(check_obj)}")
 
         if hasattr(check_obj, "dask"):
-            if not _DASK_INSTALLED:
-                raise ImportError(
-                    "Dask must be installed to validate Dask Series"
-                )
-
+            # special case for dask series
             if inplace:
                 check_obj = check_obj.pandera.add_schema(self)
             else:
@@ -2211,12 +2182,16 @@ class SeriesSchema(SeriesSchemaBase):
                 meta=check_obj,
             )
 
-            check_obj = check_obj.pandera.add_schema(self)
+            return check_obj.pandera.add_schema(self)
 
-            return check_obj
-
-        raise TypeError(
-            f"expected either a Pandas or Dask Series, got {type(check_obj)}"
+        return self._validate(
+            check_obj=check_obj,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
         )
 
     def _validate(
