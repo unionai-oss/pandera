@@ -1,5 +1,8 @@
 """ Tests that basic Pandera functionality works for Dask objects. """
 
+import importlib
+from unittest import mock
+
 import dask.dataframe as dd
 import pandas as pd
 import pytest
@@ -16,6 +19,16 @@ class StrSchema(pa.SchemaModel):  # pylint: disable=missing-class-docstring
     col: Series[str]
 
 
+def test_dask_not_installed() -> None:
+    """Test that Pandera can be imported even if dask is not installed"""
+    with mock.patch.dict("sys.modules", {"dask": None}):
+        with pytest.raises(ImportError):
+            # pylint: disable=reimported,import-outside-toplevel,unused-import
+            import dask.dataframe
+
+        importlib.reload(pa)
+
+
 def test_model_validation() -> None:
     """
     Test that model based pandera validation works with Dask DataFrames.
@@ -27,6 +40,11 @@ def test_model_validation() -> None:
     pd.testing.assert_frame_equal(df, ddf.compute())
 
     ddf = IntSchema.validate(ddf)
+
+    with pytest.raises(pa.errors.SchemaError):
+        ddf.compute()
+
+    IntSchema.validate(ddf, inplace=True)
 
     with pytest.raises(pa.errors.SchemaError):
         ddf.compute()
@@ -51,6 +69,11 @@ def test_dataframe_schema() -> None:
     with pytest.raises(pa.errors.SchemaError):
         ddf.compute()
 
+    IntSchema.validate(ddf, inplace=True)
+
+    with pytest.raises(pa.errors.SchemaError):
+        ddf.compute()
+
 
 def test_series_schema() -> None:
     """
@@ -66,6 +89,11 @@ def test_series_schema() -> None:
     pd.testing.assert_series_equal(series, dseries.compute())
 
     dseries = integer_schema.validate(dseries)
+
+    with pytest.raises(pa.errors.SchemaError):
+        dseries.compute()
+
+    integer_schema.validate(dseries, inplace=True)
 
     with pytest.raises(pa.errors.SchemaError):
         dseries.compute()
