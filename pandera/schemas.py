@@ -2160,7 +2160,6 @@ class SeriesSchema(SeriesSchemaBase):
         dtype: float64
 
         """
-
         if not check_utils.is_field(check_obj):
             raise TypeError(f"expected pd.Series, got {type(check_obj)}")
 
@@ -2204,10 +2203,6 @@ class SeriesSchema(SeriesSchemaBase):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.Series:
-        # pylint: disable=too-many-branches
-        if not check_utils.is_field(check_obj):
-            raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
-
         if not inplace:
             check_obj = check_obj.copy()
 

@@ -1,5 +1,6 @@
 """Unit tests for pandas_accessor module."""
 from typing import Union
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -49,8 +50,20 @@ def test_dataframe_series_add_schema(
         assert validated_data_1.pandera.schema == schema1
     assert validated_data_2.pandera.schema == schema2
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=f"expected pd.{type(data).__name__}"):
         schema1(invalid_data)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=f"expected pd.{type(data).__name__}"):
         schema2(invalid_data)
+
+    with patch.object(pa.schemas.check_utils, "is_table", return_value=True):
+        with patch.object(
+            pa.schemas.check_utils,
+            "is_field",
+            return_value=True,
+        ):
+            with pytest.raises(TypeError, match="schema arg"):
+                schema1(invalid_data)
+
+            with pytest.raises(TypeError, match="schema arg"):
+                schema2(invalid_data)

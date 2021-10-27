@@ -1,14 +1,9 @@
 """Tests behavior when dask is not installed. """
-import importlib
 import sys
 from unittest import mock
 
 import pandas as pd
 import pytest
-
-import pandera
-import pandera.check_utils
-import pandera.typing
 
 
 def test_dask_not_installed() -> None:
@@ -16,16 +11,27 @@ def test_dask_not_installed() -> None:
     without dask"""
     with mock.patch.dict("sys.modules", {"dask": None}):
         with pytest.raises(ImportError):
-            # pylint: disable=reimported,import-outside-toplevel,unused-import
+            # pylint: disable=import-outside-toplevel,unused-import
             import dask.dataframe
 
+        del sys.modules["pandera"]
         del sys.modules["pandera.dask_accessor"]
-        importlib.reload(pandera)
+        # pylint: disable=import-outside-toplevel,unused-import
+        import pandera
+
         assert "pandera.dask_accessor" not in sys.modules
 
-        importlib.reload(pandera.check_utils)
+        del sys.modules["pandera"]
+        del sys.modules["pandera.check_utils"]
+        # pylint: disable=import-outside-toplevel
+        import pandera.check_utils
+
         assert not pandera.check_utils.is_table(pd.Series([1]))
 
-        importlib.reload(pandera.typing)
+        del sys.modules["pandera"]
+        del sys.modules["pandera.typing"]
+        # pylint: disable=import-outside-toplevel
+        import pandera.typing
+
         annotation = pandera.typing.DataFrame[int]
         assert pandera.typing.AnnotationInfo(annotation).is_generic_df
