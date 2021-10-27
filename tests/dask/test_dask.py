@@ -1,7 +1,5 @@
 """ Tests that basic Pandera functionality works for Dask objects. """
 
-import importlib
-from unittest import mock
 
 import dask.dataframe as dd
 import pandas as pd
@@ -17,16 +15,6 @@ class IntSchema(pa.SchemaModel):  # pylint: disable=missing-class-docstring
 
 class StrSchema(pa.SchemaModel):  # pylint: disable=missing-class-docstring
     col: Series[str]
-
-
-def test_dask_not_installed() -> None:
-    """Test that Pandera can be imported even if dask is not installed"""
-    with mock.patch.dict("sys.modules", {"dask": None}):
-        with pytest.raises(ImportError):
-            # pylint: disable=reimported,import-outside-toplevel,unused-import
-            import dask.dataframe
-
-        importlib.reload(pa)
 
 
 def test_model_validation() -> None:
