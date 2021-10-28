@@ -27,6 +27,8 @@ dependencies:
   # modin extra
   - modin
   - ray
+
+  # dask extra
   - dask
   - distributed
 

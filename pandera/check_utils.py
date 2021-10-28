@@ -8,10 +8,10 @@ import pandas as pd
 SupportedTypes = NamedTuple(
     "SupportedTypes",
     (
-        ("table_types", Tuple[type]),
-        ("field_types", Tuple[type]),
-        ("index_types", Tuple[type]),
-        ("multiindex_types", Tuple[type]),
+        ("table_types", Tuple[type, ...]),
+        ("field_types", Tuple[type, ...]),
+        ("index_types", Tuple[type, ...]),
+        ("multiindex_types", Tuple[type, ...]),
     ),
 )
 
@@ -40,6 +40,14 @@ def _supported_types():
         field_types.append(mpd.Series)
         index_types.append(mpd.Index)
         multiindex_types.append(mpd.MultiIndex)
+    except ImportError:
+        pass
+    try:
+        import dask.dataframe as dd
+
+        table_types.append(dd.DataFrame)
+        field_types.append(dd.Series)
+        index_types.append(dd.Index)
     except ImportError:
         pass
 
