@@ -404,7 +404,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame check_obj: the dataframe to be validated.
@@ -459,6 +458,51 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         4         0.80      dog
         5         0.76      dog
         """
+
+        if not check_utils.is_table(check_obj):
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
+
+        if hasattr(check_obj, "dask"):
+            # special case for dask dataframes
+            if inplace:
+                check_obj = check_obj.pandera.add_schema(self)
+            else:
+                check_obj = check_obj.copy()
+
+            check_obj = check_obj.map_partitions(
+                self._validate,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+                meta=check_obj,
+            )
+
+            return check_obj.pandera.add_schema(self)
+
+        return self._validate(
+            check_obj=check_obj,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
+        )
+
+    def _validate(
+        self,
+        check_obj: pd.DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> pd.DataFrame:
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
 
         if self._is_inferred:
             warnings.warn(
@@ -2074,7 +2118,6 @@ class SeriesSchema(SeriesSchemaBase):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.Series:
-        # pylint: disable=too-many-branches
         """Validate a Series object.
 
         :param check_obj: One-dimensional ndarray with axis labels
@@ -2118,8 +2161,48 @@ class SeriesSchema(SeriesSchemaBase):
 
         """
         if not check_utils.is_field(check_obj):
-            raise TypeError(f"expected {pd.Series}, got {type(check_obj)}")
+            raise TypeError(f"expected pd.Series, got {type(check_obj)}")
 
+        if hasattr(check_obj, "dask"):
+            # special case for dask series
+            if inplace:
+                check_obj = check_obj.pandera.add_schema(self)
+            else:
+                check_obj = check_obj.copy()
+
+            check_obj = check_obj.map_partitions(
+                self._validate,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+                meta=check_obj,
+            )
+
+            return check_obj.pandera.add_schema(self)
+
+        return self._validate(
+            check_obj=check_obj,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
+        )
+
+    def _validate(
+        self,
+        check_obj: pd.Series,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> pd.Series:
         if not inplace:
             check_obj = check_obj.copy()
 

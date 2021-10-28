@@ -124,6 +124,13 @@ jobs:
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
+      - name: Unit Tests - Dask
+        run: >
+          nox
+          -db virtualenv -r -v
+          --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='dask', pandas='${{ matrix.pandas-version }}')"
+
       - name: Unit Tests - Hypotheses
         run: >
           nox
