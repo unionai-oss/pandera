@@ -15,6 +15,7 @@ _extras_require = {
     "modin": ["modin", "ray", "dask"],
     "modin-ray": ["modin", "ray"],
     "modin-dask": ["modin", "dask"],
+    "dask": ["dask"],
 }
 extras_require = {
     **_extras_require,

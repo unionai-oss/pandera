@@ -1,7 +1,7 @@
-"""Unit tests for pandas_accessor module."""
+"""Unit tests for dask_accessor module."""
 from typing import Union
-from unittest.mock import patch
 
+import dask.dataframe as dd
 import pandas as pd
 import pytest
 
@@ -14,14 +14,14 @@ import pandera as pa
         [
             pa.DataFrameSchema({"col": pa.Column(int)}, coerce=True),
             pa.DataFrameSchema({"col": pa.Column(float)}, coerce=True),
-            pd.DataFrame({"col": [1, 2, 3]}),
-            pd.Series([1, 2, 3]),
+            dd.from_pandas(pd.DataFrame({"col": [1, 2, 3]}), npartitions=1),
+            dd.from_pandas(pd.Series([1, 2, 3]), npartitions=1),
         ],
         [
             pa.SeriesSchema(int, coerce=True),
             pa.SeriesSchema(float, coerce=True),
-            pd.Series([1, 2, 3]),
-            pd.DataFrame({"col": [1, 2, 3]}),
+            dd.from_pandas(pd.Series([1, 2, 3]), npartitions=1),
+            dd.from_pandas(pd.DataFrame({"col": [1, 2, 3]}), npartitions=1),
         ],
     ],
 )
@@ -50,20 +50,8 @@ def test_dataframe_series_add_schema(
         assert validated_data_1.pandera.schema == schema1
     assert validated_data_2.pandera.schema == schema2
 
-    with pytest.raises(TypeError, match=f"expected pd.{type(data).__name__}"):
+    with pytest.raises(TypeError):
         schema1(invalid_data)
 
-    with pytest.raises(TypeError, match=f"expected pd.{type(data).__name__}"):
+    with pytest.raises(TypeError):
         schema2(invalid_data)
-
-    with patch.object(pa.schemas.check_utils, "is_table", return_value=True):
-        with patch.object(
-            pa.schemas.check_utils,
-            "is_field",
-            return_value=True,
-        ):
-            with pytest.raises(TypeError, match="schema arg"):
-                schema1(invalid_data)
-
-            with pytest.raises(TypeError, match="schema arg"):
-                schema2(invalid_data)
