@@ -540,7 +540,7 @@ def check_types(
             schema
             and not (optional and arg_value is None)
             # the pandera.schema attribute should only be available when
-            # scheam.validate has been called in the DF. There's probably
+            # schema.validate has been called in the DF. There's probably
             # a better way of doing this
             and (
                 arg_value.pandera.schema is None
