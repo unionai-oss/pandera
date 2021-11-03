@@ -33,7 +33,7 @@ class CachedAccessor:
         self._accessor = accessor
 
     def __get__(self, obj, cls):
-        if obj is None:
+        if obj is None:  # pragma: no cover
             return self._accessor
         accessor_obj = self._accessor(obj)
         object.__setattr__(obj, self._name, accessor_obj)

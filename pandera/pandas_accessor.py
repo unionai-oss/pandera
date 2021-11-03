@@ -1,12 +1,14 @@
 """Register pandas accessor for pandera schema metadata."""
 
-from typing import Optional, Union
+from typing import Optional, TypeVar, Union
 
 import pandas as pd
 
 from . import schemas
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
+
+T = TypeVar("T")
 
 
 class PanderaAccessor:
@@ -32,14 +34,6 @@ class PanderaAccessor:
     def schema(self) -> Optional[Schemas]:
         """Access schema metadata."""
         return self._schema
-
-    def validate(self, **kwargs):
-        """A utility to validate a dataframe.
-
-        Forwards **kwargs to the schema.validate method.
-        """
-        # pylint: disable=not-callable
-        return self.schema(self._pandas_obj, **kwargs)
 
 
 @pd.api.extensions.register_dataframe_accessor("pandera")

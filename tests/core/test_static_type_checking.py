@@ -51,7 +51,7 @@ def test_mypy_pandas_dataframe(capfd) -> None:
     )
     errors = _get_mypy_errors(capfd.readouterr().out)
     # assert error messages on particular lines of code
-    assert errors[37] == {
+    assert errors[40] == {
         "msg": (
             'Argument 1 to "pipe" of "NDFrame" has incompatible type '
             '"Type[DataFrame[Any]]"; expected '
@@ -60,7 +60,7 @@ def test_mypy_pandas_dataframe(capfd) -> None:
         ),
         "errcode": "arg-type",
     }
-    assert errors[41] == {
+    assert errors[44] == {
         "msg": (
             "Incompatible return value type (got "
             '"pandas.core.frame.DataFrame", expected '
@@ -68,7 +68,7 @@ def test_mypy_pandas_dataframe(capfd) -> None:
         ),
         "errcode": "return-value",
     }
-    assert errors[45] == {
+    assert errors[48] == {
         "msg": (
             'Argument 1 to "fn" has incompatible type '
             '"pandas.core.frame.DataFrame"; expected '
@@ -76,7 +76,7 @@ def test_mypy_pandas_dataframe(capfd) -> None:
         ),
         "errcode": "arg-type",
     }
-    assert errors[46] == {
+    assert errors[49] == {
         "msg": (
             'Argument 1 to "fn" has incompatible type '
             '"DataFrame[AnotherSchema]"; expected "DataFrame[Schema]"'

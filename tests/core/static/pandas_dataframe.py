@@ -1,8 +1,11 @@
+# pylint: skip-file
 """Unit tests for static type checking of dataframes.
 
 This test module uses https://github.com/davidfritzsche/pytest-mypy-testing to
 run statically check the functions marked pytest.mark.mypy_testing
 """
+
+from typing import cast
 
 import pandas as pd
 
@@ -54,3 +57,7 @@ def fn_mutate_inplace(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
 
 def fn_assign_and_get_index(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
     return df.assign(foo=30).iloc[:3]  # okay for mypy, pandera raises error
+
+
+def fn_cast_dataframe(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
+    return cast(DataFrame[SchemaOut], df)  # okay for mypy
