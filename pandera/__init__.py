@@ -67,3 +67,19 @@ try:
     from . import dask_accessor
 except ImportError:
     pass
+
+
+try:
+    import databricks.koalas
+
+    from . import koalas_accessor
+except ImportError:
+    pass
+
+
+try:
+    import modin.pandas
+
+    from . import modin_accessor
+except ImportError:
+    pass
