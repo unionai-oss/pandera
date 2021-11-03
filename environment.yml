@@ -27,7 +27,7 @@ dependencies:
 
   # modin extra
   - modin
-  - ray
+  - ray <= 1.7.0
 
   # dask extra
   - dask
