@@ -12,11 +12,11 @@ _extras_require = {
     "hypotheses": ["scipy"],
     "io": ["pyyaml >= 5.1", "black", "frictionless"],
     "koalas": ["koalas", "pyspark"],
-    "modin": ["modin", "ray", "dask"],
-    "modin-ray": ["modin", "ray"],
+    "modin": ["modin", "ray <= 1.7.0", "dask"],
+    "modin-ray": ["modin", "ray <= 1.7.0"],
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
-}
+    }
 extras_require = {
     **_extras_require,
     "all": list(set(x for y in _extras_require.values() for x in y)),
@@ -45,6 +45,7 @@ setup(
         "packaging >= 20.0",
         "numpy >= 1.9.0",
         "pandas >= 1.0",
+        "pandas-stubs",
         "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
         "typing_inspect >= 0.6.0",
         "wrapt",
