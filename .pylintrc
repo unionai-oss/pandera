@@ -1,5 +1,6 @@
 [BASIC]
 good-names=
+    T,
     F,
     logger,
     df,
