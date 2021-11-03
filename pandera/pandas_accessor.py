@@ -1,14 +1,12 @@
 """Register pandas accessor for pandera schema metadata."""
 
-from typing import Optional, TypeVar, Union
+from typing import Optional, Union
 
 import pandas as pd
 
 from . import schemas
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
-
-T = TypeVar("T")
 
 
 class PanderaAccessor:
