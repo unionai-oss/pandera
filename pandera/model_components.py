@@ -188,9 +188,16 @@ def Field(
     The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
     to the built-in `~pandera.checks.Check` methods.
 
-    :param nullable: whether or not the column/index is nullable.
-    :param unique: whether column values should be unique
-    :param allow_duplicates: whether or not to accept duplicate values.
+    :param nullable: Whether or not the column/index can contain null values.
+    :param unique: Whether column values should be unique.
+    :param allow_duplicates: Whether or not column can contain duplicate
+        values.
+
+        .. warning::
+
+            This option will be deprecated in 0.8.0. Use the ``unique``
+            argument instead.
+
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
     :param ignore_na: whether or not to ignore null values in the checks.
