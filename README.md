@@ -163,7 +163,25 @@ on GitHub.
 Go [here](https://github.com/pandera-dev/pandera/issues) to submit feature
 requests or bugfixes.
 
-## Other Data Validation Libraries
+## Why `pandera`?
+
+- [dataframe-centric data types](https://pandera.readthedocs.io/en/stable/dtypes.html),
+  [column nullability](https://pandera.readthedocs.io/en/stable/dataframe_schemas.html#null-values-in-columns),
+  and [uniqueness](https://pandera.readthedocs.io/en/stable/dataframe_schemas.html#validating-the-joint-uniqueness-of-columns)
+  are first-class concepts.
+- Define [schema models](https://pandera.readthedocs.io/en/stable/schema_models.html) with the class-based API with
+  [pydantic](https://pydantic-docs.helpmanual.io/)-style syntax and validate dataframes using the typing syntax.
+- `check_input` and `check_output` [decorators](https://pandera.readthedocs.io/en/stable/decorators.html#decorators-for-pipeline-integration)
+  enable seamless integration with existing code.
+- [`Check`s](https://pandera.readthedocs.io/en/stable/checks.html) provide flexibility and performance by providing access to `pandas`
+  API by design and offers built-in checks for common data tests.
+- [`Hypothesis`](https://pandera.readthedocs.io/en/stable/hypothesis.html) class provides a tidy-first interface for statistical hypothesis
+  testing.
+- `Check`s and `Hypothesis` objects support both [tidy and wide data validation](https://pandera.readthedocs.io/en/stable/checks.html#wide-checks).
+- Use schemas as generative contracts to [synthesize data](https://pandera.readthedocs.io/en/stable/data_synthesis_strategies.html) for unit testing.
+- [Schema inference](https://pandera.readthedocs.io/en/stable/schema_inference.html) allows you to bootstrap schemas from data.
+
+## Alternative Data Validation Libraries
 
 Here are a few other alternatives for validating Python data structures.
 
@@ -178,23 +196,14 @@ Here are a few other alternatives for validating Python data structures.
 - [PandasSchema](https://github.com/TMiguelT/PandasSchema)
 - [pandas-validator](https://github.com/c-data/pandas-validator)
 - [table_enforcer](https://github.com/xguse/table_enforcer)
+- [dataenforce](https://github.com/CedricFR/dataenforce)
+- [strictly typed pandas](https://github.com/nanne-aben/strictly_typed_pandas)
+- [marshmallow-dataframe](https://github.com/facultyai/marshmallow-dataframe)
 
 **Other tools for data validation**
 
 - [great_expectations](https://github.com/great-expectations/great_expectations)
-
-## Why `pandera`?
-
-- `pandas`-centric data types, column nullability, and uniqueness are
-  first-class concepts.
-- `check_input` and `check_output` decorators enable seamless integration with
-  existing code.
-- `Check`s provide flexibility and performance by providing access to `pandas`
-  API by design and offers built-in checks for common data tests.
-- `Hypothesis` class provides a tidy-first interface for statistical hypothesis
-  testing.
-- `Check`s and `Hypothesis` objects support both tidy and wide data validation.
-- Comprehensive documentation on key functionality.
+- [frictionless schema](https://framework.frictionlessdata.io/docs/guides/framework/schema-guide/)
 
 ## How to Cite
 
