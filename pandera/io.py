@@ -57,10 +57,7 @@ def _serialize_check_stats(check_stats, dtype=None):
         return stat
 
     # for unary checks, return a single value instead of a dictionary
-    if len(check_stats) == 1 and not list(check_stats.keys())[0] in [
-        "max_value",
-        "min_value",
-    ]:
+    if len(check_stats) == 1:
         return handle_stat_dtype(list(check_stats.values())[0])
 
     # otherwise return a dictionary of keyword args needed to create the Check

@@ -800,7 +800,9 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_length: 3
+      str_length:
+        min_value: 3
+        max_value: null
     unique: false
     coerce: true
     required: true
@@ -809,7 +811,9 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_length: 3
+      str_length:
+        min_value: null
+        max_value: 3
     unique: false
     coerce: true
     required: true
