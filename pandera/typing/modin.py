@@ -31,14 +31,14 @@ if MODIN_INSTALLED:
         *new in 0.8.0*
         """
 
-    # pylint:disable=too-few-public-methods
+    # pylint:disable=too-few-public-methods,abstract-method
     class Series(SeriesBase, mpd.Series, Generic[GenericDtype]):
         """Representation of pandas.Series, only used for type annotation.
 
         *new in 0.8.0*
         """
 
-    # pylint:disable=too-few-public-methods
+    # pylint:disable=too-few-public-methods,abstract-method
     class Index(IndexBase, mpd.Index, Generic[GenericDtype]):
         """Representation of pandas.Index, only used for type annotation.
 

@@ -23,7 +23,7 @@ else:
 
 if DASK_INSTALLED:
 
-    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-few-public-methods,abstract-method
     class DataFrame(DataFrameBase, dd.DataFrame, Generic[T]):
         """
         Representation of dask.dataframe.DataFrame, only used for type
