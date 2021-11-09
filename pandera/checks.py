@@ -51,9 +51,7 @@ def register_check_statistics(statistics_args):
             args_dict = {**dict(zip(arg_names, args)), **kwargs}
             check = class_method(cls, *args, **kwargs)
             check.statistics = {
-                stat: args_dict.get(stat)
-                for stat in statistics_args
-                if args_dict.get(stat) is not None or check.name != 'in_range'
+                stat: args_dict.get(stat) for stat in statistics_args
             }
             check.statistics_args = statistics_args
             return check
