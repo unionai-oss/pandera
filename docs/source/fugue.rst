@@ -1,9 +1,9 @@
 .. currentmodule:: pandera
 
-.. _scaling:
+.. _scaling_fugue:
 
-Scaling Pandera to Big Data
-=================================
+Data Validation with Fugue
+==========================
 
 Validation on big data comes in two forms. The first is performing one set of
 validations on data that doesn't fit in memory. The second happens when a large dataset
@@ -17,8 +17,8 @@ code can be used on top of ``Spark`` or ``Dask`` engines with
 to be performed in a distributed setting. ``Fugue`` is an open source abstraction layer that
 ports ``Python``, ``pandas``, and ``SQL`` code to ``Spark`` and ``Dask``.
 
-Fugue
------
+What is Fugue?
+--------------
 
 ``Fugue`` serves as an interface to distributed computing. Because of its non-invasive design,
 existing ``Python`` code can be scaled to a distributed setting without significant changes.
@@ -40,17 +40,22 @@ In this example, a pandas ``DataFrame`` is created with ``state``, ``city`` and 
 columns. ``Pandera`` will be used to validate that the ``price`` column values are within
 a certain range.
 
-.. testcode:: scaling_pandera
+.. testcode:: scaling_fugue
 
     import pandas as pd
 
-    data = pd.DataFrame({'state': ['FL','FL','FL','CA','CA','CA'],
-                        'city': ['Orlando', 'Miami', 'Tampa',
-                                'San Francisco', 'Los Angeles', 'San Diego'],
-                        'price': [8, 12, 10, 16, 20, 18]})
+    data = pd.DataFrame(
+        {
+            'state': ['FL','FL','FL','CA','CA','CA'],
+            'city': [
+                'Orlando', 'Miami', 'Tampa', 'San Francisco', 'Los Angeles', 'San Diego'
+            ],
+            'price': [8, 12, 10, 16, 20, 18],
+        }
+    )
     print(data)
 
-.. testoutput:: scaling_pandera
+.. testoutput:: scaling_fugue
 
       state           city  price
     0    FL        Orlando      8
@@ -64,7 +69,7 @@ a certain range.
 Validation is then applied using pandera. A ``price_validation`` function is
 created that runs the validation. None of this will be new.
 
-.. testcode:: scaling_pandera
+.. testcode:: scaling_fugue
 
     from pandera import Column, DataFrameSchema, Check
 
@@ -85,7 +90,7 @@ to run the code on top of ``Spark``. ``Fugue`` also has a ``DaskExecutionEngine`
 the default pandas-based ``ExecutionEngine``. Because the ``SparkExecutionEngine`` is used, the result
 becomes a ``Spark DataFrame``.
 
-.. testcode:: scaling_pandera
+.. testcode:: scaling_fugue
     :skipif: SKIP_SCALING
 
     from fugue import transform
@@ -94,7 +99,7 @@ becomes a ``Spark DataFrame``.
     spark_df = transform(data, price_validation, schema="*", engine=SparkExecutionEngine)
     spark_df.show()
 
-.. testoutput:: scaling_pandera
+.. testoutput:: scaling_fugue
     :skipif: SKIP_SCALING
 
     +-----+-------------+-----+
@@ -118,7 +123,7 @@ price range for the records with ``state`` FL is lower than the range for the ``
 Two :class:`~pandera.schemas.DataFrameSchema` will be created to reflect this. Notice their ranges
 for the :class:`~pandera.checks.Check` differ.
 
-.. testcode:: scaling_pandera
+.. testcode:: scaling_fugue
 
     price_check_FL = DataFrameSchema({
         "price": Column(int, Check.in_range(min_value=7,max_value=13)),
@@ -139,7 +144,7 @@ To partition our data by ``state``, all we need to do is pass it into the ``tran
 through the ``partition`` argument. This splits up the data across different workers before they
 each run the ``price_validation`` function. Again, this is like a groupby-validation.
 
-.. testcode:: scaling_pandera
+.. testcode:: scaling_fugue
     :skipif: SKIP_SCALING
 
     def price_validation(df:pd.DataFrame) -> pd.DataFrame:
@@ -156,7 +161,7 @@ each run the ``price_validation`` function. Again, this is like a groupby-valida
 
     spark_df.show()
 
-.. testoutput:: scaling_pandera
+.. testoutput:: scaling_fugue
     :skipif: SKIP_SCALING
 
     SparkDataFrame

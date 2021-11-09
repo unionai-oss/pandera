@@ -51,7 +51,7 @@ def test_mypy_pandas_dataframe(capfd) -> None:
     )
     errors = _get_mypy_errors(capfd.readouterr().out)
     # assert error messages on particular lines of code
-    assert errors[40] == {
+    assert errors[35] == {
         "msg": (
             'Argument 1 to "pipe" of "NDFrame" has incompatible type '
             '"Type[DataFrame[Any]]"; expected '
@@ -60,23 +60,23 @@ def test_mypy_pandas_dataframe(capfd) -> None:
         ),
         "errcode": "arg-type",
     }
-    assert errors[44] == {
+    assert errors[41] == {
         "msg": (
             "Incompatible return value type (got "
             '"pandas.core.frame.DataFrame", expected '
-            '"pandera.typing.DataFrame[SchemaOut]")'
+            '"pandera.typing.pandas.DataFrame[SchemaOut]")'
         ),
         "errcode": "return-value",
     }
-    assert errors[48] == {
+    assert errors[54] == {
         "msg": (
             'Argument 1 to "fn" has incompatible type '
             '"pandas.core.frame.DataFrame"; expected '
-            '"pandera.typing.DataFrame[Schema]"'
+            '"pandera.typing.pandas.DataFrame[Schema]"'
         ),
         "errcode": "arg-type",
     }
-    assert errors[49] == {
+    assert errors[58] == {
         "msg": (
             'Argument 1 to "fn" has incompatible type '
             '"DataFrame[AnotherSchema]"; expected "DataFrame[Schema]"'
@@ -90,6 +90,7 @@ def test_mypy_pandas_dataframe(capfd) -> None:
     [
         pandas_dataframe.fn_mutate_inplace,
         pandas_dataframe.fn_assign_and_get_index,
+        pandas_dataframe.fn_cast_dataframe_invalid,
     ],
 )
 def test_pandera_runtime_errors(fn) -> None:
@@ -97,6 +98,6 @@ def test_pandera_runtime_errors(fn) -> None:
 
     # both functions don't add a required column "age"
     try:
-        pa.check_types(fn)(pandas_dataframe.valid_df)
+        fn(pandas_dataframe.schema_df)
     except pa.errors.SchemaError as e:
         assert e.failure_cases["failure_case"].item() == "age"

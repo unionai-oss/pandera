@@ -3,7 +3,7 @@
 
 <hr>
 
-*A data validation library for scientists, engineers, and analysts seeking
+*A dataframe validation library for scientists, engineers, and analysts seeking
 correctness.*
 
 <br>
@@ -22,10 +22,18 @@ correctness.*
 [![Downloads](https://pepy.tech/badge/pandera/month)](https://pepy.tech/project/pandera)
 [![Downloads](https://pepy.tech/badge/pandera)](https://pepy.tech/project/pandera)
 
-`pandas` data structures contain information that `pandera` explicitly
-validates at runtime. This is useful in production-critical or reproducible
-research settings. With `pandera`, you can:
+`pandera` provides a flexible and expressive API for performing data
+validation on dataframes to make data processing pipelines more readable and
+robust.
 
+Dataframes contain information that `pandera` explicitly validates at runtime.
+This is useful in production-critical or reproducible research settings. With
+`pandera`, you can:
+
+1. Define a schema once and use it to validate
+   [different dataframe types](https://pandera.readthedocs.io/en/stable/supported_libraries.html)
+   including [pandas](http://pandas.pydata.org), [dask](https://dask.org),
+   [modin](https://modin.readthedocs.io/), and [koalas](https://koalas.readthedocs.io).
 1. [Check](https://pandera.readthedocs.io/en/stable/checks.html) the types and
    properties of columns in a `DataFrame` or values in a `Series`.
 1. Perform more complex statistical validation like
@@ -37,11 +45,11 @@ research settings. With `pandera`, you can:
    with pydantic-style syntax and validate dataframes using the typing syntax.
 1. [Synthesize data](https://pandera.readthedocs.io/en/stable/data_synthesis_strategies.html#data-synthesis-strategies)
    from schema objects for property-based testing with pandas data structures.
-
-`pandera` provides a flexible and expressive API for performing data validation
-on tidy (long-form) and wide data to make data processing pipelines more
-readable and robust.
-
+1. [Lazily Validate](https://pandera.readthedocs.io/en/stable/lazy_validation.html)
+   dataframes so that all validation checks are executed before raising an error.
+1. [Integrate](https://pandera.readthedocs.io/en/stable/integrations.html) with
+   a rich ecosystem of python tools like [pydantic](https://pydantic-docs.helpmanual.io)
+   and [mypy](http://mypy-lang.org/).
 
 ## Documentation
 

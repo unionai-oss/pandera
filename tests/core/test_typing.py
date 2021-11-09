@@ -9,7 +9,7 @@ import pytest
 
 import pandera as pa
 from pandera.dtypes import DataType
-from pandera.typing import Series
+from pandera.typing import DataFrame, Index, Series
 
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
@@ -456,3 +456,33 @@ def test_new_pandas_extension_dtype_class(
 ):
     """Test type annotations with the new nullable pandas dtypes."""
     _test_default_annotated_dtype(model, dtype, has_mandatory_args)
+
+
+class InitSchema(pa.SchemaModel):
+    col1: Series[int]
+    col2: Series[float]
+    col3: Series[str]
+    index: Index[int]
+
+
+def test_init_pandas_dataframe():
+    """Test initialization of pandas.typing.DataFrame with Schema."""
+    assert isinstance(
+        DataFrame[InitSchema]({"col1": [1], "col2": [1.0], "col3": ["1"]}),
+        DataFrame,
+    )
+
+
+@pytest.mark.parametrize(
+    "invalid_data",
+    [
+        {"col1": [1.0], "col2": [1.0], "col3": ["1"]},
+        {"col1": [1], "col2": [1], "col3": ["1"]},
+        {"col1": [1], "col2": [1.0], "col3": [1]},
+        {"col1": [1]},
+    ],
+)
+def test_init_pandas_dataframe_errors(invalid_data):
+    """Test errors from initializing a pandas.typing.DataFrame with Schema."""
+    with pytest.raises(pa.errors.SchemaError):
+        DataFrame[InitSchema](invalid_data)
