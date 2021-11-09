@@ -25,6 +25,7 @@ below we'll use the :ref:`class-based API <schema_models>` to define a
 :py:class:`SchemaModel` for validation.
 
 .. testcode:: scaling_modin
+    :skipif: SKIP_MODIN
 
     import modin.pandas as pd
     import pandas as pd
@@ -58,6 +59,7 @@ below we'll use the :ref:`class-based API <schema_models>` to define a
 
 
 .. testoutput:: scaling_modin
+    :skipif: SKIP_MODIN
 
       state           city  price
     0    FL        Orlando      8
@@ -73,6 +75,7 @@ modin dataframes at runtime:
 
 
 .. testcode:: scaling_modin
+    :skipif: SKIP_MODIN
 
     @pa.check_types
     def function(df: DataFrame[Schema]) -> DataFrame[Schema]:
@@ -82,6 +85,7 @@ modin dataframes at runtime:
 
 
 .. testoutput:: scaling_modin
+    :skipif: SKIP_MODIN
 
       state           city  price
     3    CA  San Francisco     16
@@ -93,6 +97,7 @@ And of course, you can use the object-based API to validate dask dataframes:
 
 
 .. testcode:: scaling_modin
+    :skipif: SKIP_MODIN
 
     schema = pa.DataFrameSchema({
         "state": pa.Column(str),
@@ -103,6 +108,7 @@ And of course, you can use the object-based API to validate dask dataframes:
 
 
 .. testoutput:: scaling_modin
+    :skipif: SKIP_MODIN
 
       state           city  price
     0    FL        Orlando      8

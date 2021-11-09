@@ -50,6 +50,7 @@ extensions = [
 ]
 
 doctest_global_setup = """
+import platform
 import sys
 import pandas as pd
 import numpy as np
@@ -76,6 +77,8 @@ PY36 = sys.version_info < (3, 7)
 SKIP_PANDAS_LT_V1 = version.parse(pd.__version__).release < (1, 0) or PY36
 SKIP_SCALING = True
 SKIP_SCHEMA_MODEL = SKIP_PANDAS_LT_V1 or KOALAS_INSTALLED
+SKIP_MODIN = platform.system() == "Windows"
+
 """
 
 doctest_default_flags = (

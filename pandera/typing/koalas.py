@@ -22,7 +22,7 @@ else:
 
 if KOALAS_INSTALLED:
 
-    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-few-public-methods,arguments-renamed
     class DataFrame(DataFrameBase, ks.DataFrame, Generic[T]):
         """
         Representation of dask.dataframe.DataFrame, only used for type
@@ -35,7 +35,7 @@ if KOALAS_INSTALLED:
             """Define this to override's koalas generic type."""
             return _GenericAlias(cls, item)
 
-    # pylint:disable=too-few-public-methods
+    # pylint:disable=too-few-public-methods,arguments-renamed
     class Series(SeriesBase, ks.Series, Generic[GenericDtype]):
         """Representation of pandas.Series, only used for type annotation.
 
