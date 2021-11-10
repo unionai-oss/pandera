@@ -126,6 +126,8 @@ columns:
       in_range:
         min_value: 0
         max_value: 10
+        include_min: null
+        include_max: null
     unique: false
     coerce: false
     required: true
@@ -139,6 +141,8 @@ columns:
       in_range:
         min_value: -10
         max_value: 20
+        include_min: null
+        include_max: null
     unique: false
     coerce: false
     required: true
@@ -763,6 +767,8 @@ columns:
       in_range:
         min_value: 10
         max_value: 99
+        include_min: null
+        include_max: null
     unique: true
     coerce: true
     required: true
@@ -800,7 +806,9 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_length: 3
+      str_length:
+        min_value: 3
+        max_value: null
     unique: false
     coerce: true
     required: true
@@ -809,7 +817,9 @@ columns:
     dtype: {STR_DTYPE}
     nullable: true
     checks:
-      str_length: 3
+      str_length:
+        min_value: null
+        max_value: 3
     unique: false
     coerce: true
     required: true
