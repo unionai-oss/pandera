@@ -252,7 +252,6 @@ def _deserialize_schema(serialized_schema):
         index = MultiIndex(
             indexes=[Index(**index_properties) for index_properties in index]
         )
-
     return DataFrameSchema(
         columns=columns,
         checks=checks,

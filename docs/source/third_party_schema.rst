@@ -4,8 +4,8 @@
 
 .. _third_party_schema:
 
-Reading Third-Party Schema (new)
-================================
+Reading Third-Party Schema
+
 
 *new in 0.7.0*
 

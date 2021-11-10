@@ -107,6 +107,52 @@ In the example above, this will simply be the string `"year"`.
     2  2003  365
 
 
+Validate on Initialization
+--------------------------
+
+*new in 0.8.0*
+
+Pandera provides an interface for validating dataframes on initialization.
+This API uses the :py:class:`pandera.typing.pandas.DataFrame` generic type
+to validated against the :py:class:`~pandera.model.SchemaModel` type variable
+on initialization:
+
+.. testcode:: validate_on_init
+
+    import pandas as pd
+    import pandera as pa
+
+    from pandera.typing import DataFrame, Series
+
+
+    class Schema(pa.SchemaModel):
+        state: Series[str]
+        city: Series[str]
+        price: Series[int] = pa.Field(in_range={"min_value": 5, "max_value": 20})
+
+    df = DataFrame[Schema](
+        {
+            'state': ['NY','FL','GA','CA'],
+            'city': ['New York', 'Miami', 'Atlanta', 'San Francisco'],
+            'price': [8, 12, 10, 16],
+        }
+    )
+    print(df)
+
+
+.. testoutput:: validate_on_init
+
+      state           city  price
+    0    NY       New York      8
+    1    FL          Miami     12
+    2    GA        Atlanta     10
+    3    CA  San Francisco     16
+
+
+Refer to :ref:`supported-dataframe-libraries` to see how this syntax applies
+to other supported dataframe types.
+
+
 Converting to DataFrameSchema
 -----------------------------
 
@@ -134,11 +180,27 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
         ordered=False
     )>
 
-Or use the :meth:`~pandera.model.SchemaModel.validate` method to validate dataframes:
+You can also use the :meth:`~pandera.model.SchemaModel.validate` method to
+validate dataframes:
 
 .. testcode:: dataframe_schema_model
 
     print(InputSchema.validate(df))
+
+.. testoutput:: dataframe_schema_model
+
+       year  month  day
+    0  2001      3  200
+    1  2002      6  156
+    2  2003     12  365
+
+Or you can use the :meth:`~pandera.model.SchemaModel` class directly to
+validate dataframes, which is syntactic sugar that simply delegates to the
+:meth:`~pandera.model.SchemaModel.validate` method.
+
+.. testcode:: dataframe_schema_model
+
+    print(InputSchema(df))
 
 .. testoutput:: dataframe_schema_model
 

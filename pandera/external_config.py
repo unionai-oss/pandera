@@ -9,9 +9,13 @@ try:
     # Series and DataFrames to support type hinting:
     # https://koalas.readthedocs.io/en/latest/user_guide/typehints.html#type-hinting-with-names
     # pylint: disable=unused-import
-    import databricks.koalas as ks
-
     if os.getenv("SPARK_LOCAL_IP") is None:
         os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
+    if os.getenv("PYARROW_IGNORE_TIMEZONE") is None:
+        # This can be overriden by the user
+        os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+
+    import databricks.koalas as ks
 except ImportError:
-    pass
+    os.environ.pop("SPARK_LOCAL_IP")
+    os.environ.pop("PYARROW_IGNORE_TIMEZONE")

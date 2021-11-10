@@ -12,8 +12,11 @@ import pandera.extensions as pax
 from pandera.typing import DataFrame, Index, Series, String
 
 
-def test_to_schema() -> None:
-    """Test that SchemaModel.to_schema() can produce the correct schema."""
+def test_to_schema_and_validate() -> None:
+    """
+    Test that SchemaModel.to_schema() can produce the correct schema and
+    can validate dataframe objects.
+    """
 
     class Schema(pa.SchemaModel):
         a: Series[int]
@@ -27,8 +30,9 @@ def test_to_schema() -> None:
     )
     assert expected == Schema.to_schema()
 
-    with pytest.raises(TypeError):
-        Schema()
+    Schema(pd.DataFrame({"a": [1], "b": ["foo"], "c": [3.4]}, index=["1"]))
+    with pytest.raises(pa.errors.SchemaError):
+        Schema(pd.DataFrame({"a": [1]}))
 
 
 def test_empty_schema() -> None:
