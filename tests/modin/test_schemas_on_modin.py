@@ -11,6 +11,7 @@ import pytest
 import pandera as pa
 from pandera import extensions
 from pandera.engines import numpy_engine, pandas_engine
+from pandera.typing.modin import DataFrame, Index, Series
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
     SUPPORTED_DTYPES as SUPPORTED_STRATEGY_DTYPES,
@@ -338,9 +339,9 @@ def test_schema_model():
 
     # pylint: disable=too-few-public-methods
     class Schema(pa.SchemaModel):
-        int_field: pa.typing.Series[int] = pa.Field(gt=0)
-        float_field: pa.typing.Series[float] = pa.Field(lt=0)
-        str_field: pa.typing.Series[str] = pa.Field(isin=["a", "b", "c"])
+        int_field: pa.typing.modin.Series[int] = pa.Field(gt=0)
+        float_field: pa.typing.modin.Series[float] = pa.Field(lt=0)
+        str_field: pa.typing.modin.Series[str] = pa.Field(isin=["a", "b", "c"])
 
     valid_df = mpd.DataFrame(
         {
@@ -403,10 +404,10 @@ def test_check_decorators():
 
     # pylint: disable=too-few-public-methods
     class InSchema(pa.SchemaModel):
-        a: pa.typing.Series[int]
+        a: pa.typing.modin.Series[int]
 
     class OutSchema(InSchema):
-        b: pa.typing.Series[int]
+        b: pa.typing.modin.Series[int]
 
     @pa.check_input(in_schema)
     @pa.check_output(out_schema)
@@ -432,15 +433,15 @@ def test_check_decorators():
 
     @pa.check_types
     def function_check_types(
-        df: pa.typing.DataFrame[InSchema],
-    ) -> pa.typing.DataFrame[OutSchema]:
+        df: pa.typing.modin.DataFrame[InSchema],
+    ) -> pa.typing.modin.DataFrame[OutSchema]:
         df["b"] = df["a"] + 1
         return df
 
     @pa.check_types
     def function_check_types_invalid(
-        df: pa.typing.DataFrame[InSchema],
-    ) -> pa.typing.DataFrame[OutSchema]:
+        df: pa.typing.modin.DataFrame[InSchema],
+    ) -> pa.typing.modin.DataFrame[OutSchema]:
         return df
 
     valid_df = mpd.DataFrame({"a": [1, 2, 3]})
@@ -468,3 +469,35 @@ def test_check_decorators():
     ):
         with pytest.raises(pa.errors.SchemaError):
             fn(valid_df)
+
+
+class InitSchema(pa.SchemaModel):
+    """Schema used for dataframe initialization."""
+
+    col1: Series[int]
+    col2: Series[float]
+    col3: Series[str]
+    index: Index[int]
+
+
+def test_init_modin_dataframe():
+    """Test initialization of pandas.typing.dask.DataFrame with Schema."""
+    assert isinstance(
+        DataFrame[InitSchema]({"col1": [1], "col2": [1.0], "col3": ["1"]}),
+        DataFrame,
+    )
+
+
+@pytest.mark.parametrize(
+    "invalid_data",
+    [
+        {"col1": [1.0], "col2": [1.0], "col3": ["1"]},
+        {"col1": [1], "col2": [1], "col3": ["1"]},
+        {"col1": [1], "col2": [1.0], "col3": [1]},
+        {"col1": [1]},
+    ],
+)
+def test_init_modin_dataframe_errors(invalid_data):
+    """Test errors from initializing a pandas.typing.DataFrame with Schema."""
+    with pytest.raises(pa.errors.SchemaError):
+        DataFrame[InitSchema](invalid_data)

@@ -34,7 +34,8 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import AnnotationInfo, DataFrame, Index, Series
+from .typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
+from .typing.common import DataFrameBase
 
 if sys.version_info[:2] < (3, 9):
     from typing_extensions import get_type_hints
@@ -173,8 +174,11 @@ class SchemaModel(metaclass=_MetaSchema):
     __checks__: Dict[str, List[Check]] = {}
     __dataframe_checks__: List[Check] = []
 
-    def __new__(cls, *args, **kwargs):
-        raise TypeError(f"{cls.__name__} may not be instantiated.")
+    # This is syntantic sugar that delegates to the validate method
+    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    def __new__(cls, *args, **kwargs) -> DataFrameBase[TSchemaModel]:  # type: ignore [misc]
+        """%(validate_doc)s"""
+        return cast(DataFrameBase[TSchemaModel], cls.validate(*args, **kwargs))
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
@@ -250,10 +254,13 @@ class SchemaModel(metaclass=_MetaSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> DataFrame[TSchemaModel]:
+    ) -> DataFrameBase[TSchemaModel]:
         """%(validate_doc)s"""
-        return cls.to_schema().validate(
-            check_obj, head, tail, sample, random_state, lazy, inplace
+        return cast(
+            DataFrameBase[TSchemaModel],
+            cls.to_schema().validate(
+                check_obj, head, tail, sample, random_state, lazy, inplace
+            ),
         )
 
     @classmethod
@@ -261,7 +268,7 @@ class SchemaModel(metaclass=_MetaSchema):
     @st.strategy_import_error
     def strategy(
         cls: Type[TSchemaModel], *, size: Optional[int] = None
-    ) -> DataFrame[TSchemaModel]:
+    ) -> DataFrameBase[TSchemaModel]:
         """%(strategy_doc)s"""
         return cls.to_schema().strategy(size=size)
 
@@ -270,9 +277,11 @@ class SchemaModel(metaclass=_MetaSchema):
     @st.strategy_import_error
     def example(
         cls: Type[TSchemaModel], *, size: Optional[int] = None
-    ) -> DataFrame[TSchemaModel]:
+    ) -> DataFrameBase[TSchemaModel]:
         """%(example_doc)s"""
-        return cls.to_schema().example(size=size)
+        return cast(
+            DataFrameBase[TSchemaModel], cls.to_schema().example(size=size)
+        )
 
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals
@@ -285,7 +294,8 @@ class SchemaModel(metaclass=_MetaSchema):
         Optional[Union[schema_components.Index, schema_components.MultiIndex]],
     ]:
         index_count = sum(
-            annotation.origin is Index for annotation, _ in fields.values()
+            annotation.origin in INDEX_TYPES
+            for annotation, _ in fields.values()
         )
 
         columns: Dict[str, schema_components.Column] = {}
@@ -310,8 +320,8 @@ class SchemaModel(metaclass=_MetaSchema):
             dtype = None if dtype is Any else dtype
 
             if (
-                annotation.origin is Series
-                or annotation.raw_annotation is Series
+                annotation.origin in SERIES_TYPES
+                or annotation.raw_annotation in SERIES_TYPES
             ):
                 col_constructor = (
                     field.to_column if field else schema_components.Column
@@ -329,8 +339,8 @@ class SchemaModel(metaclass=_MetaSchema):
                     name=field_name,
                 )
             elif (
-                annotation.origin is Index
-                or annotation.raw_annotation is Index
+                annotation.origin in INDEX_TYPES
+                or annotation.raw_annotation in INDEX_TYPES
             ):
                 if annotation.optional:
                     raise SchemaInitError(

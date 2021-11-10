@@ -39,6 +39,10 @@ The :class:`~pandera.schemas.DataFrameSchema` object consists of |column|_\s and
         coerce=True,
     )
 
+You can refer to :ref:`schema_models` to see how to define dataframe schemas
+using the alternative pydantic/dataclass-style syntax.
+
+
 .. _column:
 
 Column Validation

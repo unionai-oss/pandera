@@ -1,32 +1,14 @@
-"""Typing definitions and helpers."""
+"""Common typing functionality."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
+
 import inspect
 from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
 
-from . import dtypes
-from .engines import numpy_engine, pandas_engine
-from .errors import SchemaError, SchemaInitError
-
-try:
-    from typing import _GenericAlias  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    _GenericAlias = None
-
-
-try:
-    from pydantic.fields import ModelField
-except ImportError:
-    ModelField = Any  # type: ignore
-
-try:
-    import dask.dataframe as dd
-
-    _DASK_INSTALLED = True
-except ImportError:
-    _DASK_INSTALLED = False
+from .. import dtypes
+from ..engines import numpy_engine, pandas_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
@@ -99,35 +81,6 @@ GenericDtype = TypeVar(  # type: ignore
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
 
 
-# pylint:disable=too-few-public-methods
-class Index(pd.Index, Generic[GenericDtype]):
-    """Representation of pandas.Index, only used for type annotation.
-
-    *new in 0.5.0*
-    """
-
-
-# pylint:disable=too-few-public-methods
-class Series(pd.Series, Generic[GenericDtype]):  # type: ignore
-    """Representation of pandas.Series, only used for type annotation.
-
-    *new in 0.5.0*
-    """
-
-    if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
-
-        def __class_getitem__(cls, item):
-            """Define this to override the patch that koalas performs on pandas.
-            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
-            """
-            return _GenericAlias(cls, item)
-
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
-        raise AttributeError("Series should resolve to Field-s")
-
-
 # pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
@@ -135,16 +88,19 @@ else:
     T = Schema
 
 
-class DataFrameBase(pd.DataFrame):
+class DataFrameBase(Generic[T]):
+    # pylint: disable=too-few-public-methods
     """
-    Pandera pandas.Dataframe base class for validating dataframes on
+    Pandera Dataframe base class for validating dataframes on
     initialization.
     """
 
     def __setattr__(self, name: str, value: Any) -> None:
+        # pylint: disable=no-member
         object.__setattr__(self, name, value)
         if name == "__orig_class__":
-            class_args = getattr(self.__orig_class__, "__args__", None)
+            orig_class = getattr(self, "__orig_class__")
+            class_args = getattr(orig_class, "__args__", None)
             if any(
                 x.__name__ == "SchemaModel"
                 for x in inspect.getmro(class_args[0])
@@ -153,73 +109,32 @@ class DataFrameBase(pd.DataFrame):
 
             # prevent the double validation problem by preventing checks for
             # dataframes with a defined pandera.schema
+            pandera = getattr(self, "pandera")
             if (
-                self.pandera.schema is None
-                or self.pandera.schema != schema_model.to_schema()
+                pandera.schema is None
+                or pandera.schema != schema_model.to_schema()
             ):
                 # pylint: disable=self-cls-assignment
                 self = schema_model.validate(self)
-                self.pandera.add_schema(schema_model.to_schema())
+                pandera.add_schema(schema_model.to_schema())
 
 
 # pylint:disable=too-few-public-methods
-class DataFrame(Generic[T], DataFrameBase):
-    """
-    Representation of pandas.DataFrame, only used for type annotation.
+class SeriesBase(Generic[GenericDtype]):
+    """Pandera Series base class to use for all pandas-like APIs."""
+
+    def __get__(
+        self, instance: object, owner: Type
+    ) -> str:  # pragma: no cover
+        raise AttributeError("Series should resolve to Field-s")
+
+
+# pylint:disable=too-few-public-methods
+class IndexBase(Generic[GenericDtype]):
+    """Representation of pandas.Index, only used for type annotation.
 
     *new in 0.5.0*
     """
-
-    if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
-
-        def __class_getitem__(cls, item):
-            """Define this to override the patch that koalas performs on pandas.
-            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
-            """
-            return _GenericAlias(cls, item)
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls._pydantic_validate
-
-    @classmethod
-    def _pydantic_validate(
-        cls, df: pd.DataFrame, field: ModelField
-    ) -> pd.DataFrame:
-        """Verify that the input is a pandas dataframe that meets all
-        schema requirements."""
-        if not isinstance(df, pd.DataFrame):
-            raise TypeError("Expected a pandas DataFrame")
-
-        if not field.sub_fields:
-            raise TypeError(
-                "Expected a typed pandera.typing.DataFrame,"
-                " e.g. DataFrame[Schema]"
-            )
-        schema_model = field.sub_fields[0].type_
-        try:
-            schema = schema_model.to_schema()
-        except SchemaInitError as exc:
-            raise ValueError(
-                f"Cannot use {cls.__name__} as a pydantic type as its "
-                "SchemaModel cannot be converted to a DataFrameSchema.\n"
-                f"Please revisit the model to address the following errors:"
-                f"\n{exc}"
-            ) from exc
-
-        try:
-            return schema.validate(df)
-        except SchemaError as exc:
-            raise ValueError(str(exc)) from exc
-
-
-if _DASK_INSTALLED:
-    # pylint:disable=too-few-public-methods
-    class DaskDataFrame(dd.DataFrame, Generic[T]):
-        """
-        Representation of dask.dataframe.DataFrame, only used for type
-        annotation.
-        """
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
@@ -227,7 +142,8 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
 
     Attributes:
         origin: The non-parameterized generic class.
-        arg: The first generic type (SchemaModel does not support more than 1 argument).
+        arg: The first generic type (SchemaModel does not support more than
+            1 argument).
         literal: Whether the annotation is a literal.
         optional: Whether the annotation is optional.
         raw_annotation: The raw annotation.
@@ -239,16 +155,11 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
 
     @property
     def is_generic_df(self) -> bool:
-        """True if the annotation is a pandera.typing.DataFrame or
-        pandera.typing.DaskDataFrame.
-        """
+        """True if the annotation is a DataFrameBase subclass."""
         try:
             if self.origin is None:
                 return False
-            if _DASK_INSTALLED:
-                return issubclass(self.origin, (DataFrame, DaskDataFrame))
-            else:
-                return issubclass(self.origin, DataFrame)
+            return issubclass(self.origin, DataFrameBase)
         except TypeError:
             return False
 
