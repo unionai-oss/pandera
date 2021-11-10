@@ -27,7 +27,6 @@ dependencies:
 
   # modin extra
   - modin
-  - ray <= 1.7.0
 
   # dask extra
   - dask
@@ -66,6 +65,7 @@ dependencies:
 
   - pip:
     - furo
+    - ray
     - types-click
     - types-pyyaml
     - types-pkg_resources
