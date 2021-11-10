@@ -1,9 +1,9 @@
 .. pandera documentation master file
 
-Statistical Data Validation for Pandas
-======================================
+A Statistical DataFrame Testing Toolkit
+=======================================
 
-*A data validation library for scientists, engineers, and analysts seeking
+*A dataframe validation library for scientists, engineers, and analysts seeking
 correctness.*
 
 
@@ -62,14 +62,16 @@ correctness.*
 |
 
 ``pandera`` provides a flexible and expressive API for performing data
-validation on tidy (long-form) and wide data to make data processing pipelines
-more readable and robust.
+validation on dataframes to make data processing pipelines more readable and
+robust.
 
-`pandas <http://pandas.pydata.org>`_ data structures contain information that
-``pandera`` explicitly validates at runtime. This is useful in
-production-critical data pipelines or reproducible research settings. With
-``pandera``, you can:
+Dataframes contain information that ``pandera`` explicitly validates at runtime.
+This is useful in production-critical data pipelines or reproducible research
+settings. With ``pandera``, you can:
 
+#. Define a schema once and use it to validate :ref:`different dataframe types <supported-dataframe-libraries>`
+   including `pandas <http://pandas.pydata.org>`_, `dask <https://dask.org/>`_,
+   `modin <https://modin.readthedocs.io/>`_, and `koalas <https://koalas.readthedocs.io/>`_.
 #. :ref:`Check<checks>` the types and properties of columns in a
    ``pd.DataFrame`` or values in a ``pd.Series``.
 #. Perform more complex statistical validation like
@@ -80,6 +82,11 @@ production-critical data pipelines or reproducible research settings. With
    pydantic-style syntax and validate dataframes using the typing syntax.
 #. :ref:`Synthesize data<data synthesis strategies>` from schema objects for
    property-based testing with pandas data structures.
+#. :ref:`Lazily Validate<lazy_validation>` dataframes so that all validation
+   rules are executed before raising an error.
+#. :ref:`Integrate <integrations>` with a rich ecosystem of python tools like
+   `pydantic <https://pydantic-docs.helpmanual.io/>`_ and
+   `mypy <http://mypy-lang.org/>`_.
 
 
 .. _installation:
@@ -101,6 +108,11 @@ Installing optional functionality:
     pip install pandera[hypotheses]  # hypothesis checks
     pip install pandera[io]          # yaml/script schema io utilities
     pip install pandera[strategies]  # data synthesis strategies
+    pip install pandera[dask]        # validate dask dataframes
+    pip install pandera[koalas]      # validate koalas dataframes
+    pip install pandera[modin]       # validate modin dataframes
+    pip install pandera[modin-ray]   # validate modin dataframes with ray
+    pip install pandera[modin-dask]  # validate modin dataframes with dask
     pip install pandera[all]         # all packages
 
 
@@ -303,18 +315,18 @@ Submit issues, feature requests or bugfixes on
    :hidden:
 
    dataframe_schemas
+   schema_models
    series_schemas
    checks
    hypothesis
    dtypes
    decorators
    schema_inference
-   schema_models
    lazy_validation
    data_synthesis_strategies
    extensions
    third_party_schema
-   scaling
+   supported_libraries
    integrations
 
 .. toctree::

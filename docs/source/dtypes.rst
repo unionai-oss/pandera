@@ -4,8 +4,8 @@
 
 .. _dtypes:
 
-Pandera Data Types (new)
-========================
+Pandera Data Types
+==================
 
 *new in 0.7.0*
 
