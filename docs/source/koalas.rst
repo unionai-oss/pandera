@@ -8,7 +8,7 @@ Data Validation with Koalas
 *new in 0.8.0*
 
 `Koalas <https://koalas.readthedocs.io/en/latest/>`__ is a distributed
-compute framework that offers pandas drop-in replacement dataframe
+compute framework that offers a pandas drop-in replacement dataframe
 implementation. You can use pandera to validate :py:func:`~databricks.koalas.DataFrame`
 and :py:func:`~databricks.koalas.Series` objects directly. First, install
 ``pandera`` with the ``dask`` extra:

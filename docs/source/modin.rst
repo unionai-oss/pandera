@@ -8,7 +8,7 @@ Data Validation with Modin
 *new in 0.8.0*
 
 `Modin <https://modin.readthedocs.io/en/latest/>`__ is a distributed
-compute framework that offers pandas drop-in replacement dataframe
+compute framework that offers a pandas drop-in replacement dataframe
 implementation. You can use pandera to validate :py:func:`~modin.pandas.DataFrame`
 and :py:func:`~modin.pandas.Series` objects directly. First, install
 ``pandera`` with the ``dask`` extra:
