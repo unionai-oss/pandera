@@ -21,6 +21,8 @@ correctness.*
 [![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
 [![Downloads](https://pepy.tech/badge/pandera/month)](https://pepy.tech/project/pandera)
 [![Downloads](https://pepy.tech/badge/pandera)](https://pepy.tech/project/pandera)
+[![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pandera?label=conda%20downloads)](https://anaconda.org/conda-forge/pandera)
+[![Discord](https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord)](https://discord.gg/vyanhWuaKB)
 
 `pandera` provides a flexible and expressive API for performing data
 validation on dataframes to make data processing pipelines more readable and
@@ -170,6 +172,13 @@ on GitHub.
 
 Go [here](https://github.com/pandera-dev/pandera/issues) to submit feature
 requests or bugfixes.
+
+## Need Help?
+
+There are many ways of getting help with your questions. You can ask a question
+on [Github Discussions](https://github.com/pandera-dev/pandera/discussions/categories/q-a)
+page or reach out to the maintainers and pandera community on
+[Discord](https://discord.gg/vyanhWuaKB)
 
 ## Why `pandera`?
 
