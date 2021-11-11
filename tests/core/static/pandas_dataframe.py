@@ -84,4 +84,4 @@ def fn_assign_and_get_index(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
 def fn_cast_dataframe_invalid(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
     return cast(
         DataFrame[SchemaOut], df
-    )  # okay for mypy, pandera raises error  # noqa
+    )  # okay for mypy, pandera raises error

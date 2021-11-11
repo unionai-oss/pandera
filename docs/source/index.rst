@@ -59,6 +59,14 @@ correctness.*
     :target: https://pepy.tech/badge/pandera
     :alt: Total Downloads
 
+.. image:: https://img.shields.io/conda/dn/conda-forge/pandera?label=conda%20downloads
+    :target: https://anaconda.org/conda-forge/pandera
+    :alt: Conda Downloads
+
+.. image:: https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord
+    :target: https://discord.gg/vyanhWuaKB
+    :alt: Discord Community
+
 |
 
 ``pandera`` provides a flexible and expressive API for performing data
@@ -301,6 +309,14 @@ Issues
 
 Submit issues, feature requests or bugfixes on
 `github <https://github.com/pandera-dev/pandera/issues>`__.
+
+Need Help?
+----------
+
+There are many ways of getting help with your questions. You can ask a question
+on `Github Discussions <https://github.com/pandera-dev/pandera/discussions/categories/q-a>`__
+page or reach out to the maintainers and pandera community on
+`Discord <https://discord.gg/vyanhWuaKB>`__
 
 .. toctree::
     :maxdepth: 6
