@@ -122,10 +122,13 @@ decorator to verify that the output dataframe is valid.
 Consider the examples below:
 
 .. literalinclude:: ../../tests/core/static/pandas_dataframe.py
-    :lines: 63-72
+    :lines: 63-80
 
 Even though the outputs of these functions are incorrect, mypy doesn't catch
 the error during static type-linting but pandera will raise a
 :py:class:`~pandera.errors.SchemaError` or :py:class:`~pandera.errors.SchemaErrors`
 exception at runtime, depending on whether you're doing
 :ref:`lazy validation<lazy_validation>` or not.
+
+.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+    :lines: 83-87
