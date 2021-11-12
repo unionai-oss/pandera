@@ -39,7 +39,7 @@ recommonmark
 twine
 asv
 pre_commit
-furo
+furo <= 2021.10.9
 ray <= 1.7.0
 types-click
 types-pyyaml

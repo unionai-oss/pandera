@@ -64,7 +64,7 @@ dependencies:
   - pre_commit
 
   - pip:
-    - furo
+    - furo <= 2021.10.9
     - ray <= 1.7.0
     - types-click
     - types-pyyaml
