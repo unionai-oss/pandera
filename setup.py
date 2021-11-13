@@ -27,8 +27,7 @@ setup(
     version=version["__version__"],
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
-    description="A light-weight and flexible validation package for pandas "
-    "data structures.",
+    description="A light-weight and flexible data validation and testing tool for dataframes.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/pandera-dev/pandera",
