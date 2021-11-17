@@ -6,6 +6,7 @@ the typing module.
 
 from . import dask, koalas, modin
 from .common import (
+    BOOL,
     INT8,
     INT16,
     INT32,
