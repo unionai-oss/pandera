@@ -40,6 +40,7 @@ String = dtypes.String  #: ``"str"`` numpy dtype
 #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
 #: fall back on the str-as-object-array representation.
 STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
+BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
 
 GenericDtype = TypeVar(  # type: ignore
     "GenericDtype",
@@ -76,6 +77,7 @@ GenericDtype = TypeVar(  # type: ignore
     Object,
     String,
     STRING,
+    BOOL,
     covariant=True,
 )
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
