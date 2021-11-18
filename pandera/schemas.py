@@ -2291,9 +2291,7 @@ def _pandas_obj_to_validate(
     if not pandas_obj_subsample:
         return dataframe_or_series
     first, *rest = pandas_obj_subsample
-    if not rest:
-        return first
-    return pd.concat([first, *rest]).drop_duplicates()
+    return first if not rest else pd.concat([first, *rest]).drop_duplicates()
 
 
 def _handle_check_results(
