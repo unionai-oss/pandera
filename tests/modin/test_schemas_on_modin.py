@@ -69,9 +69,8 @@ def setup_modin_engine(request):
 
 
 @pytest.mark.parametrize("coerce", [True, False])
-@pytest.mark.skipif(
-    platform.system() == "Windows",
-    reason="test fails on Windows for some reason",
+@pytest.mark.xfail(
+    platform.system() == "Windows", reason="bug in modin windows type coercion"
 )
 def test_dataframe_schema_case(coerce):
     """Test a simple schema case."""
@@ -110,6 +109,9 @@ def _test_datatype_with_schema(
 
 @pytest.mark.parametrize("dtype_cls", TEST_DTYPES_ON_MODIN)
 @pytest.mark.parametrize("coerce", [True, False])
+@pytest.mark.xfail(
+    platform.system() == "Windows", reason="bug in modin windows type coercion"
+)
 @hypothesis.given(st.data())
 def test_dataframe_schema_dtypes(
     dtype_cls: pandas_engine.DataType,
