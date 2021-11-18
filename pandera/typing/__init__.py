@@ -33,7 +33,15 @@ from .common import (
     UInt32,
     UInt64,
 )
-from .pandas import DataFrame, Index, Series
+from .pandas import (
+    Columns,
+    DataFrame,
+    Index,
+    IndexedColumns,
+    IndexedRecords,
+    Records,
+    Series,
+)
 
 DATAFRAME_TYPES = {DataFrame}
 SERIES_TYPES = {Series}
