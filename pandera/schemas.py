@@ -2288,11 +2288,12 @@ def _pandas_obj_to_validate(
         pandas_obj_subsample.append(
             dataframe_or_series.sample(sample, random_state=random_state)
         )
-    return (
-        dataframe_or_series
-        if not pandas_obj_subsample
-        else pd.concat(pandas_obj_subsample).drop_duplicates()
-    )
+    if not pandas_obj_subsample:
+        return dataframe_or_series
+    first, *rest = pandas_obj_subsample
+    if not rest:
+        return first
+    return pd.concat([first, *rest]).drop_duplicates()
 
 
 def _handle_check_results(
