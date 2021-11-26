@@ -32,6 +32,6 @@ def create_item(item: Item):
     return item
 
 
-@app.post("/transactions/", response_model=pa.typing.JSON[Transactions])
+@app.post("/transactions/", response_model=pa.typing.IndexedColumns[Transactions])
 def create_transactions(transactions: pa.typing.DataFrame[Transactions]):
     return transactions

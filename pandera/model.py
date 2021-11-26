@@ -514,6 +514,53 @@ class SchemaModel(metaclass=_MetaSchema):
 
         return cast("SchemaModel", schema_model)
 
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        # __modify_schema__ should mutate the dict it receives in place,
+        # the returned value will be ignored
+
+        # TODO: this should be in the io module:
+        # - to_json_schema: pandera schema to json schema
+        # - from_json_schema: json schema to pandera schema
+        # schema = cls.to_schema()
+        # data = schema.example(size=3)
+        # table_schema = pd.io.json.build_table_schema(data)
+        # field_schema.update(table_schema)
+        def _column_json_schema(col):
+            json_schema_type = {
+                "str": "string",
+                "int64": "integer",
+                "float64": "number",
+            }[str(col.dtype)]
+
+            _type = json_schema_type if not col.nullable else [
+                json_schema_type, "null"
+            ]
+            return {
+                "type": "array",
+                "items": {
+                    "type": _type
+                }
+            }
+
+        properties = {
+            name: _column_json_schema(col)
+            for name, col in cls.to_schema().columns.items()
+        }
+        field_schema.update({
+            "title": cls.__name__,
+            "type": "object",
+            "properties": properties
+        })
+        # field_schema.update({
+        #     "title": cls.__name__,
+        #     "type": "array",
+        #     "items": {
+        #         "type": "object",
+        #         "properties": properties
+        #     }
+        # })
+
 
 def _build_schema_index(
     indices: List[schema_components.Index], **multiindex_kwargs: Any
