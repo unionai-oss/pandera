@@ -502,6 +502,7 @@ def test_dataframe_strategy(data_type, size, data):
 
 
 @hypothesis.given(st.data())
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_dataframe_example(data) -> None:
     """Test DataFrameSchema example method generate examples that pass."""
     schema = pa.DataFrameSchema({"column": pa.Column(int, pa.Check.gt(0))})
