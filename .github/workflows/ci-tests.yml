@@ -117,59 +117,59 @@ jobs:
       - name: Pip info
         run: python -m pip list
 
-      - name: Unit Tests - Core
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Core
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Dask
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='dask', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Dask
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='dask', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Hypotheses
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Hypotheses
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - IO
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - IO
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Strategies
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Strategies
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Koalas
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Koalas
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Modin [MacOS, Ubuntu]
-        if: ${{ matrix.os != 'windows-latest'}}
-        run: >
-          nox -db virtualenv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Modin [MacOS, Ubuntu]
+      #   if: ${{ matrix.os != 'windows-latest'}}
+      #   run: >
+      #     nox -db virtualenv -r -v --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
 
       # TODO: need to figure out why modin CI is failing on windows
       # modin and nox don't play well on windows for some reason?
-      # - name: Unit Tests - Modin [Windows]
-      #   if: ${{ matrix.os == 'windows-latest'}}
-      #   run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
+      - name: Unit Tests - Modin [Windows]
+        if: ${{ matrix.os == 'windows-latest'}}
+        run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
 
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"
