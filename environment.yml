@@ -65,7 +65,7 @@ dependencies:
 
   - pip:
     - furo <= 2021.10.9
-    - ray
+    - ray <= 1.7.0
     - types-click
     - types-pyyaml
     - types-pkg_resources
