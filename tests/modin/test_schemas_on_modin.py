@@ -44,7 +44,12 @@ for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
     TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))
 
 
-@pytest.fixture(scope="module", params=["ray", "dask"], autouse=True)
+ENGINES = os.getenv("CI_MODIN_ENGINES", "").split(",")
+if ENGINES == [""]:
+    ENGINES = ["ray", "dask"]
+
+
+@pytest.fixture(scope="module", params=ENGINES, autouse=True)
 def setup_modin_engine(request):
     """Set up the modin engine.
 

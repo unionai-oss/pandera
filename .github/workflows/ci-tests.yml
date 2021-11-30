@@ -170,6 +170,8 @@ jobs:
       - name: Unit Tests - Modin [Windows]
         if: ${{ matrix.os == 'windows-latest'}}
         run: pytest --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append tests/modin
+        env:
+          CI_MODIN_ENGINES: "dask"
 
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"
