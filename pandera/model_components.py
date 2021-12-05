@@ -92,7 +92,16 @@ class FieldInfo:
         self.original_name = name
 
     def __get__(self, instance: Any, owner: Type) -> str:
-        return self.name
+        return self
+
+    def __hash__(self):
+        return str(self.name).__hash__()
+
+    def __eq__(self, other):
+        return self.name == other
+
+    def __ne__(self, other):
+        return not(self.name == other)
 
     def __set__(self, instance: Any, value: Any) -> None:  # pragma: no cover
         raise AttributeError(f"Can't set the {self.original_name} field.")

@@ -123,11 +123,6 @@ class DataFrameBase(Generic[T]):
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
-        raise AttributeError("Series should resolve to Field-s")
-
 
 # pylint:disable=too-few-public-methods
 class IndexBase(Generic[GenericDtype]):
