@@ -67,6 +67,12 @@ pytest tests
 make docs
 ```
 
+
+#### Adding New Dependencies
+
+To add new dependencies to the project, make sure altering the *environment.yml* file. It will automatically update the *requirements-dev.txt* .
+
+
 #### Set up `pre-commit`
 
 This project uses [pre-commit](https://pre-commit.com/) to ensure that code
