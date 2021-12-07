@@ -16,6 +16,7 @@ _extras_require = {
     "modin-ray": ["modin", "ray <= 1.7.0"],
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
+    "geopandas": ["geopandas", "shapely"]
     }
 extras_require = {
     **_extras_require,

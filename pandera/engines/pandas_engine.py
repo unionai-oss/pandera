@@ -14,6 +14,7 @@ import warnings
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Union
 
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 from packaging import version
@@ -656,6 +657,31 @@ class Interval(DataType):
         """Convert a :class:`pandas.IntervalDtype` to
         a Pandera :class:`pandera.engines.pandas_engine.Interval`."""
         return cls(subtype=pd_dtype.subtype)  # type: ignore
+
+
+# ###############################################################################
+# # geopandas
+# ###############################################################################
+
+try:
+    import geopandas as gpd
+
+    GEOPANDAS_INSTALLED = True
+except ImportError:
+    GEOPANDAS_INSTALLED = False
+
+if GEOPANDAS_INSTALLED:
+
+    @Engine.register_dtype(
+        equivalents=[
+            "geometry",
+            gpd.array.GeometryDtype,
+            gpd.array.GeometryDtype(),
+        ]
+    )
+    @dtypes.immutable
+    class Geometry(DataType):
+        type = gpd.array.GeometryDtype()
 
 
 class PandasDtype(Enum):
