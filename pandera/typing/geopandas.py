@@ -1,4 +1,6 @@
 import geopandas as gpd
+
+from pandera.engines.pandas_engine import Geometry
 from pandera.typing.pandas import T, Series, DataFrame
 
 try:
@@ -9,7 +11,7 @@ except ImportError:
     GEOPANDAS_INSTALLED = False
 
 if GEOPANDAS_INSTALLED:
-    GeoSeries = Series[gpd.array.GeometryDtype]
+    GeoSeries = Series[Geometry]
 
     class GeoDataFrame(DataFrame[T], gpd.GeoDataFrame):
         """Representation of geopandas.GeoDataFrame, only used for type annotation."""
