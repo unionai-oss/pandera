@@ -70,7 +70,13 @@ make docs
 
 #### Adding New Dependencies
 
-To add new dependencies to the project, make sure altering the *environment.yml* file. It will automatically update the *requirements-dev.txt* .
+To add new dependencies to the project, make sure to alter the *environment.yml* file. Then to sync the dependencies from the *environment.yml* file to the *requirements-dev.txt* run the following command
+
+```
+python scripts/generate_pip_deps_from_conda.py
+
+```
+Moreover to add new dependecies in setup.py, it is necessary to add it to the **_extras_require** dictionary.
 
 
 #### Set up `pre-commit`
