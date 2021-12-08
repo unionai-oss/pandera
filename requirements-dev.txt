@@ -20,6 +20,8 @@ pyspark
 modin
 dask
 distributed
+geopandas
+shapely
 black >= 20.8b1
 isort >= 5.7.0
 codecov
