@@ -1,5 +1,4 @@
-import geopandas as gpd
-
+"""Pandera type annotations for GeoPandas."""
 from pandera.engines.pandas_engine import Geometry
 from pandera.typing.pandas import DataFrame, Series, T
 
@@ -11,9 +10,9 @@ except ImportError:
     GEOPANDAS_INSTALLED = False
 
 if GEOPANDAS_INSTALLED:
-    GeoSeries = Series[Geometry]
+    # pylint:disable=too-few-public-methods
+    class GeoSeries(Series[Geometry], gpd.GeoSeries):
+        """Representation of geopandas.GeoSeries, only used for type annotation."""
 
     class GeoDataFrame(DataFrame[T], gpd.GeoDataFrame):
         """Representation of geopandas.GeoDataFrame, only used for type annotation."""
-
-        pass

@@ -40,10 +40,9 @@ String = dtypes.String  #: ``"str"`` numpy dtype
 #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
 #: fall back on the str-as-object-array representation.
 STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
-Geometry = pandas_engine.Geometry  #: ``"geometry"`` geopandas dtype
 
 try:
-    import geopandas as gpd
+    from pandas_engine import Geometry  # : ``"geometry"`` geopandas dtype
 
     GEOPANDAS_INSTALLED = True
 except ImportError:

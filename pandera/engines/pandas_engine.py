@@ -14,7 +14,6 @@ import warnings
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Union
 
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 from packaging import version
