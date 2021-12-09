@@ -42,8 +42,7 @@ String = dtypes.String  #: ``"str"`` numpy dtype
 STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 
 try:
-    from pandas_engine import Geometry  # : ``"geometry"`` geopandas dtype
-
+    Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
     GEOPANDAS_INSTALLED = True
 except ImportError:
     GEOPANDAS_INSTALLED = False
