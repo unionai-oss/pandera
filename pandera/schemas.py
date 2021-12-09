@@ -175,7 +175,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        self.columns: Optional[Dict[str, Column]] = (
+        self.columns: Dict[str, Column] = (
             {} if columns is None else columns
         )
 
