@@ -2,6 +2,7 @@
 # pylint: disable=too-many-lines
 
 from __future__ import annotations
+
 import copy
 import itertools
 import os
@@ -9,13 +10,20 @@ import traceback
 import warnings
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, TypeVar, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
-
-if TYPE_CHECKING:
-    from pandera.schema_components import Column
 
 from . import check_utils, errors
 from . import strategies as st
@@ -31,6 +39,10 @@ from .error_formatters import (
 )
 from .error_handlers import SchemaErrorHandler
 from .hypotheses import Hypothesis
+
+if TYPE_CHECKING:
+    from pandera.schema_components import Column
+
 
 N_INDENT_SPACES = 4
 
@@ -163,7 +175,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        self.columns: Optional[Dict[str, Column]] = {} if columns is None else columns
+        self.columns: Optional[Dict[str, Column]] = (
+            {} if columns is None else columns
+        )
 
         if transformer is not None:
             warnings.warn(
