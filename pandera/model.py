@@ -1,15 +1,18 @@
 """Class-based api"""
+
 import inspect
 import os
 import re
 import sys
 import typing
+from enum import Enum
 from typing import (
     Any,
     Callable,
     Dict,
     Iterable,
     List,
+    Literal,
     Optional,
     Set,
     Tuple,
@@ -25,6 +28,7 @@ from . import schema_components
 from . import strategies as st
 from .checks import Check
 from .errors import SchemaInitError
+from .json_schema import to_json_schema
 from .model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
@@ -36,6 +40,7 @@ from .model_components import (
 from .schemas import DataFrameSchema
 from .typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from .typing.common import DataFrameBase
+from .typing.formats import Format
 
 if sys.version_info[:2] < (3, 9):
     from typing_extensions import get_type_hints
@@ -97,6 +102,26 @@ class BaseConfig:  # pylint:disable=R0903
 
     #: validate MultiIndex in order
     multiindex_ordered: bool = True
+
+    #: data format before validation. This option only applies to
+    #: schemas used in the context of the pandera type constructor
+    #: ``pa.typing.DataFrame[Schema](data)``. If None, assumes a data structure
+    #: compatible with the ``pandas.DataFrame`` constructor.
+    pre_format: Optional[Format] = None
+
+    #: a dictionary keyword arguments to pass into the reader function that
+    #: converts the object of type ``pre_format`` to a pandera-validate-able
+    #: data structure.
+    pre_format_options: Optional[Dict[str, Any]] = None
+
+    #: data format to serialize into after validation. This option only applies
+    # to  schemas used in the context of the pandera type constructor
+    #: ``pa.typing.DataFrame[Schema](data)``. If None, returns a dataframe.
+    post_format: Optional[Format] = None
+
+    #: a dictionary keyword arguments to pass into the writer function that
+    #: converts the pandera-validate-able object to type ``post_format``
+    post_format_options: Optional[Dict[str, Any]] = None
 
 
 def _is_field(name: str) -> bool:
@@ -192,13 +217,14 @@ class SchemaModel(metaclass=_MetaSchema):
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 
+        cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
+
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
         """Create :class:`~pandera.DataFrameSchema` from the :class:`.SchemaModel`."""
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
-        cls.__config__, extras = cls._collect_config_and_extras()
         mi_kwargs = {
             name[len("multiindex_") :]: value
             for name, value in vars(cls.__config__).items()
@@ -216,7 +242,7 @@ class SchemaModel(metaclass=_MetaSchema):
 
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
         df_custom_checks = cls._extract_df_checks(df_check_infos)
-        df_registered_checks = _convert_extras_to_checks(extras)
+        df_registered_checks = _convert_extras_to_checks(cls.__extras__)
         cls.__dataframe_checks__ = df_custom_checks + df_registered_checks
 
         columns, index = cls._build_columns_index(
@@ -516,50 +542,8 @@ class SchemaModel(metaclass=_MetaSchema):
 
     @classmethod
     def __modify_schema__(cls, field_schema):
-        # __modify_schema__ should mutate the dict it receives in place,
-        # the returned value will be ignored
-
-        # TODO: this should be in the io module:
-        # - to_json_schema: pandera schema to json schema
-        # - from_json_schema: json schema to pandera schema
-        # schema = cls.to_schema()
-        # data = schema.example(size=3)
-        # table_schema = pd.io.json.build_table_schema(data)
-        # field_schema.update(table_schema)
-        def _column_json_schema(col):
-            json_schema_type = {
-                "str": "string",
-                "int64": "integer",
-                "float64": "number",
-            }[str(col.dtype)]
-
-            _type = json_schema_type if not col.nullable else [
-                json_schema_type, "null"
-            ]
-            return {
-                "type": "array",
-                "items": {
-                    "type": _type
-                }
-            }
-
-        properties = {
-            name: _column_json_schema(col)
-            for name, col in cls.to_schema().columns.items()
-        }
-        field_schema.update({
-            "title": cls.__name__,
-            "type": "object",
-            "properties": properties
-        })
-        # field_schema.update({
-        #     "title": cls.__name__,
-        #     "type": "array",
-        #     "items": {
-        #         "type": "object",
-        #         "properties": properties
-        #     }
-        # })
+        """Update pydantic field schema."""
+        field_schema.update(to_json_schema(cls.to_schema()))
 
 
 def _build_schema_index(
