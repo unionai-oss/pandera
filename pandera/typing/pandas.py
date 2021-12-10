@@ -1,5 +1,6 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
+import io
 from typing import TYPE_CHECKING, Any, Dict, Generic, TypeVar, Union
 
 import pandas as pd
@@ -69,28 +70,46 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @classmethod
     def __get_validators__(cls):
-        yield cls._pydantic_validate
+        yield cls.pydantic_validate
 
     @classmethod
     def from_pre_format(cls, obj: Any, config) -> pd.DataFrame:
         if config.pre_format is None:
-            return (
-                pd.DataFrame(obj) if not isinstance(obj, pd.DataFrame) else obj
-            )
+            if not isinstance(obj, pd.DataFrame):
+                raise ValueError(f"Expected pd.DataFrame, found {type(obj)}")
+            return obj
 
-        if Formats(config.pre_format) == Formats.csv:
-            data = pd.read_csv(obj, **(config.pre_format_options or {}))
+        reader = {
+            Formats.dict: pd.DataFrame,
+            Formats.csv: pd.read_csv,
+            Formats.json: pd.read_json,
+            Formats.feather: pd.read_feather,
+            Formats.parquet: pd.read_parquet,
+            Formats.pickle: pd.read_pickle,
+        }[Formats(config.pre_format)]
 
-        return data
+        return reader(obj, **(config.pre_format_options or {}))
 
     @classmethod
     def to_post_format(cls, data: pd.DataFrame, config) -> Any:
         if config.post_format is None:
             return data
 
-        if Formats(config.post_format) == Formats.dict:
-            data = data.to_dict(**(config.post_format_options or {}))
-        return data
+        writer, buffer = {
+            Formats.dict: (data.to_dict, None),
+            Formats.csv: (data.to_csv, None),
+            Formats.json: (data.to_json, None),
+            Formats.feather: (data.to_feather, io.BytesIO()),
+            Formats.parquet: (data.to_parquet, io.BytesIO()),
+            Formats.pickle: (data.to_pickle, io.BytesIO()),
+        }[Formats(config.post_format)]
+
+        args = [] if buffer is None else [buffer]
+        out = writer(*args, **(config.post_format_options or {}))
+        if buffer is None:
+            return out
+        buffer.seek(0)
+        return buffer
 
     @classmethod
     def _get_schema(cls, field: ModelField):
@@ -112,7 +131,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         return schema_model, schema
 
     @classmethod
-    def _pydantic_validate(cls, obj: Any, field: ModelField) -> pd.DataFrame:
+    def pydantic_validate(cls, obj: Any, field: ModelField) -> pd.DataFrame:
         """
         Verify that the input can be converted into a pandas dataframe that
         meets all schema requirements.
