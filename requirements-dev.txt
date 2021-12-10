@@ -22,7 +22,7 @@ dask
 distributed
 geopandas
 shapely
-black >= 20.8b1
+black >= 21.12b0
 isort >= 5.7.0
 codecov
 mypy >= 0.902

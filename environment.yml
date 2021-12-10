@@ -37,7 +37,7 @@ dependencies:
   - shapely
 
   # testing and dependencies
-  - black >= 20.8b1
+  - black >= 21.12b0
 
   # testing
   - isort >= 5.7.0

@@ -42,7 +42,6 @@ if TYPE_CHECKING:  # pragma: no cover
         ) -> Callable[[Any], DataType]:
             """Register a new implementation for the given cls."""
 
-
 else:
     Dispatch = Callable[[Any], DataType]
 

@@ -254,7 +254,6 @@ if FLOAT_128_AVAILABLE:
         type = np.dtype("float64")
         bit_width: int = 64
 
-
 else:
 
     @Engine.register_dtype(equivalents=_float_equivalents[64])
@@ -303,7 +302,6 @@ if FLOAT_128_AVAILABLE:
     class Complex128(Complex256):
         type = np.dtype("complex128")  # type: ignore
         bit_width: int = 128
-
 
 else:
 
