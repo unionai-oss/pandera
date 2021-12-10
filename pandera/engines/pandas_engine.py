@@ -427,7 +427,6 @@ if PANDAS_1_3_0_PLUS:
         def __str__(self) -> str:
             return repr(self.type)
 
-
 else:
 
     @Engine.register_dtype(

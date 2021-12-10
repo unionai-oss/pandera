@@ -316,7 +316,6 @@ if pa.PANDAS_1_3_0_PLUS:
     class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
         col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
 
-
 else:
 
     class SchemaAnnotatedIntervalDtype(pa.SchemaModel):  # type: ignore
