@@ -44,7 +44,7 @@ STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 try:
     Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
     GEOPANDAS_INSTALLED = True
-except ImportError:
+except AttributeError:
     GEOPANDAS_INSTALLED = False
 
 if GEOPANDAS_INSTALLED:
