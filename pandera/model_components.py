@@ -94,6 +94,16 @@ class FieldInfo:
     def __get__(self, instance: Any, owner: Type) -> "FieldInfo":
         return self
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        cls = self.__class__
+        return (
+            f'<{cls.__module__}.{cls.__name__}("{self.name}") '
+            f"object at {hex(id(self))}>"
+        )
+
     def __hash__(self):
         return str(self.name).__hash__()
 
