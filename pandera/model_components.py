@@ -95,7 +95,7 @@ class FieldInfo:
         return self
 
     def __str__(self):
-        return self.name
+        return self.name.__str__()
 
     def __repr__(self):
         cls = self.__class__
