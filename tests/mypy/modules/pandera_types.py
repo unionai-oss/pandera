@@ -1,0 +1,14 @@
+import pandas as pd
+
+import pandera as pa
+
+
+def fn(series: pa.typing.Series) -> None:
+    pass
+
+
+df = pd.DataFrame({"a": [1, 2, 3]})
+sr = pd.Series([1, 2, 3])
+
+fn(sr)
+fn(df["a"])
