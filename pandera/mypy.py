@@ -1,12 +1,16 @@
 """Pandera mypy plugin."""
 
+from typing import Any, Iterable
 from mypy.plugin import Plugin
 from mypy.plugin import MethodContext, FunctionContext, FunctionSigContext
-from mypy.types import AnyType, TypeOfAny, CallableType
+from mypy.types import AnyType, TypeOfAny, CallableType, UnionType, Instance
+from mypy.nodes import ARG_POS, ARG_OPT
 
 
 PANDAS_DATAFRAME_FULLNAME = "pandera.typing.pandas.DataFrame"
+PANDAS_CONCAT = "pandas.concat"
 PANDERA_CHECK_TYPES_FULLNAME = "pandera.decorators.check_types"
+BUILTIN_SLICE = "builtins.slice"
 
 
 def plugin(version: str):
@@ -31,16 +35,32 @@ class PanderaPlugin(Plugin):
         super().__init__(options)
 
     def get_function_signature_hook(self, fullname: str):
-        if is_pandas_module(fullname):
+        if fullname == PANDAS_CONCAT or (is_pandas_module(fullname) and "concat" in fullname):
+            return pandas_concat_callback
+        elif is_pandas_module(fullname):
             return disable_pandas_function_callback
 
     def get_method_signature_hook(self, fullname: str):
         if is_pandas_module(fullname):
-            return disable_pandas_method_callback
+            return disable_pandas_function_callback
 
-    def get_function_hook(self, fullname: str):
-        if fullname == PANDERA_CHECK_TYPES_FULLNAME:
-            return pandera_check_types_callback
+
+def pandas_concat_callback(ctx: FunctionSigContext) -> CallableType:
+    import ipdb; ipdb.set_trace()
+    union_type: UnionType = ctx.default_signature.arg_types[0]
+    union_type.items[0]
+    data_type = ctx.default_signature.arg_types[0]
+    Iterable()
+    return ctx.default_signature.copy_modified(
+        arg_types=[
+            AnyType(TypeOfAny.explicit)
+            for _ in ctx.default_signature.arg_types
+        ],
+        arg_kinds=[
+            ARG_OPT if x == ARG_POS else x
+            for x in ctx.default_signature.arg_kinds
+        ],
+    )
 
 
 def disable_pandas_function_callback(ctx: FunctionSigContext) -> CallableType:
@@ -49,29 +69,8 @@ def disable_pandas_function_callback(ctx: FunctionSigContext) -> CallableType:
             AnyType(TypeOfAny.explicit)
             for _ in ctx.default_signature.arg_types
         ],
-    )
-
-
-def disable_pandas_method_callback(ctx: MethodContext) -> CallableType:
-    return ctx.default_signature.copy_modified(
-        arg_types=[
-            t if i == 0 else AnyType(TypeOfAny.explicit)
-            for i, t in enumerate(ctx.default_signature.arg_types)
+        arg_kinds=[
+            ARG_OPT if x == ARG_POS else x
+            for x in ctx.default_signature.arg_kinds
         ],
-    )
-
-
-def pandera_check_types_callback(ctx: FunctionContext):
-    # NOTE: this doesn't work because the callback only changes the return
-    # type of the result of decorating a function with `check_types`, but
-    # it doesn't change the behavior of type checking within the function body
-    #
-    # @pa.check_types
-    # def fn_cast_dataframe_invalid(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
-    #     return df  # mypy error still happens here
-    #
-    # reveal_type(fn_cast_dataframe_invalid(df))  # Any
-
-    return ctx.default_return_type.copy_modified(
-        ret_type=AnyType(TypeOfAny.explicit)
     )
