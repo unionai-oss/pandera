@@ -13,9 +13,9 @@ except ImportError:
     GEOPANDAS_INSTALLED = False
 
 if GEOPANDAS_INSTALLED:
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel,ungrouped-imports
     from pandera.engines.pandas_engine import Geometry
-    
+
     # pylint:disable=too-few-public-methods
     class GeoSeries(SeriesBase[Geometry], gpd.GeoSeries):
         """Representation of geopandas.GeoSeries, only used for type annotation."""
