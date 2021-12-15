@@ -1,7 +1,6 @@
 """Pandera type annotations for GeoPandas."""
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from pandera.engines.pandas_engine import Geometry
 from pandera.typing.common import DataFrameBase, SeriesBase
 
 from .pandas import Schema
@@ -14,6 +13,9 @@ except ImportError:
     GEOPANDAS_INSTALLED = False
 
 if GEOPANDAS_INSTALLED:
+    # pylint: disable=import-outside-toplevel
+    from pandera.engines.pandas_engine import Geometry
+    
     # pylint:disable=too-few-public-methods
     class GeoSeries(SeriesBase[Geometry], gpd.GeoSeries):
         """Representation of geopandas.GeoSeries, only used for type annotation."""
