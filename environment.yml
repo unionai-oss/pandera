@@ -11,7 +11,6 @@ dependencies:
   - hypothesis >= 5.41.1
   - numpy >= 1.9.0
   - pandas
-  - pandas-stubs
   - scipy
   - wrapt
   - pyyaml >=5.1
@@ -20,6 +19,9 @@ dependencies:
   - frictionless
   - pyarrow
   - pydantic
+
+  # mypy extra
+  - pandas-stubs
 
   # koalas extra
   - koalas

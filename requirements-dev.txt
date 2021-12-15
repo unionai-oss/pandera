@@ -6,7 +6,6 @@ packaging >= 20.0
 hypothesis >= 5.41.1
 numpy >= 1.9.0
 pandas
-pandas-stubs
 scipy
 wrapt
 pyyaml >=5.1
@@ -15,6 +14,7 @@ typing_extensions >= 3.7.4.3
 frictionless
 pyarrow
 pydantic
+pandas-stubs
 koalas
 pyspark
 modin
