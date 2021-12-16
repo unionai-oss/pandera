@@ -30,6 +30,8 @@ dataframes.
      - A pandas drop-in replacement, distributed using a Spark backend.
    * - :ref:`Modin <scaling_modin>`
      - A pandas drop-in replacement, distributed using a Ray or Dask backend.
+   * - :ref:`GeoPandas <scaling_geopandas>`
+     - An extension of pandas that supports geospatial data.
 
 .. toctree::
     :maxdepth: 1
