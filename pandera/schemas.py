@@ -50,6 +50,8 @@ CheckList = Optional[
     Union[Union[Check, Hypothesis], List[Union[Check, Hypothesis]]]
 ]
 
+CheckListProperty = List[Union[Check, Hypothesis]]
+
 PandasDtypeInputTypes = Union[
     str,
     type,
@@ -175,9 +177,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        self.columns: Dict[str, Column] = (
-            {} if columns is None else columns
-        )
+        self.columns: Dict[Any, Column] = {} if columns is None else columns
 
         if transformer is not None:
             warnings.warn(
@@ -199,7 +199,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 "or `'filter'`."
             )
 
-        self.checks: CheckList = checks
+        self.checks: CheckListProperty = checks
         self.index = index
         self.strict: Union[bool, str] = strict
         self.name: Optional[str] = name
@@ -305,7 +305,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
-    def get_dtypes(self, dataframe: pd.DataFrame) -> Dict[str, str]:
+    def get_dtypes(self, dataframe: pd.DataFrame) -> Dict[str, DataType]:
         """
         Same as the ``dtype`` property, but expands columns where
         ``regex == True`` based on the supplied dataframe.
@@ -542,7 +542,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
         if self.strict or self.ordered:
-            column_names = []
+            column_names: List[Any] = []
             for col_name, col_schema in self.columns.items():
                 if col_schema.regex:
                     try:
@@ -1112,7 +1112,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
-        new_columns: Dict[str, Dict[str, Any]] = {}
+        new_columns: Dict[str, Column] = {}
         for col in new_schema.columns:
             # check
             if update_dict.get(col):
@@ -1547,7 +1547,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         new_index = (
             None
-            if (level_temp == []) or isinstance(new_schema.index, Index)
+            if not level_temp or isinstance(new_schema.index, Index)
             else new_schema.index.remove_columns(level_temp)
         )
         new_index = (

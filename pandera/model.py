@@ -108,7 +108,7 @@ _config_options = [attr for attr in vars(BaseConfig) if _is_field(attr)]
 
 
 def _extract_config_options_and_extras(
-    config: Type,
+    config: Any,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     config_options, extras = {}, {}
     for name, value in vars(config).items():
@@ -537,9 +537,9 @@ def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
 def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
     sig = inspect.signature(annotation.arg)  # type: ignore
     dtype_arg_names = list(sig.parameters.keys())
-    if len(annotation.metadata) != len(dtype_arg_names):
+    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
         raise TypeError(
             f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
             + f"all positional arguments {dtype_arg_names}."
         )
-    return dict(zip(dtype_arg_names, annotation.metadata))
+    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
