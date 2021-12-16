@@ -32,6 +32,10 @@ dependencies:
   - dask
   - distributed
 
+  # geopandas extra
+  - geopandas
+  - shapely
+
   # testing and dependencies
   - black >= 21.12b0
 
