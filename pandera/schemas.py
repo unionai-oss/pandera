@@ -1,6 +1,8 @@
 """Core pandera schema class definitions."""
 # pylint: disable=too-many-lines
 
+from __future__ import annotations
+
 import copy
 import itertools
 import os
@@ -8,7 +10,17 @@ import traceback
 import warnings
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -27,6 +39,10 @@ from .error_formatters import (
 )
 from .error_handlers import SchemaErrorHandler
 from .hypotheses import Hypothesis
+
+if TYPE_CHECKING:
+    from pandera.schema_components import Column
+
 
 N_INDENT_SPACES = 4
 
@@ -71,7 +87,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     @deprecate_pandas_dtype
     def __init__(
         self,
-        columns: Optional[Dict[Any, Any]] = None,
+        columns: Optional[Dict[str, Column]] = None,
         checks: CheckList = None,
         index=None,
         dtype: PandasDtypeInputTypes = None,
@@ -159,7 +175,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        self.columns = {} if columns is None else columns
+        self.columns: Dict[str, Column] = (
+            {} if columns is None else columns
+        )
 
         if transformer is not None:
             warnings.warn(
@@ -181,11 +199,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 "or `'filter'`."
             )
 
-        self.checks = checks
+        self.checks: CheckList = checks
         self.index = index
-        self.strict = strict
-        self.name = name
-        self.dtype = dtype or pandas_dtype  # type: ignore
+        self.strict: Union[bool, str] = strict
+        self.name: Optional[str] = name
+        self.dtype: PandasDtypeInputTypes = dtype or pandas_dtype  # type: ignore
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
