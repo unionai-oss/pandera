@@ -57,3 +57,10 @@ if koalas.KOALAS_INSTALLED:
     DATAFRAME_TYPES.update({koalas.DataFrame})
     SERIES_TYPES.update({koalas.Series})
     INDEX_TYPES.update({koalas.Index})
+
+
+__all__ = [
+    "DataFrame",
+    "Series",
+    "Index",
+]
