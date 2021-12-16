@@ -59,8 +59,8 @@ Similarly to pandas, the data type can be specified as:
 
 * a string alias, as long as it is recognized by pandas.
 * a python type: `int`, `float`, `double`, `bool`, `str`
-* a `numpy data type <(https://numpy.org/doc/stable/user/basics.types.html)>`_
-* a `pandas extension type <(https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#dtypes)>`_:
+* a `numpy data type <https://numpy.org/doc/stable/user/basics.types.html>`_
+* a `pandas extension type <https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#dtypes>`_:
   it can be an instance (e.g `pd.CategoricalDtype(["a", "b"])`) or a
   class (e.g `pandas.CategoricalDtype`) if it can be initialized with default
   values.
@@ -444,7 +444,7 @@ Validating the order of the columns
 For some applications the order of the columns is important. For example:
 
 * If you want to use
-  `selection by position <(https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html#selection-by-position)>`_
+  `selection by position <https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html#selection-by-position>`_
   instead of the more common
   `selection by label <https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html#selection-by-label>`_.
 * Machine learning: Many ML libraries will cast a Dataframe to numpy arrays,
