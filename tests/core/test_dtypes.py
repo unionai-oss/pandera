@@ -135,7 +135,6 @@ timestamp_dtypes = {
 
 timedelta_dtypes = {
     datetime.timedelta: "timedelta64",
-    datetime.timedelta: "timedelta64",
     np.timedelta64: "timedelta64",
     pd.Timedelta: "timedelta64",
     pa.Timedelta: "timedelta64",

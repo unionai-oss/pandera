@@ -118,6 +118,9 @@ autodoc_default_options = {
     "undoc-members": False,
 }
 
+# sphinx-autodoc-typehints options
+set_type_checking_flag = True
+
 # -- Options for HTML output -------------------------------------------------
 
 html_title = "pandera"
@@ -197,9 +200,17 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
         # You probably should make this check more specific by checking
         # that dataclass name is in the message, so that you don't filter out
         # other meaningful warnings
-        return not record.getMessage().startswith(
-            "Cannot resolve forward reference in type annotations of "
-            '"pandera.typing.DataFrame"'
+        return not (
+            record.getMessage().startswith(
+                "Cannot resolve forward reference in type annotations of "
+                '"pandera.typing.DataFrame"'
+            )
+            # NOTE: forward reference false positive needs to be handled
+            # correctly
+            or record.getMessage().startswith(
+                "Cannot resolve forward reference in type annotations of "
+                '"pandera.schemas.DataFrameSchema'
+            )
         )
 
 

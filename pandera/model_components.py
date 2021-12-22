@@ -91,11 +91,11 @@ class FieldInfo:
     def __set_name__(self, owner: Type, name: str) -> None:
         self.original_name = name
 
-    def __get__(self, instance: Any, owner: Type) -> "FieldInfo":
-        return self
+    def __get__(self, instance: Any, owner: Type) -> str:
+        return self.name
 
     def __str__(self):
-        return self.name.__str__()
+        return f'{self.__class__}("{self.name}")'
 
     def __repr__(self):
         cls = self.__class__

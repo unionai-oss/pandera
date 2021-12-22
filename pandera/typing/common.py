@@ -103,7 +103,7 @@ class DataFrameBase(Generic[T]):
         if name == "__orig_class__":
             orig_class = getattr(self, "__orig_class__")
             class_args = getattr(orig_class, "__args__", None)
-            if any(
+            if class_args is not None and any(
                 x.__name__ == "SchemaModel"
                 for x in inspect.getmro(class_args[0])
             ):
