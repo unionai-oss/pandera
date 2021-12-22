@@ -33,7 +33,9 @@ Then enable the plugin in your ``mypy.ini`` or ``setug.cfg`` file:
     annotations don't always match the official
     `pandas effort to support type annotations <https://github.com/pandas-dev/pandas/issues/28142#issuecomment-991967009>`__),
     installing the ```pandera[mypy]`` extra may yield false positives in your
-    pandas code. We encourage beta users to `file an issue <https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=bug,mypy&template=bug_report.md&title=>`__
+    pandas code, many of which are are documented in ``tests/mypy/modules``.
+
+    We encourage beta users to `file an issue <https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=bug,mypy&template=bug_report.md&title=>`__
     if they find any false positives or negatives being reported by ``mypy``.
     A list of such issues can be found `here <https://github.com/pandera-dev/pandera/labels/mypy>`__.
 
