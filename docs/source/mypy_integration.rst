@@ -43,13 +43,13 @@ Then enable the plugin in your ``mypy.ini`` or ``setug.cfg`` file:
 In the example below, we define a few schemas to see how type-linting with
 pandera works.
 
-.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+.. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 8-27
 
 The mypy linter will complain if the output type of the function body doesn't
 match the function's return signature.
 
-.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+.. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 30-43
 
 It'll also complain if the input type doesn't match the expected input type.
@@ -57,14 +57,14 @@ Note that we're using the :py:class:`pandera.typing.pandas.DataFrame` generic
 type to define dataframes that are validated against the
 :py:class:`~pandera.model.SchemaModel` type variable on initialization.
 
-.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+.. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 47-60
 
 
 To make mypy happy with respect to the return type, you can either initialize
 a dataframe of the expected type:
 
-.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+.. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 63-64
 
 .. note::
@@ -76,7 +76,7 @@ a dataframe of the expected type:
 Or use :py:func:`typing.cast` to indicate to mypy that the return value of
 the function is of the correct type.
 
-.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+.. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 67-68
 
 
@@ -92,7 +92,7 @@ decorator to verify that the output dataframe is valid.
 
 Consider the examples below:
 
-.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+.. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 63-80
 
 Even though the outputs of these functions are incorrect, mypy doesn't catch
@@ -101,5 +101,5 @@ the error during static type-linting but pandera will raise a
 exception at runtime, depending on whether you're doing
 :ref:`lazy validation<lazy_validation>` or not.
 
-.. literalinclude:: ../../tests/core/static/pandas_dataframe.py
+.. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 83-87
