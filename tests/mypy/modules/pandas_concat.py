@@ -1,3 +1,4 @@
+# pylint: skip-file
 import pandas as pd
 
 df = pd.DataFrame([[1]])
