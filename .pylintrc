@@ -1,4 +1,5 @@
 [BASIC]
+ignore=mypy.py
 good-names=
     T,
     F,
