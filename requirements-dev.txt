@@ -23,7 +23,7 @@ distributed
 black >= 21.12b0
 isort >= 5.7.0
 codecov
-mypy >= 0.902
+mypy == 0.921
 pylint == 2.11.1
 pytest
 pytest-cov
