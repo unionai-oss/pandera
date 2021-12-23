@@ -1784,7 +1784,7 @@ class SeriesSchemaBase:
         except errors.ParserError as exc:
             msg = (
                 f"Error while coercing '{self.name}' to type "
-                f"{self.dtype}: {exc}"
+                f"{self.dtype}: {exc}:\n{exc.failure_cases}"
             )
             raise errors.SchemaError(
                 self,
