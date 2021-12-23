@@ -4,6 +4,7 @@ This module uses subprocess and the pytest.capdf fixture to capture the output
 of calling mypy on the python modules in the tests/core/static folder.
 """
 
+import importlib
 import os
 import re
 import subprocess
@@ -14,7 +15,7 @@ from pathlib import Path
 import pytest
 
 import pandera as pa
-from tests.core.static import pandas_dataframe
+from tests.mypy.modules import pandas_dataframe
 
 test_module_dir = Path(os.path.dirname(__file__))
 
@@ -45,7 +46,7 @@ def test_mypy_pandas_dataframe(capfd) -> None:
             sys.executable,
             "-m",
             "mypy",
-            str(test_module_dir / "static" / "pandas_dataframe.py"),
+            str(test_module_dir / "modules" / "pandas_dataframe.py"),
         ],
         text=True,
     )
@@ -101,3 +102,75 @@ def test_pandera_runtime_errors(fn) -> None:
         fn(pandas_dataframe.schema_df)
     except pa.errors.SchemaError as e:
         assert e.failure_cases["failure_case"].item() == "age"
+
+
+PANDAS_CONCAT_FALSE_POSITIVES = {
+    13: {
+        "msg": 'No overload variant of "concat" matches argument type "Generator[DataFrame, None, None]"',  # noqa
+        "errcode": "call-overload",
+    },
+    16: {
+        "msg": 'No overload variant of "concat" matches argument type "Generator[Series, None, None]"',  # noqa
+        "errcode": "call-overload",
+    },
+}
+
+PANDAS_TIME_FALSE_POSITIVES = {
+    4: {
+        "msg": 'Unsupported operand types for + ("Timestamp" and "YearEnd")',  # noqa
+        "errcode": "operator",
+    },
+    6: {
+        "msg": 'Missing positional argument "value" in call to "Timedelta"',  # noqa
+        "errcode": "call-arg",
+    },
+    9: {
+        "msg": 'Missing positional argument "value" in call to "Timedelta"',  # noqa
+        "errcode": "call-arg",
+    },
+    10: {
+        "msg": 'Argument 1 to "Timedelta" has incompatible type "float"; expected "Union[Timedelta, timedelta, timedelta64, str, int]"',  # noqa
+        "errcode": "arg-type",
+    },
+}
+
+
+@pytest.mark.parametrize(
+    "module,config,errors",
+    [
+        ["pandas_concat.py", None, PANDAS_CONCAT_FALSE_POSITIVES],
+        ["pandas_concat.py", "plugin_mypy.ini", PANDAS_CONCAT_FALSE_POSITIVES],
+        ["pandas_time.py", None, PANDAS_TIME_FALSE_POSITIVES],
+        ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_FALSE_POSITIVES],
+    ],
+)
+def test_pandas_stubs_false_positives(capfd, module, config, errors) -> None:
+    """Test pandas-stubs type stub false positives."""
+    if config is None:
+        cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
+    else:
+        cache_dir = str(test_module_dir / ".mypy_cache" / f"test-{config}")
+
+    commands = [
+        sys.executable,
+        "-m",
+        "mypy",
+        str(test_module_dir / "modules" / module),
+        "--cache-dir",
+        cache_dir,
+    ]
+
+    if config:
+        commands += ["--config-file", str(test_module_dir / "config" / config)]
+    subprocess.run(
+        commands,
+        text=True,
+    )
+    errors = _get_mypy_errors(capfd.readouterr().out)
+    assert errors == errors
+
+
+@pytest.mark.parametrize("module", ["pandas_concat", "pandas_time"])
+def test_pandas_modules_importable(module):
+    """Make sure that static type linting modules can be executed."""
+    importlib.import_module(f"tests.mypy.modules.{module}")
