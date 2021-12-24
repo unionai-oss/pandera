@@ -14,13 +14,13 @@ class SimpleSchema(pa.SchemaModel):
     float_col: Series[float]
 
     class Config:
-        pre_format = "parquet"
+        from_format = "parquet"
 
 
 class OutSchema(SimpleSchema):
     class Config:
-        pre_format = None
-        post_format = "feather"
+        from_format = None
+        to_format = "feather"
 
 
 class PydanticModel(pydantic.BaseModel):

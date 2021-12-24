@@ -9,6 +9,6 @@ print(r.text)
 
 r = requests.post(
     "http://127.0.0.1:8000/transactions/",
-    json={"cost": [10.99]},
+    json={"id": [1], "cost": [10.99]},
 )
 print(r.text)

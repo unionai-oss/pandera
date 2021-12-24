@@ -107,26 +107,26 @@ class BaseConfig:  # pylint:disable=R0903
     #: schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, assumes a data structure
     #: compatible with the ``pandas.DataFrame`` constructor.
-    pre_format: Optional[Format] = None
+    from_format: Optional[Format] = None
 
     #: a dictionary keyword arguments to pass into the reader function that
-    #: converts the object of type ``pre_format`` to a pandera-validate-able
+    #: converts the object of type ``from_format`` to a pandera-validate-able
     #: data structure. The reader function is implemented in the pandera.typing
-    #: generic types via the ``from_pre_format`` and ``to_post_format``
+    #: generic types via the ``from_format`` and ``to_format``
     # methods.
-    pre_format_options: Optional[Dict[str, Any]] = None
+    from_format_options: Optional[Dict[str, Any]] = None
 
     #: data format to serialize into after validation. This option only applies
     # to  schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, returns a dataframe.
-    post_format: Optional[Format] = None
+    to_format: Optional[Format] = None
 
     #: a dictionary keyword arguments to pass into the writer function that
-    #: converts the pandera-validate-able object to type ``post_format``.
+    #: converts the pandera-validate-able object to type ``to_format``.
     #: The writer function is implemented in the pandera.typing
-    #: generic types via the ``from_pre_format`` and ``to_post_format``
+    #: generic types via the ``from_format`` and ``to_format``
     #: methods.
-    post_format_options: Optional[Dict[str, Any]] = None
+    to_format_options: Optional[Dict[str, Any]] = None
 
 
 def _is_field(name: str) -> bool:

@@ -73,10 +73,15 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         yield cls.pydantic_validate
 
     @classmethod
-    def from_pre_format(cls, obj: Any, config) -> pd.DataFrame:
-        if config.pre_format is None:
+    def from_format(cls, obj: Any, config) -> pd.DataFrame:
+        if config.from_format is None:
             if not isinstance(obj, pd.DataFrame):
-                raise ValueError(f"Expected pd.DataFrame, found {type(obj)}")
+                try:
+                    obj = pd.DataFrame(obj)
+                except Exception as exc:
+                    raise ValueError(
+                        f"Expected pd.DataFrame, found {type(obj)}"
+                    ) from exc
             return obj
 
         reader = {
@@ -86,13 +91,13 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             Formats.feather: pd.read_feather,
             Formats.parquet: pd.read_parquet,
             Formats.pickle: pd.read_pickle,
-        }[Formats(config.pre_format)]
+        }[Formats(config.from_format)]
 
-        return reader(obj, **(config.pre_format_options or {}))
+        return reader(obj, **(config.from_format_options or {}))
 
     @classmethod
-    def to_post_format(cls, data: pd.DataFrame, config) -> Any:
-        if config.post_format is None:
+    def to_format(cls, data: pd.DataFrame, config) -> Any:
+        if config.to_format is None:
             return data
 
         writer, buffer = {
@@ -102,10 +107,10 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             Formats.feather: (data.to_feather, io.BytesIO()),
             Formats.parquet: (data.to_parquet, io.BytesIO()),
             Formats.pickle: (data.to_pickle, io.BytesIO()),
-        }[Formats(config.post_format)]
+        }[Formats(config.to_format)]
 
         args = [] if buffer is None else [buffer]
-        out = writer(*args, **(config.post_format_options or {}))
+        out = writer(*args, **(config.to_format_options or {}))
         if buffer is None:
             return out
         buffer.seek(0)
@@ -137,11 +142,11 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         meets all schema requirements.
         """
         schema_model, schema = cls._get_schema(field)
-        data = cls.from_pre_format(obj, schema_model.__config__)
+        data = cls.from_format(obj, schema_model.__config__)
 
         try:
             valid_data = schema.validate(data)
         except SchemaError as exc:
             raise ValueError(str(exc)) from exc
 
-        return cls.to_post_format(valid_data, schema_model.__config__)
+        return cls.to_format(valid_data, schema_model.__config__)

@@ -552,10 +552,8 @@ def check_types(
             data_container_type = annotation_info.origin
             schema = schema_model.to_schema()
 
-            if config.pre_format:
-                arg_value = data_container_type.from_pre_format(
-                    arg_value, config
-                )
+            if config.from_format:
+                arg_value = data_container_type.from_format(arg_value, config)
 
             if (
                 arg_value.pandera.schema is None
@@ -578,8 +576,8 @@ def check_types(
                         "check_types", wrapped, schema, arg_value, e
                     )
 
-            if config.post_format:
-                checked_arg = data_container_type.to_post_format(
+            if config.to_format:
+                checked_arg = data_container_type.to_format(
                     checked_arg, config
                 )
 

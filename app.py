@@ -21,35 +21,35 @@ class Transactions(pa.SchemaModel):
 
 class TransactionsCsv(Transactions):
     class Config:
-        pre_format = "csv"
+        from_format = "csv"
 
 
 class TransactionsJson(Transactions):
     class Config:
-        pre_format = "json"
-        pre_format_options = {"orient": "records"}
+        from_format = "json"
+        from_format_options = {"orient": "records"}
 
 
 class TransactionsJsonToParquet(Transactions):
     class Config:
-        pre_format = "json"
-        pre_format_options = {"orient": "records"}
-        post_format = "parquet"
+        from_format = "json"
+        from_format_options = {"orient": "records"}
+        to_format = "parquet"
 
 
 class TransactionsParquet(Transactions):
     class Config:
-        pre_format = "parquet"
+        from_format = "parquet"
 
 
 class TransactionsFeather(Transactions):
     class Config:
-        pre_format = "feather"
+        from_format = "feather"
 
 
 class TransactionsPickle(Transactions):
     class Config:
-        pre_format = "pickle"
+        from_format = "pickle"
 
 
 class TransactionsOut(Transactions):
@@ -60,14 +60,20 @@ class TransactionsOut(Transactions):
 
 class TransactionsJsonOut(TransactionsOut):
     class Config:
-        post_format = "json"
-        post_format_options = {"orient": "records"}
+        to_format = "json"
+        to_format_options = {"orient": "records"}
+
+
+class TransactionsDictOut(TransactionsOut):
+    class Config:
+        to_format = "dict"
+        to_format_options = {"orient": "records"}
 
 
 class TransactionsCsvOut(TransactionsOut):
     class Config:
-        post_format = "csv"
-        post_format_options = {"index": False}
+        to_format = "csv"
+        to_format_options = {"index": False}
 
 
 class Item(BaseModel):
@@ -97,9 +103,9 @@ def create_item(item: Item):
     return item
 
 
-@app.post("/transactions/", response_model=DataFrame[TransactionsJson])
+@app.post("/transactions/", response_model=DataFrame[TransactionsDictOut])
 def create_transactions(transactions: DataFrame[Transactions]):
-    return transactions
+    return transactions.assign(name="foo")
 
 
 class ResponseModel(BaseModel):
