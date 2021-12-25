@@ -54,6 +54,23 @@ class SchemaError(Exception):
         self.check_index = check_index
         self.check_output = check_output
 
+    def __reduce__(self):
+        """Exception.__reduce__ is incompatible. Override with custom layout.
+
+        Each non-primitive attribute is mapped to its string representation.
+        """
+        return SchemaError, (
+            str(self.schema),
+            str(self.data),
+            str(self),  # message
+            str(self.failure_cases)
+            if self.failure_cases is not None
+            else None,
+            str(self.check) if self.check is not None else None,
+            self.check_index,
+            str(self.check_output) if self.check_output is not None else None,
+        )
+
 
 class BaseStrategyOnlyError(Exception):
     """Custom error for reporting strategies that must be base strategies."""
@@ -229,3 +246,24 @@ class SchemaErrors(Exception):
             .drop_duplicates()
         )
         return error_counts, failure_cases
+
+    def __reduce__(self):
+        """Create unpickled object without `__init__`.
+
+        The return value of __reduce__ is what is pickled.
+        For unpickling, the first object of the 3-tuple is called with the second
+        object as arguments, which here means creating an empty SchemaErrors
+        instance via `__new__`. The `__dict__` of the new object is
+        then updated with the third object of the returned 3-tuple.
+        """
+        return (
+            SchemaErrors.__new__,
+            (SchemaErrors,),
+            {
+                "args": self.args,  # message
+                "schema_errors": self.schema_errors,
+                "error_counts": self.error_counts,
+                "failure_cases": str(self.failure_cases),
+                "data": str(self.data),
+            },
+        )
