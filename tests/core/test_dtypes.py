@@ -38,7 +38,6 @@ int_dtypes = {
     np.int64: "int64",
 }
 
-
 nullable_int_dtypes = {
     pandas_engine.INT8: "Int8",
     pandas_engine.INT16: "Int16",
@@ -76,14 +75,12 @@ float_dtypes = {
     np.float64: "float64",
 }
 
-
 complex_dtypes = {
     complex: "complex",
     pa.Complex: "complex128",
     pa.Complex64: "complex64",
     pa.Complex128: "complex128",
 }
-
 
 if FLOAT_128_AVAILABLE:
     float_dtypes.update(
@@ -98,6 +95,13 @@ if FLOAT_128_AVAILABLE:
             np.complex256: "complex256",
         }
     )
+
+nullable_float_dtypes = None
+if pa.PANDAS_1_2_0_PLUS:
+    nullable_float_dtypes = {
+        pandas_engine.FLOAT32: "Float32",
+        pandas_engine.FLOAT64: "Float64",
+    }
 
 boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
 nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
@@ -156,6 +160,7 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (uint_dtypes, [1]),
     (nullable_uint_dtypes, [1, None]),
     (float_dtypes, [1.0]),
+    *([] if nullable_float_dtypes is None else [(nullable_float_dtypes, [1.0, None])]),
     (complex_dtypes, [complex(1)]),
     (boolean_dtypes, [True, False]),
     (nullable_boolean_dtypes, [True, None]),
@@ -338,11 +343,15 @@ numeric_dtypes = _flatten_dtypesdict(
     boolean_dtypes,
 )
 
+
 nullable_numeric_dtypes = _flatten_dtypesdict(
     nullable_int_dtypes,
     nullable_uint_dtypes,
+    nullable_float_dtypes,
     nullable_boolean_dtypes,
+    *([nullable_float_dtypes] if nullable_float_dtypes else [])
 )
+
 
 nominal_dtypes = _flatten_dtypesdict(
     string_dtypes,
@@ -519,7 +528,14 @@ def test_is_uint(uint_dtype: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "float_dtype, expected",
-    [(dtype, True) for dtype in float_dtypes] + [("string", False)],  # type: ignore
+    [
+        (dtype, True)
+        for dtype in (
+            *float_dtypes,
+            *([nullable_float_dtypes] if nullable_float_dtypes else [])
+        )
+    ]
+    + [("string", False)],  # type: ignore
 )
 def test_is_float(float_dtype: Any, expected: bool):
     """Test is_float."""

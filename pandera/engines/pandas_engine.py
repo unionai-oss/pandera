@@ -31,6 +31,7 @@ def pandas_version():
     return version.parse(pd.__version__)
 
 
+PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 
 try:
@@ -353,6 +354,25 @@ _register_numpy_numbers(
     pandera_name="Float",
     sizes=[128, 64, 32, 16] if FLOAT_128_AVAILABLE else [64, 32, 16],
 )
+
+if PANDAS_1_2_0_PLUS:
+
+    @Engine.register_dtype(equivalents=[pd.Float64Dtype, pd.Float64Dtype()])
+    @immutable
+    class FLOAT64(DataType, dtypes.Float):
+        """Semantic representation of a :class:`pandas.Float64Dtype`."""
+
+        type = pd.Float64Dtype()
+        bit_width: int = 64
+
+    @Engine.register_dtype(equivalents=[pd.Float32Dtype, pd.Float32Dtype()])
+    @immutable
+    class FLOAT32(FLOAT64):
+        """Semantic representation of a :class:`pandas.Float32Dtype`."""
+
+        type = pd.Float32Dtype()
+        bit_width: int = 32
+
 
 # ###############################################################################
 # # complex
@@ -749,6 +769,8 @@ class PandasDtype(Enum):
     INT16 = "Int16"  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
     INT32 = "Int32"  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
     INT64 = "Int64"  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
+    FLOAT32 = "Float32"  #: ``"Float32"`` pandas dtype: pandas 1.2.0+
+    FLOAT64 = "Float64"  #: ``"Float64"`` pandas dtype: pandas 1.2.0+
     UINT8 = "UInt8"  #: ``"UInt8"`` pandas dtype: pandas 0.24.0+
     UINT16 = "UInt16"  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
     UINT32 = "UInt32"  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
