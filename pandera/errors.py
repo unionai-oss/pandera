@@ -1,5 +1,6 @@
 """pandera-specific errors."""
 
+import warnings
 from collections import defaultdict, namedtuple
 from typing import Any, Dict, List, Union
 
@@ -23,6 +24,20 @@ class ParserError(Exception):
     def __init__(self, message, failure_cases):
         super().__init__(message)
         self.failure_cases = failure_cases
+
+    def __reduce__(self):
+        """Exception.__reduce__ is incompatible. Override with custom layout.
+
+        `failure_cases` is replaced by its string representation.
+        """
+        return ParserError, (
+            str(self),  # message
+            str(self.failure_cases),
+        )
+
+    def __setstate__(self, state):
+        warnings.warn("Pickling ParserError does not preserve state.")
+        return super().__setstate__(state)
 
 
 class SchemaInitError(Exception):
@@ -70,6 +85,10 @@ class SchemaError(Exception):
             self.check_index,
             str(self.check_output) if self.check_output is not None else None,
         )
+
+    def __setstate__(self, state):
+        warnings.warn("Pickling SchemaError does not preserve state.")
+        return super().__setstate__(state)
 
 
 class BaseStrategyOnlyError(Exception):
@@ -267,3 +286,7 @@ class SchemaErrors(Exception):
                 "data": str(self.data),
             },
         )
+
+    def __setstate__(self, state):
+        warnings.warn("Pickling SchemaErrors does not preserve state.")
+        return super().__setstate__(state)

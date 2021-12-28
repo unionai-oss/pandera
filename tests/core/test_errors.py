@@ -18,7 +18,8 @@ import pandas as pd
 import pytest
 
 from pandera import Check, Column, DataFrameSchema
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.engines import pandas_engine
+from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
 @pytest.fixture(name="int_dataframe")
@@ -67,9 +68,8 @@ class TestSchemaError:
         else:
             pytest.fail("SchemaError not raised")
 
-    @classmethod
     @pytest.mark.parametrize("n_tile", [1, 10000])
-    def test_unpickling(cls, int_dataframe: pd.DataFrame, n_tile: int):
+    def test_unpickling(self, int_dataframe: pd.DataFrame, n_tile: int):
         """Tests content validity of unpickled SchemaError."""
         df = pd.DataFrame(
             {"a": np.tile(int_dataframe["a"].to_numpy(), n_tile)}
@@ -84,7 +84,7 @@ class TestSchemaError:
         else:
             pytest.fail("SchemaError not raised")
         assert loaded is not None
-        cls._validate_error(df, n_tile, loaded)
+        self._validate_error(df, n_tile, loaded)
 
     @staticmethod
     def _validate_error(df: pd.DataFrame, n_tile: int, exc: SchemaError):
@@ -110,14 +110,13 @@ class TestSchemaError:
             pd.Series(np.tile([False, True, True], n_tile), name="a")
         )
 
-    @classmethod
-    def test_subprocess(cls, int_dataframe: pd.DataFrame):
+    def test_subprocess(self, int_dataframe: pd.DataFrame):
         """Test exception propagation from subprocesses."""
         with multiprocessing.Pool(1) as pool:
             try:
-                pool.apply(cls._failing_validation, args=(int_dataframe,))
+                pool.apply(self._failing_validation, args=(int_dataframe,))
             except SchemaError as exc:
-                cls._validate_error(int_dataframe, 1, exc)
+                self._validate_error(int_dataframe, 1, exc)
             else:
                 pytest.fail("SchemaError not raised")
 
@@ -164,9 +163,8 @@ class TestSchemaErrors:
         else:
             pytest.fail("SchemaErrors not raised")
 
-    @classmethod
     def test_unpickling(
-        cls, int_dataframe: pd.DataFrame, multi_check_schema: DataFrameSchema
+        self, int_dataframe: pd.DataFrame, multi_check_schema: DataFrameSchema
     ):
         """Tests content validity of unpickled SchemaErrors."""
         try:
@@ -174,21 +172,21 @@ class TestSchemaErrors:
         except SchemaErrors as exc:
             loaded = pickle.loads(pickle.dumps(exc))
             assert loaded is not None
-            cls._compare_exception_with_unpickled(exc, loaded)
+            self._compare_exception_with_unpickled(exc, loaded)
         else:
             pytest.fail("SchemaErrors not raised")
 
-    @classmethod
-    def test_subprocess(cls, int_dataframe: pd.DataFrame):
+    def test_subprocess(self, int_dataframe: pd.DataFrame):
         """Run failing subprocess and compare exception."""
         with multiprocessing.Pool(1) as pool:
             try:
-                pool.apply(cls._failing_validation, args=(int_dataframe,))
+                with pytest.warns(UserWarning, match="Pickling"):
+                    pool.apply(self._failing_validation, args=(int_dataframe,))
             except SchemaErrors as exc_mp:
                 try:
-                    cls._failing_validation(int_dataframe)
+                    self._failing_validation(int_dataframe)
                 except SchemaErrors as exc_native:
-                    cls._compare_exception_with_unpickled(exc_native, exc_mp)
+                    self._compare_exception_with_unpickled(exc_native, exc_mp)
                 else:
                     pytest.fail("SchemaErrors not raised")
             else:
@@ -217,3 +215,34 @@ class TestSchemaErrors:
         """Call validation that fails with SchemaErrors."""
         _multi_check_schema().validate(df, lazy=True)
         raise RuntimeError("SchemaErrors not raised")
+
+
+class TestParserError:
+    """Tests pickling behavior of errors.ParserError."""
+
+    @staticmethod
+    def _create_parser_error() -> NoReturn:
+        pandas_engine.Engine.dtype(int).try_coerce(pd.Series(["a", 0, "b"]))
+        raise RuntimeError("ParserError not created")
+
+    def test_pickling(self):
+        """Test for a non-empty pickled object."""
+        try:
+            self._create_parser_error()
+        except ParserError as exc:
+            pickled = pickle.dumps(exc)
+            # must be non-empty byte-array
+            assert pickled
+        else:
+            pytest.fail("ParserError not raised")
+
+    def test_unpickling(self):
+        """Tests content validity of unpickled ParserError."""
+        try:
+            self._create_parser_error()
+        except ParserError as exc:
+            unpickled = pickle.loads(pickle.dumps(exc))
+            assert str(unpickled) == str(exc)
+            assert unpickled.failure_cases == str(exc.failure_cases)
+        else:
+            pytest.fail("ParserError not raised")
