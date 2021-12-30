@@ -18,26 +18,57 @@ ErrorData = namedtuple(
 )
 
 
-class ParserError(Exception):
-    """Raised when data cannot be parsed from the raw into its clean form."""
+class ReducedPickleExceptionBase(Exception):
+    """Base class for Excption with non-conserved state under pickling.
 
-    def __init__(self, message, failure_cases):
-        super().__init__(message)
-        self.failure_cases = failure_cases
+    Derived classes define attributes to be transformed to
+    string via `TO_STRING_KEYS`.
+    """
+
+    TO_STRING_KEYS: List[str]
 
     def __reduce__(self):
         """Exception.__reduce__ is incompatible. Override with custom layout.
 
-        `failure_cases` is replaced by its string representation.
+        Each attribute in `TO_STRING_KEYS` is replaced by its string
+        representation.
         """
-        return ParserError, (
-            str(self),  # message
-            str(self.failure_cases),
+        state = {
+            key: str(val)
+            if key in self.TO_STRING_KEYS and val is not None
+            else val
+            for key, val in self.__dict__.items()
+        }
+        state["args"] = self.args  # message may not be in __dict__
+        return (
+            self.__class__.__new__,  # object creation function
+            (self.__class__,),  # arguments to said function
+            state,  # arguments to `__setstate__` after creation
+        )
+
+    @classmethod
+    def _unpickle_warning(cls):
+        """Create the warning message about state loss in pickling."""
+        return (
+            f"Pickling {cls.__name__} does not preserve state: "
+            f"Attributes {cls.TO_STRING_KEYS} become string "
+            "representations."
         )
 
     def __setstate__(self, state):
-        warnings.warn("Pickling ParserError does not preserve state.")
+        """Show warning during unpickling."""
+        warnings.warn(self._unpickle_warning())
         return super().__setstate__(state)
+
+
+class ParserError(ReducedPickleExceptionBase):
+    """Raised when data cannot be parsed from the raw into its clean form."""
+
+    TO_STRING_KEYS = ["failure_cases"]
+
+    def __init__(self, message, failure_cases):
+        super().__init__(message)
+        self.failure_cases = failure_cases
 
 
 class SchemaInitError(Exception):
@@ -48,8 +79,16 @@ class SchemaDefinitionError(Exception):
     """Raised when schema definition is invalid on object validation."""
 
 
-class SchemaError(Exception):
+class SchemaError(ReducedPickleExceptionBase):
     """Raised when object does not pass schema validation constraints."""
+
+    TO_STRING_KEYS = [
+        "schema",
+        "data",
+        "failure_cases",
+        "check",
+        "check_output",
+    ]
 
     def __init__(
         self,
@@ -68,27 +107,6 @@ class SchemaError(Exception):
         self.check = check
         self.check_index = check_index
         self.check_output = check_output
-
-    def __reduce__(self):
-        """Exception.__reduce__ is incompatible. Override with custom layout.
-
-        Each non-primitive attribute is mapped to its string representation.
-        """
-        return SchemaError, (
-            str(self.schema),
-            str(self.data),
-            str(self),  # message
-            str(self.failure_cases)
-            if self.failure_cases is not None
-            else None,
-            str(self.check) if self.check is not None else None,
-            self.check_index,
-            str(self.check_output) if self.check_output is not None else None,
-        )
-
-    def __setstate__(self, state):
-        warnings.warn("Pickling SchemaError does not preserve state.")
-        return super().__setstate__(state)
 
 
 class BaseStrategyOnlyError(Exception):
@@ -112,8 +130,13 @@ except SchemaErrors as err:
 """
 
 
-class SchemaErrors(Exception):
+class SchemaErrors(ReducedPickleExceptionBase):
     """Raised when multiple schema are lazily collected into one error."""
+
+    TO_STRING_KEYS = [
+        "failure_cases",
+        "data",
+    ]
 
     def __init__(
         self,
@@ -265,28 +288,3 @@ class SchemaErrors(Exception):
             .drop_duplicates()
         )
         return error_counts, failure_cases
-
-    def __reduce__(self):
-        """Create unpickled object without `__init__`.
-
-        The return value of __reduce__ is what is pickled.
-        For unpickling, the first object of the 3-tuple is called with the second
-        object as arguments, which here means creating an empty SchemaErrors
-        instance via `__new__`. The `__dict__` of the new object is
-        then updated with the third object of the returned 3-tuple.
-        """
-        return (
-            SchemaErrors.__new__,
-            (SchemaErrors,),
-            {
-                "args": self.args,  # message
-                "schema_errors": self.schema_errors,
-                "error_counts": self.error_counts,
-                "failure_cases": str(self.failure_cases),
-                "data": str(self.data),
-            },
-        )
-
-    def __setstate__(self, state):
-        warnings.warn("Pickling SchemaErrors does not preserve state.")
-        return super().__setstate__(state)
