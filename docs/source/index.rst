@@ -109,7 +109,18 @@ Install with `pip`:
 
     pip install pandera
 
-Installing optional functionality:
+Or conda:
+
+.. code:: bash
+
+    conda install -c conda-forge pandera-core  # core library functionality
+    conda install -c conda-forge pandera       # pandera with all extensions
+
+
+Extras
+~~~~~~
+
+Installing additional functionality:
 
 .. code:: bash
 
@@ -123,15 +134,6 @@ Installing optional functionality:
     pip install pandera[modin-ray]   # validate modin dataframes with ray
     pip install pandera[modin-dask]  # validate modin dataframes with dask
     pip install pandera[all]         # all packages
-
-
-Or conda:
-
-.. code:: bash
-
-    conda install -c conda-forge pandera-core  # core library functionality
-    conda install -c conda-forge pandera       # pandera with all extensions
-
 
 
 Quick Start

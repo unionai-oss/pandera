@@ -66,19 +66,27 @@ Using pip:
 pip install pandera
 ```
 
-Installing optional functionality:
-```
-pip install pandera[hypotheses]  # hypothesis checks
-pip install pandera[io]          # yaml/script schema io utilities
-pip install pandera[strategies]  # data synthesis strategies
-pip install pandera[all]         # all packages
-```
-
 Using conda:
 
 ```
 conda install -c conda-forge pandera-core  # core library functionality
 conda install -c conda-forge pandera       # pandera with all extensions
+```
+
+### Extras
+
+Installing additional functionality:
+```
+pip install pandera[hypotheses]  # hypothesis checks
+pip install pandera[io]          # yaml/script schema io utilities
+pip install pandera[strategies]  # data synthesis strategies
+pip install pandera[mypy]        # enable static type-linting of pandas
+pip install pandera[dask]        # validate dask dataframes
+pip install pandera[koalas]      # validate koalas dataframes
+pip install pandera[modin]       # validate modin dataframes
+pip install pandera[modin-ray]   # validate modin dataframes with ray
+pip install pandera[modin-dask]  # validate modin dataframes with dask
+pip install pandera[all]         # all packages
 ```
 
 ## Quick Start
