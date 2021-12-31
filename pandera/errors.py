@@ -1,5 +1,6 @@
 """pandera-specific errors."""
 
+import warnings
 from collections import defaultdict, namedtuple
 from typing import Any, Dict, List, Union
 
@@ -17,8 +18,53 @@ ErrorData = namedtuple(
 )
 
 
-class ParserError(Exception):
+class ReducedPickleExceptionBase(Exception):
+    """Base class for Excption with non-conserved state under pickling.
+
+    Derived classes define attributes to be transformed to
+    string via `TO_STRING_KEYS`.
+    """
+
+    TO_STRING_KEYS: List[str]
+
+    def __reduce__(self):
+        """Exception.__reduce__ is incompatible. Override with custom layout.
+
+        Each attribute in `TO_STRING_KEYS` is replaced by its string
+        representation.
+        """
+        state = {
+            key: str(val)
+            if key in self.TO_STRING_KEYS and val is not None
+            else val
+            for key, val in self.__dict__.items()
+        }
+        state["args"] = self.args  # message may not be in __dict__
+        return (
+            self.__class__.__new__,  # object creation function
+            (self.__class__,),  # arguments to said function
+            state,  # arguments to `__setstate__` after creation
+        )
+
+    @classmethod
+    def _unpickle_warning(cls):
+        """Create the warning message about state loss in pickling."""
+        return (
+            f"Pickling {cls.__name__} does not preserve state: "
+            f"Attributes {cls.TO_STRING_KEYS} become string "
+            "representations."
+        )
+
+    def __setstate__(self, state):
+        """Show warning during unpickling."""
+        warnings.warn(self._unpickle_warning())
+        return super().__setstate__(state)
+
+
+class ParserError(ReducedPickleExceptionBase):
     """Raised when data cannot be parsed from the raw into its clean form."""
+
+    TO_STRING_KEYS = ["failure_cases"]
 
     def __init__(self, message, failure_cases):
         super().__init__(message)
@@ -33,8 +79,16 @@ class SchemaDefinitionError(Exception):
     """Raised when schema definition is invalid on object validation."""
 
 
-class SchemaError(Exception):
+class SchemaError(ReducedPickleExceptionBase):
     """Raised when object does not pass schema validation constraints."""
+
+    TO_STRING_KEYS = [
+        "schema",
+        "data",
+        "failure_cases",
+        "check",
+        "check_output",
+    ]
 
     def __init__(
         self,
@@ -76,8 +130,13 @@ except SchemaErrors as err:
 """
 
 
-class SchemaErrors(Exception):
+class SchemaErrors(ReducedPickleExceptionBase):
     """Raised when multiple schema are lazily collected into one error."""
+
+    TO_STRING_KEYS = [
+        "failure_cases",
+        "data",
+    ]
 
     def __init__(
         self,
