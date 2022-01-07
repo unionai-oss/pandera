@@ -28,7 +28,6 @@ class PydanticModel(pydantic.BaseModel):
     df: DataFrame[OutSchema]
 
 
-# @validate_arguments
 @pa.check_types
 def fn(x: int, df: DataFrame[SimpleSchema]) -> DataFrame[OutSchema]:
     return df.assign(foo=x)
@@ -39,6 +38,7 @@ df = pd.DataFrame({"str_col": ["a"], "int_col": [1], "float_col": [1.0]})
 buf = BytesIO()
 df.to_parquet(buf, index=False)
 buf.seek(0)
+
 print(fn(1, buf))
 
 

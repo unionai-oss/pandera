@@ -12,7 +12,23 @@ except ImportError:
 
 
 class UploadFile(fastapi.UploadFile, Generic[T]):
-    def __init__(self, data, filename, file, *args, **kwargs):
+    """Pandera-specific subclass of fastapi.UploadFile.
+
+    This type uses :py:class:`pandera.typing.DataFrame` to read files into
+    dataframe format based on the :py:class:`pandera.models.SchemaModel`
+    configuration.
+    """
+
+    __slots__ = ("data",)
+
+    def __init__(self, data: Any, filename: str, file, *args, **kwargs):
+        """
+        Initialize UploadFile object that has a ``data`` property that contains
+        validated data.
+
+        :param data: pandera-validated data
+        :filename:
+        """
         super().__init__(filename, file, *args, **kwargs)
         self.data = data
 

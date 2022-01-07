@@ -97,6 +97,14 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @classmethod
     def to_format(cls, data: pd.DataFrame, config) -> Any:
+        """
+        Converts a dataframe to the format specified in the
+        :py:class:`pandera.model.SchemaModel` config options ``from_format``
+        and ``to_format``.
+
+        :param data: convert this data to the specified format
+        :param config: :py:cl
+        """
         if config.to_format is None:
             return data
 
