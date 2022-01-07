@@ -589,6 +589,35 @@ def check_types(
 
             return arg_value
 
+    sig = inspect.signature(wrapped)
+
+    def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            arg_name: _check_arg(arg_name, arg_value)
+            for arg_name, arg_value in arguments.items()
+        }
+
+    def validate_inputs(
+        instance: Optional[Any],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+
+        if instance is not None:
+            # If the wrapped function is a method -> add "self" as the first positional arg
+            args = (instance, *args)
+
+        validated_pos = validate_args(sig.bind_partial(*args).arguments)
+        validated_kwd = validate_args(sig.bind_partial(**kwargs).arguments)
+
+        if instance is not None:
+            # If the decorated func is a method, "wrapped" is a bound method
+            # -> remove "self" before passing positional args through
+            first_pos_arg = list(sig.parameters)[0]
+            del validated_pos[first_pos_arg]
+
+        return validated_pos, validated_kwd
+
     if inspect.iscoroutinefunction(wrapped):
 
         @wrapt.decorator
@@ -598,7 +627,13 @@ def check_types(
             args: Tuple[Any, ...],
             kwargs: Dict[str, Any],
         ):
-            out = await validate_arguments(wrapped_)(*args, **kwargs)
+            if use_pydantic:
+                out = await validate_arguments(wrapped_)(*args, **kwargs)
+            else:
+                validated_pos, validated_kwd = validate_inputs(
+                    instance, args, kwargs
+                )
+                out = await wrapped_(*validated_pos.values(), **validated_kwd)
             return _check_arg("return", out)
 
     else:
@@ -610,7 +645,13 @@ def check_types(
             args: Tuple[Any, ...],
             kwargs: Dict[str, Any],
         ):
-            out = validate_arguments(wrapped_)(*args, **kwargs)
+            if use_pydantic:
+                out = validate_arguments(wrapped_)(*args, **kwargs)
+            else:
+                validated_pos, validated_kwd = validate_inputs(
+                    instance, args, kwargs
+                )
+                out = wrapped_(*validated_pos.values(), **validated_kwd)
             return _check_arg("return", out)
 
     return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
