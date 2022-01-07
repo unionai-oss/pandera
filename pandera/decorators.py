@@ -486,7 +486,7 @@ def check_types(
 def check_types(
     wrapped=None,
     *,
-    use_pydantic=False,
+    with_pydantic=False,
     head: Optional[int] = None,
     tail: Optional[int] = None,
     sample: Optional[int] = None,
@@ -499,7 +499,7 @@ def check_types(
     See the :ref:`User Guide <schema_models>` for more.
 
     :param wrapped: the function to decorate.
-    :param use_pydantic: use ``pydantic.validate_arguments`` to validate
+    :param with_pydantic: use ``pydantic.validate_arguments`` to validate
         inputs. This function is still needed to validate function outputs.
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
@@ -518,6 +518,7 @@ def check_types(
     if wrapped is None:
         return functools.partial(
             check_types,
+            with_pydantic=with_pydantic,
             head=head,
             tail=tail,
             sample=sample,
@@ -583,9 +584,7 @@ def check_types(
                     )
 
             if config.to_format:
-                arg_value = data_container_type.to_format(
-                    arg_value, config
-                )
+                arg_value = data_container_type.to_format(arg_value, config)
 
             return arg_value
 
@@ -627,7 +626,7 @@ def check_types(
             args: Tuple[Any, ...],
             kwargs: Dict[str, Any],
         ):
-            if use_pydantic:
+            if with_pydantic:
                 out = await validate_arguments(wrapped_)(*args, **kwargs)
             else:
                 validated_pos, validated_kwd = validate_inputs(
@@ -645,7 +644,7 @@ def check_types(
             args: Tuple[Any, ...],
             kwargs: Dict[str, Any],
         ):
-            if use_pydantic:
+            if with_pydantic:
                 out = validate_arguments(wrapped_)(*args, **kwargs)
             else:
                 validated_pos, validated_kwd = validate_inputs(

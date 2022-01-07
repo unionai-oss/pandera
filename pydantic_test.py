@@ -28,13 +28,14 @@ class PydanticModel(pydantic.BaseModel):
     df: DataFrame[OutSchema]
 
 
-@pa.check_types
+@pa.check_types(with_pydantic=True)
 def fn(x: int, df: DataFrame[SimpleSchema]) -> DataFrame[OutSchema]:
-    return df.assign(foo=x)
+    return df.assign(foo=x, float_col=1.1)
     # return PydanticModel(x=x, df=df.assign(foo=x))
 
 
-df = pd.DataFrame({"str_col": ["a"], "int_col": [1], "float_col": [1.0]})
+# df = pd.DataFrame({"str_col": ["a"], "int_col": [1], "float_col": [1.0]})
+df = pd.DataFrame({"str_col": ["a"], "int_col": [1]})
 buf = BytesIO()
 df.to_parquet(buf, index=False)
 buf.seek(0)
