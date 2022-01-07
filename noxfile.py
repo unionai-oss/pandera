@@ -26,7 +26,7 @@ nox.options.sessions = (
 )
 
 DEFAULT_PYTHON = "3.8"
-PYTHON_VERSIONS = ["3.7", "3.8", "3.9"]
+PYTHON_VERSIONS = ["3.7", "3.8", "3.9", "3.10"]
 PANDAS_VERSIONS = ["1.3.0", "latest"]
 
 PACKAGE = "pandera"
