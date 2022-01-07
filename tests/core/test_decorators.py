@@ -4,6 +4,7 @@ from asyncio import AbstractEventLoop
 
 import numpy as np
 import pandas as pd
+from pydantic import ValidationError
 import pytest
 
 from pandera import (
@@ -525,7 +526,7 @@ def test_check_types_multiple_inputs() -> None:
 
     wrong = pd.DataFrame({"b": [1]})
     with pytest.raises(
-        errors.SchemaError, match="column 'a' not in dataframe"
+        ValidationError, match="column 'a' not in dataframe"
     ):
         transform(correct, wrong)
 
@@ -539,7 +540,7 @@ def test_check_types_error_input() -> None:
 
     df = pd.DataFrame({"b": [1]})
     with pytest.raises(
-        errors.SchemaError, match="column 'a' not in dataframe"
+        ValidationError, match="column 'a' not in dataframe"
     ):
         transform(df)
 

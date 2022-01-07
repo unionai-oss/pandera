@@ -99,7 +99,7 @@ def _handle_schema_error(
         failure_cases=schema_error.failure_cases,
         check=schema_error.check,
         check_index=schema_error.check_index,
-    )
+    ) from schema_error
 
 
 def check_input(
@@ -486,6 +486,7 @@ def check_types(
 def check_types(
     wrapped=None,
     *,
+    use_pydantic=False,
     head: Optional[int] = None,
     tail: Optional[int] = None,
     sample: Optional[int] = None,
@@ -497,6 +498,9 @@ def check_types(
 
     See the :ref:`User Guide <schema_models>` for more.
 
+    :param wrapped: the function to decorate.
+    :param use_pydantic: use ``pydantic.validate_arguments`` to validate
+        inputs. This function is still needed to validate function outputs.
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
     :param tail: validate the last n rows. Rows overlapping with `head` or
@@ -564,7 +568,7 @@ def check_types(
                 or arg_value.pandera.schema != schema
             ):
                 try:
-                    checked_arg = schema.validate(
+                    arg_value = schema.validate(
                         arg_value,
                         head,
                         tail,
@@ -579,11 +583,11 @@ def check_types(
                     )
 
             if config.to_format:
-                checked_arg = data_container_type.to_format(
-                    checked_arg, config
+                arg_value = data_container_type.to_format(
+                    arg_value, config
                 )
 
-            return checked_arg
+            return arg_value
 
     if inspect.iscoroutinefunction(wrapped):
 
