@@ -4,8 +4,8 @@
 pip
 packaging >= 20.0
 hypothesis >= 5.41.1
-numpy >= 1.9.0
-pandas
+numpy >= 1.19.0
+pandas >= 1.0.0
 scipy
 wrapt
 pyyaml >=5.1
