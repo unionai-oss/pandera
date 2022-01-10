@@ -250,3 +250,19 @@ for each pull request:
       },
       strict=True)
   ```
+
+## Deprecation policy
+
+This project aims to follow a version of [NEP 29](https://numpy.org/neps/nep-0029-deprecation_policy.html).
+
+This project supports:
+
+* All minor versions of Python released 42 months prior to the project, and at minimum the two latest minor versions.
+
+* All minor versions of `numpy` released in the 24 months prior to the project, and at minimum the last three minor versions.
+
+* All minor versions of `pandas` released in the 24 months prior to the project, and at minimum the last three minor versions.
+
+In `setup.py`, the `python_requires` variable should be set to the minimum supported version of Python. All supported minor versions of Python should be in the test matrix and have binary artifacts built for the release.
+
+Minimum Python, NumPy and Pandas version support should be adjusted upward on every major and minor release, but never on a patch release.
