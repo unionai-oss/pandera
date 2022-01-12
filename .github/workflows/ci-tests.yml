@@ -112,8 +112,19 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+      # TODO: get rid of this conditional when geopandas requirements are
+      # installed on windows:
+      # https://geopandas.org/en/stable/getting_started/install.html#installing-with-pip
       - name: Install dependencies
+        if: ${{ matrix.os != 'windows-latest'}}
         run: python -m pip install -r requirements-dev.txt
+      - name: Install dependencies Windows
+        if: ${{ matrix.os == 'windows-latest'}}
+        # TODO: install geopandas requirements on windows
+        run: |
+          sed -i '/geopandas/d' requirements-dev.txt
+          sed -i '/shapely/d' requirements-dev.txt
+          python -m pip install -r requirements-dev.txt
       - name: Pip info
         run: python -m pip list
 
