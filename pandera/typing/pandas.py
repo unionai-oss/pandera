@@ -53,7 +53,7 @@ else:
 # pylint:disable=too-few-public-methods
 class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     """
-    Representation of pandas.DataFrame, only used for type annotation.
+    A generic type for pandas.DataFrame.
 
     *new in 0.5.0*
     """

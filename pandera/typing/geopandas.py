@@ -9,16 +9,13 @@ try:
     import geopandas as gpd
 
     GEOPANDAS_INSTALLED = True
-except ImportError:
+except ImportError:  # pragma: no cover
     GEOPANDAS_INSTALLED = False
+
 
 if GEOPANDAS_INSTALLED:
     # pylint: disable=import-outside-toplevel,ungrouped-imports
     from pandera.engines.pandas_engine import Geometry
-
-    # pylint:disable=too-few-public-methods
-    class GeoSeries(SeriesBase[Geometry], gpd.GeoSeries):
-        """Representation of geopandas.GeoSeries, only used for type annotation."""
 
     # pylint:disable=invalid-name
     if TYPE_CHECKING:
@@ -26,5 +23,15 @@ if GEOPANDAS_INSTALLED:
     else:
         T = Schema
 
+    # pylint:disable=too-few-public-methods
+    class GeoSeries(SeriesBase, gpd.GeoSeries, Generic[T]):
+        """
+        Representation of geopandas.GeoSeries, only used for type annotation.
+        """
+
+        default_dtype = Geometry
+
     class GeoDataFrame(DataFrameBase, gpd.GeoDataFrame, Generic[T]):
-        """Representation of geopandas.GeoDataFrame, only used for type annotation."""
+        """
+        A generic type for geopandas.GeoDataFrame.
+        """

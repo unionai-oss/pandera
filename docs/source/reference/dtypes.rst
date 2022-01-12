@@ -62,6 +62,18 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.pandas_engine.STRING
    pandera.engines.numpy_engine.Object
 
+GeoPandas-specific Dtypes
+-------------------------
+
+*new in 0.9.0*
+
+.. autosummary::
+   :toctree: generated
+   :template: dtype.rst
+   :nosignatures:
+
+   pandera.engines.pandas_engine.Geometry
+
 Utility functions
 -----------------
 

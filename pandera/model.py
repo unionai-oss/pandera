@@ -314,6 +314,8 @@ class SchemaModel(metaclass=_MetaSchema):
                     )
                 dtype_kwargs = _get_dtype_kwargs(annotation)
                 dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+            elif annotation.default_dtype:
+                dtype = annotation.default_dtype
             else:
                 dtype = annotation.arg
 
