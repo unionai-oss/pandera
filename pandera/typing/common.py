@@ -2,7 +2,7 @@
 # pylint:disable=abstract-method,disable=too-many-ancestors
 
 import inspect
-from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
@@ -143,6 +143,8 @@ class DataFrameBase(Generic[T]):
     initialization.
     """
 
+    default_dtype: Optional[Type] = None
+
     def __setattr__(self, name: str, value: Any) -> None:
         # pylint: disable=no-member
         object.__setattr__(self, name, value)
@@ -171,6 +173,8 @@ class DataFrameBase(Generic[T]):
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
+    default_dtype: Optional[Type] = None
+
 
 # pylint:disable=too-few-public-methods
 class IndexBase(Generic[GenericDtype]):
@@ -178,6 +182,8 @@ class IndexBase(Generic[GenericDtype]):
 
     *new in 0.5.0*
     """
+
+    default_dtype: Optional[Type] = None
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
@@ -233,3 +239,5 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.literal = typing_inspect.is_literal_type(self.arg)
         if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
+
+        self.default_dtype = getattr(raw_annotation, "default_dtype", None)

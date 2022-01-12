@@ -159,6 +159,14 @@ jobs:
           --non-interactive
           --session "tests-${{ matrix.python-version }}(extra='mypy', pandas='${{ matrix.pandas-version }}')"
 
+      - name: Unit Tests - GeoPandas
+        if: ${{ matrix.os != 'windows-latest'}}
+        run: >
+          nox
+          -db virtualenv -r -v
+          --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='geopandas', pandas='${{ matrix.pandas-version }}')"
+
       - name: Unit Tests - Koalas
         run: >
           nox

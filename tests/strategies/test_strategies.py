@@ -33,6 +33,7 @@ UNSUPPORTED_DTYPE_CLS: Set[Any] = set(
         pandas_engine.Interval,
         pandas_engine.Period,
         pandas_engine.Sparse,
+        pandas_engine.Geometry,
     ]
 )
 SUPPORTED_DTYPES = set()

@@ -665,7 +665,7 @@ try:
     import geopandas as gpd
 
     GEOPANDAS_INSTALLED = True
-except ImportError:
+except ImportError:  # pragma: no cover
     GEOPANDAS_INSTALLED = False
 
 if GEOPANDAS_INSTALLED:

@@ -27,6 +27,11 @@ else:
     HAS_HYPOTHESIS = True
 
 
+DTYPES = [
+    dtype
+    for dtype in pandas_engine.Engine.get_registered_dtypes()
+    if dtype != pandas_engine.Geometry
+]
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
@@ -124,9 +129,7 @@ def _test_datatype_with_schema(
         assert isinstance(data_container_cls(sample), data_container_cls)
 
 
-@pytest.mark.parametrize(
-    "dtype_cls", pandas_engine.Engine.get_registered_dtypes()
-)
+@pytest.mark.parametrize("dtype_cls", DTYPES)
 @pytest.mark.parametrize("coerce", [True, False])
 @hypothesis.given(st.data())
 def test_dataframe_schema_dtypes(
@@ -148,9 +151,7 @@ def test_dataframe_schema_dtypes(
     _test_datatype_with_schema(dtype_cls, schema, data)
 
 
-@pytest.mark.parametrize(
-    "dtype_cls", pandas_engine.Engine.get_registered_dtypes()
-)
+@pytest.mark.parametrize("dtype_cls", DTYPES)
 @pytest.mark.parametrize("coerce", [True, False])
 @pytest.mark.parametrize("schema_cls", [pa.SeriesSchema, pa.Column])
 @hypothesis.given(st.data())
@@ -240,6 +241,7 @@ def test_index_dtypes(
         not in {
             pandas_engine.Engine.dtype(pandas_engine.BOOL),
             pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
+            pandas_engine.Engine.dtype(pandas_engine.Geometry),
         }
     ],
 )
