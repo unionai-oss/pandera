@@ -40,7 +40,10 @@ for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
             pandas_engine.Engine.dtype(dtype_cls)
             not in SUPPORTED_STRATEGY_DTYPES
         )
-        or dtype_cls == pandas_engine.Geometry
+        or not (
+            pandas_engine.GEOPANDAS_INSTALLED
+            and dtype_cls == pandas_engine.Geometry
+        )
     ):
         continue
     TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))

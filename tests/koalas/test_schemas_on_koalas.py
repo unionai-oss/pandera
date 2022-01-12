@@ -28,9 +28,12 @@ else:
 
 
 DTYPES = [
-    dtype
-    for dtype in pandas_engine.Engine.get_registered_dtypes()
-    if dtype != pandas_engine.Geometry
+    dtype_cls
+    for dtype_cls in pandas_engine.Engine.get_registered_dtypes()
+    if not (
+        pandas_engine.GEOPANDAS_INSTALLED
+        and dtype_cls == pandas_engine.Geometry
+    )
 ]
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
