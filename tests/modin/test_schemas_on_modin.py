@@ -193,7 +193,10 @@ def test_index_dtypes(
         for dt in TEST_DTYPES_ON_MODIN
         # pylint: disable=no-value-for-parameter
         if dt in NULLABLE_DTYPES
-        and dt != pandas_engine.Engine.dtype(pandas_engine.Geometry)
+        and not (
+            pandas_engine.GEOPANDAS_INSTALLED
+            and dt == pandas_engine.Engine.dtype(pandas_engine.Geometry)
+        )
     ],
 )
 @hypothesis.given(st.data())

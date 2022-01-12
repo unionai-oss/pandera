@@ -241,8 +241,11 @@ def test_index_dtypes(
         not in {
             pandas_engine.Engine.dtype(pandas_engine.BOOL),
             pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
-            pandas_engine.Engine.dtype(pandas_engine.Geometry),
         }
+        and not (
+            pandas_engine.GEOPANDAS_INSTALLED
+            and dt == pandas_engine.Engine.dtype(pandas_engine.Geometry)
+        )
     ],
 )
 @hypothesis.given(st.data())
@@ -565,6 +568,7 @@ def test_check_decorators():
             fn(valid_df)
 
 
+# pylint: disable=too-few-public-methods
 class InitSchema(pa.SchemaModel):
     """Schema used to test dataframe initialization."""
 
