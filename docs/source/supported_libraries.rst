@@ -22,7 +22,7 @@ container types specific to these libraries.
    :widths: 25 75
 
    * - :ref:`GeoPandas <supported_lib_geopandas>`
-     - An extension of pandas that supports geospatial data.
+     - An extension of pandas that supports geospatial data processing.
 
 .. toctree::
     :maxdepth: 1
