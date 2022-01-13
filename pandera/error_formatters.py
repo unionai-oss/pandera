@@ -119,9 +119,8 @@ def reshape_failure_cases(
         )
     elif check_utils.is_table(failure_cases):
         reshaped_failure_cases = (
-            failure_cases.rename_axis("column", axis=1)
-            .rename_axis("index", axis=0)
-            .unstack()
+            failure_cases.unstack()
+            .rename_axis(["column", "index"], axis=0)
             .rename("failure_case")
             .reset_index()
         )
