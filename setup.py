@@ -39,7 +39,7 @@ setup(
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
     data_files=[("", ["LICENSE.txt"])],
-    packages=find_packages(),
+    packages=find_packages(include=["pandera*"]),
     package_data={"pandera": ["py.typed"]},
     install_requires=[
         "packaging >= 20.0",
