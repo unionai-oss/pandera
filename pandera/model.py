@@ -5,14 +5,12 @@ import os
 import re
 import sys
 import typing
-from enum import Enum
 from typing import (
     Any,
     Callable,
     Dict,
     Iterable,
     List,
-    Literal,
     Optional,
     Set,
     Tuple,
@@ -141,6 +139,7 @@ class SchemaModel(metaclass=_MetaSchema):
     """
 
     Config: Type[BaseConfig] = BaseConfig
+    __extras__: Optional[Dict[str, Any]] = None
     __schema__: Optional[DataFrameSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
 
@@ -192,21 +191,28 @@ class SchemaModel(metaclass=_MetaSchema):
 
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
         df_custom_checks = cls._extract_df_checks(df_check_infos)
-        df_registered_checks = _convert_extras_to_checks(cls.__extras__)
+        df_registered_checks = _convert_extras_to_checks(
+            {} if cls.__extras__ is None else cls.__extras__
+        )
         cls.__dataframe_checks__ = df_custom_checks + df_registered_checks
 
         columns, index = cls._build_columns_index(
             cls.__fields__, cls.__checks__, **mi_kwargs
         )
+        kwargs = {}
+        if cls.__config__ is not None:
+            kwargs = {
+                "coerce": cls.__config__.coerce,
+                "strict": cls.__config__.strict,
+                "name": cls.__config__.name,
+                "ordered": cls.__config__.ordered,
+                "unique": cls.__config__.unique,
+            }
         cls.__schema__ = DataFrameSchema(
             columns,
             index=index,
             checks=cls.__dataframe_checks__,  # type: ignore
-            coerce=cls.__config__.coerce,
-            strict=cls.__config__.strict,
-            name=cls.__config__.name,
-            ordered=cls.__config__.ordered,
-            unique=cls.__config__.unique,
+            **kwargs,
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore

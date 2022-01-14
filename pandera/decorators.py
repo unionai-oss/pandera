@@ -21,7 +21,6 @@ from typing import (
 import pandas as pd
 import wrapt
 from pydantic import validate_arguments
-from pydantic.decorator import ValidatedFunction
 
 from . import errors, schemas
 from .inspection_utils import (
@@ -550,7 +549,8 @@ def check_types(
             return arg_value
 
         if (
-            not (annotation_info.optional and arg_value is None)
+            annotation_info
+            and not (annotation_info.optional and arg_value is None)
             # the pandera.schema attribute should only be available when
             # schema.validate has been called in the DF. There's probably
             # a better way of doing this
@@ -559,7 +559,7 @@ def check_types(
             data_container_type = annotation_info.origin
             schema = schema_model.to_schema()
 
-            if config.from_format:
+            if data_container_type and config and config.from_format:
                 arg_value = data_container_type.from_format(arg_value, config)
 
             if (
@@ -583,7 +583,7 @@ def check_types(
                         "check_types", wrapped, schema, arg_value, e
                     )
 
-            if config.to_format:
+            if data_container_type and config and config.to_format:
                 arg_value = data_container_type.to_format(arg_value, config)
 
             return arg_value
