@@ -126,7 +126,7 @@ class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
     def __get__(
-            self, instance: object, owner: Type
+        self, instance: object, owner: Type
     ) -> str:  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
@@ -139,7 +139,7 @@ class IndexBase(Generic[GenericDtype]):
     """
 
     def __get__(
-            self, instance: object, owner: Type
+        self, instance: object, owner: Type
     ) -> str:  # pragma: no cover
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
