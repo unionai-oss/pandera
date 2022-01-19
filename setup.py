@@ -17,7 +17,9 @@ _extras_require = {
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
     "mypy": ["pandas-stubs"],
+    "geopandas": ["geopandas", "shapely"]
 }
+
 extras_require = {
     **_extras_require,
     "all": list(set(x for y in _extras_require.values() for x in y)),
