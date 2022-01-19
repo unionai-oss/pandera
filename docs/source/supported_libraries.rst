@@ -10,6 +10,27 @@ moving forward its core functionality will continue to support pandas. However,
 pandera's adoption has resulted in the realization that it can be a much more
 powerful tool by supporting other dataframe-like formats.
 
+Domain-specific Data Validation
+-------------------------------
+
+The pandas ecosystem provides support for
+`domain-specific data manipulation <https://pandas.pydata.org/docs/ecosystem.html#domain-specific>`__,
+and by extension pandera can provide access to data types, methods, and data
+container types specific to these libraries.
+
+.. list-table::
+   :widths: 25 75
+
+   * - :ref:`GeoPandas <supported_lib_geopandas>`
+     - An extension of pandas that supports geospatial data processing.
+
+.. toctree::
+    :maxdepth: 1
+    :hidden:
+
+    GeoPandas <geopandas>
+
+
 Scaling Up Data Validation
 --------------------------
 
@@ -33,13 +54,13 @@ dataframes.
 
 .. toctree::
     :maxdepth: 1
-    :caption: Introduction
     :hidden:
 
     Dask <dask>
     Fugue <fugue>
     Koalas <koalas>
     Modin <modin>
+
 
 .. note::
 
