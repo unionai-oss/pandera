@@ -172,7 +172,7 @@ class DataFrameBase(Generic[T]):
 # pylint:disable=too-few-public-methods
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
-    
+
     default_dtype: Optional[Type] = None
 
     def __get__(
@@ -187,7 +187,7 @@ class IndexBase(Generic[GenericDtype]):
 
     *new in 0.5.0*
     """
-    
+
     default_dtype: Optional[Type] = None
 
     def __get__(
