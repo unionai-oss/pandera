@@ -1,8 +1,18 @@
+"""Serialization formats for dataframes."""
+
 from enum import Enum
-from typing import Literal, Union
+from typing import Union
+
+try:
+    from typing import Literal  # type: ignore
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
 
 
 class Formats(Enum):
+    """Data container serialization formats."""
+
+    # pylint: disable=invalid-name
     csv = "csv"
     dict = "dict"
     json = "json"
