@@ -60,7 +60,7 @@ if FASTAPI_INSTALLED:
             if not isinstance(obj, starlette.datastructures.UploadFile):
                 raise ValueError(f"Expected UploadFile, received: {type(obj)}")
 
-            schema_model_field = field.sub_fields[0]
+            schema_model_field = field.sub_fields[0]  # type: ignore[index]
             validated_data = schema_model_field.type_.pydantic_validate(
                 obj.file, schema_model_field
             )

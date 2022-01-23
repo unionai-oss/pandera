@@ -248,9 +248,7 @@ class SchemaModel(metaclass=_MetaSchema):
     @classmethod
     @docstring_substitution(strategy_doc=DataFrameSchema.strategy.__doc__)
     @st.strategy_import_error
-    def strategy(
-        cls: Type[TSchemaModel], *, size: Optional[int] = None
-    ) -> DataFrameBase[TSchemaModel]:
+    def strategy(cls: Type[TSchemaModel], *, size: Optional[int] = None):
         """%(strategy_doc)s"""
         return cls.to_schema().strategy(size=size)
 
