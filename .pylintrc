@@ -1,5 +1,5 @@
 [BASIC]
-ignore=mypy.py
+ignore=mypy.py,tests/mypy/test_static_type_checking.py
 good-names=
     T,
     F,

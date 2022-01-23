@@ -1,3 +1,5 @@
+"""FastAPI-specific types."""
+
 from typing import Any, Callable, Generic, Iterable, Type
 
 import fastapi
@@ -11,6 +13,7 @@ except ImportError:
     ModelField = Any  # type: ignore
 
 
+# pylint: disable=too-few-public-methods
 class UploadFile(fastapi.UploadFile, Generic[T]):
     """Pandera-specific subclass of fastapi.UploadFile.
 
@@ -36,12 +39,17 @@ class UploadFile(fastapi.UploadFile, Generic[T]):
     def __get_validators__(
         cls: Type["UploadFile"],
     ) -> Iterable[Callable[..., Any]]:
+        """Pydantic method for yielding validators."""
         yield cls.pydantic_validate
 
     @classmethod
     def pydantic_validate(
         cls: Type["UploadFile"], obj: Any, field: ModelField
     ) -> Any:
+        """
+        Pydantic validation method for validating dataframes in the context
+        of a file upload.
+        """
         if not isinstance(obj, starlette.datastructures.UploadFile):
             raise ValueError(f"Expected UploadFile, received: {type(obj)}")
 

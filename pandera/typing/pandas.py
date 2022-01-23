@@ -1,7 +1,7 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import io
-from typing import TYPE_CHECKING, Any, Dict, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
 
@@ -74,6 +74,14 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @classmethod
     def from_format(cls, obj: Any, config) -> pd.DataFrame:
+        """
+        Converts serialized data from a specific format
+        specified in the :py:class:`pandera.model.SchemaModel` config options
+        ``from_format`` and ``from_format_options``.
+
+        :param obj: object representing a serialized dataframe.
+        :param config: schema model configuration object.
+        """
         if config.from_format is None:
             if not isinstance(obj, pd.DataFrame):
                 try:
@@ -99,8 +107,8 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def to_format(cls, data: pd.DataFrame, config) -> Any:
         """
         Converts a dataframe to the format specified in the
-        :py:class:`pandera.model.SchemaModel` config options ``from_format``
-        and ``to_format``.
+        :py:class:`pandera.model.SchemaModel` config options ``to_format``
+        and ``to_format_options``.
 
         :param data: convert this data to the specified format
         :param config: :py:cl

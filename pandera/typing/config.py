@@ -1,3 +1,5 @@
+"""Class-based schema model API configuration."""
+
 from typing import Any, Dict, List, Optional, Union
 
 from .formats import Format
