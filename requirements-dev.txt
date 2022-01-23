@@ -22,6 +22,7 @@ dask
 distributed
 geopandas
 shapely
+fastapi
 black >= 21.12b0
 isort >= 5.7.0
 codecov
