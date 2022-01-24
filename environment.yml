@@ -38,6 +38,9 @@ dependencies:
   - geopandas
   - shapely
 
+  # fastapi extra
+  - fastapi
+
   # testing and dependencies
   - black >= 21.12b0
 
@@ -75,3 +78,4 @@ dependencies:
     - types-click
     - types-pyyaml
     - types-pkg_resources
+    - types-requests

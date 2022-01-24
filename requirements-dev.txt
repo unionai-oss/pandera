@@ -22,6 +22,7 @@ dask
 distributed
 geopandas
 shapely
+fastapi
 black >= 21.12b0
 isort >= 5.7.0
 codecov
@@ -46,3 +47,4 @@ ray <= 1.7.0
 types-click
 types-pyyaml
 types-pkg_resources
+types-requests

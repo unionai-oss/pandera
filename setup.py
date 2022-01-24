@@ -17,7 +17,8 @@ _extras_require = {
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
     "mypy": ["pandas-stubs"],
-    "geopandas": ["geopandas", "shapely"]
+    "fastapi": ["fastapi"],
+    "geopandas": ["geopandas", "shapely"],
 }
 
 extras_require = {

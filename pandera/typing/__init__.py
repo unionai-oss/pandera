@@ -1,6 +1,10 @@
-"""Typing module."""
+"""Typing module.
 
-from . import dask, geopandas, koalas, modin
+For backwards compatibility, pandas types are exposed to the top-level scope of
+the typing module.
+"""
+
+from . import dask, fastapi, geopandas, koalas, modin
 from .common import (
     BOOL,
     INT8,
