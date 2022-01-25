@@ -293,7 +293,15 @@ def test_nullable(
                 ks.DataFrame(nonnull_sample)
             return
     else:
-        ks_null_sample = ks.DataFrame(null_sample)
+        try:
+            ks_null_sample = ks.DataFrame(null_sample)
+        except TypeError as exc:
+            if "can not accept object <NA> in type" not in exc.args[0]:
+                raise
+            pytest.skip(
+                "koalas cannot handle native pd.NA type with dtype "
+                f"{dtype.type}"
+            )
         ks_nonnull_sample = ks.DataFrame(nonnull_sample)
         n_nulls = ks_null_sample.isna().sum().item()
         assert ks_nonnull_sample.notna().all().item()

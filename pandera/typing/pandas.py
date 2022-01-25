@@ -129,6 +129,13 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         out = writer(*args, **(config.to_format_options or {}))
         if buffer is None:
             return out
+        elif buffer.closed:
+            raise IOError(
+                f"pandas=={pd.__version__} closed the buffer automatically "
+                f"using the serialization method {writer}. Use a later "
+                "version of pandas or use a different the serialization "
+                "format."
+            )
         buffer.seek(0)
         return buffer
 

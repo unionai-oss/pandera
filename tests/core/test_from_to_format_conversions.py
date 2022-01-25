@@ -125,6 +125,12 @@ def test_from_format(schema, to_fn, buf_cls):
         buf = None if buf_cls is None else buf_cls()
         arg = to_fn(df, *([buf] if buf else []))
         if buf:
+            if buf.closed:
+                pytest.skip(
+                    "skip test for older pandas versions where to_pickle "
+                    "closes user-provided buffers: "
+                    "https://github.com/pandas-dev/pandas/issues/35679"
+                )
             buf.seek(0)
             arg = buf
         if invalid:
@@ -164,7 +170,14 @@ def test_to_format(schema, from_fn, buf_cls):
         return df
 
     df = mock_dataframe()
-    out = fn(df)
+    try:
+        out = fn(df)
+    except IOError:
+        pytest.skip(
+            f"pandas=={pd.__version__} automatically closes the buffer, for "
+            "more details see: "
+            "https://github.com/pandas-dev/pandas/issues/35679"
+        )
     if buf_cls and not isinstance(out, buf_cls):
         out = buf_cls(out)
     out_df = from_fn(out)
