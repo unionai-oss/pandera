@@ -10,7 +10,7 @@ dependencies:
   - packaging >= 20.0
   - hypothesis >= 5.41.1
   - numpy >= 1.19.0
-  - pandas >= 1.0.0
+  - pandas >= 1.2.0
   - scipy
   - wrapt
   - pyyaml >=5.1

@@ -1,6 +1,7 @@
 """Nox sessions."""
 # isort: skip_file
 import os
+import re
 import shutil
 import sys
 from typing import Dict, List
@@ -24,7 +25,7 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10"]
-PANDAS_VERSIONS = ["1.1.5", "1.3.5", "latest"]
+PANDAS_VERSIONS = ["1.2.0", "1.3.5", "latest"]
 
 PACKAGE = "pandera"
 
@@ -123,6 +124,11 @@ CONDA_ARGS = [
 ]
 
 
+def extract_requirement_name(spec: str) -> str:
+    # Name of requirement is everything up to the first invalid character
+    return re.match(r"^[A-Za-z0-9-_]*", spec.strip())[0]
+
+
 def conda_install(session: Session, *args):
     """Use mamba to install conda dependencies."""
     run_args = [
@@ -186,7 +192,9 @@ def install_extras(
     specs, pip_specs = [], []
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
     for spec in REQUIRES[extra].values():
-        if spec == "pandas-stubs" and not pandas_stubs:
+        req_name = extract_requirement_name(spec)
+        print(f"{spec} -> {req_name!r}")
+        if req_name == "pandas-stubs" and not pandas_stubs:
             # this is a temporary measure until all pandas-related mypy errors
             # are addressed
             continue
@@ -200,6 +208,8 @@ def install_extras(
 
         if req.name in ALWAYS_USE_PIP:  # type: ignore[attr-defined]
             pip_specs.append(spec)
+        elif req_name == "pandas" and pandas != "latest":
+            specs.append(f"pandas~={pandas}")
         else:
             specs.append(
                 spec if spec != "pandas" else f"pandas{pandas_version}"
