@@ -1417,7 +1417,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             []
             if new_schema.index is None or not append
             else list(new_schema.index.indexes)
-            if check_utils.is_multiindex(new_schema.index) and append
+            if isinstance(new_schema.index, MultiIndex) and append
             else [new_schema.index]
         )
 
