@@ -253,16 +253,10 @@ for each pull request:
 
 ## Deprecation policy
 
-This project aims to follow a version of [NEP 29](https://numpy.org/neps/nep-0029-deprecation_policy.html).
+This project adopts a rolling policy regarding the minimum supported version of its dependencies, based on [NEP 29](https://numpy.org/neps/nep-0029-deprecation_policy.html):
 
-This project supports:
+* **Python**: 42 months
+* **NumPy**: 24 months
+* **Pandas**: 18 months
 
-* All minor versions of Python released 42 months prior to the project, and at minimum the two latest minor versions.
-
-* All minor versions of `numpy` released in the 24 months prior to the project, and at minimum the last three minor versions.
-
-* All minor versions of `pandas` released in the 24 months prior to the project, and at minimum the last three minor versions.
-
-In `setup.py`, the `python_requires` variable should be set to the minimum supported version of Python. All supported minor versions of Python should be in the test matrix and have binary artifacts built for the release.
-
-Minimum Python, NumPy and Pandas version support should be adjusted upward on every major and minor release, but never on a patch release.
+This means the latest minor (X.Y) version from N months prior. Patch versions (x.y.Z) are not pinned, and only the latest available at the moment of publishing the xarray release is guaranteed to work.
