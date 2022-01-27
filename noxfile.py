@@ -193,7 +193,6 @@ def install_extras(
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
     for spec in REQUIRES[extra].values():
         req_name = extract_requirement_name(spec)
-        print(f"{spec} -> {req_name!r}")
         if req_name == "pandas-stubs" and not pandas_stubs:
             # this is a temporary measure until all pandas-related mypy errors
             # are addressed
