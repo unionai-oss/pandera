@@ -118,13 +118,8 @@ def reshape_failure_cases(
             .reset_index(drop=True)
         )
     elif check_utils.is_table(failure_cases):
-        reshaped_failure_cases = (
-            failure_cases.rename_axis("column", axis=1)
-            .rename_axis("index", axis=0)
-            .unstack()
-            .rename("failure_case")
-            .reset_index()
-        )
+        reshaped_failure_cases = failure_cases.unstack().reset_index()
+        reshaped_failure_cases.columns = ["column", "index", "failure_case"]
     elif check_utils.is_field(failure_cases):
         reshaped_failure_cases = failure_cases.rename("failure_case")
         reshaped_failure_cases.index.name = "index"

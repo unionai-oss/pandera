@@ -34,6 +34,13 @@ dependencies:
   - dask
   - distributed
 
+  # geopandas extra
+  - geopandas
+  - shapely
+
+  # fastapi extra
+  - fastapi
+
   # testing and dependencies
   - black >= 21.12b0
 
@@ -52,7 +59,7 @@ dependencies:
 
   # documentation
   - sphinx
-  - sphinx-autodoc-typehints
+  - sphinx-autodoc-typehints = 1.14.1
   - sphinx-copybutton
   - recommonmark
 
@@ -71,3 +78,4 @@ dependencies:
     - types-click
     - types-pyyaml
     - types-pkg_resources
+    - types-requests

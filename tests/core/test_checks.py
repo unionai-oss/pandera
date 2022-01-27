@@ -428,3 +428,33 @@ def test_dataframe_schema_check() -> None:
 
     schema_check_return_df = DataFrameSchema(checks=Check(lambda df: df < 10))
     assert isinstance(schema_check_return_df.validate(data), pd.DataFrame)
+
+
+def test_dataframe_check_schema_error() -> None:
+    """Test that DataFramSchema-level checks raises errors."""
+
+    schema = DataFrameSchema(
+        checks=Check(
+            lambda df: df["a"].isna() | ~df["b"].isna(), ignore_na=False
+        )
+    )
+    df = pd.DataFrame(
+        {
+            "a": [1, 2, 3, 1],
+            "b": [1, 2, None, None],
+        }
+    )
+
+    try:
+        schema(df, lazy=True)
+    except errors.SchemaErrors as exc:
+        assert pd.isna(
+            exc.failure_cases.query(
+                "index == 2 & column == 'b'"
+            ).failure_case.iloc[0]
+        )
+        assert pd.isna(
+            exc.failure_cases.query(
+                "index == 3 & column == 'b'"
+            ).failure_case.iloc[0]
+        )

@@ -23,6 +23,8 @@ from pandera.system import FLOAT_128_AVAILABLE
 # List dtype classes and associated pandas alias,
 # except for parameterizable dtypes that should also list examples of
 # instances.
+from pandera.typing.geopandas import GEOPANDAS_INSTALLED
+
 int_dtypes = {
     int: "int64",
     pa.Int: "int64",
@@ -174,6 +176,18 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),
     (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),
 ]
+
+
+if GEOPANDAS_INSTALLED:
+    from shapely.geometry import Polygon
+
+    # pylint:disable=ungrouped-imports
+    from pandera.engines.pandas_engine import Geometry
+
+    geometry_dtypes = {Geometry: "geometry"}
+    dtype_fixtures.append(
+        (geometry_dtypes, [Polygon(((0, 0), (0, 1), (1, 1)))])
+    )
 
 
 def pretty_param(*values: Any, **kw: Any) -> ParameterSet:

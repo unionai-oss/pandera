@@ -36,8 +36,14 @@ TEST_DTYPES_ON_MODIN = []
 for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
     if (
         dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS
-        or pandas_engine.Engine.dtype(dtype_cls)
-        not in SUPPORTED_STRATEGY_DTYPES
+        or (
+            pandas_engine.Engine.dtype(dtype_cls)
+            not in SUPPORTED_STRATEGY_DTYPES
+        )
+        or not (
+            pandas_engine.GEOPANDAS_INSTALLED
+            and dtype_cls == pandas_engine.Geometry
+        )
     ):
         continue
     TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))
@@ -185,7 +191,16 @@ def test_index_dtypes(
 
 @pytest.mark.parametrize(
     "dtype",
-    [dt for dt in TEST_DTYPES_ON_MODIN if dt in NULLABLE_DTYPES],
+    [
+        dt
+        for dt in TEST_DTYPES_ON_MODIN
+        # pylint: disable=no-value-for-parameter
+        if dt in NULLABLE_DTYPES
+        and not (
+            pandas_engine.GEOPANDAS_INSTALLED
+            and dt == pandas_engine.Engine.dtype(pandas_engine.Geometry)
+        )
+    ],
 )
 @hypothesis.given(st.data())
 @hypothesis.settings(

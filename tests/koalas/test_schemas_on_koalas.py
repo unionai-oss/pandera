@@ -27,6 +27,14 @@ else:
     HAS_HYPOTHESIS = True
 
 
+DTYPES = [
+    dtype_cls
+    for dtype_cls in pandas_engine.Engine.get_registered_dtypes()
+    if not (
+        pandas_engine.GEOPANDAS_INSTALLED
+        and dtype_cls == pandas_engine.Geometry
+    )
+]
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
@@ -124,9 +132,7 @@ def _test_datatype_with_schema(
         assert isinstance(data_container_cls(sample), data_container_cls)
 
 
-@pytest.mark.parametrize(
-    "dtype_cls", pandas_engine.Engine.get_registered_dtypes()
-)
+@pytest.mark.parametrize("dtype_cls", DTYPES)
 @pytest.mark.parametrize("coerce", [True, False])
 @hypothesis.given(st.data())
 def test_dataframe_schema_dtypes(
@@ -148,9 +154,7 @@ def test_dataframe_schema_dtypes(
     _test_datatype_with_schema(dtype_cls, schema, data)
 
 
-@pytest.mark.parametrize(
-    "dtype_cls", pandas_engine.Engine.get_registered_dtypes()
-)
+@pytest.mark.parametrize("dtype_cls", DTYPES)
 @pytest.mark.parametrize("coerce", [True, False])
 @pytest.mark.parametrize("schema_cls", [pa.SeriesSchema, pa.Column])
 @hypothesis.given(st.data())
@@ -241,6 +245,10 @@ def test_index_dtypes(
             pandas_engine.Engine.dtype(pandas_engine.BOOL),
             pandas_engine.DateTime(tz="UTC"),  # type: ignore[call-arg]
         }
+        and not (
+            pandas_engine.GEOPANDAS_INSTALLED
+            and dt == pandas_engine.Engine.dtype(pandas_engine.Geometry)
+        )
     ],
 )
 @hypothesis.given(st.data())
@@ -285,7 +293,15 @@ def test_nullable(
                 ks.DataFrame(nonnull_sample)
             return
     else:
-        ks_null_sample = ks.DataFrame(null_sample)
+        try:
+            ks_null_sample = ks.DataFrame(null_sample)
+        except TypeError as exc:
+            if "can not accept object <NA> in type" not in exc.args[0]:
+                raise
+            pytest.skip(
+                "koalas cannot handle native pd.NA type with dtype "
+                f"{dtype.type}"
+            )
         ks_nonnull_sample = ks.DataFrame(nonnull_sample)
         n_nulls = ks_null_sample.isna().sum().item()
         assert ks_nonnull_sample.notna().all().item()
@@ -563,6 +579,7 @@ def test_check_decorators():
             fn(valid_df)
 
 
+# pylint: disable=too-few-public-methods
 class InitSchema(pa.SchemaModel):
     """Schema used to test dataframe initialization."""
 

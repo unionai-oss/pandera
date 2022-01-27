@@ -20,6 +20,9 @@ pyspark
 modin
 dask
 distributed
+geopandas
+shapely
+fastapi
 black >= 21.12b0
 isort >= 5.7.0
 codecov
@@ -33,7 +36,7 @@ xdoctest
 nox == 2020.12.31
 importlib_metadata
 sphinx
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints == 1.14.1
 sphinx-copybutton
 recommonmark
 twine
@@ -44,3 +47,4 @@ ray <= 1.7.0
 types-click
 types-pyyaml
 types-pkg_resources
+types-requests

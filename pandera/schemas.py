@@ -693,6 +693,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 error_handler.collect_error("dataframe_check", err)
 
         if self.unique:
+            # NOTE: fix this pylint error
+            # pylint: disable=not-an-iterable
             temp_unique: List[List] = (
                 [self.unique]
                 if all(isinstance(x, str) for x in self.unique)
@@ -1415,7 +1417,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             []
             if new_schema.index is None or not append
             else list(new_schema.index.indexes)
-            if check_utils.is_multiindex(new_schema.index) and append
+            if isinstance(new_schema.index, MultiIndex) and append
             else [new_schema.index]
         )
 

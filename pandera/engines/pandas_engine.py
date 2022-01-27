@@ -657,6 +657,31 @@ class Interval(DataType):
         return cls(subtype=pd_dtype.subtype)  # type: ignore
 
 
+# ###############################################################################
+# # geopandas
+# ###############################################################################
+
+try:
+    import geopandas as gpd
+
+    GEOPANDAS_INSTALLED = True
+except ImportError:  # pragma: no cover
+    GEOPANDAS_INSTALLED = False
+
+if GEOPANDAS_INSTALLED:
+
+    @Engine.register_dtype(
+        equivalents=[
+            "geometry",
+            gpd.array.GeometryDtype,
+            gpd.array.GeometryDtype(),
+        ]
+    )
+    @dtypes.immutable
+    class Geometry(DataType):
+        type = gpd.array.GeometryDtype()
+
+
 class PandasDtype(Enum):
     # pylint: disable=line-too-long,invalid-name
     """Enumerate all valid pandas data types.
