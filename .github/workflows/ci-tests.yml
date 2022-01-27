@@ -173,6 +173,13 @@ jobs:
       - name: Unit Tests - Dask
         run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
 
+      - name: Unit Tests - FastAPI
+        run: >
+          nox
+          -db virtualenv -r -v
+          --non-interactive
+          --session "tests-${{ matrix.python-version }}(extra='fastapi', pandas='${{ matrix.pandas-version }}')"
+
       - name: Unit Tests - Koalas
         if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.pandas-version != '1.1.5' }}
         run: pytest tests/koalas ${{ env.PYTEST_FLAGS }}
