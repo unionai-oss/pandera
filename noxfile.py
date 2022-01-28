@@ -129,7 +129,10 @@ def extract_requirement_name(spec: str) -> str:
     Extract name of requirement from dependency string.
     """
     # Assume name is everything up to the first invalid character
-    return re.match(r"^[A-Za-z0-9-_]*", spec.strip())[0]
+    match = re.match(r"^[A-Za-z0-9-_]*", spec.strip())
+    if not match:
+        raise ValueError(f"Cannot parse requirement {spec!r}")
+    return match[0]
 
 
 def conda_install(session: Session, *args):
