@@ -33,7 +33,7 @@ pytest-cov
 pytest-xdist
 pytest-asyncio
 xdoctest
-nox == 2020.12.31
+nox
 importlib_metadata
 sphinx
 sphinx-autodoc-typehints <= 1.14.1

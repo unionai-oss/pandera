@@ -33,13 +33,13 @@ PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = [
+ALWAYS_USE_PIP = {
     "ray",
     "furo",
     "types-click",
     "types-pyyaml",
     "types-pkg_resources",
-]
+}
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -193,7 +193,14 @@ def install_extras(
             # this is a temporary measure until all pandas-related mypy errors
             # are addressed
             continue
-        if spec.split("==")[0] in ALWAYS_USE_PIP:
+
+        req = Requirement(spec)  # type: ignore
+
+        # this is needed until ray is supported on python 3.10
+        if req.name == "ray" and session.python == "3.10":  # type: ignore[attr-defined]  # noqa
+            continue
+
+        if req.name in ALWAYS_USE_PIP:  # type: ignore[attr-defined]
             pip_specs.append(spec)
         else:
             specs.append(
@@ -218,7 +225,7 @@ def install_extras(
         print("using pip installer")
         session.install(*specs)
 
-    # always use pip for these packages
+    # always use pip for these packages)
     session.install(*pip_specs)
     session.install("-e", ".", "--no-deps")  # install pandera
 
@@ -245,11 +252,13 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
 
     ignored_pkgs = {"black", "pandas"}
     mismatched = []
+    # only compare package versions, not python version markers.
+    str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
     for extra, reqs in SETUP_REQUIREMENTS.items():
         for req in reqs:
             if (
                 req.project_name not in ignored_pkgs
-                and req not in DEV_REQUIREMENTS
+                and str(req) not in str_dev_reqs
             ):
                 mismatched.append(f"{extra}: {req.project_name}")
 
