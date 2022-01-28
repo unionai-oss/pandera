@@ -26,7 +26,7 @@ fastapi
 black >= 21.12b0
 isort >= 5.7.0
 codecov
-mypy == 0.921
+mypy <= 0.921
 pylint == 2.11.1
 pytest
 pytest-cov
@@ -36,7 +36,7 @@ xdoctest
 nox == 2020.12.31
 importlib_metadata
 sphinx
-sphinx-autodoc-typehints == 1.14.1
+sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
 recommonmark
 twine
