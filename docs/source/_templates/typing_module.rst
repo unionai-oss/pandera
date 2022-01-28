@@ -46,6 +46,20 @@
       koalas.Series
       koalas.Index
 
+   .. rubric:: FastAPI Types
+
+   .. autosummary::
+      :toctree: generated
+
+      fastapi.UploadFile
+
+   .. rubric:: Serialization Formats
+
+   .. autosummary::
+      :toctree: generated
+
+      formats.Formats
+
    {% endblock %}
 
    {% block attributes %}

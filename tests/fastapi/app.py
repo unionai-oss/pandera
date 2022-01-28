@@ -10,7 +10,7 @@ from tests.fastapi.models import (
     ResponseModel,
     Transactions,
     TransactionsDictOut,
-    TransactionsJsonToParquet,
+    TransactionsParquet,
 )
 
 app = FastAPI()
@@ -23,17 +23,18 @@ def create_item(item: Item):
 
 @app.post("/transactions/", response_model=DataFrame[TransactionsDictOut])
 def create_transactions(transactions: DataFrame[Transactions]):
-    return transactions.assign(name="foo")
+    output = transactions.assign(name="foo")
+    ...  # do other stuff, e.g. update backend database with transactions
+    return output
 
 
 @app.post("/file/", response_model=ResponseModel)
 def create_upload_file(
-    file: UploadFile[DataFrame[TransactionsJsonToParquet]] = File(...),
+    file: UploadFile[DataFrame[TransactionsParquet]] = File(...),
 ):
-    data = pd.read_parquet(file.data).assign(name="foo")
     return {
         "filename": file.filename,
-        "df": data,
+        "df": file.data.assign(name="foo"),
     }
 
 

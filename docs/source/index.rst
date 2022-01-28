@@ -345,7 +345,7 @@ page or reach out to the maintainers and pandera community on
    lazy_validation
    data_synthesis_strategies
    extensions
-   third_party_schema
+   data_format_conversion
    supported_libraries
    integrations
 

@@ -2,8 +2,8 @@
 
 .. _supported-dataframe-libraries:
 
-Supported DataFrame Libraries (New)
-===================================
+Supported DataFrame Libraries
+=============================
 
 Pandera started out as a pandas-specific dataframe validation library, and
 moving forward its core functionality will continue to support pandas. However,
@@ -21,14 +21,14 @@ container types specific to these libraries.
 .. list-table::
    :widths: 25 75
 
-   * - :ref:`GeoPandas <supported_lib_geopandas>`
-     - An extension of pandas that supports geospatial data processing.
+   * - :ref:`GeoPandas ⭐️ (New) <supported_lib_geopandas>`
+     - An extension of pandas that adds geospatial data processing capabilities.
 
 .. toctree::
     :maxdepth: 1
     :hidden:
 
-    GeoPandas <geopandas>
+    GeoPandas ⭐️ (New) <geopandas>
 
 
 Scaling Up Data Validation

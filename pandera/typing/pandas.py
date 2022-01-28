@@ -77,7 +77,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         """
         Converts serialized data from a specific format
         specified in the :py:class:`pandera.model.SchemaModel` config options
-        ``from_format`` and ``from_format_options``.
+        ``from_format`` and ``from_format_kwargs``.
 
         :param obj: object representing a serialized dataframe.
         :param config: schema model configuration object.
@@ -101,14 +101,14 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             Formats.pickle: pd.read_pickle,
         }[Formats(config.from_format)]
 
-        return reader(obj, **(config.from_format_options or {}))
+        return reader(obj, **(config.from_format_kwargs or {}))
 
     @classmethod
     def to_format(cls, data: pd.DataFrame, config) -> Any:
         """
         Converts a dataframe to the format specified in the
         :py:class:`pandera.model.SchemaModel` config options ``to_format``
-        and ``to_format_options``.
+        and ``to_format_kwargs``.
 
         :param data: convert this data to the specified format
         :param config: :py:cl
@@ -126,7 +126,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         }[Formats(config.to_format)]
 
         args = [] if buffer is None else [buffer]
-        out = writer(*args, **(config.to_format_options or {}))
+        out = writer(*args, **(config.to_format_kwargs or {}))
         if buffer is None:
             return out
         elif buffer.closed:
