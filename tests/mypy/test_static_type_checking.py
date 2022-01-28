@@ -105,6 +105,7 @@ def test_pandera_runtime_errors(fn) -> None:
         assert e.failure_cases["failure_case"].item() == "age"
 
 
+# pylint: disable=line-too-long
 PANDAS_CONCAT_FALSE_POSITIVES = {
     13: {
         "msg": 'No overload variant of "concat" matches argument type "Generator[DataFrame, None, None]"',  # noqa
@@ -163,12 +164,12 @@ def test_pandas_stubs_false_positives(capfd, module, config, errors) -> None:
 
     if config:
         commands += ["--config-file", str(test_module_dir / "config" / config)]
+    # pylint: disable=subprocess-run-check
     subprocess.run(
         commands,
         text=True,
     )
-    errors = _get_mypy_errors(capfd.readouterr().out)
-    assert errors == errors
+    assert errors == _get_mypy_errors(capfd.readouterr().out)
 
 
 @pytest.mark.parametrize("module", ["pandas_concat", "pandas_time"])
