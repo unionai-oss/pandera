@@ -96,9 +96,9 @@ if FLOAT_128_AVAILABLE:
         }
     )
 
-nullable_float_dtypes = None
+NULLABLE_FLOAT_DTYPES = None
 if pa.PANDAS_1_2_0_PLUS:
-    nullable_float_dtypes = {
+    NULLABLE_FLOAT_DTYPES = {
         pandas_engine.FLOAT32: "Float32",
         pandas_engine.FLOAT64: "Float64",
     }
@@ -160,7 +160,11 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (uint_dtypes, [1]),
     (nullable_uint_dtypes, [1, None]),
     (float_dtypes, [1.0]),
-    *([] if nullable_float_dtypes is None else [(nullable_float_dtypes, [1.0, None])]),
+    *(
+        []
+        if NULLABLE_FLOAT_DTYPES is None
+        else [(NULLABLE_FLOAT_DTYPES, [1.0, None])]
+    ),
     (complex_dtypes, [complex(1)]),
     (boolean_dtypes, [True, False]),
     (nullable_boolean_dtypes, [True, None]),
@@ -347,9 +351,9 @@ numeric_dtypes = _flatten_dtypesdict(
 nullable_numeric_dtypes = _flatten_dtypesdict(
     nullable_int_dtypes,
     nullable_uint_dtypes,
-    nullable_float_dtypes,
+    NULLABLE_FLOAT_DTYPES,
     nullable_boolean_dtypes,
-    *([nullable_float_dtypes] if nullable_float_dtypes else [])
+    *([NULLABLE_FLOAT_DTYPES] if NULLABLE_FLOAT_DTYPES else []),
 )
 
 
@@ -532,7 +536,7 @@ def test_is_uint(uint_dtype: Any, expected: bool):
         (dtype, True)
         for dtype in (
             *float_dtypes,
-            *([nullable_float_dtypes] if nullable_float_dtypes else [])
+            *([NULLABLE_FLOAT_DTYPES] if NULLABLE_FLOAT_DTYPES else []),
         )
     ]
     + [("string", False)],  # type: ignore
