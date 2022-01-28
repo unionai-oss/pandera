@@ -124,6 +124,7 @@ jobs:
         run: |
           sed -i '/geopandas/d' requirements-dev.txt
           sed -i '/shapely/d' requirements-dev.txt
+          sed -i '/ray/d' requirements-dev.txt
           python -m pip install -r requirements-dev.txt
       - name: Pip info
         run: python -m pip list
