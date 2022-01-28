@@ -191,7 +191,7 @@ jobs:
         if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '1.1.5' }}
         run: >
           nox -db virtualenv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin', pandas='${{ matrix.pandas-version }}')"
+          --session "tests-${{ matrix.python-version }}(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
         env:
           CI_MODIN_ENGINES: "dask"
 
