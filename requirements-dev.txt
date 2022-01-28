@@ -38,7 +38,6 @@ importlib_metadata
 sphinx
 sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
-sphinx-panels
 recommonmark
 twine
 asv
