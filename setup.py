@@ -13,7 +13,7 @@ _extras_require = {
     "io": ["pyyaml >= 5.1", "black", "frictionless"],
     "koalas": ["koalas", "pyspark"],
     "modin": ["modin", "ray <= 1.7.0; python_version < '3.10'", "dask"],
-    "modin-ray": ["modin", "ray <= 1.7.0"],
+    "modin-ray": ["modin", "ray <= 1.7.0; python_version < '3.10'"],
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
     "mypy": ["pandas-stubs"],
