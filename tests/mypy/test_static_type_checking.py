@@ -141,7 +141,7 @@ PANDAS_TIME_FALSE_POSITIVES = {
     "module,config,errors",
     [
         ["pandas_concat.py", None, PANDAS_CONCAT_FALSE_POSITIVES],
-        ["pandas_concat.py", "plugin_mypy.ini", {}],
+        ["pandas_concat.py", "plugin_mypy.ini", PANDAS_CONCAT_FALSE_POSITIVES],
         ["pandas_time.py", None, PANDAS_TIME_FALSE_POSITIVES],
         ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_FALSE_POSITIVES],
     ],
