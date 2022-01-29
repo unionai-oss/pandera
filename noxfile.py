@@ -183,7 +183,8 @@ def install_extras(
         req = Requirement(spec)  # type: ignore
 
         # this is needed until ray is supported on python 3.10
-        if req.name == "ray" and session.python == "3.10":  # type: ignore[attr-defined]  # noqa
+        # pylint: disable=line-too-long
+        if req.name in {"ray", "geopandas"} and session.python == "3.10":  # type: ignore[attr-defined]  # noqa
             continue
 
         if req.name in ALWAYS_USE_PIP:  # type: ignore[attr-defined]
