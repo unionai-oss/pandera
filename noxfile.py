@@ -206,12 +206,8 @@ def install_extras(
             specs.append(
                 spec if spec != "pandas" else f"pandas{pandas_version}"
             )
-    if extra in {"core", "koalas", "modin"}:
+    if extra in {"core", "fastapi", "koalas", "modin-ray", "modin-dask"}:
         specs.append(REQUIRES["all"]["hypothesis"])
-
-    # this is a temporary measure to install setuptools due to this issue:
-    # https://github.com/pandera-dev/pandera/pull/602#issuecomment-915622823
-    session.install("setuptools < 58.0.0")
 
     # CI installs conda dependencies, so only run this for local runs
     if (
@@ -323,7 +319,11 @@ def mypy(session: Session) -> None:
 EXTRA_NAMES = [
     extra
     for extra in REQUIRES
-    if extra != "all" and not extra.startswith(":python_version")
+    if (
+        extra != "all"
+        and "python_version" not in extra
+        and extra not in {"modin"}
+    )
 ]
 
 
@@ -332,7 +332,35 @@ EXTRA_NAMES = [
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
+
+    # skip these conditions
+    if (
+        (pandas, extra)
+        in {
+            ("1.1.5", "koalas"),
+            ("1.1.5", "modin"),
+        }
+        or (session.python, pandas, extra)
+        in {
+            ("3.10", "1.1.5", "modin"),
+        }
+        or (session.python, extra)
+        in {
+            ("3.7", "modin"),
+            ("3.10", "geopandas"),
+            ("3.10", "modin"),
+        }
+    ):
+        session.skip()
+
     install_extras(session, extra, pandas=pandas)
+
+    env = {}
+    if extra.startswith("modin"):
+        extra, engine = extra.split("-")
+        if engine not in {"dask", "ray"}:
+            raise ValueError(f"{engine} is not a valid modin engine")
+        env = {"CI_MODIN_ENGINES": engine}
 
     if session.posargs:
         args = session.posargs
@@ -360,7 +388,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             args.append("--cov-report=html")
         args.append(path)
 
-    session.run("pytest", *args)
+    session.run("pytest", *args, env=env)
 
 
 @nox.session(python=PYTHON_VERSIONS)
