@@ -164,20 +164,6 @@ def install(session: Session, *args: str):
         session.install(*args)
 
 
-def install_from_requirements(session: Session, *packages: str) -> None:
-    """
-    Install dependencies, respecting the version specified in requirements.
-    """
-    for package in packages:
-        try:
-            specs = REQUIRES["all"][package]
-        except KeyError:
-            raise ValueError(
-                f"{package} cannot be found in {REQUIREMENT_PATH}."
-            ) from None
-        install(session, specs)
-
-
 def install_extras(
     session: Session,
     extra: str = "core",
@@ -273,7 +259,7 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
 @nox.session(python=DEFAULT_PYTHON)
 def black(session: Session) -> None:
     """Check black style."""
-    install_from_requirements(session, "black")
+    install(session, "black")
     args = ["--check"] if CI_RUN else session.posargs
     session.run(
         "black",
@@ -286,7 +272,7 @@ def black(session: Session) -> None:
 @nox.session(python=DEFAULT_PYTHON)
 def isort(session: Session) -> None:
     """Check isort style."""
-    install_from_requirements(session, "isort")
+    install(session, "isort")
     args = ["--check-only"] if CI_RUN else session.posargs
     session.run(
         "isort",
@@ -299,7 +285,7 @@ def isort(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def lint(session: Session) -> None:
     """Lint using pylint."""
-    install_extras(session, extra="all")
+    install(session, "pylint")
     args = session.posargs or SOURCE_PATHS
 
     if session.python == "3.9":
