@@ -339,17 +339,22 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         (pandas, extra)
         in {
             ("1.1.5", "koalas"),
-            ("1.1.5", "modin"),
+            ("1.1.5", "modin-dask"),
+            ("1.1.5", "modin-ray"),
         }
         or (session.python, pandas, extra)
         in {
-            ("3.10", "1.1.5", "modin"),
+            ("3.10", "1.1.5", "modin-dask"),
+            ("3.10", "1.1.5", "modin-ray"),
         }
         or (session.python, extra)
         in {
-            ("3.7", "modin"),
+            ("3.7", "modin-dask"),
+            ("3.7", "modin-ray"),
             ("3.10", "geopandas"),
-            ("3.10", "modin"),
+            ("3.10", "modin-dask"),
+            ("3.10", "modin-ray"),
+            ("3.10", "koalas"),
         }
     ):
         session.skip()
