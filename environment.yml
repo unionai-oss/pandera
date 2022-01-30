@@ -24,7 +24,7 @@ dependencies:
   - pandas-stubs
 
   # koalas extra
-  - koalas
+  - koalas; python_version < '3.10'
   - pyspark
 
   # modin extra

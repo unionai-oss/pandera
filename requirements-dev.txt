@@ -15,7 +15,7 @@ frictionless
 pyarrow
 pydantic
 pandas-stubs
-koalas
+koalas; python_version < '3.10'
 pyspark
 modin
 dask
