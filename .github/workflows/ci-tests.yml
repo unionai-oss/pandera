@@ -125,7 +125,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          activate-environment: pandera-test-ci
+          activate-environment: pandera-dev
           mamba-version: "*"
           channels: conda-forge,defaults
           channel-priority: strict
