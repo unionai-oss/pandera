@@ -90,16 +90,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        # os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        os: ["ubuntu-latest"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
         pandas-version: ["1.1.5", "1.3.5", "latest"]
         include:
         - os: ubuntu-latest
           path: ~/.cache/pip
-        - os: macos-latest
-          path: ~/Library/Caches/pip
-        - os: windows-latest
-          path: ~\AppData\Local\pip\Cache
+        # - os: macos-latest
+        #   path: ~/Library/Caches/pip
+        # - os: windows-latest
+        #   path: ~\AppData\Local\pip\Cache
         exclude:
         # excluding python==3.10, pandas==1.1.5
         - os: windows-latest
