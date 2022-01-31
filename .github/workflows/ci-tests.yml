@@ -99,8 +99,8 @@ jobs:
           path: ~/.cache/pip
         # - os: macos-latest
         #   path: ~/Library/Caches/pip
-        # - os: windows-latest
-        #   path: ~\AppData\Local\pip\Cache
+        - os: windows-latest
+          path: ~\AppData\Local\pip\Cache
         exclude:
         # excluding python==3.10, pandas==1.1.5
         - os: windows-latest
@@ -130,13 +130,13 @@ jobs:
       - name: Unit Tests - Core
         run: pytest tests/core
 
-      - name: Unit Tests - Core
-        run: >
-          nox
-          --no-install
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Core
+      #   run: >
+      #     nox
+      #     --no-install
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
       # - name: Unit Tests - Dask
       #   run: >
