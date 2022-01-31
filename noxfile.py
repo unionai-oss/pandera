@@ -187,6 +187,7 @@ def install_extras(
 ) -> None:
     """Install dependencies."""
 
+    # noop if nox is invoked in
     if isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
         return
 
@@ -336,6 +337,10 @@ EXTRA_NAMES = [
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
+    if not session.python:
+        python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    else:
+        python_version = session.python
 
     # skip these conditions
     if (
@@ -345,12 +350,12 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             ("1.1.5", "modin-dask"),
             ("1.1.5", "modin-ray"),
         }
-        or (session.python, pandas, extra)
+        or (python_version, pandas, extra)
         in {
             ("3.10", "1.1.5", "modin-dask"),
             ("3.10", "1.1.5", "modin-ray"),
         }
-        or (session.python, extra)
+        or (python_version, extra)
         in {
             ("3.7", "modin-dask"),
             ("3.7", "modin-ray"),
