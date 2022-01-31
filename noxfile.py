@@ -340,7 +340,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
     if not session.python:
         python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
     else:
-        python_version = session.python
+        python_version = session.python  # type: ignore
 
     # skip these conditions
     if (

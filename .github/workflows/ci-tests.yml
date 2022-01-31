@@ -123,7 +123,9 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install dependencies
         # install base pandera deps
-        run: python -m pip install -r requirements-dev.txt
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements-dev.txt
       - name: Pip info
         run: python -m pip list
 
