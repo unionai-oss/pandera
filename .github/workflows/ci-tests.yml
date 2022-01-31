@@ -90,16 +90,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        # os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        os: ["ubuntu-latest"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
         pandas-version: ["1.1.5", "1.3.5", "latest"]
         include:
         - os: ubuntu-latest
           path: ~/.cache/pip
-        - os: macos-latest
-          path: ~/Library/Caches/pip
-        - os: windows-latest
-          path: ~\AppData\Local\pip\Cache
+        # - os: macos-latest
+        #   path: ~/Library/Caches/pip
+        # - os: windows-latest
+        #   path: ~\AppData\Local\pip\Cache
         exclude:
         # excluding python==3.10, pandas==1.1.5
         - os: windows-latest
@@ -120,104 +121,109 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
       - name: Install dependencies
-        run: python -m pip install -r requirements-dev.txt
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements-dev.txt
       - name: Pip info
         run: python -m pip list
 
       - name: Unit Tests - Core
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
+        run: pytest tests/core
 
-      - name: Unit Tests - Dask
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='dask', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Core
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Hypotheses
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Dask
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='dask', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - IO
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Hypotheses
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Strategies
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - IO
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Mypy
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='mypy', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Strategies
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - GeoPandas
-        if: ${{ matrix.os != 'windows-latest'}}
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='geopandas', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Mypy
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='mypy', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Koalas
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - GeoPandas
+      #   if: ${{ matrix.os != 'windows-latest'}}
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='geopandas', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Unit Tests - Modin-Dask [MacOS, Ubuntu]
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: >
-          nox -db virtualenv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Koalas
+      #   if: ${{ matrix.os != 'windows-latest' }}
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
 
-      # Ray doesn't have a Python 3.10 wheel yet
-      - name: Unit Tests - Modin-Ray [MacOS, Ubuntu]
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: >
-          nox -db virtualenv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin-ray', pandas='${{ matrix.pandas-version }}')"
+      # - name: Unit Tests - Modin-Dask [MacOS, Ubuntu]
+      #   if: ${{ matrix.os != 'windows-latest' }}
+      #   run: >
+      #     nox -db virtualenv -r -v --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
 
-      # TODO: need to figure out why modin-ray CI is failing on windows
-      # modin and nox don't play well on windows for some reason?
-      - name: Unit Tests - Modin-Dask [Windows]
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: >
-          nox -db virtualenv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
+      # # Ray doesn't have a Python 3.10 wheel yet
+      # - name: Unit Tests - Modin-Ray [MacOS, Ubuntu]
+      #   if: ${{ matrix.os != 'windows-latest' }}
+      #   run: >
+      #     nox -db virtualenv -r -v --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='modin-ray', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Upload coverage to Codecov
-        uses: "codecov/codecov-action@v1"
+      # # TODO: need to figure out why modin-ray CI is failing on windows
+      # # modin and nox don't play well on windows for some reason?
+      # - name: Unit Tests - Modin-Dask [Windows]
+      #   if: ${{ matrix.os == 'windows-latest' }}
+      #   run: >
+      #     nox -db virtualenv -r -v --non-interactive
+      #     --session "tests-${{ matrix.python-version }}(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
 
-      - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "doctests-${{ matrix.python-version }}"
+      # - name: Upload coverage to Codecov
+      #   uses: "codecov/codecov-action@v1"
 
-      - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "docs-${{ matrix.python-version }}"
+      # - name: Check Docstrings
+      #   if: ${{ matrix.os != 'windows-latest' }}
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "doctests-${{ matrix.python-version }}"
+
+      # - name: Check Docs
+      #   if: ${{ matrix.os != 'windows-latest' }}
+      #   run: >
+      #     nox
+      #     -db virtualenv -r -v
+      #     --non-interactive
+      #     --session "docs-${{ matrix.python-version }}"
