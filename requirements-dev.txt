@@ -20,8 +20,6 @@ pyspark
 modin
 dask
 distributed
-geopandas
-shapely
 fastapi
 black >= 22.1.0
 isort >= 5.7.0
@@ -43,8 +41,10 @@ twine
 asv
 pre_commit
 furo <= 2021.10.9
-ray <= 1.7.0
+ray <= 1.7.0; python_version < '3.10'
 types-click
 types-pyyaml
 types-pkg_resources
 types-requests
+geopandas; python_version < '3.10'
+shapely; python_version < '3.10'
