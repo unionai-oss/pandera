@@ -186,11 +186,6 @@ def install_extras(
     pandas_stubs: bool = True,
 ) -> None:
     """Install dependencies."""
-
-    # noop if nox is invoked in
-    if isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
-        return
-
     specs, pip_specs = [], []
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
     for spec in REQUIRES[extra].values():
@@ -214,6 +209,7 @@ def install_extras(
             )
     if extra in {"core", "fastapi", "koalas", "modin-ray", "modin-dask"}:
         specs.append(REQUIRES["all"]["hypothesis"])
+
     # CI installs conda dependencies, so only run this for local runs
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
@@ -337,10 +333,6 @@ EXTRA_NAMES = [
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
-    if not session.python:
-        python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
-    else:
-        python_version = session.python  # type: ignore
 
     # skip these conditions
     if (
@@ -350,12 +342,12 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             ("1.1.5", "modin-dask"),
             ("1.1.5", "modin-ray"),
         }
-        or (python_version, pandas, extra)
+        or (session.python, pandas, extra)
         in {
             ("3.10", "1.1.5", "modin-dask"),
             ("3.10", "1.1.5", "modin-ray"),
         }
-        or (python_version, extra)
+        or (session.python, extra)
         in {
             ("3.7", "modin-dask"),
             ("3.7", "modin-ray"),
@@ -397,6 +389,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             "--cov-report=term-missing",
             "--cov-report=xml",
             "--cov-append",
+            "--verbosity=10",
         ]
         if not CI_RUN:
             args.append("--cov-report=html")
