@@ -186,6 +186,10 @@ def install_extras(
     pandas_stubs: bool = True,
 ) -> None:
     """Install dependencies."""
+
+    if isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
+        return
+
     specs, pip_specs = [], []
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
     for spec in REQUIRES[extra].values():
@@ -209,7 +213,6 @@ def install_extras(
             )
     if extra in {"core", "fastapi", "koalas", "modin-ray", "modin-dask"}:
         specs.append(REQUIRES["all"]["hypothesis"])
-
     # CI installs conda dependencies, so only run this for local runs
     if (
         isinstance(session.virtualenv, nox.virtualenv.CondaEnv)
