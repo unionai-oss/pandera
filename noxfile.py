@@ -407,6 +407,10 @@ def doctests(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def docs(session: Session) -> None:
     """Build the documentation."""
+    # this is needed until ray and geopandas are supported on python 3.10
+    if session.python == "3.10":
+        session.skip()
+
     install_extras(session, extra="all", force_pip=True)
     session.chdir("docs")
 

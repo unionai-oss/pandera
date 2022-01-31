@@ -218,7 +218,7 @@ jobs:
           --session "doctests-${{ matrix.python-version }}"
 
       - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest'}}
+        if: ${{ matrix.os != 'windows-latest' }}
         run: >
           nox
           -db virtualenv -r -v
