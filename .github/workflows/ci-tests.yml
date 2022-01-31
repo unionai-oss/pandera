@@ -139,7 +139,8 @@ jobs:
           conda config --show
           printenv | sort
 
-      - name: Unit Tests - Core
+      - shell: bash -l {0}
+        name: Unit Tests - Core
         run: pytest tests/core
 
       # - name: Set up Python ${{ matrix.python-version }}
