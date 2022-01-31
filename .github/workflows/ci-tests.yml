@@ -129,81 +129,81 @@ jobs:
       - name: Unit Tests - Core
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='core', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='core', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Dask
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='dask', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='dask', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Hypotheses
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - IO
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='io', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='io', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Strategies
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='strategies', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='strategies', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Mypy
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='mypy', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='mypy', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - GeoPandas
         if: ${{ matrix.os != 'windows-latest'}}
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='geopandas', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='geopandas', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Koalas
         if: ${{ matrix.os != 'windows-latest' }}
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='koalas', pandas='${{ matrix.pandas-version }}')"
+          --session "tests(extra='koalas', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Modin-Dask [MacOS, Ubuntu]
         if: ${{ matrix.os != 'windows-latest' }}
         run: >
-          --no-venv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
+          --no-venv -v --non-interactive
+          --session "tests(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
 
       # Ray doesn't have a Python 3.10 wheel yet
       - name: Unit Tests - Modin-Ray [MacOS, Ubuntu]
         if: ${{ matrix.os != 'windows-latest' }}
         run: >
-          --no-venv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin-ray', pandas='${{ matrix.pandas-version }}')"
+          --no-venv -v --non-interactive
+          --session "tests(extra='modin-ray', pandas='${{ matrix.pandas-version }}')"
 
       # TODO: need to figure out why modin-ray CI is failing on windows
       # modin and nox don't play well on windows for some reason?
       - name: Unit Tests - Modin-Dask [Windows]
         if: ${{ matrix.os == 'windows-latest' }}
         run: >
-          --no-venv -r -v --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
+          --no-venv -v --non-interactive
+          --session "tests(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
 
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@v1"
@@ -212,14 +212,14 @@ jobs:
         if: ${{ matrix.os != 'windows-latest' }}
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
-          --session "doctests-${{ matrix.python-version }}"
+          --session "doctests"
 
       - name: Check Docs
         if: ${{ matrix.os != 'windows-latest' }}
         run: >
           nox
-          --no-venv -r -v
+          --no-venv -v
           --non-interactive
           --session "docs-${{ matrix.python-version }}"
