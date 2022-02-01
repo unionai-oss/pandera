@@ -93,22 +93,20 @@ jobs:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         # python-version: ["3.7", "3.8", "3.9", "3.10"]
         python-version: ["3.10"]
-        pandas-version: ["1.1.5", "1.3.5", "latest"]
+        # pandas-version: ["1.1.5", "1.3.5", "latest"]
+        pandas-version: ["latest"]
         include:
         - os: ubuntu-latest
-          label: linux-64
-          prefix: /usr/share/miniconda3/envs/pandera-dev
+          pip-cache: ~/.cache/pip
         - os: macos-latest
-          label: osx-64
-          prefix: /Users/runner/miniconda3/envs/pandera-dev
+          pip-cache: ~/Library/Caches/pip
         - os: windows-latest
-          label: win-64
-          prefix: C:\Miniconda3\envs\pandera-dev
-        exclude:
-        # excluding python==3.10, pandas==1.1.5
-        - os: windows-latest
-          python-version: "3.10"
-          pandas-version: "1.1.5"
+          pip-cache: ~/AppData/Local/pip/Cache
+        # exclude:
+        # # excluding python==3.10, pandas==1.1.5
+        # - os: windows-latest
+        #   python-version: "3.10"
+        #   pandas-version: "1.1.5"
 
     steps:
       - uses: actions/checkout@v2
@@ -119,9 +117,17 @@ jobs:
           # Increase this value to reset cache if etc/environment.yml has not changed
           CACHE_NUMBER: 0
         with:
-          path: ${{ matrix.prefix }}
-          key: ${{ matrix.label }}-conda-${{ hashFiles('etc/example-environment-caching.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+          path: ~/conda_pkgs_dir
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
         id: cache
+
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ${{ matrix.pip-cache }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
@@ -152,6 +158,7 @@ jobs:
         name: Unit Tests - Core
         run: |
           pytest
+          tests/core
           -n=auto
           -q
           --hypothesis-profile=ci
@@ -159,7 +166,6 @@ jobs:
           --cov-report=term-missing
           --cov-report=xml
           --cov-append
-          tests/core
 
       - name: Unit Tests - Core
         run: >
