@@ -128,7 +128,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: pandera-dev
           mamba-version: "*"
-          channels: conda-forge,defaults
+          channels: conda-forge
           channel-priority: strict
           environment-file: environment.yml
           use-only-tar-bz2: true
