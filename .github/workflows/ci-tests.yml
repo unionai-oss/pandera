@@ -160,7 +160,7 @@ jobs:
         name: Unit Tests - Core
         run: |
           pytest
-          tests/core
+          tests/core/
           --cov=pandera
           --cov-report=term-missing
           --cov-report=xml
