@@ -142,7 +142,7 @@ jobs:
         name: Pip install
         run: |
           python -m pip install -U pip
-          python -m pip install requirements-dev.txt
+          python -m pip install -r requirements-dev.txt
 
       - shell: bash -l {0}
         name: Unit Tests - Core
