@@ -158,13 +158,11 @@ jobs:
 
       - shell: bash -l {0}
         name: Unit Tests - Core
-        run: |
-          pytest
-          --cov=pandera
-          --cov-report=term-missing
-          --cov-report=xml
-          --cov-append
-          tests/core/
+        run: pytest tests/core/
+
+      - shell: bash -l {0}
+        name: Unit Tests - Core
+        run: pytest tests/core/ --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
 
       # - name: Unit Tests - Core
       #   run: >
