@@ -129,7 +129,6 @@ jobs:
           activate-environment: pandera-dev
           channels: conda-forge,defaults
           channel-priority: flexible
-          environment-file: environment.yml
           use-only-tar-bz2: true
       - shell: bash -l {0}
         run: |
@@ -138,6 +137,12 @@ jobs:
           conda config --show-sources
           conda config --show
           printenv | sort
+
+      - shell: bash -l {0}
+        name: Pip install
+        run: |
+          python -m pip install -U pip
+          python -m pip install requirements-dev.txt
 
       - shell: bash -l {0}
         name: Unit Tests - Core
