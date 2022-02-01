@@ -351,7 +351,6 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         in {
             ("3.7", "modin-dask"),
             ("3.7", "modin-ray"),
-            ("3.10", "geopandas"),
             ("3.10", "modin-dask"),
             ("3.10", "modin-ray"),
             ("3.10", "koalas"),
