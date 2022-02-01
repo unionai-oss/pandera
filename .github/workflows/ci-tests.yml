@@ -91,6 +91,7 @@ jobs:
     env:
       PYTHONUTF8: 1
       NOX_FLAGS: -v --no-install --no-venv --non-interactive
+      PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
     strategy:
       fail-fast: false
       matrix:
@@ -157,12 +158,16 @@ jobs:
           printenv | sort
 
       - shell: bash -l {0}
-        name: Unit Tests - Core
-        run: pytest tests/core/
+        name: Unit Tests - Core, Hypotheses, IO
+        run: pytest tests/core tests/hypotheses tests/io ${{ env.PYTEST_FLAGS }}
 
       - shell: bash -l {0}
-        name: Unit Tests - Core
-        run: pytest tests/core/ --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
+        name: Unit Tests - Mypy
+        run: pytest tests/mypy ${{ env.PYTEST_FLAGS }}
+
+      - shell: bash -l {0}
+        name: Unit Tests - Strategies
+        run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} -n=auto -q --hypothesis-profile=ci
 
       # - name: Unit Tests - Core
       #   run: >
