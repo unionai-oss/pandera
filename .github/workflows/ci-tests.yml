@@ -167,7 +167,8 @@ jobs:
       #     --cov-report=xml
       #     --cov-append
 
-      - name: Unit Tests - Core
+      - shell: bash -l {0}
+        name: Unit Tests - Core
         run: >
           nox
           -v
