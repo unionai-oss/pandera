@@ -154,18 +154,18 @@ jobs:
           conda config --show
           printenv | sort
 
-      - shell: bash -l {0}
-        name: Unit Tests - Core
-        run: |
-          pytest
-          tests/core
-          -n=auto
-          -q
-          --hypothesis-profile=ci
-          --cov=pandera
-          --cov-report=term-missing
-          --cov-report=xml
-          --cov-append
+      # - shell: bash -l {0}
+      #   name: Unit Tests - Core
+      #   run: |
+      #     pytest
+      #     tests/core
+      #     -n=auto
+      #     -q
+      #     --hypothesis-profile=ci
+      #     --cov=pandera
+      #     --cov-report=term-missing
+      #     --cov-report=xml
+      #     --cov-append
 
       - name: Unit Tests - Core
         run: >
