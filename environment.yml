@@ -9,7 +9,7 @@ dependencies:
   # pandera dependencies
   - packaging >= 20.0
   - hypothesis >= 5.41.1
-  - numpy
+  - numpy >= 1.9.0
   - pandas
   - scipy
   - wrapt
