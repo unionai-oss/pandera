@@ -114,7 +114,7 @@ jobs:
       - name: Cache conda
         uses: actions/cache@v2
         env:
-          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          # Increase this value to reset cache if etc/environment.yml has not changed
           CACHE_NUMBER: 0
         with:
           path: ~/conda_pkgs_dir
@@ -127,7 +127,6 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           activate-environment: pandera-dev
-          mamba-version: "*"
           channels: conda-forge,defaults
           channel-priority: flexible
           environment-file: environment.yml
