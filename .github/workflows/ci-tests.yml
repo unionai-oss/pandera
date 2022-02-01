@@ -157,17 +157,49 @@ jobs:
           conda config --show
           printenv | sort
 
-      - shell: bash -l {0}
-        name: Unit Tests - Core, Hypotheses, IO
+      - name: Unit Tests - Core, Hypotheses, IO
         run: pytest tests/core tests/hypotheses tests/io ${{ env.PYTEST_FLAGS }}
 
-      - shell: bash -l {0}
-        name: Unit Tests - Mypy
+      - name: Unit Tests - Mypy
         run: pytest tests/mypy ${{ env.PYTEST_FLAGS }}
 
-      - shell: bash -l {0}
-        name: Unit Tests - Strategies
+      - name: Unit Tests - Strategies
         run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} -n=auto -q --hypothesis-profile=ci
+
+      - name: Unit Tests - GeoPandas
+        run: pytest tests/geopandas ${{ env.PYTEST_FLAGS }}
+
+      - name: Unit Tests - Dask
+        run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
+
+      - name: Unit Tests - Koalas
+        if: ${{ matrix.python-version != '3.10' }}
+        run: pytest tests/koalas ${{ env.PYTEST_FLAGS }}
+
+      - name: Unit Tests - Modin-Dask
+        run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
+        env:
+          CI_MODIN_ENGINES: dask
+
+      - name: Unit Tests - Modin-Ray
+        run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
+        env:
+          CI_MODIN_ENGINES: ray
+
+      - name: Upload coverage to Codecov
+        uses: "codecov/codecov-action@v1"
+
+      - name: Check Docstrings
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: >
+          nox ${{ env.NOX_FLAGS }}
+          --session "doctests-${{ matrix.python-version }}"
+
+      - name: Check Docs
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: >
+          nox ${{ env.NOX_FLAGS }}
+          --session "docs-${{ matrix.python-version }}"
 
       # - name: Unit Tests - Core
       #   run: >
