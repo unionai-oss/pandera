@@ -335,6 +335,9 @@ def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
 
     # skip these conditions
+    python = (
+        session.python or f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
     if (
         (pandas, extra)
         in {
@@ -342,12 +345,12 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             ("1.1.5", "modin-dask"),
             ("1.1.5", "modin-ray"),
         }
-        or (session.python, pandas, extra)
+        or (python, pandas, extra)
         in {
             ("3.10", "1.1.5", "modin-dask"),
             ("3.10", "1.1.5", "modin-ray"),
         }
-        or (session.python, extra)
+        or (python, extra)
         in {
             ("3.7", "modin-dask"),
             ("3.7", "modin-ray"),
