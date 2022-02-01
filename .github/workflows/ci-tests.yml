@@ -126,6 +126,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+          mamba-version: "*"
           activate-environment: pandera-dev
           channels: conda-forge,defaults
           channel-priority: flexible
@@ -134,9 +135,8 @@ jobs:
       - shell: bash -l {0}
         name: Install deps
         run: |
-          conda install -c conda-forge geopandas
-          python -m pip install -U pip
-          python -m pip install -r requirements-dev.txt
+          mamba install -c conda-forge numpy
+          mamba env update -f environment.yml
 
       - shell: bash -l {0}
         run: |
