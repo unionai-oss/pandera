@@ -100,8 +100,8 @@ jobs:
           path: ~/.cache/pip
         # - os: macos-latest
         #   path: ~/Library/Caches/pip
-        - os: windows-latest
-          path: ~\AppData\Local\pip\Cache
+        # - os: windows-latest
+        #   path: ~\AppData\Local\pip\Cache
         exclude:
         # excluding python==3.10, pandas==1.1.5
         - os: windows-latest
@@ -127,7 +127,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           activate-environment: pandera-dev
-          # mamba-version: "*"
+          mamba-version: "*"
           channels: conda-forge,defaults
           channel-priority: strict
           environment-file: environment.yml
