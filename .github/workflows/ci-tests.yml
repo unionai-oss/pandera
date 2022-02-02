@@ -160,7 +160,7 @@ jobs:
         with:
           timeout_minutes: 5
           max_attempts: 5
-          shell: bash
+          shell: pwsh
           command: pytest tests/core ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Hypotheses
