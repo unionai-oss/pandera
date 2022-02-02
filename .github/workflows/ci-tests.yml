@@ -87,7 +87,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        shell: bash -l {0}
+        shell: pwsh
     env:
       PYTHONUTF8: 1
       NOX_FLAGS: -v --no-install --no-venv --non-interactive
@@ -155,13 +155,16 @@ jobs:
           conda config --show
           printenv | sort
 
+      # - name: Unit Tests - Core
+      #   uses: nick-invision/retry@v2
+      #   with:
+      #     timeout_minutes: 5
+      #     max_attempts: 5
+      #     shell: pwsh
+      #     command: pytest tests/core ${{ env.PYTEST_FLAGS }}
+
       - name: Unit Tests - Core
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 5
-          max_attempts: 5
-          shell: pwsh
-          command: pytest tests/core ${{ env.PYTEST_FLAGS }}
+        run: pytest tests/core ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Hypotheses
         run: pytest tests/hypotheses ${{ env.PYTEST_FLAGS }}
