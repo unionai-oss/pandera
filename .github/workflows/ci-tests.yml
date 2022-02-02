@@ -183,7 +183,8 @@ jobs:
           CI_MODIN_ENGINES: dask
 
       - name: Unit Tests - Modin-Ray
-        run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
+        if: ${{ matrix.python-version != '3.10' }}
+        run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
 
@@ -197,73 +198,3 @@ jobs:
       - name: Check Docs
         if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' }}
         run: nox ${{ env.NOX_FLAGS }} --session docs
-
-      # - name: Unit Tests - Core
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='core', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - Dask
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='dask', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - Hypotheses
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='hypotheses', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - IO
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='io', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - Strategies
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='strategies', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - Mypy
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='mypy', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - GeoPandas
-      #   if: ${{ matrix.os != 'windows-latest'}}
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='geopandas', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - Koalas
-      #   # if: ${{ matrix.os != 'windows-latest' }}
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='koalas', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Unit Tests - Modin-Dask [MacOS, Ubuntu]
-      #   # if: ${{ matrix.os != 'windows-latest' }}
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='modin-dask', pandas='${{ matrix.pandas-version }}')"
-
-      # # Ray doesn't have a Python 3.10 wheel yet
-      # - name: Unit Tests - Modin-Ray [MacOS, Ubuntu]
-      #   if: ${{ matrix.os != 'windows-latest' }}
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "tests(extra='modin-ray', pandas='${{ matrix.pandas-version }}')"
-
-      # - name: Upload coverage to Codecov
-      #   uses: "codecov/codecov-action@v1"
-
-      # - name: Check Docstrings
-      #   if: ${{ matrix.os != 'windows-latest' }}
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "doctests-${{ matrix.python-version }}"
-
-      # - name: Check Docs
-      #   if: ${{ matrix.os != 'windows-latest' }}
-      #   run: >
-      #     nox ${{ env.NOX_FLAGS }}
-      #     --session "docs-${{ matrix.python-version }}"
