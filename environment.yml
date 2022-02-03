@@ -57,8 +57,13 @@ dependencies:
   - nox
   - importlib_metadata # required if python < 3.8
 
+  # fastapi testing
+  - uvicorn
+  - python-multipart
+
   # documentation
   - sphinx
+  - sphinx-panels
   - sphinx-autodoc-typehints <= 1.14.1
   - sphinx-copybutton
   - recommonmark

@@ -207,7 +207,7 @@ def install_extras(
             specs.append(
                 spec if spec != "pandas" else f"pandas{pandas_version}"
             )
-    if extra in {"core", "fastapi", "koalas", "modin-ray", "modin-dask"}:
+    if extra in {"core", "koalas", "modin", "fastapi"}:
         specs.append(REQUIRES["all"]["hypothesis"])
 
     # CI installs conda dependencies, so only run this for local runs

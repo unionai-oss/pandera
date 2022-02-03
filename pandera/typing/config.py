@@ -43,18 +43,16 @@ class BaseConfig:  # pylint:disable=R0903
     #: a dictionary keyword arguments to pass into the reader function that
     #: converts the object of type ``from_format`` to a pandera-validate-able
     #: data structure. The reader function is implemented in the pandera.typing
-    #: generic types via the ``from_format`` and ``to_format``
-    # methods.
-    from_format_options: Optional[Dict[str, Any]] = None
+    #: generic types via the ``from_format`` and ``to_format`` methods.
+    from_format_kwargs: Optional[Dict[str, Any]] = None
 
     #: data format to serialize into after validation. This option only applies
-    # to  schemas used in the context of the pandera type constructor
+    #: to  schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, returns a dataframe.
     to_format: Optional[Format] = None
 
     #: a dictionary keyword arguments to pass into the writer function that
     #: converts the pandera-validate-able object to type ``to_format``.
     #: The writer function is implemented in the pandera.typing
-    #: generic types via the ``from_format`` and ``to_format``
-    #: methods.
-    to_format_options: Optional[Dict[str, Any]] = None
+    #: generic types via the ``from_format`` and ``to_format`` methods.
+    to_format_kwargs: Optional[Dict[str, Any]] = None

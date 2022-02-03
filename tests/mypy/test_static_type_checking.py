@@ -105,6 +105,7 @@ def test_pandera_runtime_errors(fn) -> None:
         assert e.failure_cases["failure_case"].item() == "age"
 
 
+# pylint: disable=line-too-long
 PANDAS_CONCAT_FALSE_POSITIVES = {
     13: {
         "msg": 'No overload variant of "concat" matches argument type "Generator[DataFrame, None, None]"',  # noqa
@@ -137,15 +138,20 @@ PANDAS_TIME_FALSE_POSITIVES = {
 
 
 @pytest.mark.parametrize(
-    "module,config,errors",
+    "module,config,expected_errors",
     [
         ["pandas_concat.py", None, PANDAS_CONCAT_FALSE_POSITIVES],
-        ["pandas_concat.py", "plugin_mypy.ini", PANDAS_CONCAT_FALSE_POSITIVES],
+        ["pandas_concat.py", "plugin_mypy.ini", {}],
         ["pandas_time.py", None, PANDAS_TIME_FALSE_POSITIVES],
-        ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_FALSE_POSITIVES],
+        ["pandas_time.py", "plugin_mypy.ini", {}],
     ],
 )
-def test_pandas_stubs_false_positives(capfd, module, config, errors) -> None:
+def test_pandas_stubs_false_positives(
+    capfd,
+    module,
+    config,
+    expected_errors,
+) -> None:
     """Test pandas-stubs type stub false positives."""
     if config is None:
         cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
@@ -163,12 +169,13 @@ def test_pandas_stubs_false_positives(capfd, module, config, errors) -> None:
 
     if config:
         commands += ["--config-file", str(test_module_dir / "config" / config)]
+    # pylint: disable=subprocess-run-check
     subprocess.run(
         commands,
         text=True,
     )
-    errors = _get_mypy_errors(capfd.readouterr().out)
-    assert errors == errors
+    resulting_errors = _get_mypy_errors(capfd.readouterr().out)
+    assert resulting_errors == expected_errors
 
 
 @pytest.mark.parametrize("module", ["pandas_concat", "pandas_time"])

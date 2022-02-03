@@ -35,7 +35,10 @@ pytest-asyncio
 xdoctest
 nox
 importlib_metadata
+uvicorn
+python-multipart
 sphinx
+sphinx-panels
 sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
 recommonmark

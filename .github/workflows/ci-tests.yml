@@ -167,6 +167,9 @@ jobs:
       - name: Unit Tests - Strategies
         run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} ${{ env.HYPOTHESIS_FLAGS }}
 
+      - name: Unit Tests - FastAPI
+        run: pytest tests/fastapi ${{ env.PYTEST_FLAGS }}
+
       - name: Unit Tests - GeoPandas
         run: pytest tests/geopandas ${{ env.PYTEST_FLAGS }}
 

@@ -27,7 +27,7 @@ class InSchemaDict(InSchema):
 class InSchemaJson(InSchema):
     class Config:
         from_format = "json"
-        from_format_options = {"orient": "records"}
+        from_format_kwargs = {"orient": "records"}
 
 
 class InSchemaFeather(InSchema):
@@ -52,19 +52,19 @@ class OutSchema(InSchema):
 class OutSchemaCsv(OutSchema):
     class Config:
         to_format = "csv"
-        to_format_options = {"index": None}
+        to_format_kwargs = {"index": None}
 
 
 class OutSchemaDict(OutSchema):
     class Config:
         to_format = "dict"
-        to_format_options = {"orient": "records"}
+        to_format_kwargs = {"orient": "records"}
 
 
 class OutSchemaJson(OutSchema):
     class Config:
         to_format = "json"
-        to_format_options = {"orient": "records"}
+        to_format_kwargs = {"orient": "records"}
 
 
 class OutSchemaFeather(OutSchema):

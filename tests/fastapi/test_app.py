@@ -59,11 +59,11 @@ def test_transactions_endpoint(app):
 @given(Transactions.strategy(size=10))
 def test_upload_file_endpoint(app, sample):
     """Test upload file endpoint with Upload[DataFrame[SchemaModel]] input."""
-    buf = io.StringIO()
-    sample.to_json(buf, orient="records")
+    buf = io.BytesIO()
+    sample.to_parquet(buf)
     buf.seek(0)
 
-    expected_result = pd.read_json(buf).assign(name="foo")
+    expected_result = pd.read_parquet(buf).assign(name="foo")
     buf.seek(0)
 
     response = requests.post(
