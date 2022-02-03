@@ -119,15 +119,26 @@ PANDAS_CONCAT_FALSE_POSITIVES = {
 
 PANDAS_TIME_FALSE_POSITIVES = {
     4: {
-        "msg": 'No overload variant of "__add__" of "Timestamp" matches argument type "YearEnd"',
-        "errcode": "operator",  # noqa
+        "msg": 'Unsupported operand types for + ("Timestamp" and "YearEnd")',  # noqa
         "errcode": "operator",
+    },
+    6: {
+        "msg": 'Missing positional argument "value" in call to "Timedelta"',  # noqa
+        "errcode": "call-arg",
+    },
+    9: {
+        "msg": 'Missing positional argument "value" in call to "Timedelta"',  # noqa
+        "errcode": "call-arg",
+    },
+    10: {
+        "msg": 'Argument 1 to "Timedelta" has incompatible type "float"; expected "Union[Timedelta, timedelta, timedelta64, str, int]"',  # noqa
+        "errcode": "arg-type",
     },
 }
 
 
 @pytest.mark.parametrize(
-    "module,config,errors",
+    "module,config,expected_errors",
     [
         ["pandas_concat.py", None, PANDAS_CONCAT_FALSE_POSITIVES],
         ["pandas_concat.py", "plugin_mypy.ini", {}],
@@ -135,7 +146,12 @@ PANDAS_TIME_FALSE_POSITIVES = {
         ["pandas_time.py", "plugin_mypy.ini", {}],
     ],
 )
-def test_pandas_stubs_false_positives(capfd, module, config, errors) -> None:
+def test_pandas_stubs_false_positives(
+    capfd,
+    module,
+    config,
+    expected_errors,
+) -> None:
     """Test pandas-stubs type stub false positives."""
     if config is None:
         cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
@@ -159,7 +175,7 @@ def test_pandas_stubs_false_positives(capfd, module, config, errors) -> None:
         text=True,
     )
     resulting_errors = _get_mypy_errors(capfd.readouterr().out)
-    assert errors == resulting_errors
+    assert resulting_errors == expected_errors
 
 
 @pytest.mark.parametrize("module", ["pandas_concat", "pandas_time"])
