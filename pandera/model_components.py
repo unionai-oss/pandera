@@ -378,7 +378,7 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
 
     def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
         check_fn, check_method = _to_function_and_classmethod(fn)
-        check_kwargs.setdefault('description', fn.__doc__)
+        check_kwargs.setdefault("description", fn.__doc__)
         setattr(
             check_method,
             CHECK_KEY,
@@ -405,7 +405,7 @@ def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
 
     def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
         check_fn, check_method = _to_function_and_classmethod(fn)
-        check_kwargs.setdefault('description', fn.__doc__)
+        check_kwargs.setdefault("description", fn.__doc__)
         setattr(
             check_method,
             DATAFRAME_CHECK_KEY,

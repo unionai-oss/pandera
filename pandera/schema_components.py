@@ -103,7 +103,7 @@ class Column(SeriesSchemaBase):
             name,
             pandas_dtype,
             title,
-            description
+            description,
         )
         if (
             name is not None
