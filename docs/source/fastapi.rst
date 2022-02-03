@@ -83,5 +83,5 @@ Takeaway
 --------
 
 With the FastAPI and Pandera integration, you can use Pandera
-:py:class:`~pandera.model.SchemaModel` types to validate the inputs and outputs
-of your FastAPI endpoints.
+:py:class:`~pandera.model.SchemaModel` types to validate the dataframe inputs
+and outputs of your FastAPI endpoints.

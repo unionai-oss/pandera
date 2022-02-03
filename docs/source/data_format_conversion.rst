@@ -42,7 +42,7 @@ and ``OutSchema`` definitions.
 
 But what if your input data is serialized in parquet format, and you want to
 read it into memory, validate the DataFrame, and then pass it to a downstream
-function for for further analysis? Similarly, what if you want the output of
+function for further analysis? Similarly, what if you want the output of
 ``transform`` to be a list of dictionary records instead of a pandas DataFrame?
 
 The ``to/from_format`` Configuration Options
@@ -59,7 +59,7 @@ define a subclass of ``InSchema`` with additional configuration so that our
         class Config:
             from_format = "parquet"
 
-Then, a we define subclass of ``OutSchema`` to specify that ``transform``
+Then, we define subclass of ``OutSchema`` to specify that ``transform``
 should output a list of dictionaries representing the rows of the output
 dataframe.
 
