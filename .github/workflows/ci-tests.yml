@@ -167,18 +167,14 @@ jobs:
       - name: Unit Tests - Strategies
         run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} ${{ env.HYPOTHESIS_FLAGS }}
 
+      - name: Unit Tests - FastAPI
+        run: pytest tests/fastapi ${{ env.PYTEST_FLAGS }}
+
       - name: Unit Tests - GeoPandas
         run: pytest tests/geopandas ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Dask
         run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
-
-      - name: Unit Tests - FastAPI
-        run: >
-          nox
-          -db virtualenv -r -v
-          --non-interactive
-          --session "tests-${{ matrix.python-version }}(extra='fastapi', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Koalas
         if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.pandas-version != '1.1.5' }}
