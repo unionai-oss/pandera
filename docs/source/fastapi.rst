@@ -11,7 +11,7 @@ Since both FastAPI and Pandera integrates seamlessly with Pydantic, you can
 use the :py:class:`~pandera.model.SchemaModel` types to validate incoming
 or outgoing data with respect to your API endpoints.
 
-Using SchemaModels to Validate Endpoints Inputs and Outputs
+Using SchemaModels to Validate Endpoint Inputs and Outputs
 -----------------------------------------------------------
 
 Suppose we want to process transactions, where each transaction has an
@@ -28,8 +28,8 @@ data:
     :language: python
     :lines: 22-25
 
-Assuming that the output of the endpoint should be a list of dictionary records
-containing the named transactions data. We can do this easily with the
+Let's also assume that the output of the endpoint should be a list of dictionary
+records containing the named transactions data. We can do this easily with the
 ``to_format`` option in the schema model :py:class:`~pandera.typing.config.BaseConfig`.
 
 .. literalinclude:: ../../tests/fastapi/models.py
@@ -75,8 +75,8 @@ and the modified data in json format.
     :language: python
     :lines: 31-38
 
-Pandera's :py:class:`~pandera.typing.fastapi.UploadFile` type is the same as FastAPI's
-`UploadFile <https://fastapi.tiangolo.com/tutorial/request-files/?h=uploadfile#uploadfile>`
+Pandera's :py:class:`~pandera.typing.fastapi.UploadFile` type is a subclass of FastAPI's
+`UploadFile <https://fastapi.tiangolo.com/tutorial/request-files/?h=uploadfile#uploadfile>`__
 but it exposes a ``.data`` property containing the pandera-validated dataframe.
 
 Takeaway
