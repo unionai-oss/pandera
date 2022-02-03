@@ -175,8 +175,8 @@ class _CheckBase(metaclass=_CheckMeta):
             check is informational and shouldn't stop execution of the program.
         :param n_failure_cases: report the first n unique failure cases. If
             None, report all failure cases.
-        :param title: A human-readable label for the column.
-        :param description: An arbitrary textual description of the column.
+        :param title: A human-readable label for the check.
+        :param description: An arbitrary textual description of the check.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
