@@ -1,3 +1,4 @@
+# pylint: skip-file
 """Unit tests for static type checking of dataframes.
 
 This module uses subprocess and the pytest.capdf fixture to capture the output

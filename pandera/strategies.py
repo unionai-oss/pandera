@@ -213,8 +213,8 @@ def register_check_strategy(strategy_fn: StrategyFn):
 # pylint: disable=line-too-long
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
-MIN_DT_VALUE = -(2 ** 63)
-MAX_DT_VALUE = 2 ** 63 - 1
+MIN_DT_VALUE = -(2**63)
+MAX_DT_VALUE = 2**63 - 1
 
 
 def _is_datetime_tz(pandera_dtype: DataType) -> bool:
