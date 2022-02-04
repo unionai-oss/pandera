@@ -689,7 +689,7 @@ def test_config() -> None:
         strict=True,
         ordered=True,
         description="foo",
-        title="bar"
+        title="bar",
     )
 
     assert expected == Child.to_schema()
