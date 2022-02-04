@@ -694,13 +694,15 @@ def test_config() -> None:
 
     assert expected == Child.to_schema()
 
-def test_config_docstrings() -> None:
 
+def test_config_docstrings() -> None:
     class Model(pa.SchemaModel):
         """foo"""
+
         a: Series[int]
 
     assert Model.__doc__ == Model.to_schema().description
+
 
 class Input(pa.SchemaModel):
     a: Series[int]
