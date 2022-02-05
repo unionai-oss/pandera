@@ -12,6 +12,8 @@ class BaseConfig:  # pylint:disable=R0903
     """
 
     name: Optional[str] = None  #: name of schema
+    title: Optional[str] = None  #: human-readable label for schema
+    description: Optional[str] = None  #: arbitrary textual description
     coerce: bool = False  #: coerce types of all schema components
 
     #: make sure certain column combinations are unique

@@ -207,6 +207,8 @@ class SchemaModel(metaclass=_MetaSchema):
                 "name": cls.__config__.name,
                 "ordered": cls.__config__.ordered,
                 "unique": cls.__config__.unique,
+                "title": cls.__config__.title,
+                "description": cls.__config__.description or cls.__doc__,
             }
         cls.__schema__ = DataFrameSchema(
             columns,
