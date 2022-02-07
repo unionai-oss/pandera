@@ -536,7 +536,7 @@ def test_is_uint(uint_dtype: Any, expected: bool):
         (dtype, True)
         for dtype in (
             *float_dtypes,
-            *([NULLABLE_FLOAT_DTYPES] if NULLABLE_FLOAT_DTYPES else []),
+            *(NULLABLE_FLOAT_DTYPES if NULLABLE_FLOAT_DTYPES else []),
         )
     ]
     + [("string", False)],  # type: ignore
