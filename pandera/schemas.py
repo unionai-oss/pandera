@@ -100,6 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ordered: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
         unique: Optional[Union[str, List[str]]] = None,
+        allow_duplicate_column_names: bool = True,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -207,6 +208,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
+        self._allow_duplicate_column_names = allow_duplicate_column_names
         self._validate_schema()
         self._set_column_names()
 
@@ -598,6 +600,23 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                                 check="column_ordered",
                             ),
                         )
+        if self._allow_duplicate_column_names is False:
+            failed = check_obj.columns[check_obj.columns.duplicated()]
+            if failed.any():
+                msg = (
+                    "dataframe contains multiple columns with label(s): "
+                    f"{failed.tolist()}"
+                )
+                error_handler.collect_error(
+                    "duplicate_dataframe_column_labels",
+                    errors.SchemaError(
+                        self,
+                        check_obj,
+                        msg,
+                        failure_cases=reshape_failure_cases(pd.Series(failed)),
+                        check="dataframe_column_labels_unique",
+                    ),
+                )
 
         # check for columns that are not in the dataframe and collect columns
         # that are not in the dataframe that should be excluded for lazy

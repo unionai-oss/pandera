@@ -315,6 +315,23 @@ def test_ordered_dataframe(
         schema.validate(df, lazy=True)
 
 
+def test_duplicate_columns_dataframe():
+    """Test that duplicate columns are detected."""
+    col_labels = ["a", "a", "b"]
+    frame = pd.DataFrame(data=[[1, 2, 3]], columns=col_labels)
+
+    schema = DataFrameSchema(
+        columns={i: Column(int) for i in col_labels},
+        allow_duplicate_column_names=False,
+    )
+
+    with pytest.raises(
+        errors.SchemaError,
+        match="dataframe contains multiple columns with label",
+    ):
+        schema.validate(frame)
+
+
 def test_series_schema() -> None:
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues
