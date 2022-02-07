@@ -98,6 +98,8 @@ class BaseConfig:  # pylint:disable=R0903
     #: validate MultiIndex in order
     multiindex_ordered: bool = True
 
+    #: make sure dataframe column names are unique
+    allow_duplicate_column_names = False
 
 def _is_field(name: str) -> bool:
     """Ignore private and reserved keywords."""
