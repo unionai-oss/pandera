@@ -188,7 +188,7 @@ autosummary_filename_map = {
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
-    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "dask": ("https://docs.dask.org/en/latest/", None),
     "koalas": ("https://koalas.readthedocs.io/en/latest/", None),

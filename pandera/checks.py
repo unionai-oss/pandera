@@ -193,10 +193,10 @@ class _CheckBase(metaclass=_CheckMeta):
         >>>
         >>> # checks can be given human-readable metadata
         >>> check_with_metadata = pa.Check(
-        >>>     lambda x: True,
-        >>>     title="Always passes",
-        >>>     description="This check always passes."
-        >>> )
+        ...     lambda x: True,
+        ...     title="Always passes",
+        ...     description="This check always passes."
+        ... )
         >>>
         >>> # specify assertions across categorical variables using `groupby`,
         >>> # for example, make sure the mean measure for group "A" is always

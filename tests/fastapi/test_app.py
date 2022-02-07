@@ -28,12 +28,12 @@ def app():
 
 
 def _wait_to_exist():
-    for _ in range(10):
+    for _ in range(20):
         try:
             requests.post("http://127.0.0.1:8000/")
             break
         except Exception:  # pylint: disable=broad-except
-            time.sleep(1.0)
+            time.sleep(3.0)
 
 
 def test_items_endpoint(app):
