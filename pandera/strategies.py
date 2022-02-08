@@ -74,6 +74,8 @@ def _mask(
 ) -> Union[pd.Series, pd.Index]:
     if pd.api.types.is_timedelta64_dtype(val):
         return val.mask(null_mask, pd.NaT)
+    elif val.dtype == pd.StringDtype():
+        return val.mask(null_mask, pd.NA)
     return val.mask(null_mask)
 
 
@@ -211,8 +213,8 @@ def register_check_strategy(strategy_fn: StrategyFn):
 # pylint: disable=line-too-long
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
-MIN_DT_VALUE = -(2 ** 63)
-MAX_DT_VALUE = 2 ** 63 - 1
+MIN_DT_VALUE = -(2**63)
+MAX_DT_VALUE = 2**63 - 1
 
 
 def _is_datetime_tz(pandera_dtype: DataType) -> bool:

@@ -17,7 +17,10 @@ _extras_require = {
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
     "mypy": ["pandas-stubs"],
+    "fastapi": ["fastapi"],
+    "geopandas": ["geopandas", "shapely"],
 }
+
 extras_require = {
     **_extras_require,
     "all": list(set(x for y in _extras_require.values() for x in y)),
@@ -39,13 +42,14 @@ setup(
     keywords=["pandas", "validation", "data-structures"],
     license="MIT",
     data_files=[("", ["LICENSE.txt"])],
-    packages=find_packages(),
+    packages=find_packages(include=["pandera*"]),
     package_data={"pandera": ["py.typed"]},
     install_requires=[
         "packaging >= 20.0",
         "numpy >= 1.9.0",
         "pandas >= 1.0",
-        "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
+        "pydantic",
+        "typing_extensions >= 3.7.4.3; python_version<'3.8'",
         "typing_inspect >= 0.6.0",
         "wrapt",
         "pyarrow",
@@ -63,6 +67,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering",
     ],
 )

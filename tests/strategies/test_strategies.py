@@ -42,8 +42,13 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         getattr(data_type, "bit_width", -1) > 64
         or is_category(data_type)
         or data_type in UNSUPPORTED_DTYPE_CLS
+        or (
+            pandas_engine.GEOPANDAS_INSTALLED
+            and data_type == pandas_engine.Geometry
+        )
     ):
         continue
+
     SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype(data_type))
 
 SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype("datetime64[ns, UTC]"))

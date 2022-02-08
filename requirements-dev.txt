@@ -20,27 +20,34 @@ pyspark
 modin
 dask
 distributed
-black >= 21.12b0
+geopandas
+shapely
+fastapi
+black >= 22.1.0
 isort >= 5.7.0
 codecov
-mypy == 0.921
+mypy <= 0.921
 pylint == 2.11.1
 pytest
 pytest-cov
 pytest-xdist
 pytest-asyncio
 xdoctest
-nox == 2020.12.31
+nox
 importlib_metadata
+uvicorn
+python-multipart
 sphinx
-sphinx-autodoc-typehints
+sphinx-panels
+sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
 recommonmark
 twine
 asv
 pre_commit
 furo <= 2021.10.9
-ray <= 1.7.0
+ray <= 1.7.0; python_version < '3.10'
 types-click
 types-pyyaml
 types-pkg_resources
+types-requests

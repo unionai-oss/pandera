@@ -35,6 +35,7 @@ from pandera.engines.pandas_engine import (
     INT16,
     INT32,
     INT64,
+    PANDAS_1_2_0_PLUS,
     PANDAS_1_3_0_PLUS,
     STRING,
     UINT8,

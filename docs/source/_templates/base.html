@@ -81,6 +81,12 @@
 
     {%- block scripts -%}
 
+    <div class="sponsorship">
+      <a href="{{ sponsor_link }}" target="_blank">
+        <button><i class="fa fa-heart"></i> Sponsor</button>
+      </a>
+    </div>
+
     {# Custom JS #}
     {%- block regular_scripts -%}
     {% for path in script_files -%}

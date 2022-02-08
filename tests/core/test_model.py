@@ -673,6 +673,8 @@ def test_config() -> None:
             name = "Child schema"
             strict = True
             multiindex_strict = False
+            description = "foo"
+            title = "bar"
 
     expected = pa.DataFrameSchema(
         columns={"a": pa.Column(int), "b": pa.Column(int)},
@@ -686,9 +688,20 @@ def test_config() -> None:
         coerce=True,
         strict=True,
         ordered=True,
+        description="foo",
+        title="bar",
     )
 
     assert expected == Child.to_schema()
+
+
+def test_config_docstrings() -> None:
+    class Model(pa.SchemaModel):
+        """foo"""
+
+        a: Series[int]
+
+    assert Model.__doc__ == Model.to_schema().description
 
 
 class Input(pa.SchemaModel):

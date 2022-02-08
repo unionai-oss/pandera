@@ -100,6 +100,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ordered: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
         unique: Optional[Union[str, List[str]]] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -136,6 +138,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             .. warning:: This option will be deprecated in 0.8.0
 
         :param unique: a list of columns that should be jointly unique.
+        :param title: A human-readable label for the schema.
+        :param description: An arbitrary textual description of the schema.
 
         :raises SchemaInitError: if impossible to build schema from parameters
         :raises SchemaInitError: if ``dtype`` and ``pandas_dtype`` are both
@@ -207,6 +211,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
+        self._title = title
+        self._description = description
         self._validate_schema()
         self._set_column_names()
 
@@ -243,6 +249,16 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     def ordered(self, value: bool) -> None:
         """Set ordered attribute"""
         self._ordered = value
+
+    @property
+    def title(self):
+        """A human-readable label for the schema."""
+        return self._title
+
+    @property
+    def description(self):
+        """An arbitrary textual description of the schema."""
+        return self._description
 
     # the _is_inferred getter and setter methods are not public
     @property
@@ -693,6 +709,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 error_handler.collect_error("dataframe_check", err)
 
         if self.unique:
+            # NOTE: fix this pylint error
+            # pylint: disable=not-an-iterable
             temp_unique: List[List] = (
                 [self.unique]
                 if all(isinstance(x, str) for x in self.unique)
@@ -1415,7 +1433,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             []
             if new_schema.index is None or not append
             else list(new_schema.index.indexes)
-            if check_utils.is_multiindex(new_schema.index) and append
+            if isinstance(new_schema.index, MultiIndex) and append
             else [new_schema.index]
         )
 
@@ -1620,6 +1638,8 @@ class SeriesSchemaBase:
         coerce: bool = False,
         name: Any = None,
         pandas_dtype: PandasDtypeInputTypes = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -1651,6 +1671,8 @@ class SeriesSchemaBase:
 
             .. warning:: This option will be deprecated in 0.8.0
 
+        :param title: A human-readable label for the series.
+        :param description: An arbitrary textual description of the series.
         :type nullable: bool
         """
         if checks is None:
@@ -1674,6 +1696,8 @@ class SeriesSchemaBase:
         self._checks = checks
         self._name = name
         self._unique = unique
+        self._title = title
+        self._description = description
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
@@ -1756,6 +1780,16 @@ class SeriesSchemaBase:
     def name(self) -> Union[str, None]:
         """Get SeriesSchema name."""
         return self._name
+
+    @property
+    def title(self):
+        """A human-readable label for the series."""
+        return self._title
+
+    @property
+    def description(self):
+        """An arbitrary textual description of the series."""
+        return self._description
 
     @property
     def dtype(
@@ -2076,6 +2110,8 @@ class SeriesSchema(SeriesSchemaBase):
         coerce: bool = False,
         name: str = None,
         pandas_dtype: PandasDtypeInputTypes = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -2105,6 +2141,8 @@ class SeriesSchema(SeriesSchemaBase):
             where ``pandas_dtype=None``.
         :param name: series name.
         :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
+        :param title: A human-readable label for the series.
+        :param description: An arbitrary textual description of the series.
 
             .. warning:: This option will be deprecated in 0.8.0
 
@@ -2118,6 +2156,8 @@ class SeriesSchema(SeriesSchemaBase):
             coerce,
             name,
             pandas_dtype,
+            title,
+            description,
         )
         self.index = index
 

@@ -2,7 +2,7 @@
 # pylint:disable=abstract-method,disable=too-many-ancestors
 
 import inspect
-from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar
 
 import pandas as pd
 import typing_inspect
@@ -42,44 +42,90 @@ String = dtypes.String  #: ``"str"`` numpy dtype
 STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
 
-GenericDtype = TypeVar(  # type: ignore
-    "GenericDtype",
-    bool,
-    int,
-    str,
-    float,
-    pd.core.dtypes.base.ExtensionDtype,
-    Bool,
-    DateTime,
-    Timedelta,
-    Category,
-    Float,
-    Float16,
-    Float32,
-    Float64,
-    Int,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    INT8,
-    INT16,
-    INT32,
-    INT64,
-    UINT8,
-    UINT16,
-    UINT32,
-    UINT64,
-    Object,
-    String,
-    STRING,
-    BOOL,
-    covariant=True,
-)
+try:
+    Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
+    GEOPANDAS_INSTALLED = True
+except AttributeError:
+    GEOPANDAS_INSTALLED = False
+
+if GEOPANDAS_INSTALLED:
+    GenericDtype = TypeVar(  # type: ignore
+        "GenericDtype",
+        bool,
+        int,
+        str,
+        float,
+        pd.core.dtypes.base.ExtensionDtype,
+        Bool,
+        DateTime,
+        Timedelta,
+        Category,
+        Float,
+        Float16,
+        Float32,
+        Float64,
+        Int,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        Object,
+        String,
+        STRING,
+        Geometry,
+        covariant=True,
+    )
+else:
+    GenericDtype = TypeVar(  # type: ignore
+        "GenericDtype",
+        bool,
+        int,
+        str,
+        float,
+        pd.core.dtypes.base.ExtensionDtype,
+        Bool,
+        DateTime,
+        Timedelta,
+        Category,
+        Float,
+        Float16,
+        Float32,
+        Float64,
+        Int,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        Object,
+        String,
+        STRING,
+        covariant=True,
+    )
+
 Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
 
 
@@ -96,6 +142,8 @@ class DataFrameBase(Generic[T]):
     Pandera Dataframe base class for validating dataframes on
     initialization.
     """
+
+    default_dtype: Optional[Type] = None
 
     def __setattr__(self, name: str, value: Any) -> None:
         # pylint: disable=no-member
@@ -125,6 +173,13 @@ class DataFrameBase(Generic[T]):
 class SeriesBase(Generic[GenericDtype]):
     """Pandera Series base class to use for all pandas-like APIs."""
 
+    default_dtype: Optional[Type] = None
+
+    def __get__(
+        self, instance: object, owner: Type
+    ) -> str:  # pragma: no cover
+        raise AttributeError("Series should resolve to Field-s")
+
 
 # pylint:disable=too-few-public-methods
 class IndexBase(Generic[GenericDtype]):
@@ -132,6 +187,13 @@ class IndexBase(Generic[GenericDtype]):
 
     *new in 0.5.0*
     """
+
+    default_dtype: Optional[Type] = None
+
+    def __get__(
+        self, instance: object, owner: Type
+    ) -> str:  # pragma: no cover
+        raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
@@ -187,3 +249,5 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.literal = typing_inspect.is_literal_type(self.arg)
         if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
+
+        self.default_dtype = getattr(raw_annotation, "default_dtype", None)

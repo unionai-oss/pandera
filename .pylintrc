@@ -24,4 +24,5 @@ disable=
     too-many-instance-attributes,
     no-else-return,
     inconsistent-return-statements,
-    protected-access
+    protected-access,
+    too-many-ancestors

@@ -1,11 +1,9 @@
-.. pandera documentation for integrating with third party schema
-
 .. currentmodule:: pandera
 
-.. _third_party_schema:
+.. _frictionless_integration:
 
 Reading Third-Party Schema
-
+--------------------------
 
 *new in 0.7.0*
 
@@ -14,7 +12,7 @@ a pandera installation with the ``io`` extension; please see the
 :ref:`installation<installation>` instructions for more details.
 
 Frictionless Data Schema
-------------------------
+========================
 
 .. note:: Please see the
     `Frictionless schema <https://specs.frictionlessdata.io/table-schema/>`_

@@ -116,6 +116,8 @@ class _CheckBase(metaclass=_CheckMeta):
         error: Optional[str] = None,
         raise_warning: bool = False,
         n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
         **check_kwargs,
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
@@ -173,6 +175,8 @@ class _CheckBase(metaclass=_CheckMeta):
             check is informational and shouldn't stop execution of the program.
         :param n_failure_cases: report the first n unique failure cases. If
             None, report all failure cases.
+        :param title: A human-readable label for the check.
+        :param description: An arbitrary textual description of the check.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
@@ -186,6 +190,13 @@ class _CheckBase(metaclass=_CheckMeta):
         >>>
         >>> # define an element-wise check
         >>> check_even = pa.Check(lambda x: x % 2 == 0, element_wise=True)
+        >>>
+        >>> # checks can be given human-readable metadata
+        >>> check_with_metadata = pa.Check(
+        ...     lambda x: True,
+        ...     title="Always passes",
+        ...     description="This check always passes."
+        ... )
         >>>
         >>> # specify assertions across categorical variables using `groupby`,
         >>> # for example, make sure the mean measure for group "A" is always
@@ -241,6 +252,8 @@ class _CheckBase(metaclass=_CheckMeta):
         self.ignore_na = ignore_na
         self.raise_warning = raise_warning
         self.n_failure_cases = n_failure_cases
+        self.title = title
+        self.description = description
 
         if groupby is None and groups is not None:
             raise ValueError(

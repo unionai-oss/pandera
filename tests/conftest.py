@@ -16,6 +16,6 @@ collect_ignore = []
 if not HAS_HYPOTHESIS:
     collect_ignore.append("test_strategies.py")
 else:
-    settings.register_profile("ci", max_examples=100, deadline=None)
+    settings.register_profile("ci", max_examples=20, deadline=None)
     settings.register_profile("dev", max_examples=10, deadline=None)
     settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "dev"))
