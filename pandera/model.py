@@ -101,6 +101,7 @@ class BaseConfig:  # pylint:disable=R0903
     #: make sure dataframe column names are unique
     allow_duplicate_column_names = False
 
+
 def _is_field(name: str) -> bool:
     """Ignore private and reserved keywords."""
     return not name.startswith("_") and name != _CONFIG_KEY
@@ -233,6 +234,7 @@ class SchemaModel(metaclass=_MetaSchema):
             name=cls.__config__.name,
             ordered=cls.__config__.ordered,
             unique=cls.__config__.unique,
+            allow_duplicate_column_names=cls.__config__.allow_duplicate_column_names,
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore

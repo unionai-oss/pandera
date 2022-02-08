@@ -858,6 +858,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             f"{indent}strict={self.strict}\n"
             f"{indent}name={self.name},\n"
             f"{indent}ordered={self.ordered}\n"
+            f"{indent}allow_duplicate_column_names={self.allow_duplicate_column_names}\n"
             ")>"
         )
 
