@@ -806,10 +806,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             f"checks={self.checks}, "
             f"index={self.index.__repr__()}, "
             f"coerce={self.coerce}, "
-            f"dtype={self._dtype},"
-            f"strict={self.strict},"
-            f"name={self.name},"
-            f"ordered={self.ordered}"
+            f"dtype={self._dtype}, "
+            f"strict={self.strict}, "
+            f"name={self.name}, "
+            f"ordered={self.ordered}, "
+            f"allow_duplicate_column_names={self.allow_duplicate_column_names}"
             ")>"
         )
 
