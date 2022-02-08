@@ -246,6 +246,16 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         """Set ordered attribute"""
         self._ordered = value
 
+    @property
+    def allow_duplicate_column_names(self):
+        """Whether multiple columns with the same name can be present."""
+        return self._allow_duplicate_column_names
+
+    @allow_duplicate_column_names.setter
+    def allow_duplicate_column_names(self, value: bool) -> None:
+        """Set allow_duplicated_column_names attribute"""
+        self._allow_duplicate_column_names = value
+
     # the _is_inferred getter and setter methods are not public
     @property
     def _is_inferred(self) -> bool:
