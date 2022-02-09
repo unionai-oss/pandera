@@ -139,6 +139,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             .. warning:: This option will be deprecated in 0.8.0
 
         :param unique: a list of columns that should be jointly unique.
+        :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
 
@@ -639,7 +640,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         self,
                         check_obj,
                         msg,
-                        failure_cases=reshape_failure_cases(pd.Series(failed)),
+                        failure_cases=scalar_failure_case(failed),
                         check="dataframe_column_labels_unique",
                     ),
                 )
