@@ -10,20 +10,27 @@ the goal of interoperating with libraries that you know and love.
 .. list-table::
    :widths: 25 75
 
+   * - :ref:`FastAPI ⭐️ (New) <fastapi_integration>`
+     - Use pandera SchemaModels in your FastAPI app
+   * - :ref:`Frictionless <frictionless_integration>`
+     - Convert frictionless schemas to pandera schemas
    * - :ref:`Hypothesis <data synthesis strategies>`
      - Use the hypothesis library to generate valid data under your schema's constraints.
-   * - :ref:`Pydantic <pydantic_integration>`
-     - Use pandera SchemaModels when defining  your pydantic BaseModels
    * - :ref:`Mypy <mypy_integration>`
      - Type-lint your pandas and pandera code with mypy for static type safety [experimental 🧪]
+   * - :ref:`Pydantic <pydantic_integration>`
+     - Use pandera SchemaModels when defining  your pydantic BaseModels
 
 .. toctree::
     :maxdepth: 1
     :caption: Introduction
     :hidden:
 
-    Pydantic <pydantic_integration>
+    FastAPI ⭐️ (New) <fastapi>
+    Frictionless <frictionless>
+    Hypothesis <data_synthesis_strategies>
     Mypy <mypy_integration>
+    Pydantic <pydantic_integration>
 
 
 .. note::

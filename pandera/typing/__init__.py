@@ -4,7 +4,7 @@ For backwards compatibility, pandas types are exposed to the top-level scope of
 the typing module.
 """
 
-from . import dask, koalas, modin
+from . import dask, fastapi, geopandas, koalas, modin
 from .common import (
     BOOL,
     INT8,
@@ -57,6 +57,11 @@ if koalas.KOALAS_INSTALLED:
     DATAFRAME_TYPES.update({koalas.DataFrame})
     SERIES_TYPES.update({koalas.Series})
     INDEX_TYPES.update({koalas.Index})
+
+
+if geopandas.GEOPANDAS_INSTALLED:
+    DATAFRAME_TYPES.update({geopandas.GeoDataFrame})
+    SERIES_TYPES.update({geopandas.GeoSeries})
 
 
 __all__ = [

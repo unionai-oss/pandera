@@ -74,6 +74,8 @@ def _mask(
 ) -> Union[pd.Series, pd.Index]:
     if pd.api.types.is_timedelta64_dtype(val):
         return val.mask(null_mask, pd.NaT)
+    elif val.dtype == pd.StringDtype():
+        return val.mask(null_mask, pd.NA)
     return val.mask(null_mask)
 
 

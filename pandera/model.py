@@ -1,4 +1,5 @@
 """Class-based api"""
+
 import inspect
 import os
 import re
@@ -25,6 +26,7 @@ from . import schema_components
 from . import strategies as st
 from .checks import Check
 from .errors import SchemaInitError
+from .json_schema import to_json_schema
 from .model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
@@ -36,6 +38,7 @@ from .model_components import (
 from .schemas import DataFrameSchema
 from .typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from .typing.common import DataFrameBase
+from .typing.config import BaseConfig
 
 if sys.version_info[:2] < (3, 9):
     from typing_extensions import get_type_hints
@@ -67,39 +70,6 @@ def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return cast(F, pd.util.Substitution(*args, **kwargs)(func))
 
     return decorator
-
-
-class BaseConfig:  # pylint:disable=R0903
-    """Define DataFrameSchema-wide options.
-
-    *new in 0.5.0*
-    """
-
-    name: Optional[str] = None  #: name of schema
-    coerce: bool = False  #: coerce types of all schema components
-
-    #: make sure certain column combinations are unique
-    unique: Optional[Union[str, List[str]]] = None
-
-    #: make sure all specified columns are in the validated dataframe -
-    #: if ``"filter"``, removes columns not specified in the schema
-    strict: Union[bool, str] = False
-
-    ordered: bool = False  #: validate columns order
-    multiindex_name: Optional[str] = None  #: name of multiindex
-
-    #: coerce types of all MultiIndex components
-    multiindex_coerce: bool = False
-
-    #: make sure all specified columns are in validated MultiIndex -
-    #: if ``"filter"``, removes indexes not specified in the schema
-    multiindex_strict: bool = False
-
-    #: validate MultiIndex in order
-    multiindex_ordered: bool = True
-
-    #: make sure dataframe column names are unique
-    allow_duplicate_column_names: bool = True
 
 
 def _is_field(name: str) -> bool:
@@ -169,6 +139,7 @@ class SchemaModel(metaclass=_MetaSchema):
     """
 
     Config: Type[BaseConfig] = BaseConfig
+    __extras__: Optional[Dict[str, Any]] = None
     __schema__: Optional[DataFrameSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
 
@@ -195,13 +166,14 @@ class SchemaModel(metaclass=_MetaSchema):
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 
+        cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
+
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
         """Create :class:`~pandera.DataFrameSchema` from the :class:`.SchemaModel`."""
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
-        cls.__config__, extras = cls._collect_config_and_extras()
         mi_kwargs = {
             name[len("multiindex_") :]: value
             for name, value in vars(cls.__config__).items()
@@ -219,22 +191,31 @@ class SchemaModel(metaclass=_MetaSchema):
 
         df_check_infos = cls._collect_check_infos(DATAFRAME_CHECK_KEY)
         df_custom_checks = cls._extract_df_checks(df_check_infos)
-        df_registered_checks = _convert_extras_to_checks(extras)
+        df_registered_checks = _convert_extras_to_checks(
+            {} if cls.__extras__ is None else cls.__extras__
+        )
         cls.__dataframe_checks__ = df_custom_checks + df_registered_checks
 
         columns, index = cls._build_columns_index(
             cls.__fields__, cls.__checks__, **mi_kwargs
         )
+        kwargs = {}
+        if cls.__config__ is not None:
+            kwargs = {
+                "coerce": cls.__config__.coerce,
+                "strict": cls.__config__.strict,
+                "name": cls.__config__.name,
+                "ordered": cls.__config__.ordered,
+                "unique": cls.__config__.unique,
+                "title": cls.__config__.title,
+                "description": cls.__config__.description or cls.__doc__,
+                "allow_duplicate_column_names": cls.__config__.allow_duplicate_column_names,
+            }
         cls.__schema__ = DataFrameSchema(
             columns,
             index=index,
             checks=cls.__dataframe_checks__,  # type: ignore
-            coerce=cls.__config__.coerce,
-            strict=cls.__config__.strict,
-            name=cls.__config__.name,
-            ordered=cls.__config__.ordered,
-            unique=cls.__config__.unique,
-            allow_duplicate_column_names=cls.__config__.allow_duplicate_column_names,
+            **kwargs,
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore
@@ -270,9 +251,7 @@ class SchemaModel(metaclass=_MetaSchema):
     @classmethod
     @docstring_substitution(strategy_doc=DataFrameSchema.strategy.__doc__)
     @st.strategy_import_error
-    def strategy(
-        cls: Type[TSchemaModel], *, size: Optional[int] = None
-    ) -> DataFrameBase[TSchemaModel]:
+    def strategy(cls: Type[TSchemaModel], *, size: Optional[int] = None):
         """%(strategy_doc)s"""
         return cls.to_schema().strategy(size=size)
 
@@ -318,6 +297,8 @@ class SchemaModel(metaclass=_MetaSchema):
                     )
                 dtype_kwargs = _get_dtype_kwargs(annotation)
                 dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+            elif annotation.default_dtype:
+                dtype = annotation.default_dtype
             else:
                 dtype = annotation.arg
 
@@ -515,6 +496,11 @@ class SchemaModel(metaclass=_MetaSchema):
             ) from exc
 
         return cast("SchemaModel", schema_model)
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        """Update pydantic field schema."""
+        field_schema.update(to_json_schema(cls.to_schema()))
 
 
 def _build_schema_index(

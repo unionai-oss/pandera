@@ -23,6 +23,8 @@ from pandera.system import FLOAT_128_AVAILABLE
 # List dtype classes and associated pandas alias,
 # except for parameterizable dtypes that should also list examples of
 # instances.
+from pandera.typing.geopandas import GEOPANDAS_INSTALLED
+
 int_dtypes = {
     int: "int64",
     pa.Int: "int64",
@@ -35,7 +37,6 @@ int_dtypes = {
     np.int32: "int32",
     np.int64: "int64",
 }
-
 
 nullable_int_dtypes = {
     pandas_engine.INT8: "Int8",
@@ -74,14 +75,12 @@ float_dtypes = {
     np.float64: "float64",
 }
 
-
 complex_dtypes = {
     complex: "complex",
     pa.Complex: "complex128",
     pa.Complex64: "complex64",
     pa.Complex128: "complex128",
 }
-
 
 if FLOAT_128_AVAILABLE:
     float_dtypes.update(
@@ -96,6 +95,13 @@ if FLOAT_128_AVAILABLE:
             np.complex256: "complex256",
         }
     )
+
+NULLABLE_FLOAT_DTYPES = None
+if pa.PANDAS_1_2_0_PLUS:
+    NULLABLE_FLOAT_DTYPES = {
+        pandas_engine.FLOAT32: "Float32",
+        pandas_engine.FLOAT64: "Float64",
+    }
 
 boolean_dtypes = {bool: "bool", pa.Bool: "bool", np.bool_: "bool"}
 nullable_boolean_dtypes = {pd.BooleanDtype: "boolean", pa.BOOL: "boolean"}
@@ -154,6 +160,11 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (uint_dtypes, [1]),
     (nullable_uint_dtypes, [1, None]),
     (float_dtypes, [1.0]),
+    *(
+        []
+        if NULLABLE_FLOAT_DTYPES is None
+        else [(NULLABLE_FLOAT_DTYPES, [1.0, None])]
+    ),
     (complex_dtypes, [complex(1)]),
     (boolean_dtypes, [True, False]),
     (nullable_boolean_dtypes, [True, None]),
@@ -174,6 +185,18 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),
     (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),
 ]
+
+
+if GEOPANDAS_INSTALLED:
+    from shapely.geometry import Polygon
+
+    # pylint:disable=ungrouped-imports
+    from pandera.engines.pandas_engine import Geometry
+
+    geometry_dtypes = {Geometry: "geometry"}
+    dtype_fixtures.append(
+        (geometry_dtypes, [Polygon(((0, 0), (0, 1), (1, 1)))])
+    )
 
 
 def pretty_param(*values: Any, **kw: Any) -> ParameterSet:
@@ -324,11 +347,15 @@ numeric_dtypes = _flatten_dtypesdict(
     boolean_dtypes,
 )
 
+
 nullable_numeric_dtypes = _flatten_dtypesdict(
     nullable_int_dtypes,
     nullable_uint_dtypes,
+    NULLABLE_FLOAT_DTYPES,
     nullable_boolean_dtypes,
+    *([NULLABLE_FLOAT_DTYPES] if NULLABLE_FLOAT_DTYPES else []),
 )
+
 
 nominal_dtypes = _flatten_dtypesdict(
     string_dtypes,
@@ -505,7 +532,14 @@ def test_is_uint(uint_dtype: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "float_dtype, expected",
-    [(dtype, True) for dtype in float_dtypes] + [("string", False)],  # type: ignore
+    [
+        (dtype, True)
+        for dtype in (
+            *float_dtypes,
+            *(NULLABLE_FLOAT_DTYPES if NULLABLE_FLOAT_DTYPES else []),
+        )
+    ]
+    + [("string", False)],  # type: ignore
 )
 def test_is_float(float_dtype: Any, expected: bool):
     """Test is_float."""

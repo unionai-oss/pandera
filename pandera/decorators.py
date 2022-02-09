@@ -20,6 +20,7 @@ from typing import (
 
 import pandas as pd
 import wrapt
+from pydantic import validate_arguments
 
 from . import errors, schemas
 from .inspection_utils import (
@@ -97,7 +98,7 @@ def _handle_schema_error(
         failure_cases=schema_error.failure_cases,
         check=schema_error.check,
         check_index=schema_error.check_index,
-    )
+    ) from schema_error
 
 
 def check_input(
@@ -484,6 +485,7 @@ def check_types(
 def check_types(
     wrapped=None,
     *,
+    with_pydantic=False,
     head: Optional[int] = None,
     tail: Optional[int] = None,
     sample: Optional[int] = None,
@@ -495,6 +497,9 @@ def check_types(
 
     See the :ref:`User Guide <schema_models>` for more.
 
+    :param wrapped: the function to decorate.
+    :param with_pydantic: use ``pydantic.validate_arguments`` to validate
+        inputs. This function is still needed to validate function outputs.
     :param head: validate the first n rows. Rows overlapping with `tail` or
         `sample` are de-duplicated.
     :param tail: validate the last n rows. Rows overlapping with `head` or
@@ -512,6 +517,7 @@ def check_types(
     if wrapped is None:
         return functools.partial(
             check_types,
+            with_pydantic=with_pydantic,
             head=head,
             tail=tail,
             sample=sample,
@@ -521,41 +527,66 @@ def check_types(
         )
 
     # Front-load annotation parsing
-    annotated_schemas: Dict[str, Tuple[schemas.DataFrameSchema, bool]] = {}
+    annotated_schema_models: Dict[str, Tuple[SchemaModel, AnnotationInfo]] = {}
     for arg_name_, annotation in typing.get_type_hints(wrapped).items():
         annotation_info = AnnotationInfo(annotation)
         if not annotation_info.is_generic_df:
             continue
 
-        schema = cast(SchemaModel, annotation_info.arg).to_schema()
-        annotated_schemas[arg_name_] = (schema, annotation_info.optional)
+        schema_model = cast(SchemaModel, annotation_info.arg)
+        annotated_schema_models[arg_name_] = (schema_model, annotation_info)
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
         Validate function's argument if annoted with a schema, else
         pass-through.
         """
-        schema, optional = annotated_schemas.get(arg_name, (None, None))
+        schema_model, annotation_info = annotated_schema_models.get(
+            arg_name, (None, None)
+        )
+
+        if schema_model is None:
+            return arg_value
+
         if (
-            schema
-            and not (optional and arg_value is None)
+            annotation_info
+            and not (annotation_info.optional and arg_value is None)
             # the pandera.schema attribute should only be available when
             # schema.validate has been called in the DF. There's probably
             # a better way of doing this
-            and (
-                arg_value.pandera.schema is None
-                or arg_value.pandera.schema != schema
-            )
         ):
-            try:
-                return schema.validate(
-                    arg_value, head, tail, sample, random_state, lazy, inplace
-                )
-            except errors.SchemaError as e:
-                _handle_schema_error(
-                    "check_types", wrapped, schema, arg_value, e
-                )
-        return arg_value
+            config = schema_model.__config__
+            data_container_type = annotation_info.origin
+            schema = schema_model.to_schema()
+
+            if data_container_type and config and config.from_format:
+                arg_value = data_container_type.from_format(arg_value, config)
+
+            if (
+                arg_value.pandera.schema is None
+                # don't re-validate a dataframe that contains the same exact
+                # schema
+                or arg_value.pandera.schema != schema
+            ):
+                try:
+                    arg_value = schema.validate(
+                        arg_value,
+                        head,
+                        tail,
+                        sample,
+                        random_state,
+                        lazy,
+                        inplace,
+                    )
+                except errors.SchemaError as e:
+                    _handle_schema_error(
+                        "check_types", wrapped, schema, arg_value, e
+                    )
+
+            if data_container_type and config and config.to_format:
+                arg_value = data_container_type.to_format(arg_value, config)
+
+            return arg_value
 
     sig = inspect.signature(wrapped)
 
@@ -595,10 +626,13 @@ def check_types(
             args: Tuple[Any, ...],
             kwargs: Dict[str, Any],
         ):
-            validated_pos, validated_kwd = validate_inputs(
-                instance, args, kwargs
-            )
-            out = await wrapped_(*validated_pos.values(), **validated_kwd)
+            if with_pydantic:
+                out = await validate_arguments(wrapped_)(*args, **kwargs)
+            else:
+                validated_pos, validated_kwd = validate_inputs(
+                    instance, args, kwargs
+                )
+                out = await wrapped_(*validated_pos.values(), **validated_kwd)
             return _check_arg("return", out)
 
     else:
@@ -610,10 +644,13 @@ def check_types(
             args: Tuple[Any, ...],
             kwargs: Dict[str, Any],
         ):
-            validated_pos, validated_kwd = validate_inputs(
-                instance, args, kwargs
-            )
-            out = wrapped_(*validated_pos.values(), **validated_kwd)
+            if with_pydantic:
+                out = validate_arguments(wrapped_)(*args, **kwargs)
+            else:
+                validated_pos, validated_kwd = validate_inputs(
+                    instance, args, kwargs
+                )
+                out = wrapped_(*validated_pos.values(), **validated_kwd)
             return _check_arg("return", out)
 
     return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter

@@ -26,20 +26,20 @@ nox.options.sessions = (
 )
 
 DEFAULT_PYTHON = "3.8"
-PYTHON_VERSIONS = ["3.7", "3.8", "3.9"]
-PANDAS_VERSIONS = ["1.3.0", "latest"]
+PYTHON_VERSIONS = ["3.7", "3.8", "3.9", "3.10"]
+PANDAS_VERSIONS = ["1.1.5", "1.3.5", "latest"]
 
 PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
 REQUIREMENT_PATH = "requirements-dev.txt"
-ALWAYS_USE_PIP = [
+ALWAYS_USE_PIP = {
     "ray",
     "furo",
     "types-click",
     "types-pyyaml",
     "types-pkg_resources",
-]
+}
 
 CI_RUN = os.environ.get("CI") == "true"
 if CI_RUN:
@@ -63,7 +63,11 @@ def _build_setup_requirements() -> Dict[str, List[Requirement]]:
 def _build_dev_requirements() -> List[Requirement]:
     """Load requirements from file."""
     with open(REQUIREMENT_PATH, "rt", encoding="utf-8") as req_file:
-        return list(parse_requirements(req_file.read()))
+        reqs = []
+        for req in parse_requirements(req_file.read()):
+            req.marker = None
+            reqs.append(req)
+        return reqs
 
 
 SETUP_REQUIREMENTS: Dict[str, List[Requirement]] = _build_setup_requirements()
@@ -189,18 +193,22 @@ def install_extras(
             # this is a temporary measure until all pandas-related mypy errors
             # are addressed
             continue
-        if spec.split("==")[0] in ALWAYS_USE_PIP:
+
+        req = Requirement(spec)  # type: ignore
+
+        # this is needed until ray is supported on python 3.10
+        # pylint: disable=line-too-long
+        if req.name in {"ray", "geopandas"} and session.python == "3.10":  # type: ignore[attr-defined]  # noqa
+            continue
+
+        if req.name in ALWAYS_USE_PIP:  # type: ignore[attr-defined]
             pip_specs.append(spec)
         else:
             specs.append(
                 spec if spec != "pandas" else f"pandas{pandas_version}"
             )
-    if extra in {"core", "koalas", "modin"}:
+    if extra in {"core", "koalas", "modin", "fastapi"}:
         specs.append(REQUIRES["all"]["hypothesis"])
-
-    # this is a temporary measure to install setuptools due to this issue:
-    # https://github.com/pandera-dev/pandera/pull/602#issuecomment-915622823
-    session.install("setuptools < 58.0.0")
 
     # CI installs conda dependencies, so only run this for local runs
     if (
@@ -214,7 +222,7 @@ def install_extras(
         print("using pip installer")
         session.install(*specs)
 
-    # always use pip for these packages
+    # always use pip for these packages)
     session.install(*pip_specs)
     session.install("-e", ".", "--no-deps")  # install pandera
 
@@ -241,11 +249,13 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
 
     ignored_pkgs = {"black", "pandas"}
     mismatched = []
+    # only compare package versions, not python version markers.
+    str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
     for extra, reqs in SETUP_REQUIREMENTS.items():
         for req in reqs:
             if (
                 req.project_name not in ignored_pkgs
-                and req not in DEV_REQUIREMENTS
+                and str(req) not in str_dev_reqs
             ):
                 mismatched.append(f"{extra}: {req.project_name}")
 
@@ -310,7 +320,11 @@ def mypy(session: Session) -> None:
 EXTRA_NAMES = [
     extra
     for extra in REQUIRES
-    if extra != "all" and not extra.startswith(":python_version")
+    if (
+        extra != "all"
+        and "python_version" not in extra
+        and extra not in {"modin"}
+    )
 ]
 
 
@@ -319,7 +333,42 @@ EXTRA_NAMES = [
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
+
+    # skip these conditions
+    python = (
+        session.python or f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    if (
+        (pandas, extra)
+        in {
+            ("1.1.5", "koalas"),
+            ("1.1.5", "modin-dask"),
+            ("1.1.5", "modin-ray"),
+        }
+        or (python, pandas, extra)
+        in {
+            ("3.10", "1.1.5", "modin-dask"),
+            ("3.10", "1.1.5", "modin-ray"),
+        }
+        or (python, extra)
+        in {
+            ("3.7", "modin-dask"),
+            ("3.7", "modin-ray"),
+            ("3.10", "modin-dask"),
+            ("3.10", "modin-ray"),
+            ("3.10", "koalas"),
+        }
+    ):
+        session.skip()
+
     install_extras(session, extra, pandas=pandas)
+
+    env = {}
+    if extra.startswith("modin"):
+        extra, engine = extra.split("-")
+        if engine not in {"dask", "ray"}:
+            raise ValueError(f"{engine} is not a valid modin engine")
+        env = {"CI_MODIN_ENGINES": engine}
 
     if session.posargs:
         args = session.posargs
@@ -342,12 +391,13 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             "--cov-report=term-missing",
             "--cov-report=xml",
             "--cov-append",
+            "--verbosity=10",
         ]
         if not CI_RUN:
             args.append("--cov-report=html")
         args.append(path)
 
-    session.run("pytest", *args)
+    session.run("pytest", *args, env=env)
 
 
 @nox.session(python=PYTHON_VERSIONS)
@@ -360,6 +410,10 @@ def doctests(session: Session) -> None:
 @nox.session(python=PYTHON_VERSIONS)
 def docs(session: Session) -> None:
     """Build the documentation."""
+    # this is needed until ray and geopandas are supported on python 3.10
+    if session.python == "3.10":
+        session.skip()
+
     install_extras(session, extra="all", force_pip=True)
     session.chdir("docs")
 

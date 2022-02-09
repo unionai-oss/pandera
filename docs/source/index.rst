@@ -133,6 +133,7 @@ Installing additional functionality:
     pip install pandera[modin]       # validate modin dataframes
     pip install pandera[modin-ray]   # validate modin dataframes with ray
     pip install pandera[modin-dask]  # validate modin dataframes with dask
+    pip install pandera[geopandas]   # validate geopandas geodataframes
     pip install pandera[all]         # all packages
 
 
@@ -344,7 +345,7 @@ page or reach out to the maintainers and pandera community on
    lazy_validation
    data_synthesis_strategies
    extensions
-   third_party_schema
+   data_format_conversion
    supported_libraries
    integrations
 

@@ -47,6 +47,7 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "recommonmark",
+    "sphinx_panels",
 ]
 
 doctest_global_setup = """
@@ -159,13 +160,20 @@ html_theme_options = {
         "color-api-highlight-on-target": "#e5fff5",
     },
 }
+html_context = {
+    "sponsor_link": "https://github.com/sponsors/cosmicBboy",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-html_css_files = ["default.css"]
+html_css_files = [
+    "default.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
+]
+
 
 rst_prolog = """
 .. role:: red
@@ -180,7 +188,7 @@ autosummary_filename_map = {
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
-    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "dask": ("https://docs.dask.org/en/latest/", None),
     "koalas": ("https://koalas.readthedocs.io/en/latest/", None),

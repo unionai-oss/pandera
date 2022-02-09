@@ -40,6 +40,8 @@ class Column(SeriesSchemaBase):
         name: Union[str, Tuple[str, ...], None] = None,
         regex: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> None:
         """Create column validator object.
 
@@ -69,6 +71,9 @@ class Column(SeriesSchemaBase):
 
             .. warning:: This option will be deprecated in 0.8.0
 
+        :param title: A human-readable label for the column.
+        :param description: An arbitrary textual description of the column.
+
         :raises SchemaInitError: if impossible to build schema from parameters
 
         :example:
@@ -97,6 +102,8 @@ class Column(SeriesSchemaBase):
             coerce,
             name,
             pandas_dtype,
+            title,
+            description,
         )
         if (
             name is not None
@@ -133,6 +140,8 @@ class Column(SeriesSchemaBase):
             "required": self.required,
             "name": self._name,
             "regex": self._regex,
+            "title": self.title,
+            "description": self.description,
         }
 
     def set_name(self, name: str):

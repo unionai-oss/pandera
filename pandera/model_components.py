@@ -56,6 +56,8 @@ class FieldInfo:
         "alias",
         "original_name",
         "dtype_kwargs",
+        "title",
+        "description",
     )
 
     def __init__(
@@ -69,6 +71,8 @@ class FieldInfo:
         alias: Any = None,
         check_name: Optional[bool] = None,
         dtype_kwargs: Optional[Dict[str, Any]] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> None:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
@@ -80,6 +84,8 @@ class FieldInfo:
         self.check_name = check_name
         self.original_name = cast(str, None)  # always set by SchemaModel
         self.dtype_kwargs = dtype_kwargs
+        self.title = title
+        self.description = description
 
     @property
     def name(self) -> str:
@@ -147,6 +153,8 @@ class FieldInfo:
             required=required,
             name=name,
             checks=checks,
+            title=self.title,
+            description=self.description,
         )
 
     def to_index(
@@ -165,6 +173,8 @@ class FieldInfo:
             coerce=self.coerce,
             name=name,
             checks=checks,
+            title=self.title,
+            description=self.description,
         )
 
 
@@ -195,6 +205,8 @@ def Field(
     alias: Any = None,
     check_name: Optional[bool] = None,
     dtype_kwargs: Optional[Dict[str, Any]] = None,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a SchemaModel.
@@ -205,7 +217,7 @@ def Field(
     See the :ref:`User Guide <schema_models>` for more information.
 
     The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
-    to the built-in `~pandera.checks.Check` methods.
+    to the built-in :py:class:`~pandera.checks.Check` methods.
 
     :param nullable: Whether or not the column/index can contain null values.
     :param unique: Whether column values should be unique.
@@ -229,6 +241,8 @@ def Field(
         for columns and multi-index, and to `False` for a single index.
     :param dtype_kwargs: The parameters to be forwarded to the type of the
         field.
+    :param title: A human-readable label for the field.
+    :param description: An arbitrary textual description of the field.
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -269,6 +283,8 @@ def Field(
         regex=regex,
         check_name=check_name,
         alias=alias,
+        title=title,
+        description=description,
         dtype_kwargs=dtype_kwargs,
     )
 
@@ -362,6 +378,7 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
 
     def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
         check_fn, check_method = _to_function_and_classmethod(fn)
+        check_kwargs.setdefault("description", fn.__doc__)
         setattr(
             check_method,
             CHECK_KEY,
@@ -388,6 +405,7 @@ def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
 
     def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
         check_fn, check_method = _to_function_and_classmethod(fn)
+        check_kwargs.setdefault("description", fn.__doc__)
         setattr(
             check_method,
             DATAFRAME_CHECK_KEY,
