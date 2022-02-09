@@ -100,7 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ordered: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
         unique: Optional[Union[str, List[str]]] = None,
-        allow_duplicate_column_names: bool = True,
+        unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -212,7 +212,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
-        self._allow_duplicate_column_names = allow_duplicate_column_names
+        self._unique_column_names = unique_column_names
         self._title = title
         self._description = description
         self._validate_schema()
@@ -253,14 +253,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._ordered = value
 
     @property
-    def allow_duplicate_column_names(self):
+    def unique_column_names(self):
         """Whether multiple columns with the same name can be present."""
-        return self._allow_duplicate_column_names
+        return self._unique_column_names
 
-    @allow_duplicate_column_names.setter
-    def allow_duplicate_column_names(self, value: bool) -> None:
+    @unique_column_names.setter
+    def unique_column_names(self, value: bool) -> None:
         """Set allow_duplicated_column_names attribute"""
-        self._allow_duplicate_column_names = value
+        self._unique_column_names = value
 
     @property
     def title(self):
@@ -626,7 +626,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                                 check="column_ordered",
                             ),
                         )
-        if self._allow_duplicate_column_names is False:
+        if self._unique_column_names:
             failed = check_obj.columns[check_obj.columns.duplicated()]
             if failed.any():
                 msg = (
@@ -828,7 +828,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             f"strict={self.strict}, "
             f"name={self.name}, "
             f"ordered={self.ordered}, "
-            f"allow_duplicate_column_names={self.allow_duplicate_column_names}"
+            f"unique_column_names={self.unique_column_names}"
             ")>"
         )
 
@@ -877,7 +877,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             f"{indent}strict={self.strict}\n"
             f"{indent}name={self.name},\n"
             f"{indent}ordered={self.ordered}\n"
-            f"{indent}allow_duplicate_column_names={self.allow_duplicate_column_names}\n"
+            f"{indent}unique_column_names={self.unique_column_names}\n"
             ")>"
         )
 

@@ -37,7 +37,7 @@ class BaseConfig:  # pylint:disable=R0903
     multiindex_ordered: bool = True
 
     #: make sure dataframe column names are unique
-    allow_duplicate_column_names: bool = True
+    unique_column_names: bool = False
 
     #: data format before validation. This option only applies to
     #: schemas used in the context of the pandera type constructor

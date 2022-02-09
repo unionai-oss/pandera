@@ -322,7 +322,7 @@ def test_duplicate_columns_dataframe():
 
     schema = DataFrameSchema(
         columns={i: Column(int) for i in col_labels},
-        allow_duplicate_column_names=False,
+        unique_column_names=True,
     )
 
     with pytest.raises(
