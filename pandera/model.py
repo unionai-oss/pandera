@@ -156,7 +156,11 @@ class SchemaModel(metaclass=_MetaSchema):
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
-        cls.Config = type('Config', (BaseConfig,), {'name': cls.__name__})
+        if "Config" in cls.__dict__:
+            cls.Config.name = cls.Config.name or cls.__name__
+        else:
+            cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
+
         super().__init_subclass__(**kwargs)
         # pylint:disable=no-member
         subclass_annotations = cls.__dict__.get("__annotations__", {})
@@ -263,9 +267,7 @@ class SchemaModel(metaclass=_MetaSchema):
         cls: Type[TSchemaModel], *, size: Optional[int] = None
     ) -> DataFrameBase[TSchemaModel]:
         """%(example_doc)s"""
-        return cast(
-            DataFrameBase[TSchemaModel], cls.to_schema().example(size=size)
-        )
+        return cast(DataFrameBase[TSchemaModel], cls.to_schema().example(size=size))
 
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals
@@ -278,8 +280,7 @@ class SchemaModel(metaclass=_MetaSchema):
         Optional[Union[schema_components.Index, schema_components.MultiIndex]],
     ]:
         index_count = sum(
-            annotation.origin in INDEX_TYPES
-            for annotation, _ in fields.values()
+            annotation.origin in INDEX_TYPES for annotation, _ in fields.values()
         )
 
         columns: Dict[str, schema_components.Column] = {}
@@ -309,9 +310,7 @@ class SchemaModel(metaclass=_MetaSchema):
                 annotation.origin in SERIES_TYPES
                 or annotation.raw_annotation in SERIES_TYPES
             ):
-                col_constructor = (
-                    field.to_column if field else schema_components.Column
-                )
+                col_constructor = field.to_column if field else schema_components.Column
 
                 if check_name is False:
                     raise SchemaInitError(
@@ -329,9 +328,7 @@ class SchemaModel(metaclass=_MetaSchema):
                 or annotation.raw_annotation in INDEX_TYPES
             ):
                 if annotation.optional:
-                    raise SchemaInitError(
-                        f"Index '{field_name}' cannot be Optional."
-                    )
+                    raise SchemaInitError(f"Index '{field_name}' cannot be Optional.")
 
                 if check_name is False or (
                     # default single index
@@ -340,9 +337,7 @@ class SchemaModel(metaclass=_MetaSchema):
                 ):
                     field_name = None  # type:ignore
 
-                index_constructor = (
-                    field.to_index if field else schema_components.Index
-                )
+                index_constructor = field.to_index if field else schema_components.Index
                 index = index_constructor(  # type: ignore
                     dtype, checks=field_checks, name=field_name
                 )
@@ -410,9 +405,7 @@ class SchemaModel(metaclass=_MetaSchema):
 
         for model in models:
             config = getattr(model, _CONFIG_KEY, {})
-            base_options, base_extras = _extract_config_options_and_extras(
-                config
-            )
+            base_options, base_extras = _extract_config_options_and_extras(config)
             options.update(base_options)
             extras.update(base_extras)
 
