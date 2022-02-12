@@ -877,7 +877,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             f"{indent}index={index},\n"
             f"{indent}strict={self.strict}\n"
             f"{indent}name={self.name},\n"
-            f"{indent}ordered={self.ordered}\n"
+            f"{indent}ordered={self.ordered},\n"
             f"{indent}unique_column_names={self.unique_column_names}\n"
             ")>"
         )
@@ -972,7 +972,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`remove_columns`
@@ -1022,7 +1023,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`add_columns`
@@ -1083,7 +1085,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`rename_columns`
@@ -1143,7 +1146,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. note:: This is the successor to the ``update_column`` method, which
@@ -1225,7 +1229,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`update_column`
@@ -1300,7 +1305,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. note:: If an index is present in the schema, it will also be
@@ -1400,7 +1406,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=<Schema Index(name=category, type=DataType(str))>,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         If you have an existing index in your schema, and you would like to
@@ -1435,7 +1442,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             )>,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`reset_index`
@@ -1531,7 +1539,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         This reclassifies an index (or indices) as a column (or columns).
@@ -1560,7 +1569,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=<Schema Index(name=unique_id2, type=DataType(str))>,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`set_index`
