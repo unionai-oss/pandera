@@ -23,7 +23,7 @@ from sphinx.util import logging
 
 import pandera
 
-sys.path.insert(0, os.path.abspath("../../pandera"))
+sys.path.insert(0, os.path.abspath("../.."))
 
 
 # -- Project information -----------------------------------------------------
