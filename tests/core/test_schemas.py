@@ -324,7 +324,7 @@ def test_duplicate_columns_dataframe():
         columns={i: Column(int) for i in col_labels},
         unique_column_names=True,
     )
-    
+
     assert schema.unique_column_names
 
     with pytest.raises(
@@ -332,7 +332,7 @@ def test_duplicate_columns_dataframe():
         match="dataframe contains multiple columns with label",
     ):
         schema.validate(frame)
-        
+
     schema.unique_column_names = False
     assert not schema.unique_column_names
 
