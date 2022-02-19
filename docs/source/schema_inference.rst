@@ -46,7 +46,8 @@ is a simple example:
         index=<Schema Index(name=None, type=DataType(int64))>,
         strict=False
         name=None,
-        ordered=False
+        ordered=False,
+        unique_column_names=False
     )>
 
 

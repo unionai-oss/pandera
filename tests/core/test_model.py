@@ -665,6 +665,7 @@ def test_config() -> None:
             multiindex_coerce = True
             multiindex_strict = True
             multiindex_name: Optional[str] = "mi"
+            unique_column_names = True
 
     class Child(Base):
         b: Series[int]
@@ -688,6 +689,7 @@ def test_config() -> None:
         coerce=True,
         strict=True,
         ordered=True,
+        unique_column_names=True,
         description="foo",
         title="bar",
     )
