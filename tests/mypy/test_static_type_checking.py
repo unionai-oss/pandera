@@ -119,7 +119,10 @@ PANDAS_CONCAT_FALSE_POSITIVES = {
 
 PANDAS_TIME_FALSE_POSITIVES = {
     4: {
-        "msg": 'Unsupported operand types for + ("Timestamp" and "YearEnd")',  # noqa
+        "msg": (
+            'Unsupported operand types for + ("Timestamp" and "YearEnd")',
+            'No overload variant of "__add__" of "Timestamp" matches argument type "YearEnd"',  # noqa
+        ),
         "errcode": "operator",
     },
     6: {
@@ -175,7 +178,12 @@ def test_pandas_stubs_false_positives(
         text=True,
     )
     resulting_errors = _get_mypy_errors(capfd.readouterr().out)
-    assert resulting_errors == expected_errors
+    for lineno, error in resulting_errors.items():
+        assert error["errcode"] == expected_errors[lineno]["errcode"]
+        if isinstance(expected_errors[lineno]["msg"], tuple):
+            assert error["msg"] in expected_errors[lineno]["msg"]
+        else:
+            assert error["msg"] == expected_errors[lineno]["msg"]
 
 
 @pytest.mark.parametrize("module", ["pandas_concat", "pandas_time"])
