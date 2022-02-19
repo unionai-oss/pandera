@@ -36,6 +36,9 @@ class BaseConfig:  # pylint:disable=R0903
     #: validate MultiIndex in order
     multiindex_ordered: bool = True
 
+    #: make sure dataframe column names are unique
+    unique_column_names: bool = False
+
     #: data format before validation. This option only applies to
     #: schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, assumes a data structure

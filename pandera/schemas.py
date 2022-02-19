@@ -100,6 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         ordered: bool = False,
         pandas_dtype: PandasDtypeInputTypes = None,
         unique: Optional[Union[str, List[str]]] = None,
+        unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -138,6 +139,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             .. warning:: This option will be deprecated in 0.8.0
 
         :param unique: a list of columns that should be jointly unique.
+        :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
 
@@ -211,6 +213,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
+        self._unique_column_names = unique_column_names
         self._title = title
         self._description = description
         self._validate_schema()
@@ -249,6 +252,16 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     def ordered(self, value: bool) -> None:
         """Set ordered attribute"""
         self._ordered = value
+
+    @property
+    def unique_column_names(self):
+        """Whether multiple columns with the same name can be present."""
+        return self._unique_column_names
+
+    @unique_column_names.setter
+    def unique_column_names(self, value: bool) -> None:
+        """Set allow_duplicated_column_names attribute"""
+        self._unique_column_names = value
 
     @property
     def title(self):
@@ -614,6 +627,23 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                                 check="column_ordered",
                             ),
                         )
+        if self._unique_column_names:
+            failed = check_obj.columns[check_obj.columns.duplicated()]
+            if failed.any():
+                msg = (
+                    "dataframe contains multiple columns with label(s): "
+                    f"{failed.tolist()}"
+                )
+                error_handler.collect_error(
+                    "duplicate_dataframe_column_labels",
+                    errors.SchemaError(
+                        self,
+                        check_obj,
+                        msg,
+                        failure_cases=scalar_failure_case(failed),
+                        check="dataframe_column_labels_unique",
+                    ),
+                )
 
         # check for columns that are not in the dataframe and collect columns
         # that are not in the dataframe that should be excluded for lazy
@@ -795,10 +825,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             f"checks={self.checks}, "
             f"index={self.index.__repr__()}, "
             f"coerce={self.coerce}, "
-            f"dtype={self._dtype},"
-            f"strict={self.strict},"
-            f"name={self.name},"
-            f"ordered={self.ordered}"
+            f"dtype={self._dtype}, "
+            f"strict={self.strict}, "
+            f"name={self.name}, "
+            f"ordered={self.ordered}, "
+            f"unique_column_names={self.unique_column_names}"
             ")>"
         )
 
@@ -846,7 +877,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             f"{indent}index={index},\n"
             f"{indent}strict={self.strict}\n"
             f"{indent}name={self.name},\n"
-            f"{indent}ordered={self.ordered}\n"
+            f"{indent}ordered={self.ordered},\n"
+            f"{indent}unique_column_names={self.unique_column_names}\n"
             ")>"
         )
 
@@ -940,7 +972,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`remove_columns`
@@ -990,7 +1023,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`add_columns`
@@ -1051,7 +1085,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`rename_columns`
@@ -1111,7 +1146,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. note:: This is the successor to the ``update_column`` method, which
@@ -1193,7 +1229,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`update_column`
@@ -1268,7 +1305,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. note:: If an index is present in the schema, it will also be
@@ -1368,7 +1406,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=<Schema Index(name=category, type=DataType(str))>,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         If you have an existing index in your schema, and you would like to
@@ -1403,7 +1442,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             )>,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`reset_index`
@@ -1499,7 +1539,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=None,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         This reclassifies an index (or indices) as a column (or columns).
@@ -1528,7 +1569,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             index=<Schema Index(name=unique_id2, type=DataType(str))>,
             strict=False
             name=None,
-            ordered=False
+            ordered=False,
+            unique_column_names=False
         )>
 
         .. seealso:: :func:`set_index`
