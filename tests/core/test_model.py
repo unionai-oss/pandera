@@ -945,3 +945,23 @@ def test_column_access_regex() -> None:
         col_regex: Series[str] = pa.Field(alias="column_([0-9])+", regex=True)
 
     assert Schema.col_regex == "column_([0-9])+"
+
+
+def test_schema_name_override():
+    """
+    Test that setting name in Config manually does not propagate to other
+    SchemaModels.
+    """
+
+    class Foo(pa.SchemaModel):
+        pass
+
+    class Bar(pa.SchemaModel):
+        pass
+
+    assert Foo.Config.name == "Foo"
+
+    Foo.Config.name = "foo"
+
+    assert Foo.Config.name == "foo"
+    assert Bar.Config.name == "Bar"
