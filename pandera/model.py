@@ -157,7 +157,11 @@ class SchemaModel(metaclass=_MetaSchema):
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
         if "Config" in cls.__dict__:
-            cls.Config.name = cls.Config.name if hasattr(cls.Config, 'name') else cls.__name__
+            cls.Config.name = (
+                cls.Config.name
+                if hasattr(cls.Config, "name")
+                else cls.__name__
+            )
         else:
             cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
 

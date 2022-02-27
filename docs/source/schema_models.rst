@@ -176,7 +176,7 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
         dtype=None,
         index=None,
         strict=False
-        name=None,
+        name=InputSchema,
         ordered=False,
         unique_column_names=False
     )>
