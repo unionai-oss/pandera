@@ -159,14 +159,13 @@ class DataFrameBase(Generic[T]):
 
             # prevent the double validation problem by preventing checks for
             # dataframes with a defined pandera.schema
-            pandera = getattr(self, "pandera")
+            pandera_accessor = getattr(self, "pandera")
             if (
-                pandera.schema is None
-                or pandera.schema != schema_model.to_schema()
+                pandera_accessor.schema is None
+                or pandera_accessor.schema != schema_model.to_schema()
             ):
-                # pylint: disable=self-cls-assignment
-                self = schema_model.validate(self)
-                pandera.add_schema(schema_model.to_schema())
+                pandera_accessor.add_schema(schema_model.to_schema())
+                self.__dict__ = schema_model.validate(self).__dict__
 
 
 # pylint:disable=too-few-public-methods
