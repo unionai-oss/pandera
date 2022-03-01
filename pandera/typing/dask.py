@@ -1,7 +1,6 @@
 """Pandera type annotations for Dask."""
 
-import inspect
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from .common import DataFrameBase, IndexBase, SeriesBase
 from .pandas import GenericDtype, Schema
@@ -31,26 +30,6 @@ if DASK_INSTALLED:
 
         *new in 0.8.0*
         """
-
-        def __setattr__(self, name: str, value: Any) -> None:
-            object.__setattr__(self, name, value)
-            if name == "__orig_class__":
-                class_args = getattr(self.__orig_class__, "__args__", None)
-                if class_args is not None and any(
-                    x.__name__ == "SchemaModel"
-                    for x in inspect.getmro(class_args[0])
-                ):
-                    schema_model = value.__args__[0]
-
-                # prevent the double validation problem by preventing checks
-                # for dataframes with a defined pandera.schema
-                if (
-                    self.pandera.schema is None
-                    or self.pandera.schema != schema_model.to_schema()
-                ):
-                    # pylint: disable=self-cls-assignment
-                    self.__dict__ = schema_model.validate(self).__dict__
-                    self.pandera.add_schema(schema_model.to_schema())
 
     # pylint:disable=too-few-public-methods
     class Series(SeriesBase, dd.Series, Generic[GenericDtype]):  # type: ignore
