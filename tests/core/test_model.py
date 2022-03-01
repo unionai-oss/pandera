@@ -997,7 +997,6 @@ def test_validate_coerce_on_init():
     assert isinstance(pandera_validated_df, DataFrame)
     assert isinstance(pandas_df, pd.DataFrame)
 
-    Schema.Config.coerce = False
     with pytest.raises(
         pa.errors.SchemaError,
         match="^expected series 'price' to have type float64, got int64$",
