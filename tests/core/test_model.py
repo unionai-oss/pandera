@@ -941,6 +941,8 @@ def test_field_name_access_inherit() -> None:
 
 
 def test_column_access_regex() -> None:
+    """Test that column regex alias is reflected in schema attribute."""
+
     class Schema(pa.SchemaModel):
         col_regex: Series[str] = pa.Field(alias="column_([0-9])+", regex=True)
 
@@ -965,3 +967,39 @@ def test_schema_name_override():
 
     assert Foo.Config.name == "foo"
     assert Bar.Config.name == "Bar"
+
+
+def test_validate_coerce_on_init():
+    """Test that DataFrame[Schema] validates and coerces on initialization."""
+
+    class Schema(pa.SchemaModel):
+        state: Series[str]
+        city: Series[str]
+        price: Series[float] = pa.Field(
+            in_range={"min_value": 5, "max_value": 20}
+        )
+
+        class Config:
+            coerce = True
+
+    class SchemaNoCoerce(Schema):
+        class Config:
+            coerce = False
+
+    raw_data = {
+        "state": ["NY", "FL", "GA", "CA"],
+        "city": ["New York", "Miami", "Atlanta", "San Francisco"],
+        "price": [8, 12, 10, 16],
+    }
+    pandera_validated_df = DataFrame[Schema](raw_data)
+    pandas_df = pd.DataFrame(raw_data)
+    assert pandera_validated_df.equals(Schema.validate(pandas_df))
+    assert isinstance(pandera_validated_df, DataFrame)
+    assert isinstance(pandas_df, pd.DataFrame)
+
+    Schema.Config.coerce = False
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="^expected series 'price' to have type float64, got int64$",
+    ):
+        DataFrame[SchemaNoCoerce](raw_data)
