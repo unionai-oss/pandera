@@ -1,6 +1,7 @@
 """Tests schema creation and validation from type annotations."""
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
+from copy import deepcopy
 from decimal import Decimal  # pylint:disable=C0415
 from typing import Any, Iterable, Optional
 
@@ -25,6 +26,7 @@ def test_to_schema_and_validate() -> None:
         idx: Index[str]
 
     expected = pa.DataFrameSchema(
+        name="Schema",
         columns={"a": pa.Column(int), "b": pa.Column(str), "c": pa.Column()},
         index=pa.Index(str),
     )
@@ -38,7 +40,7 @@ def test_to_schema_and_validate() -> None:
 def test_empty_schema() -> None:
     """Test that SchemaModel supports empty schemas."""
 
-    empty_schema = pa.DataFrameSchema()
+    empty_schema = pa.DataFrameSchema(name="EmptySchema")
 
     class EmptySchema(pa.SchemaModel):
         pass
@@ -51,13 +53,21 @@ def test_empty_schema() -> None:
     class EmptySubSchema(Schema):
         pass
 
-    schema = pa.DataFrameSchema({"a": pa.Column(int)})
-    assert schema == EmptySubSchema.to_schema()
+    empty_sub_schema = pa.DataFrameSchema(
+        name="EmptySubSchema",
+        columns={"a": pa.Column(int)},
+    )
+    assert empty_sub_schema == EmptySubSchema.to_schema()
+
+    empty_parent_schema = pa.DataFrameSchema(
+        name="EmptyParentSchema",
+        columns={"a": pa.Column(int)},
+    )
 
     class EmptyParentSchema(EmptySchema):
         a: Series[int]
 
-    assert schema == EmptyParentSchema.to_schema()
+    assert empty_parent_schema == EmptyParentSchema.to_schema()
 
 
 def test_invalid_annotations() -> None:
@@ -121,7 +131,10 @@ def test_optional_index() -> None:
 
 
 def test_empty_dtype() -> None:
-    expected = pa.DataFrameSchema({"empty_column": pa.Column()})
+    expected = pa.DataFrameSchema(
+        name="EmptyDtypeSchema",
+        columns={"empty_column": pa.Column()},
+    )
 
     class EmptyDtypeSchema(pa.SchemaModel):
         empty_column: pa.typing.Series
@@ -139,6 +152,7 @@ def test_schemamodel_with_fields() -> None:
 
     actual = Schema.to_schema()
     expected = pa.DataFrameSchema(
+        name="Schema",
         columns={
             "a": pa.Column(
                 int, checks=[pa.Check.equal_to(9), pa.Check.not_equal_to(0)]
@@ -169,12 +183,13 @@ def test_multiindex() -> None:
         b: Index[str]
 
     expected = pa.DataFrameSchema(
+        name="Schema",
         index=pa.MultiIndex(
             [
                 pa.Index(int, name="a", checks=pa.Check.gt(0)),
                 pa.Index(str, name="b"),
             ]
-        )
+        ),
     )
     assert expected == Schema.to_schema()
 
@@ -457,6 +472,7 @@ def test_inherit_schemamodel_fields() -> None:
         b: Series[int]
 
     expected = pa.DataFrameSchema(
+        name="Child",
         columns={"a": pa.Column(int), "b": pa.Column(int)},
         index=pa.Index(str),
     )
@@ -488,26 +504,35 @@ def test_inherit_schemamodel_fields_alias() -> None:
         pass
 
     expected_mid = pa.DataFrameSchema(
+        name="Mid",
         columns={"a": pa.Column(int), "_b": pa.Column(str)},
         index=pa.Index(str),
     )
     expected_child_override_attr = expected_mid.rename_columns(
         {"_b": "b"}
     ).update_column("b", dtype=int)
+    expected_child_override_attr.name = "ChildOverrideAttr"
+
     expected_child_override_alias = expected_mid.rename_columns(
         {"_b": "new_b"}
     )
+    expected_child_override_alias.name = "ChildOverrideAlias"
+
     expected_child_new_attr = expected_mid.add_columns(
         {
             "c": pa.Column(int),
         }
     )
+    expected_child_new_attr.name = "ChildNewAttr"
+
+    expected_child_empty = deepcopy(expected_mid)
+    expected_child_empty.name = "ChildEmpty"
 
     assert expected_mid == Mid.to_schema()
     assert expected_child_override_attr == ChildOverrideAttr.to_schema()
     assert expected_child_override_alias == ChildOverrideAlias.to_schema()
     assert expected_child_new_attr == ChildNewAttr.to_schema()
-    assert expected_mid == ChildEmpty.to_schema()
+    assert expected_child_empty == ChildEmpty.to_schema()
 
 
 def test_inherit_field_checks() -> None:
@@ -866,6 +891,7 @@ def test_field_name_access_inherit() -> None:
         i3: Index[int] = pa.Field(alias="_i3")
 
     expected_base = pa.DataFrameSchema(
+        name="Base",
         columns={
             "a": pa.Column(int),
             "b": pa.Column(int),
@@ -881,6 +907,7 @@ def test_field_name_access_inherit() -> None:
     )
 
     expected_child = pa.DataFrameSchema(
+        name="Child",
         columns={
             "a": pa.Column(int),
             "_b": pa.Column(str),
@@ -918,3 +945,23 @@ def test_column_access_regex() -> None:
         col_regex: Series[str] = pa.Field(alias="column_([0-9])+", regex=True)
 
     assert Schema.col_regex == "column_([0-9])+"
+
+
+def test_schema_name_override():
+    """
+    Test that setting name in Config manually does not propagate to other
+    SchemaModels.
+    """
+
+    class Foo(pa.SchemaModel):
+        pass
+
+    class Bar(pa.SchemaModel):
+        pass
+
+    assert Foo.Config.name == "Foo"
+
+    Foo.Config.name = "foo"
+
+    assert Foo.Config.name == "foo"
+    assert Bar.Config.name == "Bar"
