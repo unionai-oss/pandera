@@ -55,6 +55,21 @@ div.sponsorship {
   bottom: 75px !important;
 }
 
+/* tabbed content */
+.tabbed-set>label {
+  color: #9ad8bf;
+  border-color: var(--tabs-color-overline);
+}
+
+.tabbed-set>label:hover {
+  color: #26b079 !important;
+}
+
+.tabbed-set>input:checked+label {
+  color: #26b079;
+  border-color: #26b079;
+}
+
 
 @media (max-width: 67em) {
   .sidebar-drawer {
