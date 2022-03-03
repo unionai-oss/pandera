@@ -717,6 +717,9 @@ class PydanticModel(DataType):
 
     model: BaseModel
 
+    def __post_init__(self):
+        object.__setattr__(self, "type", self.model)
+
     def coerce(self, data_container: pd.DataFrame) -> pd.DataFrame:
         """Coerce pandas dataframe with pydantic record model."""
 
