@@ -45,7 +45,7 @@ Next we'll create a FastAPI app and define a ``/transactions/`` POST endpoint:
 
 .. literalinclude:: ../../tests/fastapi/app.py
     :language: python
-    :lines: 3,15-16,23-28
+    :lines: 3,6,15-16,23-28
 
 
 Reading File Uploads
@@ -73,7 +73,7 @@ and the modified data in json format.
 
 .. literalinclude:: ../../tests/fastapi/app.py
     :language: python
-    :lines: 31-38
+    :lines: 7,30-38
 
 Pandera's :py:class:`~pandera.typing.fastapi.UploadFile` type is a subclass of FastAPI's
 `UploadFile <https://fastapi.tiangolo.com/tutorial/request-files/?h=uploadfile#uploadfile>`__

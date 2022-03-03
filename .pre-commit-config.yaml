@@ -27,7 +27,7 @@ repos:
     rev: v5.9.3
     hooks:
       - id: isort
-        args: ["--line-length=79"]
+        args: ["--line-length=79", "--skip=docs/source/conf.py"]
 
   - repo: https://github.com/ikamensh/flynt
     rev: '0.69'

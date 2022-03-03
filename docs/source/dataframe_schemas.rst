@@ -773,7 +773,8 @@ data pipeline:
         index=None,
         strict=True
         name=None,
-        ordered=False
+        ordered=False,
+        unique_column_names=False
     )>
 
 If during the course of a data pipeline one of your columns is moved into the
@@ -820,7 +821,8 @@ the pipeline output.
         )>,
         strict=True
         name=None,
-        ordered=False
+        ordered=False,
+        unique_column_names=False
     )>
 
 

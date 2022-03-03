@@ -25,4 +25,5 @@ disable=
     no-else-return,
     inconsistent-return-statements,
     protected-access,
-    too-many-ancestors
+    too-many-ancestors,
+    too-many-lines

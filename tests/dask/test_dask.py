@@ -1,6 +1,5 @@
 """ Tests that basic Pandera functionality works for Dask objects. """
 
-
 import dask.dataframe as dd
 import pandas as pd
 import pytest

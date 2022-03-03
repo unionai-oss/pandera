@@ -69,14 +69,18 @@ pip install pandera
 Using conda:
 
 ```
-conda install -c conda-forge pandera-core  # core library functionality
-conda install -c conda-forge pandera       # pandera with all extensions
+conda install -c conda-forge pandera
 ```
 
 ### Extras
 
 Installing additional functionality:
-```
+
+<details>
+
+<summary><i>pip</i></summary>
+
+```bash
 pip install pandera[hypotheses]  # hypothesis checks
 pip install pandera[io]          # yaml/script schema io utilities
 pip install pandera[strategies]  # data synthesis strategies
@@ -87,8 +91,28 @@ pip install pandera[koalas]      # validate koalas dataframes
 pip install pandera[modin]       # validate modin dataframes
 pip install pandera[modin-ray]   # validate modin dataframes with ray
 pip install pandera[modin-dask]  # validate modin dataframes with dask
-pip install pandera[all]         # all packages
 ```
+
+</details>
+
+<details>
+
+<summary><i>conda</i></summary>
+
+```bash
+conda install -c conda-forge pandera-hypotheses  # hypothesis checks
+conda install -c conda-forge pandera-io          # yaml/script schema io utilities
+conda install -c conda-forge pandera-strategies  # data synthesis strategies
+conda install -c conda-forge pandera-mypy        # enable static type-linting of pandas
+conda install -c conda-forge pandera-fastapi     # fastapi integration
+conda install -c conda-forge pandera-dask        # validate dask dataframes
+conda install -c conda-forge pandera-koalas      # validate koalas dataframes
+conda install -c conda-forge pandera-modin       # validate modin dataframes
+conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
+conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
+```
+
+</details>
 
 ## Quick Start
 

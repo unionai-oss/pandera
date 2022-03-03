@@ -176,8 +176,9 @@ You can easily convert a :class:`~pandera.model.SchemaModel` class into a
         dtype=None,
         index=None,
         strict=False
-        name=None,
-        ordered=False
+        name=InputSchema,
+        ordered=False,
+        unique_column_names=False
     )>
 
 You can also use the :meth:`~pandera.model.SchemaModel.validate` method to

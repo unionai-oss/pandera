@@ -156,6 +156,15 @@ class SchemaModel(metaclass=_MetaSchema):
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
+        if "Config" in cls.__dict__:
+            cls.Config.name = (
+                cls.Config.name
+                if hasattr(cls.Config, "name")
+                else cls.__name__
+            )
+        else:
+            cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
+
         super().__init_subclass__(**kwargs)
         # pylint:disable=no-member
         subclass_annotations = cls.__dict__.get("__annotations__", {})
@@ -209,6 +218,7 @@ class SchemaModel(metaclass=_MetaSchema):
                 "unique": cls.__config__.unique,
                 "title": cls.__config__.title,
                 "description": cls.__config__.description or cls.__doc__,
+                "unique_column_names": cls.__config__.unique_column_names,
             }
         cls.__schema__ = DataFrameSchema(
             columns,
