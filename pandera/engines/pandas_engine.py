@@ -715,10 +715,8 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
+    type = None
     model: BaseModel
-
-    def __post_init__(self):
-        object.__setattr__(self, "type", self.model)
 
     def coerce(self, data_container: pd.DataFrame) -> pd.DataFrame:
         """Coerce pandas dataframe with pydantic record model."""
