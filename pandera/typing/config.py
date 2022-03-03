@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union
 
+from ..schemas import PandasDtypeInputTypes
 from .formats import Format
 
 
@@ -10,6 +11,10 @@ class BaseConfig:  # pylint:disable=R0903
 
     *new in 0.5.0*
     """
+
+    #: datatype of the dataframe. This overrides the data types specified in
+    #: any of the fields.
+    dtype: PandasDtypeInputTypes = None
 
     name: Optional[str] = None  #: name of schema
     title: Optional[str] = None  #: human-readable label for schema

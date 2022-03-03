@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+import pydantic
 from packaging import version
 
 from .. import dtypes, errors
@@ -84,6 +85,8 @@ class DataType(dtypes.DataType):
         try:
             return self.coerce(data_container)
         except Exception as exc:  # pylint:disable=broad-except
+            if isinstance(exc, errors.ParserError):
+                raise
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {self.type}",
@@ -700,6 +703,57 @@ if GEOPANDAS_INSTALLED:
     @dtypes.immutable
     class Geometry(DataType):
         type = gpd.array.GeometryDtype()
+
+
+###############################################################################
+# pydantic
+###############################################################################
+
+
+@Engine.register_dtype
+@dtypes.immutable(init=True)
+class PydanticModel(DataType):
+    """A pydantic model datatype applying to rows in a dataframe."""
+
+    model: pydantic.BaseModel
+
+    def coerce(self, data_container: pd.DataFrame) -> pd.DataFrame:
+        """Coerce pandas dataframe with pydantic record model."""
+
+        # pylint: disable=import-outside-toplevel
+        from pandera import error_formatters
+
+        def _coerce_row(row):
+            """
+            Coerce each row using pydantic model, keeping track of failure
+            cases.
+            """
+            try:
+                row = pd.Series(self.model(**row).dict())
+                row["failure_cases"] = None
+            except pydantic.ValidationError as exc:
+                row["failure_cases"] = {
+                    k: row[k] for k in (x["loc"][0] for x in exc.errors())
+                }
+
+            return row
+
+        coerced_df = data_container.apply(_coerce_row, axis="columns")
+
+        # raise a ParserError with failure cases where each case is a
+        # dictionary containing the failed elements in the pydantic record
+        if coerced_df["failure_cases"].any():
+            failure_cases = coerced_df["failure_cases"][
+                coerced_df["failure_cases"].notna()
+            ].astype(str)
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {self.type}",
+                failure_cases=error_formatters.reshape_failure_cases(
+                    failure_cases, ignore_na=False
+                ),
+            )
+        return coerced_df.drop(["failure_cases"], axis="columns")
 
 
 class PandasDtype(Enum):

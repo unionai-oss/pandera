@@ -382,7 +382,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 obj,
                 (
                     f"Error while coercing '{self.name}' to type "
-                    f"{self.dtype}: {exc}"
+                    f"{self.dtype}: {exc}\n{exc.failure_cases}"
                 ),
                 failure_cases=exc.failure_cases,
                 check=f"coerce_dtype('{self.dtype}')",
