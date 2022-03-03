@@ -579,6 +579,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             else:
                 columns = check_obj.columns
 
+            if self.strict == "filter":
+                check_obj = check_obj[column_names]
+
             for column in columns:
                 is_schema_col = column in expanded_column_names
                 if (self.strict is True) and not is_schema_col:
@@ -596,8 +599,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                             check="column_in_schema",
                         ),
                     )
-                if self.strict == "filter" and not is_schema_col:
-                    check_obj.drop(labels=[column], inplace=True, axis=1)
                 if self.ordered and is_schema_col:
                     try:
                         next_ordered_col = next(sorted_column_names)
