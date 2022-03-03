@@ -16,8 +16,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import pydantic
 from packaging import version
+from pydantic import BaseModel, ValidationError
 
 from .. import dtypes, errors
 from ..dtypes import immutable
@@ -715,7 +715,7 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    model: pydantic.BaseModel
+    model: BaseModel
 
     def coerce(self, data_container: pd.DataFrame) -> pd.DataFrame:
         """Coerce pandas dataframe with pydantic record model."""
@@ -731,7 +731,7 @@ class PydanticModel(DataType):
             try:
                 row = pd.Series(self.model(**row).dict())
                 row["failure_cases"] = None
-            except pydantic.ValidationError as exc:
+            except ValidationError as exc:
                 row["failure_cases"] = {
                     k: row[k] for k in (x["loc"][0] for x in exc.errors())
                 }
