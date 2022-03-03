@@ -5,12 +5,11 @@ from typing import Union
 import pandas as pd
 
 from . import check_utils
-from .checks import _CheckBase
 
 
 def format_generic_error_message(
     parent_schema,
-    check: _CheckBase,
+    check,
     check_index: int,
 ) -> str:
     """Construct an error message when a check validator fails.
@@ -27,7 +26,7 @@ def format_generic_error_message(
 
 def format_vectorized_error_message(
     parent_schema,
-    check: _CheckBase,
+    check,
     check_index: int,
     reshaped_failure_cases: pd.DataFrame,
 ) -> str:
