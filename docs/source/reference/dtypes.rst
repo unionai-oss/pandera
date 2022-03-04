@@ -61,6 +61,7 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.pandas_engine.UINT64
    pandera.engines.pandas_engine.STRING
    pandera.engines.numpy_engine.Object
+   pandera.engines.pandas_engine.DateTime
 
 GeoPandas-specific Dtypes
 -------------------------
