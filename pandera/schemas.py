@@ -593,7 +593,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 columns = check_obj.columns
 
             if self.strict == "filter":
-                check_obj = check_obj[column_names]
+                check_obj = check_obj[expanded_column_names]
 
             for column in columns:
                 is_schema_col = column in expanded_column_names
