@@ -419,9 +419,7 @@ class Category(DataType, dtypes.Category):
     ):
         """Convert a categorical to
         a Pandera :class:`pandera.dtypes.pandas_engine.Category`."""
-        return cls(  # type: ignore
-            categories=cat.categories, ordered=cat.ordered
-        )
+        return cls(categories=cat.categories, ordered=cat.ordered)  # type: ignore
 
 
 if PANDAS_1_3_0_PLUS:
@@ -536,14 +534,19 @@ _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
 )
 @immutable(init=True)
 class DateTime(DataType, dtypes.Timestamp):
+    """Semantic representation of a :class:`pandas.DatetimeTZDtype`."""
+
     type: Optional[_PandasDatetime] = dataclasses.field(
         default=None, init=False
     )
     unit: str = "ns"
+    """The precision of the datetime data. Currently limited to "ns"."""
     tz: Optional[datetime.tzinfo] = None
+    """The timezone."""
     to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
+    "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
 
     def __post_init__(self):
         if self.tz is None:
