@@ -631,7 +631,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         )
 
         if self.strict == "filter":
-            check_obj.drop(labels=[column], inplace=True, axis=1)
+            check_obj.drop(labels=[filter_out_columns], inplace=True, axis=1)
 
         if self._unique_column_names:
             failed = check_obj.columns[check_obj.columns.duplicated()]
