@@ -16,6 +16,7 @@ from pkg_resources import Requirement, parse_requirements
 
 nox.options.sessions = (
     "requirements",
+    "mypy",
     "tests",
     "docs",
     "doctests",
@@ -265,6 +266,14 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
             + f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
         )
         sys.exit(1)
+
+
+@nox.session(python=PYTHON_VERSIONS)
+def mypy(session: Session) -> None:
+    """Type-check using mypy."""
+    install_extras(session, extra="all", pandas_stubs=False)
+    args = session.posargs or SOURCE_PATHS
+    session.run("mypy", "--follow-imports=silent", *args, silent=True)
 
 
 EXTRA_NAMES = [

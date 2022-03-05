@@ -731,7 +731,7 @@ class PydanticModel(DataType):
             """
             try:
                 row = pd.Series(self.model(**row).dict())
-                row["failure_cases"] = None
+                row["failure_cases"] = np.nan
             except ValidationError as exc:
                 row["failure_cases"] = {
                     k: row[k] for k in (x["loc"][0] for x in exc.errors())

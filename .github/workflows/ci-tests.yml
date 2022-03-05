@@ -58,8 +58,22 @@ jobs:
           --python ${{ matrix.python-version }}
           --session requirements-${{ matrix.python-version }}
 
-      - name: Lint - isort, black, pylint, mypy
-        run: pre-commit run --all-files
+      - name: Sort Imports
+        run: pre-commit run isort --all-files
+
+      - name: Black
+        run: pre-commit run black --all-files
+
+      - name: Pylint
+        run: pre-commit run pylint --all-files
+
+      - name: Mypy Type Checking
+        run: >
+          nox
+          -db virtualenv -r
+          --non-interactive
+          --python ${{ matrix.python-version }}
+          --session mypy-${{ matrix.python-version }}
 
   tests:
     name: >
