@@ -46,7 +46,7 @@ from pandera.engines.pandas_engine import (
 from pandera.engines.pandas_engine import _PandasDtype as PandasDtype
 from pandera.engines.pandas_engine import pandas_version
 
-from . import constants, errors, pandas_accessor, typing
+from . import errors, pandas_accessor, typing
 from .checks import Check
 from .decorators import check_input, check_io, check_output, check_types
 from .hypotheses import Hypothesis
