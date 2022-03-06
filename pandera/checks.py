@@ -21,7 +21,7 @@ from typing import (
 
 import pandas as pd
 
-from . import check_utils, constants, errors
+from . import check_utils, errors
 from . import strategies as st
 
 CheckResult = namedtuple(
@@ -115,7 +115,7 @@ class _CheckBase(metaclass=_CheckMeta):
         name: str = None,
         error: Optional[str] = None,
         raise_warning: bool = False,
-        n_failure_cases: Union[int, None] = constants.N_FAILURE_CASES,
+        n_failure_cases: Optional[int] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
         **check_kwargs,

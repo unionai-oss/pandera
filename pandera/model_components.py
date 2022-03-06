@@ -201,7 +201,7 @@ def Field(
     regex: bool = False,
     ignore_na: bool = True,
     raise_warning: bool = False,
-    n_failure_cases: int = 10,
+    n_failure_cases: int = None,
     alias: Any = None,
     check_name: Optional[bool] = None,
     dtype_kwargs: Optional[Dict[str, Any]] = None,

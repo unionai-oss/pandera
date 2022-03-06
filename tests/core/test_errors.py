@@ -194,7 +194,7 @@ class TestSchemaError:
                     "index": np.arange(n_tile) * 3,
                     "failure_case": np.full(n_tile, fill_value=-1, dtype=int),
                 }
-            ).head(10)
+            )
         )
         assert exc.check == "<Check isin: isin({0, 1})>"
         assert exc.check_index == 0
