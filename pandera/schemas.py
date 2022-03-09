@@ -592,6 +592,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             else:
                 columns = check_obj.columns
 
+            filter_out_columns = []
+
             for column in columns:
                 is_schema_col = column in expanded_column_names
                 if (self.strict is True) and not is_schema_col:
@@ -610,7 +612,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         ),
                     )
                 if self.strict == "filter" and not is_schema_col:
-                    check_obj.drop(labels=[column], inplace=True, axis=1)
+                    filter_out_columns.append(column)
                 if self.ordered and is_schema_col:
                     try:
                         next_ordered_col = next(sorted_column_names)
@@ -627,6 +629,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                                 check="column_ordered",
                             ),
                         )
+
+        if self.strict == "filter":
+            check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+
         if self._unique_column_names:
             failed = check_obj.columns[check_obj.columns.duplicated()]
             if failed.any():
