@@ -80,6 +80,10 @@ class DataType(dtypes.DataType):
             coerced.__str__()
         return coerced
 
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to a particular type."""
+        return self.type.type(value)
+
     def try_coerce(self, data_container: PandasObject) -> PandasObject:
         try:
             return self.coerce(data_container)
@@ -412,6 +416,29 @@ class Category(DataType, dtypes.Category):
             "type",
             pd.CategoricalDtype(self.categories, self.ordered),
         )
+
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        """Pure coerce without catching exceptions."""
+        data_container = pd.concat(
+            [data_container, data_container.shift(10)], axis=1
+        )
+        coerced = data_container.astype(self.type)
+        if (coerced.isna() & data_container.notna()).any():
+            raise TypeError(
+                f"Data container cannot be coerced to type {self.type}"
+            )
+        if type(data_container).__module__.startswith("modin.pandas"):
+            # NOTE: this is a hack to enable catching of errors in modin
+            coerced.__str__()
+        return coerced
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to a particular type."""
+        if value not in self.type.categories:
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
+        return value
 
     @classmethod
     def from_parametrized_dtype(

@@ -51,6 +51,10 @@ class DataType(dtypes.DataType):
             coerced.__str__()
         return coerced
 
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to a particular type."""
+        return self.type.type(value)
+
     def try_coerce(
         self, data_container: Union[PandasObject, np.ndarray]
     ) -> Union[PandasObject, np.ndarray]:
