@@ -1,6 +1,6 @@
 """Module for inferring dataframe/series schema."""
 
-from typing import Union
+from typing import Union, Any, overload
 
 import pandas as pd
 
@@ -13,8 +13,18 @@ from .schema_statistics import (
 from .schemas import DataFrameSchema, SeriesSchema
 
 
+@overload
+def infer_schema(pandas_obj: pd.DataFrame) -> DataFrameSchema:
+    ...
+
+
+@overload
+def infer_schema(pandas_obj: 'pd.Series[Any]') -> SeriesSchema:
+    ...
+
+
 def infer_schema(
-    pandas_obj: Union[pd.DataFrame, pd.Series]
+    pandas_obj: Union[pd.DataFrame, 'pd.Series[Any]']
 ) -> Union[DataFrameSchema, SeriesSchema]:
     """Infer schema for pandas DataFrame or Series object.
 
