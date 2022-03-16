@@ -1,6 +1,6 @@
 """Module for inferring dataframe/series schema."""
 
-from typing import Union, Any, overload
+from typing import Any, Union, overload  # pylint: disable=unused-import
 
 import pandas as pd
 
@@ -19,12 +19,12 @@ def infer_schema(pandas_obj: pd.DataFrame) -> DataFrameSchema:
 
 
 @overload
-def infer_schema(pandas_obj: 'pd.Series[Any]') -> SeriesSchema:
+def infer_schema(pandas_obj: "pd.Series[Any]") -> SeriesSchema:
     ...
 
 
 def infer_schema(
-    pandas_obj: Union[pd.DataFrame, 'pd.Series[Any]']
+    pandas_obj: Union[pd.DataFrame, "pd.Series[Any]"]
 ) -> Union[DataFrameSchema, SeriesSchema]:
     """Infer schema for pandas DataFrame or Series object.
 
