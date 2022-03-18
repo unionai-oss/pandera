@@ -12,7 +12,7 @@ import datetime
 import inspect
 import warnings
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -715,10 +715,10 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: BaseModel = dataclasses.field(default=None, init=False)
+    type: Type[BaseModel] = dataclasses.field(init=False)
 
     # pylint:disable=super-init-not-called
-    def __init__(self, model: BaseModel) -> None:
+    def __init__(self, model: Type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
 
     def coerce(self, data_container: pd.DataFrame) -> pd.DataFrame:
