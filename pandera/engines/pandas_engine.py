@@ -198,6 +198,15 @@ class BOOL(DataType, dtypes.Bool):
     """Semantic representation of a :class:`pandas.BooleanDtype`."""
 
     type = pd.BooleanDtype()
+    _bool_like = frozenset({1, 0, 1.0, 0.0, True, False})
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to specified datatime type."""
+        if value not in self._bool_like:
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
+        return super().coerce_value(value)
 
 
 ###############################################################################
@@ -419,11 +428,8 @@ class Category(DataType, dtypes.Category):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
-        data_container = pd.concat(
-            [data_container, data_container.shift(10)], axis=1
-        )
         coerced = data_container.astype(self.type)
-        if (coerced.isna() & data_container.notna()).any():
+        if (coerced.isna() & data_container.notna()).any(axis=None):
             raise TypeError(
                 f"Data container cannot be coerced to type {self.type}"
             )
@@ -434,7 +440,7 @@ class Category(DataType, dtypes.Category):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to a particular type."""
-        if value not in self.type.categories:
+        if value not in self.type.categories:  # pylint: disable=no-member
             raise TypeError(
                 f"value {value} cannot be coerced to type {self.type}"
             )
@@ -609,6 +615,12 @@ class DateTime(DataType, dtypes.Timestamp):
             # We actually want to coerce every columns.
             return data_container.transform(_to_datetime)
         return _to_datetime(data_container)
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to specified datatime type."""
+        if value is pd.NaT:
+            return value
+        return super().coerce_value(value)
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
