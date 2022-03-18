@@ -1,6 +1,7 @@
 """Unit tests for pydantic datatype."""
 
 import pandas as pd
+import pytest
 from pydantic import BaseModel
 
 import pandera as pa
@@ -69,3 +70,18 @@ def test_pydantic_model():
         pd.testing.assert_frame_equal(
             exc.failure_cases, expected_failure_cases
         )
+
+
+def test_pydantic_model_init_errors():
+    """SchemaInitError should be raised when coerce=False"""
+    with pytest.raises(pa.errors.SchemaInitError):
+        pa.DataFrameSchema(dtype=PydanticModel(Record), coerce=False)
+
+    with pytest.raises(pa.errors.SchemaInitError):
+        pa.SeriesSchema(dtype=PydanticModel(Record))
+
+    with pytest.raises(pa.errors.SchemaInitError):
+        pa.Column(dtype=PydanticModel(Record))
+
+    with pytest.raises(pa.errors.SchemaInitError):
+        pa.Index(dtype=PydanticModel(Record))

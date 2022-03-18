@@ -14,7 +14,7 @@ class BaseConfig:  # pylint:disable=R0903
 
     #: datatype of the dataframe. This overrides the data types specified in
     #: any of the fields.
-    dtype: PandasDtypeInputTypes = None
+    dtype: Optional[PandasDtypeInputTypes] = None
 
     name: Optional[str] = None  #: name of schema
     title: Optional[str] = None  #: human-readable label for schema
