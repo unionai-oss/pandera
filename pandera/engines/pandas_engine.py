@@ -715,7 +715,7 @@ if GEOPANDAS_INSTALLED:
 class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
-    type: Type[BaseModel] = dataclasses.field(init=False)
+    type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore # noqa
 
     # pylint:disable=super-init-not-called
     def __init__(self, model: Type[BaseModel]) -> None:
