@@ -1,6 +1,5 @@
 """Engine module utilities."""
 
-import itertools
 from typing import Any, Union
 
 import numpy as np
