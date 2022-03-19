@@ -81,6 +81,10 @@ class DataType(dtypes.DataType):
             coerced.__str__()
         return coerced
 
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to a particular type."""
+        return self.type.type(value)
+
     def try_coerce(self, data_container: PandasObject) -> PandasObject:
         try:
             return self.coerce(data_container)
@@ -197,6 +201,15 @@ class BOOL(DataType, dtypes.Bool):
     """Semantic representation of a :class:`pandas.BooleanDtype`."""
 
     type = pd.BooleanDtype()
+    _bool_like = frozenset({True, False})
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to specified datatime type."""
+        if value not in self._bool_like:
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
+        return super().coerce_value(value)
 
 
 ###############################################################################
@@ -416,6 +429,26 @@ class Category(DataType, dtypes.Category):
             pd.CategoricalDtype(self.categories, self.ordered),
         )
 
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        """Pure coerce without catching exceptions."""
+        coerced = data_container.astype(self.type)
+        if (coerced.isna() & data_container.notna()).any(axis=None):
+            raise TypeError(
+                f"Data container cannot be coerced to type {self.type}"
+            )
+        if type(data_container).__module__.startswith("modin.pandas"):
+            # NOTE: this is a hack to enable catching of errors in modin
+            coerced.__str__()
+        return coerced
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to a particular type."""
+        if value not in self.categories:  # type: ignore
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
+        return value
+
     @classmethod
     def from_parametrized_dtype(
         cls, cat: Union[dtypes.Category, pd.CategoricalDtype]
@@ -588,6 +621,12 @@ class DateTime(DataType, dtypes.Timestamp):
             # We actually want to coerce every columns.
             return data_container.transform(_to_datetime)
         return _to_datetime(data_container)
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to specified datatime type."""
+        if value is pd.NaT:
+            return value
+        return super().coerce_value(value)
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
