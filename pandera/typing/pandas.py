@@ -42,6 +42,11 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
             """Define this to override the patch that pyspark.pandas performs on pandas.
             https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
             """
+            if not isinstance(item, type):
+                raise TypeError(
+                    "Parameters to generic types must be types. Got "
+                    f"{type(item).__name__}."
+                )
             return _GenericAlias(cls, item)
 
 
@@ -66,6 +71,11 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             """Define this to override the patch that pyspark.pandas performs on pandas.
             https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
             """
+            if not isinstance(item, type):
+                raise TypeError(
+                    "Parameters to generic types must be types. Got "
+                    f"{type(item).__name__}."
+                )
             return _GenericAlias(cls, item)
 
     @classmethod
