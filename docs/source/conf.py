@@ -67,17 +67,17 @@ else:
     SKIP_STRATEGY = False
 
 try:
-    import koalas
+    import pyspark
 except ImportError:
-    KOALAS_INSTALLED = True
+    PYSPARK_INSTALLED = True
 else:
-    KOALAS_INSTALLED = False
+    PYSPARK_INSTALLED = False
 
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)
 SKIP_PANDAS_LT_V1 = version.parse(pd.__version__).release < (1, 0) or PY36
 SKIP_SCALING = True
-SKIP_SCHEMA_MODEL = SKIP_PANDAS_LT_V1 or KOALAS_INSTALLED
+SKIP_SCHEMA_MODEL = SKIP_PANDAS_LT_V1 or PYSPARK_INSTALLED
 SKIP_MODIN = True
 
 """
@@ -192,6 +192,7 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "dask": ("https://docs.dask.org/en/latest/", None),
     "koalas": ("https://koalas.readthedocs.io/en/latest/", None),
+    "pyspark": ("https://spark.apache.org/docs/latest/api/python/", None),
     "modin": ("https://modin.readthedocs.io/en/latest/", None),
 }
 

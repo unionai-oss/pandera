@@ -256,7 +256,7 @@ You must give a **type**, not an **instance**.
 
 :red:`✘` Bad:
 
-.. testcode:: dataframe_schema_model
+.. code:: dataframe_schema_model
     :skipif: SKIP_SCHEMA_MODEL
 
     class Schema(pa.SchemaModel):
