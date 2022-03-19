@@ -198,7 +198,7 @@ class BOOL(DataType, dtypes.Bool):
     """Semantic representation of a :class:`pandas.BooleanDtype`."""
 
     type = pd.BooleanDtype()
-    _bool_like = frozenset({1, 0, 1.0, 0.0, True, False})
+    _bool_like = frozenset({True, False})
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
@@ -440,7 +440,7 @@ class Category(DataType, dtypes.Category):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to a particular type."""
-        if value not in self.type.categories:  # pylint: disable=no-member
+        if value not in self.categories:  # type: ignore
             raise TypeError(
                 f"value {value} cannot be coerced to type {self.type}"
             )
