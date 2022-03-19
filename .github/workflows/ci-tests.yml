@@ -46,7 +46,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
       - name: Install dependencies
-        run: python -m pip install nox
+        run: python -m pip install nox pre_commit
       - name: Pip info
         run: python -m pip list
 
@@ -58,20 +58,14 @@ jobs:
           --python ${{ matrix.python-version }}
           --session requirements-${{ matrix.python-version }}
 
-      - name: Check isort and black formatting
-        run: >
-          nox
-          -db virtualenv -r
-          --non-interactive
-          --session black isort
+      - name: Sort Imports
+        run: pre-commit run isort --all-files
+
+      - name: Black
+        run: pre-commit run black --all-files
 
       - name: Pylint
-        run: >
-          nox
-          -db virtualenv -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session lint-${{ matrix.python-version }}
+        run: pre-commit run pylint --all-files
 
       - name: Mypy Type Checking
         run: >

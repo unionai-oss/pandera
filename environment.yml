@@ -48,7 +48,7 @@ dependencies:
   - isort >= 5.7.0
   - codecov
   - mypy <= 0.921
-  - pylint = 2.11.1
+  - pylint = 2.12.2
   - pytest
   - pytest-cov
   - pytest-xdist
