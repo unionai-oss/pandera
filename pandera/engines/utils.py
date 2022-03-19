@@ -1,6 +1,5 @@
 """Engine module utilities."""
 
-import itertools
 from typing import Any, Union
 
 import numpy as np
@@ -23,53 +22,14 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
     data_type = pandas_engine.Engine.dtype(type_)
 
-    def _bisect(series):
-        assert (
-            series.shape[0] >= 2
-        ), "cannot bisect a pandas Series of length < 2"
-        bisect_index = series.shape[0] // 2
-        return [series.iloc[:bisect_index], series.iloc[bisect_index:]]
-
-    def _coercible(series):
+    def _coercible(x):
         try:
-            data_type.coerce(series)
+            data_type.coerce_value(x)
             return True
         except Exception:  # pylint:disable=broad-except
             return False
 
-    search_list = [series] if series.size == 1 else _bisect(series)
-    failure_index = []
-    while search_list:
-        candidates = []
-        for _series in search_list:
-            if _series.shape[0] == 1 and not _coercible(_series):
-                # if series is reduced to a single value and isn't coercible,
-                # keep track of its index value.
-                failure_index.append(_series.index.item())
-            elif not _coercible(_series):
-                # if the series length > 1, add it to the candidates list
-                # to be further bisected
-                candidates.append(_series)
-
-        # the new search list is a flat list of bisected series views.
-        search_list = list(
-            itertools.chain.from_iterable([_bisect(c) for c in candidates])
-        )
-
-    # NOTE: this is a hack to support koalas. This needs to be thoroughly
-    # tested, right now koalas returns NA when a dtype value can't be coerced
-    # into the target dtype.
-    if type(series).__module__.startswith(
-        "databricks.koalas"
-    ):  # pragma: no cover
-        out = type(series)(
-            series.index.isin(failure_index).to_series().to_numpy(),  # type: ignore[union-attr]
-            index=series.index.values.to_numpy(),
-            name=series.name,
-        )
-        out.index.name = series.index.name
-        return out
-    return pd.Series(~series.index.isin(failure_index), index=series.index)
+    return series.map(_coercible)
 
 
 def numpy_pandas_coerce_failure_cases(

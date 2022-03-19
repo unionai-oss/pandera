@@ -31,6 +31,10 @@ class DataType(ABC):
         """Coerce data container to the data type."""
         raise NotImplementedError()
 
+    def coerce_value(self, value: Any):
+        """Coerce an value to a particular type."""
+        raise NotImplementedError()
+
     def try_coerce(self, data_container: Any):
         """Coerce data container to the data type,
         raises a `~pandera.errors.ParserError` if the coercion fails
