@@ -25,12 +25,12 @@ def _supported_types():
     multiindex_types = [pd.MultiIndex]
 
     try:
-        import databricks.koalas as ks
+        import pyspark.pandas as ps
 
-        table_types.append(ks.DataFrame)
-        field_types.append(ks.Series)
-        index_types.append(ks.Index)
-        multiindex_types.append(ks.MultiIndex)
+        table_types.append(ps.DataFrame)
+        field_types.append(ps.Series)
+        index_types.append(ps.Index)
+        multiindex_types.append(ps.MultiIndex)
     except ImportError:
         pass
     try:  # pragma: no cover
@@ -112,11 +112,11 @@ def prepare_series_check_output(
         check_output = check_output | isna
     failure_cases = check_obj[~check_output]
     if not failure_cases.empty and n_failure_cases is not None:
-        # NOTE: this is a hack to support koalas and modin, since you can't
-        # use groupby on a dataframe with another dataframe
-        if type(failure_cases).__module__.startswith(
-            "databricks.koalas"
-        ) or type(failure_cases).__module__.startswith("modin.pandas"):
+        # NOTE: this is a hack to support pyspark.pandas and modin, since you
+        # can't use groupby on a dataframe with another dataframe
+        if type(failure_cases).__module__.startswith("pyspark.pandas") or type(
+            failure_cases
+        ).__module__.startswith("modin.pandas"):
             failure_cases = (
                 failure_cases.rename("failure_cases")
                 .to_frame()

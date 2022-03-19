@@ -6,11 +6,11 @@ from .common import DataFrameBase, IndexBase, SeriesBase
 from .pandas import GenericDtype, Schema, _GenericAlias
 
 try:
-    import databricks.koalas as ks
+    import pyspark.pandas as ps
 
-    KOALAS_INSTALLED = True
+    PYSPARK_INSTALLED = True
 except ImportError:
-    KOALAS_INSTALLED = False
+    PYSPARK_INSTALLED = False
 
 
 # pylint:disable=invalid-name
@@ -20,10 +20,10 @@ else:
     T = Schema
 
 
-if KOALAS_INSTALLED:
+if PYSPARK_INSTALLED:
 
     # pylint: disable=too-few-public-methods,arguments-renamed
-    class DataFrame(DataFrameBase, ks.DataFrame, Generic[T]):
+    class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
         """
         Representation of dask.dataframe.DataFrame, only used for type
         annotation.
@@ -32,22 +32,22 @@ if KOALAS_INSTALLED:
         """
 
         def __class_getitem__(cls, item):
-            """Define this to override's koalas generic type."""
+            """Define this to override's pyspark.pandas generic type."""
             return _GenericAlias(cls, item)
 
     # pylint:disable=too-few-public-methods,arguments-renamed
-    class Series(SeriesBase, ks.Series, Generic[GenericDtype]):
+    class Series(SeriesBase, ps.Series, Generic[GenericDtype]):
         """Representation of pandas.Series, only used for type annotation.
 
         *new in 0.8.0*
         """
 
         def __class_getitem__(cls, item):
-            """Define this to override koalas generic type"""
+            """Define this to override pyspark.pandas generic type"""
             return _GenericAlias(cls, item)
 
     # pylint:disable=too-few-public-methods
-    class Index(IndexBase, ks.Index, Generic[GenericDtype]):
+    class Index(IndexBase, ps.Index, Generic[GenericDtype]):
         """Representation of pandas.Index, only used for type annotation.
 
         *new in 0.8.0*

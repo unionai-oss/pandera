@@ -1,10 +1,10 @@
-"""Test pandera on koalas data structures."""
+"""Test pandera on pyspark data structures."""
 
 import typing
 from unittest.mock import MagicMock
 
-import databricks.koalas as ks
 import pandas as pd
+import pyspark.pandas as ps
 import pytest
 
 import pandera as pa
@@ -39,7 +39,7 @@ UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
 
-KOALAS_UNSUPPORTED = {
+PYSPARK_PANDAS_UNSUPPORTED = {
     numpy_engine.Complex128,
     numpy_engine.Complex64,
     numpy_engine.Float16,
@@ -60,10 +60,12 @@ KOALAS_UNSUPPORTED = {
 }
 
 if system.FLOAT_128_AVAILABLE:
-    KOALAS_UNSUPPORTED.update({numpy_engine.Float128, numpy_engine.Complex256})
+    PYSPARK_PANDAS_UNSUPPORTED.update(
+        {numpy_engine.Float128, numpy_engine.Complex256}
+    )
 
 try:
-    ks.Series(pd.to_datetime(["1900-01-01 00:03:59.999999999"]))
+    ps.Series(pd.to_datetime(["1900-01-01 00:03:59.999999999"]))
     MIN_TIMESTAMP = None
 except OverflowError:
     MIN_TIMESTAMP = pd.Timestamp("1900-01-01 00:04:00")
@@ -80,14 +82,14 @@ def test_dataframe_schema_case(coerce):
         },
         coerce=coerce,
     )
-    kdf = ks.DataFrame(
+    kdf = ps.DataFrame(
         {
             "int_column": range(10),
             "float_column": [float(-x) for x in range(10)],
             "str_column": list("aabbcceedd"),
         }
     )
-    assert isinstance(schema.validate(kdf), ks.DataFrame)
+    assert isinstance(schema.validate(kdf), ps.DataFrame)
 
 
 def _test_datatype_with_schema(
@@ -95,21 +97,21 @@ def _test_datatype_with_schema(
     schema: typing.Union[pa.DataFrameSchema, pa.SeriesSchema],
     data: st.DataObject,
 ):
-    """Test pandera datatypes against koalas data containers.
+    """Test pandera datatypes against pyspark.pandas data containers.
 
-    Handle case where koalas can't handle datetimes before 1900-01-01 00:04:00,
-    raising an overflow
+    Handle case where pyspark.pandas can't handle datetimes before
+    1900-01-01 00:04:00, raising an overflow
     """
     data_container_cls = {
-        pa.DataFrameSchema: ks.DataFrame,
-        pa.SeriesSchema: ks.Series,
-        pa.Column: ks.DataFrame,
+        pa.DataFrameSchema: ps.DataFrame,
+        pa.SeriesSchema: ps.Series,
+        pa.Column: ps.DataFrame,
     }[type(schema)]
 
     # pandas automatically upcasts numeric datatypes when defining Indexes,
     # so we want to skip this pytest.raises expectation for types that are
-    # technically unsupported by koalas
-    if dtype in KOALAS_UNSUPPORTED:
+    # technically unsupported by pyspark.pandas
+    if dtype in PYSPARK_PANDAS_UNSUPPORTED:
         with pytest.raises(TypeError):
             sample = data.draw(schema.strategy(size=3))
             data_container_cls(sample)
@@ -141,7 +143,8 @@ def test_dataframe_schema_dtypes(
     data: st.DataObject,
 ):
     """
-    Test that all supported koalas data types work as expected for dataframes.
+    Test that all supported pyspark.pandas data types work as expected for
+    dataframes.
     """
     if dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS:
         pytest.skip(
@@ -165,7 +168,8 @@ def test_field_schema_dtypes(
     data: st.DataObject,
 ):
     """
-    Test that all supported koalas data types work as expected for series.
+    Test that all supported pyspark.pandas data types work as expected for
+    series.
     """
     if dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS:
         pytest.skip(
@@ -182,7 +186,6 @@ def test_field_schema_dtypes(
     [
         int,
         float,
-        bool,
         str,
         pandas_engine.DateTime,
     ],
@@ -196,14 +199,14 @@ def test_index_dtypes(
     schema_cls,
     data: st.DataObject,
 ):
-    """Test koalas Index and MultiIndex on subset of datatypes.
+    """Test pyspark.pandas Index and MultiIndex on subset of datatypes.
 
     Only test basic datatypes since index handling in pandas is already a
     little finicky.
     """
     if coerce and dtype is pandas_engine.DateTime:
         pytest.skip(
-            "koalas cannot coerce a koalas DateTime index to datetime."
+            "pyspark.pandas cannot coerce a DateTime index to datetime."
         )
 
     if schema_cls is pa.Index:
@@ -225,11 +228,11 @@ def test_index_dtypes(
             with pytest.raises(
                 OverflowError, match="mktime argument out of range"
             ):
-                ks.DataFrame(pd.DataFrame(index=sample))
+                ps.DataFrame(pd.DataFrame(index=sample))
             return
     else:
         assert isinstance(
-            schema(ks.DataFrame(pd.DataFrame(index=sample))), ks.DataFrame
+            schema(ps.DataFrame(pd.DataFrame(index=sample))), ps.DataFrame
         )
 
 
@@ -238,7 +241,7 @@ def test_index_dtypes(
     [
         dt
         for dt in NULLABLE_DTYPES
-        if type(dt) not in KOALAS_UNSUPPORTED
+        if type(dt) not in PYSPARK_PANDAS_UNSUPPORTED
         # pylint: disable=no-value-for-parameter,unexpected-keyword-arg
         and dt
         not in {
@@ -259,7 +262,7 @@ def test_nullable(
     dtype: pandas_engine.DataType,
     data: st.DataObject,
 ):
-    """Test nullable checks on koalas dataframes."""
+    """Test nullable checks on pyspark.pandas dataframes."""
     checks = None
     if dtypes.is_datetime(type(dtype)) and MIN_TIMESTAMP is not None:
         checks = [pa.Check.gt(MIN_TIMESTAMP)]
@@ -282,7 +285,7 @@ def test_nullable(
             with pytest.raises(
                 OverflowError, match="mktime argument out of range"
             ):
-                ks.DataFrame(null_sample)
+                ps.DataFrame(null_sample)
             return
         if MIN_TIMESTAMP is not None and (nonnull_sample < MIN_TIMESTAMP).any(
             axis=None
@@ -290,19 +293,19 @@ def test_nullable(
             with pytest.raises(
                 OverflowError, match="mktime argument out of range"
             ):
-                ks.DataFrame(nonnull_sample)
+                ps.DataFrame(nonnull_sample)
             return
     else:
         try:
-            ks_null_sample = ks.DataFrame(null_sample)
+            ks_null_sample = ps.DataFrame(null_sample)
         except TypeError as exc:
             if "can not accept object <NA> in type" not in exc.args[0]:
                 raise
             pytest.skip(
-                "koalas cannot handle native pd.NA type with dtype "
+                "pyspark.pandas cannot handle native pd.NA type with dtype "
                 f"{dtype.type}"
             )
-        ks_nonnull_sample = ks.DataFrame(nonnull_sample)
+        ks_nonnull_sample = ps.DataFrame(nonnull_sample)
         n_nulls = ks_null_sample.isna().sum().item()
         assert ks_nonnull_sample.notna().all().item()
         assert n_nulls >= 0
@@ -312,17 +315,17 @@ def test_nullable(
 
 
 def test_unique():
-    """Test uniqueness checks on koalas dataframes."""
+    """Test uniqueness checks on pyspark.pandas dataframes."""
     schema = pa.DataFrameSchema({"field": pa.Column(int)}, unique=["field"])
     column_schema = pa.Column(int, unique=True, name="field")
     series_schema = pa.SeriesSchema(int, unique=True, name="field")
 
-    data_unique = ks.DataFrame({"field": [1, 2, 3]})
-    data_non_unique = ks.DataFrame({"field": [1, 1, 1]})
+    data_unique = ps.DataFrame({"field": [1, 2, 3]})
+    data_non_unique = ps.DataFrame({"field": [1, 1, 1]})
 
-    assert isinstance(schema(data_unique), ks.DataFrame)
-    assert isinstance(column_schema(data_unique), ks.DataFrame)
-    assert isinstance(series_schema(data_unique["field"]), ks.Series)
+    assert isinstance(schema(data_unique), ps.DataFrame)
+    assert isinstance(column_schema(data_unique), ps.DataFrame)
+    assert isinstance(series_schema(data_unique["field"]), ps.Series)
 
     with pytest.raises(pa.errors.SchemaError, match="columns .+ not unique"):
         schema(data_non_unique)
@@ -339,16 +342,16 @@ def test_unique():
     column_schema.unique = False
     series_schema.unique = False
 
-    assert isinstance(schema(data_non_unique), ks.DataFrame)
-    assert isinstance(column_schema(data_non_unique), ks.DataFrame)
-    assert isinstance(series_schema(data_non_unique["field"]), ks.Series)
+    assert isinstance(schema(data_non_unique), ps.DataFrame)
+    assert isinstance(column_schema(data_non_unique), ps.DataFrame)
+    assert isinstance(series_schema(data_non_unique["field"]), ps.Series)
 
 
 def test_regex_columns():
-    """Test regex column selection works on on koalas dataframes."""
+    """Test regex column selection works on on pyspark.pandas dataframes."""
     schema = pa.DataFrameSchema({r"field_\d+": pa.Column(int, regex=True)})
     n_fields = 3
-    data = ks.DataFrame({f"field_{i}": [1, 2, 3] for i in range(n_fields)})
+    data = ps.DataFrame({f"field_{i}": [1, 2, 3] for i in range(n_fields)})
     schema(data)
 
     for i in range(n_fields):
@@ -365,14 +368,14 @@ def test_required_column():
     )
     schema = pa.DataFrameSchema({"field_": pa.Column(int, required=False)})
 
-    data = ks.DataFrame({"field": [1, 2, 3]})
+    data = ps.DataFrame({"field": [1, 2, 3]})
 
-    assert isinstance(required_schema(data), ks.DataFrame)
-    assert isinstance(schema(data), ks.DataFrame)
+    assert isinstance(required_schema(data), ps.DataFrame)
+    assert isinstance(schema(data), ps.DataFrame)
 
     with pytest.raises(pa.errors.SchemaError):
-        required_schema(ks.DataFrame({"another_field": [1, 2, 3]}))
-    schema(ks.DataFrame({"another_field": [1, 2, 3]}))
+        required_schema(ps.DataFrame({"another_field": [1, 2, 3]}))
+    schema(ps.DataFrame({"another_field": [1, 2, 3]}))
 
 
 @pytest.mark.parametrize("from_dtype", [str])
@@ -384,9 +387,9 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
     to_schema = pa.DataFrameSchema({"field": pa.Column(to_dtype, coerce=True)})
 
     pd_sample = data.draw(from_schema.strategy(size=3))
-    sample = ks.DataFrame(pd_sample)
+    sample = ps.DataFrame(pd_sample)
     if from_dtype is to_dtype:
-        assert isinstance(to_schema(sample), ks.DataFrame)
+        assert isinstance(to_schema(sample), ps.DataFrame)
         return
 
     # strings that can't be intepreted as numbers are converted to NA
@@ -395,7 +398,7 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
             to_schema(sample)
         return
 
-    assert isinstance(to_schema(sample), ks.DataFrame)
+    assert isinstance(to_schema(sample), ps.DataFrame)
 
 
 def test_strict_schema():
@@ -403,8 +406,8 @@ def test_strict_schema():
     strict_schema = pa.DataFrameSchema({"field": pa.Column()}, strict=True)
     non_strict_schema = pa.DataFrameSchema({"field": pa.Column()})
 
-    strict_df = ks.DataFrame({"field": [1]})
-    non_strict_df = ks.DataFrame({"field": [1], "foo": [2]})
+    strict_df = ps.DataFrame({"field": [1]})
+    non_strict_df = ps.DataFrame({"field": [1], "foo": [2]})
 
     strict_schema(strict_df)
     non_strict_schema(strict_df)
@@ -421,46 +424,48 @@ def test_custom_checks():
     """Test that custom checks can be executed."""
 
     @extensions.register_check_method(statistics=["value"])
-    def koalas_eq(koalas_obj, *, value):
-        return koalas_obj == value
+    def pyspark_pandas_eq(pyspark_pandas_obj, *, value):
+        return pyspark_pandas_obj == value
 
     custom_schema = pa.DataFrameSchema(
         {"field": pa.Column(checks=pa.Check(lambda s: s == 0, name="custom"))}
     )
 
     custom_registered_schema = pa.DataFrameSchema(
-        {"field": pa.Column(checks=pa.Check.koalas_eq(0))}
+        {"field": pa.Column(checks=pa.Check.pyspark_pandas_eq(0))}
     )
 
     for schema in (custom_schema, custom_registered_schema):
-        schema(ks.DataFrame({"field": [0] * 100}))
+        schema(ps.DataFrame({"field": [0] * 100}))
 
         try:
-            schema(ks.DataFrame({"field": [-1] * 100}))
+            schema(ps.DataFrame({"field": [-1] * 100}))
         except pa.errors.SchemaError as err:
             assert (err.failure_cases["failure_case"] == -1).all()
 
 
 def test_schema_model():
     # pylint: disable=missing-class-docstring
-    """Test that SchemaModel subclasses work on koalas dataframes."""
+    """
+    Test that SchemaModel subclasses work on pyspark_pandas_eq dataframes.
+    """
 
     # pylint: disable=too-few-public-methods
     class Schema(pa.SchemaModel):
-        int_field: pa.typing.koalas.Series[int] = pa.Field(gt=0)
-        float_field: pa.typing.koalas.Series[float] = pa.Field(lt=0)
-        str_field: pa.typing.koalas.Series[str] = pa.Field(
+        int_field: pa.typing.pyspark.Series[int] = pa.Field(gt=0)
+        float_field: pa.typing.pyspark.Series[float] = pa.Field(lt=0)
+        str_field: pa.typing.pyspark.Series[str] = pa.Field(
             isin=["a", "b", "c"]
         )
 
-    valid_df = ks.DataFrame(
+    valid_df = ps.DataFrame(
         {
             "int_field": [1, 2, 3],
             "float_field": [-1.1, -2.1, -3.1],
             "str_field": ["a", "b", "c"],
         }
     )
-    invalid_df = ks.DataFrame(
+    invalid_df = ps.DataFrame(
         {
             "int_field": [-1],
             "field_field": [1],
@@ -500,60 +505,60 @@ def test_schema_model():
 )
 def test_check_comparison_operators(check, valid, invalid):
     """Test simple comparison operators."""
-    valid_check_result = check(ks.Series([valid] * 3))
-    invalid_check_result = check(ks.Series([invalid] * 3))
+    valid_check_result = check(ps.Series([valid] * 3))
+    invalid_check_result = check(ps.Series([invalid] * 3))
     assert valid_check_result.check_passed
     assert not invalid_check_result.check_passed
 
 
 def test_check_decorators():
     # pylint: disable=missing-class-docstring
-    """Test that pandera decorators work with koalas."""
+    """Test that pandera decorators work with pyspark.pandas."""
     in_schema = pa.DataFrameSchema({"a": pa.Column(int)})
     out_schema = in_schema.add_columns({"b": pa.Column(int)})
 
     # pylint: disable=too-few-public-methods
     class InSchema(pa.SchemaModel):
-        a: pa.typing.koalas.Series[int]
+        a: pa.typing.pyspark.Series[int]
 
     class OutSchema(InSchema):
-        b: pa.typing.koalas.Series[int]
+        b: pa.typing.pyspark.Series[int]
 
     @pa.check_input(in_schema)
     @pa.check_output(out_schema)
-    def function_check_input_output(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_input_output(df: ps.DataFrame) -> ps.DataFrame:
         df["b"] = df["a"] + 1
         return df
 
     @pa.check_input(in_schema)
     @pa.check_output(out_schema)
-    def function_check_input_output_invalid(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_input_output_invalid(df: ps.DataFrame) -> ps.DataFrame:
         return df
 
     @pa.check_io(df=in_schema, out=out_schema)
-    def function_check_io(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_io(df: ps.DataFrame) -> ps.DataFrame:
         df["b"] = df["a"] + 1
         return df
 
     @pa.check_io(df=in_schema, out=out_schema)
-    def function_check_io_invalid(df: ks.DataFrame) -> ks.DataFrame:
+    def function_check_io_invalid(df: ps.DataFrame) -> ps.DataFrame:
         return df
 
     @pa.check_types
     def function_check_types(
-        df: pa.typing.koalas.DataFrame[InSchema],
-    ) -> pa.typing.koalas.DataFrame[OutSchema]:
+        df: pa.typing.pyspark.DataFrame[InSchema],
+    ) -> pa.typing.pyspark.DataFrame[OutSchema]:
         df["b"] = df["a"] + 1
         return df
 
     @pa.check_types
     def function_check_types_invalid(
-        df: pa.typing.koalas.DataFrame[InSchema],
-    ) -> pa.typing.koalas.DataFrame[OutSchema]:
+        df: pa.typing.pyspark.DataFrame[InSchema],
+    ) -> pa.typing.pyspark.DataFrame[OutSchema]:
         return df
 
-    valid_df = ks.DataFrame({"a": [1, 2, 3]})
-    invalid_df = ks.DataFrame({"b": [1, 2, 3]})
+    valid_df = ps.DataFrame({"a": [1, 2, 3]})
+    invalid_df = ps.DataFrame({"b": [1, 2, 3]})
 
     function_check_input_output(valid_df)
     function_check_io(valid_df)
@@ -589,8 +594,8 @@ class InitSchema(pa.SchemaModel):
     index: Index[int]
 
 
-def test_init_koalas_dataframe():
-    """Test initialization of pandas.typing.dask.DataFrame with Schema."""
+def test_init_pyspark_pandas_dataframe():
+    """Test initialization of pandas.typing.pyspark.DataFrame with Schema."""
     assert isinstance(
         DataFrame[InitSchema]({"col1": [1], "col2": [1.0], "col3": ["1"]}),
         DataFrame,
@@ -606,7 +611,7 @@ def test_init_koalas_dataframe():
         {"col1": [1]},
     ],
 )
-def test_init_koalas_dataframe_errors(invalid_data):
+def test_init_pyspark_dataframe_errors(invalid_data):
     """Test errors from initializing a pandas.typing.DataFrame with Schema."""
     with pytest.raises(pa.errors.SchemaError):
         DataFrame[InitSchema](invalid_data)

@@ -1,9 +1,9 @@
 # pylint: skip-file
 # NOTE: skip file since py=3.10 yields these errors:
 # https://github.com/pandera-dev/pandera/runs/4998710717?check_suite_focus=true
-"""Register koalas accessor for pandera schema metadata."""
+"""Register pyspark accessor for pandera schema metadata."""
 
-from databricks.koalas.extensions import (
+from pyspark.pandas.extensions import (
     register_dataframe_accessor,
     register_series_accessor,
 )

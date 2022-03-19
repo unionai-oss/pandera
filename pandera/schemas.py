@@ -762,16 +762,17 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             for lst in temp_unique:
                 duplicates = df_to_validate.duplicated(subset=lst, keep=False)
                 if duplicates.any():
-                    # NOTE: this is a hack to support koalas, need to figure
-                    # out a workaround to error: "Cannot combine the series or
-                    # dataframe because it comes from a different dataframe."
+                    # NOTE: this is a hack to support pyspark.pandas, need to
+                    # figure out a workaround to error: "Cannot combine the
+                    # series or dataframe because it comes from a different
+                    # dataframe."
                     if type(duplicates).__module__.startswith(
-                        "databricks.koalas"
+                        "pyspark.pandas"
                     ):
                         # pylint: disable=import-outside-toplevel
-                        import databricks.koalas as ks
+                        import pyspark.pandas as ps
 
-                        with ks.option_context(
+                        with ps.option_context(
                             "compute.ops_on_diff_frames", True
                         ):
                             failure_cases = df_to_validate.loc[duplicates, lst]
@@ -1993,14 +1994,14 @@ class SeriesSchemaBase:
 
         # Check if the series contains duplicate values
         if self._unique:
-            if type(series).__module__.startswith("databricks.koalas"):
+            if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
                     series.to_frame().duplicated().reindex(series.index)
                 )
                 # pylint: disable=import-outside-toplevel
-                import databricks.koalas as ks
+                import pyspark.pandas as ps
 
-                with ks.option_context("compute.ops_on_diff_frames", True):
+                with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = series[duplicates]
             else:
                 duplicates = series.duplicated()
