@@ -211,6 +211,7 @@ class SchemaModel(metaclass=_MetaSchema):
         kwargs = {}
         if cls.__config__ is not None:
             kwargs = {
+                "dtype": cls.__config__.dtype,
                 "coerce": cls.__config__.coerce,
                 "strict": cls.__config__.strict,
                 "name": cls.__config__.name,

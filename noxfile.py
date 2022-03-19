@@ -16,9 +16,6 @@ from pkg_resources import Requirement, parse_requirements
 
 nox.options.sessions = (
     "requirements",
-    "black",
-    "isort",
-    "lint",
     "mypy",
     "tests",
     "docs",
@@ -269,44 +266,6 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
             + f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
         )
         sys.exit(1)
-
-
-@nox.session(python=DEFAULT_PYTHON)
-def black(session: Session) -> None:
-    """Check black style."""
-    install_from_requirements(session, "black")
-    args = ["--check"] if CI_RUN else session.posargs
-    session.run(
-        "black",
-        f"--line-length={LINE_LENGTH}",
-        *args,
-        *SOURCE_PATHS,
-    )
-
-
-@nox.session(python=DEFAULT_PYTHON)
-def isort(session: Session) -> None:
-    """Check isort style."""
-    install_from_requirements(session, "isort")
-    args = ["--check-only"] if CI_RUN else session.posargs
-    session.run(
-        "isort",
-        f"--line-length={LINE_LENGTH}",
-        *args,
-        *SOURCE_PATHS,
-    )
-
-
-@nox.session(python=PYTHON_VERSIONS)
-def lint(session: Session) -> None:
-    """Lint using pylint."""
-    install_extras(session, extra="all")
-    args = session.posargs or SOURCE_PATHS
-
-    if session.python == "3.9":
-        # https://github.com/PyCQA/pylint/issues/776
-        args = ["--disable=unsubscriptable-object", *args]
-    session.run("pylint", *args)
 
 
 @nox.session(python=PYTHON_VERSIONS)

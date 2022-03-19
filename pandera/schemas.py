@@ -223,6 +223,13 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
 
+        # This restriction can be removed once logical types are introduced:
+        # https://github.com/pandera-dev/pandera/issues/788
+        if not coerce and isinstance(self.dtype, pandas_engine.PydanticModel):
+            raise errors.SchemaInitError(
+                "Specifying a PydanticModel type requires coerce=True."
+            )
+
     @property
     def coerce(self) -> bool:
         """Whether to coerce series to specified type."""
@@ -382,7 +389,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 obj,
                 (
                     f"Error while coercing '{self.name}' to type "
-                    f"{self.dtype}: {exc}"
+                    f"{self.dtype}: {exc}\n{exc.failure_cases}"
                 ),
                 failure_cases=exc.failure_cases,
                 check=f"coerce_dtype('{self.dtype}')",
@@ -1759,6 +1766,12 @@ class SeriesSchemaBase:
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
+
+        if isinstance(self.dtype, pandas_engine.PydanticModel):
+            raise errors.SchemaInitError(
+                "PydanticModel dtype can only be specified as a "
+                "DataFrameSchema dtype."
+            )
 
     # the _is_inferred getter and setter methods are not public
     @property
