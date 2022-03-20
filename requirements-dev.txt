@@ -15,7 +15,6 @@ frictionless
 pyarrow
 pydantic
 pandas-stubs
-koalas
 pyspark
 modin
 dask

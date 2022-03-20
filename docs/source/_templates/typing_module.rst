@@ -30,7 +30,7 @@
       dask.Series
       dask.Index
 
-   .. rubric:: Koalas Types
+   .. rubric:: Pyspark Pandas Types
 
    .. autosummary::
 
