@@ -44,7 +44,10 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
             """
             if (
                 not isinstance(item, type)
-                and not type(item).__module__ == "typing"
+                # NOTE: hack alert! Figure out how to delegate to default
+                # __class_getitem__ instead of the pyspark overrided method
+                and type(item).__module__
+                not in {"typing", "typing_extensions"}
             ):
                 raise TypeError(
                     "Parameters to generic types must be types. Got "
@@ -76,7 +79,10 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             """
             if (
                 not isinstance(item, type)
-                and not type(item).__module__ == "typing"
+                # NOTE: hack alert! Figure out how to delegate to default
+                # __class_getitem__ instead of the pyspark overrided method
+                and type(item).__module__
+                not in {"typing", "typing_extensions"}
             ):
                 raise TypeError(
                     "Parameters to generic types must be types. Got "

@@ -56,7 +56,7 @@ if modin.MODIN_INSTALLED:
 if pyspark.PYSPARK_INSTALLED:
     DATAFRAME_TYPES.update({pyspark.DataFrame})
     SERIES_TYPES.update({pyspark.Series})
-    INDEX_TYPES.update({pyspark.Index})
+    INDEX_TYPES.update({pyspark.Index})  # type: ignore [arg-type]
 
 
 if geopandas.GEOPANDAS_INSTALLED:

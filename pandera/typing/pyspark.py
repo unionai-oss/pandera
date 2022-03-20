@@ -36,7 +36,7 @@ if PYSPARK_INSTALLED:
             return _GenericAlias(cls, item)
 
     # pylint:disable=too-few-public-methods,arguments-renamed
-    class Series(SeriesBase, ps.Series, Generic[GenericDtype]):
+    class Series(SeriesBase, ps.Series, Generic[GenericDtype]):  # type: ignore [misc]  # noqa
         """Representation of pandas.Series, only used for type annotation.
 
         *new in 0.8.0*

@@ -549,13 +549,13 @@ def test_check_decorators():
         df: pa.typing.pyspark.DataFrame[InSchema],
     ) -> pa.typing.pyspark.DataFrame[OutSchema]:
         df["b"] = df["a"] + 1
-        return df
+        return typing.cast(pa.typing.pyspark.DataFrame[OutSchema], df)
 
     @pa.check_types
     def function_check_types_invalid(
         df: pa.typing.pyspark.DataFrame[InSchema],
     ) -> pa.typing.pyspark.DataFrame[OutSchema]:
-        return df
+        return typing.cast(pa.typing.pyspark.DataFrame[OutSchema], df)
 
     valid_df = ps.DataFrame({"a": [1, 2, 3]})
     invalid_df = ps.DataFrame({"b": [1, 2, 3]})
