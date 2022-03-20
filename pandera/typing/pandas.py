@@ -1,6 +1,7 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import io
+from typing import _type_check  # type: ignore[attr-defined]
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
@@ -42,17 +43,7 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
             """Define this to override the patch that pyspark.pandas performs on pandas.
             https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
             """
-            if (
-                not isinstance(item, type)
-                # NOTE: hack alert! Figure out how to delegate to default
-                # __class_getitem__ instead of the pyspark overrided method
-                and type(item).__module__
-                not in {"typing", "typing_extensions"}
-            ):
-                raise TypeError(
-                    "Parameters to generic types must be types. Got "
-                    f"{type(item).__name__}."
-                )
+            _type_check(item, "Parameters to generic types must be types.")
             return _GenericAlias(cls, item)
 
 
@@ -77,17 +68,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             """Define this to override the patch that pyspark.pandas performs on pandas.
             https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
             """
-            if (
-                not isinstance(item, type)
-                # NOTE: hack alert! Figure out how to delegate to default
-                # __class_getitem__ instead of the pyspark overrided method
-                and type(item).__module__
-                not in {"typing", "typing_extensions"}
-            ):
-                raise TypeError(
-                    "Parameters to generic types must be types. Got "
-                    f"{type(item).__name__}."
-                )
+            _type_check(item, "Parameters to generic types must be types.")
             return _GenericAlias(cls, item)
 
     @classmethod
