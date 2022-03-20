@@ -10,7 +10,7 @@ the goal of interoperating with libraries that you know and love.
 .. list-table::
    :widths: 25 75
 
-   * - :ref:`FastAPI ⭐️ (New) <fastapi_integration>`
+   * - :ref:`FastAPI <fastapi_integration>`
      - Use pandera SchemaModels in your FastAPI app
    * - :ref:`Frictionless <frictionless_integration>`
      - Convert frictionless schemas to pandera schemas

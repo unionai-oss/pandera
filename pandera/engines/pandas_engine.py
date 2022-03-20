@@ -83,6 +83,8 @@ class DataType(dtypes.DataType):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to a particular type."""
+        # by default, the pandas Engine delegates to the underlying numpy
+        # datatype to coerce a value to the correct type.
         return self.type.type(value)
 
     def try_coerce(self, data_container: PandasObject) -> PandasObject:

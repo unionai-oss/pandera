@@ -21,14 +21,14 @@ container types specific to these libraries.
 .. list-table::
    :widths: 25 75
 
-   * - :ref:`GeoPandas ⭐️ (New) <supported_lib_geopandas>`
+   * - :ref:`GeoPandas <supported_lib_geopandas>`
      - An extension of pandas that adds geospatial data processing capabilities.
 
 .. toctree::
     :maxdepth: 1
     :hidden:
 
-    GeoPandas ⭐️ (New) <geopandas>
+    GeoPandas <geopandas>
 
 
 Scaling Up Data Validation

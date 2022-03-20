@@ -149,9 +149,9 @@ generate valid data under those constraints.
         )
    })
 
-   for _ in range(100):
+   for _ in range(5):
        # generate 10 rows of the dataframe
-       sample_data = schema_multiple_checks.example(size=10)
+       sample_data = schema_multiple_checks.example(size=3)
 
        # validate the sampled data
        schema_multiple_checks(sample_data)
@@ -172,7 +172,7 @@ jointly satisfiable. If not, an ``Unsatisfiable`` exception will be raised:
         )
    })
 
-   schema_multiple_checks.example(size=10)
+   schema_multiple_checks.example(size=3)
 
 .. testoutput:: data_synthesis_strategies
 
