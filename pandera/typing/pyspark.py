@@ -9,7 +9,7 @@ try:
     import pyspark.pandas as ps
 
     PYSPARK_INSTALLED = True
-except ImportError:
+except ImportError:  # pragma: no cover
     PYSPARK_INSTALLED = False
 
 

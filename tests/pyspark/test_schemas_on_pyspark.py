@@ -401,6 +401,36 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
     assert isinstance(to_schema(sample), ps.DataFrame)
 
 
+@pytest.mark.parametrize("dtype", [float, int, str, bool])
+@hypothesis.given(st.data())
+def test_failure_cases(dtype, data):
+    """Test that failure cases are correctly found."""
+
+    value = data.draw(st.builds(dtype))
+    schema = pa.DataFrameSchema(
+        {"field": pa.Column(dtype, pa.Check.eq(value))}
+    )
+    generative_schema = pa.DataFrameSchema(
+        {"field": pa.Column(dtype, pa.Check.ne(value))}
+    )
+
+    sample = data.draw(generative_schema.strategy(size=5))
+    try:
+        schema(sample)
+    except pa.errors.SchemaError as exc:
+        assert (exc.failure_cases.failure_case != value).all()
+
+    # make sure reporting a limited number of failure cases works correctly
+    updated_schema = schema.update_column(
+        "field", checks=pa.Check.eq(value=value, n_failure_cases=2)
+    )
+    try:
+        updated_schema(sample)
+    except pa.errors.SchemaError as exc:
+        assert (exc.failure_cases.failure_case != value).all()
+        assert exc.failure_cases.shape[0] == 2
+
+
 def test_strict_schema():
     """Test schema strictness."""
     strict_schema = pa.DataFrameSchema({"field": pa.Column()}, strict=True)
