@@ -2,8 +2,8 @@
 
 .. _data-format-conversion:
 
-Data Format Conversion ⭐️ (New)
-=================================
+Data Format Conversion
+=======================
 
 *new in 0.9.0*
 

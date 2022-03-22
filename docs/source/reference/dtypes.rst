@@ -39,7 +39,7 @@ Library-agnostic dtypes
    pandera.dtypes.String
 
 
-Pandas-specific Dtypes
+Pandas Dtypes
 ----------------------
 
 Listed here for compatibility with pandera versions < 0.7.
@@ -63,8 +63,8 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.numpy_engine.Object
    pandera.engines.pandas_engine.DateTime
 
-GeoPandas-specific Dtypes
--------------------------
+GeoPandas Dtypes
+----------------
 
 *new in 0.9.0*
 
@@ -74,6 +74,20 @@ GeoPandas-specific Dtypes
    :nosignatures:
 
    pandera.engines.pandas_engine.Geometry
+
+
+Pydantic Dtypes
+---------------
+
+*new in 0.10.0*
+
+.. autosummary::
+   :toctree: generated
+   :template: dtype.rst
+   :nosignatures:
+
+   pandera.engines.pandas_engine.PydanticModel
+
 
 Utility functions
 -----------------

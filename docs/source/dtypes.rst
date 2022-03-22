@@ -186,3 +186,32 @@ For example, here is a snippet from :class:`pandera.engines.pandas_engine.Catego
 
 .. note:: The dispatch mechanism relies on :func:`functools.singledispatch`.
     Unlike the built-in implementation, :data:`typing.Union` is recognized.
+
+
+Defining the ``coerce_value`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For pandera datatypes to understand how to correctly report coercion errors,
+it needs to know how to coerce an individual value into the specified type.
+
+All ``pandas`` data types are supported: ``numpy`` -based datatypes use the
+underlying numpy dtype to coerce an individual value. The ``pandas`` -native
+datatypes like :class:`~pandas.CategoricalDtype` and :class:`~pandas.BooleanDtype`
+are also supported.
+
+As an example of a special-cased ``coerce_value`` implementation, see
+:meth:`~pandera.pandas_engine.Category.coerce_value`:
+
+```{literalinclude} ../../pandera/engines/pandas_engine.py
+---
+lines: 446-452
+---
+```
+
+And :meth:`~pandera.pandas_engine.BOOL.coerce_value`:
+
+```{literalinclude} ../../pandera/engines/pandas_engine.py
+---
+lines: 208-214
+---
+```
