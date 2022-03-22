@@ -1365,11 +1365,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return pandera.io.from_yaml(yaml_schema)
 
     @overload
-    def to_yaml(self, stream: None = None) -> str:
+    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
         ...
 
     @overload
-    def to_yaml(self, stream: os.PathLike) -> None:
+    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
         ...
 
     def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
