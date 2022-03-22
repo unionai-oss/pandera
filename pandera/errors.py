@@ -254,18 +254,18 @@ class SchemaErrors(ReducedPickleExceptionBase):
                 )
                 check_failure_cases.append(failure_cases[column_order])
 
-        # NOTE: this is a hack to support koalas and modin
+        # NOTE: this is a hack to support pyspark.pandas and modin
         concat_fn = pd.concat
         if any(
-            type(x).__module__.startswith("databricks.koalas")
+            type(x).__module__.startswith("pyspark.pandas")
             for x in check_failure_cases
         ):
             # pylint: disable=import-outside-toplevel
-            import databricks.koalas as ks
+            import pyspark.pandas as ps
 
-            concat_fn = ks.concat
+            concat_fn = ps.concat
             check_failure_cases = [
-                x if isinstance(x, ks.DataFrame) else ks.DataFrame(x)
+                x if isinstance(x, ps.DataFrame) else ps.DataFrame(x)
                 for x in check_failure_cases
             ]
         elif any(

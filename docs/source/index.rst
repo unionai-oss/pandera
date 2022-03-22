@@ -79,7 +79,8 @@ settings. With ``pandera``, you can:
 
 #. Define a schema once and use it to validate :ref:`different dataframe types <supported-dataframe-libraries>`
    including `pandas <http://pandas.pydata.org>`_, `dask <https://dask.org/>`_,
-   `modin <https://modin.readthedocs.io/>`_, and `koalas <https://koalas.readthedocs.io/>`_.
+   `modin <https://modin.readthedocs.io/>`_, and
+   `pyspark.pandas <https://spark.apache.org/docs/3.2.0/api/python/user_guide/pandas_on_spark/index.html>`_.
 #. :ref:`Check<checks>` the types and properties of columns in a
    ``pd.DataFrame`` or values in a ``pd.Series``.
 #. Perform more complex statistical validation like
@@ -130,7 +131,7 @@ Installing additional functionality:
       pip install pandera[strategies]  # data synthesis strategies
       pip install pandera[mypy]        # enable static type-linting of pandas
       pip install pandera[dask]        # validate dask dataframes
-      pip install pandera[koalas]      # validate koalas dataframes
+      pip install pandera[pyspark]     # validate pyspark dataframes
       pip install pandera[modin]       # validate modin dataframes
       pip install pandera[modin-ray]   # validate modin dataframes with ray
       pip install pandera[modin-dask]  # validate modin dataframes with dask
@@ -146,7 +147,7 @@ Installing additional functionality:
       conda install -c conda-forge pandera-mypy        # enable static type-linting of pandas
       conda install -c conda-forge pandera-fastapi     # fastapi integration
       conda install -c conda-forge pandera-dask        # validate dask dataframes
-      conda install -c conda-forge pandera-koalas      # validate koalas dataframes
+      conda install -c conda-forge pandera-pyspark     # validate pyspark dataframes
       conda install -c conda-forge pandera-modin       # validate modin dataframes
       conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
       conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask

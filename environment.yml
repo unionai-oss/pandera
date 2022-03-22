@@ -23,8 +23,7 @@ dependencies:
   # mypy extra
   - pandas-stubs
 
-  # koalas extra
-  - koalas
+  # pyspark extra
   - pyspark
 
   # modin extra

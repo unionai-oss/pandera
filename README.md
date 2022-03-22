@@ -35,7 +35,7 @@ This is useful in production-critical or reproducible research settings. With
 1. Define a schema once and use it to validate
    [different dataframe types](https://pandera.readthedocs.io/en/stable/supported_libraries.html)
    including [pandas](http://pandas.pydata.org), [dask](https://dask.org),
-   [modin](https://modin.readthedocs.io/), and [koalas](https://koalas.readthedocs.io).
+   [modin](https://modin.readthedocs.io/), and [pyspark](https://spark.apache.org/docs/3.2.0/api/python/user_guide/pandas_on_spark/index.html).
 1. [Check](https://pandera.readthedocs.io/en/stable/checks.html) the types and
    properties of columns in a `DataFrame` or values in a `Series`.
 1. Perform more complex statistical validation like
@@ -87,7 +87,7 @@ pip install pandera[strategies]  # data synthesis strategies
 pip install pandera[mypy]        # enable static type-linting of pandas
 pip install pandera[fastapi]     # fastapi integration
 pip install pandera[dask]        # validate dask dataframes
-pip install pandera[koalas]      # validate koalas dataframes
+pip install pandera[pyspark]     # validate pyspark dataframes
 pip install pandera[modin]       # validate modin dataframes
 pip install pandera[modin-ray]   # validate modin dataframes with ray
 pip install pandera[modin-dask]  # validate modin dataframes with dask
@@ -106,7 +106,7 @@ conda install -c conda-forge pandera-strategies  # data synthesis strategies
 conda install -c conda-forge pandera-mypy        # enable static type-linting of pandas
 conda install -c conda-forge pandera-fastapi     # fastapi integration
 conda install -c conda-forge pandera-dask        # validate dask dataframes
-conda install -c conda-forge pandera-koalas      # validate koalas dataframes
+conda install -c conda-forge pandera-pyspark     # validate pyspark dataframes
 conda install -c conda-forge pandera-modin       # validate modin dataframes
 conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
 conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask

@@ -267,7 +267,7 @@ You must give a **type**, not an **instance**.
 
     Traceback (most recent call last):
     ...
-    TypeError: Parameters to generic types must be types. Got StringDtype.
+    TypeError: Parameters to generic types must be types. Got string[python].
 
 .. _parameterized dtypes:
 
