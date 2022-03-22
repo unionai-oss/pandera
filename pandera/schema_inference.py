@@ -14,18 +14,16 @@ from .schemas import DataFrameSchema, SeriesSchema
 
 
 @overload
-def infer_schema(pandas_obj: pd.DataFrame) -> DataFrameSchema:
+def infer_schema(pandas_obj: pd.DataFrame) -> DataFrameSchema:  # pragma: no cover
     ...
 
 
 @overload
-def infer_schema(pandas_obj: "pd.Series[Any]") -> SeriesSchema:
+def infer_schema(pandas_obj: "pd.Series[Any]") -> SeriesSchema:  # pragma: no cover
     ...
 
 
-def infer_schema(
-    pandas_obj: Union[pd.DataFrame, "pd.Series[Any]"]
-) -> Union[DataFrameSchema, SeriesSchema]:
+def infer_schema(pandas_obj):
     """Infer schema for pandas DataFrame or Series object.
 
     :param pandas_obj: DataFrame or Series object to infer.
