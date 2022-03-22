@@ -15,15 +15,15 @@ from .schemas import DataFrameSchema, SeriesSchema
 
 @overload
 def infer_schema(
-    pandas_obj: pd.DataFrame,
-) -> DataFrameSchema:  # pragma: no cover
+    pandas_obj: pd.Series,
+) -> SeriesSchema:  # pragma: no cover
     ...
 
 
 @overload
 def infer_schema(
-    pandas_obj: pd.Series,
-) -> SeriesSchema:  # pragma: no cover
+    pandas_obj: pd.DataFrame,
+) -> DataFrameSchema:  # pragma: no cover
     ...
 
 
