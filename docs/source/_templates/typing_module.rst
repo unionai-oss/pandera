@@ -30,21 +30,21 @@
       dask.Series
       dask.Index
 
-   .. rubric:: Koalas Types
+   .. rubric:: Pyspark Pandas Types
 
    .. autosummary::
 
-      koalas.DataFrame
-      koalas.Series
-      koalas.Index
+      pyspark.DataFrame
+      pyspark.Series
+      pyspark.Index
 
    .. rubric:: Modin Types
 
    .. autosummary::
 
-      koalas.DataFrame
-      koalas.Series
-      koalas.Index
+      pyspark.DataFrame
+      pyspark.Series
+      pyspark.Index
 
    .. rubric:: FastAPI Types
 

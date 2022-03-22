@@ -1,6 +1,7 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import io
+from typing import _type_check  # type: ignore[attr-defined]
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
@@ -39,9 +40,10 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
     if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
 
         def __class_getitem__(cls, item):
-            """Define this to override the patch that koalas performs on pandas.
-            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
+            """Define this to override the patch that pyspark.pandas performs on pandas.
+            https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
             """
+            _type_check(item, "Parameters to generic types must be types.")
             return _GenericAlias(cls, item)
 
 
@@ -63,9 +65,10 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     if hasattr(pd.DataFrame, "__class_getitem__") and _GenericAlias:
 
         def __class_getitem__(cls, item):
-            """Define this to override the patch that koalas performs on pandas.
-            https://github.com/databricks/koalas/blob/master/databricks/koalas/__init__.py#L207-L223
+            """Define this to override the patch that pyspark.pandas performs on pandas.
+            https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
             """
+            _type_check(item, "Parameters to generic types must be types.")
             return _GenericAlias(cls, item)
 
     @classmethod

@@ -382,13 +382,13 @@ class Index(SeriesSchemaBase):
             )
 
         series_cls = pd.Series
-        # NOTE: this is a hack to get koalas working, this needs a more
+        # NOTE: this is a hack to get pyspark.pandas working, this needs a more
         # principled implementation
-        if type(check_obj).__module__ == "databricks.koalas.frame":
+        if type(check_obj).__module__ == "pyspark.pandas.frame":
             # pylint: disable=import-outside-toplevel
-            import databricks.koalas as ks
+            import pyspark.pandas as ps
 
-            series_cls = ks.Series
+            series_cls = ps.Series
 
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
@@ -603,12 +603,12 @@ class MultiIndex(DataFrameSchema):
             raise errors.SchemaErrors(error_handler.collected_errors, obj)
 
         multiindex_cls = pd.MultiIndex
-        # NOTE: this is a hack to support koalas
-        if type(obj).__module__.startswith("databricks.koalas"):
+        # NOTE: this is a hack to support pyspark.pandas
+        if type(obj).__module__.startswith("pyspark.pandas"):
             # pylint: disable=import-outside-toplevel
-            import databricks.koalas as ks
+            import pyspark.pandas as ps
 
-            multiindex_cls = ks.MultiIndex
+            multiindex_cls = ps.MultiIndex
         return multiindex_cls.from_arrays(
             [
                 v.to_numpy()
@@ -688,8 +688,8 @@ class MultiIndex(DataFrameSchema):
             Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
             duplicate index names if they exist.
             """
-            # NOTE: this is a hack to support koalas
-            if type(multiindex).__module__.startswith("databricks.koalas"):
+            # NOTE: this is a hack to support pyspark.pandas
+            if type(multiindex).__module__.startswith("pyspark.pandas"):
                 df = multiindex.to_frame()
             else:
                 df = pd.DataFrame(

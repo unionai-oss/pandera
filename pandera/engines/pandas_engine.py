@@ -505,15 +505,15 @@ class NpString(numpy_engine.String):
     def coerce(self, data_container: PandasObject) -> np.ndarray:
         def _to_str(obj):
             # NOTE: this is a hack to handle the following case:
-            # koalas.Index doesn't support .where method yet, use numpy
+            # pyspark.pandas.Index doesn't support .where method yet, use numpy
             reverter = None
-            if type(obj).__module__.startswith("databricks.koalas"):
+            if type(obj).__module__.startswith("pyspark.pandas"):
                 # pylint: disable=import-outside-toplevel
-                import databricks.koalas as ks
+                import pyspark.pandas as ps
 
-                if isinstance(obj, ks.Index):
+                if isinstance(obj, ps.Index):
                     obj = obj.to_series()
-                    reverter = ks.Index
+                    reverter = ps.Index
             else:
                 obj = obj.astype(object)
 
@@ -598,17 +598,17 @@ class DateTime(DataType, dtypes.Timestamp):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         def _to_datetime(col: pd.Series) -> pd.Series:
-            # NOTE: this is a hack to support koalas. This needs to be
-            # thoroughly tested, right now koalas returns NA when a dtype value
-            # can't be coerced into the target dtype.
+            # NOTE: this is a hack to support pyspark.pandas. This needs to be
+            # thoroughly tested, right now pyspark.pandas returns NA when a
+            # dtype value can't be coerced into the target dtype.
             to_datetime_fn = pd.to_datetime
             if type(col).__module__.startswith(
-                "databricks.koalas"
+                "pyspark.pandas"
             ):  # pragma: no cover
                 # pylint: disable=import-outside-toplevel
-                import databricks.koalas as ks
+                import pyspark.pandas as ps
 
-                to_datetime_fn = ks.to_datetime
+                to_datetime_fn = ps.to_datetime
             if type(col).__module__.startswith("modin.pandas"):
                 # pylint: disable=import-outside-toplevel
                 import modin.pandas as mpd

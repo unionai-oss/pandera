@@ -47,7 +47,9 @@ dataframes.
      - Apply pandera schemas to Dask dataframe partitions.
    * - :ref:`Fugue <scaling_fugue>`
      - Apply pandera schemas to distributed dataframe partitions with Fugue.
-   * - :ref:`Koalas <scaling_koalas>`
+   * - :ref:`Koalas <scaling_koalas>` **[Deprecated]**
+     - A pandas drop-in replacement, distributed using a Spark backend.
+   * - :ref:`Pyspark Pandas <scaling_koalas>`
      - A pandas drop-in replacement, distributed using a Spark backend.
    * - :ref:`Modin <scaling_modin>`
      - A pandas drop-in replacement, distributed using a Ray or Dask backend.
@@ -59,6 +61,7 @@ dataframes.
     Dask <dask>
     Fugue <fugue>
     Koalas <koalas>
+    Pyspark <pyspark>
     Modin <modin>
 
 

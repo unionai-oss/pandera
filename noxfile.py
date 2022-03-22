@@ -204,7 +204,7 @@ def install_extras(
             specs.append(
                 spec if spec != "pandas" else f"pandas{pandas_version}"
             )
-    if extra in {"core", "koalas", "modin", "fastapi"}:
+    if extra in {"core", "pyspark", "modin", "fastapi"}:
         specs.append(REQUIRES["all"]["hypothesis"])
 
     # CI installs conda dependencies, so only run this for local runs
@@ -300,7 +300,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
     if (
         (pandas, extra)
         in {
-            ("1.1.5", "koalas"),
+            ("1.1.5", "pyspark"),
             ("1.1.5", "modin-dask"),
             ("1.1.5", "modin-ray"),
         }
@@ -315,7 +315,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
             ("3.7", "modin-ray"),
             ("3.10", "modin-dask"),
             ("3.10", "modin-ray"),
-            ("3.10", "koalas"),
+            ("3.10", "pyspark"),
         }
     ):
         session.skip()

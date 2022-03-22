@@ -1,7 +1,7 @@
 """Custom accessor functionality for modin.
 
-Source code adapted from koalas implementation:
-https://koalas.readthedocs.io/en/latest/_modules/databricks/koalas/extensions.html#register_dataframe_accessor
+Source code adapted from pyspark.pandas implementation:
+https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/api/pyspark.pandas.extensions.register_dataframe_accessor.html?highlight=register_dataframe_accessor#pyspark.pandas.extensions.register_dataframe_accessor
 """
 
 import warnings

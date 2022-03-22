@@ -14,8 +14,8 @@ def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
 
     Bisects the series until all the failure cases are found.
 
-    NOTE: this does not account for koalas .astype behavior, which defaults
-    to converting uncastable values to NA values.
+    NOTE: this does not account for pyspark.pandas .astype behavior, which
+    defaults to converting uncastable values to NA values.
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
     from pandera.engines import pandas_engine

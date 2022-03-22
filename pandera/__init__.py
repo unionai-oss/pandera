@@ -71,9 +71,9 @@ except ImportError:
 
 
 try:
-    import databricks.koalas
+    import pyspark.pandas
 
-    from . import koalas_accessor
+    from . import pyspark_accessor
 except ImportError:
     pass
 
