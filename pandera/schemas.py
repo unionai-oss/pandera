@@ -20,6 +20,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -1371,7 +1372,15 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return pandera.io.from_yaml(yaml_schema)
 
-    def to_yaml(self, stream: Optional[os.PathLike] = None):
+    @overload
+    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
+        ...
+
+    @overload
+    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
+        ...
+
+    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
         """Write DataFrameSchema to yaml file.
 
         :param stream: file stream to write to. If None, dumps to string.
