@@ -1,6 +1,6 @@
 """Module for inferring dataframe/series schema."""
 
-from typing import Any, Union, overload  # pylint: disable=unused-import
+from typing import overload
 
 import pandas as pd
 
