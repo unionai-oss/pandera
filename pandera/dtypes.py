@@ -361,6 +361,41 @@ class Complex64(Complex128):
 
 
 ###############################################################################
+# decimal
+###############################################################################
+
+
+@immutable(init=True)
+class Decimal(_Number):
+    """Semantic representation of a decimal data type."""
+
+    exact: bool = dataclasses.field(init=False, default=True)
+    continuous: bool = dataclasses.field(init=False, default=True)
+
+    precision: Optional[int] = None
+    scale: Optional[int] = None
+
+    def __init__(
+        self, precision: Optional[int] = None, scale: Optional[int] = None
+    ):
+        super().__init__()
+        if precision is not None:
+            if precision <= 0:
+                raise ValueError(
+                    f"Decimal precision {precision} must be positive."
+                )
+            if scale is not None and scale > precision:
+                raise ValueError(
+                    f"Decimal scale {scale} must be between 0 and {precision}."
+                )
+        object.__setattr__(self, "precision", precision)
+        object.__setattr__(self, "scale", scale)
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.precision}, {self.scale})"
+
+
+###############################################################################
 # nominal
 ###############################################################################
 

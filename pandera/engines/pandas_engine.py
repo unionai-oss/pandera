@@ -9,10 +9,21 @@
 import builtins
 import dataclasses
 import datetime
+import decimal
 import inspect
 import warnings
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Type, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 import pandas as pd
@@ -401,6 +412,93 @@ _register_numpy_numbers(
     pandera_name="Complex",
     sizes=[256, 128, 64] if FLOAT_128_AVAILABLE else [128, 64],
 )
+###############################################################################
+# decimal
+###############################################################################
+
+
+def _scale_to_exp(scale: int) -> decimal.Decimal:
+    scale_fmt = format(10**-scale, f".{scale}f")
+    return decimal.Decimal(scale_fmt)
+
+
+def _check_decimal(
+    pandas_obj: pd.Series,
+    precision: Optional[int] = None,
+    scale: Optional[int] = None,
+) -> pd.Series:
+
+    splitted = pandas_obj.astype("string").str.rpartition(".")
+    len_left = splitted[0].str.len()
+    len_right = splitted[2].str.len()
+
+    precisions = len_left + len_right
+
+    scales = pd.Series(np.full_like(pandas_obj, np.nan), dtype=np.object_)
+    pos_left = len_left > 0
+    scales[pos_left] = len_right[pos_left]
+    scales[~pos_left] = 0
+
+    is_valid = np.full_like(pandas_obj, True)
+    if precision is not None:
+        is_valid &= (precisions.isna()) | (precisions <= precision)
+
+    if scale is not None:
+        is_valid &= (scales.isna()) | (scales <= scale)
+
+    return is_valid
+
+
+DEFAULT_PYTHON_PREC = 28
+
+
+@Engine.register_dtype(equivalents=["decimal", decimal.Decimal])
+@immutable(init=True)
+class Decimal(DataType, dtypes.Decimal):
+    """Semantic representation of a :class:`decimal.Decimal`."""
+
+    type = np.dtype("object")
+    rounding: str = dataclasses.field(
+        default_factory=lambda: decimal.getcontext().rounding
+    )
+
+    is_logical = True
+
+    def __init__(
+        self,
+        precision: Optional[int] = DEFAULT_PYTHON_PREC,
+        scale: Optional[int] = None,
+        rounding: Optional[str] = None,
+    ) -> None:
+        dtypes.Decimal.__init__(self, precision, scale)
+        object.__setattr__(self, "rounding", rounding)
+
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        exp = _scale_to_exp(self.scale) if self.scale else None
+
+        ctx = decimal.Context(prec=self.precision, rounding=self.rounding)
+
+        def _to_decimal(raw_value: Any):
+            if pd.isna(raw_value):
+                return pd.NA
+            dec = decimal.Decimal(str(raw_value))
+            if exp:
+                return dec.quantize(exp, context=ctx)
+            return dec
+
+        return data_container.apply(_to_decimal)
+
+    def check(self, data_container: PandasObject) -> Sequence[bool]:
+        data_type = Engine.dtype(data_container.dtype)
+        if not DataType.check(self, data_type):
+            return np.full_like(data_container, False)
+        return _check_decimal(
+            data_container, precision=self.precision, scale=self.scale
+        )
+
+    def __str__(self) -> str:
+        return dtypes.Decimal.__str__(self)
+
 
 # ###############################################################################
 # # nominal
