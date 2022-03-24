@@ -21,6 +21,8 @@ class DataType(ABC):
     continuous: Optional[bool] = None
     """Whether the number data type is continuous."""
 
+    is_logical: bool = False
+
     def __init__(self):
         if self.__class__ is DataType:
             raise TypeError(
