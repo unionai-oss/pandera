@@ -2049,12 +2049,12 @@ class SeriesSchemaBase:
             elif not self._dtype.check(
                 pandas_engine.Engine.dtype(series.dtype)
             ):
-                failure_cases = (scalar_failure_case(str(series.dtype)),)
+                failure_cases = scalar_failure_case(str(series.dtype))
                 msg = (
                     f"expected series '{series.name}' to have type {self._dtype}, "
                     + f"got {series.dtype}"
                 )
-            if failure_cases is not None:
+            if failure_cases is not None and not failure_cases.empty:
 
                 error_handler.collect_error(
                     "wrong_dtype",
