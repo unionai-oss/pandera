@@ -213,6 +213,7 @@ index:
   nullable: false
   checks: null
   name: null
+  unique: false
   coerce: false
 coerce: false
 strict: true
