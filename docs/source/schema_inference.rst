@@ -216,6 +216,7 @@ is a convenience method for this functionality.
         greater_than_or_equal_to: 0.0
         less_than_or_equal_to: 2.0
       name: null
+      unique: false
       coerce: false
     coerce: true
     strict: false

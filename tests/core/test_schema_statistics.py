@@ -475,6 +475,7 @@ def test_get_dataframe_schema_statistics():
                 "nullable": False,
                 "coerce": False,
                 "name": "int_index",
+                "unique": False,
             }
         ],
         "coerce": False,
@@ -503,6 +504,7 @@ def test_get_series_schema_statistics():
         },
         "name": None,
         "coerce": False,
+        "unique": False,
     }
 
 
@@ -529,6 +531,7 @@ def test_get_series_schema_statistics():
                     },
                     "name": "int_index",
                     "coerce": False,
+                    "unique": False,
                 }
             ],
         ]
