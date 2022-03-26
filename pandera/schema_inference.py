@@ -21,8 +21,8 @@ def infer_schema(
 
 
 @overload
-def infer_schema(
-    pandas_obj: pd.DataFrame,  # type: ignore[misc]
+def infer_schema(  # type: ignore[misc]
+    pandas_obj: pd.DataFrame,
 ) -> DataFrameSchema:  # pragma: no cover
     ...
 
