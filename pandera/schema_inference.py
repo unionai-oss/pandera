@@ -1,6 +1,6 @@
 """Module for inferring dataframe/series schema."""
 
-from typing import Union
+from typing import overload
 
 import pandas as pd
 
@@ -13,9 +13,21 @@ from .schema_statistics import (
 from .schemas import DataFrameSchema, SeriesSchema
 
 
+@overload
 def infer_schema(
-    pandas_obj: Union[pd.DataFrame, pd.Series]
-) -> Union[DataFrameSchema, SeriesSchema]:
+    pandas_obj: pd.Series,
+) -> SeriesSchema:  # pragma: no cover
+    ...
+
+
+@overload
+def infer_schema(  # type: ignore[misc]
+    pandas_obj: pd.DataFrame,
+) -> DataFrameSchema:  # pragma: no cover
+    ...
+
+
+def infer_schema(pandas_obj):
     """Infer schema for pandas DataFrame or Series object.
 
     :param pandas_obj: DataFrame or Series object to infer.
