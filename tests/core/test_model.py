@@ -480,6 +480,29 @@ def test_inherit_schemamodel_fields() -> None:
     assert expected == Child.to_schema()
 
 
+def test_inherit_none_fields() -> None:
+    """Test that fields can be excluded from inherited models"""
+
+    class Base(pa.SchemaModel):
+        a: Series[int]
+        b: Series[int]
+        c: Series[int]
+        idx: Index[str]
+
+    class Mid(Base):
+        c = None
+
+    class Child(Mid):
+        idx = None
+
+    expected = pa.DataFrameSchema(
+        name="Child",
+        columns={"a": pa.Column(int), "b": pa.Column(int)},
+    )
+
+    assert expected == Child.to_schema()
+
+
 def test_inherit_schemamodel_fields_alias() -> None:
     """Test that columns and index aliases are inherited."""
 

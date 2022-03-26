@@ -398,9 +398,11 @@ class SchemaModel(metaclass=_MetaSchema):
         fields = {}
         for field_name, annotation in annotations.items():
             field = attrs[field_name]  # __init_subclass__ guarantees existence
+            if field is None:
+                continue
             if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
-                    f"'{field_name}' can only be assigned a 'Field', "
+                    f"'{field_name}' can only be assigned a 'Field' or None, "
                     + f"not a '{type(field)}.'"
                 )
             fields[field.name] = (AnnotationInfo(annotation), field)
