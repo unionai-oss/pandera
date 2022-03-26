@@ -50,8 +50,8 @@ This is useful in production-critical or reproducible research settings. With
 1. [Lazily Validate](https://pandera.readthedocs.io/en/stable/lazy_validation.html)
    dataframes so that all validation checks are executed before raising an error.
 1. [Integrate](https://pandera.readthedocs.io/en/stable/integrations.html) with
-   a rich ecosystem of python tools like [pydantic](https://pydantic-docs.helpmanual.io)
-   and [mypy](http://mypy-lang.org/).
+   a rich ecosystem of python tools like [pydantic](https://pydantic-docs.helpmanual.io),
+   [fastapi](https://fastapi.tiangolo.com/), and [mypy](http://mypy-lang.org/).
 
 ## Documentation
 
