@@ -250,3 +250,13 @@ for each pull request:
       },
       strict=True)
   ```
+
+## Deprecation policy
+
+This project adopts a rolling policy regarding the minimum supported version of its dependencies, based on [NEP 29](https://numpy.org/neps/nep-0029-deprecation_policy.html):
+
+* **Python**: 42 months
+* **NumPy**: 24 months
+* **Pandas**: 18 months
+
+This means the latest minor (X.Y) version from N months prior. Patch versions (x.y.Z) are not pinned, and only the latest available at the moment of publishing the xarray release is guaranteed to work.
