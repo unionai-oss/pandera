@@ -49,7 +49,6 @@ class FieldInfo:
         "checks",
         "nullable",
         "unique",
-        "allow_duplicates",
         "coerce",
         "regex",
         "check_name",
@@ -65,7 +64,6 @@ class FieldInfo:
         checks: Optional[_CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
-        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         regex: bool = False,
         alias: Any = None,
@@ -77,7 +75,6 @@ class FieldInfo:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
         self.unique = unique
-        self.allow_duplicates = allow_duplicates
         self.coerce = coerce
         self.regex = regex
         self.alias = alias
@@ -124,30 +121,29 @@ class FieldInfo:
 
     def _to_schema_component(
         self,
-        pandas_dtype: PandasDtypeInputTypes,
+        dtype: PandasDtypeInputTypes,
         component: Type[SchemaComponent],
         checks: _CheckList = None,
         **kwargs: Any,
     ) -> SchemaComponent:
         if self.dtype_kwargs:
-            pandas_dtype = pandas_dtype(**self.dtype_kwargs)  # type: ignore
+            dtype = dtype(**self.dtype_kwargs)  # type: ignore
         checks = self.checks + _to_checklist(checks)
-        return component(pandas_dtype, checks=checks, **kwargs)  # type: ignore
+        return component(dtype, checks=checks, **kwargs)  # type: ignore
 
     def to_column(
         self,
-        pandas_dtype: PandasDtypeInputTypes,
+        dtype: PandasDtypeInputTypes,
         checks: _CheckList = None,
         required: bool = True,
         name: str = None,
     ) -> Column:
         """Create a schema_components.Column from a field."""
         return self._to_schema_component(
-            pandas_dtype,
+            dtype,
             Column,
             nullable=self.nullable,
             unique=self.unique,
-            allow_duplicates=self.allow_duplicates,
             coerce=self.coerce,
             regex=self.regex,
             required=required,
@@ -159,17 +155,16 @@ class FieldInfo:
 
     def to_index(
         self,
-        pandas_dtype: PandasDtypeInputTypes,
+        dtype: PandasDtypeInputTypes,
         checks: _CheckList = None,
         name: str = None,
     ) -> Index:
         """Create a schema_components.Index from a field."""
         return self._to_schema_component(
-            pandas_dtype,
+            dtype,
             Index,
             nullable=self.nullable,
             unique=self.unique,
-            allow_duplicates=self.allow_duplicates,
             coerce=self.coerce,
             name=name,
             checks=checks,
@@ -196,7 +191,6 @@ def Field(
     str_startswith: Optional[str] = None,
     nullable: bool = False,
     unique: bool = False,
-    allow_duplicates: Optional[bool] = None,
     coerce: bool = False,
     regex: bool = False,
     ignore_na: bool = True,
@@ -221,14 +215,6 @@ def Field(
 
     :param nullable: Whether or not the column/index can contain null values.
     :param unique: Whether column values should be unique.
-    :param allow_duplicates: Whether or not column can contain duplicate
-        values.
-
-        .. warning::
-
-            This option will be deprecated in 0.8.0. Use the ``unique``
-            argument instead.
-
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
     :param ignore_na: whether or not to ignore null values in the checks.
@@ -278,7 +264,6 @@ def Field(
         checks=checks or None,
         nullable=nullable,
         unique=unique,
-        allow_duplicates=allow_duplicates,
         coerce=coerce,
         regex=regex,
         check_name=check_name,

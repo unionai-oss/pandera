@@ -908,7 +908,7 @@ def _boolean_update_column_case(
         assert getattr(new_schema.columns["col"], bool_kwarg)
 
     return [
-        Column(int, **{bool_kwarg: False}),
+        Column(int, **{bool_kwarg: False}),  # type: ignore
         "col",
         {bool_kwarg: True},
         _assert_bool_case,
@@ -934,7 +934,6 @@ def _boolean_update_column_case(
                 "coerce",
                 "required",
                 "regex",
-                "allow_duplicates",
                 "unique",
             ]
         ],
@@ -1527,12 +1526,6 @@ def test_capture_check_errors() -> None:
         assert failure_without_msg == "ValueError()"
 
 
-def test_schema_transformer_deprecated() -> None:
-    """Using the transformer argument should raise a deprecation warning."""
-    with pytest.warns(DeprecationWarning):
-        DataFrameSchema(transformer=lambda df: df)
-
-
 @pytest.mark.parametrize("inplace", [True, False])
 @pytest.mark.parametrize(
     "from_dtype,to_dtype",
@@ -1704,7 +1697,6 @@ def test_update_columns(schema_simple: DataFrameSchema) -> None:
     assert test_schema.columns["col1"].coerce is True
     assert test_schema.columns["col2"].dtype == Engine.dtype(int)
     assert test_schema.columns["col2"].unique
-    assert not test_schema.columns["col2"].allow_duplicates
 
     # Errors
     with pytest.raises(errors.SchemaInitError):
@@ -1866,27 +1858,3 @@ def test_column_set_unique():
     assert not test_schema.columns["a"].unique
     test_schema = test_schema.update_column("a", unique=True)
     assert test_schema.columns["a"].unique
-
-
-def test_unique_and_set_duplicates_setters() -> None:
-    """Test the setting of `unique` and `allow_duplicates` properties"""
-    test_schema = DataFrameSchema(
-        columns={
-            "a": Column(int, unique=True),
-        },
-        unique=None,
-    )
-    assert not test_schema.columns["a"].allow_duplicates
-    test_schema.columns["a"].unique = False
-    assert test_schema.columns["a"].allow_duplicates
-    test_schema.columns["a"].allow_duplicates = False
-    assert test_schema.columns["a"].unique
-    test_schema.columns["a"].allow_duplicates = True
-    assert not test_schema.columns["a"].unique
-
-    test_schema.unique = "a"
-    assert test_schema.unique == ["a"]
-    test_schema.unique = ["a"]
-    assert test_schema.unique == ["a"]
-    test_schema.unique = None
-    assert not test_schema.unique

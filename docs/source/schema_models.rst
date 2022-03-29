@@ -228,9 +228,6 @@ however, a couple of gotchas.
 Dtype aliases
 ^^^^^^^^^^^^^
 
-:mod:`pandera.typing` aliases will be deprecated in a future version,
-please use :class:`~pandera.dtypes.DataType` subclasses instead.
-
 .. code-block::
 
     import pandera as pa

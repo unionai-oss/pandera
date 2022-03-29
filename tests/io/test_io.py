@@ -97,7 +97,7 @@ def _create_schema(index="single"):
             "optional_props_column": pandera.Column(
                 pandera.String,
                 nullable=True,
-                allow_duplicates=True,
+                unique=False,
                 coerce=True,
                 required=False,
                 regex=True,

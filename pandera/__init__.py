@@ -42,9 +42,8 @@ from pandera.engines.pandas_engine import (
     UINT16,
     UINT32,
     UINT64,
+    pandas_version,
 )
-from pandera.engines.pandas_engine import _PandasDtype as PandasDtype
-from pandera.engines.pandas_engine import pandas_version
 
 from . import errors, pandas_accessor, typing
 from .checks import Check
@@ -127,8 +126,6 @@ __all__ = [
     "UINT16",
     "UINT32",
     "UINT64",
-    # pandera.engines.pandas_engine
-    "PandasDtype",
     # pandera.engines.pandas_engine
     "pandas_version",
     # checks

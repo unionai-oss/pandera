@@ -9,7 +9,6 @@ import pandas as pd
 
 from . import check_utils, errors
 from . import strategies as st
-from .deprecations import deprecate_pandas_dtype
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -27,50 +26,35 @@ def _is_valid_multiindex_tuple_str(x: Tuple[Any, ...]) -> bool:
 class Column(SeriesSchemaBase):
     """Validate types and properties of DataFrame columns."""
 
-    @deprecate_pandas_dtype
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
         unique: bool = False,
-        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
         regex: bool = False,
-        pandas_dtype: PandasDtypeInputTypes = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
         """Create column validator object.
 
-        :param dtype: datatype of the column. A ``PandasDtype`` for
-            type-checking dataframe. If a string is specified, then assumes
+        :param dtype: datatype of the column. The datatype for type-checking
+            a dataframe. If a string is specified, then assumes
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique
-        :param allow_duplicates: Whether or not column can contain duplicate
-            values.
-
-            .. warning::
-
-                This option will be deprecated in 0.8.0. Use the ``unique``
-                argument instead.
-
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
-            where ``pandas_dtype=None``.
+            where ``dtype=None``.
         :param required: Whether or not column is allowed to be missing
         :param name: column name in dataframe to validate.
         :param regex: whether the ``name`` attribute should be treated as a
             regex pattern to apply to multiple columns in a dataframe.
-        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
-
-            .. warning:: This option will be deprecated in 0.8.0
-
         :param title: A human-readable label for the column.
         :param description: An arbitrary textual description of the column.
 
@@ -98,10 +82,8 @@ class Column(SeriesSchemaBase):
             checks,
             nullable,
             unique,
-            allow_duplicates,
             coerce,
             name,
-            pandas_dtype,
             title,
             description,
         )
