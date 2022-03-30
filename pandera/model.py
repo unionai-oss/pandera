@@ -1,5 +1,6 @@
 """Class-based api"""
 
+import copy
 import inspect
 import os
 import re
@@ -59,6 +60,7 @@ _CONFIG_KEY = "Config"
 
 
 MODEL_CACHE: Dict[Type["SchemaModel"], DataFrameSchema] = {}
+GENERIC_SCHEMA_CACHE: Dict[Tuple[Type["SchemaModel"], Tuple[Type[Any], ...]], Type["SchemaModel"]] = {}
 F = TypeVar("F", bound=Callable)
 TSchemaModel = TypeVar("TSchemaModel", bound="SchemaModel")
 
@@ -190,6 +192,10 @@ class SchemaModel(metaclass=_MetaSchema):
         }
 
         cls.__fields__ = cls._collect_fields()
+        for field, (annot_info, _) in cls.__fields__.items():
+            if isinstance(annot_info.arg, TypeVar):
+                raise SchemaInitError(f"Field {field} has a generic data type")
+
         check_infos = typing.cast(
             List[FieldCheckInfo], cls._collect_check_infos(CHECK_KEY)
         )
@@ -512,6 +518,37 @@ class SchemaModel(metaclass=_MetaSchema):
     def __modify_schema__(cls, field_schema):
         """Update pydantic field schema."""
         field_schema.update(to_json_schema(cls.to_schema()))
+
+    def __class_getitem__(
+        cls: Type[TSchemaModel], params: Union[Type[Any], Tuple[Type[Any], ...]]
+    ) -> Type[TSchemaModel]:
+        """Parameterize the class's generic arguments with the specified types"""
+        if not hasattr(cls, "__parameters__"):
+            raise TypeError(f"{cls.__name__} must inherit from typing.Generic before being parameterized")
+        __parameters__: tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
+
+        if not isinstance(params, tuple):
+            params = (params, )
+        if len(params) != len(__parameters__):
+            raise ValueError(f"Expected {len(__parameters__)} generic arguments but found {len(params)}")
+        if (cls, params) in GENERIC_SCHEMA_CACHE:
+            return typing.cast(Type[TSchemaModel], GENERIC_SCHEMA_CACHE[(cls, params)])
+
+        param_dict: Dict[TypeVar, Type[Any]] = dict(zip(__parameters__, params))
+        extra: dict[str, Any] = {"__annotations__": {}}
+        for field, (annot_info, field_info) in cls._collect_fields().items():
+            if isinstance(annot_info.arg, TypeVar):
+                if annot_info.arg in param_dict:
+                    raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
+                    if annot_info.optional:
+                        raw_annot = Optional[raw_annot]
+                    extra["__annotations__"][field] = raw_annot
+                    extra[field] = copy.deepcopy(field_info)
+
+        parameterized_name = f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
+        parameterized_cls = type(parameterized_name, (cls,), extra)
+        GENERIC_SCHEMA_CACHE[(cls, params)] = parameterized_cls
+        return parameterized_cls
 
 
 def _build_schema_index(
