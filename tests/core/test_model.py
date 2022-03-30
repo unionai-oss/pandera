@@ -3,7 +3,7 @@
 import re
 from copy import deepcopy
 from decimal import Decimal  # pylint:disable=C0415
-from typing import Any, Iterable, Optional
+from typing import Any, Generic, Iterable, Optional, TypeVar
 
 import pandas as pd
 import pytest
@@ -1002,3 +1002,29 @@ def test_validate_coerce_on_init():
         match="^expected series 'price' to have type float64, got int64$",
     ):
         DataFrame[SchemaNoCoerce](raw_data)
+
+
+def test_schema_model_generic_inheritance() -> None:
+    """Test that a schema model subclass can also inherit from typing.Generic"""
+
+    T = TypeVar("T")
+
+    class Foo(pa.SchemaModel, Generic[T]):
+        @classmethod
+        def bar(cls) -> T:
+            raise NotImplementedError
+
+    class Bar1(Foo[int]):
+        @classmethod
+        def bar(cls) -> int:
+            return 1
+
+    class Bar2(Foo[str]):
+        @classmethod
+        def bar(cls) -> str:
+            return "1"
+
+    with pytest.raises(NotImplementedError):
+        Foo.bar()
+    assert Bar1.bar() == 1
+    assert Bar2.bar() == "1"

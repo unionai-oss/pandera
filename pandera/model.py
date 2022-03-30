@@ -372,7 +372,8 @@ class SchemaModel(metaclass=_MetaSchema):
         bases = inspect.getmro(cls)[:-1]  # bases -> SchemaModel -> object
         attrs = {}
         for base in reversed(bases):
-            attrs.update(base.__dict__)
+            if issubclass(base, SchemaModel):
+                attrs.update(base.__dict__)
         return attrs
 
     @classmethod
@@ -412,7 +413,7 @@ class SchemaModel(metaclass=_MetaSchema):
     ) -> Tuple[Type[BaseConfig], Dict[str, Any]]:
         """Collect config options from bases, splitting off unknown options."""
         bases = inspect.getmro(cls)[:-1]
-        bases = typing.cast(Tuple[Type[SchemaModel]], bases)
+        bases = tuple(base for base in bases if issubclass(base, SchemaModel))
         root_model, *models = reversed(bases)
 
         options, extras = _extract_config_options_and_extras(root_model.Config)
@@ -434,7 +435,7 @@ class SchemaModel(metaclass=_MetaSchema):
         walk the inheritance tree.
         """
         bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
-        bases = typing.cast(Tuple[Type[SchemaModel]], bases)
+        bases = tuple(base for base in bases if issubclass(base, SchemaModel))
 
         method_names = set()
         check_infos = []
