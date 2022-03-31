@@ -562,17 +562,17 @@ def test_column_type_can_be_set() -> None:
     column_a = Column(Int, name="a")
     changed_type = Float
 
-    column_a.dtype = Float
+    column_a.dtype = Float  # type: ignore [assignment]
 
     assert column_a.dtype == Engine.dtype(changed_type)
 
     for invalid_dtype in ("foobar", "bar"):
         with pytest.raises(TypeError):
-            column_a.dtype = invalid_dtype
+            column_a.dtype = invalid_dtype  # type: ignore [assignment]
 
     for invalid_dtype in (1, 2.2, ["foo", 1, 1.1], {"b": 1}):
         with pytest.raises(TypeError):
-            column_a.dtype = invalid_dtype
+            column_a.dtype = invalid_dtype  # type: ignore [assignment]
 
 
 @pytest.mark.parametrize(

@@ -197,9 +197,6 @@ def _deserialize_component_stats(serialized_component_stats):
                 "name",
                 "nullable",
                 "unique",
-                # deserialize allow_duplicates property for backwards
-                # compatibility. Remove this for 0.8.0 release
-                "allow_duplicates",
                 "coerce",
                 "required",
                 "regex",

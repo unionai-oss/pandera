@@ -144,7 +144,7 @@ def test_check_strategy_continuous(data_type, data):
 
 
 def value_ranges(data_type: pa.DataType):
-    """Strategy to generate value range based on PandasDtype"""
+    """Strategy to generate value range based on the pandas datatype."""
     kwargs = dict(
         allow_nan=False,
         allow_infinity=False,
