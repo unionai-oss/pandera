@@ -11,7 +11,6 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Type, Union
 
 import numpy as np
