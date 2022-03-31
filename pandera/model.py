@@ -225,7 +225,7 @@ class SchemaModel(metaclass=_MetaSchema):
             columns,
             index=index,
             checks=cls.__dataframe_checks__,  # type: ignore
-            **kwargs,
+            **kwargs,  # type: ignore
         )
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore

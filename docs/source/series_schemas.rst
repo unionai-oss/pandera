@@ -27,7 +27,7 @@ The :class:`~pandera.schemas.SeriesSchema` class allows for the validation of pa
             pa.Check(lambda x: len(x) > 3, element_wise=True)
         ],
         nullable=False,
-        allow_duplicates=True,
+        unique=False,
         name="my_series")
 
     validated_series = schema.validate(
