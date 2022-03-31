@@ -105,7 +105,7 @@ specify the ``Record`` model as a row-wise type.
 
 .. note::
 
-    By combining``dtype=PydanticModel(...)`` and ``coerce=True``, pandera will
+    By combining ``dtype=PydanticModel(...)`` and ``coerce=True``, pandera will
     apply the pydantic model validation process to each row of the dataframe,
     converting the model back to a dictionary with the `BaseModel.dict()` method.
 
@@ -129,4 +129,4 @@ The equivalent pandera schema would look like this:
     ``PydanticModel`` might not scale well with larger datasets.
 
     **If you want to help benchmark**, consider
-    `contributing a benchmark script <https://github.com/pandera-dev/pandera/issues/794>``
+    `contributing a benchmark script <https://github.com/pandera-dev/pandera/issues/794>`__
