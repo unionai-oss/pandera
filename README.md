@@ -3,7 +3,9 @@
 
 <hr>
 
-*A dataframe validation library for scientists, engineers, and analysts seeking
+# A Statistical Data Testing Toolkit
+
+*A data validation library for scientists, engineers, and analysts seeking
 correctness.*
 
 <br>

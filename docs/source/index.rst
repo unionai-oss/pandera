@@ -1,9 +1,9 @@
 .. pandera documentation master file
 
-A Statistical DataFrame Testing Toolkit
+A Statistical Data Testing Toolkit
 =======================================
 
-*A dataframe validation library for scientists, engineers, and analysts seeking
+*A data validation library for scientists, engineers, and analysts seeking
 correctness.*
 
 
