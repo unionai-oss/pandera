@@ -149,6 +149,10 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self.error_counts = error_counts
         self.failure_cases = failure_cases
         self.data = data
+    
+    @property
+    def schema(self):
+        return self.schema_errors[0]["error"].schema
 
     @staticmethod
     def _message(error_counts, schema_errors):
