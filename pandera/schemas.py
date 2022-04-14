@@ -579,7 +579,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 is_schema_col = column in expanded_column_names
                 if (self.strict is True) and not is_schema_col:
                     msg = (
-                        f"column '{column}' not in DataFrameSchema"
+                        f"column '{column}' not in {self.__class__.__name__}"
                         f" {self.columns}"
                     )
                     error_handler.collect_error(
@@ -970,7 +970,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         schema_copy = copy.deepcopy(self)
         schema_copy.columns = {
             **schema_copy.columns,
-            **DataFrameSchema(extra_schema_cols).columns,
+            **self.__class__(extra_schema_cols).columns,
         }
         return schema_copy
 
