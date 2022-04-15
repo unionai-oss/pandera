@@ -140,11 +140,13 @@ class SchemaErrors(ReducedPickleExceptionBase):
 
     def __init__(
         self,
+        schema,
         schema_errors: List[Dict[str, Any]],
         data: Union[pd.Series, pd.DataFrame],
     ):
         error_counts, failure_cases = self._parse_schema_errors(schema_errors)
         super().__init__(self._message(error_counts, failure_cases))
+        self.schema = schema
         self.schema_errors = schema_errors
         self.error_counts = error_counts
         self.failure_cases = failure_cases
