@@ -13,6 +13,7 @@ good-names=
     k,
     v,
     fp,
+    bar,
     _IS_INFERRED,
 
 [MESSAGES CONTROL]
