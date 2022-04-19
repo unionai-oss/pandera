@@ -9,8 +9,8 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.errors import SchemaError, SchemaInitError
 import pandera.extensions as pax
+from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
 
 
@@ -1036,6 +1036,7 @@ def test_generic_no_generic_fields() -> None:
 
     class GenericModel(pa.SchemaModel, Generic[T]):
         x: Series[int]
+
     GenericModel.to_schema()
 
 
@@ -1051,10 +1052,12 @@ def test_generic_model_single_generic_field() -> None:
 
     class IntModel(GenericModel[int]):
         ...
+
     IntModel.to_schema()
 
     class FloatModel(GenericModel[float]):
         ...
+
     FloatModel.to_schema()
 
     IntModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}))
@@ -1075,13 +1078,17 @@ def test_generic_optional_field() -> None:
 
     class IntYModel(GenericModel[int]):
         ...
+
     IntYModel.validate(pd.DataFrame({"x": [1, 2, 3]}))
     IntYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}))
     with pytest.raises(SchemaError):
-        IntYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]}))
+        IntYModel.validate(
+            pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]})
+        )
 
     class FloatYModel(GenericModel[float]):
         ...
+
     FloatYModel.validate(pd.DataFrame({"x": [1, 2, 3]}))
     with pytest.raises(SchemaError):
         FloatYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}))
@@ -1100,25 +1107,47 @@ def test_generic_model_multiple_inheritance() -> None:
 
     class IntYFloatZModel(GenericYModel[int], GenericZModel[float]):
         ...
+
     IntYFloatZModel.to_schema()
-    IntYFloatZModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
+    IntYFloatZModel.validate(
+        pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
+    )
     with pytest.raises(SchemaError):
-        IntYFloatZModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
+        IntYFloatZModel.validate(
+            pd.DataFrame(
+                {"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}
+            )
+        )
     with pytest.raises(SchemaError):
-        IntYFloatZModel.validate(pd.DataFrame({"x": ["a", "b", "c"], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
+        IntYFloatZModel.validate(
+            pd.DataFrame(
+                {"x": ["a", "b", "c"], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}
+            )
+        )
 
     class FloatYIntZModel(GenericYModel[float], GenericZModel[int]):
         ...
+
     FloatYIntZModel.to_schema()
     with pytest.raises(SchemaError):
-        FloatYIntZModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
-    FloatYIntZModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
+        FloatYIntZModel.validate(
+            pd.DataFrame(
+                {"x": [1, 2, 3], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}
+            )
+        )
+    FloatYIntZModel.validate(
+        pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
+    )
     with pytest.raises(SchemaError):
-        FloatYIntZModel.validate(pd.DataFrame({"x": ["a", "b", "c"], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
+        FloatYIntZModel.validate(
+            pd.DataFrame(
+                {"x": ["a", "b", "c"], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}
+            )
+        )
 
 
 def test_multiple_generic() -> None:
-    """Test that a generic schema with multiple types is handled correctly """
+    """Test that a generic schema with multiple types is handled correctly"""
     T1 = TypeVar("T1", int, float, str)
     T2 = TypeVar("T2", int, float, str)
 
@@ -1128,18 +1157,28 @@ def test_multiple_generic() -> None:
 
     class IntYFloatZModel(GenericModel[int, float]):
         ...
+
     IntYFloatZModel.to_schema()
     IntYFloatZModel.to_schema()
-    IntYFloatZModel.validate(pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
+    IntYFloatZModel.validate(
+        pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
+    )
     with pytest.raises(SchemaError):
-        IntYFloatZModel.validate(pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
+        IntYFloatZModel.validate(
+            pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
+        )
 
     class FloatYIntZModel(GenericModel[float, int]):
         ...
+
     FloatYIntZModel.to_schema()
     with pytest.raises(SchemaError):
-        FloatYIntZModel.validate(pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
-    FloatYIntZModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
+        FloatYIntZModel.validate(
+            pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
+        )
+    FloatYIntZModel.validate(
+        pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
+    )
 
 
 def test_repeated_generic() -> None:
@@ -1154,11 +1193,17 @@ def test_repeated_generic() -> None:
 
     class IntYGenericZModel(GenericYZModel[int, T3], Generic[T3]):
         ...
+
     with pytest.raises(SchemaInitError):
         IntYGenericZModel.to_schema()
 
     class IntYFloatZModel(IntYGenericZModel[float]):
         ...
-    IntYFloatZModel.validate(pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
+
+    IntYFloatZModel.validate(
+        pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
+    )
     with pytest.raises(SchemaError):
-        IntYFloatZModel.validate(pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
+        IntYFloatZModel.validate(
+            pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
+        )
