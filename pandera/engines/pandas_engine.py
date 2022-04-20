@@ -11,7 +11,7 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -595,39 +595,46 @@ class DateTime(DataType, dtypes.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
+    @staticmethod
+    def _get_to_datetime_fn(obj: Any) -> Callable:
+
+        # NOTE: this is a hack to support pyspark.pandas. This needs to be
+        # thoroughly tested, right now pyspark.pandas returns NA when a
+        # dtype value can't be coerced into the target dtype.
+        to_datetime_fn = pd.to_datetime
+        if type(obj).__module__.startswith(
+            "pyspark.pandas"
+        ):  # pragma: no cover
+            # pylint: disable=import-outside-toplevel
+            import pyspark.pandas as ps
+
+            to_datetime_fn = ps.to_datetime
+        if type(obj).__module__.startswith("modin.pandas"):
+            # pylint: disable=import-outside-toplevel
+            import modin.pandas as mpd
+
+            to_datetime_fn = mpd.to_datetime
+
+        return to_datetime_fn
+
     def coerce(self, data_container: PandasObject) -> PandasObject:
-        def _to_datetime(col: pd.Series) -> pd.Series:
-            # NOTE: this is a hack to support pyspark.pandas. This needs to be
-            # thoroughly tested, right now pyspark.pandas returns NA when a
-            # dtype value can't be coerced into the target dtype.
-            to_datetime_fn = pd.to_datetime
-            if type(col).__module__.startswith(
-                "pyspark.pandas"
-            ):  # pragma: no cover
-                # pylint: disable=import-outside-toplevel
-                import pyspark.pandas as ps
+        to_datetime_fn = self._get_to_datetime_fn(data_container)
 
-                to_datetime_fn = ps.to_datetime
-            if type(col).__module__.startswith("modin.pandas"):
-                # pylint: disable=import-outside-toplevel
-                import modin.pandas as mpd
-
-                to_datetime_fn = mpd.to_datetime
-
+        def _to_datetime(col: PandasObject) -> PandasObject:
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
             return col.astype(self.type)
 
         if isinstance(data_container, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
             # We actually want to coerce every columns.
-            return data_container.transform(_to_datetime)
+            return data_container.transform(to_datetime_fn)
         return _to_datetime(data_container)
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
-        if value is pd.NaT:
-            return value
-        return super().coerce_value(value)
+        return self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
