@@ -134,6 +134,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
     """Raised when multiple schema are lazily collected into one error."""
 
     TO_STRING_KEYS = [
+        "schema",
         "failure_cases",
         "data",
     ]
