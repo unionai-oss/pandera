@@ -12,18 +12,7 @@ import datetime
 import decimal
 import inspect
 import warnings
-from enum import Enum
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -694,39 +683,46 @@ class DateTime(DataType, dtypes.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
+    @staticmethod
+    def _get_to_datetime_fn(obj: Any) -> Callable:
+
+        # NOTE: this is a hack to support pyspark.pandas. This needs to be
+        # thoroughly tested, right now pyspark.pandas returns NA when a
+        # dtype value can't be coerced into the target dtype.
+        to_datetime_fn = pd.to_datetime
+        if type(obj).__module__.startswith(
+            "pyspark.pandas"
+        ):  # pragma: no cover
+            # pylint: disable=import-outside-toplevel
+            import pyspark.pandas as ps
+
+            to_datetime_fn = ps.to_datetime
+        if type(obj).__module__.startswith("modin.pandas"):
+            # pylint: disable=import-outside-toplevel
+            import modin.pandas as mpd
+
+            to_datetime_fn = mpd.to_datetime
+
+        return to_datetime_fn
+
     def coerce(self, data_container: PandasObject) -> PandasObject:
-        def _to_datetime(col: pd.Series) -> pd.Series:
-            # NOTE: this is a hack to support pyspark.pandas. This needs to be
-            # thoroughly tested, right now pyspark.pandas returns NA when a
-            # dtype value can't be coerced into the target dtype.
-            to_datetime_fn = pd.to_datetime
-            if type(col).__module__.startswith(
-                "pyspark.pandas"
-            ):  # pragma: no cover
-                # pylint: disable=import-outside-toplevel
-                import pyspark.pandas as ps
+        to_datetime_fn = self._get_to_datetime_fn(data_container)
 
-                to_datetime_fn = ps.to_datetime
-            if type(col).__module__.startswith("modin.pandas"):
-                # pylint: disable=import-outside-toplevel
-                import modin.pandas as mpd
-
-                to_datetime_fn = mpd.to_datetime
-
+        def _to_datetime(col: PandasObject) -> PandasObject:
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
             return col.astype(self.type)
 
         if isinstance(data_container, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
             # We actually want to coerce every columns.
-            return data_container.transform(_to_datetime)
+            return data_container.transform(to_datetime_fn)
         return _to_datetime(data_container)
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
-        if value is pd.NaT:
-            return value
-        return super().coerce_value(value)
+        return self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
@@ -901,107 +897,3 @@ class PydanticModel(DataType):
                 ),
             )
         return coerced_df.drop(["failure_cases"], axis="columns")
-
-
-class PandasDtype(Enum):
-    # pylint: disable=line-too-long,invalid-name
-    """Enumerate all valid pandas data types.
-
-    This class simply enumerates the valid numpy dtypes for pandas arrays.
-    For convenience ``PandasDtype`` enums can all be accessed in the top-level
-    ``pandera`` name space via the same enum name.
-
-    .. warning::
-
-        This class is deprecated and will be removed in pandera v0.9.0. Use
-        python types, pandas type string aliases, numpy dtypes, or pandas
-        dtypes instead. See :ref:`dtypes` for details.
-
-    :examples:
-
-    >>> import pandas as pd
-    >>> import pandera as pa
-    >>>
-    >>>
-    >>> pa.SeriesSchema(pa.PandasDtype.Int).validate(pd.Series([1, 2, 3]))
-    0    1
-    1    2
-    2    3
-    dtype: int64
-    >>> pa.SeriesSchema(pa.PandasDtype.Float).validate(pd.Series([1.1, 2.3, 3.4]))
-    0    1.1
-    1    2.3
-    2    3.4
-    dtype: float64
-    >>> pa.SeriesSchema(pa.PandasDtype.String).validate(pd.Series(["a", "b", "c"]))
-    0    a
-    1    b
-    2    c
-    dtype: object
-
-    """
-
-    # numpy data types
-    Bool = "bool"  #: ``"bool"`` numpy dtype
-    DateTime = "datetime64"  #: ``"datetime64[ns]"`` numpy dtype
-    Timedelta = "timedelta64"  #: ``"timedelta64[ns]"`` numpy dtype
-    Float = "float"  #: ``"float"`` numpy dtype
-    Float16 = "float16"  #: ``"float16"`` numpy dtype
-    Float32 = "float32"  #: ``"float32"`` numpy dtype
-    Float64 = "float64"  #: ``"float64"`` numpy dtype
-    Int = "int"  #: ``"int"`` numpy dtype
-    Int8 = "int8"  #: ``"int8"`` numpy dtype
-    Int16 = "int16"  #: ``"int16"`` numpy dtype
-    Int32 = "int32"  #: ``"int32"`` numpy dtype
-    Int64 = "int64"  #: ``"int64"`` numpy dtype
-    UInt8 = "uint8"  #: ``"uint8"`` numpy dtype
-    UInt16 = "uint16"  #: ``"uint16"`` numpy dtype
-    UInt32 = "uint32"  #: ``"uint32"`` numpy dtype
-    UInt64 = "uint64"  #: ``"uint64"`` numpy dtype
-    Object = "object"  #: ``"object"`` numpy dtype
-    Complex = "complex"  #: ``"complex"`` numpy dtype
-    Complex64 = "complex64"  #: ``"complex"`` numpy dtype
-    Complex128 = "complex128"  #: ``"complex"`` numpy dtype
-    Complex256 = "complex256"  #: ``"complex"`` numpy dtype
-
-    # pandas data types
-    Category = "category"  #: pandas ``"categorical"`` datatype
-    INT8 = "Int8"  #: ``"Int8"`` pandas dtype:: pandas 0.24.0+
-    INT16 = "Int16"  #: ``"Int16"`` pandas dtype: pandas 0.24.0+
-    INT32 = "Int32"  #: ``"Int32"`` pandas dtype: pandas 0.24.0+
-    INT64 = "Int64"  #: ``"Int64"`` pandas dtype: pandas 0.24.0+
-    FLOAT32 = "Float32"  #: ``"Float32"`` pandas dtype: pandas 1.2.0+
-    FLOAT64 = "Float64"  #: ``"Float64"`` pandas dtype: pandas 1.2.0+
-    UINT8 = "UInt8"  #: ``"UInt8"`` pandas dtype: pandas 0.24.0+
-    UINT16 = "UInt16"  #: ``"UInt16"`` pandas dtype: pandas 0.24.0+
-    UINT32 = "UInt32"  #: ``"UInt32"`` pandas dtype: pandas 0.24.0+
-    UINT64 = "UInt64"  #: ``"UInt64"`` pandas dtype: pandas 0.24.0+
-    String = "str"  #: ``"str"`` numpy dtype
-
-    #: ``"string"`` pandas dtypes: pandas 1.0.0+. For <1.0.0, this enum will
-    #: fall back on the str-as-object-array representation.
-    STRING = "string"
-
-
-# NOTE: This is a hack to raise a deprecation warning to show for users who
-# are still using the PandasDtype enum.
-# pylint:disable=invalid-name
-class __PandasDtype__:
-    def __init__(self):
-        self.pandas_dtypes = PandasDtype
-
-    def __getattr__(self, name):
-        warnings.warn(
-            "The PandasDtype class is deprecated and will be removed in "
-            "pandera v0.9.0. Use python types, pandas type string aliases, "
-            "numpy dtypes, or pandas dtypes instead.",
-            DeprecationWarning,
-        )
-        return Engine.dtype(getattr(self.pandas_dtypes, name).value)
-
-    def __iter__(self):
-        for k in self.pandas_dtypes:
-            yield k.name
-
-
-_PandasDtype = __PandasDtype__()

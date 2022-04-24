@@ -20,7 +20,7 @@ class Validate:
                     Check(lambda x: len(x) > 3, element_wise=True)
                     ],
                 nullable=False,
-                allow_duplicates=True,
+                unique=False,
                 name="my_series")
         self.series = pd.Series(["foobar", "foobar", "foobar"],
                                 name="my_series")

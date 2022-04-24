@@ -1,9 +1,9 @@
 .. pandera documentation master file
 
-A Statistical DataFrame Testing Toolkit
+A Statistical Data Testing Toolkit
 =======================================
 
-*A dataframe validation library for scientists, engineers, and analysts seeking
+*A data validation library for scientists, engineers, and analysts seeking
 correctness.*
 
 
@@ -94,8 +94,8 @@ settings. With ``pandera``, you can:
 #. :ref:`Lazily Validate<lazy_validation>` dataframes so that all validation
    rules are executed before raising an error.
 #. :ref:`Integrate <integrations>` with a rich ecosystem of python tools like
-   `pydantic <https://pydantic-docs.helpmanual.io/>`_ and
-   `mypy <http://mypy-lang.org/>`_.
+   `pydantic <https://pydantic-docs.helpmanual.io/>`_,
+   `fastapi <https://fastapi.tiangolo.com/>`_ and `mypy <http://mypy-lang.org/>`_.
 
 
 .. _installation:

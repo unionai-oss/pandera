@@ -26,7 +26,7 @@ the goal of interoperating with libraries that you know and love.
     :caption: Introduction
     :hidden:
 
-    FastAPI ⭐️ (New) <fastapi>
+    FastAPI <fastapi>
     Frictionless <frictionless>
     Hypothesis <data_synthesis_strategies>
     Mypy <mypy_integration>

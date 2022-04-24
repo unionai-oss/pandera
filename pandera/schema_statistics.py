@@ -114,6 +114,7 @@ def _get_series_base_schema_statistics(series_schema_base):
         "checks": parse_checks(series_schema_base.checks),
         "coerce": series_schema_base.coerce,
         "name": series_schema_base.name,
+        "unique": series_schema_base.unique,
     }
 
 

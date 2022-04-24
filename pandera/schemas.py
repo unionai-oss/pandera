@@ -13,10 +13,10 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Dict,
     List,
     Optional,
+    Type,
     TypeVar,
     Union,
     cast,
@@ -29,7 +29,6 @@ import pandas as pd
 from . import check_utils, errors
 from . import strategies as st
 from .checks import Check
-from .deprecations import deprecate_pandas_dtype
 from .dtypes import DataType
 from .engines import pandas_engine
 from .error_formatters import (
@@ -57,6 +56,7 @@ PandasDtypeInputTypes = Union[
     str,
     type,
     DataType,
+    Type,
     pd.core.dtypes.base.ExtensionDtype,
     np.dtype,
     None,
@@ -87,19 +87,16 @@ def _inferred_schema_guard(method):
 class DataFrameSchema:  # pylint: disable=too-many-public-methods
     """A light-weight pandas DataFrame validator."""
 
-    @deprecate_pandas_dtype
     def __init__(
         self,
-        columns: Optional[Dict[str, Column]] = None,
+        columns: Optional[Dict[Any, Column]] = None,
         checks: CheckList = None,
         index=None,
         dtype: PandasDtypeInputTypes = None,
-        transformer: Callable = None,
         coerce: bool = False,
         strict: Union[bool, str] = False,
         name: Optional[str] = None,
         ordered: bool = False,
-        pandas_dtype: PandasDtypeInputTypes = None,
         unique: Optional[Union[str, List[str]]] = None,
         unique_column_names: bool = False,
         title: Optional[str] = None,
@@ -117,17 +114,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             types specified in any of the columns. If a string is specified,
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes.
-        :param transformer: a callable with signature:
-            pandas.DataFrame -> pandas.DataFrame. If specified, calling
-            `validate` will verify properties of the columns and return the
-            transformed dataframe object.
-
-            .. warning:: This feature is deprecated and no longer has an effect
-                on validated dataframes.
-
         :param coerce: whether or not to coerce all of the columns on
             validation. This has no effect on columns where
-            ``pandas_dtype=None``
+            ``dtype=None``
         :param strict: ensure that all and only the columns defined in the
             schema are present in the dataframe. If set to 'filter',
             only the columns in the schema will be passed to the validated
@@ -135,18 +124,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             are not present in the dataframe, will throw an error.
         :param name: name of the schema.
         :param ordered: whether or not to validate the columns order.
-        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
-
-            .. warning:: This option will be deprecated in 0.8.0
-
         :param unique: a list of columns that should be jointly unique.
         :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
 
         :raises SchemaInitError: if impossible to build schema from parameters
-        :raises SchemaInitError: if ``dtype`` and ``pandas_dtype`` are both
-            supplied.
 
         :examples:
 
@@ -186,16 +169,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         self.columns: Dict[Any, Column] = {} if columns is None else columns
 
-        if transformer is not None:
-            warnings.warn(
-                "The `transformers` argument has been deprecated and will no "
-                "longer have any effect on validated dataframes. To achieve "
-                "the same goal, you can apply the function to the validated "
-                "data with `transformer(schema(df))` or "
-                "`schema(df).pipe(transformer)`",
-                DeprecationWarning,
-            )
-
         if strict not in (
             False,
             True,
@@ -210,7 +183,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self.index = index
         self.strict: Union[bool, str] = strict
         self.name: Optional[str] = name
-        self.dtype: PandasDtypeInputTypes = dtype or pandas_dtype  # type: ignore
+        self.dtype: PandasDtypeInputTypes = dtype  # type: ignore
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
@@ -606,7 +579,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 is_schema_col = column in expanded_column_names
                 if (self.strict is True) and not is_schema_col:
                     msg = (
-                        f"column '{column}' not in DataFrameSchema"
+                        f"column '{column}' not in {self.__class__.__name__}"
                         f" {self.columns}"
                     )
                     error_handler.collect_error(
@@ -997,7 +970,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         schema_copy = copy.deepcopy(self)
         schema_copy.columns = {
             **schema_copy.columns,
-            **DataFrameSchema(extra_schema_cols).columns,
+            **self.__class__(extra_schema_cols).columns,
         }
         return schema_copy
 
@@ -1164,9 +1137,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False
         )>
-
-        .. note:: This is the successor to the ``update_column`` method, which
-            will be deprecated.
 
         """
 
@@ -1692,17 +1662,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 class SeriesSchemaBase:
     """Base series validator object."""
 
-    @deprecate_pandas_dtype
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
         unique: bool = False,
-        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         name: Any = None,
-        pandas_dtype: PandasDtypeInputTypes = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -1720,22 +1687,10 @@ class SeriesSchemaBase:
         :param nullable: Whether or not column can contain null values.
         :param unique: Whether or not column can contain duplicate
             values.
-        :param allow_duplicates: Whether or not column can contain duplicate
-            values.
-
-        .. warning::
-
-            This option will be deprecated in 0.8.0. Use the ``unique``
-            argument instead.
-
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
         :param name: column name in dataframe to validate.
-        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
-
-            .. warning:: This option will be deprecated in 0.8.0
-
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
         :type nullable: bool
@@ -1745,17 +1700,7 @@ class SeriesSchemaBase:
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        if allow_duplicates is not None:
-            warnings.warn(
-                "The `allow_duplicates` will be deprecated in "
-                "favor of the `unique` keyword. The value of "
-                "`unique` will be set to the opposite of "
-                "the `allow_duplicates` keyword.",
-                DeprecationWarning,
-            )
-            unique = not allow_duplicates
-
-        self.dtype = dtype or pandas_dtype  # type: ignore
+        self.dtype = dtype  # type: ignore
         self._nullable = nullable
         self._coerce = coerce
         self._checks = checks
@@ -1826,16 +1771,6 @@ class SeriesSchemaBase:
     def unique(self, value: bool) -> None:
         """Set unique attribute"""
         self._unique = value
-
-    @property
-    def allow_duplicates(self) -> bool:
-        """Whether to allow duplicate values."""
-        return not self._unique
-
-    @allow_duplicates.setter
-    def allow_duplicates(self, value: bool) -> None:
-        """Set allow_duplicates attribute."""
-        self._unique = not value
 
     @property
     def coerce(self) -> bool:
@@ -2186,7 +2121,6 @@ class SeriesSchemaBase:
 class SeriesSchema(SeriesSchemaBase):
     """Series validator."""
 
-    @deprecate_pandas_dtype
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
@@ -2194,10 +2128,8 @@ class SeriesSchema(SeriesSchemaBase):
         index=None,
         nullable: bool = False,
         unique: bool = False,
-        allow_duplicates: Optional[bool] = None,
         coerce: bool = False,
         name: str = None,
-        pandas_dtype: PandasDtypeInputTypes = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -2216,23 +2148,12 @@ class SeriesSchema(SeriesSchemaBase):
         :param nullable: Whether or not column can contain null values.
         :param unique: Whether or not column can contain duplicate
             values.
-        :param allow_duplicates: Whether or not column can contain duplicate
-            values.
-
-        .. warning::
-
-            This option will be deprecated in 0.8.0. Use the ``unique``
-            argument instead.
-
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
-            where ``pandas_dtype=None``.
+            where ``dtype=None``.
         :param name: series name.
-        :param pandas_dtype: alias of ``dtype`` for backwards compatibility.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
-
-            .. warning:: This option will be deprecated in 0.8.0
 
         """
         super().__init__(
@@ -2240,10 +2161,8 @@ class SeriesSchema(SeriesSchemaBase):
             checks,
             nullable,
             unique,
-            allow_duplicates,
             coerce,
             name,
-            pandas_dtype,
             title,
             description,
         )

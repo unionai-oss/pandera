@@ -119,18 +119,3 @@ Engines
    pandera.engines.engine.Engine
    pandera.engines.numpy_engine.Engine
    pandera.engines.pandas_engine.Engine
-
-
-PandasDtype Enum
-----------------
-
-.. warning::
-
-   This class deprecated and will be removed from the pandera API in ``0.9.0``
-
-.. autosummary::
-   :toctree: generated
-   :template: class.rst
-   :nosignatures:
-
-   pandera.engines.pandas_engine.PandasDtype

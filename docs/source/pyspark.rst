@@ -2,14 +2,14 @@
 
 .. _scaling_pyspark:
 
-Data Validation with Pyspark
-============================
+Data Validation with Pyspark ⭐️ (New)
+=======================================
 
-*new in 0.8.0*
+*new in 0.10.0*
 
 `Pyspark <https://spark.apache.org/docs/3.2.0/api/python/index.html>`__ is a
 distributed compute framework that offers a pandas drop-in replacement dataframe
-implementation via the `pyspark.pandas API <https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/index.html>` .
+implementation via the `pyspark.pandas API <https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/index.html>`__ .
 You can use pandera to validate :py:func:`~pyspark.pandas.DataFrame`
 and :py:func:`~pyspark.pandas.Series` objects directly. First, install
 ``pandera`` with the ``dask`` extra:
