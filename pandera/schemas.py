@@ -2077,7 +2077,7 @@ class SeriesSchemaBase:
 
         check_results = []
         if check_utils.is_field(check_obj):
-            check_obj, check_args = series, [None]
+            check_args = [None]
         else:
             check_args = [self.name]  # type: ignore
 

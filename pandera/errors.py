@@ -88,6 +88,7 @@ class SchemaError(ReducedPickleExceptionBase):
         "failure_cases",
         "check",
         "check_output",
+        "reason_code",
     ]
 
     def __init__(
@@ -99,6 +100,7 @@ class SchemaError(ReducedPickleExceptionBase):
         check=None,
         check_index=None,
         check_output=None,
+        reason_code=None,
     ):
         super().__init__(message)
         self.schema = schema
@@ -107,6 +109,7 @@ class SchemaError(ReducedPickleExceptionBase):
         self.check = check
         self.check_index = check_index
         self.check_output = check_output
+        self.reason_code = reason_code
 
 
 class BaseStrategyOnlyError(Exception):

@@ -15,7 +15,7 @@ from pandera.checks import Check
 from pandera.dtypes import DataType
 
 
-class BaseSchemaBackend(ABC):
+class BaseSchema(ABC):
     """Abstract base class for a schema backend implementation."""
 
     def preprocess(
@@ -84,7 +84,7 @@ class BaseSchemaBackend(ABC):
         pass
 
 
-class BaseCheckBackend(ABC):
+class BaseCheck(ABC):
     """Abstract base class for a check backend implementation."""
 
     def query(self, check_obj):
