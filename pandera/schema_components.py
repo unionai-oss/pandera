@@ -582,7 +582,9 @@ class MultiIndex(DataFrameSchema):
                 coerced_multi_index[index_level] = index_array
 
         if error_handler.collected_errors:
-            raise errors.SchemaErrors(error_handler.collected_errors, obj)
+            raise errors.SchemaErrors(
+                self, error_handler.collected_errors, obj
+            )
 
         multiindex_cls = pd.MultiIndex
         # NOTE: this is a hack to support pyspark.pandas
@@ -715,7 +717,7 @@ class MultiIndex(DataFrameSchema):
                 schema_error_dict["error"] = error
                 schema_error_dicts.append(schema_error_dict)
 
-            raise errors.SchemaErrors(schema_error_dicts, check_obj)
+            raise errors.SchemaErrors(self, schema_error_dicts, check_obj)
 
         assert check_utils.is_table(validation_result)
         return check_obj
