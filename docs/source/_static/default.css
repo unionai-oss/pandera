@@ -35,7 +35,9 @@ div.sponsorship {
 }
 
 .sponsorship button {
-  border: 1px solid #dcdcdc;
+  background: var(--color-code-background);
+  border: 1px solid var(--color-sidebar-background-border);
+  color: var(--color-code-foreground);
   width: auto;
   height: 40px;
   width: 100px;
@@ -53,6 +55,7 @@ div.sponsorship {
 
 .rst-versions.rst-badge {
   bottom: 75px !important;
+  max-width: fit-content !important;
 }
 
 /* tabbed content */
