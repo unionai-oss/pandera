@@ -31,17 +31,20 @@ def test_pandas_data_type(data_type):
 
 
 @pytest.mark.parametrize(
-    "data_type", list(pandas_engine.Engine.get_registered_dtypes())
+    "data_type_cls", list(pandas_engine.Engine.get_registered_dtypes())
 )
-def test_pandas_data_type_coerce(data_type):
+def test_pandas_data_type_coerce(data_type_cls):
     """
     Test that pandas data type coercion will raise a ParserError. on failure.
     """
-    if data_type.type is None:
-        # don't test data types that require parameters e.g. Category
-        return
     try:
-        data_type().try_coerce(pd.Series(["1", "2", "a"]))
+        data_type = data_type_cls()
+    except TypeError:
+        # don't test data types that require parameters
+        return
+
+    try:
+        data_type.try_coerce(pd.Series(["1", "2", "a"]))
     except ParserError as exc:
         assert exc.failure_cases.shape[0] > 0
 
