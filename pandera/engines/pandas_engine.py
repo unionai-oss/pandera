@@ -41,7 +41,9 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 
-def is_extension_dtype(pd_dtype: PandasDataType) -> bool:
+def is_extension_dtype(
+    pd_dtype: PandasDataType,
+) -> Union[bool, Iterable[bool]]:
     """Check if a value is a pandas extension type or instance of one."""
     return isinstance(pd_dtype, PandasExtensionType) or (
         isinstance(pd_dtype, type)
@@ -89,19 +91,32 @@ class DataType(dtypes.DataType):
 
     def try_coerce(self, data_container: PandasObject) -> PandasObject:
         try:
-            return self.coerce(data_container)
+            coerced = self.coerce(data_container)
+            if type(data_container).__module__.startswith("modin.pandas"):
+                # NOTE: this is a hack to enable catching of errors in modin
+                coerced.__str__()
         except Exception as exc:  # pylint:disable=broad-except
             if isinstance(exc, errors.ParserError):
                 raise
+            if self.type != np.dtype("object") and self != numpy_engine.Object:
+                type_alias = self.type
+            else:
+                type_alias = str(self)
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
-                f"into type {self.type}",
+                f"into type {type_alias}",
                 failure_cases=utils.numpy_pandas_coerce_failure_cases(
                     data_container, self
                 ),
             ) from exc
 
-    def check(self, pandera_dtype: dtypes.DataType) -> bool:
+        return coerced
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PandasObject] = None,
+    ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
@@ -416,25 +431,32 @@ def _check_decimal(
     precision: Optional[int] = None,
     scale: Optional[int] = None,
 ) -> pd.Series:
+    series_cls = type(pandas_obj)  # support non-pandas series (modin, etc.)
+    if pandas_obj.isnull().all():
+        return series_cls(np.full_like(pandas_obj, True), dtype=np.bool_)
 
-    splitted = pandas_obj.astype("string").str.rpartition(".")
-    len_left = splitted[0].str.len()
-    len_right = splitted[2].str.len()
+    is_decimal = pandas_obj.apply(
+        lambda x: isinstance(x, decimal.Decimal)
+    ).astype("boolean") | pd.isnull(pandas_obj)
 
+    decimals = pandas_obj[is_decimal]
+    splitted = decimals.astype("string").str.split(".", n=1, expand=True)
+    len_left = splitted[0].str.len().fillna(0)
+    len_right = splitted[1].str.len().fillna(0)
     precisions = len_left + len_right
 
-    scales = pd.Series(np.full_like(pandas_obj, np.nan), dtype=np.object_)
+    scales = series_cls(
+        np.full_like(decimals, np.nan), dtype=np.object_, index=decimals.index
+    )
     pos_left = len_left > 0
     scales[pos_left] = len_right[pos_left]
     scales[~pos_left] = 0
 
-    is_valid = np.full_like(pandas_obj, True)
+    is_valid = is_decimal
     if precision is not None:
-        is_valid &= (precisions.isna()) | (precisions <= precision)
-
+        is_valid &= precisions <= precision
     if scale is not None:
-        is_valid &= (scales.isna()) | (scales <= scale)
-
+        is_valid &= scales <= scale
     return is_valid
 
 
@@ -450,10 +472,10 @@ class Decimal(DataType, dtypes.Decimal):
     rounding: str = dataclasses.field(
         default_factory=lambda: decimal.getcontext().rounding
     )
+    _exp: decimal.Decimal = dataclasses.field(init=False)
+    _ctx: decimal.Context = dataclasses.field(init=False)
 
-    is_logical = True
-
-    def __init__(
+    def __init__(  # pylint:disable=super-init-not-called
         self,
         precision: Optional[int] = DEFAULT_PYTHON_PREC,
         scale: Optional[int] = None,
@@ -461,26 +483,43 @@ class Decimal(DataType, dtypes.Decimal):
     ) -> None:
         dtypes.Decimal.__init__(self, precision, scale)
         object.__setattr__(self, "rounding", rounding)
+        object.__setattr__(
+            self, "_exp", _scale_to_exp(scale) if scale else None
+        )
+        object.__setattr__(
+            self,
+            "_ctx",
+            decimal.Context(prec=precision, rounding=self.rounding),
+        )
 
-    def coerce(self, data_container: PandasObject) -> PandasObject:
-        exp = _scale_to_exp(self.scale) if self.scale else None
+    def coerce_value(self, value: Any) -> decimal.Decimal:
+        """Coerce an value to a particular type."""
 
-        ctx = decimal.Context(prec=self.precision, rounding=self.rounding)
+        if pd.isna(value):
+            return pd.NA
 
-        def _to_decimal(raw_value: Any):
-            if pd.isna(raw_value):
-                return pd.NA
-            dec = decimal.Decimal(str(raw_value))
-            if exp:
-                return dec.quantize(exp, context=ctx)
-            return dec
+        dec = decimal.Decimal(str(value))
+        if self._exp:
+            return dec.quantize(self._exp, context=self._ctx)
+        print(dec)
+        return dec
 
-        return data_container.apply(_to_decimal)
+    def coerce(self, data_container: pd.Series) -> pd.Series:
+        return data_container.apply(self.coerce_value)
 
-    def check(self, data_container: PandasObject) -> Sequence[bool]:
-        data_type = Engine.dtype(data_container.dtype)
-        if not DataType.check(self, data_type):
+    def check(  # type: ignore
+        self,
+        pandera_dtype: DataType,
+        data_container: Optional[pd.Series] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        if type(data_container).__module__.startswith("pyspark.pandas"):
+            raise NotImplementedError(
+                "Decimal is not yet supported for pyspark."
+            )
+        if not super().check(pandera_dtype, data_container):
             return np.full_like(data_container, False)
+        if data_container is None:
+            return True
         return _check_decimal(
             data_container, precision=self.precision, scale=self.scale
         )
@@ -525,9 +564,6 @@ class Category(DataType, dtypes.Category):
             raise TypeError(
                 f"Data container cannot be coerced to type {self.type}"
             )
-        if type(data_container).__module__.startswith("modin.pandas"):
-            # NOTE: this is a hack to enable catching of errors in modin
-            coerced.__str__()
         return coerced
 
     def coerce_value(self, value: Any) -> Any:
@@ -613,7 +649,11 @@ class NpString(numpy_engine.String):
 
         return _to_str(data_container)
 
-    def check(self, pandera_dtype: dtypes.DataType) -> bool:
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PandasObject] = None,
+    ) -> Union[bool, Iterable[bool]]:
         return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
 
 

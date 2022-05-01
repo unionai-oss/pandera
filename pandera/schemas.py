@@ -1972,9 +1972,16 @@ class SeriesSchemaBase:
         if self._dtype is not None:
             failure_cases = None
 
-            if self._dtype.is_logical:
-                check_output = self._dtype.check(series)
-
+            check_output = self._dtype.check(
+                pandas_engine.Engine.dtype(series.dtype), series
+            )
+            if check_output is False:
+                failure_cases = scalar_failure_case(str(series.dtype))
+                msg = (
+                    f"expected series '{series.name}' to have type {self._dtype}, "
+                    + f"got {series.dtype}"
+                )
+            else:
                 _, failure_cases = check_utils.prepare_series_check_output(
                     series, check_output
                 )
@@ -1983,14 +1990,7 @@ class SeriesSchemaBase:
                     f"expected series '{series.name}' to have type {self._dtype}:\n"
                     f"failure cases:\n{reshaped_failure_cases}"
                 )
-            elif not self._dtype.check(
-                pandas_engine.Engine.dtype(series.dtype)
-            ):
-                failure_cases = scalar_failure_case(str(series.dtype))
-                msg = (
-                    f"expected series '{series.name}' to have type {self._dtype}, "
-                    + f"got {series.dtype}"
-                )
+
             if failure_cases is not None and not failure_cases.empty:
 
                 error_handler.collect_error(
