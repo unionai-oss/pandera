@@ -4,6 +4,8 @@ For backwards compatibility, pandas types are exposed to the top-level scope of
 the typing module.
 """
 
+from typing import Set, Type
+
 from . import dask, fastapi, geopandas, modin, pyspark
 from .common import (
     BOOL,
@@ -39,9 +41,9 @@ from .common import (
 )
 from .pandas import DataFrame, Index, Series
 
-DATAFRAME_TYPES = {DataFrame}
-SERIES_TYPES = {Series}
-INDEX_TYPES = {Index}
+DATAFRAME_TYPES: Set[Type] = {DataFrame}
+SERIES_TYPES: Set[Type] = {Series}
+INDEX_TYPES: Set[Type] = {Index}
 
 if dask.DASK_INSTALLED:
     DATAFRAME_TYPES.update({dask.DataFrame})

@@ -202,16 +202,11 @@ are also supported.
 As an example of a special-cased ``coerce_value`` implementation, see
 :meth:`~pandera.pandas_engine.Category.coerce_value`:
 
-```{literalinclude} ../../pandera/engines/pandas_engine.py
----
-lines: 446-452
----
-```
+
+.. literalinclude:: ../../pandera/engines/pandas_engine.py
+   :lines: 446-452
 
 And :meth:`~pandera.pandas_engine.BOOL.coerce_value`:
 
-```{literalinclude} ../../pandera/engines/pandas_engine.py
----
-lines: 208-214
----
-```
+.. literalinclude:: ../../pandera/engines/pandas_engine.py
+   :lines: 208-214

@@ -270,6 +270,22 @@ class TestSchemaErrors:
         assert exc_unpickled.failure_cases == str(exc_native.failure_cases)
         assert exc_unpickled.data == str(exc_native.data)
 
+    @staticmethod
+    def test_schema_property(int_dataframe: pd.DataFrame):
+        """Test for schema property access."""
+        schema = DataFrameSchema(
+            name="int_isin",
+            columns={
+                "a": Column(int, Check.isin([0, 1])),
+            },
+        )
+        try:
+            schema.validate(int_dataframe, lazy=True)
+        except SchemaErrors as exc:
+            assert exc.schema.name == "int_isin"
+        else:
+            pytest.fail("SchemaErrors not raised")
+
 
 @pytest.mark.filterwarnings("ignore:Pickling ParserError")
 def test_pickling_parser_error():

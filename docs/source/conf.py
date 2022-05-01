@@ -124,7 +124,6 @@ html_title = "pandera"
 # a list of builtin themes.
 #
 html_theme = "furo"
-pygments_style = "friendly"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -138,19 +137,9 @@ html_theme_options = {
         "color-brand-content": "#26b079",
         "color-api-highlight-on-target": "#e5fff5",
     },
-    # always use light theme, taken from:
-    # https://github.com/pradyunsg/furo/blob/main/src/furo/assets/styles/variables/_index.scss
     "dark_css_variables": {
-        "color-foreground-primary": "black",
-        "color-foreground-secondary": "#5a5c63",
-        "color-foreground-muted": "#72747e",
-        "color-foreground-border": "#878787",
-        "color-background-primary": "white",
-        "color-background-secondary": "#f8f9fb",
-        "color-background-hover": "#efeff4ff",
-        "color-background-hover--transparent": "#efeff400",
-        "color-background-border": "#eeebee",
-        "color-admonition-background": "transparent",
+        "color-brand-primary": "#26b079",
+        "color-brand-content": "#26b079",
         "color-api-highlight-on-target": "#e5fff5",
     },
 }

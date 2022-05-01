@@ -418,7 +418,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 obj.index = coerced_index
 
         if error_handler.collected_errors:
-            raise errors.SchemaErrors(error_handler.collected_errors, obj)
+            raise errors.SchemaErrors(
+                self, error_handler.collected_errors, obj
+            )
 
         return obj
 
@@ -767,7 +769,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
-                error_handler.collected_errors, check_obj
+                self, error_handler.collected_errors, check_obj
             )
 
         assert all(check_results), "all check results must be True."
@@ -2041,7 +2043,7 @@ class SeriesSchemaBase:
 
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
-                error_handler.collected_errors, check_obj
+                self, error_handler.collected_errors, check_obj
             )
 
         assert all(check_results)
@@ -2313,7 +2315,7 @@ class SeriesSchema(SeriesSchemaBase):
 
         if error_handler.collected_errors:
             raise errors.SchemaErrors(
-                error_handler.collected_errors, check_obj
+                self, error_handler.collected_errors, check_obj
             )
 
         return check_obj
