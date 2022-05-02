@@ -1077,7 +1077,7 @@ def test_lazy_dataframe_validation_error() -> None:
     }
 
     with pytest.raises(
-        errors.SchemaErrors, match="^A total of .+ schema errors were found"
+        errors.SchemaErrors, match="A total of .+ schema errors were found"
     ):
         schema.validate(dataframe, lazy=True)
 
