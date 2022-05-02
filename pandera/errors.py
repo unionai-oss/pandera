@@ -146,19 +146,18 @@ class SchemaErrors(ReducedPickleExceptionBase):
         data: Union[pd.Series, pd.DataFrame],
     ):
         error_counts, failure_cases = self._parse_schema_errors(schema_errors)
-        super().__init__(self._message(error_counts, failure_cases))
         self.schema = schema
+        super().__init__(self._message(error_counts, failure_cases))
         self.schema_errors = schema_errors
         self.error_counts = error_counts
         self.failure_cases = failure_cases
         self.data = data
 
-    @staticmethod
-    def _message(error_counts, schema_errors):
+    def _message(self, error_counts, schema_errors):
         """Format error message."""
         msg = (
-            f"A total of {sum(error_counts.values())} "
-            "schema errors were found.\n"
+            f"Schema {self.schema.name}: A total of "
+            f"{sum(error_counts.values())} schema errors were found.\n"
         )
 
         msg += "\nError Counts"
