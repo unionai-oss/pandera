@@ -1,3 +1,53 @@
 [tool.pyright]
 include = [ "pandera", "tests" ]
 exclude = [".nox/**", ".nox-*/**"]
+
+[tool.poetry]
+name = "pandera"
+version = "0.11.0"
+description = "A light-weight and flexible data validation and testing tool for dataframes."
+authors = ["Niels Bantilan <niels.bantilan@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = "^1.4.1"
+pydantic = "^1.9.0"
+wrapt = "^1.14.1"
+pyarrow = "^7.0.0"
+typing-inspect = "^0.7.1"
+
+scipy = { version = "*", optional = true }
+frictionless = { version = "*", optional = true }
+pyspark = { version = "*", optional = true }
+dask = { version = "*", optional = true }
+modin = { version = "^0.13.3", optional = true }
+ray = { version = "<=1.7.0", optional = true }
+pandas-stubs = { version = "*", optional = true }
+fastapi = { version = "*", optional = true }
+shapely = { version = "*", optional = true }
+geopandas = { version = "^0.10.1", optional = true }
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+Sphinx = "^4.5.0"
+hypothesis = "^6.46.1"
+PyYAML = "^6.0"
+mypy = "^0.950"
+types-PyYAML = "^6.0.7"
+pre-commit = "^2.18.1"
+
+[tool.poetry.extras]
+hypotheses = ["scipy"]
+io = ["frictionless"]
+pyspark = ["pyspark"]
+modin = ["modin", "ray", "dask"]
+modin-ray = ["modin", "ray"]
+modin-dask = ["modin", "dask"]
+dask = ["dask"]
+mypy = ["pandas-stubs"]
+fastapi = ["fastapi"]
+geopandas = ["geopandas", "shapely"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
