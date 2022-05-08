@@ -2,7 +2,6 @@
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
 from copy import deepcopy
-from decimal import Decimal  # pylint:disable=C0415
 from typing import Any, Generic, Iterable, Optional, TypeVar
 
 import pandas as pd
@@ -92,11 +91,14 @@ def test_invalid_annotations() -> None:
     with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
         Invalid.to_schema()
 
+    class DummyType:
+        pass
+
     class InvalidDtype(pa.SchemaModel):
-        d: Series[Decimal]  # type: ignore
+        d: Series[DummyType]  # type: ignore
 
     with pytest.raises(
-        TypeError, match="dtype '<class 'decimal.Decimal'>' not understood"
+        TypeError, match="dtype '<class '.*DummyType'>' not understood"
     ):
         InvalidDtype.to_schema()
 
