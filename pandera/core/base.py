@@ -5,116 +5,128 @@ data validation. These operations are exposed as methods that are composed
 together to implement the pandera schema specification.
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod, abstractproperty
 from functools import singledispatch
-from typing import Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 import pandas as pd
 
 from pandera.checks import Check
 from pandera.dtypes import DataType
 
+DtypeInputTypes = Union[str, type, DataType, Type]
+
 
 class BaseSchema(ABC):
-    """Abstract base class for a schema backend implementation."""
+    """Core schema specification."""
 
-    def preprocess(
+    def __init__(
         self,
-        check_obj,
-        name: str = None,
-        inplace: bool = False,
-    ):
-        pass
-
-    def subsample(
-        self,
-        check_obj,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-    ):
-        pass
-
-    def validate(
-        self,
-        check_obj,
+        dtype: DtypeInputTypes = None,
+        checks: List["BaseCheck"] = None,
+        coerce: bool = False,
         name: Optional[str] = None,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
     ):
-        pass
+        ...
 
-    def run_check(
-        self,
-        check_obj,
-        schema,
-        check,
-        check_index: int,
-        *args,
-    ):
-        pass
+    @abstractproperty
+    def checks(self):
+        ...
 
-    def run_checks(
-        self,
-        check_obj,
-        schema,
-        checks: Sequence[Check],
-        name: Optional[str] = None,
-    ):
-        pass
+    @abstractproperty
+    def name(self):
+        ...
 
-    def check_name(self, check_obj, name: Optional[str] = None):
-        pass
+    @abstractproperty
+    def dtype(self):
+        ...
 
-    def check_nullable(self, check_obj, nullable: bool = False):
-        pass
+    @abstractproperty
+    def coerce(self):
+        ...
 
-    def check_unique(self, check_obj, unique: bool = False):
-        pass
+    @abstractproperty
+    def title(self):
+        ...
 
-    def check_dtype(self, check_obj, dtype: DataType):
-        pass
+    @abstractproperty
+    def description(self):
+        ...
+
+    def validate(self):
+        ...
+
+    def coerce_dtype(self):
+        ...
+
+
+class BaseSchemaTransformsMixin(ABC):
+    """Core protocol for transforming a schema specification."""
+
+    def add_fields(self):
+        ...
+
+    def remove_fields(self):
+        ...
+
+    def update_field(self):
+        ...
+
+    def update_fields(self):
+        ...
+
+    def rename_fields(self):
+        ...
+
+    def select_fields(self):
+        ...
+
+    def set_index(self):
+        ...
+
+    def reset_index(self):
+        ...
+
+
+class BaseSchemaIOMixin(ABC):
+    """Core protocol for serializing/deserializing a schema."""
+
+    def to_script(self):
+        ...
+
+    def from_yaml(self):
+        ...
+
+    def to_yaml(self):
+        ...
+
+
+class BaseSchemaStrategyMixin(ABC):
+    """Core protocol for data generation strategies."""
 
     def strategy(self):
-        pass
+        ...
+
+    def example(self):
+        ...
+
+
+class BaseSchemaComponent(ABC):
+    """Core protocol for a schema """
+    ...
+
+class BaseSchemaModel(ABC):
+    """Base class for schemas defined as python classes"""
+    pass
 
 
 class BaseCheck(ABC):
-    """Abstract base class for a check backend implementation."""
+    """Core check specification."""
+    ...
 
-    def query(self, check_obj):
-        """Implements querying behavior to produce subset of check object."""
-        pass
 
-    def groupby(self, check_obj):
-        """Implements groupby behavior for check object."""
-        pass
-
-    def aggregate(self, check_obj):
-        """Implements aggregation behavior for check object."""
-        pass
-
-    def preprocess(self, check_obj, key):
-        """Preprocesses a check object before applying the check function."""
-        pass
-
-    def postprocess(self, check_obj):
-        """Postprocesses the result of applying the check function."""
-        pass
-
-    def __call__(self, check_obj):
-        """Apply the check function to a check object."""
-        pass
-
-    def statistics(self):
-        """Check statistics property."""
-        pass
-
-    def strategy(self):
-        """Return a data generation strategy."""
-        pass
+class BaseErrorFormatter(ABC):
+    """Core protocol for formatting schema errors."""
+    ...
