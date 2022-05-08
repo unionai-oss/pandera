@@ -2,7 +2,6 @@
 
 import os
 
-import modin.config as cfg
 import pytest
 
 # pylint: disable=unused-import
@@ -22,8 +21,6 @@ def setup_modin_engine(request):
     engine = request.param
     os.environ["MODIN_ENGINE"] = engine
     os.environ["MODIN_MEMORY"] = "100000000"
-
-    cfg.Engine.put(engine)
 
     if engine == "ray":
         # pylint: disable=import-outside-toplevel
