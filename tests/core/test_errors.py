@@ -9,6 +9,7 @@ The Exception contains full data and schema. Most Check objects are not picklabl
 DataFrames may be large. The signature of SchemaError needs special unpickling
 behavior.
 """
+import io
 import multiprocessing
 import pickle
 from typing import NoReturn, cast
@@ -283,6 +284,28 @@ class TestSchemaErrors:
             schema.validate(int_dataframe, lazy=True)
         except SchemaErrors as exc:
             assert exc.schema.name == "int_isin"
+        else:
+            pytest.fail("SchemaErrors not raised")
+
+    @staticmethod
+    def test_message_contains_schema_name(int_dataframe: pd.DataFrame):
+        """Test for schema property access."""
+        schema_name = "int_isin"
+        schema = DataFrameSchema(
+            name=schema_name,
+            columns={
+                "a": Column(int, Check.isin([0, 1])),
+            },
+        )
+        try:
+            schema.validate(int_dataframe, lazy=True)
+        except SchemaErrors as exc:
+            matched = False
+            for line in io.StringIO(str(exc)):
+                if line.startswith(f"Schema {schema.name}: A total of"):
+                    matched = True
+                    break
+            assert matched
         else:
             pytest.fail("SchemaErrors not raised")
 
