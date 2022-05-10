@@ -1,23 +1,18 @@
 import traceback
-
 from functools import singledispatchmethod
 from typing import Optional, Union
 
 import pandas as pd
 
+from pandera.backends.pandas.base import FieldCheckObj, PandasSchemaBackend
 from pandera.engines.pandas_engine import Engine
-from pandera.error_formatters import (
-    reshape_failure_cases,
-    scalar_failure_case,
-)
+from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import SchemaError, SchemaErrors
-from pandera.backends.pandas.base import PandasSchemaBackend, FieldCheckObj
 
 
-
+# TODO: remove generic notation
 class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
-
     @singledispatchmethod
     def preprocess(self, check_obj, name: str = None, inplace: bool = False):
         raise NotImplementedError
@@ -57,7 +52,7 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
             random_state,
         )
 
-        # used to validate checks, which may require container-level data access 
+        # used to validate checks, which may require container-level data access
         check_obj_subsample = self.subsample(
             check_obj, head, tail, sample, random_state
         )
@@ -86,7 +81,7 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
         return check_obj
 
     def check_name(self, check_obj: pd.Series, schema):
-        if schema.name is not None and check_obj.name == schema.name:
+        if schema.name is None or check_obj.name == schema.name:
             return
         raise SchemaError(
             schema=schema,
@@ -122,13 +117,13 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
     def check_unique(self, check_obj: pd.Series, schema):
         if not schema.unique:
             return
-        
+
         if type(check_obj).__module__.startswith("pyspark.pandas"):
             # pylint: disable=import-outside-toplevel
             import pyspark.pandas as ps
 
-            duplicates = check_obj.to_frame().duplicated().reindex(
-                check_obj.index
+            duplicates = (
+                check_obj.to_frame().duplicated().reindex(check_obj.index)
             )
             with ps.option_context("compute.ops_on_diff_frames", True):
                 failed = check_obj[duplicates]
@@ -197,7 +192,5 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
                 )
 
         if lazy and error_handler.collected_errors:
-            raise SchemaErrors(
-                error_handler.collected_errors, check_obj
-            )
+            raise SchemaErrors(error_handler.collected_errors, check_obj)
         return check_results

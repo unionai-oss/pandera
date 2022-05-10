@@ -6,7 +6,7 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC, abstractmethod, abstractproperty
-from functools import singledispatch
+from functools import singledispatch, wraps
 from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 import pandas as pd
@@ -22,6 +22,7 @@ class BaseSchema(ABC):
 
     def __init__(
         self,
+        fields: "BaseSchema" = None,
         dtype: DtypeInputTypes = None,
         checks: List["BaseCheck"] = None,
         coerce: bool = False,
@@ -31,28 +32,32 @@ class BaseSchema(ABC):
     ):
         ...
 
-    @abstractproperty
+    # @abstractproperty
     def checks(self):
         ...
 
-    @abstractproperty
+    # @abstractproperty
     def name(self):
         ...
 
-    @abstractproperty
+    # @abstractproperty
     def dtype(self):
         ...
 
-    @abstractproperty
+    # @abstractproperty
     def coerce(self):
         ...
 
-    @abstractproperty
+    # @abstractproperty
     def title(self):
         ...
 
-    @abstractproperty
+    # @abstractproperty
     def description(self):
+        ...
+
+    # @abstractproperty
+    def _allow_groupby(self) -> bool:
         ...
 
     def validate(self):
@@ -81,6 +86,9 @@ class BaseSchemaTransformsMixin(ABC):
         ...
 
     def select_fields(self):
+        ...
+
+    def update_checks(self):
         ...
 
     def set_index(self):
@@ -113,20 +121,38 @@ class BaseSchemaStrategyMixin(ABC):
         ...
 
 
-class BaseSchemaComponent(ABC):
-    """Core protocol for a schema """
-    ...
-
 class BaseSchemaModel(ABC):
     """Base class for schemas defined as python classes"""
-    pass
+
+    ...
 
 
 class BaseCheck(ABC):
     """Core check specification."""
+
     ...
 
 
 class BaseErrorFormatter(ABC):
     """Core protocol for formatting schema errors."""
+
     ...
+
+
+def inferred_schema_guard(method):
+    """
+    Invoking a method wrapped with this decorator will set _is_inferred to
+    False.
+    """
+
+    @wraps(method)
+    def wrapper(schema, *args, **kwargs):
+        new_schema = method(schema, *args, **kwargs)
+        if new_schema is not None and id(new_schema) != id(schema):
+            # if method returns a copy of the schema object,
+            # the original schema instance and the copy should be set to
+            # not inferred.
+            new_schema._is_inferred = False
+        return new_schema
+
+    return wrapper
