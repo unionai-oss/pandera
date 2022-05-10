@@ -1981,9 +1981,9 @@ class SeriesSchemaBase:
                     f"expected series '{series.name}' to have type {self._dtype}, "
                     + f"got {series.dtype}"
                 )
-            else:
+            elif not isinstance(check_output, bool):
                 _, failure_cases = check_utils.prepare_series_check_output(
-                    series, check_output
+                    series, pd.Series(check_output)
                 )
                 reshaped_failure_cases = reshape_failure_cases(failure_cases)
                 msg = (
