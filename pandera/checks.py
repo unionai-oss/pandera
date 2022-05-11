@@ -29,7 +29,6 @@ CheckResult = namedtuple(
     ["check_output", "check_passed", "checked_object", "failure_cases"],
 )
 
-
 GroupbyObject = Union[
     pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy
 ]
@@ -103,22 +102,22 @@ class _CheckBase(metaclass=_CheckMeta):
     """Check base class."""
 
     def __init__(
-        self,
-        check_fn: Union[
-            Callable[[pd.Series], Union[pd.Series, bool]],
-            Callable[[pd.DataFrame], Union[pd.DataFrame, pd.Series, bool]],
-        ],
-        groups: Optional[Union[str, List[str]]] = None,
-        groupby: Optional[Union[str, List[str], Callable]] = None,
-        ignore_na: bool = True,
-        element_wise: bool = False,
-        name: str = None,
-        error: Optional[str] = None,
-        raise_warning: bool = False,
-        n_failure_cases: Optional[int] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        **check_kwargs,
+            self,
+            check_fn: Union[
+                Callable[[pd.Series], Union[pd.Series, bool]],
+                Callable[[pd.DataFrame], Union[pd.DataFrame, pd.Series, bool]],
+            ],
+            groups: Optional[Union[str, List[str]]] = None,
+            groupby: Optional[Union[str, List[str], Callable]] = None,
+            ignore_na: bool = True,
+            element_wise: bool = False,
+            name: str = None,
+            error: Optional[str] = None,
+            raise_warning: bool = False,
+            n_failure_cases: Optional[int] = None,
+            title: Optional[str] = None,
+            description: Optional[str] = None,
+            **check_kwargs,
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
 
@@ -283,8 +282,8 @@ class _CheckBase(metaclass=_CheckMeta):
 
     @staticmethod
     def _format_groupby_input(
-        groupby_obj: GroupbyObject,
-        groups: Optional[List[str]],
+            groupby_obj: GroupbyObject,
+            groups: Optional[List[str]],
     ) -> Dict[str, Union[pd.Series, pd.DataFrame]]:
         """Format groupby object into dict of groups to Series or DataFrame.
 
@@ -308,9 +307,9 @@ class _CheckBase(metaclass=_CheckMeta):
         }
 
     def _prepare_series_input(
-        self,
-        df_or_series: Union[pd.Series, pd.DataFrame],
-        column: Optional[str] = None,
+            self,
+            df_or_series: Union[pd.Series, pd.DataFrame],
+            column: Optional[str] = None,
     ) -> SeriesCheckObj:
         """Prepare input for Column check.
 
@@ -339,7 +338,7 @@ class _CheckBase(metaclass=_CheckMeta):
         raise TypeError("Type %s not recognized for `groupby` argument.")
 
     def _prepare_dataframe_input(
-        self, dataframe: pd.DataFrame
+            self, dataframe: pd.DataFrame
     ) -> DataFrameCheckObj:
         """Prepare input for DataFrameSchema check.
 
@@ -353,9 +352,9 @@ class _CheckBase(metaclass=_CheckMeta):
         return self._format_groupby_input(groupby_obj, self.groups)
 
     def __call__(
-        self,
-        df_or_series: Union[pd.DataFrame, pd.Series],
-        column: Optional[str] = None,
+            self,
+            df_or_series: Union[pd.DataFrame, pd.Series],
+            column: Optional[str] = None,
     ) -> CheckResult:
         # pylint: disable=too-many-branches
         """Validate pandas DataFrame or Series.
@@ -381,7 +380,7 @@ class _CheckBase(metaclass=_CheckMeta):
         """
         # prepare check object
         if check_utils.is_field(df_or_series) or (
-            column is not None and check_utils.is_table(df_or_series)
+                column is not None and check_utils.is_table(df_or_series)
         ):
             check_obj = self._prepare_series_input(df_or_series, column)
         elif check_utils.is_table(df_or_series):
@@ -410,11 +409,11 @@ class _CheckBase(metaclass=_CheckMeta):
         # failure cases only apply when the check function returns a boolean
         # series that matches the shape and index of the check_obj
         if (
-            isinstance(check_obj, dict)
-            or isinstance(check_output, bool)
-            or not check_utils.is_supported_check_obj(check_output)
-            or check_obj.shape[0] != check_output.shape[0]
-            or (check_obj.index != check_output.index).all()
+                isinstance(check_obj, dict)
+                or isinstance(check_output, bool)
+                or not check_utils.is_supported_check_obj(check_output)
+                or check_obj.shape[0] != check_output.shape[0]
+                or (check_obj.index != check_output.index).all()
         ):
             failure_cases = None
         elif check_utils.is_field(check_output):
@@ -459,7 +458,7 @@ class _CheckBase(metaclass=_CheckMeta):
             return NotImplemented
 
         are_check_fn_objects_equal = (
-            self._get_check_fn_code() == other._get_check_fn_code()
+                self._get_check_fn_code() == other._get_check_fn_code()
         )
 
         try:
@@ -472,19 +471,19 @@ class _CheckBase(metaclass=_CheckMeta):
             are_strategy_fn_objects_equal = True
 
         are_all_other_check_attributes_equal = {
-            k: v
-            for k, v in self.__dict__.items()
-            if k not in ["_check_fn", "strategy"]
-        } == {
-            k: v
-            for k, v in other.__dict__.items()
-            if k not in ["_check_fn", "strategy"]
-        }
+                                                   k: v
+                                                   for k, v in self.__dict__.items()
+                                                   if k not in ["_check_fn", "strategy"]
+                                               } == {
+                                                   k: v
+                                                   for k, v in other.__dict__.items()
+                                                   if k not in ["_check_fn", "strategy"]
+                                               }
 
         return (
-            are_check_fn_objects_equal
-            and are_strategy_fn_objects_equal
-            and are_all_other_check_attributes_equal
+                are_check_fn_objects_equal
+                and are_strategy_fn_objects_equal
+                and are_all_other_check_attributes_equal
         )
 
     def _get_check_fn_code(self):
@@ -509,9 +508,9 @@ class _CheckBase(metaclass=_CheckMeta):
 
 
 def _check_kwargs(
-    kwargs: Dict[str, Any],
-    default_name: str,
-    default_error: str,
+        kwargs: Dict[str, Any],
+        default_name: str,
+        default_error: str,
 ) -> Dict[str, Any]:
     """Replace built-in check kwargs with customized name and error."""
     kwargs["name"] = kwargs.get("name", default_name)
@@ -722,7 +721,7 @@ class Check(_CheckBase):
         ["min_value", "max_value", "include_min", "include_max"]
     )
     def in_range(
-        cls, min_value, max_value, include_min=True, include_max=True, **kwargs
+            cls, min_value, max_value, include_min=True, include_max=True, **kwargs
     ) -> "Check":
         """Ensure all values of a series are within an interval.
 
@@ -747,7 +746,7 @@ class Check(_CheckBase):
         if max_value is None:
             raise ValueError("max_value must not be None")
         if max_value < min_value or (
-            min_value == max_value and (not include_min or not include_max)
+                min_value == max_value and (not include_min or not include_max)
         ):
             raise ValueError(
                 f"The combination of min_value = {min_value} and max_value = {max_value} "
@@ -979,7 +978,7 @@ class Check(_CheckBase):
     @st.register_check_strategy(st.str_length_strategy)
     @register_check_statistics(["min_value", "max_value"])
     def str_length(
-        cls, min_value: int = None, max_value: int = None, **kwargs
+            cls, min_value: int = None, max_value: int = None, **kwargs
     ) -> "Check":
         """Ensure that the length of strings is within a specified range.
 
@@ -1011,7 +1010,7 @@ class Check(_CheckBase):
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for both, minimum and maximum string length"""
                 return (series.str.len() <= max_value) & (
-                    series.str.len() >= min_value
+                        series.str.len() >= min_value
                 )
 
         return cls(
@@ -1020,5 +1019,45 @@ class Check(_CheckBase):
                 kwargs,
                 cls.str_length.__name__,
                 f"str_length({min_value}, {max_value})",
+            ),
+        )
+
+    @classmethod
+    @st.register_check_strategy(st.isin_strategy)
+    @register_check_statistics(["allowed_values"])
+    def mustbein(cls, allowed_values: Iterable, strip_white_space_series: bool = False, **kwargs) -> "Check":
+        """Ensure series contains all values of within a list. The series must contain all values from the list.
+
+        :param allowed_values: The set of values that must be present. May be any iterable.
+        :param strip_white_space_series: Whether to strip white space from the series (only applies if str).
+        :param kwargs: key-word arguments passed into the `Check` initializer.
+
+        :returns: :class:`Check` object
+
+        .. note::
+            It is checked whether all elements of a list passed in as allowed values are present within a
+            :class:`pandas.Series`.
+        """
+        # Turn allowed_values into a pd.Series.
+        try:
+            allowed_values = pd.Series(allowed_values)
+        except TypeError as exc:
+            raise ValueError(
+                f"Argument allowed_values must be iterable. Got {allowed_values}"
+            ) from exc
+
+        def _mustbein(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            if not strip_white_space_series:
+                return allowed_values.isin(series).all()
+            else:
+                return allowed_values.isin(series.str.strip()).all()
+
+        return cls(
+            _mustbein,
+            **_check_kwargs(
+                kwargs,
+                cls.isin.__name__,
+                f"mustbein({set(allowed_values)})",
             ),
         )
