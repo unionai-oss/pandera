@@ -378,13 +378,11 @@ class Index(SeriesSchemaBase):
             # handles case where pandas native string type is not supported
             # by index.
             obj_to_validate = self.dtype.coerce(
-                series_cls(
-                    check_obj.index.to_numpy(), name=check_obj.index.name
-                )
+                series_cls(check_obj.index, name=check_obj.index.name)
             )
         else:
             obj_to_validate = series_cls(
-                check_obj.index.to_numpy(), name=check_obj.index.name
+                check_obj.index, name=check_obj.index.name
             )
 
         assert check_utils.is_field(
