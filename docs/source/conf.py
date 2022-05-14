@@ -142,6 +142,9 @@ html_theme_options = {
         "color-brand-content": "#26b079",
         "color-api-highlight-on-target": "#e5fff5",
     },
+    "source_repository": "https://github.com/pandera-dev/pandera",
+    "source_branch": "master",
+    "source_directory": "docs/source/",
 }
 html_context = {
     "sponsor_link": "https://github.com/sponsors/cosmicBboy",
