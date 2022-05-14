@@ -146,6 +146,9 @@ html_theme_options = {
     "source_branch": "master",
     "source_directory": "docs/source/",
 }
+html_context = {
+    "sponsor_link": "https://github.com/sponsors/cosmicBboy",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
