@@ -365,6 +365,7 @@ class Index(SeriesSchemaBase):
             )
 
         series_cls = pd.Series
+        check_index_fn = lambda index: index
         # NOTE: this is a hack to get pyspark.pandas working, this needs a more
         # principled implementation
         if type(check_obj).__module__ == "pyspark.pandas.frame":
@@ -372,17 +373,18 @@ class Index(SeriesSchemaBase):
             import pyspark.pandas as ps
 
             series_cls = ps.Series
+            check_index_fn = lambda index: index.to_numpy()
 
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
             # handles case where pandas native string type is not supported
             # by index.
             obj_to_validate = self.dtype.coerce(
-                series_cls(check_obj.index, name=check_obj.index.name)
+                series_cls(check_index_fn(check_obj.index), name=check_obj.index.name)
             )
         else:
             obj_to_validate = series_cls(
-                check_obj.index, name=check_obj.index.name
+                check_index_fn(check_obj.index), name=check_obj.index.name
             )
 
         assert check_utils.is_field(
