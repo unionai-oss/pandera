@@ -1030,12 +1030,14 @@ class Check(_CheckBase):
         values: Iterable,
         **kwargs,
     ) -> "Check":
-        """Ensure series contains all values of within a list. The series must contain all values from the list.
-        :param values: The set of values that must be present. May be any iterable.
+        """Ensure series contains all values of within a list.
+        The series must contain all values from the list.
+        :param values: The set of values that must be present. Maybe any iterable.
         :param kwargs: key-word arguments passed into the `Check` initializer.
         :returns: :class:`Check` object
         .. note::
-            It is checked whether all elements of a list passed in as allowed values are present within a
+            It is checked whether all elements of a list passed in as
+            allowed values are present within a
             :class:`pandas.Series`.
         """
         # Turn allowed_values into a pd.Series.
