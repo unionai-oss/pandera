@@ -50,6 +50,7 @@
 
    .. autosummary::
       :toctree: generated
+      :template: class.rst
 
       fastapi.UploadFile
 
