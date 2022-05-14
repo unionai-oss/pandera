@@ -29,7 +29,6 @@ CheckResult = namedtuple(
     ["check_output", "check_passed", "checked_object", "failure_cases"],
 )
 
-
 GroupbyObject = Union[
     pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy
 ]
@@ -1020,5 +1019,42 @@ class Check(_CheckBase):
                 kwargs,
                 cls.str_length.__name__,
                 f"str_length({min_value}, {max_value})",
+            ),
+        )
+
+    @classmethod
+    @st.register_check_strategy(st.isin_strategy)
+    @register_check_statistics(["values"])
+    def unique_values_eq(
+        cls,
+        values: Iterable,
+        **kwargs,
+    ) -> "Check":
+        """Ensure series contains all values of within a list. The series must contain all values from the list.
+        :param values: The set of values that must be present. May be any iterable.
+        :param kwargs: key-word arguments passed into the `Check` initializer.
+        :returns: :class:`Check` object
+        .. note::
+            It is checked whether all elements of a list passed in as allowed values are present within a
+            :class:`pandas.Series`.
+        """
+        # Turn allowed_values into a pd.Series.
+        try:
+            values = pd.Series(values)
+        except TypeError as exc:
+            raise ValueError(
+                f"Argument allowed_values must be iterable. Got {values}"
+            ) from exc
+
+        def _unique_values_eq(series: pd.Series) -> pd.Series:
+            """Comparison function for check"""
+            return values.isin(series).all()
+
+        return cls(
+            _unique_values_eq,
+            **_check_kwargs(
+                kwargs,
+                cls.isin.__name__,
+                f"mustbein({set(values)})",
             ),
         )
