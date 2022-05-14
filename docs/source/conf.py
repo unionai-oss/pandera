@@ -148,6 +148,9 @@ html_theme_options = {
 }
 html_context = {
     "sponsor_link": "https://github.com/sponsors/cosmicBboy",
+    "github_user": "pandera-dev",
+    "github_repo": "pandera",
+    "github_version": "master",
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
