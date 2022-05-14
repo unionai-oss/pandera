@@ -29,7 +29,12 @@ if FASTAPI_INSTALLED:
         configuration.
         """
 
-        __slots__ = ("data",)
+        __slots__ = (
+            "data",
+            "filename",
+            "file",
+            "headers",
+        )
 
         def __init__(self, data: Any, filename: str, file, *args, **kwargs):
             """
