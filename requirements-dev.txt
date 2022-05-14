@@ -38,9 +38,15 @@ nox
 importlib_metadata
 uvicorn
 python-multipart
+sphinx
+sphinx-panels
+sphinx-autodoc-typehints <= 1.14.1
+sphinx-copybutton
+recommonmark
 twine
 asv
 pre_commit
+furo
 ray <= 1.7.0; python_version < '3.10'
 types-click
 types-pyyaml
