@@ -46,7 +46,7 @@ recommonmark
 twine
 asv
 pre_commit
-furo
+git+https://github.com/pradyunsg/furo@0c2acbbd23f8146dd0ae50a2ba57258c1f63ea9f
 ray <= 1.7.0; python_version < '3.10'
 types-click
 types-pyyaml
