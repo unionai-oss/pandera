@@ -1,8 +1,4 @@
 -r requirements-dev.txt
 
+# use latest furo version to enable edit button customization.
 git+https://github.com/pradyunsg/furo@main
-sphinx
-sphinx-panels
-sphinx-autodoc-typehints <= 1.14.1
-sphinx-copybutton
-recommonmark
