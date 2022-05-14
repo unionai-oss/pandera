@@ -252,6 +252,10 @@ def linkcode_resolve(domain, info):
         tag = None
 
     if tag != "master":
-        tag = f"v{pandera.__version__}"
+        tag = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            .decode("utf-8")
+            .strip()
+        )
 
     return f"https://github.com/pandera-dev/pandera/blob/{tag}/pandera/{fn}{linespec}"
