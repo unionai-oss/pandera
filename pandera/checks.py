@@ -1057,6 +1057,6 @@ class Check(_CheckBase):
             **_check_kwargs(
                 kwargs,
                 cls.isin.__name__,
-                f"mustbein({set(values)})",
+                f"unique_values_eq({set(values)})",
             ),
         )
