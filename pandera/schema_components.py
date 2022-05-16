@@ -364,27 +364,16 @@ class Index(SeriesSchemaBase):
                 self, check_obj, "Attempting to validate mismatch index"
             )
 
-        series_cls = pd.Series
-        check_index_fn = lambda index: index
-        # NOTE: this is a hack to get pyspark.pandas working, this needs a more
-        # principled implementation
-        if type(check_obj).__module__ == "pyspark.pandas.frame":
-            # pylint: disable=import-outside-toplevel
-            import pyspark.pandas as ps
-
-            series_cls = ps.Series
-            check_index_fn = lambda index: index.to_numpy()
-
         if self.coerce:
             check_obj.index = self.coerce_dtype(check_obj.index)
             # handles case where pandas native string type is not supported
             # by index.
             obj_to_validate = self.dtype.coerce(
-                series_cls(check_index_fn(check_obj.index), name=check_obj.index.name)
+                check_obj.index.to_series().reset_index(drop=True)
             )
         else:
-            obj_to_validate = series_cls(
-                check_index_fn(check_obj.index), name=check_obj.index.name
+            obj_to_validate = check_obj.index.to_series().reset_index(
+                drop=True
             )
 
         assert check_utils.is_field(
