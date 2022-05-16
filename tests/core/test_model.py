@@ -1006,6 +1006,100 @@ def test_validate_coerce_on_init():
     ):
         DataFrame[SchemaNoCoerce](raw_data)
 
+def test_from_records_validates_the_schema():
+    """Test that DataFrame[Schema] validates the schema"""
+
+    class Schema(pa.SchemaModel):
+        state: Series[str]
+        city: Series[str]
+        price: Series[float]
+
+    raw_data = [
+        {
+            "state": "NY",
+            "city": "New York",
+            "price": 8.0,
+        },
+        {
+            "state":  "FL",
+            "city":  "Miami",
+            "price":  12.0,
+        }
+    ]
+    pandera_validated_df = DataFrame.from_records(Schema, raw_data)
+    pandas_df = pd.DataFrame.from_records(raw_data)
+    assert pandera_validated_df.equals(Schema.validate(pandas_df))
+    assert isinstance(pandera_validated_df, DataFrame)
+    assert isinstance(pandas_df, pd.DataFrame)
+
+    raw_data = [
+        {
+            "state": "NY",
+            "city": "New York",
+        },
+        {
+            "state":  "FL",
+            "city":  "Miami",
+        }
+    ]
+
+    with pytest.raises(
+            pa.errors.SchemaError,
+            match="^column 'price' not in dataframe",
+    ):
+        DataFrame[Schema](raw_data)
+
+def test_from_records_sets_the_index_from_schema():
+    """Test that DataFrame[Schema] validates the schema"""
+
+    class Schema(pa.SchemaModel):
+        state: Index[str]= pa.Field(check_name=True)
+        city: Series[str]
+        price: Series[float]
+
+    raw_data = [
+        {
+            "state": "NY",
+            "city": "New York",
+            "price": 8.0,
+        },
+        {
+            "state":  "FL",
+            "city":  "Miami",
+            "price":  12.0,
+        }
+    ]
+    pandera_validated_df = DataFrame.from_records(Schema, raw_data)
+    pandas_df = pd.DataFrame.from_records(raw_data, index = ["state"])
+    assert pandera_validated_df.equals(Schema.validate(pandas_df))
+    assert isinstance(pandera_validated_df, DataFrame)
+    assert isinstance(pandas_df, pd.DataFrame)
+
+def test_from_records_sorts_the_columns():
+    """Test that DataFrame[Schema] validates the schema"""
+
+    class Schema(pa.SchemaModel):
+        state: Series[str]
+        city: Series[str]
+        price: Series[float]
+
+    raw_data = [
+        {
+            "city": "New York",
+            "price": 8.0,
+            "state": "NY",
+        },
+        {
+            "price":  12.0,
+            "state":  "FL",
+            "city":  "Miami",
+        }
+    ]
+    pandera_validated_df = DataFrame.from_records(Schema, raw_data)
+    pandas_df = pd.DataFrame.from_records(raw_data)[["state", "city", "price"]]
+    assert pandera_validated_df.equals(Schema.validate(pandas_df))
+    assert isinstance(pandera_validated_df, DataFrame)
+    assert isinstance(pandas_df, pd.DataFrame)
 
 def test_schema_model_generic_inheritance() -> None:
     """Test that a schema model subclass can also inherit from typing.Generic"""

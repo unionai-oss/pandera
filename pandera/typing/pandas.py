@@ -1,7 +1,7 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import io
-from typing import _type_check, Type  # type: ignore[attr-defined]
+from typing import _type_check, Type, List, Union, Dict, Tuple, Sequence, Optional  # type: ignore[attr-defined]
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
@@ -53,6 +53,8 @@ if TYPE_CHECKING:
 else:
     T = Schema
 
+Column = Union[int, str]
+ArrayLike = Union["ExtensionArray", pd.np.ndarray]
 
 # pylint:disable=too-few-public-methods
 class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
@@ -178,92 +180,20 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         return cls.to_format(valid_data, schema_model.__config__)
 
     @staticmethod
-    def from_records(
-            type: Type[T],
-            data,
-            index=None,
-            exclude=None,
-            columns=None,
-            coerce_float: bool = False,
-            nrows: int | None = None,
-    ) -> "DataFrame[T]":
-        """
-        Convert structured or record ndarray to DataFrame.
+    def from_records(schema: T, data: Union[pd.np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame], index: Optional[Union[Sequence[str], ArrayLike]] = None, coerce_float: bool = False, nrows: Optional[int] = None) -> "DataFrame[T]":
+        schema = schema.to_schema()
+        schema_index = schema.index.names if schema.index is not None else None
+        index = schema_index if index is None else index
+        return DataFrame[T](
+                pd.DataFrame.from_records(
+                    data=data,
+                    index=index,
+                    coerce_float=coerce_float,
+                    nrows=nrows,
+                )[
+                    schema.columns.keys()
+                ]  # set the column order according to schema
+            )
 
-        Creates a DataFrame object from a structured ndarray, sequence of
-        tuples or dicts, or DataFrame.
 
-        Parameters
-        ----------
-        type: the type of the schema model for the datarecords, the index columns are resolved from the
-            schema when check_name=True
-        data : structured ndarray, sequence of tuples or dicts, or DataFrame
-            Structured input data.
-        index : str, list of fields, array-like
-            Field of array to use as the index, alternately a specific set of
-            input labels to use.
-        exclude : sequence, default None
-            Columns or fields to exclude.
-        columns : sequence, default None
-            Column names to use. If the passed data do not have names
-            associated with them, this argument provides names for the
-            columns. Otherwise this argument indicates the order of the columns
-            in the result (any names not found in the data will become all-NA
-            columns).
-        coerce_float : bool, default False
-            Attempt to convert values of non-string, non-numeric objects (like
-            decimal.Decimal) to floating point, useful for SQL result sets.
-        nrows : int, default None
-            Number of rows to read if data is an iterator.
-
-        Returns
-        -------
-        DataFrame
-
-        See Also
-        --------
-        DataFrame.from_dict : DataFrame from dict of array-like or dicts.
-        DataFrame : DataFrame object creation using constructor.
-
-        Examples
-        --------
-        Data can be provided as a structured ndarray:
-
-        >>> data = np.array([(3, 'a'), (2, 'b'), (1, 'c'), (0, 'd')],
-        ...                 dtype=[('col_1', 'i4'), ('col_2', 'U1')])
-        >>> pd.DataFrame.from_records(data)
-           col_1 col_2
-        0      3     a
-        1      2     b
-        2      1     c
-        3      0     d
-
-        Data can be provided as a list of dicts:
-
-        >>> data = [{'col_1': 3, 'col_2': 'a'},
-        ...         {'col_1': 2, 'col_2': 'b'},
-        ...         {'col_1': 1, 'col_2': 'c'},
-        ...         {'col_1': 0, 'col_2': 'd'}]
-        >>> pd.DataFrame.from_records(data)
-           col_1 col_2
-        0      3     a
-        1      2     b
-        2      1     c
-        3      0     d
-
-        Data can be provided as a list of tuples with corresponding columns:
-
-        >>> data = [(3, 'a'), (2, 'b'), (1, 'c'), (0, 'd')]
-        >>> pd.DataFrame.from_records(data, columns=['col_1', 'col_2'])
-           col_1 col_2
-        0      3     a
-        1      2     b
-        2      1     c
-        3      0     d
-        """
-        schema = type.to_schema
-        if index is None:
-            index = schema.index.names
-
-        return schema.validate(pd.DataFrame.from_records(data, index, exclude, columns, coerce_float, nrows))
-
+#%%
