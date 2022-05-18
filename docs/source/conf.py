@@ -142,9 +142,9 @@ html_theme_options = {
         "color-brand-content": "#26b079",
         "color-api-highlight-on-target": "#e5fff5",
     },
-}
-html_context = {
-    "sponsor_link": "https://github.com/sponsors/cosmicBboy",
+    "source_repository": "https://github.com/pandera-dev/pandera",
+    "source_branch": "master",
+    "source_directory": "docs/source/",
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -252,6 +252,10 @@ def linkcode_resolve(domain, info):
         tag = None
 
     if tag != "master":
-        tag = f"v{pandera.__version__}"
+        tag = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            .decode("utf-8")
+            .strip()
+        )
 
     return f"https://github.com/pandera-dev/pandera/blob/{tag}/pandera/{fn}{linespec}"
