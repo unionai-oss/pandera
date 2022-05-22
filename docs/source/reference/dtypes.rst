@@ -36,6 +36,7 @@ Library-agnostic dtypes
    pandera.dtypes.Complex64
    pandera.dtypes.Complex128
    pandera.dtypes.Complex256
+   pandera.dtypes.Decimal
    pandera.dtypes.String
 
 
@@ -62,6 +63,7 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.pandas_engine.STRING
    pandera.engines.numpy_engine.Object
    pandera.engines.pandas_engine.DateTime
+   pandera.engines.pandas_engine.Decimal
 
 GeoPandas Dtypes
 ----------------

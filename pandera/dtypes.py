@@ -37,8 +37,7 @@ class DataType(ABC):
 
     def try_coerce(self, data_container: Any):
         """Coerce data container to the data type,
-        raises a `~pandera.errors.ParserError` if the coercion fails
-
+        raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
         raise NotImplementedError()
@@ -52,8 +51,15 @@ class DataType(ABC):
         pandera_dtype: "DataType",
         data_container: Optional[Any] = None,  # pylint:disable=unused-argument
     ) -> Union[bool, Iterable[bool]]:
-        """Check that pandera :class:`~pandera.dtypes.DataType` are
-        equivalent."""
+        """Check that pandera :class:`~pandera.dtypes.DataType` are equivalent.
+
+        :param pandera_dtype: Expected :class:`DataType`.
+        :param data_container: Data container, used by data types that require the
+            actual data for validation.
+
+        :returns: boolean scalar or iterable of boolean scalars, indicating which
+            elements passed the check.
+        """
         return self == pandera_dtype
 
     def __repr__(self) -> str:

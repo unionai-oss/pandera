@@ -466,7 +466,15 @@ DEFAULT_PYTHON_PREC = 28
 @Engine.register_dtype(equivalents=["decimal", decimal.Decimal])
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):
-    """Semantic representation of a :class:`decimal.Decimal`."""
+    # pylint:disable=line-too-long
+    """Semantic representation of a :class:`decimal.Decimal`.
+
+
+    .. note:: :class:`decimal.Decimal` is especially useful when exporting a pandas
+        DataFrame to parquet files via `pyarrow <https://arrow.apache.org/docs/python/parquet.html>`_.
+        Pyarrow will automatically convert the decimal objects contained in the `object`
+        series to the corresponding `parquet Decimal type <https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#decimal>`_.
+    """
 
     type = np.dtype("object")
     rounding: str = dataclasses.field(
