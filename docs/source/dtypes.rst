@@ -216,25 +216,25 @@ And :meth:`~pandera.pandas_engine.BOOL.coerce_value`:
 Logical data types
 ~~~~~~~~~~~~~~~~~~
 
-.. code-block:: markdown
-   :caption: `Definitions (source: Visions project) <https://dylan-profiler.github.io/visions/visions/background/data_type_view.html#decoupling-physical-and-logical-types>`_
+Taking inspiration from the `visions project <https://dylan-profiler.github.io/visions/visions/background/data_type_view.html#decoupling-physical-and-logical-types>`,
+pandera provides an interface for defining logical data types.
 
-   1. Physical types represent the actual, underlying representation of the data.
-      e.g.: Int8, Float32, String, etc.
-   2. Logical types represent the abstracted understanding of that data.
-      e.g.: IPs, URLs, paths, etc.
+Physical types represent the actual, underlying representation of the data.
+e.g.: ``Int8``, ``Float32``, ``String``, etc., whereas logical types represent the
+abstracted understanding of that data. e.g.: ``IPs``, ``URLs``, ``paths``, etc.
 
 Validating a logical data type consists of validating the supporting physical data type
 (see :ref:`dtypes-into`) and a check on actual values. For example, an IP address data
-type would validate that a. the data container type is `String` and b. the actual values
-are well-formed adresses.
+type would validate that:
 
+1. The data container type is a ``String``
+2. The actual values are well-formed addresses.
 
 Non-native Pandas dtype can also be wrapped in a :class:`numpy.object_` and verified
 using the data, since the `object` dtype alone is not enough to verify the
 correctness. An example would be the standard :class:`decimal.Decimal` class that can be
 validated via the pandera DataType :class:`~pandera.dtypes.Decimal`.
 
-To implement a logical data types, you just need to implement the method
+To implement a logical data type, you just need to implement the method
 :meth:`pandera.dtypes.DataType.check` and make use of the `data_container` argument to
-access the data.
+perform checks on the values of the data.
