@@ -227,7 +227,7 @@ Validating a logical data type consists of validating the supporting physical da
 (see :ref:`dtypes-into`) and a check on actual values. For example, an IP address data
 type would validate that:
 
-1. The data container type is a ``String``
+1. The data container type is a ``String``.
 2. The actual values are well-formed addresses.
 
 Non-native Pandas dtype can also be wrapped in a :class:`numpy.object_` and verified
@@ -236,5 +236,5 @@ correctness. An example would be the standard :class:`decimal.Decimal` class tha
 validated via the pandera DataType :class:`~pandera.dtypes.Decimal`.
 
 To implement a logical data type, you just need to implement the method
-:meth:`pandera.dtypes.DataType.check` and make use of the `data_container` argument to
+:meth:`pandera.dtypes.DataType.check` and make use of the ``data_container`` argument to
 perform checks on the values of the data.
