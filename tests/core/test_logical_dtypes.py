@@ -2,13 +2,14 @@
 
 from decimal import Decimal
 from types import ModuleType
-from typing import Any, Generator, Iterable, List, cast
+from typing import Any, Generator, Iterable, List, Optional, cast
 
 import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_series_equal
 
+import pandera as pa
 from pandera.engines import pandas_engine
 from pandera.errors import ParserError
 
@@ -124,6 +125,7 @@ def test_logical_datatype_coerce(
         ("1.2", pandas_engine.Decimal(2, 1), Decimal("1.2")),
         (1.2, pandas_engine.Decimal(2, 1), Decimal("1.2")),
         (1, pandas_engine.Decimal(2, 1), Decimal("1.0")),
+        (1, pandas_engine.Decimal(), Decimal("1")),
         (pd.NA, pandas_engine.Decimal(2, 1), pd.NA),
         (None, pandas_engine.Decimal(2, 1), pd.NA),
         (np.nan, pandas_engine.Decimal(2, 1), pd.NA),
@@ -140,3 +142,12 @@ def test_logical_datatype_coerce_value(
         assert pd.isna(coerced_value)
     else:
         assert coerced_value == expected_value
+
+
+@pytest.mark.parametrize("precision,scale", [(-1, None), (0, 0), (1, 2)])
+def test_invalid_decimal_params(
+    precision: Optional[int], scale: Optional[int]
+):
+    """Test invalid decimal params."""
+    with pytest.raises(ValueError):
+        pa.Decimal(precision, scale)
