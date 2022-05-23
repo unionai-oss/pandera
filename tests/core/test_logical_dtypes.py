@@ -111,6 +111,18 @@ def test_logical_datatype_coerce(
         assert_series_equal(
             failure_cases, actual_failure_cases, check_names=False
         )
+
+        schema = pa.SeriesSchema(expected_datatype)
+        try:
+            schema.validate(data, lazy=True)
+        except pa.errors.SchemaErrors as err:
+            err_failure_cases = pd.Series(
+                err.failure_cases["failure_case"].to_numpy()
+            )
+            assert_series_equal(
+                failure_cases, err_failure_cases, check_names=False
+            )
+
     else:
         coerced_data = expected_datatype.coerce(data)
         expected_datatype.check(
