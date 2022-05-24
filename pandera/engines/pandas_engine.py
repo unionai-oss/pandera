@@ -440,6 +440,10 @@ def _check_decimal(
     ).astype("boolean") | pd.isnull(pandas_obj)
 
     decimals = pandas_obj[is_decimal]
+    # fix for modin unamed series raises KeyError
+    # https://github.com/modin-project/modin/issues/4317
+    decimals.name = "decimals"
+
     splitted = decimals.astype("string").str.split(".", n=1, expand=True)
     len_left = splitted[0].str.len().fillna(0)
     len_right = splitted[1].str.len().fillna(0)
@@ -457,7 +461,7 @@ def _check_decimal(
         is_valid &= precisions <= precision
     if scale is not None:
         is_valid &= scales <= scale
-    return is_valid
+    return is_valid.to_numpy()
 
 
 DEFAULT_PYTHON_PREC = 28
