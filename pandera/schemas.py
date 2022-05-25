@@ -1501,7 +1501,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         A method for resetting the :class:`Index` of a :class:`DataFrameSchema`
 
         :param level: list of labels
-        :param drop: bool, default True
+        :param drop: bool, default False
         :return: a new :class:`DataFrameSchema` with specified column(s) in the
             index.
         :raises: :class:`~pandera.errors.SchemaInitError` if no index set in
