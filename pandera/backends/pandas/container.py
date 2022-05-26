@@ -2,31 +2,30 @@
 
 import copy
 import itertools
-
 from typing import Any, List, Optional
 
 import pandas as pd
 
-from pandera.error_formatters import (
-    reshape_failure_cases,
-    scalar_failure_case,
-)
+from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
+from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.errors import ParserError, SchemaError, SchemaErrors
 
-
-from pandera.backends.pandas.base import PandasSchemaBackend, ColumnInfo
+# TODO: rename backends to match the core.pandas module names, e.g.:
+# - PandasSchemaContainerBackend -> DataFrameSchemaBackend
+# - PandasSchemaFieldBackend -> ArraySchemaBackend
+# - PandasSchemaFieldComponentBackend -> ColumnSchemaBackend
+#
+# Note that SeriesSchema will just use the ArraySchemaBackend
 
 
 class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
-
     def __init__(self):
         from pandera.backends.pandas.component import (
-            PandasSchemaFieldComponentBackend
+            PandasSchemaFieldComponentBackend,
         )
 
         self.field_backend = PandasSchemaFieldComponentBackend()
-
 
     def preprocess(
         self, check_obj: pd.DataFrame, name: str = None, inplace: bool = False
@@ -60,7 +59,7 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
         self.check_column_presence(check_obj, schema, column_info)
 
         # try to coerce datatypes
-        check_obj = self.coerce_datatypes(check_obj, schema, error_handler)
+        check_obj = self.coerce_dtype(check_obj, schema, error_handler)
 
         # collect schema components and prepare check object to be validated
         schema_components = self.collect_schema_components(
@@ -74,7 +73,7 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
         )
         self.run_checks(check_obj_subsample, schema, error_handler)
         self.check_column_values_are_unique(check_obj_subsample, schema)
-    
+
         return check_obj
 
     def run_schema_component_checks(
@@ -99,7 +98,7 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
                     error_handler.collect_error(
                         "schema_component_check", schema_error_dict["error"]
                     )
-        assert(all(check_results))
+        assert all(check_results)
 
     def run_checks(self, check_obj: pd.DataFrame, schema, error_handler):
         # dataframe-level checks
@@ -112,7 +111,9 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
             except SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
 
-    def collect_column_info(self, check_obj: pd.DataFrame, schema) -> ColumnInfo:
+    def collect_column_info(
+        self, check_obj: pd.DataFrame, schema
+    ) -> ColumnInfo:
         column_names: List[Any] = []
         absent_column_names: List[Any] = []
         lazy_exclude_column_names: List[Any] = []
@@ -156,7 +157,10 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
         )
 
     def collect_schema_components(
-        self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo,
+        self,
+        check_obj: pd.DataFrame,
+        schema,
+        column_info: ColumnInfo,
     ):
         schema_components = []
         for col_name, col in schema.columns.items():
@@ -223,36 +227,117 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
 
         return check_obj
 
-    def coerce_datatypes(
+    def coerce_dtype(
         self,
         check_obj: pd.DataFrame,
         schema,
         error_handler: SchemaErrorHandler,
     ):
-        if (
+        if not (
             schema.coerce
             or (schema.index is not None and schema.index.coerce)
             or any(col.coerce for col in schema.columns.values())
         ):
-            try:
-                check_obj = schema.coerce_dtype(check_obj)
-            except SchemaErrors as err:
-                for schema_error_dict in err.schema_errors:
-                    if not schema.lazy:
-                        # raise the first error immediately if not doing lazy
-                        # validation
-                        raise schema_error_dict["error"]
-                    error_handler.collect_error(
-                        "schema_component_check", schema_error_dict["error"]
-                    )
+            return check_obj
+
+        try:
+            check_obj = self._coerce_dtype(check_obj, schema)
+        except SchemaErrors as err:
+            for schema_error_dict in err.schema_errors:
+                if not schema.lazy:
+                    # raise the first error immediately if not doing lazy
+                    # validation
+                    raise schema_error_dict["error"]
+                error_handler.collect_error(
+                    "schema_component_check", schema_error_dict["error"]
+                )
+        except SchemaError as err:
+            if not schema.lazy:
+                raise err
+            error_handler.collect_error("schema_component_check", err)
         return check_obj
+
+    def _coerce_dtype(self, obj: pd.DataFrame, schema) -> pd.DataFrame:
+        """Coerce dataframe to the type specified in dtype.
+
+        :param obj: dataframe to coerce.
+        :returns: dataframe with coerced dtypes
+        """
+        # TODO: clean up the error handling!
+        error_handler = SchemaErrorHandler(lazy=True)
+
+        def _coerce_df_dtype(obj: pd.DataFrame, schema) -> pd.DataFrame:
+            if schema.dtype is None:
+                raise ValueError(
+                    "dtype argument is None. Must specify this argument "
+                    "to coerce dtype"
+                )
+
+            try:
+                return schema.dtype.try_coerce(obj)
+            except ParserError as exc:
+                raise SchemaError(
+                    schema=schema,
+                    data=obj,
+                    message=(
+                        f"Error while coercing '{schema.name}' to type "
+                        f"{schema.dtype}: {exc}\n{exc.failure_cases}"
+                    ),
+                    failure_cases=exc.failure_cases,
+                    check=f"coerce_dtype('{schema.dtype}')",
+                ) from exc
+
+        def _try_coercion(coerce_fn, obj):
+            try:
+                return coerce_fn(obj)
+            except SchemaError as exc:
+                error_handler.collect_error("dtype_coercion_error", exc)
+                return obj
+
+        for colname, col_schema in schema.columns.items():
+            if col_schema.regex:
+                try:
+                    matched_columns = col_schema.get_regex_columns(obj.columns)
+                except SchemaError:
+                    matched_columns = pd.Index([])
+
+                for matched_colname in matched_columns:
+                    if col_schema.coerce or schema.coerce:
+                        obj[matched_colname] = _try_coercion(
+                            col_schema.coerce_dtype, obj[matched_colname]
+                        )
+            elif (
+                (col_schema.coerce or schema.coerce)
+                and schema.dtype is None
+                and colname in obj
+            ):
+                obj[colname] = _try_coercion(
+                    col_schema.coerce_dtype, obj[colname]
+                )
+
+        if schema.dtype is not None:
+            obj = _try_coercion(_coerce_df_dtype, obj)
+        if schema.index is not None and (schema.index.coerce or schema.coerce):
+            index_schema = copy.deepcopy(schema.index)
+            if schema.coerce:
+                # coercing at the dataframe-level should apply index coercion
+                # for both single- and multi-indexes.
+                index_schema._coerce = True
+            coerced_index = _try_coercion(index_schema.coerce_dtype, obj.index)
+            if coerced_index is not None:
+                obj.index = coerced_index
+
+        if error_handler.collected_errors:
+            raise SchemaErrors(schema, error_handler.collected_errors, obj)
+
+        return obj
 
     ##########
     # Checks #
     ##########
 
     def check_column_names_are_unique(self, check_obj: pd.DataFrame, schema):
-        if not schema._unique_column_names:
+        if not schema.unique_column_names:
             return
         failed = check_obj.columns[check_obj.columns.duplicated()]
         if failed.any():
@@ -304,15 +389,11 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
                 # figure out a workaround to error: "Cannot combine the
                 # series or dataframe because it comes from a different
                 # dataframe."
-                if type(duplicates).__module__.startswith(
-                    "pyspark.pandas"
-                ):
+                if type(duplicates).__module__.startswith("pyspark.pandas"):
                     # pylint: disable=import-outside-toplevel
                     import pyspark.pandas as ps
 
-                    with ps.option_context(
-                        "compute.ops_on_diff_frames", True
-                    ):
+                    with ps.option_context("compute.ops_on_diff_frames", True):
                         failure_cases = check_obj.loc[duplicates, lst]
                 else:
                     failure_cases = check_obj.loc[duplicates, lst]

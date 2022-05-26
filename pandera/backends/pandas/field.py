@@ -8,7 +8,7 @@ from pandera.backends.pandas.base import FieldCheckObj, PandasSchemaBackend
 from pandera.engines.pandas_engine import Engine
 from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
 # TODO: remove generic notation
@@ -79,6 +79,35 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
             raise SchemaErrors(error_handler.collected_errors, check_obj)
 
         return check_obj
+
+    def coerce_dtype(
+        self,
+        check_obj: Union[pd.Series, pd.Index],
+        schema,
+        error_handler: SchemaErrorHandler,
+    ) -> pd.Series:
+        """Coerce type of a pd.Series by type specified in dtype.
+
+        :param pd.Series series: One-dimensional ndarray with axis labels
+            (including time series).
+        :returns: ``Series`` with coerced data type
+        """
+        if schema.dtype is None:
+            return check_obj
+
+        try:
+            return schema.dtype.try_coerce(check_obj)
+        except ParserError as exc:
+            raise SchemaError(
+                schema=schema,
+                data=check_obj,
+                message=(
+                    f"Error while coercing '{schema.name}' to type "
+                    f"{schema.dtype}: {exc}:\n{exc.failure_cases}"
+                ),
+                failure_cases=exc.failure_cases,
+                check=f"coerce_dtype('{schema.dtype}')",
+            ) from exc
 
     def check_name(self, check_obj: pd.Series, schema):
         if schema.name is None or check_obj.name == schema.name:

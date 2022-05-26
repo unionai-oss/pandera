@@ -16,20 +16,10 @@ from pandera.core.base import (
     inferred_schema_guard,
 )
 from pandera.core.pandas.checks import BaseCheck
+from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
 from pandera.hypotheses import Hypothesis
-
-CheckList = List[Union[Check, Hypothesis]]
-
-PandasDtypeInputTypes = Union[
-    str,
-    type,
-    DataType,
-    Type,
-    pd.core.dtypes.base.ExtensionDtype,
-    np.dtype,
-]
 
 TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 
@@ -106,7 +96,7 @@ class ArraySchema(
 ):
     """Base series validator object."""
 
-    backend: PandasSchemaFieldBackend = PandasSchemaFieldBackend()
+    BACKEND: PandasSchemaFieldBackend = PandasSchemaFieldBackend()
 
     def __init__(
         self,
@@ -251,7 +241,7 @@ class ArraySchema(
         :returns: validated DataFrame or Series.
 
         """
-        return self.backend.validate(
+        return self.BACKEND.validate(
             check_obj,
             schema=self,
             head=head,

@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 import pandas as pd
 
-from . import schemas
+from pandera.core.pandas import schemas
 
 Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
 

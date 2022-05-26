@@ -120,6 +120,9 @@ class BaseSchemaStrategyMixin(ABC):
     def example(self):
         ...
 
+    def strategy_component(self):
+        ...
+
 
 class BaseSchemaModel(ABC):
     """Base class for schemas defined as python classes"""
