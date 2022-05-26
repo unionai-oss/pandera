@@ -1644,20 +1644,33 @@ def test_reset_index_drop(drop: bool, schema_simple: DataFrameSchema) -> None:
         assert test_schema.index is None
 
 
-def test_reset_index_level(schema_multiindex: DataFrameSchema):
+@pytest.mark.parametrize(
+    "level, columns, index",
+    [
+        [
+            None,{"col1", "col2", "ind0", "ind1"},None
+        ],
+        [   
+            [],{"col1", "col2"},["ind0", "ind1"]
+        ],
+        [
+            ["ind0"],{"col1", "col2", "ind0"},["ind1"]
+        ],
+        [
+            ["ind0","ind1"],{"col1", "col2", "ind0", "ind1"},None
+        ]
+    ],
+)
+def test_reset_index_level(schema_multiindex: DataFrameSchema, level, columns, index):
     """Test that resetting index correctly handles specifying level."""
-    test_schema = schema_multiindex.reset_index(level=["ind0"])
-    assert test_schema.index.name == "ind1"
-    assert isinstance(test_schema.index, Index)
-
-    test_schema = schema_multiindex.reset_index(level=["ind0", "ind1"])
-    assert test_schema.index is None
-    assert set(list(test_schema.columns.keys())) == {
-        "col1",
-        "col2",
-        "ind0",
-        "ind1",
-    }
+    test_schema = schema_multiindex.reset_index(level=level)
+    if index:
+        assert isinstance(test_schema.index, (Index, MultiIndex))
+        assert test_schema.index.names == index
+    else:
+        assert test_schema.index is None
+        
+    assert set(test_schema.columns.keys()) == columns
 
 
 def test_invalid_keys(schema_simple: DataFrameSchema) -> None:
