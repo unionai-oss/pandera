@@ -1,5 +1,7 @@
 """ Tests that basic Pandera functionality works for Dask objects. """
 
+from typing import cast
+
 import dask.dataframe as dd
 import pandas as pd
 import pytest
@@ -99,9 +101,11 @@ def test_decorator() -> None:
 
     df = pd.DataFrame({"col": ["1"]})
     ddf = dd.from_pandas(df, npartitions=1)
-    pd.testing.assert_frame_equal(df, str_func(ddf).compute())
+    pd.testing.assert_frame_equal(
+        df, str_func(cast(pa.typing.dask.DataFrame[StrSchema], ddf)).compute()
+    )
 
-    result = int_func(ddf)
+    result = int_func(cast(pa.typing.dask.DataFrame[IntSchema], ddf))
 
     with pytest.raises(pa.errors.SchemaError):
         print(result.compute())

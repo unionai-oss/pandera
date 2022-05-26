@@ -1,6 +1,5 @@
 """Unit tests for modin data structures."""
 
-import os
 import typing
 from unittest.mock import MagicMock
 
@@ -47,35 +46,6 @@ for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
     ):
         continue
     TEST_DTYPES_ON_MODIN.append(pandas_engine.Engine.dtype(dtype_cls))
-
-
-ENGINES = os.getenv("CI_MODIN_ENGINES", "").split(",")
-if ENGINES == [""]:
-    ENGINES = ["ray", "dask"]
-
-
-@pytest.fixture(scope="module", params=ENGINES, autouse=True)
-def setup_modin_engine(request):
-    """Set up the modin engine.
-
-    Eventually this will also support dask execution backend.
-    """
-    engine = request.param
-    os.environ["MODIN_ENGINE"] = engine
-    os.environ["MODIN_MEMORY"] = "100000000"
-    if engine == "ray":
-        # pylint: disable=import-outside-toplevel
-        import ray
-
-        ray.init()
-    elif engine == "dask":
-        # pylint: disable=import-outside-toplevel
-        from distributed import Client
-
-        Client()
-    yield
-    if engine == "ray":
-        ray.shutdown()
 
 
 @pytest.mark.parametrize("coerce", [True, False])

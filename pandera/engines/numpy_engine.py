@@ -6,7 +6,7 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -353,7 +353,11 @@ class String(DataType, dtypes.String):
         data_container[notna] = data_container[notna].astype(str)
         return data_container
 
-    def check(self, pandera_dtype: "dtypes.DataType") -> bool:
+    def check(
+        self,
+        pandera_dtype: "dtypes.DataType",
+        data_container: Optional[PandasObject] = None,
+    ) -> Union[bool, Iterable[bool]]:
         return isinstance(pandera_dtype, (Object, type(self)))
 
 
