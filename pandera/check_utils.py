@@ -109,7 +109,12 @@ def prepare_series_check_output(
             if isinstance(check_obj, pd.DataFrame)
             else check_obj.isna()
         )
-        check_output = check_output | isna
+        try:
+            check_output = check_output | isna
+        except AttributeError:
+            # convert check_output to numpy for modin compatibility
+            check_output = check_output.to_numpy() | isna
+
     failure_cases = check_obj[~check_output]
     if not failure_cases.empty and n_failure_cases is not None:
         # NOTE: this is a hack to support pyspark.pandas and modin, since you

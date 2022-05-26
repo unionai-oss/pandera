@@ -37,8 +37,7 @@ class DataType(ABC):
 
     def try_coerce(self, data_container: Any):
         """Coerce data container to the data type,
-        raises a `~pandera.errors.ParserError` if the coercion fails
-
+        raises a :class:`~pandera.errors.ParserError` if the coercion fails
         :raises: :class:`~pandera.errors.ParserError`: if coercion fails
         """
         raise NotImplementedError()
@@ -47,9 +46,20 @@ class DataType(ABC):
         """Coerce data container to the data type."""
         return self.coerce(data_container)
 
-    def check(self, pandera_dtype: "DataType") -> bool:
-        """Check that pandera :class:`~pandera.dtypes.DataType` are
-        equivalent."""
+    def check(
+        self,
+        pandera_dtype: "DataType",
+        data_container: Optional[Any] = None,  # pylint:disable=unused-argument
+    ) -> Union[bool, Iterable[bool]]:
+        """Check that pandera :class:`~pandera.dtypes.DataType` are equivalent.
+
+        :param pandera_dtype: Expected :class:`DataType`.
+        :param data_container: Data container, used by data types that require the
+            actual data for validation.
+
+        :returns: boolean scalar or iterable of boolean scalars, indicating which
+            elements passed the check.
+        """
         return self == pandera_dtype
 
     def __repr__(self) -> str:
@@ -114,7 +124,9 @@ class _Number(DataType):
     exact: Optional[bool] = None
     """Whether the data type is an exact representation of a number."""
 
-    def check(self, pandera_dtype: "DataType") -> bool:
+    def check(
+        self, pandera_dtype: "DataType", data_container: Optional[Any] = None
+    ) -> Union[bool, Iterable[bool]]:
         if self.__class__ is _Number:
             return isinstance(pandera_dtype, _Number)
         return super().check(pandera_dtype)
@@ -165,7 +177,9 @@ class Int(_PhysicalNumber):  # type: ignore
     signed: bool = dataclasses.field(default=True, init=False)
     """Whether the integer data type is signed."""
 
-    def check(self, pandera_dtype: DataType) -> bool:
+    def check(
+        self, pandera_dtype: "DataType", data_container: Optional[Any] = None
+    ) -> Union[bool, Iterable[bool]]:
         return (
             isinstance(pandera_dtype, Int)
             and self.signed == pandera_dtype.signed
@@ -270,7 +284,9 @@ class Float(_PhysicalNumber):  # type: ignore
     exact = False
     bit_width = 64
 
-    def check(self, pandera_dtype: DataType) -> bool:
+    def check(
+        self, pandera_dtype: "DataType", data_container: Optional[Any] = None
+    ) -> Union[bool, Iterable[bool]]:
         return (
             isinstance(pandera_dtype, Float)
             and self.bit_width == pandera_dtype.bit_width
@@ -322,7 +338,9 @@ class Complex(_PhysicalNumber):  # type: ignore
     _base_name = "complex"
     bit_width = 128
 
-    def check(self, pandera_dtype: DataType) -> bool:
+    def check(
+        self, pandera_dtype: "DataType", data_container: Optional[Any] = None
+    ) -> Union[bool, Iterable[bool]]:
         return (
             isinstance(pandera_dtype, Complex)
             and self.bit_width == pandera_dtype.bit_width
@@ -359,6 +377,41 @@ class Complex64(Complex128):
 
 
 ###############################################################################
+# decimal
+###############################################################################
+
+
+@immutable(init=True)
+class Decimal(_Number):
+    """Semantic representation of a decimal data type."""
+
+    exact: bool = dataclasses.field(init=False, default=True)
+    continuous: bool = dataclasses.field(init=False, default=True)
+
+    precision: Optional[int] = None
+    scale: Optional[int] = None
+
+    def __init__(
+        self, precision: Optional[int] = None, scale: Optional[int] = None
+    ):
+        super().__init__()
+        if precision is not None:
+            if precision <= 0:
+                raise ValueError(
+                    f"Decimal precision {precision} must be positive."
+                )
+            if scale is not None and scale > precision:
+                raise ValueError(
+                    f"Decimal scale {scale} must be between 0 and {precision}."
+                )
+        object.__setattr__(self, "precision", precision)
+        object.__setattr__(self, "scale", scale)
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.precision}, {self.scale})"
+
+
+###############################################################################
 # nominal
 ###############################################################################
 
@@ -379,7 +432,9 @@ class Category(DataType):  # type: ignore
             object.__setattr__(self, "categories", tuple(categories))
         object.__setattr__(self, "ordered", ordered)
 
-    def check(self, pandera_dtype: "DataType") -> bool:
+    def check(
+        self, pandera_dtype: "DataType", data_container: Optional[Any] = None
+    ) -> Union[bool, Iterable[bool]]:
         if isinstance(pandera_dtype, Category) and (
             self.categories is None or pandera_dtype.categories is None
         ):
