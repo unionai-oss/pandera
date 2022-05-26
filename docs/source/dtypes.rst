@@ -216,7 +216,7 @@ And :meth:`~pandera.pandas_engine.BOOL.coerce_value`:
 Logical data types
 ~~~~~~~~~~~~~~~~~~
 
-Taking inspiration from the `visions project <https://dylan-profiler.github.io/visions/visions/background/data_type_view.html#decoupling-physical-and-logical-types>`,
+Taking inspiration from the `visions project <https://dylan-profiler.github.io/visions/visions/background/data_type_view.html#decoupling-physical-and-logical-types>`_,
 pandera provides an interface for defining logical data types.
 
 Physical types represent the actual, underlying representation of the data.
