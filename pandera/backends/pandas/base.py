@@ -10,7 +10,7 @@ from typing import (
 import pandas as pd
 
 from pandera.backends.base import BaseSchemaBackend
-from pandera.error_formatters import (
+from pandera.backends.pandas.error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
     reshape_failure_cases,

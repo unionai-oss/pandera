@@ -4,7 +4,7 @@ from typing import Union
 
 import pandas as pd
 
-from pandera.core.pandas.types import is_field, is_multiindex, is_table
+from pandera.core.pandas.types import is_table, is_field, is_index, is_multiindex
 
 
 def format_generic_error_message(
@@ -73,7 +73,10 @@ def reshape_failure_cases(
         representing how many failures of that case occurred.
 
     """
-    if not (is_table(failure_cases) or is_field(failure_cases)):
+    if not (
+        is_table(failure_cases)
+        or is_field(failure_cases)
+    ):
         raise TypeError(
             "Expected failure_cases to be a DataFrame or Series, found "
             f"{type(failure_cases)}"
@@ -85,7 +88,9 @@ def reshape_failure_cases(
         and "failure_case" in failure_cases.columns
     ):
         reshaped_failure_cases = failure_cases
-    elif is_table(failure_cases) and is_multiindex(failure_cases.index):
+    elif is_table(failure_cases) and is_multiindex(
+        failure_cases.index
+    ):
         reshaped_failure_cases = (
             failure_cases.rename_axis("column", axis=1)
             .assign(
@@ -98,7 +103,9 @@ def reshape_failure_cases(
             .rename("failure_case")
             .reset_index()
         )
-    elif is_field(failure_cases) and is_multiindex(failure_cases.index):
+    elif is_field(failure_cases) and is_multiindex(
+        failure_cases.index
+    ):
         reshaped_failure_cases = (
             failure_cases.rename("failure_case")
             .to_frame()

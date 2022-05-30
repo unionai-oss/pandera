@@ -19,11 +19,9 @@ from pandera.core.base import (
     inferred_schema_guard,
 )
 from pandera.core.pandas.array import ArraySchema
-from pandera.core.pandas.error_formatters import scalar_failure_case
 from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.hypotheses import Hypothesis
 
 N_INDENT_SPACES = 4
@@ -264,7 +262,7 @@ class DataFrameSchemaTransformsMixin(BaseSchemaTransformsMixin):
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
-        new_columns: Dict[str, Column] = {}
+        new_columns: Dict[str, "Column"] = {}
         for col in new_schema.columns:
             # check
             if update_dict.get(col):
