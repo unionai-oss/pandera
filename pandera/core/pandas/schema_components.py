@@ -1,12 +1,13 @@
 import warnings
-from copy import copy
-from typing import Any, Dict, Optional, Tuple, Union
+from copy import deepcopy
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
+from pandera.backends.pandas.component import ColumnBackend, IndexBackend, MultiIndexBackend
 from pandera.core.base import BaseSchemaStrategyMixin
 from pandera.core.pandas.array import ArraySchema
 from pandera.core.pandas.schemas import DataFrameSchema
@@ -68,7 +69,7 @@ class ColumnStrategyMixin(BaseSchemaStrategyMixin):
 class Column(ArraySchema, ColumnStrategyMixin):
     """Validate types and properties of DataFrame columns."""
 
-    BACKEND = ...
+    BACKEND = ColumnBackend()
 
     def __init__(
         self,
@@ -174,15 +175,6 @@ class Column(ArraySchema, ColumnStrategyMixin):
         self.name = name
         return self
 
-    def coerce_dtype(self, obj: Union[pd.DataFrame, pd.Series, pd.Index]):
-        """Coerce dtype of a column, handling duplicate column names."""
-        # pylint: disable=super-with-arguments
-        if is_field(obj) or is_index(obj):
-            return super(Column, self).coerce_dtype(obj)
-        return obj.apply(
-            lambda x: super(Column, self).coerce_dtype(x), axis="columns"
-        )
-
     def validate(
         self,
         check_obj: pd.DataFrame,
@@ -210,98 +202,16 @@ class Column(ArraySchema, ColumnStrategyMixin):
             otherwise creates a copy of the data.
         :returns: validated DataFrame.
         """
-        if not inplace:
-            check_obj = check_obj.copy()
-
-        if self.name is None:
-            raise errors.SchemaError(
-                self,
-                check_obj,
-                "column name is set to None. Pass the ``name` argument when "
-                "initializing a Column object, or use the ``set_name`` "
-                "method.",
-            )
-
-        def validate_column(check_obj, column_name):
-            super(Column, copy(self).set_name(column_name)).validate(
-                check_obj,
-                head,
-                tail,
-                sample,
-                random_state,
-                lazy,
-                inplace=inplace,
-            )
-
-        column_keys_to_check = (
-            self.get_regex_columns(check_obj.columns)
-            if self._regex
-            else [self.name]
+        return self.BACKEND.validate(
+            check_obj,
+            self,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
         )
-
-        for column_name in column_keys_to_check:
-            if self.coerce:
-                check_obj[column_name] = self.coerce_dtype(
-                    check_obj[column_name]
-                )
-            if is_table(check_obj[column_name]):
-                for i in range(check_obj[column_name].shape[1]):
-                    validate_column(
-                        check_obj[column_name].iloc[:, [i]], column_name
-                    )
-            else:
-                validate_column(check_obj, column_name)
-
-        return check_obj
-
-    def get_regex_columns(
-        self, columns: Union[pd.Index, pd.MultiIndex]
-    ) -> Union[pd.Index, pd.MultiIndex]:
-        """Get matching column names based on regex column name pattern.
-
-        :param columns: columns to regex pattern match
-        :returns: matchin columns
-        """
-        if isinstance(self.name, tuple):
-            # handle MultiIndex case
-            if len(self.name) != columns.nlevels:
-                raise IndexError(
-                    f"Column regex name='{self.name}' is a tuple, expected a "
-                    f"MultiIndex columns with {len(self.name)} number of "
-                    f"levels, found {columns.nlevels} level(s)"
-                )
-            matches = np.ones(len(columns)).astype(bool)
-            for i, name in enumerate(self.name):
-                matched = pd.Index(
-                    columns.get_level_values(i).astype(str).str.match(name)
-                ).fillna(False)
-                matches = matches & np.array(matched.tolist())
-            column_keys_to_check = columns[matches]
-        else:
-            if is_multiindex(columns):
-                raise IndexError(
-                    f"Column regex name {self.name} is a string, expected a "
-                    "dataframe where the index is a pd.Index object, not a "
-                    "pd.MultiIndex object"
-                )
-            column_keys_to_check = columns[
-                # str.match will return nan values when the index value is
-                # not a string.
-                pd.Index(columns.astype(str).str.match(self.name))
-                .fillna(False)
-                .tolist()
-            ]
-        if column_keys_to_check.shape[0] == 0:
-            raise errors.SchemaError(
-                self,
-                columns,
-                f"Column regex name='{self.name}' did not match any columns "
-                "in the dataframe. Update the regex pattern so that it "
-                f"matches at least one column:\n{columns.tolist()}",
-            )
-        # drop duplicates to account for potential duplicated columns in the
-        # dataframe.
-        return column_keys_to_check.drop_duplicates()
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -363,6 +273,8 @@ class IndexStrategyMixin(BaseSchemaStrategyMixin):
 class Index(ArraySchema, IndexStrategyMixin):
     """Validate types and properties of a DataFrame Index."""
 
+    BACKEND = IndexBackend()
+
     @property
     def names(self):
         """Get index names in the Index schema component."""
@@ -400,53 +312,225 @@ class Index(ArraySchema, IndexStrategyMixin):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-        if is_multiindex(check_obj.index):
-            raise errors.SchemaError(
-                self, check_obj, "Attempting to validate mismatch index"
-            )
-
-        series_cls = pd.Series
-        # NOTE: this is a hack to get pyspark.pandas working, this needs a more
-        # principled implementation
-        if type(check_obj).__module__ == "pyspark.pandas.frame":
-            # pylint: disable=import-outside-toplevel
-            import pyspark.pandas as ps
-
-            series_cls = ps.Series
-
-        if self.coerce:
-            check_obj.index = self.coerce_dtype(check_obj.index)
-            # handles case where pandas native string type is not supported
-            # by index.
-            obj_to_validate = self.dtype.coerce(
-                series_cls(
-                    check_obj.index.to_numpy(), name=check_obj.index.name
-                )
-            )
-        else:
-            obj_to_validate = series_cls(
-                check_obj.index.to_numpy(), name=check_obj.index.name
-            )
-
-        assert is_field(
-            super().validate(
-                obj_to_validate,
-                head,
-                tail,
-                sample,
-                random_state,
-                lazy,
-                inplace,
-            ),
+        return self.BACKEND.validate(
+            check_obj,
+            self,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
         )
-        return check_obj
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
 
-class MultiIndex(DataFrameSchema):
-    ...
+class MultiIndexStrategyMixin(BaseSchemaStrategyMixin):
+
+    @st.strategy_import_error
+    # NOTE: remove these ignore statements as part of
+    # https://github.com/pandera-dev/pandera/issues/403
+    # pylint: disable=arguments-differ
+    def strategy(self, *, size=None):  # type: ignore
+        return st.multiindex_strategy(indexes=self.indexes, size=size)
+
+    # NOTE: remove these ignore statements as part of
+    # https://github.com/pandera-dev/pandera/issues/403
+    # pylint: disable=arguments-differ
+    def example(self, size=None) -> pd.MultiIndex:  # type: ignore
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
+
+
+class MultiIndex(DataFrameSchema, MultiIndexStrategyMixin):
+    """Validate types and properties of a DataFrame MultiIndex.
+
+    This class inherits from :class:`~pandera.schemas.DataFrameSchema` to
+    leverage its validation logic.
+    """
+
+    BACKEND = MultiIndexBackend()
+
+    def __init__(
+        self,
+        indexes: List[Index],
+        coerce: bool = False,
+        strict: bool = False,
+        name: str = None,
+        ordered: bool = True,
+        unique: Optional[Union[str, List[str]]] = None,
+    ) -> None:
+        """Create MultiIndex validator.
+
+        :param indexes: list of Index validators for each level of the
+            MultiIndex index.
+        :param coerce: Whether or not to coerce the MultiIndex to the
+            specified dtypes before validation
+        :param strict: whether or not to accept columns in the MultiIndex that
+            aren't defined in the ``indexes`` argument.
+        :param name: name of schema component
+        :param ordered: whether or not to validate the indexes order.
+        :param unique: a list of index names that should be jointly unique.
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>>
+        >>> schema = pa.DataFrameSchema(
+        ...     columns={"column": pa.Column(int)},
+        ...     index=pa.MultiIndex([
+        ...         pa.Index(str,
+        ...               pa.Check(lambda s: s.isin(["foo", "bar"])),
+        ...               name="index0"),
+        ...         pa.Index(int, name="index1"),
+        ...     ])
+        ... )
+        >>>
+        >>> df = pd.DataFrame(
+        ...     data={"column": [1, 2, 3]},
+        ...     index=pd.MultiIndex.from_arrays(
+        ...         [["foo", "bar", "foo"], [0, 1, 2]],
+        ...         names=["index0", "index1"],
+        ...     )
+        ... )
+        >>>
+        >>> schema.validate(df)
+                       column
+        index0 index1
+        foo    0            1
+        bar    1            2
+        foo    2            3
+
+        See :ref:`here<multiindex>` for more usage details.
+
+        """
+        if any(not isinstance(i, Index) for i in indexes):
+            raise errors.SchemaInitError(
+                f"expected a list of Index objects, found {indexes} "
+                f"of type {[type(x) for x in indexes]}"
+            )
+        self.indexes = indexes
+        columns = {}
+        for i, index in enumerate(indexes):
+            if not ordered and index.name is None:
+                # if the MultiIndex is not ordered, there's no way of
+                # determining how to get the index level without an explicit
+                # index name
+                raise errors.SchemaInitError(
+                    "You must specify index names if MultiIndex schema "
+                    "component is not ordered."
+                )
+            columns[i if index.name is None else index.name] = Column(
+                dtype=index._dtype,
+                checks=index.checks,
+                nullable=index.nullable,
+                unique=index.unique,
+            )
+        super().__init__(
+            columns=columns,
+            coerce=coerce,
+            strict=strict,
+            name=name,
+            ordered=ordered,
+            unique=unique,
+        )
+
+    @property
+    def names(self):
+        """Get index names in the MultiIndex schema component."""
+        return [index.name for index in self.indexes]
+
+    @property
+    def coerce(self):
+        """Whether or not to coerce data types."""
+        return self._coerce or any(index.coerce for index in self.indexes)
+
+    @coerce.setter
+    def coerce(self, value: bool) -> None:
+        """Set coerce attribute."""
+        self._coerce = value
+
+    def validate(
+        self,
+        check_obj: Union[pd.DataFrame, pd.Series],
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> Union[pd.DataFrame, pd.Series]:
+        """Validate DataFrame or Series MultiIndex.
+
+        :param check_obj: pandas DataFrame of Series to validate.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated DataFrame or Series.
+        """
+        return self.BACKEND.validate(
+            check_obj,
+            self,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
+        )
+
+    def __repr__(self):
+        return (
+            f"<Schema {self.__class__.__name__}("
+            f"indexes={self.indexes}, "
+            f"coerce={self.coerce}, "
+            f"strict={self.strict}, "
+            f"name={self.name}, "
+            f"ordered={self.ordered}"
+            ")>"
+        )
+
+    def __str__(self):
+        indent = " " * 4
+
+        indexes_str = "[\n"
+        for index in self.indexes:
+            indexes_str += f"{indent * 2}{index}\n"
+        indexes_str += f"{indent}]"
+
+        return (
+            f"<Schema {self.__class__.__name__}(\n"
+            f"{indent}indexes={indexes_str}\n"
+            f"{indent}coerce={self.coerce},\n"
+            f"{indent}strict={self.strict},\n"
+            f"{indent}name={self.name},\n"
+            f"{indent}ordered={self.ordered}\n"
+            ")>"
+        )
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 
 
 def is_valid_multiindex_key(x: Tuple[Any, ...]) -> bool:

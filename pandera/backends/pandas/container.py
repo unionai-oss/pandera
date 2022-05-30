@@ -20,12 +20,6 @@ from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
 class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
-    def __init__(self):
-        from pandera.backends.pandas.component import (
-            PandasSchemaFieldComponentBackend,
-        )
-
-        self.field_backend = PandasSchemaFieldComponentBackend()
 
     def preprocess(
         self, check_obj: pd.DataFrame, name: str = None, inplace: bool = False
@@ -59,7 +53,9 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
         self.check_column_presence(check_obj, schema, column_info)
 
         # try to coerce datatypes
-        check_obj = self.coerce_dtype(check_obj, schema, error_handler)
+        check_obj = self.coerce_dtype(
+            check_obj, schema=schema, error_handler=error_handler,
+        )
 
         # collect schema components and prepare check object to be validated
         schema_components = self.collect_schema_components(
@@ -87,8 +83,8 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = self.field_backend.validate(
-                    check_obj, schema_component, lazy=lazy, inplace=True
+                result = schema_component.validate(
+                    check_obj, lazy=lazy, inplace=True
                 )
                 check_results.append(isinstance(result, pd.DataFrame))
             except SchemaError as err:
@@ -134,7 +130,7 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
             if col_schema.regex:
                 try:
                     column_names.extend(
-                        col_schema.get_regex_columns(check_obj.columns)
+                        col_schema.BACKEND.get_regex_columns(check_obj.columns)
                     )
                 except SchemaError:
                     pass
@@ -230,9 +226,12 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
     def coerce_dtype(
         self,
         check_obj: pd.DataFrame,
-        schema,
-        error_handler: SchemaErrorHandler,
+        *,
+        schema = None,
+        error_handler: SchemaErrorHandler = None,
     ):
+        assert schema is not None, "The `schema` argument must be provided."
+        assert error_handler is not None, "The `error_handler` argument must be provided."
         if not (
             schema.coerce
             or (schema.index is not None and schema.index.coerce)
@@ -297,7 +296,7 @@ class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
         for colname, col_schema in schema.columns.items():
             if col_schema.regex:
                 try:
-                    matched_columns = col_schema.get_regex_columns(obj.columns)
+                    matched_columns = col_schema.BACKEND.get_regex_columns(obj.columns)
                 except SchemaError:
                     matched_columns = pd.Index([])
 

@@ -52,8 +52,9 @@ class BaseSchemaBackend(ABC):
     def coerce_dtype(
         self,
         check_obj,
-        schema,
-        error_handler,
+        *,
+        schema = None,
+        error_handler = None,
     ):
         pass
 

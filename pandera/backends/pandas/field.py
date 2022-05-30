@@ -83,8 +83,9 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
     def coerce_dtype(
         self,
         check_obj: Union[pd.Series, pd.Index],
-        schema,
-        error_handler: SchemaErrorHandler,
+        *,
+        schema = None,
+        error_handler: SchemaErrorHandler = None,
     ) -> pd.Series:
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -92,6 +93,7 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
             (including time series).
         :returns: ``Series`` with coerced data type
         """
+        assert schema is not None, "The `schema` argument must be provided."
         if schema.dtype is None:
             return check_obj
 
@@ -185,7 +187,7 @@ class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
                     f"{schema.dtype}, got {check_obj.dtype}"
                 ),
                 failure_cases=scalar_failure_case(str(check_obj.dtype)),
-                check=f"dtype('{self.dtype}')",
+                check=f"dtype('{schema.dtype}')",
                 reason_code="wrong_dtype",
             )
 
