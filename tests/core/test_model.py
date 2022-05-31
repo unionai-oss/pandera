@@ -725,6 +725,40 @@ def test_config() -> None:
     assert expected == Child.to_schema()
 
 
+def test_multiindex_unique() -> None:
+    class Base(pa.SchemaModel):
+        a: Series[int]
+        idx_1: Index[str]
+        idx_2: Index[str]
+
+        class Config:
+            name = "Base schema"
+            coerce = True
+            ordered = True
+            multiindex_coerce = True
+            multiindex_strict = True
+            multiindex_unique = ["idx_1", "idx_2"]
+            multiindex_name: Optional[str] = "mi"
+            unique_column_names = True
+
+    expected = pa.DataFrameSchema(
+        columns={"a": pa.Column(int)},
+        index=pa.MultiIndex(
+            [pa.Index(str, name="idx_1"), pa.Index(str, name="idx_2")],
+            coerce=True,
+            strict=True,
+            name="mi",
+            unique=["idx_1", "idx_2"],
+        ),
+        name="Base schema",
+        coerce=True,
+        ordered=True,
+        unique_column_names=True,
+    )
+
+    assert expected == Base.to_schema()
+
+
 def test_config_docstrings() -> None:
     class Model(pa.SchemaModel):
         """foo"""
