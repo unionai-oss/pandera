@@ -5,15 +5,15 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 
-from pandera.backends.pandas.container import PandasSchemaContainerBackend
-from pandera.backends.pandas.field import PandasSchemaFieldBackend
+from pandera.backends.pandas.container import DataFrameSchemaBackend
+from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.core.pandas.types import is_field, is_index, is_table, is_multiindex
 from pandera.errors import SchemaError, SchemaErrors
 from pandera.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
 
 
-class ColumnBackend(PandasSchemaFieldBackend):
+class ColumnBackend(ArraySchemaBackend):
     def validate(
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
@@ -173,7 +173,7 @@ class ColumnBackend(PandasSchemaFieldBackend):
         return check_results
 
 
-class IndexBackend(PandasSchemaFieldBackend):
+class IndexBackend(ArraySchemaBackend):
     def validate(
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
@@ -227,7 +227,7 @@ class IndexBackend(PandasSchemaFieldBackend):
         return check_obj
 
 
-class MultiIndexBackend(PandasSchemaContainerBackend):
+class MultiIndexBackend(DataFrameSchemaBackend):
 
     def coerce_dtype(
         self,

@@ -9,7 +9,7 @@ import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
-from pandera.backends.pandas.component import PandasSchemaContainerBackend
+from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.checks import Check
 from pandera.core.base import (
     BaseSchema,
@@ -25,10 +25,6 @@ from pandera.engines import pandas_engine
 from pandera.hypotheses import Hypothesis
 
 N_INDENT_SPACES = 4
-
-
-class SeriesSchema(ArraySchema):
-    ...
 
 
 class DataFrameSchemaTransformsMixin(BaseSchemaTransformsMixin):
@@ -812,7 +808,7 @@ class DataFrameSchema(
 ):  # pylint: disable=too-many-public-methods
     """A light-weight pandas DataFrame validator."""
 
-    BACKEND = PandasSchemaContainerBackend()
+    BACKEND = DataFrameSchemaBackend()
 
     def __init__(
         self,

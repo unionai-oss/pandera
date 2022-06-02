@@ -1,2 +1,2 @@
-from .container import PandasSchemaContainerBackend
-from .field import PandasSchemaFieldBackend
+from .container import DataFrameSchemaBackend
+from .array import ArraySchemaBackend

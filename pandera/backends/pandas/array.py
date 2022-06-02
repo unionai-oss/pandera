@@ -11,8 +11,7 @@ from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
-# TODO: remove generic notation
-class PandasSchemaFieldBackend(PandasSchemaBackend[FieldCheckObj]):
+class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
     @singledispatchmethod
     def preprocess(self, check_obj, name: str = None, inplace: bool = False):
         raise NotImplementedError

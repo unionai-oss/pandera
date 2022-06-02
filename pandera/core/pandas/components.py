@@ -7,10 +7,10 @@ import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
-from pandera.backends.pandas.component import ColumnBackend, IndexBackend, MultiIndexBackend
+from pandera.backends.pandas.components import ColumnBackend, IndexBackend, MultiIndexBackend
 from pandera.core.base import BaseSchemaStrategyMixin
 from pandera.core.pandas.array import ArraySchema
-from pandera.core.pandas.schemas import DataFrameSchema
+from pandera.core.pandas.container import DataFrameSchema
 from pandera.core.pandas.types import (
     CheckList,
     PandasDtypeInputTypes,

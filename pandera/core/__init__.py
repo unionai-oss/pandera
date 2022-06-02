@@ -1,3 +1,4 @@
+from .pandas.array import SeriesSchema
 from .pandas.checks import Check
-from .pandas.schema_components import Column, Index, MultiIndex
-from .pandas.schemas import DataFrameSchema, SeriesSchema
+from .pandas.components import Column, Index, MultiIndex
+from .pandas.container import DataFrameSchema

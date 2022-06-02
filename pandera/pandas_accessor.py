@@ -4,9 +4,10 @@ from typing import Optional, Union
 
 import pandas as pd
 
-from pandera.core.pandas import schemas
+from pandera.core.pandas.array import SeriesSchema
+from pandera.core.pandas.container import DataFrameSchema
 
-Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
+Schemas = Union[DataFrameSchema, SeriesSchema]
 
 
 class PanderaAccessor:
@@ -40,7 +41,7 @@ class PanderaDataFrameAccessor(PanderaAccessor):
 
     @staticmethod
     def check_schema_type(schema):
-        if not isinstance(schema, schemas.DataFrameSchema):
+        if not isinstance(schema, DataFrameSchema):
             raise TypeError(
                 f"schema arg must be a DataFrameSchema, found {type(schema)}"
             )
@@ -52,7 +53,7 @@ class PanderaSeriesAccessor(PanderaAccessor):
 
     @staticmethod
     def check_schema_type(schema):
-        if not isinstance(schema, schemas.SeriesSchema):
+        if not isinstance(schema, SeriesSchema):
             raise TypeError(
                 f"schema arg must be a SeriesSchema, found {type(schema)}"
             )

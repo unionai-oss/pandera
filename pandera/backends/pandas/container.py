@@ -11,15 +11,8 @@ from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import ParserError, SchemaError, SchemaErrors
 
-# TODO: rename backends to match the core.pandas module names, e.g.:
-# - PandasSchemaContainerBackend -> DataFrameSchemaBackend
-# - PandasSchemaFieldBackend -> ArraySchemaBackend
-# - PandasSchemaFieldComponentBackend -> ColumnSchemaBackend
-#
-# Note that SeriesSchema will just use the ArraySchemaBackend
 
-
-class PandasSchemaContainerBackend(PandasSchemaBackend[pd.DataFrame]):
+class DataFrameSchemaBackend(PandasSchemaBackend[pd.DataFrame]):
 
     def preprocess(
         self, check_obj: pd.DataFrame, name: str = None, inplace: bool = False

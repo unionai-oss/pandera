@@ -96,15 +96,15 @@ class BaseSchemaBackend(ABC):
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""
 
-    def query(self, check_obj):
+    def query(self, check_obj, query_fn):
         """Implements querying behavior to produce subset of check object."""
         pass
 
-    def groupby(self, check_obj):
+    def groupby(self, check_obj, groupby_fn):
         """Implements groupby behavior for check object."""
         pass
 
-    def aggregate(self, check_obj):
+    def aggregate(self, check_obj, agg_fn):
         """Implements aggregation behavior for check object."""
         pass
 
@@ -112,7 +112,7 @@ class BaseCheckBackend(ABC):
         """Preprocesses a check object before applying the check function."""
         pass
 
-    def postprocess(self, check_obj):
+    def postprocess(self, check_obj, key):
         """Postprocesses the result of applying the check function."""
         pass
 

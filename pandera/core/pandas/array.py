@@ -7,7 +7,7 @@ import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
-from pandera.backends.pandas.field import PandasSchemaFieldBackend
+from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.checks import Check
 from pandera.core.base import (
     BaseSchema,
@@ -96,7 +96,7 @@ class ArraySchema(
 ):
     """Base series validator object."""
 
-    BACKEND: PandasSchemaFieldBackend = PandasSchemaFieldBackend()
+    BACKEND = ArraySchemaBackend()
 
     def __init__(
         self,
@@ -283,3 +283,7 @@ class ArraySchema(
             raise TypeError(f"{schema} is not a {cls}.")
 
         return cast(TArraySchemaBase, schema)
+
+
+class SeriesSchema(ArraySchema):
+    ...
