@@ -1647,21 +1647,15 @@ def test_reset_index_drop(drop: bool, schema_simple: DataFrameSchema) -> None:
 @pytest.mark.parametrize(
     "level, columns, index",
     [
-        [
-            None,{"col1", "col2", "ind0", "ind1"},None
-        ],
-        [   
-            [],{"col1", "col2"},["ind0", "ind1"]
-        ],
-        [
-            ["ind0"],{"col1", "col2", "ind0"},["ind1"]
-        ],
-        [
-            ["ind0","ind1"],{"col1", "col2", "ind0", "ind1"},None
-        ]
+        [None, {"col1", "col2", "ind0", "ind1"}, None],
+        [[], {"col1", "col2"}, ["ind0", "ind1"]],
+        [["ind0"], {"col1", "col2", "ind0"}, ["ind1"]],
+        [["ind0", "ind1"], {"col1", "col2", "ind0", "ind1"}, None],
     ],
 )
-def test_reset_index_level(schema_multiindex: DataFrameSchema, level, columns, index):
+def test_reset_index_level(
+    schema_multiindex: DataFrameSchema, level, columns, index
+):
     """Test that resetting index correctly handles specifying level."""
     test_schema = schema_multiindex.reset_index(level=level)
     if index:
@@ -1669,7 +1663,7 @@ def test_reset_index_level(schema_multiindex: DataFrameSchema, level, columns, i
         assert test_schema.index.names == index
     else:
         assert test_schema.index is None
-        
+
     assert set(test_schema.columns.keys()) == columns
 
 
