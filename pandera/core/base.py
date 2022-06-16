@@ -134,6 +134,7 @@ class BaseCheck(ABC):
     """Core check specification."""
 
     ...
+    # TODO: this should contain main methods and properties of the check specification
 
 
 class BaseErrorFormatter(ABC):

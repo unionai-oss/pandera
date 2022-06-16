@@ -11,16 +11,7 @@ from pandera.backends.pandas.components import ColumnBackend, IndexBackend, Mult
 from pandera.core.base import BaseSchemaStrategyMixin
 from pandera.core.pandas.array import ArraySchema
 from pandera.core.pandas.container import DataFrameSchema
-from pandera.core.pandas.types import (
-    CheckList,
-    PandasDtypeInputTypes,
-    is_field,
-    is_index,
-    is_multiindex,
-    is_table,
-)
-from pandera.error_formatters import scalar_failure_case
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
 
 
 class ColumnStrategyMixin(BaseSchemaStrategyMixin):

@@ -1,7 +1,7 @@
 import pandas as pd
 
 import pandera as pa
-from pandera.core.pandas import Column, DataFrameSchema, Index, MultiIndex, SeriesSchema
+from pandera.core.pandas import Column, DataFrameSchema, SeriesSchema, Index, MultiIndex
 
 series_schema = SeriesSchema(int, pa.Check.gt(0), name="foo")
 

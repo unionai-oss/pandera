@@ -24,6 +24,7 @@ class BaseSchemaBackend(ABC):
         name: str = None,
         inplace: bool = False,
     ):
+        """Preprocesses a check object before applying check functions."""
         pass
 
     def subsample(
@@ -34,6 +35,7 @@ class BaseSchemaBackend(ABC):
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
     ):
+        """Subsamples a check object before applying check functions."""
         pass
 
     def validate(
@@ -47,6 +49,9 @@ class BaseSchemaBackend(ABC):
         lazy: bool = False,
         inplace: bool = False,
     ):
+        """
+        Parse and validate a check object, returning type-coerced and validated object.
+        """
         pass
 
     def coerce_dtype(
@@ -56,6 +61,7 @@ class BaseSchemaBackend(ABC):
         schema = None,
         error_handler = None,
     ):
+        """Coerce the data type of the check object."""
         pass
 
     def run_check(
@@ -66,6 +72,7 @@ class BaseSchemaBackend(ABC):
         check_index: int,
         *args,
     ):
+        """Run a single check on the check object."""
         pass
 
     def run_checks(
@@ -75,21 +82,23 @@ class BaseSchemaBackend(ABC):
         checks: Sequence[Check],
         name: Optional[str] = None,
     ):
+        """Run a list of checks on the check object."""
         pass
 
     def check_name(self, check_obj, name: Optional[str] = None):
+        """Core check that checks the name of the check object."""
         pass
 
     def check_nullable(self, check_obj, nullable: bool = False):
+        """Core check that checks the nullability of a check object."""
         pass
 
     def check_unique(self, check_obj, unique: bool = False):
+        """Core check that checks the uniqueness of values in a check object."""
         pass
 
     def check_dtype(self, check_obj, dtype: DataType):
-        pass
-
-    def strategy(self):
+        """Core check that checks the data type of a check object."""
         pass
 
 

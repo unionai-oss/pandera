@@ -812,7 +812,7 @@ class DataFrameSchema(
 
     def __init__(
         self,
-        columns: Optional[Dict[Any, "Column"]] = None,
+        columns: Optional[Dict[Any, ArraySchema]] = None,
         checks: CheckList = None,
         index=None,
         dtype: PandasDtypeInputTypes = None,
@@ -890,7 +890,7 @@ class DataFrameSchema(
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        self.columns: Dict[Any, "Column"] = {} if columns is None else columns
+        self.columns: Dict[Any, ArraySchema] = {} if columns is None else columns
 
         if strict not in (
             False,
