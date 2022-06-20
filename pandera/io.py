@@ -100,6 +100,7 @@ def _serialize_component_stats(component_stats):
     if dtype:
         dtype = str(dtype)
 
+    # TODO: probably add some sort of check to make sure it's valid json
     description = component_stats.get("description")
     title = component_stats.get("title")
 
