@@ -25,7 +25,7 @@ class BaseSchemaBackend(ABC):
         inplace: bool = False,
     ):
         """Preprocesses a check object before applying check functions."""
-        pass
+        raise NotImplementedError
 
     def subsample(
         self,
@@ -36,7 +36,7 @@ class BaseSchemaBackend(ABC):
         random_state: Optional[int] = None,
     ):
         """Subsamples a check object before applying check functions."""
-        pass
+        raise NotImplementedError
 
     def validate(
         self,
@@ -52,7 +52,7 @@ class BaseSchemaBackend(ABC):
         """
         Parse and validate a check object, returning type-coerced and validated object.
         """
-        pass
+        raise NotImplementedError
 
     def coerce_dtype(
         self,
@@ -62,7 +62,7 @@ class BaseSchemaBackend(ABC):
         error_handler = None,
     ):
         """Coerce the data type of the check object."""
-        pass
+        raise NotImplementedError
 
     def run_check(
         self,
@@ -73,7 +73,7 @@ class BaseSchemaBackend(ABC):
         *args,
     ):
         """Run a single check on the check object."""
-        pass
+        raise NotImplementedError
 
     def run_checks(
         self,
@@ -83,56 +83,56 @@ class BaseSchemaBackend(ABC):
         name: Optional[str] = None,
     ):
         """Run a list of checks on the check object."""
-        pass
+        raise NotImplementedError
 
     def check_name(self, check_obj, name: Optional[str] = None):
         """Core check that checks the name of the check object."""
-        pass
+        raise NotImplementedError
 
     def check_nullable(self, check_obj, nullable: bool = False):
         """Core check that checks the nullability of a check object."""
-        pass
+        raise NotImplementedError
 
     def check_unique(self, check_obj, unique: bool = False):
         """Core check that checks the uniqueness of values in a check object."""
-        pass
+        raise NotImplementedError
 
     def check_dtype(self, check_obj, dtype: DataType):
         """Core check that checks the data type of a check object."""
-        pass
+        raise NotImplementedError
 
 
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""
 
-    def query(self, check_obj, query_fn):
+    def query(self, check_obj):
         """Implements querying behavior to produce subset of check object."""
-        pass
+        raise NotImplementedError
 
-    def groupby(self, check_obj, groupby_fn):
+    def groupby(self, check_obj):
         """Implements groupby behavior for check object."""
-        pass
+        raise NotImplementedError
 
-    def aggregate(self, check_obj, agg_fn):
+    def aggregate(self, check_obj):
         """Implements aggregation behavior for check object."""
-        pass
+        raise NotImplementedError
 
     def preprocess(self, check_obj, key):
         """Preprocesses a check object before applying the check function."""
-        pass
+        raise NotImplementedError
 
     def postprocess(self, check_obj, key):
         """Postprocesses the result of applying the check function."""
-        pass
+        raise NotImplementedError
 
-    def __call__(self, check_obj):
+    def apply(self, check_obj, key):
         """Apply the check function to a check object."""
-        pass
+        raise NotImplementedError
 
     def statistics(self):
         """Check statistics property."""
-        pass
+        raise NotImplementedError
 
     def strategy(self):
         """Return a data generation strategy."""
-        pass
+        raise NotImplementedError

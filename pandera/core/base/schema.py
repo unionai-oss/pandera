@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 import pandas as pd
 
-from pandera.checks import Check
+from pandera.core.base.checks import BaseCheck
 from pandera.dtypes import DataType
 
 DtypeInputTypes = Union[str, type, DataType, Type]
@@ -24,7 +24,7 @@ class BaseSchema(ABC):
         self,
         fields: "BaseSchema" = None,
         dtype: DtypeInputTypes = None,
-        checks: List["BaseCheck"] = None,
+        checks: List[BaseCheck] = None,
         coerce: bool = False,
         name: Optional[str] = None,
         title: Optional[str] = None,
@@ -129,18 +129,6 @@ class BaseSchemaModel(ABC):
 
     ...
 
-
-class BaseCheck(ABC):
-    """Core check specification."""
-
-    ...
-    # TODO: this should contain main methods and properties of the check specification
-
-
-class BaseErrorFormatter(ABC):
-    """Core protocol for formatting schema errors."""
-
-    ...
 
 
 def inferred_schema_guard(method):

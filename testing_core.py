@@ -1,7 +1,9 @@
 import pandas as pd
 
 import pandera as pa
+import pandera.core.pandas.checks as C
 from pandera.core.pandas import Column, DataFrameSchema, SeriesSchema, Index, MultiIndex
+from pandera.core.checks import Check
 
 series_schema = SeriesSchema(int, pa.Check.gt(0), name="foo")
 
@@ -57,3 +59,13 @@ df_multiindex = pd.DataFrame(
     )
 )
 print(df_multiiindex_schema(df_multiindex))
+
+
+eq = Check.eq(0)
+other_eq = C.eq(0)
+print(eq(pd.Series([0, -1])))
+print(eq(pd.DataFrame([[0, -1]])))
+print(other_eq(pd.DataFrame([[0, -1]])))
+print(Check.eq.__signature__)
+print(Check.eq.__doc__)
+print(Check.eq.__annotations__)

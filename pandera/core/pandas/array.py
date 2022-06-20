@@ -1,21 +1,20 @@
 import copy
 import warnings
-from typing import Any, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, List, Optional, TypeVar, Union, cast
 
-import numpy as np
 import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
 from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.checks import Check
-from pandera.core.base import (
+from pandera.core.base.schema import (
     BaseSchema,
     BaseSchemaStrategyMixin,
     BaseSchemaTransformsMixin,
     inferred_schema_guard,
 )
-from pandera.core.pandas.checks import BaseCheck
+from pandera.core.base.checks import BaseCheck
 from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine

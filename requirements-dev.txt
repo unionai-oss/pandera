@@ -17,6 +17,7 @@ pydantic
 pandas-stubs <= 1.5.2.221213
 pyspark >= 3.2.0
 modin
+multimethod
 protobuf <= 3.20.3
 dask
 distributed

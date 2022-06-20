@@ -11,7 +11,7 @@ from pandera import errors
 from pandera import strategies as st
 from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.checks import Check
-from pandera.core.base import (
+from pandera.core.base.schema import (
     BaseSchema,
     BaseSchemaIOMixin,
     BaseSchemaStrategyMixin,
