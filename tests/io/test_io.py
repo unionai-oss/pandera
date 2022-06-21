@@ -64,6 +64,8 @@ def _create_schema(index="single"):
                     pandera.Check.less_than(10),
                     pandera.Check.in_range(0, 10),
                 ],
+                description="Integer column with title",
+                title="integer_col",
             ),
             "float_column": pandera.Column(
                 pandera.Float,
@@ -72,6 +74,7 @@ def _create_schema(index="single"):
                     pandera.Check.less_than(20),
                     pandera.Check.in_range(-10, 20),
                 ],
+                description="Float col no title",
             ),
             "str_column": pandera.Column(
                 pandera.String,
@@ -118,6 +121,8 @@ schema_type: dataframe
 version: {pandera.__version__}
 columns:
   int_column:
+    title: integer_col
+    description: Integer column with title
     dtype: int64
     nullable: false
     checks:
@@ -133,6 +138,8 @@ columns:
     required: true
     regex: false
   float_column:
+    title: null
+    description: Float col no title
     dtype: float64
     nullable: false
     checks:
@@ -148,6 +155,8 @@ columns:
     required: true
     regex: false
   str_column:
+    title: null
+    description: null
     dtype: str
     nullable: false
     checks:
@@ -164,6 +173,8 @@ columns:
     required: true
     regex: false
   datetime_column:
+    title: null
+    description: null
     dtype: datetime64[ns]
     nullable: false
     checks:
@@ -174,6 +185,8 @@ columns:
     required: true
     regex: false
   timedelta_column:
+    title: null
+    description: null
     dtype: timedelta64[ns]
     nullable: false
     checks:
@@ -184,6 +197,8 @@ columns:
     required: true
     regex: false
   optional_props_column:
+    title: null
+    description: null
     dtype: str
     nullable: true
     checks:
@@ -195,6 +210,8 @@ columns:
     required: false
     regex: true
   notype_column:
+    title: null
+    description: null
     dtype: null
     nullable: false
     checks:
@@ -209,7 +226,9 @@ columns:
     regex: false
 checks: null
 index:
-- dtype: int64
+- title: null
+  description: null
+  dtype: int64
   nullable: false
   checks: null
   name: null
