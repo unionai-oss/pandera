@@ -416,12 +416,8 @@ def to_script(dataframe_schema, path_or_buf=None):
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
-            description=(
-                None if description is None else f"\"{description}\""
-            ),
-            title=(
-                None if title is None else f"\"{title}\""
-           ),
+            description=(None if description is None else f'"{description}"'),
+            title=(None if title is None else f'"{title}"'),
         )
         columns[colname] = column_code.strip()
 
