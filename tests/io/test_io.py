@@ -781,6 +781,8 @@ schema_type: dataframe
 version: {pandera.__version__}
 columns:
   integer_col:
+    title: null
+    description: null
     dtype: {INT_DTYPE}
     nullable: false
     checks:
@@ -794,6 +796,8 @@ columns:
     required: true
     regex: false
   integer_col_2:
+    title: null
+    description: null
     dtype: {INT_DTYPE}
     nullable: true
     checks:
@@ -803,6 +807,8 @@ columns:
     required: true
     regex: false
   string_col:
+    title: null
+    description: null
     dtype: {STR_DTYPE}
     nullable: true
     checks:
@@ -814,6 +820,8 @@ columns:
     required: true
     regex: false
   string_col_2:
+    title: null
+    description: null
     dtype: {STR_DTYPE}
     nullable: true
     checks:
@@ -823,6 +831,8 @@ columns:
     required: true
     regex: false
   string_col_3:
+    title: null
+    description: null
     dtype: {STR_DTYPE}
     nullable: true
     checks:
@@ -834,6 +844,8 @@ columns:
     required: true
     regex: false
   string_col_4:
+    title: null
+    description: null
     dtype: {STR_DTYPE}
     nullable: true
     checks:
@@ -845,6 +857,8 @@ columns:
     required: true
     regex: false
   float_col:
+    title: null
+    description: null
     dtype: category
     nullable: false
     checks:
@@ -857,6 +871,8 @@ columns:
     required: true
     regex: false
   float_col_2:
+    title: null
+    description: null
     dtype: float64
     nullable: true
     checks: null
@@ -865,6 +881,8 @@ columns:
     required: true
     regex: false
   date_col:
+    title: null
+    description: null
     dtype: {STR_DTYPE}
     nullable: true
     checks:
