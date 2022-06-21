@@ -185,6 +185,9 @@ def _deserialize_component_stats(serialized_component_stats):
     if dtype:
         dtype = pandas_engine.Engine.dtype(dtype)
 
+    description = serialized_component_stats.get("description")
+    title = serialized_component_stats.get("title")
+
     checks = serialized_component_stats.get("checks")
     if checks is not None:
         checks = [
@@ -194,6 +197,8 @@ def _deserialize_component_stats(serialized_component_stats):
             for check_name, check_stats in checks.items()
         ]
     return {
+        "title": title,
+        "description": description,
         "dtype": dtype,
         "checks": checks,
         **{
