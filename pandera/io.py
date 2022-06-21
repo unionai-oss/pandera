@@ -325,6 +325,8 @@ Column(
     coerce={coerce},
     required={required},
     regex={regex},
+    description={description},
+    title={title},
 )
 """
 
@@ -402,6 +404,8 @@ def to_script(dataframe_schema, path_or_buf=None):
     columns = {}
     for colname, properties in statistics["columns"].items():
         dtype = properties.get("dtype")
+        description = properties["description"]
+        title = properties["title"]
         column_code = COLUMN_TEMPLATE.format(
             dtype=(
                 None if dtype is None else _get_qualified_name(dtype.__class__)
@@ -412,6 +416,12 @@ def to_script(dataframe_schema, path_or_buf=None):
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
+            description=(
+                None if description is None else f"\"{description}\""
+            ),
+            title=(
+                None if title is None else f"\"{title}\""
+           ),
         )
         columns[colname] = column_code.strip()
 
