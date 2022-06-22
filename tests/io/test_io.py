@@ -370,6 +370,188 @@ strict: false
 """
 
 
+YAML_SCHEMA_NO_DESCR_NO_TITLE = f"""
+schema_type: dataframe
+version: {pandera.__version__}
+columns:
+  int_column:
+    dtype: int64
+    nullable: false
+    checks:
+      greater_than: 0
+      less_than: 10
+      in_range:
+        min_value: 0
+        max_value: 10
+        include_min: null
+        include_max: null
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  float_column:
+    dtype: float64
+    nullable: false
+    checks:
+      greater_than: -10
+      less_than: 20
+      in_range:
+        min_value: -10
+        max_value: 20
+        include_min: null
+        include_max: null
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  str_column:
+    dtype: str
+    nullable: false
+    checks:
+      isin:
+      - foo
+      - bar
+      - x
+      - xy
+      str_length:
+        min_value: 1
+        max_value: 3
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  datetime_column:
+    dtype: datetime64[ns]
+    nullable: false
+    checks:
+      greater_than: '2010-01-01 00:00:00'
+      less_than: '2020-01-01 00:00:00'
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  timedelta_column:
+    dtype: timedelta64[ns]
+    nullable: false
+    checks:
+      greater_than: 1000
+      less_than: 10000
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+  optional_props_column:
+    dtype: str
+    nullable: true
+    checks:
+      str_length:
+        min_value: 1
+        max_value: 3
+    unique: false
+    coerce: true
+    required: false
+    regex: true
+  notype_column:
+    dtype: null
+    nullable: false
+    checks:
+      isin:
+      - foo
+      - bar
+      - x
+      - xy
+    unique: false
+    coerce: false
+    required: true
+    regex: false
+checks: null
+index:
+- dtype: int64
+  nullable: false
+  checks: null
+  name: null
+  unique: false
+  coerce: false
+coerce: false
+strict: true
+unique: null
+"""
+
+
+def _create_schema_no_descr_no_title(index="single"):
+
+    if index == "multi":
+        index = pandera.MultiIndex(
+            [
+                pandera.Index(pandera.Int, name="int_index0"),
+                pandera.Index(pandera.Int, name="int_index1"),
+                pandera.Index(pandera.Int, name="int_index2"),
+            ]
+        )
+    elif index == "single":
+        # make sure io modules can handle case when index name is None
+        index = pandera.Index(pandera.Int, name=None)
+    else:
+        index = None
+
+    return pandera.DataFrameSchema(
+        columns={
+            "int_column": pandera.Column(
+                pandera.Int,
+                checks=[
+                    pandera.Check.greater_than(0),
+                    pandera.Check.less_than(10),
+                    pandera.Check.in_range(0, 10),
+                ],
+            ),
+            "float_column": pandera.Column(
+                pandera.Float,
+                checks=[
+                    pandera.Check.greater_than(-10),
+                    pandera.Check.less_than(20),
+                    pandera.Check.in_range(-10, 20),
+                ],
+            ),
+            "str_column": pandera.Column(
+                pandera.String,
+                checks=[
+                    pandera.Check.isin(["foo", "bar", "x", "xy"]),
+                    pandera.Check.str_length(1, 3),
+                ],
+            ),
+            "datetime_column": pandera.Column(
+                pandera.DateTime,
+                checks=[
+                    pandera.Check.greater_than(pd.Timestamp("20100101")),
+                    pandera.Check.less_than(pd.Timestamp("20200101")),
+                ],
+            ),
+            "timedelta_column": pandera.Column(
+                pandera.Timedelta,
+                checks=[
+                    pandera.Check.greater_than(pd.Timedelta(1000, unit="ns")),
+                    pandera.Check.less_than(pd.Timedelta(10000, unit="ns")),
+                ],
+            ),
+            "optional_props_column": pandera.Column(
+                pandera.String,
+                nullable=True,
+                unique=False,
+                coerce=True,
+                required=False,
+                regex=True,
+                checks=[pandera.Check.str_length(1, 3)],
+            ),
+            "notype_column": pandera.Column(
+                checks=pandera.Check.isin(["foo", "bar", "x", "xy"]),
+            ),
+        },
+        index=index,
+        coerce=False,
+        strict=True,
+    )
+
+
 @pytest.mark.skipif(
     SKIP_YAML_TESTS,
     reason="pyyaml >= 5.1.0 required",
@@ -417,6 +599,7 @@ def test_to_yaml():
         [YAML_SCHEMA, _create_schema],
         [YAML_SCHEMA_NULL_INDEX, _create_schema_null_index],
         [YAML_SCHEMA_PYTHON_TYPES, _create_schema_python_types],
+        [YAML_SCHEMA_NO_DESCR_NO_TITLE, _create_schema_no_descr_no_title],
     ],
 )
 def test_from_yaml(yaml_str, schema_creator):
