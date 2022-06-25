@@ -166,7 +166,7 @@ def strategy_import_error(fn: F) -> F:
         if not HAS_HYPOTHESIS:  # pragma: no cover
             raise ImportError(
                 'Strategies for generating data requires "hypothesis" to be \n'
-                "installed. You can install pandera together with the IO \n"
+                "installed. You can install pandera together with the strategies \n"
                 "dependencies with:\n"
                 "pip install pandera[strategies]"
             )

@@ -755,7 +755,15 @@ class DataFrameSchemaTransformsMixin(BaseSchemaTransformsMixin):
 
 
 class DataFrameSchemaIOMixin(BaseSchemaIOMixin):
-    pass
+    
+    def to_script(self):
+        ...
+
+    def from_yaml(self):
+        ...
+
+    def to_yaml(self):
+        ...
 
 
 class DataFrameSchemaStrategyMixin(BaseSchemaStrategyMixin):
