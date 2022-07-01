@@ -24,16 +24,16 @@ import pandas as pd
 import wrapt
 from pydantic import validate_arguments
 
-from . import errors, schemas
-from .error_handlers import SchemaErrorHandler
-from .inspection_utils import (
+from pandera import errors
+from pandera.core.pandas import DataFrameSchema, SeriesSchema
+from pandera.core.pandas.model import SchemaModel
+from pandera.inspection_utils import (
     is_classmethod_from_meta,
     is_decorated_classmethod,
 )
-from .model import SchemaModel
-from .typing import AnnotationInfo
+from pandera.typing import AnnotationInfo
 
-Schemas = Union[schemas.DataFrameSchema, schemas.SeriesSchema]
+Schemas = Union[DataFrameSchema, SeriesSchema]
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
 F = TypeVar("F", bound=Callable)
@@ -80,7 +80,7 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
 def _handle_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+    schema: Union[DataFrameSchema, SeriesSchema],
     arg_df: pd.DataFrame,
     schema_error: errors.SchemaError,
 ) -> NoReturn:
@@ -477,7 +477,7 @@ def check_io(
         out_schemas = out
         if isinstance(out, list):
             out_schemas = out
-        elif isinstance(out, (schemas.DataFrameSchema, schemas.SeriesSchema)):
+        elif isinstance(out, (DataFrameSchema, SeriesSchema)):
             out_schemas = [(None, out)]  # type: ignore
         elif isinstance(out, tuple):
             out_schemas = [out]

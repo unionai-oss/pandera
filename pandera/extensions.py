@@ -13,8 +13,9 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from . import strategies as st
-from .checks import Check, register_check_statistics
+from pandera import strategies as st
+from pandera.checks import register_check_statistics
+from pandera.core.checks import Check
 
 
 class CheckType(Enum):

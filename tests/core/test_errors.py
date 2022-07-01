@@ -197,7 +197,7 @@ class TestSchemaError:
                 }
             )
         )
-        assert exc.check == "<Check isin: isin({0, 1})>"
+        assert exc.check == "<Check isin: isin([0, 1])>"
         assert exc.check_index == 0
         assert exc.check_output == str(
             pd.Series(np.tile([False, True, True], n_tile), name="a")

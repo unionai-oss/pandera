@@ -20,7 +20,6 @@ class BaseSchemaBackend(ABC):
     def preprocess(
         self,
         check_obj,
-        name: str = None,
         inplace: bool = False,
     ):
         """Preprocesses a check object before applying check functions."""

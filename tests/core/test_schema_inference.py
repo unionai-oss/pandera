@@ -6,7 +6,11 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import schema_inference
+from pandera._schema_inference.pandas import (
+    infer_dataframe_schema,
+    infer_schema,
+    infer_series_schema,
+)
 
 
 def _create_dataframe(
@@ -58,11 +62,9 @@ def test_infer_schema(
     """Test that convenience function correctly infers dataframe or series."""
     if expectation is TypeError:
         with pytest.raises(TypeError, match="^pandas_obj type not recognized"):
-            schema_inference.infer_schema(pandas_obj)
+            infer_schema(pandas_obj)
     else:
-        assert isinstance(
-            schema_inference.infer_schema(pandas_obj), expectation
-        )
+        assert isinstance(infer_schema(pandas_obj), expectation)
 
 
 @pytest.mark.parametrize(
@@ -72,7 +74,7 @@ def test_infer_schema(
 def test_infer_dataframe_schema(multi_index: bool) -> None:
     """Test dataframe schema is correctly inferred."""
     dataframe = _create_dataframe(multi_index=multi_index)
-    schema = schema_inference.infer_dataframe_schema(dataframe)
+    schema = infer_dataframe_schema(dataframe)
     assert isinstance(schema, pa.DataFrameSchema)
 
     if multi_index:
@@ -117,7 +119,7 @@ def test_infer_dataframe_schema(multi_index: bool) -> None:
 )
 def test_infer_series_schema(series: pd.Series) -> None:
     """Test series schema is correctly inferred."""
-    schema = schema_inference.infer_series_schema(series)
+    schema = infer_series_schema(series)
     assert isinstance(schema, pa.SeriesSchema)
 
     with pytest.warns(

@@ -160,10 +160,12 @@ class DataFrameBase(Generic[T]):
             orig_class = getattr(self, "__orig_class__")
             class_args = getattr(orig_class, "__args__", None)
             if class_args is not None and any(
-                x.__name__ == "SchemaModel"
+                x.__name__ == "DataFrameModel"
                 for x in inspect.getmro(class_args[0])
             ):
                 schema_model = value.__args__[0]
+            else:
+                raise TypeError("Could not find DataFrameModel in class args")
 
             # prevent the double validation problem by preventing checks for
             # dataframes with a defined pandera.schema

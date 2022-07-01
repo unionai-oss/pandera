@@ -1,7 +1,8 @@
 """A flexible and expressive pandas validation library."""
 import platform
 
-from pandera import external_config
+from pandera import errors, external_config, typing
+from pandera._accessors import pandas_accessor
 from pandera.core.checks import Check
 from pandera.core.pandas import (
     Column,
@@ -10,6 +11,8 @@ from pandera.core.pandas import (
     MultiIndex,
     SeriesSchema,
 )
+from pandera.core.pandas.model import SchemaModel
+from pandera.core.pandas.model_components import Field, check, dataframe_check
 from pandera.dtypes import (
     Bool,
     Category,
@@ -55,18 +58,9 @@ from pandera.engines.pandas_engine import (
     pandas_version,
 )
 
-from . import errors, pandas_accessor, typing
-
-# from .checks import Check
 from .decorators import check_input, check_io, check_output, check_types
 from .hypotheses import Hypothesis
-from .model import SchemaModel
-from .model_components import Field, check, dataframe_check
-
-# from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
-
-# from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
 
 if platform.system() != "Windows":
@@ -77,7 +71,7 @@ if platform.system() != "Windows":
 try:
     import dask.dataframe
 
-    from . import dask_accessor
+    from pandera._accessors import dask_accessor
 except ImportError:
     pass
 
@@ -85,7 +79,7 @@ except ImportError:
 try:
     import pyspark.pandas
 
-    from . import pyspark_accessor
+    from pandera._accessors import pyspark_accessor
 except ImportError:
     pass
 
@@ -93,7 +87,7 @@ except ImportError:
 try:
     import modin.pandas
 
-    from . import modin_accessor
+    from pandera._accessors import modin_accessor
 except ImportError:
     pass
 

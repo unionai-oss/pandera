@@ -6,7 +6,10 @@ import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
-from pandera.backends.pandas.array import ArraySchemaBackend
+from pandera.backends.pandas.array import (
+    ArraySchemaBackend,
+    SeriesSchemaBackend,
+)
 from pandera.core.base.schema import BaseSchema, inferred_schema_guard
 from pandera.core.checks import Check
 from pandera.core.pandas.types import (
@@ -273,6 +276,8 @@ class ArraySchema(BaseSchema):
 class SeriesSchema(ArraySchema):
     """Series validator."""
 
+    BACKEND = SeriesSchemaBackend()
+
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
@@ -377,12 +382,21 @@ class SeriesSchema(ArraySchema):
         dtype: float64
 
         """
+        if self._is_inferred:
+            warnings.warn(
+                f"This {type(self)} is an inferred schema that hasn't been "
+                "modified. It's recommended that you refine the schema "
+                "by calling `set_checks` before using it to validate data.",
+                UserWarning,
+            )
+
         if not is_field(check_obj):
             raise TypeError(f"expected pd.Series, got {type(check_obj)}")
 
         if hasattr(check_obj, "dask"):
             # special case for dask series
             if inplace:
+                # TODO: figure out where to handle this in a consistent place
                 check_obj = check_obj.pandera.add_schema(self)
             else:
                 check_obj = check_obj.copy()
@@ -397,17 +411,17 @@ class SeriesSchema(ArraySchema):
                 inplace=inplace,
                 meta=check_obj,
             )
-            return cast(pd.Series, check_obj.pandera.add_schema(self))
+            # TODO: figure out where to handle this in a consistent place
+            check_obj = check_obj.pandera.add_schema(self)
+            return cast(pd.Series, check_obj)
 
-        return cast(
-            pd.Series,
-            super().validate(
-                check_obj=check_obj,
-                head=head,
-                tail=tail,
-                sample=sample,
-                random_state=random_state,
-                lazy=lazy,
-                inplace=inplace,
-            ),
+        validated_obj = super().validate(
+            check_obj=check_obj,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
+            lazy=lazy,
+            inplace=inplace,
         )
+        return cast(pd.Series, validated_obj)

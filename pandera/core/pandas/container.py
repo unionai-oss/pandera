@@ -12,7 +12,11 @@ from pandera import strategies as st
 from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.core.base.schema import BaseSchema, inferred_schema_guard
 from pandera.core.checks import Check
-from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
+from pandera.core.pandas.types import (
+    CheckList,
+    PandasDtypeInputTypes,
+    is_table,
+)
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
 from pandera.hypotheses import Hypothesis
@@ -363,6 +367,16 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
+
+        if self._is_inferred:
+            warnings.warn(
+                f"This {type(self)} is an inferred schema that hasn't been "
+                "modified. It's recommended that you refine the schema "
+                "by calling `add_columns`, `remove_columns`, or "
+                "`update_columns` before using it to validate data.",
+                UserWarning,
+            )
+
         return self.BACKEND.validate(
             check_obj,
             schema=self,

@@ -220,7 +220,7 @@ class CheckInfo(BaseCheckInfo):  # pylint:disable=too-few-public-methods
     ...
 
 
-class FieldCheckInfo(BaseCheckInfo):  # pylint:disable=too-few-public-methods
+class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
     """Captures extra information about a Check assigned to a field."""
 
     def __init__(

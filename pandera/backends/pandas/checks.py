@@ -68,7 +68,7 @@ class PandasCheckBackend(BaseCheckBackend):
         }
 
     @multimethod
-    def preprocess(self, check_obj: pd.Series, key) -> pd.Series:
+    def preprocess(self, check_obj, key) -> pd.Series:
         """Preprocesses a check object before applying the check function."""
         # This handles the case of Series validation, which has no other context except
         # for the index to groupby on. Right now grouping by the index is not allowed.
@@ -77,10 +77,9 @@ class PandasCheckBackend(BaseCheckBackend):
     @preprocess.register
     def _(
         self,
-        check_obj: pd.DataFrame,
-        key: str,
+        check_obj: pd.Series,
+        key,
     ) -> Union[pd.Series, Dict[str, pd.Series]]:
-        check_obj = check_obj[key]
         if self.check.groupby is None:
             return check_obj
         return cast(
@@ -94,9 +93,23 @@ class PandasCheckBackend(BaseCheckBackend):
     def _(
         self,
         check_obj: pd.DataFrame,
+        key: Union[str, tuple],
+    ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+        if self.check.groupby is None:
+            return check_obj[key]
+        return cast(
+            Dict[str, pd.DataFrame],
+            self._format_groupby_input(
+                self.groupby(check_obj)[key], self.check.groups
+            ),
+        )
+
+    @preprocess.register
+    def _(
+        self,
+        check_obj: pd.DataFrame,
         key: None,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
-        assert key is None
         if self.check.groupby is None:
             return check_obj
         return cast(
@@ -107,15 +120,16 @@ class PandasCheckBackend(BaseCheckBackend):
         )
 
     @multimethod
-    def apply(self, check_obj: pd.Series):
+    def apply(self, check_obj):
         """Apply the check function to a check object."""
-        if self.check.element_wise:
-            return check_obj.map(self.check_fn)
+        raise NotImplementedError
+
+    @apply.register
+    def _(self, check_obj: dict):
         return self.check_fn(check_obj)
 
     @apply.register
     def _(self, check_obj: pd.Series):
-        """Apply the check function to a check object."""
         if self.check.element_wise:
             return check_obj.map(self.check_fn)
         return self.check_fn(check_obj)
@@ -127,7 +141,11 @@ class PandasCheckBackend(BaseCheckBackend):
         return self.check_fn(check_obj)
 
     @multimethod
-    def postprocess(self, check_obj: Any, check_output: bool) -> CheckResult:
+    def postprocess(
+        self,
+        check_obj: Any,
+        check_output: Union[bool, np.bool_],
+    ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         return CheckResult(
             check_output=check_output,
@@ -138,7 +156,10 @@ class PandasCheckBackend(BaseCheckBackend):
 
     def _get_series_failure_cases(
         self, check_obj, check_output: pd.Series
-    ) -> pd.Series:
+    ) -> Optional[pd.Series]:
+        if not check_obj.index.equals(check_output.index):
+            return None
+
         failure_cases = check_obj[~check_output]
         if not failure_cases.empty and self.check.n_failure_cases is not None:
             # NOTE: this is a hack to support pyspark.pandas and modin, since you
@@ -166,7 +187,7 @@ class PandasCheckBackend(BaseCheckBackend):
         check_output: pd.Series,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        if self.check.ignore_na:
+        if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna()
         return CheckResult(
             check_output,
@@ -182,7 +203,7 @@ class PandasCheckBackend(BaseCheckBackend):
         check_output: pd.Series,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
-        if self.check.ignore_na:
+        if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna().any(axis="columns")
         return CheckResult(
             check_output,
@@ -201,13 +222,10 @@ class PandasCheckBackend(BaseCheckBackend):
         assert check_obj.shape == check_output.shape
         check_obj = check_obj.unstack()
         check_output = check_output.unstack()
-        if self.check.ignore_na:
+        if check_obj.index.equals(check_output.index) and self.check.ignore_na:
             check_output = check_output | check_obj.isna()
         failure_cases = (
-            # TODO figure out what's up with this mypy error:
-            # error: No overload variant of "rename" of "DataFrame" matches
-            # argument type "str"  [call-overload]
-            check_obj[~check_output]  # type: ignore
+            check_obj[~check_output]  # type: ignore  [call-overload]
             .rename("failure_case")
             .rename_axis(["column", "index"])
             .reset_index()
@@ -234,6 +252,16 @@ class PandasCheckBackend(BaseCheckBackend):
         return CheckResult(
             check_output,
             check_output,
+            check_obj,
+            None,
+        )
+
+    @postprocess.register
+    def _(self, check_obj: dict, check_output: pd.Series):
+        """Postprocesses the result of applying the check function."""
+        return CheckResult(
+            check_output,
+            check_output.all(),
             check_obj,
             None,
         )

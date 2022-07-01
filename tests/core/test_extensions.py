@@ -10,12 +10,12 @@ import pytest
 import pandera as pa
 import pandera.strategies as st
 from pandera import DataType, extensions
-from pandera.checks import Check
+from pandera.core.checks import Check
 
 
 def test_custom_checks_in_dir(extra_registered_checks):
     """Ensures that autocomplete works with registered custom checks."""
-    assert "no_param_check" in dir(pa.Check)
+    assert "no_param_check" in dir(Check)
 
 
 @pytest.mark.parametrize(

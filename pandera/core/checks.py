@@ -28,7 +28,7 @@ class Check(BaseCheck):
         n_failure_cases: Optional[int] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        statistics: List[str] = None,
+        statistics: Dict[str, Any] = None,
         strategy: SearchStrategy = None,
         **check_kwargs,
     ) -> None:
@@ -180,7 +180,8 @@ class Check(BaseCheck):
             groups = [groups]
         self.groups: Optional[List[str]] = groups
 
-        self.statistics = statistics
+        self.statistics = statistics or {}
+        self.statistics_args = [*self.statistics.keys()]
         self.strategy = strategy
 
     def __call__(
@@ -216,8 +217,8 @@ class Check(BaseCheck):
 
 def register_check(
     fn=None,
+    pre_init_hook: Optional[Callable] = None,
     aliases: Optional[List[str]] = None,
-    statistics: Optional[List[str]] = None,
     strategy: Optional[Callable] = None,
     error: Optional[str] = None,
     **kwargs,
@@ -230,8 +231,8 @@ def register_check(
     if fn is None:
         return partial(
             register_check,
+            pre_init_hook=pre_init_hook,
             aliases=aliases,
-            statistics=statistics,
             strategy=strategy,
             error=error,
         )
@@ -242,6 +243,11 @@ def register_check(
     fn_sig = signature(fn)
     statistics = [*fn_sig.parameters.keys()][1:]
     statistics_params = [*fn_sig.parameters.values()][1:]
+    statistics_defaults = {
+        p.name: p.default
+        for p in fn_sig.parameters.values()
+        if p.default is not _empty
+    }
 
     if check_fn is None:
 
@@ -258,8 +264,28 @@ def register_check(
 
         @wraps(check_function_proxy)
         def check_method(cls, *args, **check_kwargs):
-
             statistics_kwargs = dict(zip(statistics, args))
+            for stat in statistics:
+                if stat in check_kwargs:
+                    statistics_kwargs[stat] = check_kwargs.pop(stat)
+                elif stat not in statistics_kwargs:
+                    statistics_kwargs[stat] = statistics_defaults[stat]
+
+            _check_kwargs = {"error": error.format(**statistics_kwargs)}
+            _check_kwargs.update(kwargs)
+            _check_kwargs.update(check_kwargs)
+
+            # TODO: This is kind of ugly... basically we're creating another
+            # stats kwargs variable that's actually used when invoking the check
+            # function (which may or may not be processed by pre_init_hook)
+            # This is so that the original value is not modified by
+            # pre_init_hook when, for e.g. the check is serialized with the io
+            # module. Figure out a better way to do this!
+            if pre_init_hook is not None:
+                # this is the statistics that are used in the check function
+                check_fn_stats_kwargs = pre_init_hook(statistics_kwargs)
+            else:
+                check_fn_stats_kwargs = statistics_kwargs
 
             # internal wrapper is needed here to: make sure the inner check_fn
             # produced by this method is consistent with the registered check
@@ -269,15 +295,15 @@ def register_check(
                 """inner_kwargs will be based in via Check.__init__ kwargs."""
                 # TODO: Raise more informative error when this fails to dispatch
                 return check_function_proxy(
-                    cls, check_obj, *args, **inner_kwargs
+                    cls,
+                    check_obj,
+                    *check_fn_stats_kwargs.values(),
+                    **inner_kwargs,
                 )
 
-            _check_kwargs = {"error": error.format(**statistics_kwargs)}
-            _check_kwargs.update(kwargs)
-            _check_kwargs.update(check_kwargs)
             return cls(
                 _check_fn,
-                statistics=statistics,
+                statistics=statistics_kwargs,
                 strategy=strategy,
                 **_check_kwargs,
             )

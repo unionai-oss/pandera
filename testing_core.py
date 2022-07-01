@@ -2,8 +2,14 @@ import pandas as pd
 
 import pandera as pa
 import pandera.core.pandas.checks as C
-from pandera.core.pandas import Column, DataFrameSchema, SeriesSchema, Index, MultiIndex
 from pandera.core.checks import Check
+from pandera.core.pandas import (
+    Column,
+    DataFrameSchema,
+    Index,
+    MultiIndex,
+    SeriesSchema,
+)
 
 series_schema = SeriesSchema(int, pa.Check.gt(0), name="foo")
 
@@ -21,11 +27,7 @@ dataframe_schema = DataFrameSchema(
 )
 
 df = pd.DataFrame(
-    {
-        "col1": [1, 2, 3],
-        "col2": [4.0, 5.0, 6.0],
-        "col3": [*"abc"]
-    },
+    {"col1": [1, 2, 3], "col2": [4.0, 5.0, 6.0], "col3": [*"abc"]},
     index=[*"abc"],
 )
 print(dataframe_schema(df))
@@ -37,26 +39,24 @@ df_multiiindex_schema = DataFrameSchema(
         "col2": Column(float),
         "col3": Column(str),
     },
-    index=MultiIndex([
-        Index(int),
-        Index(int),
-        Index(int),
-    ]),
+    index=MultiIndex(
+        [
+            Index(int),
+            Index(int),
+            Index(int),
+        ]
+    ),
 )
 
 df_multiindex = pd.DataFrame(
-    {
-        "col1": [1, 2, 3],
-        "col2": [4.0, 5.0, 6.0],
-        "col3": [*"abc"]
-    },
+    {"col1": [1, 2, 3], "col2": [4.0, 5.0, 6.0], "col3": [*"abc"]},
     index=pd.MultiIndex.from_arrays(
         [
             [1, 2, 3],
             [1, 2, 3],
             [1, 2, 3],
         ]
-    )
+    ),
 )
 print(df_multiiindex_schema(df_multiindex))
 

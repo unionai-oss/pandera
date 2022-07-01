@@ -7,15 +7,14 @@ from typing import Any, List, Optional
 import pandas as pd
 
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
+from pandera.core.pandas.types import is_table
 from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
 class DataFrameSchemaBackend(PandasSchemaBackend):
-    def preprocess(
-        self, check_obj: pd.DataFrame, name: str = None, inplace: bool = False
-    ):
+    def preprocess(self, check_obj: pd.DataFrame, inplace: bool = False):
         if not inplace:
             check_obj = check_obj.copy()
         return check_obj
@@ -32,6 +31,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
+        if not is_table(check_obj):
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
+
         error_handler = SchemaErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
@@ -200,9 +202,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     col = copy.deepcopy(col)
                     col.dtype = schema.dtype
 
-                    # dataframe backend should already take care of coercion,
-                    # so disable it at the schema component level
-                    col.coerce = False
+                # disable coercion at the schema component level since the
+                # dataframe-level schema already coerced it.
+                col.coerce = False
                 schema_components.append(col)
 
         if schema.index is not None:

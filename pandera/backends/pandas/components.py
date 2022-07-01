@@ -34,6 +34,7 @@ class ColumnBackend(ArraySchemaBackend):
         if not inplace:
             check_obj = check_obj.copy()
 
+        foo = check_obj.copy()
         error_handler = SchemaErrorHandler(lazy=lazy)
 
         if schema.name is None:
@@ -78,6 +79,7 @@ class ColumnBackend(ArraySchemaBackend):
                     schema=schema,
                     error_handler=error_handler,
                 )
+
             if is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):
                     validate_column(
@@ -98,6 +100,7 @@ class ColumnBackend(ArraySchemaBackend):
     ) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
+        :param schema: schema specification to use
         :param columns: columns to regex pattern match
         :returns: matchin columns
         """
@@ -170,10 +173,11 @@ class ColumnBackend(ArraySchemaBackend):
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
         for check_index, check in enumerate(schema.checks):
+            check_args = [None] if is_field(check_obj) else [schema.name]
             try:
                 check_results.append(
                     self.run_check(
-                        check_obj, schema, check, check_index, schema.name
+                        check_obj, schema, check, check_index, *check_args
                     )
                 )
             except SchemaError as err:
@@ -271,9 +275,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         :returns: ``MultiIndex`` with coerced data type
         """
         assert schema is not None, "The `schema` argument must be provided."
-        assert (
-            error_handler is not None
-        ), "The `error_handler` argument must be provided."
+
         if not schema.coerce:
             return check_obj
 
@@ -292,9 +294,11 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 ]
             for index_level in index_levels:
                 index_array = check_obj.get_level_values(index_level)
-                if index.coerce or schema.coerce:
+                if index.coerce or schema._coerce:
                     try:
-                        index_array = index.coerce_dtype(index_array)
+                        _index = deepcopy(index)
+                        _index.coerce = True
+                        index_array = _index.coerce_dtype(index_array)
                     except SchemaError as err:
                         error_handler.collect_error(
                             "dtype_coercion_error", err
@@ -313,6 +317,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             import pyspark.pandas as ps
 
             multiindex_cls = ps.MultiIndex
+
         return multiindex_cls.from_arrays(
             [
                 v.to_numpy()
@@ -355,13 +360,9 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         # pylint: disable=too-many-locals
         if schema.coerce:
             try:
-                if is_index(check_obj.index):
-                    raise SchemaError(
-                        schema,
-                        check_obj,
-                        "Cannot validate Index with MultiIndex schema.",
-                    )
-                check_obj.index = self.coerce_dtype(check_obj.index)  # type: ignore [arg-type]  # noqa
+                check_obj.index = self.coerce_dtype(  # type: ignore [arg-type]  # noqa
+                    check_obj.index, schema=schema
+                )
             except SchemaErrors as err:
                 if lazy:
                     raise

@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
+import pandera.core.pandas.container
 
 
 @pytest.mark.parametrize(
@@ -56,9 +57,13 @@ def test_dataframe_series_add_schema(
     with pytest.raises(TypeError, match=f"expected pd.{type(data).__name__}"):
         schema2(invalid_data)  # type: ignore
 
-    with patch.object(pa.schemas.check_utils, "is_table", return_value=True):
+    with patch.object(
+        pandera.backends.pandas.container,
+        "is_table",
+        return_value=True,
+    ):
         with patch.object(
-            pa.schemas.check_utils,
+            pandera.core.pandas.array,
             "is_field",
             return_value=True,
         ):

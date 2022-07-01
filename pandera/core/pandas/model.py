@@ -219,7 +219,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
-        """Create :class:`~pandera.DataFrameSchema` from the :class:`.SchemaModel`."""
+        """Create :class:`~pandera.DataFrameSchema` from the :class:`.DataFrameModel`."""
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
@@ -407,7 +407,7 @@ class DataFrameModel(BaseModel):
         """Return all attributes.
         Similar to inspect.get_members but bypass descriptors __get__.
         """
-        bases = inspect.getmro(cls)[:-1]  # bases -> SchemaModel -> object
+        bases = inspect.getmro(cls)[:-1]  # bases -> DataFrameModel -> object
         attrs = {}
         for base in reversed(bases):
             if issubclass(base, DataFrameModel):
@@ -556,9 +556,7 @@ class DataFrameModel(BaseModel):
         field_schema.update(_to_json_schema(cls.to_schema()))
 
 
-# Alias DataFrameModel for backwards compatibility
-class SchemaModel(DataFrameModel):
-    ...
+SchemaModel = DataFrameModel
 
 
 def _build_schema_index(

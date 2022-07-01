@@ -1,33 +1,29 @@
 import traceback
 from functools import singledispatchmethod
-from typing import Optional, Union, overload
+from typing import Iterable, NamedTuple, Optional, Union, overload
 
 import pandas as pd
 from multimethod import DispatchError, multimethod
 
 from pandera.backends.pandas.base import FieldCheckObj, PandasSchemaBackend
+from pandera.core.pandas.types import is_field
 from pandera.engines.pandas_engine import Engine
 from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
+class CoreCheckResult(NamedTuple):
+    check: str
+    reason_code: str
+    passed: bool
+    message: Optional[str] = None
+    failure_cases: Optional[Iterable] = None
+
+
 class ArraySchemaBackend(PandasSchemaBackend):
-    @multimethod
-    def preprocess(self, check_obj, name: str = None, inplace: bool = False):
-        raise NotImplementedError
-
-    @preprocess.register
-    def preprocess_field(
-        self, check_obj: pd.Series, name: str = None, inplace: bool = False
-    ) -> pd.Series:
+    def preprocess(self, check_obj, inplace: bool = False):
         return check_obj if inplace else check_obj.copy()
-
-    @preprocess.register
-    def preprocess_container(
-        self, check_obj: pd.DataFrame, name: str = None, inplace: bool = False
-    ) -> pd.DataFrame:
-        return (check_obj if inplace else check_obj.copy())[name]
 
     def validate(
         self,
@@ -42,14 +38,23 @@ class ArraySchemaBackend(PandasSchemaBackend):
         inplace: bool = False,
     ):
         error_handler = SchemaErrorHandler(lazy)
-        check_obj = self.preprocess(check_obj, schema.name, inplace)
+        check_obj = self.preprocess(check_obj, inplace)
 
-        try:
-            check_obj = self.coerce_dtype(
-                check_obj, schema=schema, error_handler=error_handler
-            )
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+        if schema.coerce:
+            try:
+                check_obj = self.coerce_dtype(
+                    check_obj, schema=schema, error_handler=error_handler
+                )
+            except SchemaError as exc:
+                error_handler.collect_error(exc.reason_code, exc)
+
+        field_obj_subsample = self.subsample(
+            check_obj if is_field(check_obj) else check_obj[schema.name],
+            head,
+            tail,
+            sample,
+            random_state,
+        )
 
         check_obj_subsample = self.subsample(
             check_obj,
@@ -58,6 +63,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             sample,
             random_state,
         )
+
         # run the core checks
         for core_check in (
             self.check_name,
@@ -65,12 +71,20 @@ class ArraySchemaBackend(PandasSchemaBackend):
             self.check_unique,
             self.check_dtype,
         ):
-            try:
-                core_check(check_obj_subsample, schema)
-            except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
+            check_result = core_check(field_obj_subsample, schema)
+            if not check_result.passed:
+                error_handler.collect_error(
+                    check_result.reason_code,
+                    SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=check_result.message,
+                        failure_cases=check_result.failure_cases,
+                        check=check_result.check,
+                        reason_code=check_result.reason_code,
+                    ),
+                )
 
-        # run user-provided checks
         check_results = self.run_checks(
             check_obj_subsample, schema, error_handler, lazy
         )
@@ -114,92 +128,101 @@ class ArraySchemaBackend(PandasSchemaBackend):
             ) from exc
 
     def check_name(self, check_obj: pd.Series, schema):
-        if schema.name is None or check_obj.name == schema.name:
-            return
-        raise SchemaError(
-            schema=schema,
-            data=check_obj,
+        return CoreCheckResult(
+            check=f"field_name('{schema.name}')",
+            reason_code="wrong_field_name",
+            passed=schema.name is None or check_obj.name == schema.name,
             message=(
-                f"Expected {type(check_obj)} to have name {schema.name}, "
+                f"Expected {type(check_obj)} to have name '{schema.name}', "
                 f"found '{check_obj.name}'"
             ),
             failure_cases=scalar_failure_case(check_obj.name),
-            check=f"field_name('{schema.name}')",
-            reason_code="wrong_field_name",
         )
 
     def check_nullable(self, check_obj: pd.Series, schema):
-        if schema.nullable:
-            return
         isna = check_obj.isna()
-        if isna.any():
-            raise SchemaError(
-                schema=schema,
-                data=check_obj,
-                message=(
-                    f"non-nullable series '{check_obj.name}' contains "
-                    f"null values:\n{check_obj[isna]}"
-                ),
-                failure_cases=reshape_failure_cases(
-                    check_obj[isna], ignore_na=False
-                ),
-                check="not_nullable",
-                reason_code="series_contains_nulls",
-            )
+        passed = schema.nullable or ~(isna.any())
+        return CoreCheckResult(
+            check="not_nullable",
+            reason_code="series_contains_nulls",
+            passed=passed,
+            message=(
+                f"non-nullable series '{check_obj.name}' contains "
+                f"null values:\n{check_obj[isna]}"
+            ),
+            failure_cases=reshape_failure_cases(
+                check_obj[isna], ignore_na=False
+            ),
+        )
 
     def check_unique(self, check_obj: pd.Series, schema):
-        if not schema.unique:
-            return
+        passed = True
+        failure_cases = None
+        message = None
 
-        if type(check_obj).__module__.startswith("pyspark.pandas"):
-            # pylint: disable=import-outside-toplevel
-            import pyspark.pandas as ps
+        if schema.unique:
+            if type(check_obj).__module__.startswith("pyspark.pandas"):
+                # pylint: disable=import-outside-toplevel
+                import pyspark.pandas as ps
 
-            duplicates = (
-                check_obj.to_frame().duplicated().reindex(check_obj.index)
-            )
-            with ps.option_context("compute.ops_on_diff_frames", True):
+                duplicates = (
+                    check_obj.to_frame().duplicated().reindex(check_obj.index)
+                )
+                with ps.option_context("compute.ops_on_diff_frames", True):
+                    failed = check_obj[duplicates]
+            else:
+                duplicates = check_obj.duplicated()
                 failed = check_obj[duplicates]
-        else:
-            duplicates = check_obj.duplicated()
-            failed = check_obj[duplicates]
 
-        if duplicates.any():
-            raise SchemaError(
-                schema=schema,
-                data=check_obj,
-                message=(
+            if duplicates.any():
+                passed = False
+                failure_cases = reshape_failure_cases(failed)
+                message = (
                     f"series '{check_obj.name}' contains duplicate "
                     f"values:\n{failed}"
-                ),
-                failure_cases=reshape_failure_cases(failed),
-                check="field_uniqueness",
-                reason_code="series_contains_duplicates",
-            )
+                )
+
+        return CoreCheckResult(
+            check="field_uniqueness",
+            reason_code="series_contains_duplicates",
+            passed=passed,
+            message=message,
+            failure_cases=failure_cases,
+        )
 
     def check_dtype(self, check_obj: pd.Series, schema):
+        passed = True
+        failure_cases = None
+
         if schema.dtype is not None and (
             not schema.dtype.check(Engine.dtype(check_obj.dtype))
         ):
-            raise SchemaError(
-                schema=schema,
-                data=check_obj,
-                message=(
-                    f"expected series '{check_obj.name}' to have type "
-                    f"{schema.dtype}, got {check_obj.dtype}"
-                ),
-                failure_cases=scalar_failure_case(str(check_obj.dtype)),
-                check=f"dtype('{schema.dtype}')",
-                reason_code="wrong_dtype",
-            )
+            passed = False
+            failure_cases = scalar_failure_case(str(check_obj.dtype))
+
+        return CoreCheckResult(
+            check=f"dtype('{schema.dtype}')",
+            reason_code="wrong_dtype",
+            passed=passed,
+            message=(
+                f"expected series '{check_obj.name}' to have type "
+                f"{schema.dtype}, got {check_obj.dtype}"
+            ),
+            failure_cases=failure_cases,
+        )
 
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
         for check_index, check in enumerate(schema.checks):
+            check_args = [None] if is_field(check_obj) else [schema.name]
             try:
                 check_results.append(
                     self.run_check(
-                        check_obj, schema, check, check_index, schema.name
+                        check_obj,
+                        schema,
+                        check,
+                        check_index,
+                        *check_args,
                     )
                 )
             except SchemaError as err:
@@ -228,3 +251,23 @@ class ArraySchemaBackend(PandasSchemaBackend):
                     original_exc=err,
                 )
         return check_results
+
+
+class SeriesSchemaBackend(ArraySchemaBackend):
+    def coerce_dtype(
+        self,
+        check_obj,
+        *,
+        schema=None,
+        error_handler: SchemaErrorHandler = None,
+    ):
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(schema)
+
+        check_obj = super().coerce_dtype(
+            check_obj, schema=schema, error_handler=error_handler
+        )
+
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(schema)
+        return check_obj

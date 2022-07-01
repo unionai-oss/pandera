@@ -1,6 +1,6 @@
 import warnings
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from unicodedata import name
 
 import pandas as pd
@@ -163,6 +163,16 @@ class Column(ArraySchema):
             lazy=lazy,
             inplace=inplace,
         )
+
+    def get_regex_columns(
+        self, columns: Union[pd.Index, pd.MultiIndex]
+    ) -> Iterable:
+        """Get matching column names based on regex column name pattern.
+
+        :param columns: columns to regex pattern match
+        :returns: matchin columns
+        """
+        return self.BACKEND.get_regex_columns(self, columns)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -464,7 +474,7 @@ class MultiIndex(DataFrameSchema):
         """
         return self.BACKEND.validate(
             check_obj,
-            self,
+            schema=self,
             head=head,
             tail=tail,
             sample=sample,
