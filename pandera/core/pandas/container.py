@@ -1,5 +1,4 @@
 import copy
-import itertools
 import os
 import warnings
 from pathlib import Path
@@ -7,18 +6,12 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 
 import pandas as pd
 
+import pandera.core
 from pandera import errors
 from pandera import strategies as st
 from pandera.backends.pandas.container import DataFrameSchemaBackend
-from pandera.checks import Check
-from pandera.core.base.schema import (
-    BaseSchema,
-    BaseSchemaIOMixin,
-    BaseSchemaStrategyMixin,
-    BaseSchemaTransformsMixin,
-    inferred_schema_guard,
-)
-from pandera.core.pandas.array import ArraySchema
+from pandera.core.base.schema import BaseSchema, inferred_schema_guard
+from pandera.core.checks import Check
 from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
@@ -27,801 +20,17 @@ from pandera.hypotheses import Hypothesis
 N_INDENT_SPACES = 4
 
 
-class DataFrameSchemaTransformsMixin(BaseSchemaTransformsMixin):
-    @inferred_schema_guard
-    def add_columns(
-        self, extra_schema_cols: Dict[str, Any]
-    ) -> "DataFrameSchema":
-        """Create a copy of the :class:`DataFrameSchema` with extra columns.
-
-        :param extra_schema_cols: Additional columns of the format
-        :type extra_schema_cols: DataFrameSchema
-        :returns: a new :class:`DataFrameSchema` with the extra_schema_cols
-            added.
-
-        :example:
-
-        To add columns to the schema, pass a dictionary with column name and
-        ``Column`` instance key-value pairs.
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema(
-        ...    {
-        ...        "category": pa.Column(str),
-        ...        "probability": pa.Column(float),
-        ...    }
-        ... )
-        >>> print(
-        ...     example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
-        ... )
-        <Schema DataFrameSchema(
-            columns={
-                'category': <Schema Column(name=category, type=DataType(str))>
-                'probability': <Schema Column(name=probability, type=DataType(float64))>
-                'even_number': <Schema Column(name=even_number, type=DataType(bool))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=None,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        .. seealso:: :func:`remove_columns`
-
-        """
-        schema_copy = copy.deepcopy(self)
-        schema_copy.columns = {
-            **schema_copy.columns,
-            **self.__class__(extra_schema_cols).columns,
-        }
-        return schema_copy
-
-    @inferred_schema_guard
-    def remove_columns(self, cols_to_remove: List[str]) -> "DataFrameSchema":
-        """Removes columns from a :class:`DataFrameSchema` and returns a new
-        copy.
-
-        :param cols_to_remove: Columns to be removed from the
-            ``DataFrameSchema``
-        :type cols_to_remove: List
-        :returns: a new :class:`DataFrameSchema` without the cols_to_remove
-        :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
-            schema.
-
-        :example:
-
-        To remove a column or set of columns from a schema, pass a list of
-        columns to be removed:
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema(
-        ...     {
-        ...         "category" : pa.Column(str),
-        ...         "probability": pa.Column(float)
-        ...     }
-        ... )
-        >>>
-        >>> print(example_schema.remove_columns(["category"]))
-        <Schema DataFrameSchema(
-            columns={
-                'probability': <Schema Column(name=probability, type=DataType(float64))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=None,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        .. seealso:: :func:`add_columns`
-
-        """
-        schema_copy = copy.deepcopy(self)
-
-        # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
-            x for x in cols_to_remove if x not in schema_copy.columns.keys()
-        ]
-        if not_in_cols:
-            raise errors.SchemaInitError(
-                f"Keys {not_in_cols} not found in schema columns!"
-            )
-
-        for col in cols_to_remove:
-            schema_copy.columns.pop(col)
-
-        return schema_copy
-
-    @inferred_schema_guard
-    def update_column(self, column_name: str, **kwargs) -> "DataFrameSchema":
-        """Create copy of a :class:`DataFrameSchema` with updated column
-        properties.
-
-        :param column_name:
-        :param kwargs: key-word arguments supplied to
-            :class:`~pandera.schema_components.Column`
-        :returns: a new :class:`DataFrameSchema` with updated column
-        :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
-            schema or you try to change the name.
-
-        :example:
-
-        Calling ``schema.1`` returns the :class:`DataFrameSchema`
-        with the updated column.
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str),
-        ...     "probability": pa.Column(float)
-        ... })
-        >>> print(
-        ...     example_schema.update_column(
-        ...         'category', dtype=pa.Category
-        ...     )
-        ... )
-        <Schema DataFrameSchema(
-            columns={
-                'category': <Schema Column(name=category, type=DataType(category))>
-                'probability': <Schema Column(name=probability, type=DataType(float64))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=None,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        .. seealso:: :func:`rename_columns`
-
-        """
-        # check that columns exist in schema
-
-        if "name" in kwargs:
-            raise ValueError("cannot update 'name' of the column.")
-        if column_name not in self.columns:
-            raise ValueError(f"column '{column_name}' not in {self}")
-        schema_copy = copy.deepcopy(self)
-        column_copy = copy.deepcopy(self.columns[column_name])
-        new_column = column_copy.__class__(
-            **{**column_copy.properties, **kwargs}
-        )
-        schema_copy.columns.update({column_name: new_column})
-        return schema_copy
-
-    def update_columns(
-        self, update_dict: Dict[str, Dict[str, Any]]
-    ) -> "DataFrameSchema":
-        """
-        Create copy of a :class:`DataFrameSchema` with updated column
-        properties.
-
-        :param update_dict:
-        :return: a new :class:`DataFrameSchema` with updated columns
-        :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
-            schema or you try to change the name.
-
-        :example:
-
-        Calling ``schema.update_columns`` returns the :class:`DataFrameSchema`
-        with the updated columns.
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str),
-        ...     "probability": pa.Column(float)
-        ... })
-        >>>
-        >>> print(
-        ...     example_schema.update_columns(
-        ...         {"category": {"dtype":pa.Category}}
-        ...     )
-        ... )
-        <Schema DataFrameSchema(
-            columns={
-                'category': <Schema Column(name=category, type=DataType(category))>
-                'probability': <Schema Column(name=probability, type=DataType(float64))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=None,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        """
-
-        new_schema = copy.deepcopy(self)
-
-        # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
-            x for x in update_dict.keys() if x not in new_schema.columns.keys()
-        ]
-        if not_in_cols:
-            raise errors.SchemaInitError(
-                f"Keys {not_in_cols} not found in schema columns!"
-            )
-
-        new_columns: Dict[str, "Column"] = {}
-        for col in new_schema.columns:
-            # check
-            if update_dict.get(col):
-                if update_dict[col].get("name"):
-                    raise errors.SchemaInitError(
-                        "cannot update 'name' \
-                                             property of the column."
-                    )
-            original_properties = new_schema.columns[col].properties
-            if update_dict.get(col):
-                new_properties = copy.deepcopy(original_properties)
-                new_properties.update(update_dict[col])
-                new_columns[col] = new_schema.columns[col].__class__(
-                    **new_properties
-                )
-            else:
-                new_columns[col] = new_schema.columns[col].__class__(
-                    **original_properties
-                )
-
-        new_schema.columns = new_columns
-
-        return new_schema
-
-    def rename_columns(self, rename_dict: Dict[str, str]) -> "DataFrameSchema":
-        """Rename columns using a dictionary of key-value pairs.
-
-        :param rename_dict: dictionary of 'old_name': 'new_name' key-value
-            pairs.
-        :returns: :class:`DataFrameSchema` (copy of original)
-        :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
-            schema.
-
-        :example:
-
-        To rename a column or set of columns, pass a dictionary of old column
-        names and new column names, similar to the pandas DataFrame method.
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str),
-        ...     "probability": pa.Column(float)
-        ... })
-        >>>
-        >>> print(
-        ...     example_schema.rename_columns({
-        ...         "category": "categories",
-        ...         "probability": "probabilities"
-        ...     })
-        ... )
-        <Schema DataFrameSchema(
-            columns={
-                'categories': <Schema Column(name=categories, type=DataType(str))>
-                'probabilities': <Schema Column(name=probabilities, type=DataType(float64))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=None,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        .. seealso:: :func:`update_column`
-
-        """
-        new_schema = copy.deepcopy(self)
-
-        # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
-            x for x in rename_dict.keys() if x not in new_schema.columns.keys()
-        ]
-        if not_in_cols:
-            raise errors.SchemaInitError(
-                f"Keys {not_in_cols} not found in schema columns!"
-            )
-
-        # ensure all new keys are not present in the current column names
-        already_in_columns: List[str] = [
-            x for x in rename_dict.values() if x in new_schema.columns.keys()
-        ]
-        if already_in_columns:
-            raise errors.SchemaInitError(
-                f"Keys {already_in_columns} already found in schema columns!"
-            )
-
-        # We iterate over the existing columns dict and replace those keys
-        # that exist in the rename_dict
-
-        new_columns = {
-            (rename_dict[col_name] if col_name in rename_dict else col_name): (
-                col_attrs.set_name(rename_dict[col_name])
-                if col_name in rename_dict
-                else col_attrs
-            )
-            for col_name, col_attrs in new_schema.columns.items()
-        }
-
-        new_schema.columns = new_columns
-
-        return new_schema
-
-    def select_columns(self, columns: List[Any]) -> "DataFrameSchema":
-        """Select subset of columns in the schema.
-
-        *New in version 0.4.5*
-
-        :param columns: list of column names to select.
-        :returns:  :class:`DataFrameSchema` (copy of original) with only
-            the selected columns.
-        :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
-            schema.
-
-        :example:
-
-        To subset a schema by column, and return a new schema:
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str),
-        ...     "probability": pa.Column(float)
-        ... })
-        >>>
-        >>> print(example_schema.select_columns(['category']))
-        <Schema DataFrameSchema(
-            columns={
-                'category': <Schema Column(name=category, type=DataType(str))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=None,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        .. note:: If an index is present in the schema, it will also be
-            included in the new schema.
-
-        """
-
-        new_schema = copy.deepcopy(self)
-
-        # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
-            x for x in columns if x not in new_schema.columns.keys()
-        ]
-        if not_in_cols:
-            raise errors.SchemaInitError(
-                f"Keys {not_in_cols} not found in schema columns!"
-            )
-
-        new_columns = {
-            col_name: column
-            for col_name, column in self.columns.items()
-            if col_name in columns
-        }
-        new_schema.columns = new_columns
-        return new_schema
-
-    def to_script(self, fp: Union[str, Path] = None) -> "DataFrameSchema":
-        """Create DataFrameSchema from yaml file.
-
-        :param path: str, Path to write script
-        :returns: dataframe schema.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        import pandera.io
-
-        return pandera.io.to_script(self, fp)
-
-    @classmethod
-    def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
-        """Create DataFrameSchema from yaml file.
-
-        :param yaml_schema: str, Path to yaml schema, or serialized yaml
-            string.
-        :returns: dataframe schema.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        import pandera.io
-
-        return pandera.io.from_yaml(yaml_schema)
-
-    @overload
-    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
-        ...
-
-    @overload
-    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
-        ...
-
-    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
-        """Write DataFrameSchema to yaml file.
-
-        :param stream: file stream to write to. If None, dumps to string.
-        :returns: yaml string if stream is None, otherwise returns None.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        import pandera.io
-
-        return pandera.io.to_yaml(self, stream=stream)
-
-    def set_index(
-        self, keys: List[str], drop: bool = True, append: bool = False
-    ) -> "DataFrameSchema":
-        """
-        A method for setting the :class:`Index` of a :class:`DataFrameSchema`,
-        via an existing :class:`Column` or list of columns.
-
-        :param keys: list of labels
-        :param drop: bool, default True
-        :param append: bool, default False
-        :return: a new :class:`DataFrameSchema` with specified column(s) in the
-            index.
-        :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
-            schema.
-
-        :examples:
-
-        Just as you would set the index in a ``pandas`` DataFrame from an
-        existing column, you can set an index within the schema from an
-        existing column in the schema.
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str),
-        ...     "probability": pa.Column(float)})
-        >>>
-        >>> print(example_schema.set_index(['category']))
-        <Schema DataFrameSchema(
-            columns={
-                'probability': <Schema Column(name=probability, type=DataType(float64))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=<Schema Index(name=category, type=DataType(str))>,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        If you have an existing index in your schema, and you would like to
-        append a new column as an index to it (yielding a :class:`Multiindex`),
-        just use set_index as you would in pandas.
-
-        >>> example_schema = pa.DataFrameSchema(
-        ...     {
-        ...         "column1": pa.Column(str),
-        ...         "column2": pa.Column(int)
-        ...     },
-        ...     index=pa.Index(name = "column3", dtype = int)
-        ... )
-        >>>
-        >>> print(example_schema.set_index(["column2"], append = True))
-        <Schema DataFrameSchema(
-            columns={
-                'column1': <Schema Column(name=column1, type=DataType(str))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=<Schema MultiIndex(
-                indexes=[
-                    <Schema Index(name=column3, type=DataType(int64))>
-                    <Schema Index(name=column2, type=DataType(int64))>
-                ]
-                coerce=False,
-                strict=False,
-                name=None,
-                ordered=True
-            )>,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        .. seealso:: :func:`reset_index`
-
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from pandera.schema_components import Index, MultiIndex
-
-        new_schema = copy.deepcopy(self)
-
-        keys_temp: List = (
-            list(set(keys)) if not isinstance(keys, list) else keys
-        )
-
-        # ensure all specified keys are present in the columns
-        not_in_cols: List[str] = [
-            x for x in keys_temp if x not in new_schema.columns.keys()
-        ]
-        if not_in_cols:
-            raise errors.SchemaInitError(
-                f"Keys {not_in_cols} not found in schema columns!"
-            )
-
-        # if there is already an index, append or replace according to
-        # parameters
-        ind_list: List = (
-            []
-            if new_schema.index is None or not append
-            else list(new_schema.index.indexes)
-            if isinstance(new_schema.index, MultiIndex) and append
-            else [new_schema.index]
-        )
-
-        for col in keys_temp:
-            ind_list.append(
-                Index(
-                    dtype=new_schema.columns[col].dtype,
-                    name=col,
-                    checks=new_schema.columns[col].checks,
-                    nullable=new_schema.columns[col].nullable,
-                    unique=new_schema.columns[col].unique,
-                    coerce=new_schema.columns[col].coerce,
-                )
-            )
-
-        new_schema.index = (
-            ind_list[0] if len(ind_list) == 1 else MultiIndex(ind_list)
-        )
-
-        # if drop is True as defaulted, drop the columns moved into the index
-        if drop:
-            new_schema = new_schema.remove_columns(keys_temp)
-
-        return new_schema
-
-    def reset_index(
-        self, level: List[str] = None, drop: bool = False
-    ) -> "DataFrameSchema":
-        """
-        A method for resetting the :class:`Index` of a :class:`DataFrameSchema`
-
-        :param level: list of labels
-        :param drop: bool, default True
-        :return: a new :class:`DataFrameSchema` with specified column(s) in the
-            index.
-        :raises: :class:`~pandera.errors.SchemaInitError` if no index set in
-            schema.
-        :examples:
-
-        Similar to the ``pandas`` reset_index method on a pandas DataFrame,
-        this method can be used to to fully or partially reset indices of a
-        schema.
-
-        To remove the entire index from the schema, just call the reset_index
-        method with default parameters.
-
-        >>> import pandera as pa
-        >>>
-        >>> example_schema = pa.DataFrameSchema(
-        ...     {"probability" : pa.Column(float)},
-        ...     index = pa.Index(name="unique_id", dtype=int)
-        ... )
-        >>>
-        >>> print(example_schema.reset_index())
-        <Schema DataFrameSchema(
-            columns={
-                'probability': <Schema Column(name=probability, type=DataType(float64))>
-                'unique_id': <Schema Column(name=unique_id, type=DataType(int64))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=None,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        This reclassifies an index (or indices) as a column (or columns).
-
-        Similarly, to partially alter the index, pass the name of the column
-        you would like to be removed to the ``level`` parameter, and you may
-        also decide whether to drop the levels with the ``drop`` parameter.
-
-        >>> example_schema = pa.DataFrameSchema({
-        ...     "category" : pa.Column(str)},
-        ...     index = pa.MultiIndex([
-        ...         pa.Index(name="unique_id1", dtype=int),
-        ...         pa.Index(name="unique_id2", dtype=str)
-        ...         ]
-        ...     )
-        ... )
-        >>> print(example_schema.reset_index(level = ["unique_id1"]))
-        <Schema DataFrameSchema(
-            columns={
-                'category': <Schema Column(name=category, type=DataType(str))>
-                'unique_id1': <Schema Column(name=unique_id1, type=DataType(int64))>
-            },
-            checks=[],
-            coerce=False,
-            dtype=None,
-            index=<Schema Index(name=unique_id2, type=DataType(str))>,
-            strict=False
-            name=None,
-            ordered=False,
-            unique_column_names=False
-        )>
-
-        .. seealso:: :func:`set_index`
-
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from pandera.schema_components import Column, Index, MultiIndex
-
-        new_schema = copy.deepcopy(self)
-
-        if new_schema.index is None:
-            raise errors.SchemaInitError(
-                "There is currently no index set for this schema."
-            )
-
-        # ensure no duplicates
-        level_temp: Union[List[Any], List[str]] = (
-            list(set(level)) if level is not None else []
-        )
-
-        # ensure all specified keys are present in the index
-        level_not_in_index: Union[List[Any], List[str], None] = (
-            [x for x in level_temp if x not in new_schema.index.names]
-            if isinstance(new_schema.index, MultiIndex) and level_temp
-            else []
-            if isinstance(new_schema.index, Index)
-            and (level_temp == [new_schema.index.name])
-            else level_temp
-        )
-        if level_not_in_index:
-            raise errors.SchemaInitError(
-                f"Keys {level_not_in_index} not found in schema columns!"
-            )
-
-        new_index = (
-            None
-            if not level_temp or isinstance(new_schema.index, Index)
-            else new_schema.index.remove_columns(level_temp)
-        )
-        new_index = (
-            new_index
-            if new_index is None
-            else Index(
-                dtype=new_index.columns[list(new_index.columns)[0]].dtype,
-                checks=new_index.columns[list(new_index.columns)[0]].checks,
-                nullable=new_index.columns[
-                    list(new_index.columns)[0]
-                ].nullable,
-                unique=new_index.columns[list(new_index.columns)[0]].unique,
-                coerce=new_index.columns[list(new_index.columns)[0]].coerce,
-                name=new_index.columns[list(new_index.columns)[0]].name,
-            )
-            if (len(list(new_index.columns)) == 1) and (new_index is not None)
-            else None
-            if (len(list(new_index.columns)) == 0) and (new_index is not None)
-            else new_index
-        )
-
-        if not drop:
-            additional_columns: Dict[str, Any] = (
-                {col: new_schema.index.columns.get(col) for col in level_temp}
-                if isinstance(new_schema.index, MultiIndex)
-                else {new_schema.index.name: new_schema.index}
-            )
-            new_schema = new_schema.add_columns(
-                {
-                    k: Column(
-                        dtype=v.dtype,
-                        checks=v.checks,
-                        nullable=v.nullable,
-                        unique=v.unique,
-                        coerce=v.coerce,
-                        name=v.name,
-                    )
-                    for (k, v) in additional_columns.items()
-                }
-            )
-
-        new_schema.index = new_index
-
-        return new_schema
-
-
-class DataFrameSchemaIOMixin(BaseSchemaIOMixin):
-    
-    def to_script(self):
-        ...
-
-    def from_yaml(self):
-        ...
-
-    def to_yaml(self):
-        ...
-
-
-class DataFrameSchemaStrategyMixin(BaseSchemaStrategyMixin):
-    @st.strategy_import_error
-    def strategy(
-        self, *, size: Optional[int] = None, n_regex_columns: int = 1
-    ):
-        """Create a ``hypothesis`` strategy for generating a DataFrame.
-
-        :param size: number of elements to generate
-        :param n_regex_columns: number of regex columns to generate.
-        :returns: a strategy that generates pandas DataFrame objects.
-        """
-        return st.dataframe_strategy(
-            self.dtype,
-            columns=self.columns,
-            checks=self.checks,
-            unique=self.unique,
-            index=self.index,
-            size=size,
-            n_regex_columns=n_regex_columns,
-        )
-
-    def example(
-        self, size: Optional[int] = None, n_regex_columns: int = 1
-    ) -> pd.DataFrame:
-        """Generate an example of a particular size.
-
-        :param size: number of elements in the generated DataFrame.
-        :returns: pandas DataFrame object.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
-        import hypothesis
-
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                "ignore",
-                category=hypothesis.errors.NonInteractiveExampleWarning,
-            )
-            return self.strategy(
-                size=size, n_regex_columns=n_regex_columns
-            ).example()
-
-
-class DataFrameSchema(
-    BaseSchema,
-    DataFrameSchemaTransformsMixin,
-    DataFrameSchemaIOMixin,
-    DataFrameSchemaStrategyMixin,
-):  # pylint: disable=too-many-public-methods
+class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     """A light-weight pandas DataFrame validator."""
 
     BACKEND = DataFrameSchemaBackend()
 
     def __init__(
         self,
-        columns: Optional[Dict[Any, ArraySchema]] = None,
-        checks: CheckList = None,
+        columns: Optional[
+            Dict[Any, "pandera.core.pandas.components.Column"]
+        ] = None,
+        checks: Optional[CheckList] = None,
         index=None,
         dtype: PandasDtypeInputTypes = None,
         coerce: bool = False,
@@ -898,7 +107,9 @@ class DataFrameSchema(
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        self.columns: Dict[Any, ArraySchema] = {} if columns is None else columns
+        self.columns: Dict[Any, "pandera.core.pandas.components.Column"] = (
+            {} if columns is None else columns
+        )
 
         if strict not in (
             False,
@@ -914,7 +125,7 @@ class DataFrameSchema(
         self.index = index
         self.strict: Union[bool, str] = strict
         self.name: Optional[str] = name
-        self._dtype: PandasDtypeInputTypes = dtype  # type: ignore
+        self.dtype: PandasDtypeInputTypes = dtype  # type: ignore
         self.coerce = coerce
         self.ordered = ordered
         self._unique = unique
@@ -1019,7 +230,10 @@ class DataFrameSchema(
                 regex_dtype.update(
                     {
                         c: column.dtype
-                        for c in column.get_regex_columns(dataframe.columns)
+                        for c in column.BACKEND.get_regex_columns(
+                            column,
+                            dataframe.columns,
+                        )
                     }
                 )
         return {
@@ -1038,6 +252,9 @@ class DataFrameSchema(
     def dtype(self, value: PandasDtypeInputTypes) -> None:
         """Set the pandas dtype property."""
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
+
+    def coerce_dtype(self, check_obj: pd.DataFrame) -> pd.DataFrame:
+        return self.BACKEND.coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
@@ -1276,3 +493,783 @@ class DataFrameSchema(
             raise TypeError(f"{schema} is not a {cls}.")
 
         return cast("DataFrameSchema", schema)
+
+    #################################
+    # Schema Transformation Methods #
+    #################################
+
+    @inferred_schema_guard
+    def add_columns(
+        self, extra_schema_cols: Dict[str, Any]
+    ) -> "DataFrameSchema":
+        """Create a copy of the :class:`DataFrameSchema` with extra columns.
+
+        :param extra_schema_cols: Additional columns of the format
+        :type extra_schema_cols: DataFrameSchema
+        :returns: a new :class:`DataFrameSchema` with the extra_schema_cols
+            added.
+
+        :example:
+
+        To add columns to the schema, pass a dictionary with column name and
+        ``Column`` instance key-value pairs.
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...    {
+        ...        "category": pa.Column(str),
+        ...        "probability": pa.Column(float),
+        ...    }
+        ... )
+        >>> print(
+        ...     example_schema.add_columns({"even_number": pa.Column(pa.Bool)})
+        ... )
+        <Schema DataFrameSchema(
+            columns={
+                'category': <Schema Column(name=category, type=DataType(str))>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+                'even_number': <Schema Column(name=even_number, type=DataType(bool))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        .. seealso:: :func:`remove_columns`
+
+        """
+        schema_copy = copy.deepcopy(self)
+        schema_copy.columns = {
+            **schema_copy.columns,
+            **self.__class__(extra_schema_cols).columns,
+        }
+        return cast(DataFrameSchema, schema_copy)
+
+    @inferred_schema_guard
+    def remove_columns(self, cols_to_remove: List[str]) -> "DataFrameSchema":
+        """Removes columns from a :class:`DataFrameSchema` and returns a new
+        copy.
+
+        :param cols_to_remove: Columns to be removed from the
+            ``DataFrameSchema``
+        :type cols_to_remove: List
+        :returns: a new :class:`DataFrameSchema` without the cols_to_remove
+        :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
+            schema.
+
+        :example:
+
+        To remove a column or set of columns from a schema, pass a list of
+        columns to be removed:
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {
+        ...         "category" : pa.Column(str),
+        ...         "probability": pa.Column(float)
+        ...     }
+        ... )
+        >>>
+        >>> print(example_schema.remove_columns(["category"]))
+        <Schema DataFrameSchema(
+            columns={
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        .. seealso:: :func:`add_columns`
+
+        """
+        schema_copy = copy.deepcopy(self)
+
+        # ensure all specified keys are present in the columns
+        not_in_cols: List[str] = [
+            x for x in cols_to_remove if x not in schema_copy.columns.keys()
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema columns!"
+            )
+
+        for col in cols_to_remove:
+            schema_copy.columns.pop(col)
+
+        return cast(DataFrameSchema, schema_copy)
+
+    @inferred_schema_guard
+    def update_column(self, column_name: str, **kwargs) -> "DataFrameSchema":
+        """Create copy of a :class:`DataFrameSchema` with updated column
+        properties.
+
+        :param column_name:
+        :param kwargs: key-word arguments supplied to
+            :class:`~pandera.schema_components.Column`
+        :returns: a new :class:`DataFrameSchema` with updated column
+        :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
+            schema or you try to change the name.
+
+        :example:
+
+        Calling ``schema.1`` returns the :class:`DataFrameSchema`
+        with the updated column.
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
+        ... })
+        >>> print(
+        ...     example_schema.update_column(
+        ...         'category', dtype=pa.Category
+        ...     )
+        ... )
+        <Schema DataFrameSchema(
+            columns={
+                'category': <Schema Column(name=category, type=DataType(category))>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        .. seealso:: :func:`rename_columns`
+
+        """
+        # check that columns exist in schema
+
+        schema = self
+        if "name" in kwargs:
+            raise ValueError("cannot update 'name' of the column.")
+        if column_name not in schema.columns:
+            raise ValueError(f"column '{column_name}' not in {schema}")
+        schema_copy = copy.deepcopy(schema)
+        column_copy = copy.deepcopy(schema.columns[column_name])
+        new_column = column_copy.__class__(
+            **{**column_copy.properties, **kwargs}
+        )
+        schema_copy.columns.update({column_name: new_column})
+        return cast(DataFrameSchema, schema_copy)
+
+    def update_columns(
+        self,
+        update_dict: Dict[str, Dict[str, Any]],
+    ) -> "DataFrameSchema":
+        """
+        Create copy of a :class:`DataFrameSchema` with updated column
+        properties.
+
+        :param update_dict:
+        :return: a new :class:`DataFrameSchema` with updated columns
+        :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
+            schema or you try to change the name.
+
+        :example:
+
+        Calling ``schema.update_columns`` returns the :class:`DataFrameSchema`
+        with the updated columns.
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
+        ... })
+        >>>
+        >>> print(
+        ...     example_schema.update_columns(
+        ...         {"category": {"dtype":pa.Category}}
+        ...     )
+        ... )
+        <Schema DataFrameSchema(
+            columns={
+                'category': <Schema Column(name=category, type=DataType(category))>
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        """
+        from pandera.core.pandas.components import Column
+
+        new_schema = copy.deepcopy(self)
+
+        # ensure all specified keys are present in the columns
+        not_in_cols: List[str] = [
+            x for x in update_dict.keys() if x not in new_schema.columns.keys()
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema columns!"
+            )
+
+        new_columns: Dict[str, Column] = {}
+        for col in new_schema.columns:
+            # check
+            if update_dict.get(col):
+                if update_dict[col].get("name"):
+                    raise errors.SchemaInitError(
+                        "cannot update 'name' \
+                                             property of the column."
+                    )
+            original_properties = new_schema.columns[col].properties
+            if update_dict.get(col):
+                new_properties = copy.deepcopy(original_properties)
+                new_properties.update(update_dict[col])
+                new_columns[col] = new_schema.columns[col].__class__(
+                    **new_properties
+                )
+            else:
+                new_columns[col] = new_schema.columns[col].__class__(
+                    **original_properties
+                )
+
+        new_schema.columns = new_columns
+
+        return cast(DataFrameSchema, new_schema)
+
+    def rename_columns(self, rename_dict: Dict[str, str]) -> "DataFrameSchema":
+        """Rename columns using a dictionary of key-value pairs.
+
+        :param rename_dict: dictionary of 'old_name': 'new_name' key-value
+            pairs.
+        :returns: :class:`DataFrameSchema` (copy of original)
+        :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
+            schema.
+
+        :example:
+
+        To rename a column or set of columns, pass a dictionary of old column
+        names and new column names, similar to the pandas DataFrame method.
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
+        ... })
+        >>>
+        >>> print(
+        ...     example_schema.rename_columns({
+        ...         "category": "categories",
+        ...         "probability": "probabilities"
+        ...     })
+        ... )
+        <Schema DataFrameSchema(
+            columns={
+                'categories': <Schema Column(name=categories, type=DataType(str))>
+                'probabilities': <Schema Column(name=probabilities, type=DataType(float64))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        .. seealso:: :func:`update_column`
+
+        """
+        new_schema = copy.deepcopy(self)
+
+        # ensure all specified keys are present in the columns
+        not_in_cols: List[str] = [
+            x for x in rename_dict.keys() if x not in new_schema.columns.keys()
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema columns!"
+            )
+
+        # ensure all new keys are not present in the current column names
+        already_in_columns: List[str] = [
+            x for x in rename_dict.values() if x in new_schema.columns.keys()
+        ]
+        if already_in_columns:
+            raise errors.SchemaInitError(
+                f"Keys {already_in_columns} already found in schema columns!"
+            )
+
+        # We iterate over the existing columns dict and replace those keys
+        # that exist in the rename_dict
+
+        new_columns = {
+            (rename_dict[col_name] if col_name in rename_dict else col_name): (
+                col_attrs.set_name(rename_dict[col_name])
+                if col_name in rename_dict
+                else col_attrs
+            )
+            for col_name, col_attrs in new_schema.columns.items()
+        }
+
+        new_schema.columns = new_columns
+
+        return cast(DataFrameSchema, new_schema)
+
+    def select_columns(self, columns: List[Any]) -> "DataFrameSchema":
+        """Select subset of columns in the schema.
+
+        *New in version 0.4.5*
+
+        :param columns: list of column names to select.
+        :returns:  :class:`DataFrameSchema` (copy of original) with only
+            the selected columns.
+        :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
+            schema.
+
+        :example:
+
+        To subset a schema by column, and return a new schema:
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)
+        ... })
+        >>>
+        >>> print(example_schema.select_columns(['category']))
+        <Schema DataFrameSchema(
+            columns={
+                'category': <Schema Column(name=category, type=DataType(str))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        .. note:: If an index is present in the schema, it will also be
+            included in the new schema.
+
+        """
+
+        new_schema = copy.deepcopy(self)
+
+        # ensure all specified keys are present in the columns
+        not_in_cols: List[str] = [
+            x for x in columns if x not in new_schema.columns.keys()
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema columns!"
+            )
+
+        new_columns = {
+            col_name: column
+            for col_name, column in self.columns.items()
+            if col_name in columns
+        }
+        new_schema.columns = new_columns
+        return cast(DataFrameSchema, new_schema)
+
+    def set_index(
+        self, keys: List[str], drop: bool = True, append: bool = False
+    ) -> "DataFrameSchema":
+        """
+        A method for setting the :class:`Index` of a :class:`DataFrameSchema`,
+        via an existing :class:`Column` or list of columns.
+
+        :param keys: list of labels
+        :param drop: bool, default True
+        :param append: bool, default False
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the
+            index.
+        :raises: :class:`~pandera.errors.SchemaInitError` if column not in the
+            schema.
+
+        :examples:
+
+        Just as you would set the index in a ``pandas`` DataFrame from an
+        existing column, you can set an index within the schema from an
+        existing column in the schema.
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(str),
+        ...     "probability": pa.Column(float)})
+        >>>
+        >>> print(example_schema.set_index(['category']))
+        <Schema DataFrameSchema(
+            columns={
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=<Schema Index(name=category, type=DataType(str))>,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        If you have an existing index in your schema, and you would like to
+        append a new column as an index to it (yielding a :class:`Multiindex`),
+        just use set_index as you would in pandas.
+
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {
+        ...         "column1": pa.Column(str),
+        ...         "column2": pa.Column(int)
+        ...     },
+        ...     index=pa.Index(name = "column3", dtype = int)
+        ... )
+        >>>
+        >>> print(example_schema.set_index(["column2"], append = True))
+        <Schema DataFrameSchema(
+            columns={
+                'column1': <Schema Column(name=column1, type=DataType(str))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=<Schema MultiIndex(
+                indexes=[
+                    <Schema Index(name=column3, type=DataType(int64))>
+                    <Schema Index(name=column2, type=DataType(int64))>
+                ]
+                coerce=False,
+                strict=False,
+                name=None,
+                ordered=True
+            )>,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        .. seealso:: :func:`reset_index`
+
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        from pandera.core.pandas.components import Index, MultiIndex
+
+        new_schema = copy.deepcopy(self)
+
+        keys_temp: List = (
+            list(set(keys)) if not isinstance(keys, list) else keys
+        )
+
+        # ensure all specified keys are present in the columns
+        not_in_cols: List[str] = [
+            x for x in keys_temp if x not in new_schema.columns.keys()
+        ]
+        if not_in_cols:
+            raise errors.SchemaInitError(
+                f"Keys {not_in_cols} not found in schema columns!"
+            )
+
+        # if there is already an index, append or replace according to
+        # parameters
+        ind_list: List = (
+            []
+            if new_schema.index is None or not append
+            else list(new_schema.index.indexes)
+            if isinstance(new_schema.index, MultiIndex) and append
+            else [new_schema.index]
+        )
+
+        for col in keys_temp:
+            ind_list.append(
+                Index(
+                    dtype=new_schema.columns[col].dtype,
+                    name=col,
+                    checks=new_schema.columns[col].checks,
+                    nullable=new_schema.columns[col].nullable,
+                    unique=new_schema.columns[col].unique,
+                    coerce=new_schema.columns[col].coerce,
+                )
+            )
+
+        new_schema.index = (
+            ind_list[0] if len(ind_list) == 1 else MultiIndex(ind_list)
+        )
+
+        # if drop is True as defaulted, drop the columns moved into the index
+        if drop:
+            new_schema = new_schema.remove_columns(keys_temp)
+
+        return cast(DataFrameSchema, new_schema)
+
+    def reset_index(
+        self, level: List[str] = None, drop: bool = False
+    ) -> "DataFrameSchema":
+        """
+        A method for resetting the :class:`Index` of a :class:`DataFrameSchema`
+
+        :param level: list of labels
+        :param drop: bool, default True
+        :return: a new :class:`DataFrameSchema` with specified column(s) in the
+            index.
+        :raises: :class:`~pandera.errors.SchemaInitError` if no index set in
+            schema.
+        :examples:
+
+        Similar to the ``pandas`` reset_index method on a pandas DataFrame,
+        this method can be used to to fully or partially reset indices of a
+        schema.
+
+        To remove the entire index from the schema, just call the reset_index
+        method with default parameters.
+
+        >>> import pandera as pa
+        >>>
+        >>> example_schema = pa.DataFrameSchema(
+        ...     {"probability" : pa.Column(float)},
+        ...     index = pa.Index(name="unique_id", dtype=int)
+        ... )
+        >>>
+        >>> print(example_schema.reset_index())
+        <Schema DataFrameSchema(
+            columns={
+                'probability': <Schema Column(name=probability, type=DataType(float64))>
+                'unique_id': <Schema Column(name=unique_id, type=DataType(int64))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=None,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        This reclassifies an index (or indices) as a column (or columns).
+
+        Similarly, to partially alter the index, pass the name of the column
+        you would like to be removed to the ``level`` parameter, and you may
+        also decide whether to drop the levels with the ``drop`` parameter.
+
+        >>> example_schema = pa.DataFrameSchema({
+        ...     "category" : pa.Column(str)},
+        ...     index = pa.MultiIndex([
+        ...         pa.Index(name="unique_id1", dtype=int),
+        ...         pa.Index(name="unique_id2", dtype=str)
+        ...         ]
+        ...     )
+        ... )
+        >>> print(example_schema.reset_index(level = ["unique_id1"]))
+        <Schema DataFrameSchema(
+            columns={
+                'category': <Schema Column(name=category, type=DataType(str))>
+                'unique_id1': <Schema Column(name=unique_id1, type=DataType(int64))>
+            },
+            checks=[],
+            coerce=False,
+            dtype=None,
+            index=<Schema Index(name=unique_id2, type=DataType(str))>,
+            strict=False
+            name=None,
+            ordered=False,
+            unique_column_names=False
+        )>
+
+        .. seealso:: :func:`set_index`
+
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        from pandera.core.pandas.components import Column, Index, MultiIndex
+
+        new_schema = copy.deepcopy(self)
+
+        if new_schema.index is None:
+            raise errors.SchemaInitError(
+                "There is currently no index set for this schema."
+            )
+
+        # ensure no duplicates
+        level_temp: Union[List[Any], List[str]] = (
+            list(set(level)) if level is not None else []
+        )
+
+        # ensure all specified keys are present in the index
+        level_not_in_index: Union[List[Any], List[str], None] = (
+            [x for x in level_temp if x not in new_schema.index.names]
+            if isinstance(new_schema.index, MultiIndex) and level_temp
+            else []
+            if isinstance(new_schema.index, Index)
+            and (level_temp == [new_schema.index.name])
+            else level_temp
+        )
+        if level_not_in_index:
+            raise errors.SchemaInitError(
+                f"Keys {level_not_in_index} not found in schema columns!"
+            )
+
+        new_index = (
+            None
+            if not level_temp or isinstance(new_schema.index, Index)
+            else new_schema.index.remove_columns(level_temp)
+        )
+        new_index = (
+            new_index
+            if new_index is None
+            else Index(
+                dtype=new_index.columns[list(new_index.columns)[0]].dtype,
+                checks=new_index.columns[list(new_index.columns)[0]].checks,
+                nullable=new_index.columns[
+                    list(new_index.columns)[0]
+                ].nullable,
+                unique=new_index.columns[list(new_index.columns)[0]].unique,
+                coerce=new_index.columns[list(new_index.columns)[0]].coerce,
+                name=new_index.columns[list(new_index.columns)[0]].name,
+            )
+            if (len(list(new_index.columns)) == 1) and (new_index is not None)
+            else None
+            if (len(list(new_index.columns)) == 0) and (new_index is not None)
+            else new_index
+        )
+
+        if not drop:
+            additional_columns: Dict[str, Any] = (
+                {col: new_schema.index.columns.get(col) for col in level_temp}
+                if isinstance(new_schema.index, MultiIndex)
+                else {new_schema.index.name: new_schema.index}
+            )
+            new_schema = new_schema.add_columns(
+                {
+                    k: Column(
+                        dtype=v.dtype,
+                        checks=v.checks,
+                        nullable=v.nullable,
+                        unique=v.unique,
+                        coerce=v.coerce,
+                        name=v.name,
+                    )
+                    for (k, v) in additional_columns.items()
+                }
+            )
+
+        new_schema.index = new_index
+
+        return cast(DataFrameSchema, new_schema)
+
+    #####################
+    # Schema IO Methods #
+    #####################
+
+    def to_script(self, fp: Union[str, Path] = None) -> "DataFrameSchema":
+        """Create DataFrameSchema from yaml file.
+
+        :param path: str, Path to write script
+        :returns: dataframe schema.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+
+        return pandera.io.to_script(self, fp)
+
+    @classmethod
+    def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
+        """Create DataFrameSchema from yaml file.
+
+        :param yaml_schema: str, Path to yaml schema, or serialized yaml
+            string.
+        :returns: dataframe schema.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+
+        return pandera.io.from_yaml(yaml_schema)
+
+    @overload
+    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
+        ...
+
+    @overload
+    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
+        ...
+
+    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+        """Write DataFrameSchema to yaml file.
+
+        :param stream: file stream to write to. If None, dumps to string.
+        :returns: yaml string if stream is None, otherwise returns None.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+
+        return pandera.io.to_yaml(self, stream=stream)
+
+    ###########################
+    # Schema Strategy Methods #
+    ###########################
+
+    @st.strategy_import_error
+    def strategy(
+        self, *, size: Optional[int] = None, n_regex_columns: int = 1
+    ):
+        """Create a ``hypothesis`` strategy for generating a DataFrame.
+
+        :param size: number of elements to generate
+        :param n_regex_columns: number of regex columns to generate.
+        :returns: a strategy that generates pandas DataFrame objects.
+        """
+        return st.dataframe_strategy(
+            self.dtype,
+            columns=self.columns,
+            checks=self.checks,
+            unique=self.unique,
+            index=self.index,
+            size=size,
+            n_regex_columns=n_regex_columns,
+        )
+
+    def example(
+        self, size: Optional[int] = None, n_regex_columns: int = 1
+    ) -> pd.DataFrame:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated DataFrame.
+        :returns: pandas DataFrame object.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(
+                size=size, n_regex_columns=n_regex_columns
+            ).example()

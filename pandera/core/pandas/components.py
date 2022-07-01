@@ -1,63 +1,23 @@
 import warnings
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
+from unicodedata import name
 
-import numpy as np
 import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
-from pandera.backends.pandas.components import ColumnBackend, IndexBackend, MultiIndexBackend
-from pandera.core.base.schema import BaseSchemaStrategyMixin
+from pandera.backends.pandas.components import (
+    ColumnBackend,
+    IndexBackend,
+    MultiIndexBackend,
+)
 from pandera.core.pandas.array import ArraySchema
 from pandera.core.pandas.container import DataFrameSchema
 from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
 
 
-class ColumnStrategyMixin(BaseSchemaStrategyMixin):
-    @st.strategy_import_error
-    def strategy(self, *, size=None):
-        """Create a ``hypothesis`` strategy for generating a Column.
-
-        :param size: number of elements to generate
-        :returns: a dataframe strategy for a single column.
-        """
-        return super().strategy(size=size).map(lambda x: x.to_frame())
-
-    @st.strategy_import_error
-    def strategy_component(self):
-        """Generate column data object for use by DataFrame strategy."""
-        return st.column_strategy(
-            self.dtype,
-            checks=self.checks,
-            unique=self.unique,
-            name=self.name,
-        )
-
-    def example(self, size=None) -> pd.DataFrame:
-        """Generate an example of a particular size.
-
-        :param size: number of elements in the generated Index.
-        :returns: pandas DataFrame object.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
-        import hypothesis
-
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                "ignore",
-                category=hypothesis.errors.NonInteractiveExampleWarning,
-            )
-            return (
-                super()
-                .strategy(size=size)
-                .example()
-                .rename(self.name)
-                .to_frame()
-            )
-
-
-class Column(ArraySchema, ColumnStrategyMixin):
+class Column(ArraySchema):
     """Validate types and properties of DataFrame columns."""
 
     BACKEND = ColumnBackend()
@@ -65,7 +25,7 @@ class Column(ArraySchema, ColumnStrategyMixin):
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
-        checks: CheckList = None,
+        checks: Optional[CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
         coerce: bool = False,
@@ -146,13 +106,13 @@ class Column(ArraySchema, ColumnStrategyMixin):
         """Get column properties."""
         return {
             "dtype": self.dtype,
-            "checks": self._checks,
-            "nullable": self._nullable,
-            "unique": self._unique,
-            "coerce": self._coerce,
+            "checks": self.checks,
+            "nullable": self.nullable,
+            "unique": self.unique,
+            "coerce": self.coerce,
             "required": self.required,
-            "name": self._name,
-            "regex": self._regex,
+            "name": self.name,
+            "regex": self.regex,
             "title": self.title,
             "description": self.description,
         }
@@ -216,27 +176,22 @@ class Column(ArraySchema, ColumnStrategyMixin):
 
         return _compare_dict(self) == _compare_dict(other)
 
+    ############################
+    # Schema Transform Methods #
+    ############################
 
-class IndexStrategyMixin(BaseSchemaStrategyMixin):
     @st.strategy_import_error
-    def strategy(self, *, size: int = None):
-        """Create a ``hypothesis`` strategy for generating an Index.
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Column.
 
-        :param size: number of elements to generate.
-        :returns: index strategy.
+        :param size: number of elements to generate
+        :returns: a dataframe strategy for a single column.
         """
-        return st.index_strategy(
-            self.dtype,  # type: ignore
-            checks=self.checks,
-            nullable=self.nullable,
-            unique=self.unique,
-            name=self.name,
-            size=size,
-        )
+        return super().strategy(size=size).map(lambda x: x.to_frame())
 
     @st.strategy_import_error
     def strategy_component(self):
-        """Generate column data object for use by MultiIndex strategy."""
+        """Generate column data object for use by DataFrame strategy."""
         return st.column_strategy(
             self.dtype,
             checks=self.checks,
@@ -244,11 +199,11 @@ class IndexStrategyMixin(BaseSchemaStrategyMixin):
             name=self.name,
         )
 
-    def example(self, size: int = None) -> pd.Index:
+    def example(self, size=None) -> pd.DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
-        :returns: pandas Index object.
+        :returns: pandas DataFrame object.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
@@ -258,10 +213,16 @@ class IndexStrategyMixin(BaseSchemaStrategyMixin):
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return self.strategy(size=size).example()
+            return (
+                super()
+                .strategy(size=size)
+                .example()
+                .rename(self.name)
+                .to_frame()
+            )
 
 
-class Index(ArraySchema, IndexStrategyMixin):
+class Index(ArraySchema):
     """Validate types and properties of a DataFrame Index."""
 
     BACKEND = IndexBackend()
@@ -317,20 +278,42 @@ class Index(ArraySchema, IndexStrategyMixin):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
-
-class MultiIndexStrategyMixin(BaseSchemaStrategyMixin):
+    ###########################
+    # Schema Strategy Methods #
+    ###########################
 
     @st.strategy_import_error
-    # NOTE: remove these ignore statements as part of
-    # https://github.com/pandera-dev/pandera/issues/403
-    # pylint: disable=arguments-differ
-    def strategy(self, *, size=None):  # type: ignore
-        return st.multiindex_strategy(indexes=self.indexes, size=size)
+    def strategy(self, *, size: int = None):
+        """Create a ``hypothesis`` strategy for generating an Index.
 
-    # NOTE: remove these ignore statements as part of
-    # https://github.com/pandera-dev/pandera/issues/403
-    # pylint: disable=arguments-differ
-    def example(self, size=None) -> pd.MultiIndex:  # type: ignore
+        :param size: number of elements to generate.
+        :returns: index strategy.
+        """
+        return st.index_strategy(
+            self.dtype,  # type: ignore
+            checks=self.checks,
+            nullable=self.nullable,
+            unique=self.unique,
+            name=self.name,
+            size=size,
+        )
+
+    @st.strategy_import_error
+    def strategy_component(self):
+        """Generate column data object for use by MultiIndex strategy."""
+        return st.column_strategy(
+            self.dtype,
+            checks=self.checks,
+            unique=self.unique,
+            name=self.name,
+        )
+
+    def example(self, size: int = None) -> pd.Index:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas Index object.
+        """
         # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
 
@@ -342,7 +325,7 @@ class MultiIndexStrategyMixin(BaseSchemaStrategyMixin):
             return self.strategy(size=size).example()
 
 
-class MultiIndex(DataFrameSchema, MultiIndexStrategyMixin):
+class MultiIndex(DataFrameSchema):
     """Validate types and properties of a DataFrame MultiIndex.
 
     This class inherits from :class:`~pandera.schemas.DataFrameSchema` to
@@ -452,7 +435,7 @@ class MultiIndex(DataFrameSchema, MultiIndexStrategyMixin):
         """Set coerce attribute."""
         self._coerce = value
 
-    def validate(
+    def validate(  # type: ignore
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
         head: Optional[int] = None,
@@ -522,6 +505,30 @@ class MultiIndex(DataFrameSchema, MultiIndexStrategyMixin):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    ###########################
+    # Schema Strategy Methods #
+    ###########################
+
+    @st.strategy_import_error
+    # NOTE: remove these ignore statements as part of
+    # https://github.com/pandera-dev/pandera/issues/403
+    # pylint: disable=arguments-differ
+    def strategy(self, *, size=None):  # type: ignore
+        return st.multiindex_strategy(indexes=self.indexes, size=size)
+
+    # NOTE: remove these ignore statements as part of
+    # https://github.com/pandera-dev/pandera/issues/403
+    # pylint: disable=arguments-differ
+    def example(self, size=None) -> pd.MultiIndex:  # type: ignore
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
 
 
 def is_valid_multiindex_key(x: Tuple[Any, ...]) -> bool:

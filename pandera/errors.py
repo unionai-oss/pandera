@@ -146,7 +146,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self,
         schema,
         schema_errors: List[Dict[str, Any]],
-        data: Union[pd.Series, pd.DataFrame],
+        data: Union[pd.Series, pd.DataFrame, pd.Index, pd.MultiIndex],
     ):
         error_counts, failure_cases = self._parse_schema_errors(schema_errors)
         self.schema = schema

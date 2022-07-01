@@ -6,8 +6,7 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from functools import singledispatch
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import pandas as pd
 
@@ -41,7 +40,8 @@ class BaseSchemaBackend(ABC):
     def validate(
         self,
         check_obj,
-        name: Optional[str] = None,
+        schema,
+        *,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -58,8 +58,8 @@ class BaseSchemaBackend(ABC):
         self,
         check_obj,
         *,
-        schema = None,
-        error_handler = None,
+        schema=None,
+        error_handler=None,
     ):
         """Coerce the data type of the check object."""
         raise NotImplementedError
@@ -75,35 +75,35 @@ class BaseSchemaBackend(ABC):
         """Run a single check on the check object."""
         raise NotImplementedError
 
-    def run_checks(
-        self,
-        check_obj,
-        schema,
-        checks: Sequence[Check],
-        name: Optional[str] = None,
-    ):
+    def run_checks(self, check_obj, schema, error_handler):
         """Run a list of checks on the check object."""
         raise NotImplementedError
 
-    def check_name(self, check_obj, name: Optional[str] = None):
+    def check_name(self, check_obj, schema):
         """Core check that checks the name of the check object."""
         raise NotImplementedError
 
-    def check_nullable(self, check_obj, nullable: bool = False):
+    def check_nullable(self, check_obj, schema):
         """Core check that checks the nullability of a check object."""
         raise NotImplementedError
 
-    def check_unique(self, check_obj, unique: bool = False):
+    def check_unique(self, check_obj, schema):
         """Core check that checks the uniqueness of values in a check object."""
         raise NotImplementedError
 
-    def check_dtype(self, check_obj, dtype: DataType):
+    def check_dtype(self, check_obj, schema):
         """Core check that checks the data type of a check object."""
         raise NotImplementedError
 
 
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""
+
+    def __init__(self, check):
+        raise NotImplementedError
+
+    def __call__(self, check_obj, key=None):
+        raise NotImplementedError
 
     def query(self, check_obj):
         """Implements querying behavior to produce subset of check object."""

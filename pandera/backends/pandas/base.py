@@ -2,9 +2,15 @@
 
 import copy
 import warnings
-
 from typing import (
-    Generic, Iterable, FrozenSet, List, NamedTuple, Optional, TypeVar, Union
+    FrozenSet,
+    Generic,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    TypeVar,
+    Union,
 )
 
 import pandas as pd
@@ -17,7 +23,6 @@ from pandera.backends.pandas.error_formatters import (
     scalar_failure_case,
 )
 from pandera.errors import SchemaError
-
 
 
 class ColumnInfo(NamedTuple):
@@ -39,8 +44,7 @@ T = TypeVar(
 )
 
 
-class PandasSchemaBackend(BaseSchemaBackend, Generic[T]):
-
+class PandasSchemaBackend(BaseSchemaBackend):
     def subsample(
         self,
         check_obj,

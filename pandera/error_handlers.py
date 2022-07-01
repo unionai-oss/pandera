@@ -17,6 +17,10 @@ class SchemaErrorHandler:
         self._lazy = lazy
         self._collected_errors = []  # type: ignore
 
+    @property
+    def lazy(self) -> bool:
+        return self._lazy
+
     def collect_error(
         self,
         reason_code: str,

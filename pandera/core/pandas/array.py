@@ -7,15 +7,13 @@ import pandas as pd
 from pandera import errors
 from pandera import strategies as st
 from pandera.backends.pandas.array import ArraySchemaBackend
-from pandera.checks import Check
-from pandera.core.base.schema import (
-    BaseSchema,
-    BaseSchemaStrategyMixin,
-    BaseSchemaTransformsMixin,
-    inferred_schema_guard,
+from pandera.core.base.schema import BaseSchema, inferred_schema_guard
+from pandera.core.checks import Check
+from pandera.core.pandas.types import (
+    CheckList,
+    PandasDtypeInputTypes,
+    is_field,
 )
-from pandera.core.base.checks import BaseCheck
-from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
 from pandera.hypotheses import Hypothesis
@@ -23,84 +21,15 @@ from pandera.hypotheses import Hypothesis
 TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 
 
-class ArraySchemaTransformsMixin(BaseSchemaTransformsMixin):
-    @inferred_schema_guard
-    def update_checks(self, checks: CheckList):
-        """Create a new SeriesSchema with a new set of Checks
-
-        :param checks: checks to set on the new schema
-        :returns: a new SeriesSchema with a new set of checks
-        """
-        schema_copy = copy.deepcopy(self)
-        schema_copy.checks = checks
-        return schema_copy
-
-    def set_checks(self, checks: CheckList):
-        """Create a new SeriesSchema with a new set of Checks
-
-        .. caution::
-           This method will be deprecated in favor of ``update_checks`` in
-           v0.15.0
-
-        :param checks: checks to set on the new schema
-        :returns: a new SeriesSchema with a new set of checks
-        """
-        return self.update_checks(checks)
-
-
-class ArraySchemaStrategyMixin(BaseSchemaStrategyMixin):
-    @st.strategy_import_error
-    def strategy(self, *, size=None):
-        """Create a ``hypothesis`` strategy for generating a Series.
-
-        :param size: number of elements to generate
-        :returns: a strategy that generates pandas Series objects.
-        """
-        return st.series_strategy(
-            self.dtype,
-            checks=self.checks,
-            nullable=self.nullable,
-            unique=self.unique,
-            name=self.name,
-            size=size,
-        )
-
-    def example(self, size=None) -> pd.Series:
-        """Generate an example of a particular size.
-
-        :param size: number of elements in the generated Series.
-        :returns: pandas Series object.
-        """
-        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
-        import hypothesis
-
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                "ignore",
-                category=hypothesis.errors.NonInteractiveExampleWarning,
-            )
-            return self.strategy(size=size).example()
-
-    def __repr__(self):
-        return (
-            f"<Schema {self.__class__.__name__}"
-            f"(name={self.name}, type={self.dtype!r})>"
-        )
-
-
-class ArraySchema(
-    BaseSchema,
-    ArraySchemaTransformsMixin,
-    ArraySchemaStrategyMixin,
-):
-    """Base series validator object."""
+class ArraySchema(BaseSchema):
+    """Base array validator object."""
 
     BACKEND = ArraySchemaBackend()
 
     def __init__(
         self,
         dtype: Optional[PandasDtypeInputTypes] = None,
-        checks: Optional[List[BaseCheck]] = None,
+        checks: Optional[CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
         coerce: bool = False,
@@ -108,7 +37,7 @@ class ArraySchema(
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
-        """Initialize series schema base object.
+        """Initialize array schema.
 
         :param dtype: datatype of the column. If a string is specified,
             then assumes one of the valid pandas string values:
@@ -187,40 +116,28 @@ class ArraySchema(
         """Set the pandas dtype"""
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
-    def coerce_dtype(self, obj: Union[pd.Series, pd.Index]) -> pd.Series:
+    def coerce_dtype(
+        self,
+        check_obj: Union[pd.Series, pd.Index],
+    ) -> Union[pd.Series, pd.Index]:
         """Coerce type of a pd.Series by type specified in dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        if self.dtype is None:
-            return obj
-
-        try:
-            return self.dtype.try_coerce(obj)
-        except errors.ParserError as exc:
-            raise errors.SchemaError(
-                schema=self,
-                data=obj,
-                message=(
-                    f"Error while coercing '{self.name}' to type "
-                    f"{self.dtype}: {exc}:\n{exc.failure_cases}"
-                ),
-                failure_cases=exc.failure_cases,
-                check=f"coerce_dtype('{self.dtype}')",
-            ) from exc
+        return self.BACKEND.coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
-        check_obj: Union[pd.DataFrame, pd.Series],
+        check_obj,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> Union[pd.DataFrame, pd.Series]:
+    ):
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a series or specific column in dataframe.
 
@@ -283,6 +200,214 @@ class ArraySchema(
 
         return cast(TArraySchemaBase, schema)
 
+    #############################
+    # Schema Transforms Methods #
+    #############################
+
+    @inferred_schema_guard
+    def update_checks(self, checks: List[Check]):
+        """Create a new SeriesSchema with a new set of Checks
+
+        :param checks: checks to set on the new schema
+        :returns: a new SeriesSchema with a new set of checks
+        """
+        schema_copy = cast(ArraySchema, copy.deepcopy(self))
+        schema_copy.checks = checks
+        return schema_copy
+
+    def set_checks(self, checks: CheckList):
+        """Create a new SeriesSchema with a new set of Checks
+
+        .. caution::
+           This method will be deprecated in favor of ``update_checks`` in
+           v0.15.0
+
+        :param checks: checks to set on the new schema
+        :returns: a new SeriesSchema with a new set of checks
+        """
+        return self.update_checks(checks)
+
+    ###########################
+    # Schema Strategy Methods #
+    ###########################
+
+    @st.strategy_import_error
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Series.
+
+        :param size: number of elements to generate
+        :returns: a strategy that generates pandas Series objects.
+        """
+        return st.series_strategy(
+            self.dtype,
+            checks=self.checks,
+            nullable=self.nullable,
+            unique=self.unique,
+            name=self.name,
+            size=size,
+        )
+
+    def example(self, size=None) -> Union[pd.Series, pd.Index, pd.DataFrame]:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Series.
+        :returns: pandas Series object.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        import hypothesis
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore",
+                category=hypothesis.errors.NonInteractiveExampleWarning,
+            )
+            return self.strategy(size=size).example()
+
+    def __repr__(self):
+        return (
+            f"<Schema {self.__class__.__name__}"
+            f"(name={self.name}, type={self.dtype!r})>"
+        )
+
 
 class SeriesSchema(ArraySchema):
-    ...
+    """Series validator."""
+
+    def __init__(
+        self,
+        dtype: PandasDtypeInputTypes = None,
+        checks: Optional[CheckList] = None,
+        index=None,
+        nullable: bool = False,
+        unique: bool = False,
+        coerce: bool = False,
+        name: str = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        """Initialize series schema base object.
+
+        :param dtype: datatype of the column. If a string is specified,
+            then assumes one of the valid pandas string values:
+            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+        :param checks: If element_wise is True, then callable signature should
+            be:
+
+            ``Callable[Any, bool]`` where the ``Any`` input is a scalar element
+            in the column. Otherwise, the input is assumed to be a
+            pandas.Series object.
+        :param index: specify the datatypes and properties of the index.
+        :param nullable: Whether or not column can contain null values.
+        :param unique: Whether or not column can contain duplicate
+            values.
+        :param coerce: If True, when schema.validate is called the column will
+            be coerced into the specified dtype. This has no effect on columns
+            where ``dtype=None``.
+        :param name: series name.
+        :param title: A human-readable label for the series.
+        :param description: An arbitrary textual description of the series.
+
+        """
+        super().__init__(
+            dtype,
+            checks,
+            nullable,
+            unique,
+            coerce,
+            name,
+            title,
+            description,
+        )
+        self.index = index
+
+    @property
+    def _allow_groupby(self) -> bool:
+        """Whether the schema or schema component allows groupby operations."""
+        return False
+
+    def validate(  # type: ignore [override]
+        self,
+        check_obj: pd.Series,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> pd.Series:
+        """Validate a Series object.
+
+        :param check_obj: One-dimensional ndarray with axis labels
+            (including time series).
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated Series.
+
+        :raises SchemaError: when ``DataFrame`` violates built-in or custom
+            checks.
+
+        :example:
+
+        >>> import pandas as pd
+        >>> import pandera as pa
+        >>>
+        >>> series_schema = pa.SeriesSchema(
+        ...     float, [
+        ...         pa.Check(lambda s: s > 0),
+        ...         pa.Check(lambda s: s < 1000),
+        ...         pa.Check(lambda s: s.mean() > 300),
+        ...     ])
+        >>> series = pd.Series([1, 100, 800, 900, 999], dtype=float)
+        >>> print(series_schema.validate(series))
+        0      1.0
+        1    100.0
+        2    800.0
+        3    900.0
+        4    999.0
+        dtype: float64
+
+        """
+        if not is_field(check_obj):
+            raise TypeError(f"expected pd.Series, got {type(check_obj)}")
+
+        if hasattr(check_obj, "dask"):
+            # special case for dask series
+            if inplace:
+                check_obj = check_obj.pandera.add_schema(self)
+            else:
+                check_obj = check_obj.copy()
+
+            check_obj = check_obj.map_partitions(
+                super().validate,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+                meta=check_obj,
+            )
+            return cast(pd.Series, check_obj.pandera.add_schema(self))
+
+        return cast(
+            pd.Series,
+            super().validate(
+                check_obj=check_obj,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+            ),
+        )

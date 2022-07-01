@@ -1,4 +1,4 @@
-"""Class-based api"""
+"""Class-based api for pandas models."""
 
 import copy
 import inspect
@@ -12,6 +12,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Set,
     Tuple,
@@ -23,11 +24,12 @@ from typing import (
 
 import pandas as pd
 
-from . import schema_components
-from . import strategies as st
-from .checks import Check
-from .errors import SchemaInitError
-from .model_components import (
+from pandera._strategies import pandas_strategies as st
+from pandera.core.base.model import BaseModel
+from pandera.core.checks import Check
+from pandera.core.pandas.components import Column, Index, MultiIndex
+from pandera.core.pandas.container import DataFrameSchema
+from pandera.core.pandas.model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     CheckInfo,
@@ -35,15 +37,15 @@ from .model_components import (
     FieldCheckInfo,
     FieldInfo,
 )
-from .schemas import DataFrameSchema
-from .typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
-from .typing.common import DataFrameBase
-from .typing.config import BaseConfig
+from pandera.core.pandas.model_config import BaseConfig
+from pandera.errors import SchemaInitError
+from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
+from pandera.typing.common import DataFrameBase
 
-if sys.version_info[:2] < (3, 9):
-    from typing_extensions import get_type_hints
-else:
+try:
     from typing import get_type_hints
+except ImportError:
+    from typing_extensions import get_type_hints  # type: ignore
 
 try:
     from pydantic.fields import ModelField  # pylint:disable=unused-import
@@ -52,18 +54,19 @@ try:
 except ImportError:
     HAS_PYDANTIC = False
 
-SchemaIndex = Union[schema_components.Index, schema_components.MultiIndex]
 
+SchemaIndex = Union[Index, MultiIndex]
 
 _CONFIG_KEY = "Config"
 
-
-MODEL_CACHE: Dict[Type["SchemaModel"], DataFrameSchema] = {}
+MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
 GENERIC_SCHEMA_CACHE: Dict[
-    Tuple[Type["SchemaModel"], Tuple[Type[Any], ...]], Type["SchemaModel"]
+    Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
+    Type["DataFrameModel"],
 ] = {}
+
 F = TypeVar("F", bound=Callable)
-TSchemaModel = TypeVar("TSchemaModel", bound="SchemaModel")
+TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 
 
 def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
@@ -123,17 +126,7 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
     return checks
 
 
-class _MetaSchema(type):
-    """Add string representations, mainly for pydantic."""
-
-    def __repr__(cls):
-        return str(cls)
-
-    def __str__(cls):
-        return cls.__name__
-
-
-class SchemaModel(metaclass=_MetaSchema):
+class DataFrameModel(BaseModel):
     """Definition of a :class:`~pandera.DataFrameSchema`.
 
     *new in 0.5.0*
@@ -147,15 +140,16 @@ class SchemaModel(metaclass=_MetaSchema):
     __config__: Optional[Type[BaseConfig]] = None
 
     #: Key according to `FieldInfo.name`
-    __fields__: Dict[str, Tuple[AnnotationInfo, FieldInfo]] = {}
+    __fields__: Mapping[str, Tuple[AnnotationInfo, FieldInfo]] = {}
     __checks__: Dict[str, List[Check]] = {}
-    __dataframe_checks__: List[Check] = []
+    __root_checks__: List[Check] = []
 
-    # This is syntantic sugar that delegates to the validate method
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
-    def __new__(cls, *args, **kwargs) -> DataFrameBase[TSchemaModel]:  # type: ignore [misc]
+    def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
-        return cast(DataFrameBase[TSchemaModel], cls.validate(*args, **kwargs))
+        return cast(
+            DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs)
+        )
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
@@ -179,6 +173,49 @@ class SchemaModel(metaclass=_MetaSchema):
                 setattr(cls, field_name, field)
 
         cls.__config__, cls.__extras__ = cls._collect_config_and_extras()
+
+    def __class_getitem__(
+        cls: Type[TDataFrameModel],
+        params: Union[Type[Any], Tuple[Type[Any], ...]],
+    ) -> Type[TDataFrameModel]:
+        """Parameterize the class's generic arguments with the specified types"""
+        if not hasattr(cls, "__parameters__"):
+            raise TypeError(
+                f"{cls.__name__} must inherit from typing.Generic before being parameterized"
+            )
+        # pylint: disable=no-member
+        __parameters__: Tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
+
+        if not isinstance(params, tuple):
+            params = (params,)
+        if len(params) != len(__parameters__):
+            raise ValueError(
+                f"Expected {len(__parameters__)} generic arguments but found {len(params)}"
+            )
+        if (cls, params) in GENERIC_SCHEMA_CACHE:
+            return typing.cast(
+                Type[TDataFrameModel], GENERIC_SCHEMA_CACHE[(cls, params)]
+            )
+
+        param_dict: Dict[TypeVar, Type[Any]] = dict(
+            zip(__parameters__, params)
+        )
+        extra: Dict[str, Any] = {"__annotations__": {}}
+        for field, (annot_info, field_info) in cls._collect_fields().items():
+            if isinstance(annot_info.arg, TypeVar):
+                if annot_info.arg in param_dict:
+                    raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
+                    if annot_info.optional:
+                        raw_annot = Optional[raw_annot]
+                    extra["__annotations__"][field] = raw_annot
+                    extra[field] = copy.deepcopy(field_info)
+
+        parameterized_name = (
+            f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
+        )
+        parameterized_cls = type(parameterized_name, (cls,), extra)
+        GENERIC_SCHEMA_CACHE[(cls, params)] = parameterized_cls
+        return parameterized_cls
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
@@ -210,7 +247,7 @@ class SchemaModel(metaclass=_MetaSchema):
         df_registered_checks = _convert_extras_to_checks(
             {} if cls.__extras__ is None else cls.__extras__
         )
-        cls.__dataframe_checks__ = df_custom_checks + df_registered_checks
+        cls.__root_checks__ = df_custom_checks + df_registered_checks
 
         columns, index = cls._build_columns_index(
             cls.__fields__, cls.__checks__, **mi_kwargs
@@ -231,7 +268,7 @@ class SchemaModel(metaclass=_MetaSchema):
         cls.__schema__ = DataFrameSchema(
             columns,
             index=index,
-            checks=cls.__dataframe_checks__,  # type: ignore
+            checks=cls.__root_checks__,  # type: ignore
             **kwargs,  # type: ignore
         )
         if cls not in MODEL_CACHE:
@@ -248,7 +285,7 @@ class SchemaModel(metaclass=_MetaSchema):
     @classmethod
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def validate(
-        cls: Type[TSchemaModel],
+        cls: Type[TDataFrameModel],
         check_obj: pd.DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
@@ -256,10 +293,10 @@ class SchemaModel(metaclass=_MetaSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> DataFrameBase[TSchemaModel]:
+    ) -> DataFrameBase[TDataFrameModel]:
         """%(validate_doc)s"""
         return cast(
-            DataFrameBase[TSchemaModel],
+            DataFrameBase[TDataFrameModel],
             cls.to_schema().validate(
                 check_obj, head, tail, sample, random_state, lazy, inplace
             ),
@@ -268,19 +305,20 @@ class SchemaModel(metaclass=_MetaSchema):
     @classmethod
     @docstring_substitution(strategy_doc=DataFrameSchema.strategy.__doc__)
     @st.strategy_import_error
-    def strategy(cls: Type[TSchemaModel], *, size: Optional[int] = None):
+    def strategy(cls: Type[TDataFrameModel], **kwargs):
         """%(strategy_doc)s"""
-        return cls.to_schema().strategy(size=size)
+        return cls.to_schema().strategy(**kwargs)
 
     @classmethod
     @docstring_substitution(example_doc=DataFrameSchema.strategy.__doc__)
     @st.strategy_import_error
     def example(
-        cls: Type[TSchemaModel], *, size: Optional[int] = None
-    ) -> DataFrameBase[TSchemaModel]:
+        cls: Type[TDataFrameModel],
+        **kwargs,
+    ) -> DataFrameBase[TDataFrameModel]:
         """%(example_doc)s"""
         return cast(
-            DataFrameBase[TSchemaModel], cls.to_schema().example(size=size)
+            DataFrameBase[TDataFrameModel], cls.to_schema().example(**kwargs)
         )
 
     @classmethod
@@ -289,17 +327,14 @@ class SchemaModel(metaclass=_MetaSchema):
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
         **multiindex_kwargs: Any,
-    ) -> Tuple[
-        Dict[str, schema_components.Column],
-        Optional[Union[schema_components.Index, schema_components.MultiIndex]],
-    ]:
+    ) -> Tuple[Dict[str, Column], Optional[Union[Index, MultiIndex]],]:
         index_count = sum(
             annotation.origin in INDEX_TYPES
             for annotation, _ in fields.values()
         )
 
-        columns: Dict[str, schema_components.Column] = {}
-        indices: List[schema_components.Index] = []
+        columns: Dict[str, Column] = {}
+        indices: List[Index] = []
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_name = field.name
@@ -325,9 +360,7 @@ class SchemaModel(metaclass=_MetaSchema):
                 annotation.origin in SERIES_TYPES
                 or annotation.raw_annotation in SERIES_TYPES
             ):
-                col_constructor = (
-                    field.to_column if field else schema_components.Column
-                )
+                col_constructor = field.to_column if field else Column
 
                 if check_name is False:
                     raise SchemaInitError(
@@ -356,9 +389,7 @@ class SchemaModel(metaclass=_MetaSchema):
                 ):
                     field_name = None  # type:ignore
 
-                index_constructor = (
-                    field.to_index if field else schema_components.Index
-                )
+                index_constructor = field.to_index if field else Index
                 index = index_constructor(  # type: ignore
                     dtype, checks=field_checks, name=field_name
                 )
@@ -379,7 +410,7 @@ class SchemaModel(metaclass=_MetaSchema):
         bases = inspect.getmro(cls)[:-1]  # bases -> SchemaModel -> object
         attrs = {}
         for base in reversed(bases):
-            if issubclass(base, SchemaModel):
+            if issubclass(base, DataFrameModel):
                 attrs.update(base.__dict__)
         return attrs
 
@@ -420,7 +451,9 @@ class SchemaModel(metaclass=_MetaSchema):
     ) -> Tuple[Type[BaseConfig], Dict[str, Any]]:
         """Collect config options from bases, splitting off unknown options."""
         bases = inspect.getmro(cls)[:-1]
-        bases = tuple(base for base in bases if issubclass(base, SchemaModel))
+        bases = tuple(
+            base for base in bases if issubclass(base, DataFrameModel)
+        )
         root_model, *models = reversed(bases)
 
         options, extras = _extract_config_options_and_extras(root_model.Config)
@@ -441,8 +474,10 @@ class SchemaModel(metaclass=_MetaSchema):
         Inherited classmethods are not in cls.__dict__, that's why we need to
         walk the inheritance tree.
         """
-        bases = inspect.getmro(cls)[:-2]  # bases -> SchemaModel -> object
-        bases = tuple(base for base in bases if issubclass(base, SchemaModel))
+        bases = inspect.getmro(cls)[:-2]  # bases -> DataFrameModel -> object
+        bases = tuple(
+            base for base in bases if issubclass(base, DataFrameModel)
+        )
 
         method_names = set()
         check_infos = []
@@ -492,13 +527,13 @@ class SchemaModel(metaclass=_MetaSchema):
 
     @classmethod
     def __get_validators__(cls):
-        yield cls._pydantic_validate
+        yield cls.pydantic_validate
 
     @classmethod
-    def _pydantic_validate(cls, schema_model: Any) -> "SchemaModel":
+    def pydantic_validate(cls, schema_model: Any) -> "DataFrameModel":
         """Verify that the input is a compatible schema model."""
         if not inspect.isclass(schema_model):  # type: ignore
-            raise TypeError(f"{schema_model} is not a pandera.SchemaModel")
+            raise TypeError(f"{schema_model} is not a pandera.DataFrameModel")
 
         if not issubclass(schema_model, cls):  # type: ignore
             raise TypeError(f"{schema_model} does not inherit {cls}.")
@@ -508,71 +543,33 @@ class SchemaModel(metaclass=_MetaSchema):
         except SchemaInitError as exc:
             raise ValueError(
                 f"Cannot use {cls} as a pydantic type as its "
-                "SchemaModel cannot be converted to a DataFrameSchema.\n"
+                "DataFrameModel cannot be converted to a DataFrameSchema.\n"
                 f"Please revisit the model to address the following errors:"
                 f"\n{exc}"
             ) from exc
 
-        return cast("SchemaModel", schema_model)
+        return cast("DataFrameModel", schema_model)
 
     @classmethod
     def __modify_schema__(cls, field_schema):
         """Update pydantic field schema."""
         field_schema.update(_to_json_schema(cls.to_schema()))
 
-    def __class_getitem__(
-        cls: Type[TSchemaModel],
-        params: Union[Type[Any], Tuple[Type[Any], ...]],
-    ) -> Type[TSchemaModel]:
-        """Parameterize the class's generic arguments with the specified types"""
-        if not hasattr(cls, "__parameters__"):
-            raise TypeError(
-                f"{cls.__name__} must inherit from typing.Generic before being parameterized"
-            )
-        # pylint: disable=no-member
-        __parameters__: Tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
 
-        if not isinstance(params, tuple):
-            params = (params,)
-        if len(params) != len(__parameters__):
-            raise ValueError(
-                f"Expected {len(__parameters__)} generic arguments but found {len(params)}"
-            )
-        if (cls, params) in GENERIC_SCHEMA_CACHE:
-            return typing.cast(
-                Type[TSchemaModel], GENERIC_SCHEMA_CACHE[(cls, params)]
-            )
-
-        param_dict: Dict[TypeVar, Type[Any]] = dict(
-            zip(__parameters__, params)
-        )
-        extra: Dict[str, Any] = {"__annotations__": {}}
-        for field, (annot_info, field_info) in cls._collect_fields().items():
-            if isinstance(annot_info.arg, TypeVar):
-                if annot_info.arg in param_dict:
-                    raw_annot = annot_info.origin[param_dict[annot_info.arg]]  # type: ignore
-                    if annot_info.optional:
-                        raw_annot = Optional[raw_annot]
-                    extra["__annotations__"][field] = raw_annot
-                    extra[field] = copy.deepcopy(field_info)
-
-        parameterized_name = (
-            f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
-        )
-        parameterized_cls = type(parameterized_name, (cls,), extra)
-        GENERIC_SCHEMA_CACHE[(cls, params)] = parameterized_cls
-        return parameterized_cls
+# Alias DataFrameModel for backwards compatibility
+class SchemaModel(DataFrameModel):
+    ...
 
 
 def _build_schema_index(
-    indices: List[schema_components.Index], **multiindex_kwargs: Any
+    indices: List[Index], **multiindex_kwargs: Any
 ) -> Optional[SchemaIndex]:
     index: Optional[SchemaIndex] = None
     if indices:
         if len(indices) == 1:
             index = indices[0]
         else:
-            index = schema_components.MultiIndex(indices, **multiindex_kwargs)
+            index = MultiIndex(indices, **multiindex_kwargs)
     return index
 
 

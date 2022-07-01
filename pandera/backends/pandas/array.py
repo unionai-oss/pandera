@@ -1,8 +1,9 @@
 import traceback
 from functools import singledispatchmethod
-from typing import Optional, Union
+from typing import Optional, Union, overload
 
 import pandas as pd
+from multimethod import DispatchError, multimethod
 
 from pandera.backends.pandas.base import FieldCheckObj, PandasSchemaBackend
 from pandera.engines.pandas_engine import Engine
@@ -11,8 +12,8 @@ from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
-class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
-    @singledispatchmethod
+class ArraySchemaBackend(PandasSchemaBackend):
+    @multimethod
     def preprocess(self, check_obj, name: str = None, inplace: bool = False):
         raise NotImplementedError
 
@@ -25,12 +26,12 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
     @preprocess.register
     def preprocess_container(
         self, check_obj: pd.DataFrame, name: str = None, inplace: bool = False
-    ) -> pd.Series:
+    ) -> pd.DataFrame:
         return (check_obj if inplace else check_obj.copy())[name]
 
     def validate(
         self,
-        check_obj: Union[pd.DataFrame, pd.Series],
+        check_obj,
         schema,
         *,
         head: Optional[int] = None,
@@ -41,21 +42,22 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
         inplace: bool = False,
     ):
         error_handler = SchemaErrorHandler(lazy)
+        check_obj = self.preprocess(check_obj, schema.name, inplace)
 
-        # used to validate field-level properties
-        field_obj_subsample = self.subsample(
-            self.preprocess(check_obj, schema.name, inplace),
+        try:
+            check_obj = self.coerce_dtype(
+                check_obj, schema=schema, error_handler=error_handler
+            )
+        except SchemaError as exc:
+            error_handler.collect_error(exc.reason_code, exc)
+
+        check_obj_subsample = self.subsample(
+            check_obj,
             head,
             tail,
             sample,
             random_state,
         )
-
-        # used to validate checks, which may require container-level data access
-        check_obj_subsample = self.subsample(
-            check_obj, head, tail, sample, random_state
-        )
-
         # run the core checks
         for core_check in (
             self.check_name,
@@ -64,7 +66,7 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
             self.check_dtype,
         ):
             try:
-                core_check(field_obj_subsample, schema)
+                core_check(check_obj_subsample, schema)
             except SchemaError as exc:
                 error_handler.collect_error(exc.reason_code, exc)
 
@@ -75,17 +77,18 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
         assert all(check_results)
 
         if lazy and error_handler.collected_errors:
-            raise SchemaErrors(error_handler.collected_errors, check_obj)
-
+            raise SchemaErrors(
+                schema, error_handler.collected_errors, check_obj
+            )
         return check_obj
 
     def coerce_dtype(
         self,
-        check_obj: Union[pd.Series, pd.Index],
+        check_obj,
         *,
-        schema = None,
+        schema=None,
         error_handler: SchemaErrorHandler = None,
-    ) -> pd.Series:
+    ):
         """Coerce type of a pd.Series by type specified in dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels
@@ -93,7 +96,7 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
         :returns: ``Series`` with coerced data type
         """
         assert schema is not None, "The `schema` argument must be provided."
-        if schema.dtype is None:
+        if schema.dtype is None or not schema.coerce:
             return check_obj
 
         try:
@@ -137,10 +140,10 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
                     f"non-nullable series '{check_obj.name}' contains "
                     f"null values:\n{check_obj[isna]}"
                 ),
-                failure_case=reshape_failure_cases(
+                failure_cases=reshape_failure_cases(
                     check_obj[isna], ignore_na=False
                 ),
-                check="field_not_nullable",
+                check="not_nullable",
                 reason_code="series_contains_nulls",
             )
 
@@ -203,6 +206,10 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
                 error_handler.collect_error("dataframe_check", err)
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
+                if isinstance(err, DispatchError):
+                    # if the error was raised by a check registered via
+                    # multimethod, get the underlying __cause__
+                    err = err.__cause__
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(
@@ -220,7 +227,4 @@ class ArraySchemaBackend(PandasSchemaBackend[FieldCheckObj]):
                     ),
                     original_exc=err,
                 )
-
-        if lazy and error_handler.collected_errors:
-            raise SchemaErrors(error_handler.collected_errors, check_obj)
         return check_results

@@ -4,7 +4,7 @@ import inspect
 import operator
 import re
 from collections import ChainMap, namedtuple
-from functools import partial, wraps
+from functools import wraps
 from itertools import chain
 from typing import (
     Any,
@@ -12,8 +12,8 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
-    Tuple,
     Type,
     TypeVar,
     Union,
@@ -21,10 +21,7 @@ from typing import (
 )
 
 import pandas as pd
-from multimethod import multidispatch
 
-from pandera import errors
-from pandera import strategies as st
 from pandera.backends.base import BaseCheckBackend
 from pandera.strategies import SearchStrategy
 
@@ -71,14 +68,16 @@ _T = TypeVar("_T", bound="BaseCheck")
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
-    BACKEND_REGISTRY: Dict[str, BaseCheckBackend] = {}  # noqa
+    BACKEND_REGISTRY: Dict[Type, Type[BaseCheckBackend]] = {}  # noqa
     CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa
     CHECK_REGISTRY: Dict[str, Callable] = {}  # noqa
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
-        attr = ChainMap(cls.__dict__, cls.CHECK_REGISTRY, cls.REGISTERED_CUSTOM_CHECKS).get(name)
+        attr = ChainMap(
+            cls.__dict__, cls.CHECK_REGISTRY, cls.REGISTERED_CUSTOM_CHECKS
+        ).get(name)
         if attr is None:
             raise AttributeError(
                 f"'{cls}' object has no attribute '{name}'. "
@@ -89,7 +88,11 @@ class MetaCheck(type):  # pragma: no cover
 
     def __dir__(cls) -> Iterable[str]:
         """Allow custom checks to show up as attributes when autocompleting."""
-        return chain(super().__dir__(), cls.CHECK_REGISTRY.keys(), cls.REGISTERED_CUSTOM_CHECKS.keys())
+        return chain(
+            super().__dir__(),
+            cls.CHECK_REGISTRY.keys(),
+            cls.REGISTERED_CUSTOM_CHECKS.keys(),
+        )
 
     # pylint: disable=line-too-long
     # mypy has limited metaclass support so this doesn't pass typecheck
@@ -109,15 +112,42 @@ class MetaCheck(type):  # pragma: no cover
 class BaseCheck(metaclass=MetaCheck):
     """Check base class."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        check_fn: Callable,
+        groups: Optional[Union[str, List[str]]] = None,
+        groupby: Optional[Union[str, List[str], Callable]] = None,
+        ignore_na: bool = True,
+        element_wise: bool = False,
+        name: Optional[str] = None,
+        error: Optional[str] = None,
+        raise_warning: bool = False,
+        n_failure_cases: Optional[int] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        statistics: List[str] = None,
+        strategy: SearchStrategy = None,
+    ) -> None:
+        self.check_fn = check_fn
+        self.groups = groups
+        self.groupby = groupby
+        self.ignore_na = ignore_na
+        self.element_wise = element_wise
+        self.name = name
+        self.error = error
+        self.raise_warning = raise_warning
+        self.n_failure_cases = n_failure_cases
+        self.title = title
+        self.description = description
+        self.statistics = statistics
+        self.strategy = strategy
 
     @classmethod
-    def register_backend(cls, type_: Type, backend: BaseCheckBackend):
+    def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):
         cls.BACKEND_REGISTRY[type_] = backend
 
     @classmethod
-    def get_backend(cls, check_obj: Any) -> BaseCheckBackend:
+    def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:
         return cls.BACKEND_REGISTRY[type(check_obj)]
 
     def __eq__(self, other: object) -> bool:

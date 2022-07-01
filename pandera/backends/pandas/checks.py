@@ -1,14 +1,15 @@
 """Check backend for pandas."""
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
+import numpy as np
 import pandas as pd
 from multimethod import multimethod
 
-from pandera.core.base.checks import BaseCheck, CheckResult
 from pandera.backends.base import BaseCheckBackend
-
+from pandera.core.base.checks import CheckResult
+from pandera.core.checks import Check
 
 GroupbyObject = Union[
     pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy
@@ -16,14 +17,15 @@ GroupbyObject = Union[
 
 
 class PandasCheckBackend(BaseCheckBackend):
-
-    def __init__(self, check: BaseCheck):
-        self.check: BaseCheck = check
+    def __init__(self, check: Check):
+        assert check._check_fn is not None, "Check._check_fn must be set."
+        self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj: pd.DataFrame):
+    def groupby(self, check_obj: Union[pd.Series, pd.DataFrame]):
         """Implements groupby behavior for check object."""
-        if isinstance(self.check.groupby, str):
+        assert self.check.groupby is not None, "Check.groupby must be set."
+        if isinstance(self.check.groupby, (str, list)):
             return check_obj.groupby(self.check.groupby)
         return self.check.groupby(check_obj)
 
@@ -41,7 +43,7 @@ class PandasCheckBackend(BaseCheckBackend):
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
         groups: Optional[List[str]],
-    ) -> Dict[str, Union[pd.Series, pd.DataFrame]]:
+    ) -> Union[Dict[str, pd.Series], Dict[str, pd.DataFrame]]:
         """Format groupby object into dict of groups to Series or DataFrame.
 
         :param groupby_obj: a pandas groupby object.
@@ -66,15 +68,14 @@ class PandasCheckBackend(BaseCheckBackend):
         }
 
     @multimethod
-    def preprocess(self, check_obj: pd.Series, key: None) -> pd.Series:
+    def preprocess(self, check_obj: pd.Series, key) -> pd.Series:
         """Preprocesses a check object before applying the check function."""
-        assert key is None
         # This handles the case of Series validation, which has no other context except
         # for the index to groupby on. Right now grouping by the index is not allowed.
         return check_obj
 
-    @multimethod
-    def preprocess(
+    @preprocess.register
+    def _(
         self,
         check_obj: pd.DataFrame,
         key: str,
@@ -82,10 +83,15 @@ class PandasCheckBackend(BaseCheckBackend):
         check_obj = check_obj[key]
         if self.check.groupby is None:
             return check_obj
-        return self._format_groupby_input(self.groupby(check_obj), self.groups)
+        return cast(
+            Dict[str, pd.Series],
+            self._format_groupby_input(
+                self.groupby(check_obj), self.check.groups
+            ),
+        )
 
-    @multimethod
-    def preprocess(
+    @preprocess.register
+    def _(
         self,
         check_obj: pd.DataFrame,
         key: None,
@@ -93,8 +99,13 @@ class PandasCheckBackend(BaseCheckBackend):
         assert key is None
         if self.check.groupby is None:
             return check_obj
-        return self._format_groupby_input(self.groupby(check_obj), self.groups)
-    
+        return cast(
+            Dict[str, pd.DataFrame],
+            self._format_groupby_input(
+                self.groupby(check_obj), self.check.groups
+            ),
+        )
+
     @multimethod
     def apply(self, check_obj: pd.Series):
         """Apply the check function to a check object."""
@@ -102,8 +113,15 @@ class PandasCheckBackend(BaseCheckBackend):
             return check_obj.map(self.check_fn)
         return self.check_fn(check_obj)
 
-    @multimethod
-    def apply(self, check_obj: pd.DataFrame):
+    @apply.register
+    def _(self, check_obj: pd.Series):
+        """Apply the check function to a check object."""
+        if self.check.element_wise:
+            return check_obj.map(self.check_fn)
+        return self.check_fn(check_obj)
+
+    @apply.register
+    def _(self, check_obj: pd.DataFrame):
         if self.check.element_wise:
             return check_obj.apply(self.check_fn, axis=1)
         return self.check_fn(check_obj)
@@ -115,15 +133,19 @@ class PandasCheckBackend(BaseCheckBackend):
             check_output=check_output,
             check_passed=check_output,
             checked_object=check_obj,
-            failure_cases=None
+            failure_cases=None,
         )
 
-    def _get_series_failure_cases(self, check_obj, check_output: pd.Series) -> pd.Series:
+    def _get_series_failure_cases(
+        self, check_obj, check_output: pd.Series
+    ) -> pd.Series:
         failure_cases = check_obj[~check_output]
         if not failure_cases.empty and self.check.n_failure_cases is not None:
             # NOTE: this is a hack to support pyspark.pandas and modin, since you
             # can't use groupby on a dataframe with another dataframe
-            if type(failure_cases).__module__.startswith(("pyspark.pandas", "modin.pandas")):
+            if type(failure_cases).__module__.startswith(
+                ("pyspark.pandas", "modin.pandas")
+            ):
                 failure_cases = (
                     failure_cases.rename("failure_cases")
                     .to_frame()
@@ -137,8 +159,8 @@ class PandasCheckBackend(BaseCheckBackend):
                 )
         return failure_cases
 
-    @multimethod
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
         check_obj: pd.Series,
         check_output: pd.Series,
@@ -150,11 +172,11 @@ class PandasCheckBackend(BaseCheckBackend):
             check_output,
             check_output.all(),
             check_obj,
-            self._get_series_failure_cases(check_obj, check_output)
+            self._get_series_failure_cases(check_obj, check_output),
         )
 
-    @multimethod
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
         check_obj: pd.DataFrame,
         check_output: pd.Series,
@@ -166,11 +188,11 @@ class PandasCheckBackend(BaseCheckBackend):
             check_output,
             check_output.all(),
             check_obj,
-            self._get_series_failure_cases(check_obj, check_output)
+            self._get_series_failure_cases(check_obj, check_output),
         )
 
-    @multimethod
-    def postprocess(
+    @postprocess.register
+    def _(
         self,
         check_obj: pd.DataFrame,
         check_output: pd.DataFrame,
@@ -182,22 +204,42 @@ class PandasCheckBackend(BaseCheckBackend):
         if self.check.ignore_na:
             check_output = check_output | check_obj.isna()
         failure_cases = (
-            check_obj[~check_output]
+            # TODO figure out what's up with this mypy error:
+            # error: No overload variant of "rename" of "DataFrame" matches
+            # argument type "str"  [call-overload]
+            check_obj[~check_output]  # type: ignore
             .rename("failure_case")
             .rename_axis(["column", "index"])
             .reset_index()
         )
         if not failure_cases.empty and self.check.n_failure_cases is not None:
-            failure_cases = failure_cases.drop_duplicates().head(self.check.n_failure_cases)
+            failure_cases = failure_cases.drop_duplicates().head(
+                self.check.n_failure_cases
+            )
         return CheckResult(
             check_output,
-            check_output.all(axis=None),
+            check_output.all(axis=None),  # type: ignore
             check_obj,
             failure_cases,
         )
 
-    @multimethod
-    def postprocess(self, check_obj: Any, check_output: Any):
+    @postprocess.register
+    def _(
+        self,
+        check_obj: Union[pd.Series, pd.DataFrame],
+        check_output: Union[bool, np.bool_],
+    ) -> CheckResult:
+        """Postprocesses the result of applying the check function."""
+        check_output = bool(check_output)
+        return CheckResult(
+            check_output,
+            check_output,
+            check_obj,
+            None,
+        )
+
+    @postprocess.register
+    def _(self, check_obj: Any, check_output: Any):
         """Postprocesses the result of applying the check function."""
         raise TypeError(
             f"output type of check_fn not recognized: {type(check_output)}"

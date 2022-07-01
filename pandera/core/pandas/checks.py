@@ -2,15 +2,24 @@
 
 import operator
 import re
-from inspect import signature, Parameter, Signature
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union
+from inspect import Parameter, Signature, signature
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import pandas as pd
 
 import pandera.strategies as st
 from pandera.core.checks import register_check
-
 
 PandasData = Union[pd.Series, pd.DataFrame]
 
@@ -29,7 +38,7 @@ def eq(data: PandasData, value: Any) -> PandasData:
     *New in version 0.4.5*
 
     Alias: ``equal_to``
-    
+
     :param value: values in this pandas data structure must be
         equal to this value.
     """
@@ -163,7 +172,7 @@ def in_range(
         raise ValueError("min_value must not be None")
     if max_value is None:
         raise ValueError("max_value must not be None")
-    if max_value < min_value or (
+    if max_value < min_value or (  # type: ignore
         min_value == max_value and (not include_min or not include_max)
     ):
         raise ValueError(
@@ -175,13 +184,10 @@ def in_range(
     # closure
     left_op = operator.le if include_min else operator.lt
     right_op = operator.ge if include_max else operator.gt
-    return left_op(min_value, data) & right_op(max_value, data)
+    return left_op(min_value, data) & right_op(max_value, data)  # type: ignore
 
 
-@register_check(
-    strategy=st.isin_strategy,
-    error="isin({allowed_values})"
-)
+@register_check(strategy=st.isin_strategy, error="isin({allowed_values})")
 def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
     """Ensure only allowed values occur within a series.
 
@@ -204,10 +210,7 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
     return data.isin(allowed_values)
 
 
-@register_check(
-    strategy=st.notin_strategy,
-    error="notin({forbidden_values})"
-)
+@register_check(strategy=st.notin_strategy, error="notin({forbidden_values})")
 def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
     """Ensure some defined values don't occur within a series.
 
@@ -232,7 +235,7 @@ def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
 
 @register_check(
     strategy=st.str_matches_strategy,
-    error="str_matches({regex})"
+    error="str_matches('{pattern}')",
 )
 def str_matches(data: PandasData, pattern: str) -> PandasData:
     """Ensure that string values match a regular expression.
@@ -251,7 +254,7 @@ def str_matches(data: PandasData, pattern: str) -> PandasData:
 
 @register_check(
     strategy=st.str_contains_strategy,
-    error="str_contains({regex})"
+    error="str_contains('{pattern}')",
 )
 def str_contains(data: PandasData, pattern: str) -> PandasData:
     """Ensure that a pattern can be found within each row.
@@ -269,8 +272,7 @@ def str_contains(data: PandasData, pattern: str) -> PandasData:
 
 
 @register_check(
-    strategy=st.str_startswith_strategy,
-    error="str_startswith({string})"
+    strategy=st.str_startswith_strategy, error="str_startswith('{string}')"
 )
 def str_startswith(data: PandasData, string: str) -> PandasData:
     """Ensure that all values start with a certain string.
@@ -282,8 +284,7 @@ def str_startswith(data: PandasData, string: str) -> PandasData:
 
 
 @register_check(
-    strategy=st.str_endswith_strategy,
-    error="str_endswith({string})"
+    strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
 def str_endswith(data: PandasData, string: str) -> PandasData:
     """Ensure that all values end with a certain string.
@@ -296,7 +297,7 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
 
 @register_check(
     strategy=st.str_length_strategy,
-    error="str_length({string})"
+    error="str_length({min_value}, {max_value})",
 )
 def str_length(
     data: PandasData,
@@ -319,3 +320,6 @@ def str_length(
     elif min_value is None:
         return str_len <= max_value
     return (str_len <= max_value) & (str_len >= min_value)
+
+
+# TODO: implement hypothesis tests in the Check namespace

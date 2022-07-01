@@ -2,6 +2,14 @@
 import platform
 
 from pandera import external_config
+from pandera.core.checks import Check
+from pandera.core.pandas import (
+    Column,
+    DataFrameSchema,
+    Index,
+    MultiIndex,
+    SeriesSchema,
+)
 from pandera.dtypes import (
     Bool,
     Category,
@@ -48,14 +56,17 @@ from pandera.engines.pandas_engine import (
 )
 
 from . import errors, pandas_accessor, typing
-from .checks import Check
+
+# from .checks import Check
 from .decorators import check_input, check_io, check_output, check_types
 from .hypotheses import Hypothesis
 from .model import SchemaModel
 from .model_components import Field, check, dataframe_check
-from .schema_components import Column, Index, MultiIndex
+
+# from .schema_components import Column, Index, MultiIndex
 from .schema_inference import infer_schema
-from .schemas import DataFrameSchema, SeriesSchema
+
+# from .schemas import DataFrameSchema, SeriesSchema
 from .version import __version__
 
 if platform.system() != "Windows":

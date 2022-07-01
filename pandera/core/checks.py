@@ -1,24 +1,15 @@
 """Data validation check definition."""
 
 from functools import partial, wraps
-from inspect import Parameter, Signature, signature
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Type,
-    Union,
-)
+from inspect import Parameter, Signature, _empty, signature
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import pandas as pd
 from multimethod import multidispatch
 
 from pandera import errors
-from pandera.strategies import SearchStrategy
-
 from pandera.core.base.checks import BaseCheck, CheckResult
+from pandera.strategies import SearchStrategy
 
 
 class Check(BaseCheck):
@@ -31,7 +22,7 @@ class Check(BaseCheck):
         groupby: Optional[Union[str, List[str], Callable]] = None,
         ignore_na: bool = True,
         element_wise: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
         error: Optional[str] = None,
         raise_warning: bool = False,
         n_failure_cases: Optional[int] = None,
@@ -187,7 +178,7 @@ class Check(BaseCheck):
         self.groupby = groupby
         if isinstance(groups, str):
             groups = [groups]
-        self.groups = groups
+        self.groups: Optional[List[str]] = groups
 
         self.statistics = statistics
         self.strategy = strategy
@@ -226,12 +217,16 @@ class Check(BaseCheck):
 def register_check(
     fn=None,
     aliases: Optional[List[str]] = None,
-    statistics=None,
-    strategy=None,
-    error=None,
+    statistics: Optional[List[str]] = None,
+    strategy: Optional[Callable] = None,
+    error: Optional[str] = None,
     **kwargs,
 ):
-    """Register a check method to the Check namespace."""
+    """Register a check method to the Check namespace.
+
+    This is the primary way for extending the Check api to define additional
+    built-in checks.
+    """
     if fn is None:
         return partial(
             register_check,
@@ -253,28 +248,30 @@ def register_check(
         dispatch_check_fn = multidispatch(fn)
 
         # create proxy function so we can modify the signature and docstring
-        # of the method to reflect correctly in the docs
+        # of the method to reflect correctly in the documentation
         def check_function_proxy(cls, *args, **kwargs):
             return dispatch_check_fn(*args)
 
-        update_check_fn_proxy(check_function_proxy, fn, fn_sig, statistics_params)
+        update_check_fn_proxy(
+            check_function_proxy, fn, fn_sig, statistics_params
+        )
 
         @wraps(check_function_proxy)
         def check_method(cls, *args, **check_kwargs):
 
-            assert len(args) == len(statistics), \
-                "Arguments do not match with check function " \
-                f"{check_function_proxy} statistics: {statistics}"
+            statistics_kwargs = dict(zip(statistics, args))
 
             # internal wrapper is needed here to: make sure the inner check_fn
             # produced by this method is consistent with the registered check
             # function
             @wraps(fn)
-            def _check_fn(check_obj):
+            def _check_fn(check_obj, **inner_kwargs):
+                """inner_kwargs will be based in via Check.__init__ kwargs."""
                 # TODO: Raise more informative error when this fails to dispatch
-                return check_function_proxy(cls, check_obj, *args)
+                return check_function_proxy(
+                    cls, check_obj, *args, **inner_kwargs
+                )
 
-            statistics_kwargs = dict(zip(statistics, args))
             _check_kwargs = {"error": error.format(**statistics_kwargs)}
             _check_kwargs.update(kwargs)
             _check_kwargs.update(check_kwargs)
@@ -282,18 +279,18 @@ def register_check(
                 _check_fn,
                 statistics=statistics,
                 strategy=strategy,
-                **_check_kwargs
+                **_check_kwargs,
             )
 
         Check.CHECK_FUNCTION_REGISTRY[name] = dispatch_check_fn
         setattr(Check, name, classmethod(check_method))
 
         class_check_method = getattr(Check, name)
-        
-        for _name in ([] if aliases is None else aliases):
+
+        for _name in [] if aliases is None else aliases:
             setattr(Check, _name, class_check_method)
     else:
-        check_fn.register(fn)
+        check_fn.register(fn)  # type: ignore
 
     return getattr(Check, name)
 
@@ -305,30 +302,33 @@ def generate_check_signature(
     # assume the first argument is the check object
     return signature.replace(
         parameters=[
-            # This first parameter will be ignored when 
+            # This first parameter will be ignored when
             Parameter("_", Parameter.POSITIONAL_OR_KEYWORD),
             Parameter("cls", Parameter.POSITIONAL_OR_KEYWORD),
             *statistics_params,
             Parameter(
-                "kwargs",
-                Parameter.VAR_KEYWORD,
-                annotation=Dict[str, Any]
+                "kwargs", Parameter.VAR_KEYWORD, annotation=Dict[str, Any]
             ),
         ],
         return_annotation=Check,
     )
 
 
-def generate_check_annotations(statistics_params: List[Parameter]) -> Dict[str, Type]:
+def generate_check_annotations(
+    statistics_params: List[Parameter],
+) -> Dict[str, Type]:
     return {
         **{p.name: p.annotation for p in statistics_params},
-        "kwargs": Dict[str, Any,],
+        "kwargs": Dict[
+            str,
+            Any,
+        ],
         "return": Check,
     }
 
 
 def modify_check_fn_doc(doc: str) -> str:
-    """Adds """
+    """Adds"""
     return (
         f"{doc}\n{' ' * 4}:param kwargs: arguments forwarded to the "
         ":py:class:`~pandera.core.checks.Check` constructor."
