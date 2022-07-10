@@ -18,6 +18,7 @@ pandas-stubs
 pyspark-stubs
 pyspark
 modin
+protobuf <= 3.20
 dask
 distributed
 geopandas
