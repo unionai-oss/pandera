@@ -22,6 +22,7 @@ dependencies:
 
   # mypy extra
   - pandas-stubs
+  - pyspark-stubs
 
   # pyspark extra
   - pyspark
