@@ -1077,7 +1077,8 @@ def dataframe_strategy(
             for col_name, col in expanded_columns.items()
         }
         nullable_columns = {
-            col_name: col.nullable for col_name, col in expanded_columns.items()
+            col_name: col.nullable
+            for col_name, col in expanded_columns.items()
         }
 
         row_strategy = None
@@ -1102,7 +1103,9 @@ def dataframe_strategy(
 
         # this is a hack to convert np.str_ data values into native python str.
         for col_name, col_dtype in col_dtypes.items():
-            if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
+            if col_dtype in {"object", "str"} or col_dtype.startswith(
+                "string"
+            ):
                 # pylint: disable=cell-var-from-loop,undefined-loop-variable
                 strategy = strategy.map(
                     lambda df: df.assign(**{col_name: df[col_name].map(str)})
