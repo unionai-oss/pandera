@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pyspark.pandas as ps
 import pytest
+from pyspark import SparkContext
 
 import pandera as pa
 from pandera import dtypes, extensions, system
@@ -44,7 +45,6 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     numpy_engine.Complex64,
     numpy_engine.Float16,
     numpy_engine.Object,
-    numpy_engine.Timedelta64,
     numpy_engine.UInt64,
     numpy_engine.UInt32,
     numpy_engine.UInt16,
@@ -58,6 +58,11 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.UINT16,
     pandas_engine.UINT8,
 }
+
+SPARK_VERSION = SparkContext().version
+
+if SPARK_VERSION < "3.3.0":
+    PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)
 
 if system.FLOAT_128_AVAILABLE:
     PYSPARK_PANDAS_UNSUPPORTED.update(
@@ -117,7 +122,7 @@ def _test_datatype_with_schema(
             data_container_cls(sample)
         return
 
-    sample = data.draw(schema.strategy(size=3))
+    sample = data.draw(schema.strategy(size=50))
 
     if dtype is pandas_engine.DateTime or isinstance(
         dtype, pandas_engine.DateTime
