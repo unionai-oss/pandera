@@ -122,7 +122,7 @@ def _test_datatype_with_schema(
             data_container_cls(sample)
         return
 
-    sample = data.draw(schema.strategy(size=50))
+    sample = data.draw(schema.strategy(size=3))
 
     if dtype is pandas_engine.DateTime or isinstance(
         dtype, pandas_engine.DateTime
