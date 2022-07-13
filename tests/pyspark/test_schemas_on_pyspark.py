@@ -1,5 +1,5 @@
 """Test pandera on pyspark data structures."""
-
+import re
 import typing
 from unittest.mock import MagicMock
 
@@ -304,11 +304,14 @@ def test_nullable(
         try:
             ks_null_sample = ps.DataFrame(null_sample)
         except TypeError as exc:
-            if "can not accept object <NA> in type" not in exc.args[0]:
+            match = re.search(
+                r"can not accept object (<NA>|NaT) in type", exc.args[0]
+            )
+            if match is None:
                 raise
             pytest.skip(
-                "pyspark.pandas cannot handle native pd.NA type with dtype "
-                f"{dtype.type}"
+                f"pyspark.pandas cannot handle native {match.groups()[0]} type "
+                f"with dtype {dtype.type}"
             )
         ks_nonnull_sample = ps.DataFrame(nonnull_sample)
         n_nulls = ks_null_sample.isna().sum().item()
