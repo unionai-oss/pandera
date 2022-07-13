@@ -16,7 +16,7 @@ pyarrow
 pydantic
 pandas-stubs
 pyspark-stubs
-pyspark
+pyspark >= 3.2.0
 modin
 protobuf <= 3.20
 dask

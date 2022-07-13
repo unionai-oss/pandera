@@ -11,7 +11,7 @@ _extras_require = {
     "strategies": ["hypothesis >= 5.41.1"],
     "hypotheses": ["scipy"],
     "io": ["pyyaml >= 5.1", "black", "frictionless"],
-    "pyspark": ["pyspark"],
+    "pyspark": ["pyspark >= 3.2.0"],
     "modin": ["modin", "ray <= 1.7.0", "dask"],
     "modin-ray": ["modin", "ray <= 1.7.0"],
     "modin-dask": ["modin", "dask"],
