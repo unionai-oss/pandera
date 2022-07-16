@@ -302,7 +302,7 @@ def test_nullable(
             return
     else:
         try:
-            ks_null_sample = ps.DataFrame(null_sample)
+            ks_null_sample: ps.DataFrame = ps.DataFrame(null_sample)
         except TypeError as exc:
             match = re.search(
                 r"can not accept object (<NA>|NaT) in type", exc.args[0]
@@ -313,8 +313,8 @@ def test_nullable(
                 f"pyspark.pandas cannot handle native {match.groups()[0]} type "
                 f"with dtype {dtype.type}"
             )
-        ks_nonnull_sample = ps.DataFrame(nonnull_sample)
-        n_nulls = ks_null_sample.isna().sum().item()
+        ks_nonnull_sample: ps.DataFrame = ps.DataFrame(nonnull_sample)
+        n_nulls: int = ks_null_sample.isna().sum().item()  # type: ignore [union-attr,assignment]
         assert ks_nonnull_sample.notna().all().item()
         assert n_nulls >= 0
         if n_nulls > 0:
