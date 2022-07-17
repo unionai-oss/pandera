@@ -57,6 +57,7 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.UINT32,
     pandas_engine.UINT16,
     pandas_engine.UINT8,
+    pandas_engine.Date,
 }
 
 SPARK_VERSION = SparkContext().version
