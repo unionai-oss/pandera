@@ -55,10 +55,10 @@ def test_mypy_pandas_dataframe(capfd) -> None:
     # assert error messages on particular lines of code
     assert errors[35] == {
         "msg": (
-            'Argument 1 to "pipe" of "NDFrame" has incompatible type '
-            '"Type[DataFrame[Any]]"; expected '
-            '"Union[Callable[..., DataFrame[SchemaOut]], '
-            'Tuple[Callable[..., DataFrame[SchemaOut]], str]]"'
+            'Argument 1 to "pipe" of "DataFrame" has incompatible type '
+            '"Type[pandera.typing.pandas.DataFrame[Any]]"; expected '
+            '"Union[Callable[..., pandera.typing.pandas.DataFrame[SchemaOut]], '
+            'Tuple[Callable[..., pandera.typing.pandas.DataFrame[SchemaOut]], str]]"'
         ),
         "errcode": "arg-type",
     }
