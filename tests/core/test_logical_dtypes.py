@@ -1,6 +1,6 @@
 """Tests logical dtypes."""
 
-import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from types import ModuleType
 from typing import Any, Generator, Iterable, List, Optional, cast
@@ -63,8 +63,8 @@ def datacontainer_lib(request) -> Generator[ModuleType, None, None]:
         ),
         (
             [
-                datetime.date(2022, 1, 1),
-                datetime.datetime(2022, 1, 1),
+                date(2022, 1, 1),
+                datetime(2022, 1, 1),
                 pd.Timestamp("20130101"),
                 "foo.bar",
                 None,
@@ -106,8 +106,8 @@ def test_logical_datatype_check(
         ),
         (
             [
-                datetime.date(2022, 1, 1),
-                datetime.datetime(2022, 1, 2, 1, 1, 1),
+                date(2022, 1, 1),
+                datetime(2022, 1, 2, 1, 1, 1),
                 None,
                 pd.NA,
                 np.nan,
@@ -176,6 +176,16 @@ def test_logical_datatype_coerce(
         (pd.NA, pandas_engine.Decimal(2, 1), pd.NA),
         (None, pandas_engine.Decimal(2, 1), pd.NA),
         (np.nan, pandas_engine.Decimal(2, 1), pd.NA),
+        (date(2022, 1, 1), pandas_engine.Date(), date(2022, 1, 1)),
+        (
+            "2022-01-01",
+            pandas_engine.Date(to_datetime_kwargs={"format": "%Y-%m-%d"}),
+            date(2022, 1, 1),
+        ),
+        (pd.NA, pandas_engine.Date(), pd.NaT),
+        (None, pandas_engine.Date(), pd.NaT),
+        (np.nan, pandas_engine.Date(), pd.NaT),
+        (pd.NaT, pandas_engine.Date(), pd.NaT),
     ],
 )
 def test_logical_datatype_coerce_value(

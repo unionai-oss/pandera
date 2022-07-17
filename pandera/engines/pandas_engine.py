@@ -46,8 +46,7 @@ def is_extension_dtype(
 ) -> Union[bool, Iterable[bool]]:
     """Check if a value is a pandas extension type or instance of one."""
     return isinstance(pd_dtype, PandasExtensionType) or (
-        isinstance(pd_dtype, type)
-        and issubclass(pd_dtype, PandasExtensionType)
+        isinstance(pd_dtype, type) and issubclass(pd_dtype, PandasExtensionType)
     )
 
 
@@ -181,9 +180,7 @@ class Engine(  # pylint:disable=too-few-public-methods
     def numpy_dtype(cls, pandera_dtype: dtypes.DataType) -> np.dtype:
         """Convert a Pandera :class:`~pandera.dtypes.DataType
         to a :class:`numpy.dtype`."""
-        pandera_dtype: dtypes.DataType = engine.Engine.dtype(
-            cls, pandera_dtype
-        )
+        pandera_dtype: dtypes.DataType = engine.Engine.dtype(cls, pandera_dtype)
 
         alias = str(pandera_dtype).lower()
         if alias == "boolean":
@@ -749,9 +746,7 @@ class _BaseDateTime(DataType):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
-        return self._get_to_datetime_fn(value)(
-            value, **self.to_datetime_kwargs
-        )
+        return self._get_to_datetime_fn(value)(value, **self.to_datetime_kwargs)
 
 
 @Engine.register_dtype(
@@ -845,7 +840,8 @@ class Date(_BaseDateTime, dtypes.Date):
         return self._coerce(data_container, pandas_dtype=np.datetime64).dt.date
 
     def coerce_value(self, value: Any) -> Any:
-        return _BaseDateTime.coerce_value(self, value).date()
+        coerced = _BaseDateTime.coerce_value(self, value)
+        return coerced.date() if coerced is not None else pd.NaT
 
     def check(  # type: ignore
         self,
@@ -939,9 +935,7 @@ class Interval(DataType):
     subtype: Union[str, np.dtype]
 
     def __post_init__(self):
-        object.__setattr__(
-            self, "type", pd.IntervalDtype(subtype=self.subtype)
-        )
+        object.__setattr__(self, "type", pd.IntervalDtype(subtype=self.subtype))
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.IntervalDtype):
