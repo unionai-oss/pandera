@@ -1,11 +1,12 @@
 """Test pandera on pyspark data structures."""
-
+import re
 import typing
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pyspark.pandas as ps
 import pytest
+from pyspark import SparkContext
 
 import pandera as pa
 from pandera import dtypes, extensions, system
@@ -44,7 +45,6 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     numpy_engine.Complex64,
     numpy_engine.Float16,
     numpy_engine.Object,
-    numpy_engine.Timedelta64,
     numpy_engine.UInt64,
     numpy_engine.UInt32,
     numpy_engine.UInt16,
@@ -58,6 +58,11 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.UINT16,
     pandas_engine.UINT8,
 }
+
+SPARK_VERSION = SparkContext().version
+
+if SPARK_VERSION < "3.3.0":
+    PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)
 
 if system.FLOAT_128_AVAILABLE:
     PYSPARK_PANDAS_UNSUPPORTED.update(
@@ -297,16 +302,19 @@ def test_nullable(
             return
     else:
         try:
-            ks_null_sample = ps.DataFrame(null_sample)
+            ks_null_sample: ps.DataFrame = ps.DataFrame(null_sample)
         except TypeError as exc:
-            if "can not accept object <NA> in type" not in exc.args[0]:
+            match = re.search(
+                r"can not accept object (<NA>|NaT) in type", exc.args[0]
+            )
+            if match is None:
                 raise
             pytest.skip(
-                "pyspark.pandas cannot handle native pd.NA type with dtype "
-                f"{dtype.type}"
+                f"pyspark.pandas cannot handle native {match.groups()[0]} type "
+                f"with dtype {dtype.type}"
             )
-        ks_nonnull_sample = ps.DataFrame(nonnull_sample)
-        n_nulls = ks_null_sample.isna().sum().item()
+        ks_nonnull_sample: ps.DataFrame = ps.DataFrame(nonnull_sample)
+        n_nulls: int = ks_null_sample.isna().sum().item()  # type: ignore [union-attr,assignment]
         assert ks_nonnull_sample.notna().all().item()
         assert n_nulls >= 0
         if n_nulls > 0:

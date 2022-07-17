@@ -54,7 +54,7 @@ except ImportError:  # pragma: no cover
     class SearchStrategy:  # type: ignore
         """placeholder type."""
 
-    def composite(fn):
+    def composite(fn):  # type: ignore
         """placeholder composite strategy."""
         return fn
 
