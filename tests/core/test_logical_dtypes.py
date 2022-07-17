@@ -1,5 +1,6 @@
 """Tests logical dtypes."""
 
+import datetime
 from decimal import Decimal
 from types import ModuleType
 from typing import Any, Generator, Iterable, List, Optional, cast
@@ -60,6 +61,20 @@ def datacontainer_lib(request) -> Generator[ModuleType, None, None]:
             pandas_engine.Decimal(2, 1),
             [True, True, True, False, False, True, True, True],
         ),
+        (
+            [
+                datetime.date(2022, 1, 1),
+                datetime.datetime(2022, 1, 1),
+                pd.Timestamp("20130101"),
+                "foo.bar",
+                None,
+                pd.NA,
+                np.nan,
+                pd.NaT,
+            ],
+            pandas_engine.Date(),
+            [True, False, False, False, True, True, True, True],
+        ),
     ],
 )
 def test_logical_datatype_check(
@@ -89,6 +104,23 @@ def test_logical_datatype_check(
             pandas_engine.Decimal(19, 5),
             [],
         ),
+        (
+            [
+                datetime.date(2022, 1, 1),
+                datetime.datetime(2022, 1, 2, 1, 1, 1),
+                None,
+                pd.NA,
+                np.nan,
+                pd.NaT,
+            ],
+            pandas_engine.Date(),
+            [],
+        ),
+        (
+            ["2022-01-01", "01/01/2022"],
+            pandas_engine.Date(to_datetime_kwargs={"format": "%Y-%m-%d"}),
+            ["01/01/2022"],
+        ),
     ],
 )
 def test_logical_datatype_coerce(
@@ -112,12 +144,15 @@ def test_logical_datatype_coerce(
             failure_cases, actual_failure_cases, check_names=False
         )
 
-        schema = pa.SeriesSchema(expected_datatype)
+        schema = pa.SeriesSchema(expected_datatype, coerce=True)
         try:
             schema.validate(data, lazy=True)
         except pa.errors.SchemaErrors as err:
             err_failure_cases = pd.Series(
-                err.failure_cases["failure_case"].to_numpy()
+                err.failure_cases.loc[
+                    err.failure_cases["check"].str.contains("coerce"),
+                    "failure_case",
+                ].to_numpy()
             )
             assert_series_equal(
                 failure_cases, err_failure_cases, check_names=False

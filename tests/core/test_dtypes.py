@@ -491,7 +491,7 @@ def test_numpy_dtypes(alias, np_dtype):
             [datetime.date(2013, 1, 1)],  # date
             [datetime.timedelta(0, 1, 1)],  # timedelta
             pd.Series(list("aabc")).astype("category"),  # categorical
-            [Decimal(1), Decimal(2.0)],  # decimal
+            [datetime.date(2022, 1, 1)],  # datre,
         ]
     ],
 )
