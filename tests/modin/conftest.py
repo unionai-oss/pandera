@@ -21,6 +21,7 @@ def setup_modin_engine(request):
     engine = request.param
     os.environ["MODIN_ENGINE"] = engine
     os.environ["MODIN_MEMORY"] = "100000000"
+    os.environ["RAY_IGNORE_UNHANDLED_ERRORS"] = "1"
 
     if engine == "ray":
         # pylint: disable=import-outside-toplevel
