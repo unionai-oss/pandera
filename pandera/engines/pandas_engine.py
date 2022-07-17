@@ -513,7 +513,6 @@ class Decimal(DataType, dtypes.Decimal):
         dec = decimal.Decimal(str(value))
         if self._exp:
             return dec.quantize(self._exp, context=self._ctx)
-        print(dec)
         return dec
 
     def coerce(self, data_container: pd.Series) -> pd.Series:
