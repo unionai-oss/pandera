@@ -464,9 +464,6 @@ def _check_decimal(
     return is_valid.to_numpy()
 
 
-DEFAULT_PYTHON_PREC = 28
-
-
 @Engine.register_dtype(equivalents=["decimal", decimal.Decimal])
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):
@@ -489,8 +486,8 @@ class Decimal(DataType, dtypes.Decimal):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        precision: Optional[int] = DEFAULT_PYTHON_PREC,
-        scale: Optional[int] = None,
+        precision: int = dtypes.DEFAULT_PYTHON_PREC,
+        scale: int = 0,
         rounding: Optional[str] = None,
     ) -> None:
         dtypes.Decimal.__init__(self, precision, scale)

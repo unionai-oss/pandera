@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from types import ModuleType
-from typing import Any, Generator, Iterable, List, Optional, cast
+from typing import Any, Generator, Iterable, List, cast
 
 import numpy as np
 import pandas as pd
@@ -202,9 +202,7 @@ def test_logical_datatype_coerce_value(
 
 
 @pytest.mark.parametrize("precision,scale", [(-1, None), (0, 0), (1, 2)])
-def test_invalid_decimal_params(
-    precision: Optional[int], scale: Optional[int]
-):
+def test_invalid_decimal_params(precision: int, scale: int):
     """Test invalid decimal params."""
     with pytest.raises(ValueError):
         pa.Decimal(precision, scale)
