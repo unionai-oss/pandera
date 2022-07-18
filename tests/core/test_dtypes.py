@@ -491,21 +491,25 @@ def test_numpy_dtypes(alias, np_dtype):
             [datetime.date(2013, 1, 1)],  # date
             [datetime.timedelta(0, 1, 1)],  # timedelta
             pd.Series(list("aabc")).astype("category"),  # categorical
-            [datetime.date(2022, 1, 1)],  # datre,
+            [datetime.date(2022, 1, 1)],  # date,
         ]
     ],
 )
 def test_inferred_dtype(examples: pd.Series):
     """Test compatibility with pd.api.types.infer_dtype's outputs."""
     alias = pd.api.types.infer_dtype(examples)
-    if "mixed" in alias or alias in ("date", "string"):
-        # infer_dtype returns "string", "date"
+    if "mixed" in alias or alias == "string":
+        # infer_dtype returns "string"
         # whereas a Series will default to a "np.object_" dtype
         inferred_datatype = pandas_engine.Engine.dtype(object)
     else:
         inferred_datatype = pandas_engine.Engine.dtype(alias)
-    actual_dtype = pandas_engine.Engine.dtype(pd.Series(examples).dtype)
-    assert actual_dtype.check(inferred_datatype)
+
+    if alias.startswith(("decimal", "date")):
+        assert str(inferred_datatype).lower().startswith(alias)
+    else:
+        actual_dtype = pandas_engine.Engine.dtype(pd.Series(examples).dtype)
+        assert actual_dtype.check(inferred_datatype)
 
 
 @pytest.mark.parametrize(
