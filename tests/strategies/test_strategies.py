@@ -35,6 +35,7 @@ UNSUPPORTED_DTYPE_CLS: Set[Any] = set(
         pandas_engine.Sparse,
         pandas_engine.PydanticModel,
         pandas_engine.Decimal,
+        pandas_engine.Date,
     ]
 )
 SUPPORTED_DTYPES = set()
@@ -120,15 +121,11 @@ def test_check_strategy_continuous(data_type, data):
 
     assert data.draw(strategies.ne_strategy(data_type, value=value)) != value
     assert data.draw(strategies.eq_strategy(data_type, value=value)) == value
-    assert (
-        data.draw(strategies.gt_strategy(data_type, min_value=value)) > value
-    )
+    assert data.draw(strategies.gt_strategy(data_type, min_value=value)) > value
     assert (
         data.draw(strategies.ge_strategy(data_type, min_value=value)) >= value
     )
-    assert (
-        data.draw(strategies.lt_strategy(data_type, max_value=value)) < value
-    )
+    assert data.draw(strategies.lt_strategy(data_type, max_value=value)) < value
     assert (
         data.draw(strategies.le_strategy(data_type, max_value=value)) <= value
     )
