@@ -774,6 +774,10 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     """The precision of the datetime data. Currently limited to "ns"."""
     tz: Optional[datetime.tzinfo] = None
     """The timezone."""
+    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+        default_factory=dict, compare=False, repr=False
+    )
+    "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
 
     def __post_init__(self):
         if self.tz is None:
