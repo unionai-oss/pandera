@@ -15,6 +15,7 @@ from .schemas import (
     DataFrameSchema,
     PandasDtypeInputTypes,
     SeriesSchemaBase,
+    StrictType,
 )
 
 
@@ -456,8 +457,8 @@ class MultiIndex(DataFrameSchema):
         self,
         indexes: List[Index],
         coerce: bool = False,
-        strict: bool = False,
-        name: str = None,
+        strict: StrictType = False,
+        name: Optional[str] = None,
         ordered: bool = True,
         unique: Optional[Union[str, List[str]]] = None,
     ) -> None:

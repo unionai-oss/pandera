@@ -145,7 +145,7 @@ def test_dataframe_schema_strict() -> None:
                 "a": Column(int, nullable=True),
                 "b": Column(int, nullable=True),
             },
-            strict="foobar",
+            strict="foobar",  # type: ignore[arg-type]
         )
 
     with pytest.raises(errors.SchemaError):

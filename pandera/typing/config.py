@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-from ..schemas import PandasDtypeInputTypes
+from ..schemas import PandasDtypeInputTypes, StrictType
 from .formats import Format
 
 
@@ -26,7 +26,7 @@ class BaseConfig:  # pylint:disable=R0903
 
     #: make sure all specified columns are in the validated dataframe -
     #: if ``"filter"``, removes columns not specified in the schema
-    strict: Union[bool, str] = False
+    strict: StrictType = False
 
     ordered: bool = False  #: validate columns order
     multiindex_name: Optional[str] = None  #: name of multiindex
@@ -36,7 +36,7 @@ class BaseConfig:  # pylint:disable=R0903
 
     #: make sure all specified columns are in validated MultiIndex -
     #: if ``"filter"``, removes indexes not specified in the schema
-    multiindex_strict: bool = False
+    multiindex_strict: StrictType = False
 
     #: validate MultiIndex in order
     multiindex_ordered: bool = True
