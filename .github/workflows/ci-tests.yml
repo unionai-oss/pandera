@@ -135,9 +135,8 @@ jobs:
 
       - name: Install deps
         run: |
-          mamba install -c conda-forge geopandas
+          mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas
           python -m pip install -U pip
-          python -m pip install pandas==${{ matrix.pandas-version }}
           python -m pip install -r requirements-dev.txt
 
       - run: |

@@ -979,7 +979,8 @@ def test_datetime_tz_example(dtype, check_arg, data) -> None:
             checks=checks,
             name="test_datetime_tz",
         )
-        column_schema(data.draw(column_schema.strategy()))
+        synth_data = data.draw(column_schema.strategy())
+        column_schema(synth_data)
 
 
 @pytest.mark.parametrize(
