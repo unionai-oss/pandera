@@ -214,12 +214,19 @@ def test_index_dtypes(
             "pyspark.pandas cannot coerce a DateTime index to datetime."
         )
 
+    # there's an issue generating index strategies with string dtypes having to
+    # do with encoding utf-8 characters... therefore this test restricts the
+    # generated strings to alphanumaric characters
+    check = None
+    if dtype is str:
+        check = pa.Check.str_matches("[0-9a-z]")
+
     if schema_cls is pa.Index:
-        schema = schema_cls(dtype, name="field")
+        schema = schema_cls(dtype, name="field", checks=check)
         schema.coerce = coerce
     else:
         schema = schema_cls(
-            indexes=[pa.Index(dtype, name="field")], coerce=True
+            indexes=[pa.Index(dtype, name="field", checks=check)], coerce=True
         )
     sample = data.draw(schema.strategy(size=3))
 
