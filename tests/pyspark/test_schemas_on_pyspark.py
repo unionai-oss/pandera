@@ -409,19 +409,37 @@ def test_required_column():
 @hypothesis.given(st.data())
 def test_dtype_coercion(from_dtype, to_dtype, data):
     """Test the datatype coercion provides informative errors."""
-    from_schema = pa.DataFrameSchema({"field": pa.Column(from_dtype)})
-    to_schema = pa.DataFrameSchema({"field": pa.Column(to_dtype, coerce=True)})
+
+    # there's an issue generating index strategies with string dtypes having to
+    # do with encoding utf-8 characters... therefore this test restricts the
+    # generated strings to alphanumaric characters
+    from_check = (
+        pa.Check.str_matches("[0-9a-z]") if from_dtype is str else None
+    )
+    to_check = pa.Check.str_matches("[0-9a-z]") if to_dtype is str else None
+
+    from_schema = pa.DataFrameSchema(
+        {"field": pa.Column(from_dtype, from_check)}
+    )
+    to_schema = pa.DataFrameSchema(
+        {"field": pa.Column(to_dtype, to_check, coerce=True)}
+    )
 
     pd_sample = data.draw(from_schema.strategy(size=3))
     sample = ps.DataFrame(pd_sample)
+
     if from_dtype is to_dtype:
         assert isinstance(to_schema(sample), ps.DataFrame)
         return
 
     # strings that can't be intepreted as numbers are converted to NA
     if from_dtype is str and to_dtype in {int, float}:
-        with pytest.raises(pa.errors.SchemaError, match="non-nullable series"):
-            to_schema(sample)
+        # first check if sample contains NAs
+        if sample.astype(to_dtype).isna().any().item():
+            with pytest.raises(
+                pa.errors.SchemaError, match="non-nullable series"
+            ):
+                to_schema(sample)
         return
 
     assert isinstance(to_schema(sample), ps.DataFrame)
