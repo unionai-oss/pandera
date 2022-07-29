@@ -181,7 +181,15 @@ def test_field_schema_dtypes(
             f"type {dtype_cls} currently not supported by the strategies "
             "module"
         )
-    schema = schema_cls(dtype_cls, name="field")
+
+    checks = None
+    if dtypes.is_string(dtype_cls):
+        # there's an issue generating data in pyspark with string dtypes having
+        # to do with encoding utf-8 characters... therefore this test restricts
+        # the generated strings to alphanumaric characters
+        checks = [pa.Check.str_matches("[0-9a-z]")]
+
+    schema = schema_cls(dtype_cls, name="field", checks=checks)
     schema.coerce = coerce
     _test_datatype_with_schema(dtype_cls, schema, data)
 
@@ -267,9 +275,6 @@ def test_index_dtypes(
     ],
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_nullable(
     dtype: pandas_engine.DataType,
     data: st.DataObject,
@@ -278,6 +283,12 @@ def test_nullable(
     checks = None
     if dtypes.is_datetime(type(dtype)) and MIN_TIMESTAMP is not None:
         checks = [pa.Check.gt(MIN_TIMESTAMP)]
+    elif dtypes.is_string(type(dtype)):
+        # there's an issue generating index strategies with string dtypes having
+        # to do with encoding utf-8 characters... therefore this test restricts
+        # the generated strings to alphanumaric characters
+        checks = [pa.Check.str_matches("[0-9a-z]")]
+
     nullable_schema = pa.DataFrameSchema(
         {"field": pa.Column(dtype, checks=checks, nullable=True)}
     )
