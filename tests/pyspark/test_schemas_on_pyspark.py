@@ -157,7 +157,14 @@ def test_dataframe_schema_dtypes(
             "module"
         )
 
-    schema = pa.DataFrameSchema({"column": pa.Column(dtype_cls)})
+    checks = None
+    if dtypes.is_string(dtype_cls):
+        # there's an issue generating data in pyspark with string dtypes having
+        # to do with encoding utf-8 characters... therefore this test restricts
+        # the generated strings to alphanumaric characters
+        checks = [pa.Check.str_matches("[0-9a-z]")]
+
+    schema = pa.DataFrameSchema({"column": pa.Column(dtype_cls, checks)})
     schema.coerce = coerce
     _test_datatype_with_schema(dtype_cls, schema, data)
 
@@ -181,7 +188,15 @@ def test_field_schema_dtypes(
             f"type {dtype_cls} currently not supported by the strategies "
             "module"
         )
-    schema = schema_cls(dtype_cls, name="field")
+
+    checks = None
+    if dtypes.is_string(dtype_cls):
+        # there's an issue generating data in pyspark with string dtypes having
+        # to do with encoding utf-8 characters... therefore this test restricts
+        # the generated strings to alphanumaric characters
+        checks = [pa.Check.str_matches("[0-9a-z]")]
+
+    schema = schema_cls(dtype_cls, name="field", checks=checks)
     schema.coerce = coerce
     _test_datatype_with_schema(dtype_cls, schema, data)
 
@@ -214,12 +229,19 @@ def test_index_dtypes(
             "pyspark.pandas cannot coerce a DateTime index to datetime."
         )
 
+    # there's an issue generating index strategies with string dtypes having to
+    # do with encoding utf-8 characters... therefore this test restricts the
+    # generated strings to alphanumaric characters
+    check = None
+    if dtype is str:
+        check = pa.Check.str_matches("[0-9a-z]")
+
     if schema_cls is pa.Index:
-        schema = schema_cls(dtype, name="field")
+        schema = schema_cls(dtype, name="field", checks=check)
         schema.coerce = coerce
     else:
         schema = schema_cls(
-            indexes=[pa.Index(dtype, name="field")], coerce=True
+            indexes=[pa.Index(dtype, name="field", checks=check)], coerce=True
         )
     sample = data.draw(schema.strategy(size=3))
 
@@ -260,9 +282,6 @@ def test_index_dtypes(
     ],
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_nullable(
     dtype: pandas_engine.DataType,
     data: st.DataObject,
@@ -271,6 +290,12 @@ def test_nullable(
     checks = None
     if dtypes.is_datetime(type(dtype)) and MIN_TIMESTAMP is not None:
         checks = [pa.Check.gt(MIN_TIMESTAMP)]
+    elif dtypes.is_string(type(dtype)):
+        # there's an issue generating index strategies with string dtypes having
+        # to do with encoding utf-8 characters... therefore this test restricts
+        # the generated strings to alphanumaric characters
+        checks = [pa.Check.str_matches("[0-9a-z]")]
+
     nullable_schema = pa.DataFrameSchema(
         {"field": pa.Column(dtype, checks=checks, nullable=True)}
     )
@@ -391,19 +416,37 @@ def test_required_column():
 @hypothesis.given(st.data())
 def test_dtype_coercion(from_dtype, to_dtype, data):
     """Test the datatype coercion provides informative errors."""
-    from_schema = pa.DataFrameSchema({"field": pa.Column(from_dtype)})
-    to_schema = pa.DataFrameSchema({"field": pa.Column(to_dtype, coerce=True)})
+
+    # there's an issue generating index strategies with string dtypes having to
+    # do with encoding utf-8 characters... therefore this test restricts the
+    # generated strings to alphanumaric characters
+    from_check = (
+        pa.Check.str_matches("[0-9a-z]") if from_dtype is str else None
+    )
+    to_check = pa.Check.str_matches("[0-9a-z]") if to_dtype is str else None
+
+    from_schema = pa.DataFrameSchema(
+        {"field": pa.Column(from_dtype, from_check)}
+    )
+    to_schema = pa.DataFrameSchema(
+        {"field": pa.Column(to_dtype, to_check, coerce=True)}
+    )
 
     pd_sample = data.draw(from_schema.strategy(size=3))
     sample = ps.DataFrame(pd_sample)
+
     if from_dtype is to_dtype:
         assert isinstance(to_schema(sample), ps.DataFrame)
         return
 
     # strings that can't be intepreted as numbers are converted to NA
     if from_dtype is str and to_dtype in {int, float}:
-        with pytest.raises(pa.errors.SchemaError, match="non-nullable series"):
-            to_schema(sample)
+        # first check if sample contains NAs
+        if sample.astype(to_dtype).isna().any().item():
+            with pytest.raises(
+                pa.errors.SchemaError, match="non-nullable series"
+            ):
+                to_schema(sample)
         return
 
     assert isinstance(to_schema(sample), ps.DataFrame)
