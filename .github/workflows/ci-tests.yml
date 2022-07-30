@@ -93,6 +93,11 @@ jobs:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.8", "3.9", "3.10"]
         pandas-version: ["1.2.0", "1.3.0", "latest"]
+        exclude:
+        - python-version: "3.10"
+          pandas-version: "1.2.0"
+        - python-version: "3.10"
+          pandas-version: "1.3.0"
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
@@ -133,11 +138,17 @@ jobs:
           channel-priority: flexible
           use-only-tar-bz2: true
 
-      - name: Install deps
+      - name: Install Conda Deps [Latest]
+        if: ${{ matrix.pandas-version == 'latest' }}
+        run: mamba install -c conda-forge pandas geopandas
+
+      - name: Install Conda Deps
+        if: ${{ matrix.pandas-version != 'latest' }}
+        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas
+
+      - name: Install Pip Deps
         run: |
-          mamba install -c conda-forge geopandas
           python -m pip install -U pip
-          python -m pip install pandas==${{ matrix.pandas-version }}
           python -m pip install -r requirements-dev.txt
 
       - run: |

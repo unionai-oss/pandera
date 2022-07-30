@@ -35,8 +35,8 @@ correctness.*
     :target: https://pandera.readthedocs.io/en/stable/?badge=latest
     :alt: Documentation Latest Status
 
-.. image:: https://codecov.io/gh/pandera-dev/pandera/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/pandera-dev/pandera
+.. image:: https://codecov.io/gh/unionai-oss/pandera/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/unionai-oss/pandera
     :alt: Code Coverage
 
 .. image:: https://img.shields.io/pypi/pyversions/pandera.svg

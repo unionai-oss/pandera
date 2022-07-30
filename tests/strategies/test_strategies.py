@@ -85,13 +85,6 @@ def test_unsupported_pandas_dtype_strategy(data_type):
 
 @pytest.mark.parametrize("data_type", SUPPORTED_DTYPES)
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[
-        hypothesis.HealthCheck.too_slow,
-        hypothesis.HealthCheck.data_too_large,
-    ],
-    max_examples=20,
-)
 def test_pandas_dtype_strategy(data_type, data):
     """Test that series can be constructed from pandas dtype."""
 
@@ -112,9 +105,6 @@ def test_pandas_dtype_strategy(data_type, data):
 
 @pytest.mark.parametrize("data_type", NUMERIC_DTYPES)
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_check_strategy_continuous(data_type, data):
     """Test built-in check strategies can generate continuous data."""
     np_dtype = strategies.to_numpy_dtype(data_type)
@@ -179,9 +169,6 @@ def value_ranges(data_type: pa.DataType):
     ],
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_check_strategy_chained_continuous(
     data_type, strat_fn, arg_name, base_st_type, compare_op, data
 ):
@@ -225,9 +212,6 @@ def test_check_strategy_chained_continuous(
 @pytest.mark.parametrize("data_type", NUMERIC_DTYPES)
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_in_range_strategy(data_type, chained, data):
     """Test the built-in in-range strategy can correctly generate data."""
     min_value, max_value = data.draw(value_ranges(data_type))
@@ -266,9 +250,6 @@ def test_in_range_strategy(data_type, chained, data):
 )
 @pytest.mark.parametrize("chained", [True, False])
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_isin_notin_strategies(data_type, chained, data):
     """Test built-in check strategies that rely on discrete values."""
     value_st = strategies.pandas_dtype_strategy(
@@ -360,7 +341,6 @@ def test_str_pattern_checks(
         .filter(lambda x: x[0] < x[1])  # type: ignore
     ),
 )
-@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_str_length_checks(chained, data, value_range):
     """Test built-in check strategies for string length."""
     min_value, max_value = value_range
@@ -450,9 +430,6 @@ def test_register_check_strategy_exception() -> None:
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_series_strategy(data) -> None:
     """Test SeriesSchema strategy."""
     series_schema = pa.SeriesSchema(pa.Int(), pa.Check.gt(0))
@@ -467,9 +444,6 @@ def test_series_example() -> None:
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_column_strategy(data) -> None:
     """Test Column schema strategy."""
     column_schema = pa.Column(pa.Int(), pa.Check.gt(0), name="column")
@@ -486,7 +460,6 @@ def test_column_example():
 @pytest.mark.parametrize("data_type", SUPPORTED_DTYPES)
 @pytest.mark.parametrize("size", [None, 0, 1, 3, 5])
 @hypothesis.given(st.data())
-@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_dataframe_strategy(data_type, size, data):
     """Test DataFrameSchema strategy."""
     dataframe_schema = pa.DataFrameSchema(
@@ -509,7 +482,6 @@ def test_dataframe_strategy(data_type, size, data):
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_dataframe_example(data) -> None:
     """Test DataFrameSchema example method generate examples that pass."""
     schema = pa.DataFrameSchema({"column": pa.Column(int, pa.Check.gt(0))})
@@ -519,7 +491,6 @@ def test_dataframe_example(data) -> None:
 
 @pytest.mark.parametrize("size", [3, 5, 10])
 @hypothesis.given(st.data())
-@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 def test_dataframe_unique(size, data) -> None:
     """Test that DataFrameSchemas with unique columns are actually unique."""
     schema = pa.DataFrameSchema(
@@ -544,9 +515,6 @@ def test_dataframe_unique(size, data) -> None:
     ],
 )
 @hypothesis.given(st.data(), st.integers(min_value=-5, max_value=5))
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_dataframe_with_regex(regex: str, data, n_regex_columns: int) -> None:
     """Test DataFrameSchema strategy with regex columns"""
     dataframe_schema = pa.DataFrameSchema({regex: pa.Column(int, regex=True)})
@@ -565,9 +533,6 @@ def test_dataframe_with_regex(regex: str, data, n_regex_columns: int) -> None:
 
 
 @pytest.mark.parametrize("data_type", NUMERIC_DTYPES)
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 @hypothesis.given(st.data())
 def test_dataframe_checks(data_type, data):
     """Test dataframe strategy with checks defined at the dataframe level."""
@@ -585,9 +550,6 @@ def test_dataframe_checks(data_type, data):
     "data_type", [pa.Int(), pa.Float, pa.String, pa.DateTime]
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_dataframe_strategy_with_indexes(data_type, data):
     """Test dataframe strategy with index and multiindex components."""
     dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(data_type))
@@ -604,9 +566,6 @@ def test_dataframe_strategy_with_indexes(data_type, data):
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_index_strategy(data) -> None:
     """Test Index schema component strategy."""
     data_type = pa.Int()
@@ -631,9 +590,6 @@ def test_index_example() -> None:
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_multiindex_strategy(data) -> None:
     """Test MultiIndex schema component strategy."""
     data_type = pa.Float()
@@ -699,9 +655,6 @@ def test_field_element_strategy(data_type, data):
 )
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_check_nullable_field_strategy(
     data_type, field_strategy, nullable, data
 ):
@@ -719,9 +672,6 @@ def test_check_nullable_field_strategy(
 @pytest.mark.parametrize("data_type", NULLABLE_DTYPES)
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_check_nullable_dataframe_strategy(data_type, nullable, data):
     """Test strategies for generating nullable DataFrame data."""
     size = 5
@@ -760,12 +710,6 @@ def test_check_nullable_dataframe_strategy(data_type, nullable, data):
             ),
             "Vectorized",
         ],
-    ],
-)
-@hypothesis.settings(
-    suppress_health_check=[
-        hypothesis.HealthCheck.filter_too_much,
-        hypothesis.HealthCheck.too_slow,
     ],
 )
 @hypothesis.given(st.data())
@@ -833,12 +777,6 @@ def test_series_strategy_undefined_check_strategy(
         ],
     ],
 )
-@hypothesis.settings(
-    suppress_health_check=[
-        hypothesis.HealthCheck.filter_too_much,
-        hypothesis.HealthCheck.too_slow,
-    ],
-)
 @hypothesis.given(st.data())
 def test_dataframe_strategy_undefined_check_strategy(
     schema: pa.DataFrameSchema, warning: str, data
@@ -873,9 +811,6 @@ class Schema(pa.SchemaModel):
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_schema_model_strategy(data) -> None:
     """Test that strategy can be created from a SchemaModel."""
     strat = Schema.strategy(size=10)
@@ -884,9 +819,6 @@ def test_schema_model_strategy(data) -> None:
 
 
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_schema_model_strategy_df_check(data) -> None:
     """Test that schema with custom checks produce valid data."""
 
@@ -928,9 +860,6 @@ def test_schema_component_with_no_pdtype() -> None:
     "check_arg", [pd.Timestamp("2006-01-01"), np.datetime64("2006-01-01")]
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_datetime_example(check_arg, data) -> None:
     """Test Column schema example method generate examples of
     timezone-naive datetimes that pass."""
@@ -962,9 +891,6 @@ def test_datetime_example(check_arg, data) -> None:
     ],
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_datetime_tz_example(dtype, check_arg, data) -> None:
     """Test Column schema example method generate examples of
     timezone-aware datetimes that pass."""
@@ -979,7 +905,8 @@ def test_datetime_tz_example(dtype, check_arg, data) -> None:
             checks=checks,
             name="test_datetime_tz",
         )
-        column_schema(data.draw(column_schema.strategy()))
+        synth_data = data.draw(column_schema.strategy())
+        column_schema(synth_data)
 
 
 @pytest.mark.parametrize(
@@ -1022,9 +949,6 @@ def test_datetime_tz_example(dtype, check_arg, data) -> None:
     ],
 )
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_timedelta(dtype, check_arg, data):
     """
     Test Column schema example method generate examples of timedeltas
@@ -1047,9 +971,6 @@ def test_timedelta(dtype, check_arg, data):
 
 @pytest.mark.parametrize("dtype", [int, float, str])
 @hypothesis.given(st.data())
-@hypothesis.settings(
-    suppress_health_check=[hypothesis.HealthCheck.too_slow],
-)
 def test_empty_nullable_schema(dtype, data):
     """Test that empty nullable schema strategy draws empty examples."""
     schema = pa.DataFrameSchema({"myval": pa.Column(dtype, nullable=True)})
