@@ -157,7 +157,14 @@ def test_dataframe_schema_dtypes(
             "module"
         )
 
-    schema = pa.DataFrameSchema({"column": pa.Column(dtype_cls)})
+    checks = None
+    if dtypes.is_string(dtype_cls):
+        # there's an issue generating data in pyspark with string dtypes having
+        # to do with encoding utf-8 characters... therefore this test restricts
+        # the generated strings to alphanumaric characters
+        checks = [pa.Check.str_matches("[0-9a-z]")]
+
+    schema = pa.DataFrameSchema({"column": pa.Column(dtype_cls, checks)})
     schema.coerce = coerce
     _test_datatype_with_schema(dtype_cls, schema, data)
 
