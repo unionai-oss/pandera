@@ -15,6 +15,7 @@ from typing import (
     Any,
     Dict,
     List,
+    Literal,
     Optional,
     Type,
     TypeVar,
@@ -62,6 +63,8 @@ PandasDtypeInputTypes = Union[
     None,
 ]
 
+StrictType = Union[bool, Literal["filter"]]
+
 TSeriesSchemaBase = TypeVar("TSeriesSchemaBase", bound="SeriesSchemaBase")
 
 
@@ -94,7 +97,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         index=None,
         dtype: PandasDtypeInputTypes = None,
         coerce: bool = False,
-        strict: Union[bool, str] = False,
+        strict: StrictType = False,
         name: Optional[str] = None,
         ordered: bool = False,
         unique: Optional[Union[str, List[str]]] = None,
@@ -181,7 +184,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         self.checks: CheckListProperty = checks
         self.index = index
-        self.strict: Union[bool, str] = strict
+        self.strict: StrictType = strict
         self.name: Optional[str] = name
         self.dtype: PandasDtypeInputTypes = dtype  # type: ignore
         self._coerce = coerce
