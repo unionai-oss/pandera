@@ -198,7 +198,7 @@ jobs:
           CI_MODIN_ENGINES: ray
 
       - name: Upload coverage to Codecov
-        uses: "codecov/codecov-action@v1"
+        uses: codecov/codecov-action@v3
 
       - name: Check Docstrings
         if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' }}
