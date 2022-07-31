@@ -16,7 +16,7 @@ much the same way you'd define ``pydantic`` models.
 
 `Schema Models` are annotated with the :mod:`pandera.typing` module using the standard
 `typing <https://docs.python.org/3/library/typing.html>`_ syntax. Models can be
-explictly converted to a :class:`~pandera.schemas.DataFrameSchema` or used to validate a
+explicitly converted to a :class:`~pandera.schemas.DataFrameSchema` or used to validate a
 :class:`~pandas.DataFrame` directly.
 
 .. note::
