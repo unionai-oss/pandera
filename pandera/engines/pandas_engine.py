@@ -525,7 +525,10 @@ class Decimal(DataType, dtypes.Decimal):
                 "Decimal is not yet supported for pyspark."
             )
         if not super().check(pandera_dtype, data_container):
-            return np.full_like(data_container, False)
+            if data_container is None:
+                return False
+            else:
+                return np.full_like(data_container, False)
         if data_container is None:
             return True
         return _check_decimal(
@@ -855,7 +858,10 @@ class Date(_BaseDateTime, dtypes.Date):
         data_container: Optional[pd.Series] = None,
     ) -> Union[bool, Iterable[bool]]:
         if not DataType.check(self, pandera_dtype, data_container):
-            return np.full_like(data_container, False)
+            if data_container is None:
+                return False
+            else:
+                return np.full_like(data_container, False)
         if data_container is None:
             return True
 

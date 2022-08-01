@@ -44,6 +44,14 @@ def datacontainer_lib(request) -> Generator[ModuleType, None, None]:
         raise NotImplementedError(f"Not supported test package {local_path}")
 
 
+@pa.dtypes.immutable
+class SimpleDtype(pa.DataType):
+    """Test data type."""
+
+    def __str__(self) -> str:
+        return "simple"
+
+
 @pytest.mark.parametrize(
     "data, expected_datatype, expected_results",
     [
@@ -83,9 +91,19 @@ def test_logical_datatype_check(
     expected_datatype: pandas_engine.DataType,
     expected_results: List[bool],
 ):
-    """Test decimal coerce."""
+    """Test decimal check."""
     data = datacontainer_lib.Series(data, dtype="object")  # type:ignore
     actual_datatype = pandas_engine.Engine.dtype(data.dtype)
+
+    # wrong data type argument, should return all False
+    assert not any(
+        cast(Iterable[bool], expected_datatype.check(SimpleDtype(), data))
+    )
+    print(expected_datatype.check(SimpleDtype(), None))
+    assert expected_datatype.check(SimpleDtype(), None) is False
+
+    # No data container
+    assert expected_datatype.check(actual_datatype, None) is True
 
     actual_results = expected_datatype.check(actual_datatype, data)
     assert list(expected_results) == list(cast(Iterable, actual_results))
