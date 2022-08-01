@@ -1577,6 +1577,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel,cyclic-import
         from pandera.schema_components import Column, Index, MultiIndex
 
+        # explcit check for an empty list
+        if level == []:
+            return self
+
         new_schema = copy.deepcopy(self)
 
         if new_schema.index is None:
@@ -1586,7 +1590,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         # ensure no duplicates
         level_temp: Union[List[Any], List[str]] = (
-            list(set(level)) if level is not None else []
+            new_schema.index.names if level is None else list(set(level))
         )
 
         # ensure all specified keys are present in the index
