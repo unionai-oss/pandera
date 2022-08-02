@@ -735,12 +735,7 @@ def _timestamp_to_datetime64_strategy(
     nanoseconds if given a pandas.Timestamp. We need to pass the unix epoch via
     the pandas.Timestamp.value attribute.
     """
-    def _generate(x):
-        ret = np.datetime64(x.value, "ns")
-        if pd.isna(ret):
-            print(ret)
-        return ret
-    return st.builds(_generate, strategy)
+    return st.builds(lambda x: np.datetime64(x.value, "ns"), strategy)
 
 
 def field_element_strategy(
