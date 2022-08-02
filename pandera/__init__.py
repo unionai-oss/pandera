@@ -9,6 +9,7 @@ from pandera.dtypes import (
     Complex64,
     Complex128,
     DataType,
+    Date,
     DateTime,
     Decimal,
     Float,

@@ -1990,7 +1990,10 @@ class SeriesSchemaBase:
                 )
             elif not isinstance(check_output, bool):
                 _, failure_cases = check_utils.prepare_series_check_output(
-                    series, pd.Series(check_output)
+                    series,
+                    pd.Series(list(check_output))
+                    if not isinstance(check_output, pd.Series)
+                    else check_output,
                 )
                 failure_cases = reshape_failure_cases(failure_cases)
                 msg = (

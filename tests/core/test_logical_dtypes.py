@@ -1,8 +1,9 @@
 """Tests logical dtypes."""
 
+from datetime import date, datetime
 from decimal import Decimal
 from types import ModuleType
-from typing import Any, Generator, Iterable, List, Optional, cast
+from typing import Any, Generator, Iterable, List, cast
 
 import numpy as np
 import pandas as pd
@@ -43,6 +44,14 @@ def datacontainer_lib(request) -> Generator[ModuleType, None, None]:
         raise NotImplementedError(f"Not supported test package {local_path}")
 
 
+@pa.dtypes.immutable
+class SimpleDtype(pa.DataType):
+    """Test data type."""
+
+    def __str__(self) -> str:
+        return "simple"
+
+
 @pytest.mark.parametrize(
     "data, expected_datatype, expected_results",
     [
@@ -60,6 +69,20 @@ def datacontainer_lib(request) -> Generator[ModuleType, None, None]:
             pandas_engine.Decimal(2, 1),
             [True, True, True, False, False, True, True, True],
         ),
+        (
+            [
+                date(2022, 1, 1),
+                datetime(2022, 1, 1),
+                pd.Timestamp("20130101"),
+                "foo.bar",
+                None,
+                pd.NA,
+                np.nan,
+                pd.NaT,
+            ],
+            pandas_engine.Date(),
+            [True, False, False, False, True, True, True, True],
+        ),
     ],
 )
 def test_logical_datatype_check(
@@ -68,9 +91,19 @@ def test_logical_datatype_check(
     expected_datatype: pandas_engine.DataType,
     expected_results: List[bool],
 ):
-    """Test decimal coerce."""
+    """Test decimal check."""
     data = datacontainer_lib.Series(data, dtype="object")  # type:ignore
     actual_datatype = pandas_engine.Engine.dtype(data.dtype)
+
+    # wrong data type argument, should return all False
+    assert not any(
+        cast(Iterable[bool], expected_datatype.check(SimpleDtype(), data))
+    )
+    print(expected_datatype.check(SimpleDtype(), None))
+    assert expected_datatype.check(SimpleDtype(), None) is False
+
+    # No data container
+    assert expected_datatype.check(actual_datatype, None) is True
 
     actual_results = expected_datatype.check(actual_datatype, data)
     assert list(expected_results) == list(cast(Iterable, actual_results))
@@ -88,6 +121,23 @@ def test_logical_datatype_check(
             [Decimal("1.2"), None, pd.NA, np.nan],
             pandas_engine.Decimal(19, 5),
             [],
+        ),
+        (
+            [
+                date(2022, 1, 1),
+                datetime(2022, 1, 2, 1, 1, 1),
+                None,
+                pd.NA,
+                np.nan,
+                pd.NaT,
+            ],
+            pandas_engine.Date(),
+            [],
+        ),
+        (
+            ["2022-01-01", "01/01/2022"],
+            pandas_engine.Date(to_datetime_kwargs={"format": "%Y-%m-%d"}),
+            ["01/01/2022"],
         ),
     ],
 )
@@ -112,12 +162,15 @@ def test_logical_datatype_coerce(
             failure_cases, actual_failure_cases, check_names=False
         )
 
-        schema = pa.SeriesSchema(expected_datatype)
+        schema = pa.SeriesSchema(expected_datatype, coerce=True)
         try:
             schema.validate(data, lazy=True)
         except pa.errors.SchemaErrors as err:
             err_failure_cases = pd.Series(
-                err.failure_cases["failure_case"].to_numpy()
+                err.failure_cases.loc[
+                    err.failure_cases["check"].str.contains("coerce"),
+                    "failure_case",
+                ].to_numpy()
             )
             assert_series_equal(
                 failure_cases, err_failure_cases, check_names=False
@@ -141,6 +194,16 @@ def test_logical_datatype_coerce(
         (pd.NA, pandas_engine.Decimal(2, 1), pd.NA),
         (None, pandas_engine.Decimal(2, 1), pd.NA),
         (np.nan, pandas_engine.Decimal(2, 1), pd.NA),
+        (date(2022, 1, 1), pandas_engine.Date(), date(2022, 1, 1)),
+        (
+            "2022-01-01",
+            pandas_engine.Date(to_datetime_kwargs={"format": "%Y-%m-%d"}),
+            date(2022, 1, 1),
+        ),
+        (pd.NA, pandas_engine.Date(), pd.NaT),
+        (None, pandas_engine.Date(), pd.NaT),
+        (np.nan, pandas_engine.Date(), pd.NaT),
+        (pd.NaT, pandas_engine.Date(), pd.NaT),
     ],
 )
 def test_logical_datatype_coerce_value(
@@ -157,9 +220,7 @@ def test_logical_datatype_coerce_value(
 
 
 @pytest.mark.parametrize("precision,scale", [(-1, None), (0, 0), (1, 2)])
-def test_invalid_decimal_params(
-    precision: Optional[int], scale: Optional[int]
-):
+def test_invalid_decimal_params(precision: int, scale: int):
     """Test invalid decimal params."""
     with pytest.raises(ValueError):
         pa.Decimal(precision, scale)
