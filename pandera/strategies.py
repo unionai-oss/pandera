@@ -213,9 +213,9 @@ def register_check_strategy(strategy_fn: StrategyFn):
 # pylint: disable=line-too-long
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
-# NOTE: We're reducing the range here by an order of magnitude to avoid overflows
-# when synthesizing timezone-aware timestamps.
-MIN_DT_VALUE = -(2**62) + 1
+
+# If the datetime value is negative, then that results in `pd.NaT` in `_datetime_strategy`
+MIN_DT_VALUE = 0
 MAX_DT_VALUE = 2**62 - 1
 
 
@@ -735,7 +735,12 @@ def _timestamp_to_datetime64_strategy(
     nanoseconds if given a pandas.Timestamp. We need to pass the unix epoch via
     the pandas.Timestamp.value attribute.
     """
-    return st.builds(lambda x: np.datetime64(x.value, "ns"), strategy)
+    def _generate(x):
+        ret = np.datetime64(x.value, "ns")
+        if pd.isna(ret):
+            print(ret)
+        return ret
+    return st.builds(_generate, strategy)
 
 
 def field_element_strategy(
