@@ -1168,7 +1168,7 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         {"check": "not_nullable", "failure_case": "NaN"},
         {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 1.1},
         {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 3.8},
-        {'check': "dtype('float64')", 'failure_case': 'object'}
+        {"check": "dtype('float64')", "failure_case": "object"},
     ], "validation failure cases not as expected"
 
 
