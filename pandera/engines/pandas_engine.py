@@ -701,11 +701,6 @@ class _BaseDateTime(DataType):
         default_factory=dict, compare=False, repr=False
     )
 
-    def __init__(  # pylint:disable=super-init-not-called
-        self, to_datetime_kwargs: Optional[Dict[str, Any]] = None
-    ) -> None:
-        object.__setattr__(self, "to_datetime_kwargs", to_datetime_kwargs)
-
     @staticmethod
     def _get_to_datetime_fn(obj: Any) -> Callable:
 
@@ -844,6 +839,14 @@ class Date(_BaseDateTime, dtypes.Date):
         default_factory=dict, compare=False, repr=False
     )
     "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
+
+    # define __init__ to please mypy
+    def __init__(  # pylint:disable=super-init-not-called
+        self, to_datetime_kwargs: Optional[Dict[str, Any]] = None
+    ) -> None:
+        object.__setattr__(
+            self, "to_datetime_kwargs", to_datetime_kwargs or {}
+        )
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         return self._coerce(data_container, pandas_dtype=np.datetime64).dt.date
