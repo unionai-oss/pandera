@@ -35,6 +35,7 @@ UNSUPPORTED_DTYPE_CLS: Set[Any] = set(
         pandas_engine.Sparse,
         pandas_engine.PydanticModel,
         pandas_engine.Decimal,
+        pandas_engine.Date,
     ]
 )
 SUPPORTED_DTYPES = set()

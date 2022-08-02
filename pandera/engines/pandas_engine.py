@@ -464,9 +464,6 @@ def _check_decimal(
     return is_valid.to_numpy()
 
 
-DEFAULT_PYTHON_PREC = 28
-
-
 @Engine.register_dtype(equivalents=["decimal", decimal.Decimal])
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):
@@ -489,8 +486,8 @@ class Decimal(DataType, dtypes.Decimal):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        precision: Optional[int] = DEFAULT_PYTHON_PREC,
-        scale: Optional[int] = None,
+        precision: int = dtypes.DEFAULT_PYTHON_PREC,
+        scale: int = 0,
         rounding: Optional[str] = None,
     ) -> None:
         dtypes.Decimal.__init__(self, precision, scale)
@@ -513,7 +510,6 @@ class Decimal(DataType, dtypes.Decimal):
         dec = decimal.Decimal(str(value))
         if self._exp:
             return dec.quantize(self._exp, context=self._ctx)
-        print(dec)
         return dec
 
     def coerce(self, data_container: pd.Series) -> pd.Series:
@@ -529,7 +525,10 @@ class Decimal(DataType, dtypes.Decimal):
                 "Decimal is not yet supported for pyspark."
             )
         if not super().check(pandera_dtype, data_container):
-            return np.full_like(data_container, False)
+            if data_container is None:
+                return False
+            else:
+                return np.full_like(data_container, False)
         if data_container is None:
             return True
         return _check_decimal(
@@ -677,7 +676,6 @@ Engine.register_dtype(
         "object0",
         "O",
         "bytes",
-        "decimal",
         "mixed-integer",
         "mixed",
         "bytes",
@@ -697,6 +695,60 @@ Engine.register_dtype(
 _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
 
 
+@immutable(init=True)
+class _BaseDateTime(DataType):
+    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+        default_factory=dict, compare=False, repr=False
+    )
+
+    @staticmethod
+    def _get_to_datetime_fn(obj: Any) -> Callable:
+
+        # NOTE: this is a hack to support pyspark.pandas. This needs to be
+        # thoroughly tested, right now pyspark.pandas returns NA when a
+        # dtype value can't be coerced into the target dtype.
+        to_datetime_fn = pd.to_datetime
+        if type(obj).__module__.startswith(
+            "pyspark.pandas"
+        ):  # pragma: no cover
+            # pylint: disable=import-outside-toplevel
+            import pyspark.pandas as ps
+
+            to_datetime_fn = ps.to_datetime
+        if type(obj).__module__.startswith("modin.pandas"):
+            # pylint: disable=import-outside-toplevel
+            import modin.pandas as mpd
+
+            to_datetime_fn = mpd.to_datetime
+
+        return to_datetime_fn
+
+    def _coerce(
+        self, data_container: PandasObject, pandas_dtype: Any
+    ) -> PandasObject:
+        to_datetime_fn = self._get_to_datetime_fn(data_container)
+
+        def _to_datetime(col: PandasObject) -> PandasObject:
+            col = to_datetime_fn(col, **self.to_datetime_kwargs)
+            return col.astype(pandas_dtype)
+
+        if isinstance(data_container, pd.DataFrame):
+            # pd.to_datetime transforms a df input into a series.
+            # We actually want to coerce every columns.
+            return data_container.transform(to_datetime_fn)
+
+        return _to_datetime(data_container)
+
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        return self._coerce(data_container, pandas_dtype=self.type)
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to specified datatime type."""
+        return self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
+
+
 @Engine.register_dtype(
     equivalents=[
         "time",
@@ -710,7 +762,7 @@ _PandasDatetime = Union[np.datetime64, pd.DatetimeTZDtype]
     ]
 )
 @immutable(init=True)
-class DateTime(DataType, dtypes.Timestamp):
+class DateTime(_BaseDateTime, dtypes.Timestamp):
     """Semantic representation of a :class:`pandas.DatetimeTZDtype`."""
 
     type: Optional[_PandasDatetime] = dataclasses.field(
@@ -757,25 +809,6 @@ class DateTime(DataType, dtypes.Timestamp):
 
         return to_datetime_fn
 
-    def coerce(self, data_container: PandasObject) -> PandasObject:
-        to_datetime_fn = self._get_to_datetime_fn(data_container)
-
-        def _to_datetime(col: PandasObject) -> PandasObject:
-            col = to_datetime_fn(col, **self.to_datetime_kwargs)
-            return col.astype(self.type)
-
-        if isinstance(data_container, pd.DataFrame):
-            # pd.to_datetime transforms a df input into a series.
-            # We actually want to coerce every columns.
-            return data_container.transform(to_datetime_fn)
-        return _to_datetime(data_container)
-
-    def coerce_value(self, value: Any) -> Any:
-        """Coerce an value to specified datatime type."""
-        return self._get_to_datetime_fn(value)(
-            value, **self.to_datetime_kwargs
-        )
-
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
         """Convert a :class:`pandas.DatetimeTZDtype` to
@@ -786,6 +819,64 @@ class DateTime(DataType, dtypes.Timestamp):
         if self.type == np.dtype("datetime64[ns]"):
             return "datetime64[ns]"
         return str(self.type)
+
+
+@Engine.register_dtype(
+    equivalents=[
+        "date",
+        datetime.date,
+        dtypes.Date,
+        dtypes.Date(),
+    ]
+)
+@immutable(init=True)
+class Date(_BaseDateTime, dtypes.Date):
+    """Semantic representation of a date data type."""
+
+    type = np.dtype("object")
+
+    to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
+        default_factory=dict, compare=False, repr=False
+    )
+    "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
+
+    # define __init__ to please mypy
+    def __init__(  # pylint:disable=super-init-not-called
+        self, to_datetime_kwargs: Optional[Dict[str, Any]] = None
+    ) -> None:
+        object.__setattr__(
+            self, "to_datetime_kwargs", to_datetime_kwargs or {}
+        )
+
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        return self._coerce(data_container, pandas_dtype=np.datetime64).dt.date
+
+    def coerce_value(self, value: Any) -> Any:
+        coerced = _BaseDateTime.coerce_value(self, value)
+        return coerced.date() if coerced is not None else pd.NaT
+
+    def check(  # type: ignore
+        self,
+        pandera_dtype: DataType,
+        data_container: Optional[pd.Series] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        if not DataType.check(self, pandera_dtype, data_container):
+            if data_container is None:
+                return False
+            else:
+                return np.full_like(data_container, False)
+        if data_container is None:
+            return True
+
+        def _check_date(value: Any) -> bool:
+            return pd.isnull(value) or (
+                type(value) is datetime.date  # pylint:disable=C0123
+            )
+
+        return data_container.apply(_check_date)
+
+    def __str__(self) -> str:
+        return str(dtypes.Date())
 
 
 Engine.register_dtype(

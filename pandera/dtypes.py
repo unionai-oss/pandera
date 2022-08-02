@@ -380,6 +380,8 @@ class Complex64(Complex128):
 # decimal
 ###############################################################################
 
+DEFAULT_PYTHON_PREC = 28
+
 
 @immutable(init=True)
 class Decimal(_Number):
@@ -388,22 +390,21 @@ class Decimal(_Number):
     exact: bool = dataclasses.field(init=False, default=True)
     continuous: bool = dataclasses.field(init=False, default=True)
 
-    precision: Optional[int] = None
-    scale: Optional[int] = None
+    precision: int = DEFAULT_PYTHON_PREC
+    """The number of significant digits that the decimal type can represent."""
+    scale: int = 0  # default 0 is aligned with pyarrow and various databases.
+    """The number of digits after the decimal point."""
 
-    def __init__(
-        self, precision: Optional[int] = None, scale: Optional[int] = None
-    ):
+    def __init__(self, precision: int = DEFAULT_PYTHON_PREC, scale: int = 0):
         super().__init__()
-        if precision is not None:
-            if precision <= 0:
-                raise ValueError(
-                    f"Decimal precision {precision} must be positive."
-                )
-            if scale is not None and scale > precision:
-                raise ValueError(
-                    f"Decimal scale {scale} must be between 0 and {precision}."
-                )
+        if precision <= 0:
+            raise ValueError(
+                f"Decimal precision {precision} must be positive."
+            )
+        if scale is not None and scale > precision:
+            raise ValueError(
+                f"Decimal scale {scale} must be between 0 and {precision}."
+            )
         object.__setattr__(self, "precision", precision)
         object.__setattr__(self, "scale", scale)
 
