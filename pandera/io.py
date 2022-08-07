@@ -330,10 +330,17 @@ Column(
 )
 """
 
-INDEX_TEMPLATE = (
-    "Index(dtype={dtype},checks={checks},"
-    "nullable={nullable},coerce={coerce},name={name})"
+INDEX_TEMPLATE = """
+Index(
+    dtype={dtype},
+    checks={checks},
+    nullable={nullable},
+    coerce={coerce},
+    name={name},
+    description={description},
+    title={title},
 )
+"""
 
 MULTIINDEX_TEMPLATE = """
 MultiIndex(indexes=[{indexes}])
@@ -363,6 +370,8 @@ def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
         dtype = properties.get("dtype")
+        description = properties.get("description")
+        title = properties.get("title")
         index_code = INDEX_TEMPLATE.format(
             dtype=f"{_get_qualified_name(dtype.__class__)}",
             checks=(
@@ -377,6 +386,8 @@ def _format_index(index_statistics):
                 if properties["name"] is None
                 else f"\"{properties['name']}\""
             ),
+            description=(None if description is None else f'"{description}"'),
+            title=(None if title is None else f'"{title}"'),
         )
         index.append(index_code.strip())
 

@@ -112,6 +112,8 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 coerce=False,
                 required=True,
                 regex=False,
+                description=None,
+                title=None,
             ),
             "column2": Column(
                 dtype=pandera.engines.numpy_engine.Object,
@@ -121,6 +123,8 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 coerce=False,
                 required=True,
                 regex=False,
+                description=None,
+                title=None,
             ),
             "column3": Column(
                 dtype=pandera.engines.pandas_engine.DateTime,
@@ -137,6 +141,8 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 coerce=False,
                 required=True,
                 regex=False,
+                description=None,
+                title=None,
             ),
         },
         index=Index(
@@ -148,6 +154,8 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
             nullable=False,
             coerce=False,
             name=None,
+            description=None,
+            title=None,
         ),
         coerce=True,
         strict=False,
@@ -181,6 +189,8 @@ is a convenience method for this functionality.
     version: {PANDERA_VERSION}
     columns:
       column1:
+        title: null
+        description: null
         dtype: int64
         nullable: false
         checks:
@@ -191,6 +201,8 @@ is a convenience method for this functionality.
         required: true
         regex: false
       column2:
+        title: null
+        description: null
         dtype: object
         nullable: false
         checks: null
@@ -199,6 +211,8 @@ is a convenience method for this functionality.
         required: true
         regex: false
       column3:
+        title: null
+        description: null
         dtype: datetime64[ns]
         nullable: false
         checks:
@@ -210,7 +224,9 @@ is a convenience method for this functionality.
         regex: false
     checks: null
     index:
-    - dtype: int64
+    - title: null
+      description: null
+      dtype: int64
       nullable: false
       checks:
         greater_than_or_equal_to: 0.0
