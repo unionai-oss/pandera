@@ -213,8 +213,9 @@ def register_check_strategy(strategy_fn: StrategyFn):
 # pylint: disable=line-too-long
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
-
-MIN_DT_VALUE = -(2**62) - 1
+# NOTE: We're reducing the range here by an order of magnitude to avoid overflows
+# when synthesizing timezone-aware timestamps.
+MIN_DT_VALUE = -(2**62) + 1
 MAX_DT_VALUE = 2**62 - 1
 
 
