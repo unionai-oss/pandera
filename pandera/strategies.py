@@ -214,8 +214,7 @@ def register_check_strategy(strategy_fn: StrategyFn):
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
 
-# If the datetime value is negative, then that results in `pd.NaT` in `_datetime_strategy`
-MIN_DT_VALUE = 0
+MIN_DT_VALUE = -(2**62) - 1
 MAX_DT_VALUE = 2**62 - 1
 
 
