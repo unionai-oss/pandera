@@ -1,8 +1,17 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import io
-from typing import _type_check, Type, List, Union, Dict, Tuple, Sequence, Optional  # type: ignore[attr-defined]
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import (  # type: ignore[attr-defined]
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generic,
+    List,
+    Tuple,
+    TypeVar,
+    Union,
+    _type_check,
+)
 
 import pandas as pd
 
@@ -54,7 +63,7 @@ else:
     T = Schema
 
 Column = Union[int, str]
-ArrayLike = Union["ExtensionArray", pd.np.ndarray]
+ArrayLike = Union["ExtensionArray", pd.np.ndarray]  # type: ignore[name-defined]
 
 # pylint:disable=too-few-public-methods
 class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
@@ -180,20 +189,28 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         return cls.to_format(valid_data, schema_model.__config__)
 
     @staticmethod
-    def from_records(schema: T, data: Union[pd.np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame], index: Optional[Union[Sequence[str], ArrayLike]] = None, coerce_float: bool = False, nrows: Optional[int] = None) -> "DataFrame[T]":
-        schema = schema.to_schema()
+    def from_records(
+        schema: T,
+        data: Union[
+            pd.np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+        ],
+        **kwargs,
+    ) -> "DataFrame[T]":
+        """
+        Convert structured or record ndarray to pandera-validated DataFrame.
+
+        Creates a DataFrame object from a structured ndarray, sequence of tuples
+        or dicts, or DataFrame.
+
+        See :doc:`pandas:reference/api/pandas.DataFrame.from_records` for
+        more details.
+        """
+        schema = schema.to_schema()  # type: ignore[attr-defined]
         schema_index = schema.index.names if schema.index is not None else None
-        index = schema_index if index is None else index
+        if "index" not in kwargs:
+            kwargs["index"] = schema_index
         return DataFrame[T](
-                pd.DataFrame.from_records(
-                    data=data,
-                    index=index,
-                    coerce_float=coerce_float,
-                    nrows=nrows,
-                )[
-                    schema.columns.keys()
-                ]  # set the column order according to schema
-            )
-
-
-#%%
+            pd.DataFrame.from_records(data=data, **kwargs,)[
+                schema.columns.keys()
+            ]  # set the column order according to schema
+        )
