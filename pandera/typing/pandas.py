@@ -13,6 +13,7 @@ from typing import (  # type: ignore[attr-defined]
     _type_check,
 )
 
+import numpy as np
 import pandas as pd
 
 from ..errors import SchemaError, SchemaInitError
@@ -190,7 +191,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def from_records(
         schema: T,
         data: Union[
-            pd.np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
         ],
         **kwargs,
     ) -> "DataFrame[T]":
