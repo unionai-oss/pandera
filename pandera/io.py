@@ -100,7 +100,12 @@ def _serialize_component_stats(component_stats):
     if dtype:
         dtype = str(dtype)
 
+    description = component_stats.get("description")
+    title = component_stats.get("title")
+
     return {
+        "title": title,
+        "description": description,
         "dtype": dtype,
         "nullable": component_stats["nullable"],
         "checks": serialized_checks,
@@ -180,6 +185,9 @@ def _deserialize_component_stats(serialized_component_stats):
     if dtype:
         dtype = pandas_engine.Engine.dtype(dtype)
 
+    description = serialized_component_stats.get("description")
+    title = serialized_component_stats.get("title")
+
     checks = serialized_component_stats.get("checks")
     if checks is not None:
         checks = [
@@ -189,6 +197,8 @@ def _deserialize_component_stats(serialized_component_stats):
             for check_name, check_stats in checks.items()
         ]
     return {
+        "title": title,
+        "description": description,
         "dtype": dtype,
         "checks": checks,
         **{
@@ -315,13 +325,22 @@ Column(
     coerce={coerce},
     required={required},
     regex={regex},
+    description={description},
+    title={title},
 )
 """
 
-INDEX_TEMPLATE = (
-    "Index(dtype={dtype},checks={checks},"
-    "nullable={nullable},coerce={coerce},name={name})"
+INDEX_TEMPLATE = """
+Index(
+    dtype={dtype},
+    checks={checks},
+    nullable={nullable},
+    coerce={coerce},
+    name={name},
+    description={description},
+    title={title},
 )
+"""
 
 MULTIINDEX_TEMPLATE = """
 MultiIndex(indexes=[{indexes}])
@@ -351,6 +370,8 @@ def _format_index(index_statistics):
     index = []
     for properties in index_statistics:
         dtype = properties.get("dtype")
+        description = properties.get("description")
+        title = properties.get("title")
         index_code = INDEX_TEMPLATE.format(
             dtype=f"{_get_qualified_name(dtype.__class__)}",
             checks=(
@@ -365,6 +386,8 @@ def _format_index(index_statistics):
                 if properties["name"] is None
                 else f"\"{properties['name']}\""
             ),
+            description=(None if description is None else f'"{description}"'),
+            title=(None if title is None else f'"{title}"'),
         )
         index.append(index_code.strip())
 
@@ -392,6 +415,8 @@ def to_script(dataframe_schema, path_or_buf=None):
     columns = {}
     for colname, properties in statistics["columns"].items():
         dtype = properties.get("dtype")
+        description = properties["description"]
+        title = properties["title"]
         column_code = COLUMN_TEMPLATE.format(
             dtype=(
                 None if dtype is None else _get_qualified_name(dtype.__class__)
@@ -402,6 +427,8 @@ def to_script(dataframe_schema, path_or_buf=None):
             coerce=properties["coerce"],
             required=properties["required"],
             regex=properties["regex"],
+            description=(None if description is None else f'"{description}"'),
+            title=(None if title is None else f'"{title}"'),
         )
         columns[colname] = column_code.strip()
 

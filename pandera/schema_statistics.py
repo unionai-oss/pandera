@@ -93,6 +93,8 @@ def get_dataframe_schema_statistics(dataframe_schema):
                 "regex": column.regex,
                 "checks": parse_checks(column.checks),
                 "unique": column.unique,
+                "description": column.description,
+                "title": column.title,
             }
             for col_name, column in dataframe_schema.columns.items()
         },

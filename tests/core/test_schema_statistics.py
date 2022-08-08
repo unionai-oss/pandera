@@ -411,6 +411,8 @@ def test_get_dataframe_schema_statistics():
                     pa.Check.less_than_or_equal_to(100),
                 ],
                 nullable=True,
+                description="Integer column with title",
+                title="integer_col",
             ),
             "float": pa.Column(
                 float,
@@ -418,6 +420,7 @@ def test_get_dataframe_schema_statistics():
                     pa.Check.greater_than_or_equal_to(50),
                     pa.Check.less_than_or_equal_to(100),
                 ],
+                description="Float col no title",
             ),
             "str": pa.Column(
                 str,
@@ -445,6 +448,8 @@ def test_get_dataframe_schema_statistics():
                 "coerce": False,
                 "required": True,
                 "regex": False,
+                "description": "Integer column with title",
+                "title": "integer_col",
             },
             "float": {
                 "dtype": DEFAULT_FLOAT,
@@ -457,6 +462,8 @@ def test_get_dataframe_schema_statistics():
                 "coerce": False,
                 "required": True,
                 "regex": False,
+                "description": "Float col no title",
+                "title": None,
             },
             "str": {
                 "dtype": pandas_engine.Engine.dtype(str),
@@ -466,6 +473,8 @@ def test_get_dataframe_schema_statistics():
                 "coerce": False,
                 "required": True,
                 "regex": False,
+                "description": None,
+                "title": None,
             },
         },
         "index": [
