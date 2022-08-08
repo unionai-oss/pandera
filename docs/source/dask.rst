@@ -67,7 +67,7 @@ below we'll use the :ref:`class-based API <schema_models>` to define a
     0              object  object  int64
     3                 ...     ...    ...
     5                 ...     ...    ...
-    Dask Name: validate, 4 tasks
+    Dask Name: validate, 2 graph layers
 
 
 As you can see, passing the dask dataframe into ``Schema`` will produce
