@@ -195,6 +195,11 @@ def install_extras(
     pandas_stubs: bool = True,
 ) -> None:
     """Install dependencies."""
+
+    if isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
+        # skip this step if there's no virtual environment specified
+        return
+
     specs, pip_specs = [], []
     pandas_version = "" if pandas == "latest" else f"=={pandas}"
     for spec in REQUIRES[extra].values():
