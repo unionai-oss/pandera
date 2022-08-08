@@ -198,6 +198,7 @@ def install_extras(
 
     if isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
         # skip this step if there's no virtual environment specified
+        session.run("pip", "install", "-e", ".", "--no-deps")
         return
 
     specs, pip_specs = [], []
