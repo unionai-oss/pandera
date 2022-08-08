@@ -62,8 +62,6 @@ if TYPE_CHECKING:
 else:
     T = Schema
 
-Column = Union[int, str]
-ArrayLike = Union["ExtensionArray", pd.np.ndarray]  # type: ignore[name-defined]
 
 # pylint:disable=too-few-public-methods
 class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
