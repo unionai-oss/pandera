@@ -34,6 +34,8 @@ class BaseConfig:  # pylint:disable=R0903
     #: coerce types of all MultiIndex components
     multiindex_coerce: bool = False
 
+    #: make sure the MultiIndex is unique along the list of columns
+    multiindex_unique = None
     #: make sure all specified columns are in validated MultiIndex -
     #: if ``"filter"``, removes indexes not specified in the schema
     multiindex_strict: StrictType = False
