@@ -1,9 +1,19 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
 import io
-from typing import _type_check  # type: ignore[attr-defined]
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import (  # type: ignore[attr-defined]
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generic,
+    List,
+    Tuple,
+    TypeVar,
+    Union,
+    _type_check,
+)
 
+import numpy as np
 import pandas as pd
 
 from ..errors import SchemaError, SchemaInitError
@@ -176,3 +186,30 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             raise ValueError(str(exc)) from exc
 
         return cls.to_format(valid_data, schema_model.__config__)
+
+    @staticmethod
+    def from_records(
+        schema: T,
+        data: Union[
+            np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
+        ],
+        **kwargs,
+    ) -> "DataFrame[T]":
+        """
+        Convert structured or record ndarray to pandera-validated DataFrame.
+
+        Creates a DataFrame object from a structured ndarray, sequence of tuples
+        or dicts, or DataFrame.
+
+        See :doc:`pandas:reference/api/pandas.DataFrame.from_records` for
+        more details.
+        """
+        schema = schema.to_schema()  # type: ignore[attr-defined]
+        schema_index = schema.index.names if schema.index is not None else None
+        if "index" not in kwargs:
+            kwargs["index"] = schema_index
+        return DataFrame[T](
+            pd.DataFrame.from_records(data=data, **kwargs,)[
+                schema.columns.keys()
+            ]  # set the column order according to schema
+        )
