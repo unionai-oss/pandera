@@ -458,3 +458,20 @@ def test_dataframe_check_schema_error() -> None:
                 "index == 3 & column == 'b'"
             ).failure_case.iloc[0]
         )
+
+
+
+def test_prepare_series_check_output_df_level():
+    """Test that dataframe-level checks only ignore rows where all values are null."""
+    df = pd.DataFrame(
+        {
+            "a": [1, 1, 2, 2, 3, 3, None],
+            "b": [2, 1, 4, 3, 6, 5, None],
+            "c": [None] * 7,
+        }
+    )
+    check = Check(lambda df: df["b"] == df["a"] * 2, ignore_na=True)
+    # The last record should evaluate to True, since all values are null
+    expected_output = [True, False, True, False, True, False, True]
+    result = check(df)
+    assert result.check_output.tolist() == expected_output
