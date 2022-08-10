@@ -460,7 +460,6 @@ def test_dataframe_check_schema_error() -> None:
         )
 
 
-
 def test_prepare_series_check_output_df_level():
     """Test that dataframe-level checks only ignore rows where all values are null."""
     df = pd.DataFrame(
