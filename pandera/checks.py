@@ -782,12 +782,16 @@ class Check(_CheckBase):
         :returns: :class:`Check` object
 
         .. note::
-            It is checked whether all elements of a :class:`pandas.Series`
+            This checks whether all elements of a :class:`pandas.Series`
             are part of the set of elements of allowed values. If allowed
             values is a string, the set of elements consists of all distinct
             characters of the string. Thus only single characters which occur
             in allowed_values at least once can meet this condition. If you
             want to check for substrings use :func:`Check.str_is_substring`.
+
+        .. note::
+            In constrast with :meth:`Check.unique_values_eq`, this check only makes
+            sure that the values in the checked data object are within an allowable set.
         """
         # Turn allowed_values into a set. Not only for performance but also
         # avoid issues with a mutable argument passed by reference which may be
@@ -1023,40 +1027,33 @@ class Check(_CheckBase):
         )
 
     @classmethod
-    @st.register_check_strategy(st.isin_strategy)
     @register_check_statistics(["values"])
     def unique_values_eq(
         cls,
         values: Iterable,
         **kwargs,
     ) -> "Check":
-        """Ensure series contains all values of within a list.
-        The series must contain all values from the list.
+        """Ensure that the unique values in the data object contain all specified values.
+
+        .. note::
+            In constrast with :meth:`Check.isin`, this check makes sure that all the items
+            in the ``values`` iterable are contained within the series.
+
         :param values: The set of values that must be present. Maybe any iterable.
         :param kwargs: key-word arguments passed into the `Check` initializer.
         :returns: :class:`Check` object
-        .. note::
-            It is checked whether all elements of a list passed in as
-            allowed values are present within a
-            :class:`pandas.Series`.
         """
-        # Turn allowed_values into a pd.Series.
-        try:
-            values = pd.Series(values)
-        except TypeError as exc:
-            raise ValueError(
-                f"Argument allowed_values must be iterable. Got {values}"
-            ) from exc
+        set_values = frozenset(values)
 
         def _unique_values_eq(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
-            return values.isin(series).all()
+            return set(series.unique()) == set_values
 
         return cls(
             _unique_values_eq,
             **_check_kwargs(
                 kwargs,
-                cls.isin.__name__,
-                f"unique_values_eq({set(values)})",
+                cls.unique_values_eq.__name__,
+                f"unique_values_eq({values})",
             ),
         )
