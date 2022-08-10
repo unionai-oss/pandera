@@ -688,7 +688,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 col.required or col_name in check_obj
             ) and col_name not in lazy_exclude_columns:
                 col = copy.deepcopy(col)
-                col._coerce = False
+                col._coerce = False  # type: ignore
                 if self.dtype is not None:
                     # override column dtype with dataframe dtype
                     col.dtype = self.dtype
