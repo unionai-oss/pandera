@@ -1,4 +1,1 @@
 -r requirements-dev.txt
-
-# use latest furo version to enable edit button customization.
-git+https://github.com/pradyunsg/furo@main

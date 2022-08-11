@@ -3,8 +3,6 @@
 Schema Models
 =============
 
-.. currentmodule:: pandera
-
 Schema Model
 ------------
 
