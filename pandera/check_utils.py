@@ -105,7 +105,7 @@ def prepare_series_check_output(
     """
     if ignore_na:
         isna = (
-            check_obj.isna().any(axis="columns")
+            check_obj.isna().all(axis="columns")
             if isinstance(check_obj, pd.DataFrame)
             else check_obj.isna()
         )
