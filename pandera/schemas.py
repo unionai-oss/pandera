@@ -63,6 +63,13 @@ PandasDtypeInputTypes = Union[
     None,
 ]
 
+UniqueSettings = Union[
+    Literal['first'],
+    Literal['last'],
+    Literal['all'],
+    bool
+]
+
 StrictType = Union[bool, Literal["filter"]]
 
 TSeriesSchemaBase = TypeVar("TSeriesSchemaBase", bound="SeriesSchemaBase")
@@ -1677,7 +1684,7 @@ class SeriesSchemaBase:
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        unique: bool = False,
+        unique: UniqueSettings = False,
         coerce: bool = False,
         name: Any = None,
         title: Optional[str] = None,
@@ -1948,9 +1955,17 @@ class SeriesSchemaBase:
 
         # Check if the series contains duplicate values
         if self._unique:
+            # Default `keep` argument for pandas .duplicated() function
+            keep_argument = 'first'
+            if self._unique in ('first', 'last'):
+                keep_argument = self._unique
+            elif self._unique == "all":
+                # To keep all unique values as errors, have to specify "False" to pandas
+                keep_argument = False
+
             if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
-                    series.to_frame().duplicated().reindex(series.index)
+                    series.to_frame().duplicated(keep = keep_argument).reindex(series.index)
                 )
                 # pylint: disable=import-outside-toplevel
                 import pyspark.pandas as ps
@@ -1958,7 +1973,7 @@ class SeriesSchemaBase:
                 with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = series[duplicates]
             else:
-                duplicates = series.duplicated()
+                duplicates = series.duplicated(keep = keep_argument)
                 failed = series[duplicates]
 
             if duplicates.any():
@@ -2140,7 +2155,7 @@ class SeriesSchema(SeriesSchemaBase):
         checks: CheckList = None,
         index=None,
         nullable: bool = False,
-        unique: bool = False,
+        unique: UniqueSettings = False,
         coerce: bool = False,
         name: str = None,
         title: Optional[str] = None,

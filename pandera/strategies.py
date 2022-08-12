@@ -799,7 +799,7 @@ def series_strategy(
     *,
     checks: Optional[Sequence] = None,
     nullable: bool = False,
-    unique: bool = False,
+    unique: 'UniqueSettings' = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):
@@ -858,7 +858,7 @@ def column_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    unique: bool = False,
+    unique: 'UniqueSettings' = False,
     name: Optional[str] = None,
 ):
     # pylint: disable=line-too-long
@@ -889,7 +889,7 @@ def index_strategy(
     *,
     checks: Optional[Sequence] = None,
     nullable: bool = False,
-    unique: bool = False,
+    unique: 'UniqueSettings' = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):

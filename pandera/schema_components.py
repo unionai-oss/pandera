@@ -15,7 +15,7 @@ from .schemas import (
     DataFrameSchema,
     PandasDtypeInputTypes,
     SeriesSchemaBase,
-    StrictType,
+    StrictType, UniqueSettings,
 )
 
 
@@ -32,7 +32,7 @@ class Column(SeriesSchemaBase):
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        unique: bool = False,
+        unique: UniqueSettings = False,
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,

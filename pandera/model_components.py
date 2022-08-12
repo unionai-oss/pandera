@@ -22,6 +22,7 @@ from .schema_components import (
     PandasDtypeInputTypes,
     SeriesSchemaBase,
 )
+from .schemas import UniqueSettings
 
 AnyCallable = Callable[..., Any]
 SchemaComponent = TypeVar("SchemaComponent", bound=SeriesSchemaBase)
@@ -63,7 +64,7 @@ class FieldInfo:
         self,
         checks: Optional[_CheckList] = None,
         nullable: bool = False,
-        unique: bool = False,
+        unique: UniqueSettings = False,
         coerce: bool = False,
         regex: bool = False,
         alias: Any = None,
@@ -190,7 +191,7 @@ def Field(
     str_matches: Optional[str] = None,
     str_startswith: Optional[str] = None,
     nullable: bool = False,
-    unique: bool = False,
+    unique: UniqueSettings = False,
     coerce: bool = False,
     regex: bool = False,
     ignore_na: bool = True,
