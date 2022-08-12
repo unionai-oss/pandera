@@ -64,10 +64,14 @@ PandasDtypeInputTypes = Union[
 ]
 
 UniqueSettings = Union[
-    Literal['first'],
-    Literal['last'],
-    Literal['all'],
-    bool
+    # Report all unique errors except the first
+    Literal["first"],
+    # Report all unique errors except the last
+    Literal["last"],
+    # Report all unique errors
+    Literal["all"],
+    # For compatibility -- True means "first" and False means don't report unique errors
+    bool,
 ]
 
 StrictType = Union[bool, Literal["filter"]]
@@ -1780,7 +1784,7 @@ class SeriesSchemaBase:
         return self._nullable
 
     @property
-    def unique(self) -> bool:
+    def unique(self) -> UniqueSettings:
         """Whether to check for duplicates in check object"""
         return self._unique
 
@@ -1956,8 +1960,8 @@ class SeriesSchemaBase:
         # Check if the series contains duplicate values
         if self._unique:
             # Default `keep` argument for pandas .duplicated() function
-            keep_argument = 'first'
-            if self._unique in ('first', 'last'):
+            keep_argument: Union[str, bool] = "first"
+            if self._unique in ("first", "last"):
                 keep_argument = self._unique
             elif self._unique == "all":
                 # To keep all unique values as errors, have to specify "False" to pandas
@@ -1965,7 +1969,9 @@ class SeriesSchemaBase:
 
             if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
-                    series.to_frame().duplicated(keep = keep_argument).reindex(series.index)
+                    series.to_frame()
+                    .duplicated(keep=keep_argument)
+                    .reindex(series.index)
                 )
                 # pylint: disable=import-outside-toplevel
                 import pyspark.pandas as ps
@@ -1973,7 +1979,7 @@ class SeriesSchemaBase:
                 with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = series[duplicates]
             else:
-                duplicates = series.duplicated(keep = keep_argument)
+                duplicates = series.duplicated(keep=keep_argument)
                 failed = series[duplicates]
 
             if duplicates.any():

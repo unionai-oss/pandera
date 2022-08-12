@@ -15,7 +15,8 @@ from .schemas import (
     DataFrameSchema,
     PandasDtypeInputTypes,
     SeriesSchemaBase,
-    StrictType, UniqueSettings,
+    StrictType,
+    UniqueSettings,
 )
 
 

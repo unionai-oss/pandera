@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import pandera.errors
 from pandera import (
     Category,
     Check,
@@ -1560,26 +1559,34 @@ def test_schema_coerce_inplace_validation(
         assert df["column"].dtype == from_dtype
 
 
-@pytest.mark.parametrize("unique_answers", [
-    (True, [4, 5, 6, 7]),
-    (False, []),
-    ("all", [0, 1, 2, 4, 5, 6, 7]),
-    ("first", [4, 5, 6, 7]),
-    ("last", [0, 1, 2, 4]),
-])
-def test_different_unique_settings(unique_answers: Tuple[UniqueSettings, List[int]]):
-    unique, errors = unique_answers
+@pytest.mark.parametrize(
+    "unique_answers",
+    [
+        # unique is True -- default is to report all unique violations except the first
+        (True, [4, 5, 6, 7]),
+        (False, []),
+        ("all", [0, 1, 2, 4, 5, 6, 7]),
+        ("first", [4, 5, 6, 7]),
+        ("last", [0, 1, 2, 4]),
+    ],
+)
+def test_different_unique_settings(
+    unique_answers: Tuple[UniqueSettings, List[int]]
+):
+    """Test that different unique settings work as expected"""
+    unique, expected_err = unique_answers
 
     df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
-    schema = DataFrameSchema({"a": Column(int, unique = unique)})
+    schema = DataFrameSchema({"a": Column(int, unique=unique)})
 
-    if len(errors) == 0:
+    if len(expected_err) == 0:
         schema.validate(df)
     else:
-        with pytest.raises(pandera.errors.SchemaError) as err:
+        with pytest.raises(errors.SchemaError) as err:
             schema.validate(df)
 
-        assert err.value.failure_cases['index'].to_list() == errors
+        assert err.value.failure_cases["index"].to_list() == expected_err
+
 
 @pytest.fixture
 def schema_simple() -> DataFrameSchema:
