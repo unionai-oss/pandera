@@ -130,6 +130,7 @@ Installing additional functionality:
       pip install pandera[io]          # yaml/script schema io utilities
       pip install pandera[strategies]  # data synthesis strategies
       pip install pandera[mypy]        # enable static type-linting of pandas
+      pip install pandera[fastapi]     # fastapi integration
       pip install pandera[dask]        # validate dask dataframes
       pip install pandera[pyspark]     # validate pyspark dataframes
       pip install pandera[modin]       # validate modin dataframes
@@ -151,6 +152,7 @@ Installing additional functionality:
       conda install -c conda-forge pandera-modin       # validate modin dataframes
       conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
       conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
+      conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
 
 Quick Start
 -----------

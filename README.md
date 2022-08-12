@@ -93,6 +93,7 @@ pip install pandera[pyspark]     # validate pyspark dataframes
 pip install pandera[modin]       # validate modin dataframes
 pip install pandera[modin-ray]   # validate modin dataframes with ray
 pip install pandera[modin-dask]  # validate modin dataframes with dask
+pip install pandera[geopandas]   # validate geopandas geodataframes
 ```
 
 </details>
@@ -112,6 +113,7 @@ conda install -c conda-forge pandera-pyspark     # validate pyspark dataframes
 conda install -c conda-forge pandera-modin       # validate modin dataframes
 conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
 conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
+conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
 ```
 
 </details>
