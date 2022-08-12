@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import pandera.errors
 from pandera import (
     Category,
     Check,
@@ -23,7 +24,7 @@ from pandera import (
     errors,
 )
 from pandera.engines.pandas_engine import Engine
-from pandera.schemas import SeriesSchemaBase
+from pandera.schemas import SeriesSchemaBase, UniqueSettings
 
 
 def test_dataframe_schema() -> None:
@@ -1558,6 +1559,27 @@ def test_schema_coerce_inplace_validation(
         # not inplace preserves original dataframe type
         assert df["column"].dtype == from_dtype
 
+
+@pytest.mark.parametrize("unique_answers", [
+    (True, [4, 5, 6, 7]),
+    (False, []),
+    ("all", [0, 1, 2, 4, 5, 6, 7]),
+    ("first", [4, 5, 6, 7]),
+    ("last", [0, 1, 2, 4]),
+])
+def test_different_unique_settings(unique_answers: Tuple[UniqueSettings, List[int]]):
+    unique, errors = unique_answers
+
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
+    schema = DataFrameSchema({"a": Column(int, unique = unique)})
+
+    if len(errors) == 0:
+        schema.validate(df)
+    else:
+        with pytest.raises(pandera.errors.SchemaError) as err:
+            schema.validate(df)
+
+        assert err.value.failure_cases['index'].to_list() == errors
 
 @pytest.fixture
 def schema_simple() -> DataFrameSchema:
