@@ -22,8 +22,9 @@ from pandera import (
     String,
     errors,
 )
+from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
-from pandera.schemas import SeriesSchemaBase, UniqueSettings
+from pandera.schemas import SeriesSchemaBase
 
 
 def test_dataframe_schema() -> None:

@@ -30,7 +30,7 @@ import pandas as pd
 from . import check_utils, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import DataType
+from .dtypes import DataType, UniqueSettings
 from .engines import pandas_engine
 from .error_formatters import (
     format_generic_error_message,
@@ -43,7 +43,6 @@ from .hypotheses import Hypothesis
 
 if TYPE_CHECKING:
     from pandera.schema_components import Column
-
 
 N_INDENT_SPACES = 4
 
@@ -61,17 +60,6 @@ PandasDtypeInputTypes = Union[
     pd.api.extensions.ExtensionDtype,
     np.dtype,
     None,
-]
-
-UniqueSettings = Union[
-    # Report all unique errors except the first
-    Literal["first"],
-    # Report all unique errors except the last
-    Literal["last"],
-    # Report all unique errors
-    Literal["all"],
-    # For compatibility -- True means "first" and False means don't report unique errors
-    bool,
 ]
 
 StrictType = Union[bool, Literal["filter"]]

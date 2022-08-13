@@ -15,6 +15,7 @@ from typing import (
 )
 
 from .checks import Check
+from .dtypes import UniqueSettings
 from .errors import SchemaInitError
 from .schema_components import (
     Column,
@@ -22,7 +23,6 @@ from .schema_components import (
     PandasDtypeInputTypes,
     SeriesSchemaBase,
 )
-from .schemas import UniqueSettings
 
 AnyCallable = Callable[..., Any]
 SchemaComponent = TypeVar("SchemaComponent", bound=SeriesSchemaBase)

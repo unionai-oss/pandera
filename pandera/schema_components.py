@@ -1,4 +1,5 @@
 """Components used in pandera schemas."""
+from __future__ import annotations
 
 import warnings
 from copy import copy, deepcopy
@@ -9,6 +10,7 @@ import pandas as pd
 
 from . import check_utils, errors
 from . import strategies as st
+from .dtypes import UniqueSettings
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -16,7 +18,6 @@ from .schemas import (
     PandasDtypeInputTypes,
     SeriesSchemaBase,
     StrictType,
-    UniqueSettings,
 )
 
 

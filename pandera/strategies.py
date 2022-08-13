@@ -33,6 +33,7 @@ import pandas as pd
 
 from .dtypes import (
     DataType,
+    UniqueSettings,
     is_category,
     is_complex,
     is_datetime,
@@ -799,7 +800,7 @@ def series_strategy(
     *,
     checks: Optional[Sequence] = None,
     nullable: bool = False,
-    unique: "UniqueSettings" = False,  # type: ignore
+    unique: UniqueSettings = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):
@@ -858,7 +859,7 @@ def column_strategy(
     strategy: Optional[SearchStrategy] = None,
     *,
     checks: Optional[Sequence] = None,
-    unique: "UniqueSettings" = False,  # type: ignore
+    unique: UniqueSettings = False,
     name: Optional[str] = None,
 ):
     # pylint: disable=line-too-long
@@ -889,7 +890,7 @@ def index_strategy(
     *,
     checks: Optional[Sequence] = None,
     nullable: bool = False,
-    unique: "UniqueSettings" = False,  # type: ignore
+    unique: UniqueSettings = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
 ):
