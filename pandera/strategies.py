@@ -825,7 +825,7 @@ def series_strategy(
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
-            unique=True if unique else False,
+            unique=bool(unique),
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
@@ -915,7 +915,7 @@ def index_strategy(
         dtype=to_numpy_dtype(pandera_dtype),
         min_size=0 if size is None else size,
         max_size=size,
-        unique=True if unique else False,
+        unique=bool(unique),
     ).map(lambda x: x.astype(pandera_dtype.type))
 
     # this is a hack to convert np.str_ data values into native python str.
