@@ -73,7 +73,7 @@ literals ``"True"`` and ``"False"``.
     @dtypes.immutable  # step 2
     class LiteralBool(pandas_engine.BOOL):  # step 3
         def coerce(self, series: pd.Series) -> pd.Series:
-            """Coerce a pandas.Series to date types."""
+            """Coerce a pandas.Series to boolean types."""
             if pd.api.types.is_string_dtype(series):
                 series = series.replace({"True": 1, "False": 0})
             return series.astype("boolean")
@@ -135,7 +135,7 @@ is looked up using :meth:`pandera.engines.engine.Engine.dtype`.
     @dtypes.immutable
     class LiteralBool(pandas_engine.BOOL):
         def coerce(self, series: pd.Series) -> pd.Series:
-            """Coerce a pandas.Series to date types."""
+            """Coerce a pandas.Series to boolean types."""
             if pd.api.types.is_string_dtype(series):
                 series = series.replace({"True": 1, "False": 0})
             return series.astype("boolean")
