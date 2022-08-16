@@ -153,7 +153,7 @@ def value_ranges(data_type: pa.DataType):
             ),
         )
         .map(sorted)
-        .filter(lambda x: x[0] < x[1])
+        .filter(lambda x: x[0] < x[1])  # type: ignore
     )
 
 
