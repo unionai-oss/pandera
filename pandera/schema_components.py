@@ -50,7 +50,13 @@ class Column(SeriesSchemaBase):
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
-        :param unique: whether column values should be unique
+        :param unique: whether column values should be unique.
+            - `False`: don't check for uniqueness
+            - `True`: report all duplicates except first occurence
+            - `first`: report all duplicates except first occurence
+            - `last`: report all duplicates except last occurence
+            - `all`: report all duplicates
+
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -452,6 +458,8 @@ class MultiIndex(DataFrameSchema):
         name: Optional[str] = None,
         ordered: bool = True,
         unique: Optional[Union[str, List[str]]] = None,
+        unique_keep_setting: UniqueSettings = False,
+
     ) -> None:
         """Create MultiIndex validator.
 

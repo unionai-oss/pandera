@@ -215,7 +215,12 @@ def Field(
     to the built-in :py:class:`~pandera.checks.Check` methods.
 
     :param nullable: Whether or not the column/index can contain null values.
-    :param unique: Whether column values should be unique.
+    :param unique: whether column values should be unique.
+        - `False`: don't check for uniqueness
+        - `True`: report all duplicates except first occurence
+        - `first`: report all duplicates except first occurence
+        - `last`: report all duplicates except last occurence
+        - `all`: report all duplicates
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
     :param ignore_na: whether or not to ignore null values in the checks.

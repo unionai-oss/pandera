@@ -100,6 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         name: Optional[str] = None,
         ordered: bool = False,
         unique: Optional[Union[str, List[str]]] = None,
+        unique_keep_setting: UniqueSettings = 'first',
         unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -127,6 +128,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :param name: name of the schema.
         :param ordered: whether or not to validate the columns order.
         :param unique: a list of columns that should be jointly unique.
+        :param unique_keep_setting: how to report unique errors
+            - `True`: report all duplicates except first occurence
+            - `first`: (default) report all duplicates except first occurence
+            - `last`: report all duplicates except last occurence
+            - `all`: report all duplicates
         :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
@@ -189,6 +195,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
+        self._unique_keep_setting = unique_keep_setting
         self._unique_column_names = unique_column_names
         self._title = title
         self._description = description
@@ -731,44 +738,37 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 error_handler.collect_error("dataframe_check", err)
 
         if self.unique:
-            # NOTE: fix this pylint error
-            # pylint: disable=not-an-iterable
-            temp_unique: List[List] = (
-                [self.unique]
-                if all(isinstance(x, str) for x in self.unique)
-                else self.unique
-            )
-            for lst in temp_unique:
-                duplicates = df_to_validate.duplicated(subset=lst, keep=False)
-                if duplicates.any():
-                    # NOTE: this is a hack to support pyspark.pandas, need to
-                    # figure out a workaround to error: "Cannot combine the
-                    # series or dataframe because it comes from a different
-                    # dataframe."
-                    if type(duplicates).__module__.startswith(
-                        "pyspark.pandas"
+            keep_setting = convert_uniquesettings(self._unique_keep_setting)
+            duplicates = df_to_validate.duplicated(subset=self.unique, keep = keep_setting)
+            if duplicates.any():
+                # NOTE: this is a hack to support pyspark.pandas, need to
+                # figure out a workaround to error: "Cannot combine the
+                # series or dataframe because it comes from a different
+                # dataframe."
+                if type(duplicates).__module__.startswith(
+                    "pyspark.pandas"
+                ):
+                    # pylint: disable=import-outside-toplevel
+                    import pyspark.pandas as ps
+
+                    with ps.option_context(
+                        "compute.ops_on_diff_frames", True
                     ):
-                        # pylint: disable=import-outside-toplevel
-                        import pyspark.pandas as ps
+                        failure_cases = df_to_validate.loc[duplicates, self.unique]
+                else:
+                    failure_cases = df_to_validate.loc[duplicates, self.unique]
 
-                        with ps.option_context(
-                            "compute.ops_on_diff_frames", True
-                        ):
-                            failure_cases = df_to_validate.loc[duplicates, lst]
-                    else:
-                        failure_cases = df_to_validate.loc[duplicates, lst]
-
-                    failure_cases = reshape_failure_cases(failure_cases)
-                    error_handler.collect_error(
-                        "duplicates",
-                        errors.SchemaError(
-                            self,
-                            check_obj,
-                            f"columns '{*lst,}' not unique:\n{failure_cases}",
-                            failure_cases=failure_cases,
-                            check="multiple_fields_uniqueness",
-                        ),
-                    )
+                failure_cases = reshape_failure_cases(failure_cases)
+                error_handler.collect_error(
+                    "duplicates",
+                    errors.SchemaError(
+                        self,
+                        check_obj,
+                        f"columns '{*self.unique,}' not unique:\n{failure_cases}",
+                        failure_cases=failure_cases,
+                        check="multiple_fields_uniqueness",
+                    ),
+                )
 
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
@@ -1694,8 +1694,12 @@ class SeriesSchemaBase:
             in the column. Otherwise, the input is assumed to be a
             pandas.Series object.
         :param nullable: Whether or not column can contain null values.
-        :param unique: Whether or not column can contain duplicate
-            values.
+        :param unique: whether column values should be unique.
+            - `False`: don't check for uniqueness
+            - `True`: report all duplicates except first occurence
+            - `first`: report all duplicates except first occurence
+            - `last`: report all duplicates except last occurence
+            - `all`: report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -1947,13 +1951,7 @@ class SeriesSchemaBase:
 
         # Check if the series contains duplicate values
         if self._unique:
-            # Default `keep` argument for pandas .duplicated() function
-            keep_argument: Union[str, bool] = "first"
-            if self._unique in ("first", "last"):
-                keep_argument = self._unique
-            elif self._unique == "all":
-                # To keep all unique values as errors, have to specify "False" to pandas
-                keep_argument = False
+            keep_argument = convert_uniquesettings(self._unique)
 
             if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
@@ -2069,6 +2067,7 @@ class SeriesSchemaBase:
         assert all(check_results)
         return check_obj
 
+
     def __call__(
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
@@ -2168,8 +2167,12 @@ class SeriesSchema(SeriesSchemaBase):
             pandas.Series object.
         :param index: specify the datatypes and properties of the index.
         :param nullable: Whether or not column can contain null values.
-        :param unique: Whether or not column can contain duplicate
-            values.
+        :param unique: whether column values should be unique.
+            - `False`: don't check for uniqueness
+            - `True`: report all duplicates except first occurence
+            - `first`: report all duplicates except first occurence
+            - `last`: report all duplicates except last occurence
+            - `all`: report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -2429,3 +2432,13 @@ def _handle_check_results(
             check_output=check_result.check_output,
         )
     return check_result.check_passed
+
+def convert_uniquesettings(unique: UniqueSettings):
+    # Default `keep` argument for pandas .duplicated() function
+    keep_argument: Union[str, bool] = "first"
+    if unique in ("first", "last"):
+        keep_argument = unique
+    elif unique == "all":
+        # To keep all unique values as errors, have to specify "False" to pandas
+        keep_argument = False
+    return keep_argument
