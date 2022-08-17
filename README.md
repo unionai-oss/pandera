@@ -27,8 +27,8 @@ correctness.*
 [![Discord](https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord)](https://discord.gg/vyanhWuaKB)
 
 `pandera` provides a flexible and expressive API for performing data
-validation on dataframes to make data processing pipelines more readable and
-robust.
+validation on dataframe-like objects to make data processing pipelines more
+readable and robust.
 
 Dataframes contain information that `pandera` explicitly validates at runtime.
 This is useful in production-critical or reproducible research settings. With
