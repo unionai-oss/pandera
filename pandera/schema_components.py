@@ -34,7 +34,8 @@ class Column(SeriesSchemaBase):
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        unique: UniqueSettings = False,
+        unique: bool = False,
+        unique_keep_setting: UniqueSettings = False,
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
@@ -91,6 +92,7 @@ class Column(SeriesSchemaBase):
             checks,
             nullable,
             unique,
+            unique_keep_setting,
             coerce,
             name,
             title,
@@ -536,6 +538,7 @@ class MultiIndex(DataFrameSchema):
             name=name,
             ordered=ordered,
             unique=unique,
+            unique_keep_setting=unique_keep_setting
         )
 
     @property

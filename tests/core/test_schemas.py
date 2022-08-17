@@ -1565,7 +1565,6 @@ def test_schema_coerce_inplace_validation(
     [
         # unique is True -- default is to report all unique violations except the first
         (True, [4, 5, 6, 7]),
-        (False, []),
         ("all", [0, 1, 2, 4, 5, 6, 7]),
         ("first", [4, 5, 6, 7]),
         ("last", [0, 1, 2, 4]),
@@ -1578,15 +1577,13 @@ def test_different_unique_settings(
     unique, expected_err = unique_answers
 
     df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
-    schema = DataFrameSchema({"a": Column(int, unique=unique)})
+    schema = DataFrameSchema({"a": Column(int)}, unique = "a", unique_keep_setting=unique)
 
-    if len(expected_err) == 0:
+
+    with pytest.raises(errors.SchemaError) as err:
         schema.validate(df)
-    else:
-        with pytest.raises(errors.SchemaError) as err:
-            schema.validate(df)
 
-        assert err.value.failure_cases["index"].to_list() == expected_err
+    assert err.value.failure_cases["index"].to_list() == expected_err
 
 
 @pytest.fixture

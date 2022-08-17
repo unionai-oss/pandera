@@ -100,7 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         name: Optional[str] = None,
         ordered: bool = False,
         unique: Optional[Union[str, List[str]]] = None,
-        unique_keep_setting: UniqueSettings = 'first',
+        unique_keep_setting: UniqueSettings = False,
         unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -1676,7 +1676,8 @@ class SeriesSchemaBase:
         dtype: PandasDtypeInputTypes = None,
         checks: CheckList = None,
         nullable: bool = False,
-        unique: UniqueSettings = False,
+        unique: bool = False,
+        unique_keep_setting: UniqueSettings = False,
         coerce: bool = False,
         name: Any = None,
         title: Optional[str] = None,
@@ -1719,6 +1720,7 @@ class SeriesSchemaBase:
         self._checks = checks
         self._name = name
         self._unique = unique
+        self._unique_keep_setting = unique_keep_setting
         self._title = title
         self._description = description
 
@@ -1951,7 +1953,7 @@ class SeriesSchemaBase:
 
         # Check if the series contains duplicate values
         if self._unique:
-            keep_argument = convert_uniquesettings(self._unique)
+            keep_argument = convert_uniquesettings(self._unique_keep_setting)
 
             if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
@@ -2148,7 +2150,8 @@ class SeriesSchema(SeriesSchemaBase):
         checks: CheckList = None,
         index=None,
         nullable: bool = False,
-        unique: UniqueSettings = False,
+        unique: bool = False,
+        unique_keep_setting: UniqueSettings = False,
         coerce: bool = False,
         name: str = None,
         title: Optional[str] = None,
