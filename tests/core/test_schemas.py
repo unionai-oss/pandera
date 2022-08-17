@@ -1865,3 +1865,14 @@ def test_column_set_unique():
     assert not test_schema.columns["a"].unique
     test_schema = test_schema.update_column("a", unique=True)
     assert test_schema.columns["a"].unique
+
+def test_all_unique_errors_reported():
+    """Test that all unique errors reported as expected"""
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
+    schema = DataFrameSchema({"a": Column(int, unique=True)})
+
+    with pytest.raises(errors.SchemaError) as err:
+        schema.validate(df)
+
+    assert err.value.failure_cases["index"].to_list() == [0, 1, 2, 4, 5, 6, 7]
+
