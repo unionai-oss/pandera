@@ -70,7 +70,7 @@ class _CheckMeta(type):  # pragma: no cover
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
-        attr = ChainMap(cls.__dict__, cls.REGISTERED_CUSTOM_CHECKS).get(name)
+        attr = ChainMap(cls.__dict__, cls.REGISTERED_CUSTOM_CHECKS).get(name)  # type: ignore
         if attr is None:
             raise AttributeError(
                 f"'{cls}' object has no attribute '{name}'. "

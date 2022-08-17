@@ -16,7 +16,7 @@ _extras_require = {
     "modin-ray": ["modin", "ray <= 1.7.0"],
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
-    "mypy": ["pandas-stubs"],
+    "mypy": ["pandas-stubs <= 1.4.3.220807"],
     "fastapi": ["fastapi"],
     "geopandas": ["geopandas", "shapely"],
 }
