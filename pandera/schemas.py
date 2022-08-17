@@ -1950,7 +1950,9 @@ class SeriesSchemaBase:
         if self._unique:
             if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
-                    series.to_frame().duplicated(keep = False).reindex(series.index)
+                    series.to_frame()
+                    .duplicated(keep=False)
+                    .reindex(series.index)
                 )
                 # pylint: disable=import-outside-toplevel
                 import pyspark.pandas as ps
@@ -1958,7 +1960,7 @@ class SeriesSchemaBase:
                 with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = series[duplicates]
             else:
-                duplicates = series.duplicated(keep = False)
+                duplicates = series.duplicated(keep=False)
                 failed = series[duplicates]
 
             if duplicates.any():
