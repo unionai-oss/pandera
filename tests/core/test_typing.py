@@ -60,20 +60,6 @@ class SchemaUInt8(pa.SchemaModel):
 class SchemaInt16(pa.SchemaModel):
     col: Series[pa.typing.Int16]
 
-def test_1():
-    import pandas as pd
-    import pandera as pa
-
-    schema = pa.DataFrameSchema(
-        columns={col: pa.Column(int) for col in ["a", "b", "c"]},
-        unique="a",
-        unique_keep_setting="last"
-    )
-    df = pd.DataFrame.from_records([
-        {"a": 1, "b": 2, "c": 3},
-        {"a": 1, "b": 2, "c": 3},
-    ])
-    schema.validate(df)
 
 class SchemaUInt16(pa.SchemaModel):
     col: Series[pa.typing.UInt16]

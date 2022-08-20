@@ -50,6 +50,7 @@ class FieldInfo:
         "checks",
         "nullable",
         "unique",
+        "unique_keep_setting",
         "coerce",
         "regex",
         "check_name",
@@ -65,7 +66,7 @@ class FieldInfo:
         checks: Optional[_CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
-        unique_keep_setting: UniqueSettings = False,
+        unique_keep_setting: UniqueSettings = "all",
         coerce: bool = False,
         regex: bool = False,
         alias: Any = None,
@@ -77,6 +78,7 @@ class FieldInfo:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
         self.unique = unique
+        self.unique_keep_setting = unique_keep_setting
         self.coerce = coerce
         self.regex = regex
         self.alias = alias
@@ -146,6 +148,7 @@ class FieldInfo:
             Column,
             nullable=self.nullable,
             unique=self.unique,
+            unique_keep_setting=self.unique_keep_setting,
             coerce=self.coerce,
             regex=self.regex,
             required=required,
@@ -167,6 +170,7 @@ class FieldInfo:
             Index,
             nullable=self.nullable,
             unique=self.unique,
+            unique_keep_setting=self.unique_keep_setting,
             coerce=self.coerce,
             name=name,
             checks=checks,
@@ -193,7 +197,7 @@ def Field(
     str_startswith: Optional[str] = None,
     nullable: bool = False,
     unique: bool = False,
-    unique_keep_setting: UniqueSettings = False,
+    unique_keep_setting: UniqueSettings = "all",
     coerce: bool = False,
     regex: bool = False,
     ignore_na: bool = True,
@@ -272,6 +276,7 @@ def Field(
         checks=checks or None,
         nullable=nullable,
         unique=unique,
+        unique_keep_setting=unique_keep_setting,
         coerce=coerce,
         regex=regex,
         check_name=check_name,

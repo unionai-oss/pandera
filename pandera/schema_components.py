@@ -35,7 +35,7 @@ class Column(SeriesSchemaBase):
         checks: CheckList = None,
         nullable: bool = False,
         unique: bool = False,
-        unique_keep_setting: UniqueSettings = False,
+        unique_keep_setting: UniqueSettings = "all",
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
@@ -460,8 +460,7 @@ class MultiIndex(DataFrameSchema):
         name: Optional[str] = None,
         ordered: bool = True,
         unique: Optional[Union[str, List[str]]] = None,
-        unique_keep_setting: UniqueSettings = False,
-
+        unique_keep_setting: UniqueSettings = "all",
     ) -> None:
         """Create MultiIndex validator.
 
@@ -538,7 +537,7 @@ class MultiIndex(DataFrameSchema):
             name=name,
             ordered=ordered,
             unique=unique,
-            unique_keep_setting=unique_keep_setting
+            unique_keep_setting=unique_keep_setting,
         )
 
     @property

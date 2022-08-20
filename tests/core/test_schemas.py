@@ -1561,7 +1561,7 @@ def test_schema_coerce_inplace_validation(
 
 
 @pytest.mark.parametrize(
-    "unique_answers",
+    "unique,answers",
     [
         # unique is True -- default is to report all unique violations except the first
         (True, [4, 5, 6, 7]),
@@ -1570,20 +1570,30 @@ def test_schema_coerce_inplace_validation(
         ("last", [0, 1, 2, 4]),
     ],
 )
-def test_different_unique_settings(
-    unique_answers: Tuple[UniqueSettings, List[int]]
-):
+def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
     """Test that different unique settings work as expected"""
-    unique, expected_err = unique_answers
-
     df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
-    schema = DataFrameSchema({"a": Column(int)}, unique = "a", unique_keep_setting=unique)
+    schemas = [
+        DataFrameSchema(
+            {"a": Column(int)}, unique="a", unique_keep_setting=unique
+        ),
+        DataFrameSchema(
+            {"a": Column(int, unique=True, unique_keep_setting=unique)}
+        ),
+    ]
 
+    for schema in schemas:
+        with pytest.raises(errors.SchemaError) as err:
+            schema.validate(df)
+
+        assert err.value.failure_cases["index"].to_list() == answers
+
+    series_schema = SeriesSchema(int, unique=True, unique_keep_setting=unique)
 
     with pytest.raises(errors.SchemaError) as err:
-        schema.validate(df)
+        series_schema.validate(df["a"])
 
-    assert err.value.failure_cases["index"].to_list() == expected_err
+    assert err.value.failure_cases["index"].to_list() == answers
 
 
 @pytest.fixture

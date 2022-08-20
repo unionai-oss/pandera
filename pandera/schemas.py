@@ -100,7 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         name: Optional[str] = None,
         ordered: bool = False,
         unique: Optional[Union[str, List[str]]] = None,
-        unique_keep_setting: UniqueSettings = False,
+        unique_keep_setting: UniqueSettings = "all",
         unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -739,36 +739,46 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         if self.unique:
             keep_setting = convert_uniquesettings(self._unique_keep_setting)
-            duplicates = df_to_validate.duplicated(subset=self.unique, keep = keep_setting)
-            if duplicates.any():
-                # NOTE: this is a hack to support pyspark.pandas, need to
-                # figure out a workaround to error: "Cannot combine the
-                # series or dataframe because it comes from a different
-                # dataframe."
-                if type(duplicates).__module__.startswith(
-                    "pyspark.pandas"
-                ):
-                    # pylint: disable=import-outside-toplevel
-                    import pyspark.pandas as ps
-
-                    with ps.option_context(
-                        "compute.ops_on_diff_frames", True
-                    ):
-                        failure_cases = df_to_validate.loc[duplicates, self.unique]
-                else:
-                    failure_cases = df_to_validate.loc[duplicates, self.unique]
-
-                failure_cases = reshape_failure_cases(failure_cases)
-                error_handler.collect_error(
-                    "duplicates",
-                    errors.SchemaError(
-                        self,
-                        check_obj,
-                        f"columns '{*self.unique,}' not unique:\n{failure_cases}",
-                        failure_cases=failure_cases,
-                        check="multiple_fields_uniqueness",
-                    ),
+            # NOTE: fix this pylint error
+            # pylint: disable=not-an-iterable
+            temp_unique: List[List] = (
+                [self.unique]
+                if all(isinstance(x, str) for x in self.unique)
+                else self.unique
+            )
+            for lst in temp_unique:
+                duplicates = df_to_validate.duplicated(
+                    subset=lst, keep=keep_setting
                 )
+                if duplicates.any():
+                    # NOTE: this is a hack to support pyspark.pandas, need to
+                    # figure out a workaround to error: "Cannot combine the
+                    # series or dataframe because it comes from a different
+                    # dataframe."
+                    if type(duplicates).__module__.startswith(
+                        "pyspark.pandas"
+                    ):
+                        # pylint: disable=import-outside-toplevel
+                        import pyspark.pandas as ps
+
+                        with ps.option_context(
+                            "compute.ops_on_diff_frames", True
+                        ):
+                            failure_cases = df_to_validate.loc[duplicates, lst]
+                    else:
+                        failure_cases = df_to_validate.loc[duplicates, lst]
+
+                    failure_cases = reshape_failure_cases(failure_cases)
+                    error_handler.collect_error(
+                        "duplicates",
+                        errors.SchemaError(
+                            self,
+                            check_obj,
+                            f"columns '{*lst,}' not unique:\n{failure_cases}",
+                            failure_cases=failure_cases,
+                            check="multiple_fields_uniqueness",
+                        ),
+                    )
 
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
@@ -1677,7 +1687,7 @@ class SeriesSchemaBase:
         checks: CheckList = None,
         nullable: bool = False,
         unique: bool = False,
-        unique_keep_setting: UniqueSettings = False,
+        unique_keep_setting: UniqueSettings = "all",
         coerce: bool = False,
         name: Any = None,
         title: Optional[str] = None,
@@ -1778,7 +1788,7 @@ class SeriesSchemaBase:
         return self._nullable
 
     @property
-    def unique(self) -> UniqueSettings:
+    def unique(self) -> bool:
         """Whether to check for duplicates in check object"""
         return self._unique
 
@@ -2069,7 +2079,6 @@ class SeriesSchemaBase:
         assert all(check_results)
         return check_obj
 
-
     def __call__(
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
@@ -2151,7 +2160,7 @@ class SeriesSchema(SeriesSchemaBase):
         index=None,
         nullable: bool = False,
         unique: bool = False,
-        unique_keep_setting: UniqueSettings = False,
+        unique_keep_setting: UniqueSettings = "all",
         coerce: bool = False,
         name: str = None,
         title: Optional[str] = None,
@@ -2189,6 +2198,7 @@ class SeriesSchema(SeriesSchemaBase):
             checks,
             nullable,
             unique,
+            unique_keep_setting,
             coerce,
             name,
             title,
@@ -2436,7 +2446,11 @@ def _handle_check_results(
         )
     return check_result.check_passed
 
+
 def convert_uniquesettings(unique: UniqueSettings):
+    """
+    Converts UniqueSettings object to string that can be passed onto pandas .duplicated() call
+    """
     # Default `keep` argument for pandas .duplicated() function
     keep_argument: Union[str, bool] = "first"
     if unique in ("first", "last"):

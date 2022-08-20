@@ -33,7 +33,6 @@ import pandas as pd
 
 from .dtypes import (
     DataType,
-    UniqueSettings,
     is_category,
     is_complex,
     is_datetime,
