@@ -503,7 +503,7 @@ Multiple :class:`~pandera.typing.Index` annotations are automatically converted 
 :class:`~pandera.schema_components.MultiIndex`. MultiIndex options are given in the
 :ref:`schema_model_config`.
 
-Index Names
+Index Name
 ----------
 
 Use ``check_name`` to validate the index name of a single-index dataframe:
