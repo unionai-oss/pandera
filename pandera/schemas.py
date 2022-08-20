@@ -58,7 +58,7 @@ PandasDtypeInputTypes = Union[
     type,
     DataType,
     Type,
-    pd.core.dtypes.base.ExtensionDtype,
+    pd.api.extensions.ExtensionDtype,
     np.dtype,
     None,
 ]

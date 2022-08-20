@@ -14,7 +14,7 @@ typing_extensions >= 3.7.4.3
 frictionless
 pyarrow
 pydantic
-pandas-stubs
+pandas-stubs <= 1.4.3.220807
 pyspark-stubs
 pyspark >= 3.2.0
 modin
@@ -27,7 +27,7 @@ fastapi
 black >= 22.1.0
 isort >= 5.7.0
 codecov
-mypy <= 0.921
+mypy <= 0.971
 pylint == 2.12.2
 pytest
 pytest-cov

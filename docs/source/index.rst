@@ -70,8 +70,8 @@ correctness.*
 |
 
 ``pandera`` provides a flexible and expressive API for performing data
-validation on dataframes to make data processing pipelines more readable and
-robust.
+validation on dataframe-like objects to make data processing pipelines more
+readable and robust.
 
 Dataframes contain information that ``pandera`` explicitly validates at runtime.
 This is useful in production-critical data pipelines or reproducible research

@@ -16,7 +16,7 @@ _extras_require = {
     "modin-ray": ["modin", "ray <= 1.7.0"],
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
-    "mypy": ["pandas-stubs"],
+    "mypy": ["pandas-stubs <= 1.4.3.220807"],
     "fastapi": ["fastapi"],
     "geopandas": ["geopandas", "shapely"],
 }
@@ -31,7 +31,7 @@ setup(
     version=version["__version__"],
     author="Niels Bantilan",
     author_email="niels.bantilan@gmail.com",
-    description="A light-weight and flexible data validation and testing tool for dataframes.",
+    description="A light-weight and flexible data validation and testing tool for statistical data objects.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/pandera-dev/pandera",
