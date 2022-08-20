@@ -222,11 +222,11 @@ def Field(
 
     :param nullable: Whether or not the column/index can contain null values.
     :param unique: whether column values should be unique.
-        - `False`: don't check for uniqueness
-        - `True`: report all duplicates except first occurence
-        - `first`: report all duplicates except first occurence
-        - `last`: report all duplicates except last occurence
-        - `all`: report all duplicates
+    :param unique_keep_setting: how to report unique errors
+            - `True`: report all duplicates except first occurence
+            - `first`: (default) report all duplicates except first occurence
+            - `last`: report all duplicates except last occurence
+            - `all`: report all duplicates
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
     :param ignore_na: whether or not to ignore null values in the checks.

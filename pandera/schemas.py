@@ -1706,9 +1706,9 @@ class SeriesSchemaBase:
             pandas.Series object.
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique.
-            - `False`: don't check for uniqueness
+        :param unique_keep_setting: how to report unique errors
             - `True`: report all duplicates except first occurence
-            - `first`: report all duplicates except first occurence
+            - `first`: (default) report all duplicates except first occurence
             - `last`: report all duplicates except last occurence
             - `all`: report all duplicates
         :param coerce: If True, when schema.validate is called the column will
