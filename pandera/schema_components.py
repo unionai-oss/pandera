@@ -35,7 +35,7 @@ class Column(SeriesSchemaBase):
         checks: CheckList = None,
         nullable: bool = False,
         unique: bool = False,
-        unique_keep_setting: UniqueSettings = "all",
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
@@ -52,11 +52,10 @@ class Column(SeriesSchemaBase):
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique.
-        :param unique_keep_setting: how to report unique errors
-            - `True`: report all duplicates except first occurence
-            - `first`: (default) report all duplicates except first occurence
-            - `last`: report all duplicates except last occurence
-            - `all`: report all duplicates
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -91,7 +90,7 @@ class Column(SeriesSchemaBase):
             checks,
             nullable,
             unique,
-            unique_keep_setting,
+            report_duplicates,
             coerce,
             name,
             title,
@@ -459,7 +458,7 @@ class MultiIndex(DataFrameSchema):
         name: Optional[str] = None,
         ordered: bool = True,
         unique: Optional[Union[str, List[str]]] = None,
-        unique_keep_setting: UniqueSettings = "all",
+        report_duplicates: UniqueSettings = "all",
     ) -> None:
         """Create MultiIndex validator.
 
@@ -536,7 +535,7 @@ class MultiIndex(DataFrameSchema):
             name=name,
             ordered=ordered,
             unique=unique,
-            unique_keep_setting=unique_keep_setting,
+            report_duplicates=report_duplicates,
         )
 
     @property

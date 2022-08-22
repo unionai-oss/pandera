@@ -560,11 +560,9 @@ def is_timedelta(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
 
 UniqueSettings = Union[
     # Report all unique errors except the first
-    Literal["first"],
+    Literal["exclude_first"],
     # Report all unique errors except the last
-    Literal["last"],
+    Literal["exclude_last"],
     # Report all unique errors
     Literal["all"],
-    # For compatibility -- True means "first" and False means don't report unique errors
-    bool,
 ]

@@ -1564,10 +1564,10 @@ def test_schema_coerce_inplace_validation(
     "unique,answers",
     [
         # unique is True -- default is to report all unique violations except the first
-        (True, [4, 5, 6, 7]),
+        ("exclude_first", [4, 5, 6, 7]),
         ("all", [0, 1, 2, 4, 5, 6, 7]),
-        ("first", [4, 5, 6, 7]),
-        ("last", [0, 1, 2, 4]),
+        ("exclude_first", [4, 5, 6, 7]),
+        ("exclude_last", [0, 1, 2, 4]),
     ],
 )
 def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
@@ -1575,10 +1575,10 @@ def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
     df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
     schemas = [
         DataFrameSchema(
-            {"a": Column(int)}, unique="a", unique_keep_setting=unique
+            {"a": Column(int)}, unique="a", report_duplicates=unique
         ),
         DataFrameSchema(
-            {"a": Column(int, unique=True, unique_keep_setting=unique)}
+            {"a": Column(int, unique=True, report_duplicates=unique)}
         ),
     ]
 
@@ -1588,7 +1588,7 @@ def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
 
         assert err.value.failure_cases["index"].to_list() == answers
 
-    series_schema = SeriesSchema(int, unique=True, unique_keep_setting=unique)
+    series_schema = SeriesSchema(int, unique=True, report_duplicates=unique)
 
     with pytest.raises(errors.SchemaError) as err:
         series_schema.validate(df["a"])

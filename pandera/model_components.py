@@ -50,7 +50,7 @@ class FieldInfo:
         "checks",
         "nullable",
         "unique",
-        "unique_keep_setting",
+        "report_duplicates",
         "coerce",
         "regex",
         "check_name",
@@ -66,7 +66,7 @@ class FieldInfo:
         checks: Optional[_CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
-        unique_keep_setting: UniqueSettings = "all",
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         regex: bool = False,
         alias: Any = None,
@@ -78,7 +78,7 @@ class FieldInfo:
         self.checks = _to_checklist(checks)
         self.nullable = nullable
         self.unique = unique
-        self.unique_keep_setting = unique_keep_setting
+        self.report_duplicates = report_duplicates
         self.coerce = coerce
         self.regex = regex
         self.alias = alias
@@ -148,7 +148,7 @@ class FieldInfo:
             Column,
             nullable=self.nullable,
             unique=self.unique,
-            unique_keep_setting=self.unique_keep_setting,
+            report_duplicates=self.report_duplicates,
             coerce=self.coerce,
             regex=self.regex,
             required=required,
@@ -170,7 +170,7 @@ class FieldInfo:
             Index,
             nullable=self.nullable,
             unique=self.unique,
-            unique_keep_setting=self.unique_keep_setting,
+            report_duplicates=self.report_duplicates,
             coerce=self.coerce,
             name=name,
             checks=checks,
@@ -197,7 +197,7 @@ def Field(
     str_startswith: Optional[str] = None,
     nullable: bool = False,
     unique: bool = False,
-    unique_keep_setting: UniqueSettings = "all",
+    report_duplicates: UniqueSettings = "all",
     coerce: bool = False,
     regex: bool = False,
     ignore_na: bool = True,
@@ -222,11 +222,10 @@ def Field(
 
     :param nullable: Whether or not the column/index can contain null values.
     :param unique: whether column values should be unique.
-    :param unique_keep_setting: how to report unique errors
-            - `True`: report all duplicates except first occurence
-            - `first`: (default) report all duplicates except first occurence
-            - `last`: report all duplicates except last occurence
-            - `all`: report all duplicates
+    :param report_duplicates: how to report unique errors
+        - `exclude_first`: report all duplicates except first occurence
+        - `exclude_last`: report all duplicates except last occurence
+        - `all`: (default) report all duplicates
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
     :param ignore_na: whether or not to ignore null values in the checks.
@@ -276,7 +275,7 @@ def Field(
         checks=checks or None,
         nullable=nullable,
         unique=unique,
-        unique_keep_setting=unique_keep_setting,
+        report_duplicates=report_duplicates,
         coerce=coerce,
         regex=regex,
         check_name=check_name,
