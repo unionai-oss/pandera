@@ -290,7 +290,7 @@ Pandas supports a couple of parametrized dtypes. As of pandas 1.2.0:
 Annotated
 """""""""
 
-Parameters can be given via :data:`typing.Annotated`. It requires python > 3.9 or
+Parameters can be given via :data:`typing.Annotated`. It requires python >= 3.9 or
 `typing_extensions <https://pypi.org/project/typing-extensions/>`_, which is already a
 requirement of Pandera. Unfortunately :data:`typing.Annotated` has not been backported
 to python 3.6.
@@ -502,6 +502,37 @@ the class-based API:
 Multiple :class:`~pandera.typing.Index` annotations are automatically converted into a
 :class:`~pandera.schema_components.MultiIndex`. MultiIndex options are given in the
 :ref:`schema_model_config`.
+
+Index Name
+----------
+
+Use ``check_name`` to validate the index name of a single-index dataframe:
+
+.. testcode:: dataframe_schema_model
+
+    import pandas as pd
+    import pandera as pa
+    from pandera.typing import Index, Series
+
+    class Schema(pa.SchemaModel):
+        year: Series[int] = pa.Field(gt=2000, coerce=True)
+        passengers: Series[int]
+        idx: Index[int] = pa.Field(ge=0, check_name=True)
+
+    df = pd.DataFrame({
+        "year": [2001, 2002, 2003],
+        "passengers": [61000, 50000, 45000],
+    })
+
+    Schema.validate(df)
+
+.. testoutput:: dataframe_schema_model
+
+    Traceback (most recent call last):
+    ...
+    pandera.errors.SchemaError: Expected <class 'pandera.schema_components.Index'> to have name 'idx', found 'None'
+
+``check_name`` default value of ``None`` translates to ``True`` for columns and multi-index.
 
 .. _schema_model_custom_check:
 
