@@ -1,5 +1,6 @@
 """Module for reading and writing schema objects."""
 
+import json
 import warnings
 from collections.abc import Mapping
 from functools import partial
@@ -123,7 +124,7 @@ def _serialize_component_stats(component_stats):
     }
 
 
-def _serialize_schema(dataframe_schema):
+def serialize_schema(dataframe_schema):
     """Serialize dataframe schema into into json/yaml-compatible format."""
     from pandera import __version__  # pylint: disable=import-outside-toplevel
 
@@ -217,7 +218,14 @@ def _deserialize_component_stats(serialized_component_stats):
     }
 
 
-def _deserialize_schema(serialized_schema):
+def deserialize_schema(serialized_schema):
+    """
+    De-serialize the schema from a JSON-able mapping.
+
+    :param serialized_schema: a mapping representing the schema
+    :returns:
+        the schema de-serialized into :class:`~pandera.schemas.DataFrameSchema`
+    """
     # pylint: disable=import-outside-toplevel
     from pandera import Index, MultiIndex
 
@@ -282,7 +290,7 @@ def from_yaml(yaml_schema):
             serialized_schema = yaml.safe_load(f)
     except (TypeError, OSError):
         serialized_schema = yaml.safe_load(yaml_schema)
-    return _deserialize_schema(serialized_schema)
+    return deserialize_schema(serialized_schema)
 
 
 def to_yaml(dataframe_schema, stream=None):
@@ -292,7 +300,7 @@ def to_yaml(dataframe_schema, stream=None):
     :param stream: file stream to write to. If None, dumps to string.
     :returns: yaml string if stream is None, otherwise returns None.
     """
-    statistics = _serialize_schema(dataframe_schema)
+    statistics = serialize_schema(dataframe_schema)
 
     def _write_yaml(obj, stream):
         return yaml.safe_dump(obj, stream=stream, sort_keys=False)
@@ -302,6 +310,57 @@ def to_yaml(dataframe_schema, stream=None):
             _write_yaml(statistics, f)
     except (TypeError, OSError):
         return _write_yaml(statistics, stream)
+
+
+def from_json(source):
+    """
+    Create :class:`~pandera.schemas.DataFrameSchema` from json file.
+
+    :param source:
+        Depending on the type, the source is assumed to be:
+
+        1) str or Path to a file containing json schema (if the file exists),
+        2) str as a JSON-encoded schema, or
+        3) stream that we can read from containing the schema as JSON-encoded
+           string.
+
+    :returns: dataframe schema.
+    """
+    if isinstance(source, str):
+        pth = Path(source)
+        if pth.exists() and pth.is_file():
+            with pth.open(encoding="utf-8") as f:
+                serialized_schema = json.load(fp=f)
+        else:
+            serialized_schema = json.loads(source)
+    elif isinstance(source, Path):
+        with source.open(encoding="utf-8") as f:
+            serialized_schema = json.load(fp=f)
+    else:
+        serialized_schema = json.load(fp=source)
+
+    return deserialize_schema(serialized_schema)
+
+
+def to_json(dataframe_schema, target=None):
+    """
+    Write :class:`~pandera.schemas.DataFrameSchema` to json file.
+
+    :param dataframe_schema: schema to write to file or dump to string.
+    :param target:
+        file path or stream to write to. If None, returns a dump to string.
+    :returns: json string if stream is None, otherwise returns None.
+    """
+    serialized_schema = serialize_schema(dataframe_schema)
+
+    if target is None:
+        return json.dumps(serialized_schema, sort_keys=False)
+
+    if isinstance(target, (str, Path)):
+        with Path(target).open("w", encoding="utf-8") as f:
+            json.dump(serialized_schema, fp=f, sort_keys=False)
+    else:
+        json.dump(serialized_schema, fp=target, sort_keys=False)
 
 
 SCRIPT_TEMPLATE = """
@@ -705,4 +764,4 @@ def from_frictionless_schema(
             None if len(schema.primary_key) == 1 else list(schema.primary_key)
         ),
     }
-    return _deserialize_schema(assembled_schema)
+    return deserialize_schema(assembled_schema)

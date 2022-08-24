@@ -1385,6 +1385,38 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return pandera.io.to_yaml(self, stream=stream)
 
+    @classmethod
+    def from_json(cls, json_schema) -> "DataFrameSchema":
+        """Create DataFrameSchema from json file.
+
+        :param json_schema: str, Path to json schema, or serialized yaml
+            string.
+        :returns: dataframe schema.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+
+        return pandera.io.from_json(json_schema)
+
+    @overload
+    def to_json(self, stream: None = None) -> str:  # pragma: no cover
+        ...
+
+    @overload
+    def to_json(self, stream: os.PathLike) -> None:  # pragma: no cover
+        ...
+
+    def to_json(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+        """Write DataFrameSchema to json file.
+
+        :param stream: file stream to write to. If None, dumps to string.
+        :returns: json string if stream is None, otherwise returns None.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        import pandera.io
+
+        return pandera.io.to_json(self, target=stream)
+
     def set_index(
         self, keys: List[str], drop: bool = True, append: bool = False
     ) -> Self:
