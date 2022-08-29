@@ -202,7 +202,7 @@ the returned DataFrame.
     from pandera.errors import SchemaErrors
 
     out_schema = "schema_context:str, column:str, check:str, \
-    check_number:int, failure_case:int, index:int"
+    check_number:int, failure_case:str, index:int"
 
     out_columns = ["schema_context", "column", "check", 
     "check_number", "failure_case", "index"]
