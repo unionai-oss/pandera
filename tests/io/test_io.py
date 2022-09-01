@@ -237,6 +237,7 @@ index:
 coerce: false
 strict: true
 unique: null
+ordered: false
 """
 
 
@@ -637,6 +638,50 @@ def test_from_yaml_load_required_fields():
         )
 
 
+@pytest.mark.parametrize(
+    "is_ordered,test_data,expected",
+    [
+        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaError),
+        (True, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
+        (False, {"b": [1], "a": [1]}, pd.DataFrame(data={"b": [1], "a": [1]})),
+        (False, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
+    ],
+)
+def test_from_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
+    """Test that from_yaml() retains the 'ordered' keyword."""
+    yaml_schema = f"""
+    schema_type: dataframe
+    version: {pandera.__version__}
+    columns:
+        a:
+            dtype: int64
+            required: true
+        b:
+            dtype: int64
+            required: true
+    checks: null
+    index: null
+    coerce: false
+    strict: false
+    unique: null
+    ordered: {str(is_ordered).lower()}
+    """
+
+    # make sure the schema contains the ordered key word
+    schema = io.from_yaml(yaml_schema)
+    assert schema.ordered == is_ordered
+
+    # raise the error only when the ordered condition is violated
+    test_df = pd.DataFrame(data=test_data)
+
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            assert schema.validate(test_df)
+    else:
+        validation = schema.validate(test_df)
+        assert test_df.equals(validation)
+
+
 def test_io_yaml_file_obj():
     """Test read and write operation on file object."""
     schema = _create_schema()
@@ -834,6 +879,38 @@ def test_to_yaml_bugfix_warn_unregistered_global_checks():
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
         CheckedSchemaModel.to_yaml()
+
+
+@pytest.mark.parametrize(
+    "is_ordered,test_data,expected",
+    [
+        (True, {"b": [1], "a": [1]}, pandera.errors.SchemaError),
+        (True, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
+        (False, {"b": [1], "a": [1]}, pd.DataFrame(data={"b": [1], "a": [1]})),
+        (False, {"a": [1], "b": [1]}, pd.DataFrame(data={"a": [1], "b": [1]})),
+    ],
+)
+def test_to_yaml_retains_ordered_keyword(is_ordered, test_data, expected):
+    """Test that to_yaml() retains the 'ordered' keyword."""
+    schema = pandera.DataFrameSchema(
+        columns={
+            "a": pandera.Column(pandera.Int),
+            "b": pandera.Column(pandera.Int),
+        },
+        ordered=is_ordered,
+    )
+
+    # make sure the schema contains the ordered key word
+    yaml_schema = schema.to_yaml()
+    assert "ordered" in yaml_schema  # pylint: disable=E1135
+
+    # raise the error only when the ordered condition is violated
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            assert schema.validate(pd.DataFrame(data=test_data))
+    else:
+        validation_df = schema.validate(pd.DataFrame(data=test_data))
+        assert validation_df.equals(expected)
 
 
 def test_serialize_deserialize_custom_datetime_checks():
@@ -1079,6 +1156,7 @@ index: null
 coerce: true
 strict: true
 unique: null
+ordered: false
 """
 
 VALID_FRICTIONLESS_DF = pd.DataFrame(
