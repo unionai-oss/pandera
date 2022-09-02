@@ -458,6 +458,7 @@ def check_io(
 def check_types(
     wrapped: F,
     *,
+    with_pydantic=False,
     head: Optional[int] = None,
     tail: Optional[int] = None,
     sample: Optional[int] = None,
@@ -472,6 +473,7 @@ def check_types(
 def check_types(
     wrapped: None = None,
     *,
+    with_pydantic=False,
     head: Optional[int] = None,
     tail: Optional[int] = None,
     sample: Optional[int] = None,
