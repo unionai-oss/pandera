@@ -585,7 +585,12 @@ class MultiIndex(DataFrameSchema):
             multiindex_cls = ps.MultiIndex
         return multiindex_cls.from_arrays(
             [
-                v.to_numpy()
+                # Context: v.dtype may be different than 'object'.
+                # Problem: v.to_numpy()  converts the array dtype to array of 'object' dtype.
+                #          Thus removing the specialized index dtype required to pass a schema's
+                #          index specialized dtype : eg: pandera.typing.Index(pandas.Int64Dtype)
+                # Solution: Reuse the original index array to keep the specialized dtype
+                v.array
                 for k, v in sorted(
                     coerced_multi_index.items(), key=lambda x: x[0]
                 )
