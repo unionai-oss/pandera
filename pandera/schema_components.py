@@ -585,7 +585,19 @@ class MultiIndex(DataFrameSchema):
             multiindex_cls = ps.MultiIndex
         return multiindex_cls.from_arrays(
             [
-                v.to_numpy()
+                # Context 1 : v.dtype may be different than 'object'.
+                # Problem 1 : v.to_numpy()  converts the array dtype to array of 'object' dtype.
+                #          Thus removing the specialized index dtype required to pass a schema's
+                #          index specialized dtype : eg: pandera.typing.Index(pandas.Int64Dtype)
+                # Solution 1: Reuse the original index array to keep the specialized dtype
+                #
+                # Problem 2:  At the time of writing, pyspark v3.3.0 does not provide a working
+                #             implementation of v.array
+                # Solution 2: For Pyspark only, use to_numpy(), with the effect of keeping the
+                #             bug open on this execution environment
+                v.array
+                if "pyspark." not in type(v).__module__
+                else v.to_numpy()
                 for k, v in sorted(
                     coerced_multi_index.items(), key=lambda x: x[0]
                 )

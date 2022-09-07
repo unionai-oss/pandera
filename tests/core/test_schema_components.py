@@ -251,6 +251,35 @@ def tests_multi_index_subindex_coerce() -> None:
         schema(data, lazy=True)
 
 
+@pytest.mark.parametrize("coerce", [True, False])
+def tests_multi_index_subindex_coerce_with_empty_subindex(coerce) -> None:
+    """MultIndex component should override each sub indexes dtype,
+    even if the sub indexes are empty (ie do not rely on
+    numpy to infer the subindex dtype.
+    """
+    indexes = [
+        Index(pd.Int64Dtype, coerce=coerce),
+        Index(pd.StringDtype, coerce=coerce),
+    ]
+
+    data = pd.DataFrame(index=pd.MultiIndex.from_arrays([[]] * len(indexes)))
+
+    schema_override = DataFrameSchema(index=MultiIndex(indexes))
+
+    if coerce:
+        validated_df_override = schema_override(data)
+        for level_i in range(validated_df_override.index.nlevels):
+            assert isinstance(
+                validated_df_override.index.get_level_values(level_i).dtype,
+                type(indexes[level_i].dtype.type),  # type: ignore[attr-defined]
+            )
+    else:
+        with pytest.raises(
+            errors.SchemaErrors, match="A total of 2 schema errors were found"
+        ):
+            schema_override(data, lazy=True)
+
+
 def test_schema_component_equality_operators():
     """Test the usage of == for Column, Index and MultiIndex."""
     column = Column(Int, Check(lambda s: s >= 0))
