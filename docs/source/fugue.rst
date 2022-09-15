@@ -11,11 +11,12 @@ is comprised of multiple groups that require different validations. In pandas se
 this would be the equivalent of a ``groupby-validate`` operation. This section will cover
 using ``pandera`` for both of these scenarios.
 
-``Pandera`` only supports pandas ``DataFrames`` at the moment. However, the same ``pandera``
-code can be used on top of ``Spark`` or ``Dask`` engines with
-`Fugue <https://github.com/fugue-project/fugue/>`_ . These computation engines allow validation
-to be performed in a distributed setting. ``Fugue`` is an open source abstraction layer that
-ports ``Python``, ``pandas``, and ``SQL`` code to ``Spark`` and ``Dask``.
+``Pandera`` has support for ``Spark`` and ``Dask`` DataFrames through ``Modin`` and
+``PySpark Pandas``. Another option for running ``pandera``  on top of native ``Spark`` 
+or ``Dask`` engines is `Fugue <https://github.com/fugue-project/fugue/>`_ . ``Fugue`` is 
+an open source abstraction layer that ports ``Python``, ``pandas``, and ``SQL`` code to 
+``Spark`` and ``Dask``. Operations will be applied on DataFrames natively, minimizing 
+overhead.
 
 What is Fugue?
 --------------
@@ -85,18 +86,19 @@ functions as seen in the following code snippet. The first two arguments are the
 function to apply. The keyword argument ``schema`` is required because schema is strictly enforced
 in distributed settings. Here, the ``schema`` is simply `*` because no new columns are added.
 
-The last part of the ``transform`` function is the ``engine``. Here, the ``SparkExecutionEngine`` is used
-to run the code on top of ``Spark``. ``Fugue`` also has a ``DaskExecutionEngine``, and passing nothing uses
-the default pandas-based ``ExecutionEngine``. Because the ``SparkExecutionEngine`` is used, the result
-becomes a ``Spark DataFrame``.
+The last part of the ``transform`` function is the ``engine``. Here, a ``SparkSession`` object 
+is used to run the code on top of ``Spark``. For Dask, users can pass a string ``"dask"`` or 
+can pass a Dask Client. Passing nothing uses the default pandas-based engine. Because we 
+passed a SparkSession in this example, the output is a Spark DataFrame.
 
 .. testcode:: scaling_fugue
     :skipif: SKIP_SCALING
 
     from fugue import transform
-    from fugue_spark import SparkExecutionEngine
+    from pyspark.sql import SparkSession
 
-    spark_df = transform(data, price_validation, schema="*", engine=SparkExecutionEngine)
+    spark = SparkSession.builder.getOrCreate()
+    spark_df = transform(data, price_validation, schema="*", engine=spark)
     spark_df.show()
 
 .. testoutput:: scaling_fugue
@@ -157,7 +159,7 @@ each run the ``price_validation`` function. Again, this is like a groupby-valida
               price_validation,
               schema="*",
               partition=dict(by="state"),
-              engine=SparkExecutionEngine)
+              engine=spark)
 
     spark_df.show()
 
@@ -183,3 +185,47 @@ each run the ``price_validation`` function. Again, this is like a groupby-valida
     careful about using operations like mean, min, and max without partitioning beforehand.
 
     All row-wise validations scale well with this set-up.
+
+
+Returning Errors
+-----------------
+``Pandera`` will raise a ``SchemaError`` by default that gets buried by the Spark error 
+messages. To return the errors as a DataFrame, we use can use the following approach. If 
+there are no errors in the data, it will just return an empty DataFrame. 
+
+To keep the errors for each partition, you can attach the partition key as a column in 
+the returned DataFrame.
+
+.. testcode:: scaling_fugue
+    :skipif: SKIP_SCALING
+
+    from pandera.errors import SchemaErrors
+
+    out_schema = "schema_context:str, column:str, check:str, \
+    check_number:int, failure_case:str, index:int"
+
+    out_columns = ["schema_context", "column", "check", 
+    "check_number", "failure_case", "index"]
+
+    price_check = DataFrameSchema(
+        {"price": Column(int, Check.in_range(min_value=12,max_value=20))}
+    )
+
+    def price_validation(data:pd.DataFrame) -> pd.DataFrame:
+        try:
+            price_check.validate(data, lazy=True)
+            return pd.DataFrame(columns=out_columns)
+        except SchemaErrors as err:
+            return err.failure_cases
+
+    transform(data, price_validation, schema=out_schema, engine=spark).show()
+
+.. testoutput:: scaling_fugue
+    :skipif: SKIP_SCALING
+
+    +--------------+------+----------------+------------+------------+-----+
+    |schema_context|column|           check|check_number|failure_case|index|
+    +--------------+------+----------------+------------+------------+-----+
+    |        Column| price|in_range(12, 20)|           0|           8|    0|
+    |        Column| price|in_range(12, 20)|           0|          10|    0|
+    +--------------+------+----------------+------------+------------+-----+
