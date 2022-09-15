@@ -1,5 +1,6 @@
 # pylint: disable=W0212
 """Unit tests for inferring statistics of pandas objects."""
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -167,6 +168,8 @@ def _test_statistics(statistics, expectations):
         expectation_dtype = expectation.pop("dtype")
 
         assert stats == expectation
+        print(expectation_dtype)
+        print(stat_dtype)
         assert expectation_dtype.check(stat_dtype)
 
 
@@ -255,7 +258,7 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
             pd.Series([True, False, True, False]),
             {
                 "dtype": (
-                    pandas_engine.Engine.dtype(pa.BOOL)
+                    pandas_engine.Engine.dtype(pa.Object)
                     if pa.PANDAS_1_3_0_PLUS
                     else DEFAULT_FLOAT
                 ),
@@ -312,6 +315,31 @@ def test_infer_nullable_series_schema_statistics(
     """Test nullable series statistics are correctly inferred."""
     series.iloc[null_index] = None
     statistics = schema_statistics.infer_series_statistics(series)
+    _test_statistics(statistics, expectation)
+
+
+@pytest.mark.parametrize(
+    "null_values, dtype",
+    (
+        ([pd.NaT, pd.NaT], pandas_engine.Engine.dtype(pa.DateTime)),
+        ([np.nan, np.nan], DEFAULT_FLOAT),
+        ([None, None], pandas_engine.Engine.dtype(pa.Object)),
+        # Mixed 'null' types
+        ([pd.NaT, np.nan], pandas_engine.Engine.dtype(pa.DateTime)),
+        ([None, pd.NaT], pandas_engine.Engine.dtype(pa.DateTime)),
+        ([None, np.nan], DEFAULT_FLOAT),
+    ),
+)
+def test_empty_series_schema_statistics(null_values, dtype):
+    """Test 'empty' series statistics are correctly inferred."""
+    series = pd.Series(null_values)
+    statistics = schema_statistics.infer_series_statistics(series)
+    expectation = {
+        "dtype": dtype,
+        "nullable": True,
+        "checks": None,
+        "name": None,
+    }
     _test_statistics(statistics, expectation)
 
 

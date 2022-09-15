@@ -182,7 +182,7 @@ def _get_array_type(x):
     data_type = pandas_engine.Engine.dtype(x.dtype)
     # for object arrays, try to infer dtype
     if data_type is pandas_engine.Engine.dtype("object"):
-        inferred_alias = pd.api.types.infer_dtype(x, skipna=True)
+        inferred_alias = pd.api.types.infer_dtype(x, skipna=False)
         if inferred_alias != "string":
             data_type = pandas_engine.Engine.dtype(inferred_alias)
     return data_type
@@ -192,6 +192,8 @@ def _get_array_check_statistics(
     x, data_type: dtypes.DataType
 ) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
+    if x.isna().all():
+        return None
     if dtypes.is_datetime(data_type):
         check_stats = {
             "greater_than_or_equal_to": x.min(),
