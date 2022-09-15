@@ -168,8 +168,6 @@ def _test_statistics(statistics, expectations):
         expectation_dtype = expectation.pop("dtype")
 
         assert stats == expectation
-        print(expectation_dtype)
-        print(stat_dtype)
         assert expectation_dtype.check(stat_dtype)
 
 
