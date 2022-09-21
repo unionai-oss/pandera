@@ -1596,6 +1596,29 @@ def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
     assert err.value.failure_cases["index"].to_list() == answers
 
 
+@pytest.mark.parametrize(
+    "report_duplicates", ["all", "exclude_first", "exclude_last", "invalid"]
+)
+def test_valid_unique_settings(report_duplicates):
+    """Test that valid unique settings work and invalid ones will raise a ValueError"""
+    schema = DataFrameSchema(
+        {"a": Column(String)}, unique="a", report_duplicates=report_duplicates
+    )
+    df = pd.DataFrame({"a": ["A", "BC", "C", "C", "BC"]})
+
+    # If we're given an invalid value for report_duplicates, then it should raise a ValueError
+    if report_duplicates == "invalid":
+        with pytest.raises(ValueError):
+            schema.validate(df)
+    else:
+        with pytest.raises(errors.SchemaError) as err:
+            schema.validate(df)
+
+        # There are unique errors--assert that pandera reports them properly
+        # Actual content of the unique errors is tested in test_different_unique_settings
+        assert not err.value.failure_cases.empty
+
+
 @pytest.fixture
 def schema_simple() -> DataFrameSchema:
     """Simple schema fixture."""
