@@ -22,6 +22,7 @@ from pandera import (
     String,
     errors,
 )
+from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
 from pandera.schemas import SeriesSchemaBase
 
@@ -1557,6 +1558,65 @@ def test_schema_coerce_inplace_validation(
     else:
         # not inplace preserves original dataframe type
         assert df["column"].dtype == from_dtype
+
+
+@pytest.mark.parametrize(
+    "unique,answers",
+    [
+        # unique is True -- default is to report all unique violations except the first
+        ("exclude_first", [4, 5, 6, 7]),
+        ("all", [0, 1, 2, 4, 5, 6, 7]),
+        ("exclude_first", [4, 5, 6, 7]),
+        ("exclude_last", [0, 1, 2, 4]),
+    ],
+)
+def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
+    """Test that different unique settings work as expected"""
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
+    schemas = [
+        DataFrameSchema(
+            {"a": Column(int)}, unique="a", report_duplicates=unique
+        ),
+        DataFrameSchema(
+            {"a": Column(int, unique=True, report_duplicates=unique)}
+        ),
+    ]
+
+    for schema in schemas:
+        with pytest.raises(errors.SchemaError) as err:
+            schema.validate(df)
+
+        assert err.value.failure_cases["index"].to_list() == answers
+
+    series_schema = SeriesSchema(int, unique=True, report_duplicates=unique)
+
+    with pytest.raises(errors.SchemaError) as err:
+        series_schema.validate(df["a"])
+
+    assert err.value.failure_cases["index"].to_list() == answers
+
+
+@pytest.mark.parametrize(
+    "report_duplicates", ["all", "exclude_first", "exclude_last", "invalid"]
+)
+def test_valid_unique_settings(report_duplicates):
+    """Test that valid unique settings work and invalid ones will raise a ValueError"""
+    schema = DataFrameSchema(
+        {"a": Column(String)}, unique="a", report_duplicates=report_duplicates
+    )
+    df = pd.DataFrame({"a": ["A", "BC", "C", "C", "BC"]})
+
+    # If we're given an invalid value for report_duplicates, then it should raise a ValueError
+    if report_duplicates == "invalid":
+        with pytest.raises(ValueError):
+            schema.validate(df)
+    else:
+        with pytest.raises(errors.SchemaError) as err:
+            schema.validate(df)
+
+        # There are unique errors--assert that pandera reports them properly
+        # Actual content of the unique errors is tested in test_different_unique_settings
+        assert not err.value.failure_cases.empty
 
 
 @pytest.fixture

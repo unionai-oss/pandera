@@ -502,6 +502,36 @@ In some cases you might want to ensure that a group of columns are unique:
     2      c      0             3
     3      c      1             3
 
+To control how unique errors are reported, the `report_duplicates` argument accepts:
+    - `exclude_first`: (default) report all duplicates except first occurence
+    - `exclude_last`: report all duplicates except last occurence
+    - `all`: report all duplicates
+
+.. testcode:: joint_column_uniqueness
+
+    import pandas as pd
+    import pandera as pa
+
+    schema = pa.DataFrameSchema(
+        columns={col: pa.Column(int) for col in ["a", "b", "c"]},
+        unique=["a", "c"],
+        report_duplicates = "exclude_first",
+    )
+    df = pd.DataFrame.from_records([
+        {"a": 1, "b": 2, "c": 3},
+        {"a": 1, "b": 2, "c": 3},
+    ])
+    schema.validate(df)
+
+.. testoutput:: joint_column_uniqueness
+
+    Traceback (most recent call last):
+    ...
+    SchemaError: columns '('a', 'c')' not unique:
+    column  index  failure_case
+    0      a      1             1
+    1      c      1             3
+
 
 Index Validation
 ----------------

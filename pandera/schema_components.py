@@ -1,4 +1,5 @@
 """Components used in pandera schemas."""
+from __future__ import annotations
 
 import warnings
 from copy import copy, deepcopy
@@ -9,6 +10,7 @@ import pandas as pd
 
 from . import check_utils, errors
 from . import strategies as st
+from .dtypes import UniqueSettings
 from .error_handlers import SchemaErrorHandler
 from .schemas import (
     CheckList,
@@ -33,6 +35,7 @@ class Column(SeriesSchemaBase):
         checks: CheckList = None,
         nullable: bool = False,
         unique: bool = False,
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
@@ -48,7 +51,11 @@ class Column(SeriesSchemaBase):
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
-        :param unique: whether column values should be unique
+        :param unique: whether column values should be unique.
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -83,6 +90,7 @@ class Column(SeriesSchemaBase):
             checks,
             nullable,
             unique,
+            report_duplicates,
             coerce,
             name,
             title,
@@ -450,6 +458,7 @@ class MultiIndex(DataFrameSchema):
         name: Optional[str] = None,
         ordered: bool = True,
         unique: Optional[Union[str, List[str]]] = None,
+        report_duplicates: UniqueSettings = "all",
     ) -> None:
         """Create MultiIndex validator.
 
@@ -526,6 +535,7 @@ class MultiIndex(DataFrameSchema):
             name=name,
             ordered=ordered,
             unique=unique,
+            report_duplicates=report_duplicates,
         )
 
     @property
