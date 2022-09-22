@@ -1,5 +1,7 @@
 """Pandera data types."""
 # pylint:disable=too-many-ancestors
+from __future__ import annotations
+
 import dataclasses
 import inspect
 from abc import ABC
@@ -7,6 +9,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    Literal,
     Optional,
     Tuple,
     Type,
@@ -553,3 +556,13 @@ def is_datetime(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
 def is_timedelta(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a timedelta."""
     return is_subdtype(pandera_dtype, Timedelta)
+
+
+UniqueSettings = Union[
+    # Report all unique errors except the first
+    Literal["exclude_first"],
+    # Report all unique errors except the last
+    Literal["exclude_last"],
+    # Report all unique errors
+    Literal["all"],
+]

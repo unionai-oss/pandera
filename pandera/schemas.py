@@ -30,7 +30,7 @@ import pandas as pd
 from . import check_utils, errors
 from . import strategies as st
 from .checks import Check
-from .dtypes import DataType
+from .dtypes import DataType, UniqueSettings
 from .engines import pandas_engine
 from .error_formatters import (
     format_generic_error_message,
@@ -43,7 +43,6 @@ from .hypotheses import Hypothesis
 
 if TYPE_CHECKING:
     from pandera.schema_components import Column
-
 
 N_INDENT_SPACES = 4
 
@@ -101,6 +100,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         name: Optional[str] = None,
         ordered: bool = False,
         unique: Optional[Union[str, List[str]]] = None,
+        report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -128,6 +128,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :param name: name of the schema.
         :param ordered: whether or not to validate the columns order.
         :param unique: a list of columns that should be jointly unique.
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
+
         :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
@@ -190,6 +195,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._coerce = coerce
         self._ordered = ordered
         self._unique = unique
+        self._report_duplicates = report_duplicates
         self._unique_column_names = unique_column_names
         self._title = title
         self._description = description
@@ -732,6 +738,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 error_handler.collect_error("dataframe_check", err)
 
         if self.unique:
+            keep_setting = convert_uniquesettings(self._report_duplicates)
             # NOTE: fix this pylint error
             # pylint: disable=not-an-iterable
             temp_unique: List[List] = (
@@ -740,7 +747,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 else self.unique
             )
             for lst in temp_unique:
-                duplicates = df_to_validate.duplicated(subset=lst, keep=False)
+                duplicates = df_to_validate.duplicated(
+                    subset=lst, keep=keep_setting
+                )
                 if duplicates.any():
                     # NOTE: this is a hack to support pyspark.pandas, need to
                     # figure out a workaround to error: "Cannot combine the
@@ -1678,6 +1687,7 @@ class SeriesSchemaBase:
         checks: CheckList = None,
         nullable: bool = False,
         unique: bool = False,
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         name: Any = None,
         title: Optional[str] = None,
@@ -1695,8 +1705,11 @@ class SeriesSchemaBase:
             in the column. Otherwise, the input is assumed to be a
             pandas.Series object.
         :param nullable: Whether or not column can contain null values.
-        :param unique: Whether or not column can contain duplicate
-            values.
+        :param unique: whether column values should be unique.
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -1716,6 +1729,7 @@ class SeriesSchemaBase:
         self._checks = checks
         self._name = name
         self._unique = unique
+        self._report_duplicates = report_duplicates
         self._title = title
         self._description = description
 
@@ -1948,9 +1962,13 @@ class SeriesSchemaBase:
 
         # Check if the series contains duplicate values
         if self._unique:
+            keep_argument = convert_uniquesettings(self._report_duplicates)
+
             if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
-                    series.to_frame().duplicated().reindex(series.index)
+                    series.to_frame()
+                    .duplicated(keep=keep_argument)
+                    .reindex(series.index)
                 )
                 # pylint: disable=import-outside-toplevel
                 import pyspark.pandas as ps
@@ -1958,7 +1976,7 @@ class SeriesSchemaBase:
                 with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = series[duplicates]
             else:
-                duplicates = series.duplicated()
+                duplicates = series.duplicated(keep=keep_argument)
                 failed = series[duplicates]
 
             if duplicates.any():
@@ -2141,6 +2159,7 @@ class SeriesSchema(SeriesSchemaBase):
         index=None,
         nullable: bool = False,
         unique: bool = False,
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         name: str = None,
         title: Optional[str] = None,
@@ -2159,8 +2178,11 @@ class SeriesSchema(SeriesSchemaBase):
             pandas.Series object.
         :param index: specify the datatypes and properties of the index.
         :param nullable: Whether or not column can contain null values.
-        :param unique: Whether or not column can contain duplicate
-            values.
+        :param unique: whether column values should be unique.
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -2174,6 +2196,7 @@ class SeriesSchema(SeriesSchemaBase):
             checks,
             nullable,
             unique,
+            report_duplicates,
             coerce,
             name,
             title,
@@ -2420,3 +2443,22 @@ def _handle_check_results(
             check_output=check_result.check_output,
         )
     return check_result.check_passed
+
+
+def convert_uniquesettings(unique: UniqueSettings) -> Union[bool, str]:
+    """
+    Converts UniqueSettings object to string that can be passed onto pandas .duplicated() call
+    """
+    # Default `keep` argument for pandas .duplicated() function
+    keep_argument: Union[bool, str]
+    if unique == "exclude_first":
+        keep_argument = "first"
+    elif unique == "exclude_last":
+        keep_argument = "last"
+    elif unique == "all":
+        keep_argument = False
+    else:
+        raise ValueError(
+            str(unique) + " is not a recognized report_duplicates value"
+        )
+    return keep_argument
