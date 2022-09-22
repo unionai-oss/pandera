@@ -289,14 +289,6 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
         sys.exit(1)
 
 
-@nox.session(python=PYTHON_VERSIONS)
-def mypy(session: Session) -> None:
-    """Type-check using mypy."""
-    install_extras(session, extra="all", pandas_stubs=False)
-    args = session.posargs or SOURCE_PATHS
-    session.run("mypy", "--follow-imports=silent", *args, silent=True)
-
-
 EXTRA_NAMES = [
     extra
     for extra in REQUIRES
