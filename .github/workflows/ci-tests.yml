@@ -68,12 +68,7 @@ jobs:
         run: pre-commit run pylint --all-files
 
       - name: Mypy Type Checking
-        run: >
-          nox
-          -db virtualenv -r
-          --non-interactive
-          --python ${{ matrix.python-version }}
-          --session mypy-${{ matrix.python-version }}
+        run: pre-commit run mypy --all-files
 
   tests:
     name: >

@@ -48,13 +48,11 @@ repos:
         exclude: (^docs/|^scripts)
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.942
+    rev: v0.971
     hooks:
       - id: mypy
-        entry: mypy pandera tests
         files: (^pandera/|^tests|^scripts)
-        exclude: (^docs/)
-        pass_filenames: false
+        exclude: (^docs/|^tests/mypy/modules/)
         additional_dependencies:
         - types-click
         - types-pyyaml
