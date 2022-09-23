@@ -51,10 +51,8 @@ repos:
     rev: v0.971
     hooks:
       - id: mypy
-        # entry: mypy pandera tests
         files: (^pandera/|^tests|^scripts)
         exclude: (^docs/|^tests/mypy/modules/)
-        # pass_filenames: false
         additional_dependencies:
         - types-click
         - types-pyyaml
