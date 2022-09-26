@@ -1247,6 +1247,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
+        # remove any mapping to itself as this is a no-op
+        rename_dict = {k: v for k, v in rename_dict.items() if k != v}
+
         # ensure all new keys are not present in the current column names
         already_in_columns: List[str] = [
             x for x in rename_dict.values() if x in new_schema.columns.keys()
