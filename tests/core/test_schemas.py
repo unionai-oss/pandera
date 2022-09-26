@@ -994,6 +994,10 @@ def test_rename_columns() -> None:
         with pytest.raises(errors.SchemaInitError):
             schema_original.rename_columns(rename_dict)
 
+    # Test doesn't raise error if column maps to itself
+    rename_dict = {"col1": "col1", "col2": "col2_new_name"}
+    schema_original.rename_columns(rename_dict)
+
 
 @pytest.mark.parametrize(
     "select_columns, schema",
