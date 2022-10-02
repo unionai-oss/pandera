@@ -154,6 +154,7 @@ def _serialize_schema(dataframe_schema):
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
         "unique": dataframe_schema.unique,
+        "ordered": dataframe_schema.ordered,
     }
 
 
@@ -266,6 +267,7 @@ def _deserialize_schema(serialized_schema):
         coerce=serialized_schema.get("coerce", False),
         strict=serialized_schema.get("strict", False),
         unique=serialized_schema.get("unique", None),
+        ordered=serialized_schema.get("ordered", False),
     )
 
 

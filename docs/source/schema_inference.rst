@@ -237,6 +237,7 @@ is a convenience method for this functionality.
     coerce: true
     strict: false
     unique: null
+    ordered: false
 
 You can edit this yaml file by specifying column names under the ``column``
 key. The respective values map onto key-word arguments in the
