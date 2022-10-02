@@ -48,6 +48,7 @@ extensions = [
     "sphinx_copybutton",
     "recommonmark",
     "sphinx_panels",
+    "jupyterlite_sphinx",
 ]
 
 doctest_global_setup = """
@@ -192,15 +193,17 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
         # that dataclass name is in the message, so that you don't filter out
         # other meaningful warnings
         return not (
-            record.getMessage().startswith(
-                "Cannot resolve forward reference in type annotations of "
-                '"pandera.typing.DataFrame"'
-            )
             # NOTE: forward reference false positive needs to be handled
             # correctly
-            or record.getMessage().startswith(
-                "Cannot resolve forward reference in type annotations of "
-                '"pandera.schemas.DataFrameSchema'
+            record.getMessage().startswith(
+                (
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.DataFrame"',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.schemas.DataFrameSchema',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.DataFrame.style"',
+                )
             )
         )
 
@@ -259,3 +262,8 @@ def linkcode_resolve(domain, info):
         )
 
     return f"https://github.com/pandera-dev/pandera/blob/{tag}/pandera/{fn}{linespec}"
+
+
+# jupyterlite config
+jupyterlite_contents = ["notebooks/try_pandera.ipynb"]
+jupyterlite_bind_ipynb_suffix = False

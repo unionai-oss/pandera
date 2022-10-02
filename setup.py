@@ -52,10 +52,9 @@ setup(
         "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
         "typing_inspect >= 0.6.0",
         "wrapt",
-        "pyarrow",
     ],
     extras_require=extras_require,
-    python_requires=">=3.8",
+    python_requires=">=3.7",
     platforms="any",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
