@@ -12,7 +12,7 @@ distributed compute framework that offers a pandas drop-in replacement dataframe
 implementation via the `pyspark.pandas API <https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/index.html>`__ .
 You can use pandera to validate :py:func:`~pyspark.pandas.DataFrame`
 and :py:func:`~pyspark.pandas.Series` objects directly. First, install
-``pandera`` with the ``dask`` extra:
+``pandera`` with the ``pyspark`` extra:
 
 .. code:: bash
 
