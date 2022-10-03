@@ -1,4 +1,4 @@
-🚀 Try Pandera
+Try Pandera
 ===============
 
 In the notebook below, you can get a sense of how to use pandera right in the

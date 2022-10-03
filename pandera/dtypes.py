@@ -9,13 +9,17 @@ from typing import (
     Any,
     Callable,
     Iterable,
-    Literal,
     Optional,
     Tuple,
     Type,
     TypeVar,
     Union,
 )
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore[misc]
 
 
 class DataType(ABC):

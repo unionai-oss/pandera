@@ -113,7 +113,7 @@ string_dtypes = {
 }
 
 nullable_string_dtypes = {pd.StringDtype: "string"}
-if pa.PANDAS_1_3_0_PLUS:
+if pa.PANDAS_1_3_0_PLUS and pandas_engine.PYARROW_INSTALLED:
     nullable_string_dtypes.update(
         {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}
     )
