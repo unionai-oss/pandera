@@ -25,6 +25,13 @@ from ..system import FLOAT_128_AVAILABLE
 from . import engine, numpy_engine, utils
 from .type_aliases import PandasDataType, PandasExtensionType, PandasObject
 
+try:
+    import pyarrow  # pylint:disable=unused-import
+
+    PYARROW_INSTALLED = True
+except ImportError:
+    PYARROW_INSTALLED = False
+
 
 def pandas_version():
     """Return the pandas version."""
@@ -605,6 +612,13 @@ if PANDAS_1_3_0_PLUS:
         storage: Optional[Literal["python", "pyarrow"]] = "python"
 
         def __post_init__(self):
+            if self.storage == "pyarrow" and not PYARROW_INSTALLED:
+                raise ModuleNotFoundError(
+                    "pyarrow needs to be installed when using the "
+                    "string[pyarrow] pandas data type. Please "
+                    "`pip install pyarrow` or "
+                    "`conda install -c conda-forge pyarrow` before proceeding."
+                )
             type_ = pd.StringDtype(self.storage)
             object.__setattr__(self, "type", type_)
 

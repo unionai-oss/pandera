@@ -53,38 +53,24 @@ def test_mypy_pandas_dataframe(capfd) -> None:
     )
     errors = _get_mypy_errors(capfd.readouterr().out)
     # assert error messages on particular lines of code
-    assert errors[35] == {
-        "msg": (
-            'Argument 1 to "pipe" of "DataFrame" has incompatible type '
-            '"Type[pandera.typing.pandas.DataFrame[Any]]"; expected '
-            '"Union[Callable[..., pandera.typing.pandas.DataFrame[SchemaOut]], '
-            'Tuple[Callable[..., pandera.typing.pandas.DataFrame[SchemaOut]], str]]"'
-        ),
-        "errcode": "arg-type",
-    }
-    assert errors[41] == {
-        "msg": (
-            "Incompatible return value type (got "
-            '"pandas.core.frame.DataFrame", expected '
-            '"pandera.typing.pandas.DataFrame[SchemaOut]")'
-        ),
-        "errcode": "return-value",
-    }
-    assert errors[54] == {
-        "msg": (
-            'Argument 1 to "fn" has incompatible type '
-            '"pandas.core.frame.DataFrame"; expected '
-            '"pandera.typing.pandas.DataFrame[Schema]"'
-        ),
-        "errcode": "arg-type",
-    }
-    assert errors[58] == {
-        "msg": (
-            'Argument 1 to "fn" has incompatible type '
-            '"DataFrame[AnotherSchema]"; expected "DataFrame[Schema]"'
-        ),
-        "errcode": "arg-type",
-    }
+    assert errors[35]["errcode"] == "arg-type"
+    assert re.match(
+        'Argument 1 to "pipe" of "[A-Za-z]+" has incompatible type',
+        errors[35]["msg"],
+    )
+
+    assert errors[41]["errcode"] == "return-value"
+    assert re.match("^Incompatible return value type", errors[41]["msg"])
+
+    assert errors[54]["errcode"] == "arg-type"
+    assert re.match(
+        '^Argument 1 to "fn" has incompatible type', errors[54]["msg"]
+    )
+
+    assert errors[58]["errcode"] == "arg-type"
+    assert re.match(
+        '^Argument 1 to "fn" has incompatible type', errors[58]["msg"]
+    )
 
 
 @pytest.mark.parametrize(

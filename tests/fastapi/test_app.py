@@ -41,6 +41,8 @@ def test_items_endpoint(app):
     data = {"name": "Book", "value": 10, "description": "Hello"}
     for _ in range(10):
         response = requests.post("http://127.0.0.1:8000/items/", json=data)
+        if response.status_code != 200:
+            time.sleep(3.0)
     assert response.json() == data
 
 

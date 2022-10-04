@@ -38,6 +38,7 @@ nox
 importlib_metadata
 uvicorn
 python-multipart
+jupyterlite_sphinx
 sphinx
 sphinx-panels
 sphinx-autodoc-typehints <= 1.14.1

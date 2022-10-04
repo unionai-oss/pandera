@@ -1,0 +1,11 @@
+{
+    "LiteBuildConfig": {
+        "federated_extensions": [
+            "https://conda.anaconda.org/conda-forge/noarch/pandera-0.12.0-hd8ed1ab_0.tar.bz2",
+        ],
+        "ignore_sys_prefix": true,
+        "piplite_urls": [
+            "https://files.pythonhosted.org/packages/95/cc/e058935b0b34d50214596297f0a9edb0781fc5201bf2c6eb8cf1a026d710/pandera-0.12.0-py3-none-any.whl",
+        ]
+    }
+}

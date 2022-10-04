@@ -345,6 +345,7 @@ page or reach out to the maintainers and pandera community on
     :hidden:
 
     self
+    Try Pandera ▶️ <try_pandera>
 
 .. toctree::
    :maxdepth: 6
