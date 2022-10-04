@@ -196,9 +196,9 @@ jobs:
         uses: codecov/codecov-action@v3
 
       - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.python-version != '3.7' }}
         run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.python-version != '3.7' }}
         run: nox ${{ env.NOX_FLAGS }} --session docs
