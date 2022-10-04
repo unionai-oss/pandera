@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
+from pandera.engines import pandas_engine
 
 
 class InSchema(pa.SchemaModel):
@@ -92,6 +93,19 @@ def invalid_input_dataframe() -> pd.DataFrame:
     return pd.DataFrame({"str_col": ["a"]})
 
 
+def _needs_pyarrow(schema) -> bool:
+    return (
+        schema
+        in {
+            InSchemaParquet,
+            InSchemaFeather,
+            OutSchemaParquet,
+            OutSchemaFeather,
+        }
+        and not pandas_engine.PYARROW_INSTALLED
+    )
+
+
 @pytest.mark.parametrize(
     "schema,to_fn,buf_cls",
     [
@@ -122,24 +136,30 @@ def test_from_format(schema, to_fn, buf_cls):
         (mock_dataframe(), False),
         (invalid_input_dataframe(), True),
     ]:
-        buf = None if buf_cls is None else buf_cls()
-        arg = to_fn(df, *([buf] if buf else []))
-        if buf:
-            if buf.closed:
-                pytest.skip(
-                    "skip test for older pandas versions where to_pickle "
-                    "closes user-provided buffers: "
-                    "https://github.com/pandas-dev/pandas/issues/35679"
-                )
-            buf.seek(0)
-            arg = buf
-        if invalid:
-            with pytest.raises(pa.errors.SchemaError):
-                fn(arg)
-            return
 
-        out = fn(arg)
-        assert df.equals(out)
+        buf = None if buf_cls is None else buf_cls()
+
+        if _needs_pyarrow(schema):
+            with pytest.raises(ImportError):
+                to_fn(df, *([buf] if buf else []))
+        else:
+            arg = to_fn(df, *([buf] if buf else []))
+            if buf:
+                if buf.closed:
+                    pytest.skip(
+                        "skip test for older pandas versions where to_pickle "
+                        "closes user-provided buffers: "
+                        "https://github.com/pandas-dev/pandas/issues/35679"
+                    )
+                buf.seek(0)
+                arg = buf
+            if invalid:
+                with pytest.raises(pa.errors.SchemaError):
+                    fn(arg)
+                return
+
+            out = fn(arg)
+            assert df.equals(out)
 
 
 @pytest.mark.parametrize(
@@ -170,6 +190,12 @@ def test_to_format(schema, from_fn, buf_cls):
         return df
 
     df = mock_dataframe()
+
+    if _needs_pyarrow(schema):
+        with pytest.raises((ImportError)):
+            fn(df)
+        return
+
     try:
         out = fn(df)
     except IOError:

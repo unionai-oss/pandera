@@ -19,7 +19,7 @@ from pandera import (
     String,
     errors,
 )
-from pandera.engines.pandas_engine import Engine
+from pandera.engines.pandas_engine import Engine, pandas_version
 
 
 def test_column() -> None:
@@ -251,6 +251,10 @@ def tests_multi_index_subindex_coerce() -> None:
         schema(data, lazy=True)
 
 
+@pytest.mark.skipif(
+    pandas_version().release <= (1, 3, 5),
+    reason="MultiIndex dtypes are buggy prior to pandas 1.4.*",
+)
 @pytest.mark.parametrize("coerce", [True, False])
 def tests_multi_index_subindex_coerce_with_empty_subindex(coerce) -> None:
     """MultIndex component should override each sub indexes dtype,
@@ -263,7 +267,6 @@ def tests_multi_index_subindex_coerce_with_empty_subindex(coerce) -> None:
     ]
 
     data = pd.DataFrame(index=pd.MultiIndex.from_arrays([[]] * len(indexes)))
-
     schema_override = DataFrameSchema(index=MultiIndex(indexes))
 
     if coerce:
@@ -275,7 +278,8 @@ def tests_multi_index_subindex_coerce_with_empty_subindex(coerce) -> None:
             )
     else:
         with pytest.raises(
-            errors.SchemaErrors, match="A total of 2 schema errors were found"
+            errors.SchemaErrors,
+            match=r"A total of \d+ schema errors were found",
         ):
             schema_override(data, lazy=True)
 

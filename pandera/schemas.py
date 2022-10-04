@@ -15,7 +15,6 @@ from typing import (
     Any,
     Dict,
     List,
-    Literal,
     Optional,
     Type,
     TypeVar,
@@ -40,6 +39,12 @@ from .error_formatters import (
 )
 from .error_handlers import SchemaErrorHandler
 from .hypotheses import Hypothesis
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore[misc]
+
 
 if TYPE_CHECKING:
     from pandera.schema_components import Column
