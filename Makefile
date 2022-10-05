@@ -25,6 +25,10 @@ docs:
 		python -m sphinx -E "docs/source" "docs/_build" -W && \
 		make -C docs doctest
 
+quick-docs:
+	python -m sphinx -E "docs/source" "docs/_build" -W && \
+		make -C docs doctest
+
 code-cov:
 	pytest --cov-report=html --cov=pandera tests/
 
