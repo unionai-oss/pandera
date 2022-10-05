@@ -1,7 +1,7 @@
 Try Pandera
 ===============
 
-In the notebook below, you can get a sense of how to use pandera right in the
-browser without having to install anything locally!
+.. note::
+    You can access the full screen jupyter notebook environment `here <lite/retro/notebooks/?path=try_pandera.ipynb>`__
 
 .. retrolite:: notebooks/try_pandera.ipynb
