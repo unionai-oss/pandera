@@ -2,15 +2,23 @@
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
+from packaging import version
+
 from .common import DataFrameBase, IndexBase, SeriesBase
 from .pandas import GenericDtype, Schema
 
 try:
+    import modin
     import modin.pandas as mpd
 
     MODIN_INSTALLED = True
 except ImportError:
     MODIN_INSTALLED = False
+
+
+def modin_version():
+    """Return the modin version."""
+    return version.parse(modin.__version__)
 
 
 # pylint:disable=invalid-name
