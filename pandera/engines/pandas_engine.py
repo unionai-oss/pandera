@@ -444,7 +444,7 @@ def _check_decimal(
 
     is_decimal = pandas_obj.apply(
         lambda x: isinstance(x, decimal.Decimal)
-    ).astype("boolean") | pd.isnull(pandas_obj)
+    ).astype("bool") | pd.isnull(pandas_obj)
 
     decimals = pandas_obj[is_decimal]
     # fix for modin unamed series raises KeyError

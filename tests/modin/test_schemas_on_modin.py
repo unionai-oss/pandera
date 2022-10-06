@@ -10,7 +10,7 @@ import pytest
 import pandera as pa
 from pandera import extensions
 from pandera.engines import numpy_engine, pandas_engine
-from pandera.typing.modin import DataFrame, Index, Series
+from pandera.typing.modin import DataFrame, Index, Series, modin_version
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
     SUPPORTED_DTYPES as SUPPORTED_STRATEGY_DTYPES,
@@ -151,7 +151,7 @@ def test_index_dtypes(
         schema.coerce = coerce
     sample = data.draw(schema.strategy(size=3))
     # pandas (and modin) use object arrays to store boolean data
-    if dtype is bool:
+    if modin_version().release < (0, 16, 0) and dtype is bool:
         assert sample.dtype == "object"
         return
     assert isinstance(

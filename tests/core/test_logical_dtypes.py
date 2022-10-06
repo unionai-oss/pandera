@@ -99,7 +99,6 @@ def test_logical_datatype_check(
     assert not any(
         cast(Iterable[bool], expected_datatype.check(SimpleDtype(), data))
     )
-    print(expected_datatype.check(SimpleDtype(), None))
     assert expected_datatype.check(SimpleDtype(), None) is False
 
     # No data container
