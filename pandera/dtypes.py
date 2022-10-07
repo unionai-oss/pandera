@@ -407,13 +407,14 @@ class Decimal(_Number):
     """The number of significant digits that the decimal type can represent."""
     scale: int = 0  # default 0 is aligned with pyarrow and various databases.
     """The number of digits after the decimal point."""
+
+    # pylint: disable=line-too-long
     rounding: str = dataclasses.field(
         default_factory=lambda: decimal.getcontext().rounding
     )
-    # pylint: disable=line-too-long
     """
     The `rounding mode <https://docs.python.org/3/library/decimal.html#rounding-modes>`__
-    supported by the Python :doc:`python:decimal` module.
+    supported by the Python :py:class:`decimal.Decimal` class.
     """
 
     def __init__(

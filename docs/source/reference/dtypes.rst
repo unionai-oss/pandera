@@ -65,6 +65,7 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.pandas_engine.DateTime
    pandera.engines.pandas_engine.Date
    pandera.engines.pandas_engine.Decimal
+   pandera.engines.pandas_engine.Category
 
 GeoPandas Dtypes
 ----------------

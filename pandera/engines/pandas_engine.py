@@ -482,6 +482,14 @@ class Decimal(DataType, dtypes.Decimal):
     """
 
     type = np.dtype("object")
+    rounding: str = dataclasses.field(
+        default_factory=lambda: decimal.getcontext().rounding
+    )
+    """
+    The `rounding mode <https://docs.python.org/3/library/decimal.html#rounding-modes>`__
+    supported by the Python :py:class:`decimal.Decimal` class.
+    """
+
     _exp: decimal.Decimal = dataclasses.field(init=False)
     _ctx: decimal.Context = dataclasses.field(init=False)
 

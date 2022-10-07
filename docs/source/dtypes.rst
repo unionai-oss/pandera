@@ -201,17 +201,19 @@ underlying numpy dtype to coerce an individual value. The ``pandas`` -native
 datatypes like :class:`~pandas.CategoricalDtype` and :class:`~pandas.BooleanDtype`
 are also supported.
 
-As an example of a special-cased ``coerce_value`` implementation, see
-:py:meth:`~pandera.engines.pandas_engine.Category.coerce_value`:
+As an example of a special-cased ``coerce_value`` implementation, see the
+source code for :meth:`pandera.engines.pandas_engine.Category.coerce_value`:
 
+.. code-block:: python
 
-.. literalinclude:: ../../pandera/engines/pandas_engine.py
-   :lines: 580-586
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to a particular type."""
+        if value not in self.categories:  # type: ignore
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
+        return value
 
-And :py:meth:`~pandera.engines.pandas_engine.BOOL.coerce_value`:
-
-.. literalinclude:: ../../pandera/engines/pandas_engine.py
-   :lines: 223-229
 
 Logical data types
 ~~~~~~~~~~~~~~~~~~

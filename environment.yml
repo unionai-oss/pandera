@@ -29,7 +29,7 @@ dependencies:
 
   # modin extra
   - modin
-  - protobuf <= 3.20
+  - protobuf
 
   # dask extra
   - dask
