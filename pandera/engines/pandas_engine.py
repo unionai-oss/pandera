@@ -428,11 +428,6 @@ _register_numpy_numbers(
 ###############################################################################
 
 
-def _scale_to_exp(scale: int) -> decimal.Decimal:
-    scale_fmt = format(10**-scale, f".{scale}f")
-    return decimal.Decimal(scale_fmt)
-
-
 def _check_decimal(
     pandas_obj: pd.Series,
     precision: Optional[int] = None,
@@ -471,7 +466,9 @@ def _check_decimal(
     return is_valid.to_numpy()
 
 
-@Engine.register_dtype(equivalents=["decimal", decimal.Decimal])
+@Engine.register_dtype(
+    equivalents=["decimal", decimal.Decimal, dtypes.Decimal]
+)
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):
     # pylint:disable=line-too-long
@@ -485,9 +482,6 @@ class Decimal(DataType, dtypes.Decimal):
     """
 
     type = np.dtype("object")
-    rounding: str = dataclasses.field(
-        default_factory=lambda: decimal.getcontext().rounding
-    )
     _exp: decimal.Decimal = dataclasses.field(init=False)
     _ctx: decimal.Context = dataclasses.field(init=False)
 
@@ -497,16 +491,7 @@ class Decimal(DataType, dtypes.Decimal):
         scale: int = 0,
         rounding: Optional[str] = None,
     ) -> None:
-        dtypes.Decimal.__init__(self, precision, scale)
-        object.__setattr__(self, "rounding", rounding)
-        object.__setattr__(
-            self, "_exp", _scale_to_exp(scale) if scale else None
-        )
-        object.__setattr__(
-            self,
-            "_ctx",
-            decimal.Context(prec=precision, rounding=self.rounding),
-        )
+        dtypes.Decimal.__init__(self, precision, scale, rounding)
 
     def coerce_value(self, value: Any) -> decimal.Decimal:
         """Coerce an value to a particular type."""
