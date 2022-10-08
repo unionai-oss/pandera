@@ -11,7 +11,9 @@ from .. import dtypes
 from ..engines import numpy_engine, pandas_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
+Date = dtypes.Date  #: ``datetime.date`` object dtype
 DateTime = dtypes.DateTime  #: ``"datetime64[ns]"`` numpy dtype
+Decimal = dtypes.Decimal  #: ``decimal.Decimal`` object dtype
 Timedelta = dtypes.Timedelta  #: ``"timedelta64[ns]"`` numpy dtype
 Category = dtypes.Category  #: pandas ``"categorical"`` datatype
 Float = dtypes.Float  #: ``"float"`` numpy dtype
@@ -57,7 +59,9 @@ if GEOPANDAS_INSTALLED:
         float,
         pd.core.dtypes.base.ExtensionDtype,
         Bool,
+        Date,
         DateTime,
+        Decimal,
         Timedelta,
         Category,
         Float,
@@ -96,7 +100,9 @@ else:
         float,
         pd.core.dtypes.base.ExtensionDtype,
         Bool,
+        Date,
         DateTime,
+        Decimal,
         Timedelta,
         Category,
         Float,
