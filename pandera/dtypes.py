@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import decimal
 import inspect
 from abc import ABC
 from typing import (
@@ -390,6 +391,11 @@ class Complex64(Complex128):
 DEFAULT_PYTHON_PREC = 28
 
 
+def _scale_to_exp(scale: int) -> decimal.Decimal:
+    scale_fmt = format(10**-scale, f".{scale}f")
+    return decimal.Decimal(scale_fmt)
+
+
 @immutable(init=True)
 class Decimal(_Number):
     """Semantic representation of a decimal data type."""
@@ -402,7 +408,21 @@ class Decimal(_Number):
     scale: int = 0  # default 0 is aligned with pyarrow and various databases.
     """The number of digits after the decimal point."""
 
-    def __init__(self, precision: int = DEFAULT_PYTHON_PREC, scale: int = 0):
+    # pylint: disable=line-too-long
+    rounding: str = dataclasses.field(
+        default_factory=lambda: decimal.getcontext().rounding
+    )
+    """
+    The `rounding mode <https://docs.python.org/3/library/decimal.html#rounding-modes>`__
+    supported by the Python :py:class:`decimal.Decimal` class.
+    """
+
+    def __init__(
+        self,
+        precision: int = DEFAULT_PYTHON_PREC,
+        scale: int = 0,
+        rounding: Optional[str] = None,
+    ):
         super().__init__()
         if precision <= 0:
             raise ValueError(
@@ -414,6 +434,15 @@ class Decimal(_Number):
             )
         object.__setattr__(self, "precision", precision)
         object.__setattr__(self, "scale", scale)
+        object.__setattr__(self, "rounding", rounding)
+        object.__setattr__(
+            self, "_exp", _scale_to_exp(scale) if scale else None
+        )
+        object.__setattr__(
+            self,
+            "_ctx",
+            decimal.Context(prec=precision, rounding=self.rounding),
+        )
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.precision}, {self.scale})"

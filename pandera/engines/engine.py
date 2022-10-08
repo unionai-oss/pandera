@@ -203,6 +203,13 @@ class Engine(ABCMeta):
         equivalent_data_type = registry.equivalents.get(data_type)
         if equivalent_data_type is not None:
             return equivalent_data_type
+        elif isinstance(data_type, DataType):
+            # in the case where data_type is a parameterized dtypes.DataType instance that isn't
+            # in the equivalents registry, use its type to get the equivalent, and feed
+            # the parameters into the recognized data type class.
+            equivalent_data_type = registry.equivalents.get(type(data_type))
+            if equivalent_data_type is not None:
+                return type(equivalent_data_type)(**data_type.__dict__)
 
         try:
             return registry.dispatch(data_type)

@@ -9,7 +9,7 @@ Pandera Data Types
 
 *new in 0.7.0*
 
-.. _dtypes-into:
+.. _dtypes-intro:
 
 Motivations
 ~~~~~~~~~~~
@@ -201,17 +201,19 @@ underlying numpy dtype to coerce an individual value. The ``pandas`` -native
 datatypes like :class:`~pandas.CategoricalDtype` and :class:`~pandas.BooleanDtype`
 are also supported.
 
-As an example of a special-cased ``coerce_value`` implementation, see
-:py:meth:`~pandera.engines.pandas_engine.Category.coerce_value`:
+As an example of a special-cased ``coerce_value`` implementation, see the
+source code for :meth:`pandera.engines.pandas_engine.Category.coerce_value`:
 
+.. code-block:: python
 
-.. literalinclude:: ../../pandera/engines/pandas_engine.py
-   :lines: 580-586
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to a particular type."""
+        if value not in self.categories:  # type: ignore
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
+        return value
 
-And :py:meth:`~pandera.engines.pandas_engine.BOOL.coerce_value`:
-
-.. literalinclude:: ../../pandera/engines/pandas_engine.py
-   :lines: 223-229
 
 Logical data types
 ~~~~~~~~~~~~~~~~~~
@@ -224,7 +226,7 @@ e.g.: ``Int8``, ``Float32``, ``String``, etc., whereas logical types represent t
 abstracted understanding of that data. e.g.: ``IPs``, ``URLs``, ``paths``, etc.
 
 Validating a logical data type consists of validating the supporting physical data type
-(see :ref:`dtypes-into`) and a check on actual values. For example, an IP address data
+(see :ref:`dtypes-intro`) and a check on actual values. For example, an IP address data
 type would validate that:
 
 1. The data container type is a ``String``.
@@ -238,3 +240,51 @@ validated via the pandera DataType :class:`~pandera.dtypes.Decimal`.
 To implement a logical data type, you just need to implement the method
 :meth:`pandera.dtypes.DataType.check` and make use of the ``data_container`` argument to
 perform checks on the values of the data.
+
+For example, you can create an ``IPAddress`` datatype that inherits from the numpy string
+physical type, thereby storing the values as strings, and checks whether the values actually
+match an IP address regular expression.
+
+.. testcode:: dtypes
+
+    import re
+    from typing import Optional, Iterable, Union
+
+    @pandas_engine.Engine.register_dtype
+    @dtypes.immutable
+    class IPAddress(pandas_engine.NpString):
+
+        def check(
+            self,
+            pandera_dtype: dtypes.DataType,
+            data_container: Optional[pd.Series] = None,
+        ) -> Union[bool, Iterable[bool]]:
+
+            # ensure that the data container's data type is a string,
+            # using the parent class's check implementation
+            correct_type = super().check(pandera_dtype)
+            if not correct_type:
+                return correct_type
+
+            # ensure the filepaths actually exist locally
+            exp = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
+            return data_container.map(lambda x: exp.match(x) is not None)
+
+        def __str__(self) -> str:
+            return str(self.__class__.__name__)
+
+        def __repr__(self) -> str:
+            return f"DataType({self})"
+
+
+    schema = pa.DataFrameSchema(columns={"ips": pa.Column(IPAddress)})
+    schema.validate(pd.DataFrame({"ips": ["0.0.0.0", "0.0.0.1", "0.0.0.a"]}))
+
+.. testoutput:: dtypes
+
+    Traceback (most recent call last):
+    ...
+    pandera.errors.SchemaError: expected series 'ips' to have type IPAddress:
+    failure cases:
+    index failure_case
+    0      2      0.0.0.a
