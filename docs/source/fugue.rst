@@ -12,10 +12,10 @@ this would be the equivalent of a ``groupby-validate`` operation. This section w
 using ``pandera`` for both of these scenarios.
 
 ``Pandera`` has support for ``Spark`` and ``Dask`` DataFrames through ``Modin`` and
-``PySpark Pandas``. Another option for running ``pandera``  on top of native ``Spark`` 
-or ``Dask`` engines is `Fugue <https://github.com/fugue-project/fugue/>`_ . ``Fugue`` is 
-an open source abstraction layer that ports ``Python``, ``pandas``, and ``SQL`` code to 
-``Spark`` and ``Dask``. Operations will be applied on DataFrames natively, minimizing 
+``PySpark Pandas``. Another option for running ``pandera``  on top of native ``Spark``
+or ``Dask`` engines is `Fugue <https://github.com/fugue-project/fugue/>`_ . ``Fugue`` is
+an open source abstraction layer that ports ``Python``, ``pandas``, and ``SQL`` code to
+``Spark`` and ``Dask``. Operations will be applied on DataFrames natively, minimizing
 overhead.
 
 What is Fugue?
@@ -86,9 +86,9 @@ functions as seen in the following code snippet. The first two arguments are the
 function to apply. The keyword argument ``schema`` is required because schema is strictly enforced
 in distributed settings. Here, the ``schema`` is simply `*` because no new columns are added.
 
-The last part of the ``transform`` function is the ``engine``. Here, a ``SparkSession`` object 
-is used to run the code on top of ``Spark``. For Dask, users can pass a string ``"dask"`` or 
-can pass a Dask Client. Passing nothing uses the default pandas-based engine. Because we 
+The last part of the ``transform`` function is the ``engine``. Here, a ``SparkSession`` object
+is used to run the code on top of ``Spark``. For Dask, users can pass a string ``"dask"`` or
+can pass a Dask Client. Passing nothing uses the default pandas-based engine. Because we
 passed a SparkSession in this example, the output is a Spark DataFrame.
 
 .. testcode:: scaling_fugue
@@ -189,11 +189,11 @@ each run the ``price_validation`` function. Again, this is like a groupby-valida
 
 Returning Errors
 -----------------
-``Pandera`` will raise a ``SchemaError`` by default that gets buried by the Spark error 
-messages. To return the errors as a DataFrame, we use can use the following approach. If 
-there are no errors in the data, it will just return an empty DataFrame. 
+``Pandera`` will raise a ``SchemaError`` by default that gets buried by the Spark error
+messages. To return the errors as a DataFrame, we use can use the following approach. If
+there are no errors in the data, it will just return an empty DataFrame.
 
-To keep the errors for each partition, you can attach the partition key as a column in 
+To keep the errors for each partition, you can attach the partition key as a column in
 the returned DataFrame.
 
 .. testcode:: scaling_fugue
@@ -204,7 +204,7 @@ the returned DataFrame.
     out_schema = "schema_context:str, column:str, check:str, \
     check_number:int, failure_case:str, index:int"
 
-    out_columns = ["schema_context", "column", "check", 
+    out_columns = ["schema_context", "column", "check",
     "check_number", "failure_case", "index"]
 
     price_check = DataFrameSchema(
