@@ -45,6 +45,11 @@ try:
 except ImportError:
     from typing_extensions import Literal  # type: ignore[misc]
 
+try:
+    from typing import Self  # type: ignore[attr-defined]
+except ImportError:
+    from typing_extensions import Self
+
 
 if TYPE_CHECKING:
     from pandera.schema_components import Column
@@ -942,9 +947,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             ).example()
 
     @_inferred_schema_guard
-    def add_columns(
-        self, extra_schema_cols: Dict[str, Any]
-    ) -> "DataFrameSchema":
+    def add_columns(self, extra_schema_cols: Dict[str, Any]) -> Self:
         """Create a copy of the :class:`DataFrameSchema` with extra columns.
 
         :param extra_schema_cols: Additional columns of the format
@@ -995,7 +998,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return schema_copy
 
     @_inferred_schema_guard
-    def remove_columns(self, cols_to_remove: List[str]) -> "DataFrameSchema":
+    def remove_columns(self, cols_to_remove: List[str]) -> Self:
         """Removes columns from a :class:`DataFrameSchema` and returns a new
         copy.
 
@@ -1055,7 +1058,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return schema_copy
 
     @_inferred_schema_guard
-    def update_column(self, column_name: str, **kwargs) -> "DataFrameSchema":
+    def update_column(self, column_name: str, **kwargs) -> Self:
         """Create copy of a :class:`DataFrameSchema` with updated column
         properties.
 
@@ -1114,9 +1117,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         schema_copy.columns.update({column_name: new_column})
         return schema_copy
 
-    def update_columns(
-        self, update_dict: Dict[str, Dict[str, Any]]
-    ) -> "DataFrameSchema":
+    def update_columns(self, update_dict: Dict[str, Dict[str, Any]]) -> Self:
         """
         Create copy of a :class:`DataFrameSchema` with updated column
         properties.
@@ -1196,7 +1197,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return new_schema
 
-    def rename_columns(self, rename_dict: Dict[str, str]) -> "DataFrameSchema":
+    def rename_columns(self, rename_dict: Dict[str, str]) -> Self:
         """Rename columns using a dictionary of key-value pairs.
 
         :param rename_dict: dictionary of 'old_name': 'new_name' key-value
@@ -1280,7 +1281,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return new_schema
 
-    def select_columns(self, columns: List[Any]) -> "DataFrameSchema":
+    def select_columns(self, columns: List[Any]) -> Self:
         """Select subset of columns in the schema.
 
         *New in version 0.4.5*
@@ -1386,7 +1387,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
     def set_index(
         self, keys: List[str], drop: bool = True, append: bool = False
-    ) -> "DataFrameSchema":
+    ) -> Self:
         """
         A method for setting the :class:`Index` of a :class:`DataFrameSchema`,
         via an existing :class:`Column` or list of columns.
@@ -1515,9 +1516,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         return new_schema
 
-    def reset_index(
-        self, level: List[str] = None, drop: bool = False
-    ) -> "DataFrameSchema":
+    def reset_index(self, level: List[str] = None, drop: bool = False) -> Self:
         """
         A method for resetting the :class:`Index` of a :class:`DataFrameSchema`
 
