@@ -737,6 +737,12 @@ class _BaseDateTime(DataType):
 
         def _to_datetime(col: PandasObject) -> PandasObject:
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
+            if (
+                hasattr(pandas_dtype, "tz")
+                and pandas_dtype.tz is not None
+                and col.dt.tz is None
+            ):
+                col = col.dt.tz_localize(pandas_dtype.tz)
             return col.astype(pandas_dtype)
 
         if isinstance(data_container, pd.DataFrame):
