@@ -57,6 +57,11 @@ if modin.MODIN_INSTALLED:
     SERIES_TYPES.update({modin.Series})
     INDEX_TYPES.update({modin.Index})
 
+if cudf.CUDF_INSTALLED:
+    DATAFRAME_TYPES.update({cudf.DataFrame})
+    SERIES_TYPES.update({cudf.Series})
+    INDEX_TYPES.update({cudf.Index})
+
 if pyspark.PYSPARK_INSTALLED:
     DATAFRAME_TYPES.update({pyspark.DataFrame})
     SERIES_TYPES.update({pyspark.Series})
