@@ -63,7 +63,6 @@ dependencies:
   - python-multipart
 
   # documentation
-  - jupyterlite_sphinx
   - sphinx
   - sphinx-panels
   - sphinx-autodoc-typehints <= 1.14.1
@@ -86,3 +85,4 @@ dependencies:
       - types-pyyaml
       - types-pkg_resources
       - types-requests
+      - jupyterlite_sphinx

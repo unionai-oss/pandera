@@ -38,7 +38,6 @@ nox
 importlib_metadata
 uvicorn
 python-multipart
-jupyterlite_sphinx
 sphinx
 sphinx-panels
 sphinx-autodoc-typehints <= 1.14.1
@@ -53,3 +52,4 @@ types-click
 types-pyyaml
 types-pkg_resources
 types-requests
+jupyterlite_sphinx
