@@ -176,7 +176,8 @@ try:
                 raise ValueError(str(exc)) from exc
 
             return cls.to_format(valid_data, schema_model.__config__)
-    CUDF_INSTALLED=True
-except ImportError:
-    CUDF_INSTALLED=False
 
+
+    CUDF_INSTALLED = True
+except ImportError:
+    CUDF_INSTALLED = False

@@ -74,6 +74,14 @@ def supported_types() -> SupportedTypes:
         index_types.append(dd.Index)
     except ImportError:
         pass
+    try:
+        import cudf
+
+        table_types.append(cudf.DataFrame)
+        field_types.append(cudf.Series)
+        index_types.append(cudf.Index)
+    except ImportError:
+        pass
 
     return SupportedTypes(
         tuple(table_types),
