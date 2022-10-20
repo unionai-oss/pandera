@@ -276,6 +276,7 @@ as the first argument otherwise.
 For example, to register zero, one, and two statistic dataframe checks one could do the following:
 
 .. testcode:: extensions_df_checks
+    import math
 
     import pandera as pa
     import pandera.extensions as extensions
@@ -290,10 +291,10 @@ For example, to register zero, one, and two statistic dataframe checks one could
 
     @extensions.register_check_method(statistics=["fraction"])
     def total_missing_fraction_less_than(df, *, fraction: float):
-        return (1 - df.count().sum().item() / sum(df.shape)) < fraction
+        return (1 - df.count().sum().item() / math.mult(df.shape)) < fraction
 
 
-    @extensions.register_check_method(statistics=["col_a", "colb"])
+    @extensions.register_check_method(statistics=["col_a", "col_b"])
     def col_mean_a_greater_than_b(df, *, col_a: str, col_b: str):
         return df[col_a].mean() > df[col_b].mean()
 
