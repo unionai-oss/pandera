@@ -276,6 +276,7 @@ as the first argument otherwise.
 For example, to register zero, one, and two statistic dataframe checks one could do the following:
 
 .. testcode:: extensions_df_checks
+
     import math
 
     import pandera as pa
