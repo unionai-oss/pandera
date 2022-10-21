@@ -10,11 +10,8 @@ import pytest
 import pandera as pa
 from pandera import extensions
 from pandera.engines import numpy_engine, pandas_engine
-from pandera.typing.modin import DataFrame, Index, Series, modin_version
+from pandera.typing.modin import DataFrame, Index, Series
 from tests.strategies.test_strategies import NULLABLE_DTYPES
-from tests.strategies.test_strategies import (
-    SUPPORTED_DTYPES as SUPPORTED_STRATEGY_DTYPES,
-)
 from tests.strategies.test_strategies import (
     UNSUPPORTED_DTYPE_CLS as UNSUPPORTED_STRATEGY_DTYPE_CLS,
 )
@@ -26,26 +23,10 @@ except ImportError:
     hypothesis = MagicMock()
     st = MagicMock()
 
-
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
 
-TEST_DTYPES_ON_CUDF = []
-# pylint: disable=redefined-outer-name
-# for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
-#     if (
-#         dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS
-#         or (
-#             pandas_engine.Engine.dtype(dtype_cls)
-#             not in SUPPORTED_STRATEGY_DTYPES
-#         )
-#         or not (
-#             pandas_engine.GEOPANDAS_INSTALLED
-#             and dtype_cls == pandas_engine.Geometry
-#         )
-#     ):
-#         continue
-#     TEST_DTYPES_ON_CUDF.append(pandas_engine.Engine.dtype(dtype_cls))
+TEST_DTYPES_ON_CUDF: typing.List[str] = []
 
 
 @pytest.mark.parametrize("coerce", [True, False])
@@ -55,7 +36,8 @@ def test_dataframe_schema_case(coerce):
         {
             "int_column": pa.Column(int, pa.Check.ge(0)),
             "float_column": pa.Column(float, pa.Check.le(0)),
-            # cudf not implemented "str_column": pa.Column(str, pa.Check.isin(list("abcde"))),
+            # not implemented in cudf 22.08.00
+            # "str_column": pa.Column(str, pa.Check.isin(list("abcde"))),
         },
         coerce=coerce,
     )
@@ -63,7 +45,7 @@ def test_dataframe_schema_case(coerce):
         {
             "int_column": range(10),
             "float_column": [float(-x) for x in range(10)],
-            # cudf not implemented "str_column": list("aabbcceedd"),
+            # "str_column": list("aabbcceedd"),  # not implemented in cudf 22.08.00
         }
     )
     assert isinstance(schema.validate(cdf), cudf.DataFrame)
@@ -126,12 +108,14 @@ def test_field_schema_dtypes(
         int,
         float,
         bool,
-        # str,
-        # pandas_engine.DateTime,
+        # str,  # not implemented in cudf 22.08.00
+        # pandas_engine.DateTime,  # not implemented in cudf 22.08.00
     ],
 )
 @pytest.mark.parametrize("coerce", [True, False])
-@pytest.mark.parametrize("schema_cls", [pa.Index])
+@pytest.mark.parametrize(
+    "schema_cls", [pa.Index]
+)  # Multiindex not implemented in cudf 22.08.00
 @hypothesis.given(st.data())
 def test_index_dtypes(
     dtype: pandas_engine.DataType,
@@ -197,6 +181,39 @@ def test_nullable(
             nonnullable_schema(ks_null_sample)
 
 
+# def test_unique():  # cudf 22.08.00 not implemented `df.duplicated()`
+#     """Test uniqueness checks on modin dataframes."""
+#     schema = pa.DataFrameSchema({"field": pa.Column(int)}, unique=["field"])
+#     column_schema = pa.Column(int, unique=True, name="field")
+#     series_schema = pa.SeriesSchema(int, unique=True, name="field")
+#
+#     data_unique = cudf.DataFrame({"field": [1, 2, 3]})
+#     data_non_unique = cudf.DataFrame({"field": [1, 1, 1]})
+#
+#     assert isinstance(schema(data_unique), cudf.DataFrame)
+#     assert isinstance(column_schema(data_unique), cudf.DataFrame)
+#     assert isinstance(series_schema(data_unique["field"]), cudf.Series)
+#
+#     with pytest.raises(pa.errors.SchemaError, match="columns .+ not unique"):
+#         schema(data_non_unique)
+#     with pytest.raises(
+#         pa.errors.SchemaError, match="series .+ contains duplicate values"
+#     ):
+#         column_schema(data_non_unique)
+#     with pytest.raises(
+#         pa.errors.SchemaError, match="series .+ contains duplicate values"
+#     ):
+#         series_schema(data_non_unique["field"])
+#
+#     schema.unique = None
+#     column_schema.unique = False
+#     series_schema.unique = False
+#
+#     assert isinstance(schema(data_non_unique), mpd.DataFrame)
+#     assert isinstance(column_schema(data_non_unique), mpd.DataFrame)
+#     assert isinstance(series_schema(data_non_unique["field"]), mpd.Series)
+
+
 def test_required_column():
     """Test the required column raises error."""
     required_schema = pa.DataFrameSchema(
@@ -214,7 +231,9 @@ def test_required_column():
     schema(cudf.DataFrame({"another_field": [1, 2, 3]}))
 
 
-@pytest.mark.parametrize("from_dtype", [bool, float, int])
+@pytest.mark.parametrize(
+    "from_dtype", [bool, float, int]
+)  # str not implemented in cudf 22.08.00
 @pytest.mark.parametrize("to_dtype", [float, int, str, bool])
 @hypothesis.given(st.data())
 def test_dtype_coercion(from_dtype, to_dtype, data):
@@ -265,26 +284,26 @@ def test_strict_schema():
 def test_custom_checks(custom_check_teardown):
     """Test that custom checks can be executed."""
 
-    # @extensions.register_check_method(statistics=["value"])
-    # def cudf_eq(cudf_obj, *, value):  # PPR
-    #     return cudf_obj == value
-    #
-    # custom_schema = pa.DataFrameSchema(
-    #     {"field": pa.Column(checks=pa.Check(lambda s: s == 0, name="custom"))}
-    # )
-    #
-    # custom_registered_schema = pa.DataFrameSchema(
-    #     {"field": pa.Column(checks=pa.Check.cudf_eq(0))}
-    # )
-    #
-    # for schema in (custom_schema, custom_registered_schema):
-    #     schema(cudf.DataFrame({"field": [0] * 100}))
-    #
-    #     try:
-    #         schema(cudf.DataFrame({"field": [-1] * 100}))
-    #     except pa.errors.SchemaError as err:
-    #         assert (err.failure_cases["failure_case"] == -1).all()
-    pass
+    @extensions.register_check_method(statistics=["value"])
+    def cudf_eq(cudf_obj, *, value):
+        return cudf_obj == value
+
+    custom_schema = pa.DataFrameSchema(
+        {"field": pa.Column(checks=pa.Check(lambda s: s == 0, name="custom"))}
+    )
+
+    custom_registered_schema = pa.DataFrameSchema(
+        {"field": pa.Column(checks=pa.Check.cudf_eq(0))}
+    )
+
+    for schema in (custom_schema, custom_registered_schema):
+        schema(cudf.DataFrame({"field": [0] * 100}))
+
+        try:
+            schema(cudf.DataFrame({"field": [-1] * 100}))
+        except pa.errors.SchemaError as err:
+            assert (err.failure_cases["failure_case"] == -1).all()
+
 
 def test_schema_model():
     # pylint: disable=missing-class-docstring
@@ -300,14 +319,14 @@ def test_schema_model():
         {
             "int_field": [1, 2, 3],
             "float_field": [-1.1, -2.1, -3.1],
-            # "in_field": [1, 2, 3],
+            # "str_field": ["a", "b", "c"],  # not implemented in cudf 22.08.00
         }
     )
     invalid_df = cudf.DataFrame(
         {
             "int_field": [-1],
             "field_field": [1.0],
-            # "in_field": [4],
+            # "str_field": ["d"],  # not implemented in cudf 22.08.00
         }
     )
 
@@ -332,14 +351,13 @@ def test_schema_model():
         [pa.Check.lt(0), -1, 0],
         [pa.Check.le(0), 0, 1],
         [pa.Check.in_range(0, 10), 5, -1],
-        # FIXME: a valider
-        # [pa.Check.isin(["a"]), "a", "b"],
-        # [pa.Check.notin(["a"]), "b", "a"],
-        # [pa.Check.str_matches("^a$"), "a", "b"],
-        # [pa.Check.str_contains("a"), "faa", "foo"],
-        # [pa.Check.str_startswith("a"), "ab", "ba"],
-        # [pa.Check.str_endswith("a"), "ba", "ab"],
-        # [pa.Check.str_length(1, 2), "a", ""],
+        # [pa.Check.isin(["a"]), "a", "b"],  # Not impleted by cudf
+        # [pa.Check.notin(["a"]), "b", "a"],  # Not impleted by cudf
+        [pa.Check.str_matches("^a$"), "a", "b"],
+        [pa.Check.str_contains("a"), "faa", "foo"],
+        [pa.Check.str_startswith("a"), "ab", "ba"],
+        [pa.Check.str_endswith("a"), "ba", "ab"],
+        [pa.Check.str_length(1, 2), "a", ""],
     ],
 )
 def test_check_comparison_operators(check, valid, invalid):

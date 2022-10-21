@@ -251,7 +251,7 @@ def test_required_column():
     schema(mpd.DataFrame({"another_field": [1, 2, 3]}))
 
 
-@pytest.mark.parametrize("from_dtype", [str])
+@pytest.mark.parametrize("from_dtype", [bool, float, int, str])
 @pytest.mark.parametrize("to_dtype", [float, int, str, bool])
 @hypothesis.given(st.data())
 def test_dtype_coercion(from_dtype, to_dtype, data):

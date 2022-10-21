@@ -23,14 +23,12 @@ try:
     except ImportError:
         ModelField = Any  # type: ignore
 
-
     # pylint:disable=too-few-public-methods
     class Index(IndexBase, cudf.Index, Generic[GenericDtype]):
         """Representation of pandas.Index, only used for type annotation.
 
         *new in 0.5.0*
         """
-
 
     # pylint:disable=too-few-public-methods
     class Series(SeriesBase, cudf.Series, Generic[GenericDtype]):  # type: ignore
@@ -40,6 +38,7 @@ try:
         """
 
         if hasattr(pd.Series, "__class_getitem__") and _GenericAlias:
+
             def __class_getitem__(cls, item):
                 """Define this to override the patch that pyspark.pandas performs on pandas.
                 https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
@@ -47,13 +46,11 @@ try:
                 _type_check(item, "Parameters to generic types must be types.")
                 return _GenericAlias(cls, item)
 
-
     # pylint:disable=invalid-name
     if TYPE_CHECKING:
         T = TypeVar("T")  # pragma: no cover
     else:
         T = Schema
-
 
     # pylint:disable=too-few-public-methods
     class DataFrame(DataFrameBase, cudf.DataFrame, Generic[T]):
@@ -64,6 +61,7 @@ try:
         """
 
         if hasattr(pd.DataFrame, "__class_getitem__") and _GenericAlias:
+
             def __class_getitem__(cls, item):
                 """Define this to override the patch that pyspark.pandas performs on pandas.
                 https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
@@ -162,7 +160,9 @@ try:
             return schema_model, schema
 
         @classmethod
-        def pydantic_validate(cls, obj: Any, field: ModelField) -> pd.DataFrame:
+        def pydantic_validate(
+            cls, obj: Any, field: ModelField
+        ) -> pd.DataFrame:
             """
             Verify that the input can be converted into a pandas dataframe that
             meets all schema requirements.
@@ -176,7 +176,6 @@ try:
                 raise ValueError(str(exc)) from exc
 
             return cls.to_format(valid_data, schema_model.__config__)
-
 
     CUDF_INSTALLED = True
 except ImportError:

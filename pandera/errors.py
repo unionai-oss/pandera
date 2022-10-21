@@ -290,8 +290,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
             ]
 
         elif any(
-            type(x).__module__.startswith("cudf")
-            for x in check_failure_cases
+            type(x).__module__.startswith("cudf") for x in check_failure_cases
         ):
             # pylint: disable=import-outside-toplevel
             # The current version of cudf is not compatible with sort_values() of strings.

@@ -300,6 +300,9 @@ def str_matches(
     :param pattern: Regular expression pattern to use for matching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
+    if data.__module__.startswith("cudf"):
+        # This should be in its own backend implementation
+        return data.str.match(cast(str, pattern))
     return data.str.match(cast(str, pattern), na=False)
 
 
@@ -317,6 +320,9 @@ def str_contains(
     :param pattern: Regular expression pattern to use for searching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
+    if data.__module__.startswith("cudf"):
+        # This should be in its own backend implementation
+        return data.str.contains(cast(str, pattern))
     return data.str.contains(cast(str, pattern), na=False)
 
 
@@ -330,6 +336,9 @@ def str_startswith(data: PandasData, string: str) -> PandasData:
     :param string: String all values should start with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
+    if data.__module__.startswith("cudf"):
+        # This should be in its own backend implementation
+        return data.str.startswith(string)
     return data.str.startswith(string, na=False)
 
 
@@ -342,6 +351,9 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
     :param string: String all values should end with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
+    if data.__module__.startswith("cudf"):
+        # This should be in its own backend implementation
+        return data.str.endswith(string, na=False)
     return data.str.endswith(string, na=False)
 
 

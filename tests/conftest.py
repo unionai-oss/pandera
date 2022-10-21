@@ -2,6 +2,9 @@
 
 import os
 
+# pylint: disable=unused-import
+from tests.core.checks_fixtures import custom_check_teardown
+
 try:
     # pylint: disable=unused-import
     import hypothesis  # noqa F401
