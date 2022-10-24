@@ -310,23 +310,49 @@ def check_output(
     See :ref:`here<decorators>` for more usage details.
     """
 
+    # make sure that callable obj_getter doesn't work when the schema has
+    # any component that requires coercion, since there's no way to re-assign
+    # the output to the coerced data.
+    # pylint: disable=too-many-boolean-expressions
+    if callable(obj_getter) and (
+        schema.coerce
+        or (schema.index is not None and schema.index.coerce)
+        or (
+            isinstance(schema, schemas.DataFrameSchema)
+            and any(col.coerce for col in schema.columns.values())
+        )
+    ):
+        raise ValueError(
+            "Cannot use callable obj_getter when the schema uses coercion."
+        )
+
     def validate(out: Any, fn: Callable) -> None:
+        def _try_validate(obj: Any):
+            try:
+                return schema.validate(
+                    obj, head, tail, sample, random_state, lazy, inplace
+                )
+            except errors.SchemaError as e:
+                _handle_schema_error("check_output", fn, schema, obj, e)
+
         if obj_getter is None:
-            obj = out
+            return _try_validate(out)
         elif isinstance(obj_getter, (int, str)):
             obj = out[obj_getter]
+            validated = _try_validate(obj)
+            if isinstance(out, tuple):
+                out = list(out)
+                out[obj_getter] = validated
+                out = tuple(out)
+            else:
+                out[obj_getter] = validated
+            return out
         elif callable(obj_getter):
             obj = obj_getter(out)
-        else:
-            raise TypeError(
-                f"obj_getter is unrecognized type: {type(obj_getter)}"
-            )
-        try:
-            schema.validate(
-                obj, head, tail, sample, random_state, lazy, inplace
-            )
-        except errors.SchemaError as e:
-            _handle_schema_error("check_output", fn, schema, obj, e)
+            _try_validate(obj)
+            return out
+
+        raise TypeError(f"obj_getter is unrecognized type: {type(obj_getter)}")
 
     @wrapt.decorator
     def _wrapper(
@@ -356,8 +382,7 @@ def check_output(
             return aio_wrapper()
         else:
             out = fn(*args, **kwargs)
-            validate(out, fn)
-            return out
+            return validate(out, fn)
 
     return _wrapper
 
