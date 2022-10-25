@@ -302,3 +302,15 @@ def test_register_before_schema_definitions() -> None:
         col: pa.typing.Series[int] = pa.Field(custom_eq=1)
 
     pa.Check.custom_eq(1)
+
+
+def test_if_statistics_are_sane(custom_check_teardown: None, caplog) -> None:
+    """Ensure `statistics` definition aligns with args/kwargs in decorated function.
+
+    Regression test for #984
+    """
+    def mean_a_gt_mean_b(df, *, col_a: str, col_b: str):
+        return df[col_a].mean() > df[col_b].mean()
+
+    with pytest.raises(TypeError, match=r"is not part of .*? signature"):
+        extensions.register_check_method(mean_a_gt_mean_b, statistics=["col_a", "colb"])
