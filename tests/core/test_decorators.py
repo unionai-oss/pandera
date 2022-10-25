@@ -193,6 +193,64 @@ def test_check_function_decorator_errors() -> None:
         test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]}))
 
 
+def test_check_decorator_coercion() -> None:
+    """Test that check decorators correctly coerce input/output data."""
+
+    in_schema = DataFrameSchema({"column1": Column(int, coerce=True)})
+    out_schema = DataFrameSchema({"column2": Column(float, coerce=True)})
+
+    @check_input(in_schema)
+    @check_output(out_schema)
+    def test_func_io(df):
+        return df.assign(column2=10)
+
+    @check_input(in_schema)
+    @check_output(out_schema, obj_getter=1)
+    def test_func_out_tuple_obj_getter(df):
+        return None, df.assign(column2=10)
+
+    @check_input(in_schema)
+    @check_output(out_schema, obj_getter=1)
+    def test_func_out_list_obj_getter(df):
+        return None, df.assign(column2=10)
+
+    @check_input(in_schema)
+    @check_output(out_schema, obj_getter="key")
+    def test_func_out_dict_obj_getter(df):
+        return {"key": df.assign(column2=10)}
+
+    cases: typing.Iterable[
+        typing.Tuple[typing.Callable, typing.Union[int, str, None]]
+    ] = [
+        (test_func_io, None),
+        (test_func_out_tuple_obj_getter, 1),
+        (test_func_out_list_obj_getter, 1),
+        (test_func_out_dict_obj_getter, "key"),
+    ]
+    for fn, key in cases:
+        out = fn(pd.DataFrame({"column1": ["1", "2", "3"]}))
+        if key is not None:
+            out = out[key]
+        assert out.dtypes["column1"] == "int64"
+        assert out.dtypes["column2"] == "float64"
+
+
+def test_check_output_coercion_error() -> None:
+    """Test that check_output raises ValueError when obj_getter is callable."""
+
+    with pytest.raises(
+        ValueError,
+        match="Cannot use callable obj_better when the schema uses coercion",
+    ):
+
+        @check_output(
+            DataFrameSchema({"column2": Column(float, coerce=True)}),
+            obj_getter=lambda x: x[0]["key"],
+        )
+        def test_func(df):  # pylint: disable=unused-argument
+            ...
+
+
 def test_check_input_method_decorators() -> None:
     """Test the check_input and check_output decorator behaviours when the
     dataframe is changed within the function being checked"""
@@ -292,6 +350,7 @@ def test_check_io() -> None:
         return df, df
 
     @check_io(
+        # pylint: disable=undefined-loop-variable
         out=[(0, schema), ("foo", schema), (lambda x: x[2]["bar"], schema)]
     )
     def multiple_outputs_dict(df):
@@ -322,6 +381,14 @@ def test_check_io() -> None:
     invalid_df = pd.DataFrame({"col": [-1, -1, -1]})
     expected = pd.DataFrame({"col": [3, 3, 3]})
 
+    def _assert_equals(actual, expect):
+        if isinstance(actual, pd.Series):
+            assert (actual == expect).all()
+        elif isinstance(actual, pd.DataFrame):
+            assert (actual == expect).all(axis=None)
+        else:
+            assert actual == expect
+
     for fn, valid, invalid, out in [
         (simple_func, [df1, df2], [invalid_df, invalid_df], expected),
         (simple_func_no_out, [df1, df2], [invalid_df, invalid_df], expected),
@@ -341,11 +408,12 @@ def test_check_io() -> None:
     ]:
         result = fn(*valid)  # type: ignore[operator]
         if isinstance(result, pd.Series):
-            assert (result == out).all()
+            _assert_equals(result, out)
         if isinstance(result, pd.DataFrame):
-            assert (result == out).all(axis=None)
+            _assert_equals(result, out)
         else:
-            assert result == out
+            for _result, _out in zip(result, out):
+                _assert_equals(_result, _out)
 
         expected_error = (
             errors.SchemaErrors if fn is validate_lazy else errors.SchemaError
