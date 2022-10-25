@@ -240,7 +240,7 @@ def test_check_output_coercion_error() -> None:
 
     with pytest.raises(
         ValueError,
-        match="Cannot use callable obj_better when the schema uses coercion",
+        match="Cannot use callable obj_getter when the schema uses coercion",
     ):
 
         @check_output(
