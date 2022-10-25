@@ -106,7 +106,8 @@ def register_check_method(
         for statistic in statistics:
             if statistic not in signature.parameters:
                 raise TypeError(
-                    f"{statistic=} is not part of {check_fn.__name__}'s signature."
+                    f"statistic '{statistic}' is not part of "
+                    f"{check_fn.__name__}'s signature."
                 )
 
     def register_check_wrapper(check_fn: Callable):
@@ -169,8 +170,6 @@ def register_check_method(
         if strategy is not None:
             check_method = st.register_check_strategy(strategy)(check_method)
 
-        Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(
-            check_method, Check
-        )
+        Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(check_method, Check)
 
     return register_check_wrapper(check_fn)
