@@ -96,7 +96,8 @@ def test_register_element_wise_custom_check(
 
     with pytest.raises(
         ValueError,
-        match="Element-wise checks should support DataFrame and Series " "validation",
+        match="Element-wise checks should support DataFrame and Series "
+        "validation",
     ):
 
         @extensions.register_check_method(
@@ -122,7 +123,10 @@ def test_register_custom_groupby_check(custom_check_teardown: None) -> None:
         Note that this function can handle groups of both dataframes and
         series.
         """
-        return dict_groups[group_a].values.mean() > dict_groups[group_b].values.mean()
+        return (
+            dict_groups[group_a].values.mean()
+            > dict_groups[group_b].values.mean()
+        )
 
     # column groupby check
     data_column_check = pd.DataFrame(
@@ -159,7 +163,9 @@ def test_register_custom_groupby_check(custom_check_teardown: None) -> None:
             "col3": pa.Column(int),
         },
         index=pa.Index(str, name="my_index"),
-        checks=Check.custom_check(group_a="a", group_b="b", groupby="my_index"),
+        checks=Check.custom_check(
+            group_a="a", group_b="b", groupby="my_index"
+        ),
     )
     assert isinstance(schema_df_check(data_df_check), pd.DataFrame)
 
@@ -308,4 +314,6 @@ def test_if_statistics_are_sane(custom_check_teardown: None) -> None:
         return df[col_a].mean() > df[col_b].mean()
 
     with pytest.raises(TypeError, match=r"is not part of .*? signature"):
-        extensions.register_check_method(mean_a_gt_mean_b, statistics=["col_a", "colb"])
+        extensions.register_check_method(
+            mean_a_gt_mean_b, statistics=["col_a", "colb"]
+        )
