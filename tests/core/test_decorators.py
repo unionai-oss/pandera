@@ -195,9 +195,11 @@ def test_check_function_decorator_errors() -> None:
 
 def test_check_instance_method_decorator_error() -> None:
     """Test error message on methods."""
+    # pylint: disable-next=missing-class-docstring
     class TestClass:
         @check_input(DataFrameSchema({"column1": Column(Int)}))
         def test_method(self, df):
+            # pylint: disable=missing-function-docstring,no-self-use
             return df
 
     with pytest.raises(
