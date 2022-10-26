@@ -5,6 +5,7 @@
 This module provides utilities for extending the ``pandera`` API.
 """
 
+import inspect
 import warnings
 from enum import Enum
 from functools import partial, wraps
@@ -100,6 +101,14 @@ def register_check_method(
             check_type=check_type,
             strategy=strategy,
         )
+    else:
+        signature = inspect.signature(check_fn)
+        for statistic in statistics:
+            if statistic not in signature.parameters:
+                raise TypeError(
+                    f"statistic '{statistic}' is not part of "
+                    f"{check_fn.__name__}'s signature."
+                )
 
     def register_check_wrapper(check_fn: Callable):
         """Register a function as a :class:`~pandera.checks.Check` method."""

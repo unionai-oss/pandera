@@ -3,6 +3,7 @@ import functools
 import inspect
 import sys
 import typing
+import types
 from collections import OrderedDict
 from typing import (
     Any,
@@ -90,7 +91,10 @@ def _handle_schema_error(
     :raises SchemaError: when ``DataFrame`` violates built-in or custom
         checks.
     """
-    msg = f"error in {decorator_name} decorator of function '{fn.__name__}': {schema_error}"
+    func_name = fn.__name__
+    if isinstance(fn, types.MethodType):
+        func_name = fn.__self__.__class__.__name__ + "." + func_name
+    msg = f"error in {decorator_name} decorator of function '{func_name}': {schema_error}"
     raise errors.SchemaError(
         schema,
         arg_df,
