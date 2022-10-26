@@ -193,6 +193,23 @@ def test_check_function_decorator_errors() -> None:
         test_incorrect_check_input_index(pd.DataFrame({"column1": [1, 2, 3]}))
 
 
+def test_check_instance_method_decorator_error() -> None:
+    """Test error message on methods."""
+    # pylint: disable-next=missing-class-docstring
+    class TestClass:
+        @check_input(DataFrameSchema({"column1": Column(Int)}))
+        def test_method(self, df):
+            # pylint: disable=missing-function-docstring,no-self-use
+            return df
+
+    with pytest.raises(
+        errors.SchemaError,
+        match=r"^error in check_input decorator of function 'TestClass.test_method'",
+    ):
+        test_instance = TestClass()
+        test_instance.test_method(pd.DataFrame({"column2": ["a", "b", "c"]}))
+
+
 def test_check_input_method_decorators() -> None:
     """Test the check_input and check_output decorator behaviours when the
     dataframe is changed within the function being checked"""
