@@ -33,6 +33,7 @@ pytest
 pytest-cov
 pytest-xdist
 pytest-asyncio
+pytz
 xdoctest
 nox
 importlib_metadata

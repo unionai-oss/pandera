@@ -1,8 +1,11 @@
-"""Test numpy engine."""
+"""Test pandas engine."""
 
+import hypothesis
+import hypothesis.extra.pandas as pd_st
 import hypothesis.strategies as st
 import pandas as pd
 import pytest
+import pytz
 from hypothesis import given
 
 from pandera.engines import pandas_engine
@@ -109,3 +112,38 @@ def test_pandas_boolean_native_type_error(data):
     for _, value in data.iteritems():
         with pytest.raises(TypeError):
             dtype.coerce_value(value)
+
+
+@hypothesis.settings(max_examples=500)
+@pytest.mark.parametrize("timezone_aware", [True, False])
+@given(
+    data=pd_st.series(
+        dtype="datetime64[ns]",
+        index=pd_st.range_indexes(min_size=5, max_size=10),
+    ),
+    timezone=st.sampled_from(pytz.all_timezones),
+)
+def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
+    """
+    Test that pandas timezone-aware datetime correctly handles timezone-aware
+    and non-timezone-aware data.
+    """
+    timezone = pytz.timezone(timezone)
+
+    expected_failure = False
+    if timezone_aware:
+        data = data.dt.tz_localize(pytz.utc)
+    else:
+        assert data.dt.tz is None
+        try:
+            data.dt.tz_localize(timezone)
+        except pytz.exceptions.NonExistentTimeError:
+            expected_failure = True
+
+    dtype = pandas_engine.Engine.dtype(pd.DatetimeTZDtype(tz=timezone))
+    if expected_failure:
+        with pytest.raises(pytz.exceptions.NonExistentTimeError):
+            dtype.coerce(data)
+    else:
+        coerced_data = dtype.coerce(data)
+        assert coerced_data.dt.tz == timezone
