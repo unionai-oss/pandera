@@ -129,6 +129,7 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
     and non-timezone-aware data.
     """
     timezone = pytz.timezone(timezone)
+    tz_localize_kwargs = {"ambiguous": "NaT"}
 
     expected_failure = False
     if timezone_aware:
@@ -136,11 +137,16 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
     else:
         assert data.dt.tz is None
         try:
-            data.dt.tz_localize(timezone)
+            data.dt.tz_localize(timezone, **tz_localize_kwargs)
         except pytz.exceptions.NonExistentTimeError:
             expected_failure = True
 
-    dtype = pandas_engine.Engine.dtype(pd.DatetimeTZDtype(tz=timezone))
+    # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+    dtype = pandas_engine.Engine.dtype(
+        pandas_engine.DateTime(
+            tz=timezone, tz_localize_kwargs=tz_localize_kwargs
+        )
+    )
     if expected_failure:
         with pytest.raises(pytz.exceptions.NonExistentTimeError):
             dtype.coerce(data)

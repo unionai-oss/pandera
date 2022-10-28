@@ -707,6 +707,9 @@ class _BaseDateTime(DataType):
     to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
+    tz_localize_kwargs: Dict[str, Any] = dataclasses.field(
+        default_factory=dict, compare=False, repr=False
+    )
 
     @staticmethod
     def _get_to_datetime_fn(obj: Any) -> Callable:
@@ -742,7 +745,9 @@ class _BaseDateTime(DataType):
                 and pandas_dtype.tz is not None
                 and col.dt.tz is None
             ):
-                col = col.dt.tz_localize(pandas_dtype.tz)
+                col = col.dt.tz_localize(
+                    pandas_dtype.tz, **self.tz_localize_kwargs
+                )
             return col.astype(pandas_dtype)
 
         if isinstance(data_container, pd.DataFrame):
@@ -783,12 +788,19 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     )
     unit: str = "ns"
     """The precision of the datetime data. Currently limited to "ns"."""
+
     tz: Optional[datetime.tzinfo] = None
     """The timezone."""
+
     to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
+
+    tz_localize_kwargs: Dict[str, Any] = dataclasses.field(
+        default_factory=dict, compare=False, repr=False
+    )
+    "Keyword arguments passed to :func:`pandas.Series.dt.tz_localize` for coercion."
 
     def __post_init__(self):
         if self.tz is None:
