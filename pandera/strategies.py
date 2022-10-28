@@ -378,7 +378,7 @@ def pandas_dtype_strategy(
         )
 
     np_dtype = to_numpy_dtype(pandera_dtype)
-    if strategy:
+    if strategy is not None:
         if _is_datetime_tz(pandera_dtype):
             return _datetime_strategy(pandera_dtype.type, strategy)  # type: ignore
         return strategy.map(np_dtype.type)
