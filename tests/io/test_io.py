@@ -728,19 +728,19 @@ def test_io_json(index):
     with tempfile.TemporaryDirectory() as tmpdir:
         # Check Path
         pth = Path(tmpdir) / "something.json"
-        output = io.to_json(schema, target=pth)
+        output = io.to_json(schema, stream=pth)
         assert output is None
         schema_from_json = io.from_json(pth)
         assert schema_from_json == schema
 
         # Check path as string
-        output = io.to_json(schema, target=str(pth))
+        output = io.to_json(schema, stream=str(pth))
         assert output is None
         schema_from_json = io.from_json(str(pth))
         assert schema_from_json == schema
 
         # Check schema encoded as a string
-        text = io.to_json(schema, target=None)
+        text = io.to_json(schema, stream=None)
         assert text is not None
         assert isinstance(text, str)
         schema_from_json = io.from_json(text)
@@ -748,7 +748,7 @@ def test_io_json(index):
 
         # Check schema encoded in a stream
         stream = StringIO()
-        output = io.to_json(schema, target=stream)
+        output = io.to_json(schema, stream=stream)
         assert output is None
         stream.seek(0)
         schema_from_json = io.from_json(stream)

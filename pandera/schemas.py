@@ -1399,14 +1399,20 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return pandera.io.from_json(json_schema)
 
     @overload
-    def to_json(self, stream: None = None) -> str:  # pragma: no cover
+    def to_json(
+        self, stream: None = None, **kwargs
+    ) -> str:  # pragma: no cover
         ...
 
     @overload
-    def to_json(self, stream: os.PathLike) -> None:  # pragma: no cover
+    def to_json(
+        self, stream: os.PathLike, **kwargs
+    ) -> None:  # pragma: no cover
         ...
 
-    def to_json(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+    def to_json(
+        self, stream: Optional[os.PathLike] = None, **kwargs
+    ) -> Optional[str]:
         """Write DataFrameSchema to json file.
 
         :param stream: file stream to write to. If None, dumps to string.
@@ -1415,7 +1421,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel,cyclic-import
         import pandera.io
 
-        return pandera.io.to_json(self, target=stream)
+        return pandera.io.to_json(self, stream=stream, **kwargs)
 
     def set_index(
         self, keys: List[str], drop: bool = True, append: bool = False

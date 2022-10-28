@@ -312,12 +312,12 @@ def to_yaml(dataframe_schema, stream=None):
         return _write_yaml(statistics, stream)
 
 
-def from_json(source):
+def from_json(json_schema):
     """
     Create :class:`~pandera.schemas.DataFrameSchema` from json file.
 
-    :param source:
-        Depending on the type, the source is assumed to be:
+    :param json_schema:
+        Depending on the type, json_schema is assumed to be:
 
         1) str or Path to a file containing json schema (if the file exists),
         2) str as a JSON-encoded schema, or
@@ -326,41 +326,41 @@ def from_json(source):
 
     :returns: dataframe schema.
     """
-    if isinstance(source, str):
-        pth = Path(source)
-        if pth.exists() and pth.is_file():
-            with pth.open(encoding="utf-8") as f:
+    if isinstance(json_schema, str):
+        try:
+            serialized_schema = json.loads(json_schema)
+        except json.decoder.JSONDecodeError:
+            with Path(json_schema).open(encoding="utf-8") as f:
                 serialized_schema = json.load(fp=f)
-        else:
-            serialized_schema = json.loads(source)
-    elif isinstance(source, Path):
-        with source.open(encoding="utf-8") as f:
+    elif isinstance(json_schema, Path):
+        with json_schema.open(encoding="utf-8") as f:
             serialized_schema = json.load(fp=f)
     else:
-        serialized_schema = json.load(fp=source)
+        serialized_schema = json.load(fp=json_schema)
 
     return deserialize_schema(serialized_schema)
 
 
-def to_json(dataframe_schema, target=None):
+def to_json(dataframe_schema, stream=None, **kwargs):
     """
     Write :class:`~pandera.schemas.DataFrameSchema` to json file.
 
     :param dataframe_schema: schema to write to file or dump to string.
-    :param target:
+    :param stream:
         file path or stream to write to. If None, returns a dump to string.
+    :param kwargs: keyword arguments to pass into :func:`json.dump`
     :returns: json string if stream is None, otherwise returns None.
     """
     serialized_schema = serialize_schema(dataframe_schema)
 
-    if target is None:
-        return json.dumps(serialized_schema, sort_keys=False)
+    if stream is None:
+        return json.dumps(serialized_schema, sort_keys=False, **kwargs)
 
-    if isinstance(target, (str, Path)):
-        with Path(target).open("w", encoding="utf-8") as f:
-            json.dump(serialized_schema, fp=f, sort_keys=False)
+    if isinstance(stream, (str, Path)):
+        with Path(stream).open("w", encoding="utf-8") as f:
+            json.dump(serialized_schema, fp=f, sort_keys=False, **kwargs)
     else:
-        json.dump(serialized_schema, fp=target, sort_keys=False)
+        json.dump(serialized_schema, fp=stream, sort_keys=False, **kwargs)
 
 
 SCRIPT_TEMPLATE = """

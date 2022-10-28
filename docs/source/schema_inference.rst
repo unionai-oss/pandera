@@ -239,11 +239,101 @@ is a convenience method for this functionality.
     unique: null
     ordered: false
 
-You can edit this yaml file by specifying column names under the ``column``
-key. The respective values map onto key-word arguments in the
-:class:`~pandera.schema_components.Column` class.
+You can edit this yaml file to modify the schema. For example, you can specify
+new column names under the ``column`` key, and the respective values map onto
+key-word arguments in the :class:`~pandera.schema_components.Column` class.
 
 .. note::
 
    Currently, only built-in :class:`~pandera.checks.Check` methods are supported under the
    ``checks`` key.
+
+
+Write to JSON
+~~~~~~~~~~~~~
+
+Finally, you can also write the schema object to a json file with :func:`~pandera.io.to_json`,
+and you can then read it into memory with :func:`~pandera.io.from_json`. The
+:func:`~pandera.schemas.DataFrameSchema.to_json` and :func:`~pandera.schemas.DataFrameSchema.from_json`
+is a convenience method for this functionality.
+
+.. testcode:: infer_dataframe_schema
+   :skipif: SKIP
+
+   # supply a file-like object, Path, or str to write to a file. If not
+   # specified, to_yaml will output a yaml string.
+   json_schema = schema.to_json(indent=4)
+   print(json_schema.replace(f"{pa.__version__}", "{PANDERA_VERSION}"))
+
+.. testoutput:: infer_dataframe_schema
+   :skipif: SKIP
+
+    {
+        "schema_type": "dataframe",
+        "version": "{PANDERA_VERSION}",
+        "columns": {
+            "column1": {
+                "title": null,
+                "description": null,
+                "dtype": "int64",
+                "nullable": false,
+                "checks": {
+                    "greater_than_or_equal_to": 5.0,
+                    "less_than_or_equal_to": 20.0
+                },
+                "unique": false,
+                "coerce": false,
+                "required": true,
+                "regex": false
+            },
+            "column2": {
+                "title": null,
+                "description": null,
+                "dtype": "object",
+                "nullable": false,
+                "checks": null,
+                "unique": false,
+                "coerce": false,
+                "required": true,
+                "regex": false
+            },
+            "column3": {
+                "title": null,
+                "description": null,
+                "dtype": "datetime64[ns]",
+                "nullable": false,
+                "checks": {
+                    "greater_than_or_equal_to": "2010-01-01 00:00:00",
+                    "less_than_or_equal_to": "2012-01-01 00:00:00"
+                },
+                "unique": false,
+                "coerce": false,
+                "required": true,
+                "regex": false
+            }
+        },
+        "checks": null,
+        "index": [
+            {
+                "title": null,
+                "description": null,
+                "dtype": "int64",
+                "nullable": false,
+                "checks": {
+                    "greater_than_or_equal_to": 0.0,
+                    "less_than_or_equal_to": 2.0
+                },
+                "name": null,
+                "unique": false,
+                "coerce": false
+            }
+        ],
+        "coerce": true,
+        "strict": false,
+        "unique": null,
+        "ordered": false
+    }
+
+You can edit this json file to update the schema as needed, and then load
+it back into a pandera schema object with :func:`~pandera.io.from_json` or
+:func:`~pandera.schemas.DataFrameSchema.from_json`.
