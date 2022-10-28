@@ -1103,14 +1103,23 @@ def dataframe_strategy(
         )
 
         # this is a hack to convert np.str_ data values into native python str.
+        string_columns = []
         for col_name, col_dtype in col_dtypes.items():
             if col_dtype in {"object", "str"} or col_dtype.startswith(
                 "string"
             ):
-                # pylint: disable=cell-var-from-loop,undefined-loop-variable
-                strategy = strategy.map(
-                    lambda df: df.assign(**{col_name: df[col_name].map(str)})
+                string_columns.append(col_name)
+
+        if string_columns:
+            # pylint: disable=cell-var-from-loop,undefined-loop-variable
+            strategy = strategy.map(
+                lambda df: df.assign(
+                    **{
+                        col_name: df[col_name].map(str)
+                        for col_name in string_columns
+                    }
                 )
+            )
 
         strategy = strategy.map(
             lambda df: df if df.empty else df.astype(col_dtypes)
