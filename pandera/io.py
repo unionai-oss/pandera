@@ -279,45 +279,45 @@ def deserialize_schema(serialized_schema):
     )
 
 
-def from_yaml(yaml_schema):
+def from_yaml(source):
     """Create :class:`~pandera.schemas.DataFrameSchema` from yaml file.
 
-    :param yaml_schema: str or Path to yaml schema, or serialized yaml string.
+    :param source: str or Path to yaml schema, or serialized yaml string.
     :returns: dataframe schema.
     """
     try:
-        with Path(yaml_schema).open("r", encoding="utf-8") as f:
+        with Path(source).open("r", encoding="utf-8") as f:
             serialized_schema = yaml.safe_load(f)
     except (TypeError, OSError):
-        serialized_schema = yaml.safe_load(yaml_schema)
+        serialized_schema = yaml.safe_load(source)
     return deserialize_schema(serialized_schema)
 
 
-def to_yaml(dataframe_schema, stream=None):
+def to_yaml(dataframe_schema, target=None):
     """Write :class:`~pandera.schemas.DataFrameSchema` to yaml file.
 
     :param dataframe_schema: schema to write to file or dump to string.
-    :param stream: file stream to write to. If None, dumps to string.
+    :param target: file stream to write to. If None, dumps to string.
     :returns: yaml string if stream is None, otherwise returns None.
     """
     statistics = serialize_schema(dataframe_schema)
 
-    def _write_yaml(obj, stream):
-        return yaml.safe_dump(obj, stream=stream, sort_keys=False)
+    def _write_yaml(obj, target):
+        return yaml.safe_dump(obj, stream=target, sort_keys=False)
 
     try:
-        with Path(stream).open("w", encoding="utf-8") as f:
+        with Path(target).open("w", encoding="utf-8") as f:
             _write_yaml(statistics, f)
     except (TypeError, OSError):
-        return _write_yaml(statistics, stream)
+        return _write_yaml(statistics, target)
 
 
-def from_json(json_schema):
+def from_json(source):
     """
     Create :class:`~pandera.schemas.DataFrameSchema` from json file.
 
-    :param json_schema:
-        Depending on the type, json_schema is assumed to be:
+    :param source:
+        Depending on the type, source is assumed to be:
 
         1) str or Path to a file containing json schema (if the file exists),
         2) str as a JSON-encoded schema, or
@@ -326,41 +326,41 @@ def from_json(json_schema):
 
     :returns: dataframe schema.
     """
-    if isinstance(json_schema, str):
+    if isinstance(source, str):
         try:
-            serialized_schema = json.loads(json_schema)
+            serialized_schema = json.loads(source)
         except json.decoder.JSONDecodeError:
-            with Path(json_schema).open(encoding="utf-8") as f:
+            with Path(source).open(encoding="utf-8") as f:
                 serialized_schema = json.load(fp=f)
-    elif isinstance(json_schema, Path):
-        with json_schema.open(encoding="utf-8") as f:
+    elif isinstance(source, Path):
+        with source.open(encoding="utf-8") as f:
             serialized_schema = json.load(fp=f)
     else:
-        serialized_schema = json.load(fp=json_schema)
+        serialized_schema = json.load(fp=source)
 
     return deserialize_schema(serialized_schema)
 
 
-def to_json(dataframe_schema, stream=None, **kwargs):
+def to_json(dataframe_schema, target=None, **kwargs):
     """
     Write :class:`~pandera.schemas.DataFrameSchema` to json file.
 
     :param dataframe_schema: schema to write to file or dump to string.
-    :param stream:
-        file path or stream to write to. If None, returns a dump to string.
+    :param target: file path or stream to write to. If None, returns a
+        dump to string.
     :param kwargs: keyword arguments to pass into :func:`json.dump`
     :returns: json string if stream is None, otherwise returns None.
     """
     serialized_schema = serialize_schema(dataframe_schema)
 
-    if stream is None:
+    if target is None:
         return json.dumps(serialized_schema, sort_keys=False, **kwargs)
 
-    if isinstance(stream, (str, Path)):
-        with Path(stream).open("w", encoding="utf-8") as f:
+    if isinstance(target, (str, Path)):
+        with Path(target).open("w", encoding="utf-8") as f:
             json.dump(serialized_schema, fp=f, sort_keys=False, **kwargs)
     else:
-        json.dump(serialized_schema, fp=stream, sort_keys=False, **kwargs)
+        json.dump(serialized_schema, fp=target, sort_keys=False, **kwargs)
 
 
 SCRIPT_TEMPLATE = """

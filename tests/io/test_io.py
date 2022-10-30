@@ -728,45 +728,45 @@ def test_io_json(index):
     with tempfile.TemporaryDirectory() as tmpdir:
         # Check Path
         pth = Path(tmpdir) / "something.json"
-        output = io.to_json(schema, stream=pth)
+        output = io.to_json(schema, pth)
         assert output is None
         schema_from_json = io.from_json(pth)
         assert schema_from_json == schema
 
         # DataFrameSchema method
-        output = schema.to_json(stream=pth)
+        output = schema.to_json(pth)
         assert output is None
         schema_from_json = schema.from_json(pth)
         assert schema_from_json == schema
 
         # Check path as string
-        output = io.to_json(schema, stream=str(pth))
+        output = io.to_json(schema, str(pth))
         assert output is None
         schema_from_json = io.from_json(str(pth))
         assert schema_from_json == schema
 
         # DataFrameSchema method
-        output = schema.to_json(stream=str(pth))
+        output = schema.to_json(str(pth))
         assert output is None
         schema_from_json = schema.from_json(pth)
         assert schema_from_json == schema
 
         # Check schema encoded as a string
-        text = io.to_json(schema, stream=None)
+        text = io.to_json(schema)
         assert text is not None
         assert isinstance(text, str)
         schema_from_json = io.from_json(text)
         assert schema_from_json == schema
 
         # DataFrameSchema method
-        text = schema.to_json(stream=None)
+        text = schema.to_json()
         assert text is not None
         schema_from_json = schema.from_json(text)
         assert schema_from_json == schema
 
         # Check schema encoded in a stream
         stream = StringIO()
-        output = io.to_json(schema, stream=stream)
+        output = io.to_json(schema, stream)
         assert output is None
         stream.seek(0)
         schema_from_json = io.from_json(stream)
@@ -774,7 +774,7 @@ def test_io_json(index):
 
         # DataFrameSchema method
         stream = StringIO()
-        output = schema.to_json(stream=stream)
+        output = schema.to_json(stream)
         assert output is None
         stream.seek(0)
         schema_from_json = schema.from_json(stream)
