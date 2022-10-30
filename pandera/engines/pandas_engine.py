@@ -766,6 +766,10 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     )
     "Keyword arguments passed to :func:`pandas.Series.dt.tz_localize` for coercion."
 
+    _default_tz_localize_kwargs = {
+        "ambiguous": "infer",
+    }
+
     def __post_init__(self):
         if self.tz is None:
             type_ = np.dtype("datetime64[ns]")
@@ -780,6 +784,10 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         self, data_container: PandasObject, pandas_dtype: Any
     ) -> PandasObject:
         to_datetime_fn = self._get_to_datetime_fn(data_container)
+        _tz_localize_kwargs = {
+            **self._default_tz_localize_kwargs,
+            **self.tz_localize_kwargs,
+        }
 
         def _to_datetime(col: PandasObject) -> PandasObject:
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
@@ -790,14 +798,15 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
             ):
                 # localize datetime column so that it's timezone-aware
                 col = col.dt.tz_localize(
-                    pandas_dtype.tz, **self.tz_localize_kwargs
+                    pandas_dtype.tz,
+                    **_tz_localize_kwargs,
                 )
             return col.astype(pandas_dtype)
 
         if isinstance(data_container, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
             # We actually want to coerce every columns.
-            return data_container.transform(to_datetime_fn)
+            return data_container.transform(_to_datetime)
 
         return _to_datetime(data_container)
 
@@ -857,19 +866,17 @@ class Date(_BaseDateTime, dtypes.Date):
 
         def _to_datetime(col: PandasObject) -> PandasObject:
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
-            return col.astype(pandas_dtype)
+            return col.astype(pandas_dtype).dt.date
 
         if isinstance(data_container, pd.DataFrame):
             # pd.to_datetime transforms a df input into a series.
             # We actually want to coerce every columns.
-            return data_container.transform(to_datetime_fn)
+            return data_container.transform(_to_datetime)
 
         return _to_datetime(data_container)
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
-        return self._coerce(
-            data_container, pandas_dtype="datetime64[ns]"
-        ).dt.date
+        return self._coerce(data_container, pandas_dtype="datetime64[ns]")
 
     def coerce_value(self, value: Any) -> Any:
         coerced = self._get_to_datetime_fn(value)(
