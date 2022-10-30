@@ -279,37 +279,37 @@ def deserialize_schema(serialized_schema):
     )
 
 
-def from_yaml(source):
+def from_yaml(yaml_schema):
     """Create :class:`~pandera.schemas.DataFrameSchema` from yaml file.
 
-    :param source: str or Path to yaml schema, or serialized yaml string.
+    :param yaml_schema: str or Path to yaml schema, or serialized yaml string.
     :returns: dataframe schema.
     """
     try:
-        with Path(source).open("r", encoding="utf-8") as f:
+        with Path(yaml_schema).open("r", encoding="utf-8") as f:
             serialized_schema = yaml.safe_load(f)
     except (TypeError, OSError):
-        serialized_schema = yaml.safe_load(source)
+        serialized_schema = yaml.safe_load(yaml_schema)
     return deserialize_schema(serialized_schema)
 
 
-def to_yaml(dataframe_schema, target=None):
+def to_yaml(dataframe_schema, stream=None):
     """Write :class:`~pandera.schemas.DataFrameSchema` to yaml file.
 
     :param dataframe_schema: schema to write to file or dump to string.
-    :param target: file stream to write to. If None, dumps to string.
+    :param stream: file stream to write to. If None, dumps to string.
     :returns: yaml string if stream is None, otherwise returns None.
     """
     statistics = serialize_schema(dataframe_schema)
 
-    def _write_yaml(obj, target):
-        return yaml.safe_dump(obj, stream=target, sort_keys=False)
+    def _write_yaml(obj, stream):
+        return yaml.safe_dump(obj, stream=stream, sort_keys=False)
 
     try:
-        with Path(target).open("w", encoding="utf-8") as f:
+        with Path(stream).open("w", encoding="utf-8") as f:
             _write_yaml(statistics, f)
     except (TypeError, OSError):
-        return _write_yaml(statistics, target)
+        return _write_yaml(statistics, stream)
 
 
 def from_json(source):

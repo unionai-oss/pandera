@@ -1354,37 +1354,37 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return pandera.io.to_script(self, fp)
 
     @classmethod
-    def from_yaml(cls, source) -> "DataFrameSchema":
+    def from_yaml(cls, yaml_schema) -> "DataFrameSchema":
         """Create DataFrameSchema from yaml file.
 
-        :param source: str, Path to yaml schema, or serialized yaml
+        :param yaml_schema: str, Path to yaml schema, or serialized yaml
             string.
         :returns: dataframe schema.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
         import pandera.io
 
-        return pandera.io.from_yaml(source)
+        return pandera.io.from_yaml(yaml_schema)
 
     @overload
-    def to_yaml(self, target: None = None) -> str:  # pragma: no cover
+    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
         ...
 
     @overload
-    def to_yaml(self, target: os.PathLike) -> None:  # pragma: no cover
+    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
         ...
 
-    def to_yaml(self, target: Optional[os.PathLike] = None) -> Optional[str]:
+    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
         """Write DataFrameSchema to yaml file.
 
-        :param target: file path or stream to write to. If None, dumps
+        :param stream: file path or stream to write to. If None, dumps
             to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
         import pandera.io
 
-        return pandera.io.to_yaml(self, target)
+        return pandera.io.to_yaml(self, stream)
 
     @classmethod
     def from_json(cls, source) -> "DataFrameSchema":
