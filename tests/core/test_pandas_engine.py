@@ -185,8 +185,8 @@ def test_pandas_date_coerce_dtype(to_df, data):
         ).all(axis=None)
         return
 
-    assert coerced_data.dtype == "object" or (
-        coerced_data.isna() and coerced_data.dtype == "datetime64[ns]"
+    assert (coerced_data.dtype == "object") or (
+        coerced_data.isna().all() and coerced_data.dtype == "datetime64[ns]"
     )
     assert (
         coerced_data.map(lambda x: isinstance(x, date)) | coerced_data.isna()
