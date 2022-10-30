@@ -733,10 +733,22 @@ def test_io_json(index):
         schema_from_json = io.from_json(pth)
         assert schema_from_json == schema
 
+        # DataFrameSchema method
+        output = schema.to_json(stream=pth)
+        assert output is None
+        schema_from_json = schema.from_json(pth)
+        assert schema_from_json == schema
+
         # Check path as string
         output = io.to_json(schema, stream=str(pth))
         assert output is None
         schema_from_json = io.from_json(str(pth))
+        assert schema_from_json == schema
+
+        # DataFrameSchema method
+        output = schema.to_json(stream=str(pth))
+        assert output is None
+        schema_from_json = schema.from_json(pth)
         assert schema_from_json == schema
 
         # Check schema encoded as a string
@@ -746,12 +758,26 @@ def test_io_json(index):
         schema_from_json = io.from_json(text)
         assert schema_from_json == schema
 
+        # DataFrameSchema method
+        text = schema.to_json(stream=None)
+        assert text is not None
+        schema_from_json = schema.from_json(text)
+        assert schema_from_json == schema
+
         # Check schema encoded in a stream
         stream = StringIO()
         output = io.to_json(schema, stream=stream)
         assert output is None
         stream.seek(0)
         schema_from_json = io.from_json(stream)
+        assert schema_from_json == schema
+
+        # DataFrameSchema method
+        stream = StringIO()
+        output = schema.to_json(stream=stream)
+        assert output is None
+        stream.seek(0)
+        schema_from_json = schema.from_json(stream)
         assert schema_from_json == schema
 
 
