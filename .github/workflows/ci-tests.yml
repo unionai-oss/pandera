@@ -148,6 +148,7 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -r requirements-dev.txt
+          python -m pip install bokeh
 
       - run: |
           conda info

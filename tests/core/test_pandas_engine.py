@@ -1,8 +1,13 @@
-"""Test numpy engine."""
+"""Test pandas engine."""
 
+from datetime import date
+
+import hypothesis
+import hypothesis.extra.pandas as pd_st
 import hypothesis.strategies as st
 import pandas as pd
 import pytest
+import pytz
 from hypothesis import given
 
 from pandera.engines import pandas_engine
@@ -109,3 +114,80 @@ def test_pandas_boolean_native_type_error(data):
     for _, value in data.iteritems():
         with pytest.raises(TypeError):
             dtype.coerce_value(value)
+
+
+@hypothesis.settings(max_examples=1000)
+@pytest.mark.parametrize("timezone_aware", [True, False])
+@given(
+    data=pd_st.series(
+        dtype="datetime64[ns]",
+        index=pd_st.range_indexes(min_size=5, max_size=10),
+    ),
+    timezone=st.sampled_from(pytz.all_timezones),
+)
+def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
+    """
+    Test that pandas timezone-aware datetime correctly handles timezone-aware
+    and non-timezone-aware data.
+    """
+    timezone = pytz.timezone(timezone)
+    tz_localize_kwargs = {"ambiguous": "NaT"}
+
+    expected_failure = False
+    if timezone_aware:
+        data = data.dt.tz_localize(pytz.utc)
+    else:
+        assert data.dt.tz is None
+        try:
+            data.dt.tz_localize(timezone, **tz_localize_kwargs)
+        except pytz.exceptions.NonExistentTimeError:
+            expected_failure = True
+
+    # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+    dtype = pandas_engine.Engine.dtype(
+        pandas_engine.DateTime(
+            tz=timezone, tz_localize_kwargs=tz_localize_kwargs
+        )
+    )
+    if expected_failure:
+        with pytest.raises(pytz.exceptions.NonExistentTimeError):
+            dtype.coerce(data)
+    else:
+        coerced_data = dtype.coerce(data)
+        assert coerced_data.dt.tz == timezone
+
+
+@hypothesis.settings(max_examples=1000)
+@pytest.mark.parametrize("to_df", [True, False])
+@given(
+    data=pd_st.series(
+        dtype="datetime64[ns]",
+        index=pd_st.range_indexes(min_size=5, max_size=10),
+    ),
+)
+def test_pandas_date_coerce_dtype(to_df, data):
+    """Test that pandas Date dtype coerces to datetime.date object."""
+
+    data = data.to_frame() if to_df else data
+
+    dtype = pandas_engine.Engine.dtype(pandas_engine.Date())
+    coerced_data = dtype.coerce(data)
+
+    if to_df:
+        assert (coerced_data.dtypes == "object").all() or (
+            coerced_data.isna().all(axis=None)
+            and (coerced_data.dtypes == "datetime64[ns]").all()
+        )
+
+        assert (
+            coerced_data.applymap(lambda x: isinstance(x, date))
+            | coerced_data.isna()
+        ).all(axis=None)
+        return
+
+    assert (coerced_data.dtype == "object") or (
+        coerced_data.isna().all() and coerced_data.dtype == "datetime64[ns]"
+    )
+    assert (
+        coerced_data.map(lambda x: isinstance(x, date)) | coerced_data.isna()
+    ).all()

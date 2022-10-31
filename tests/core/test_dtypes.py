@@ -15,6 +15,7 @@ import pytest
 from _pytest.mark.structures import ParameterSet
 from _pytest.python import Metafunc
 from hypothesis import strategies as st
+from pandas import DatetimeTZDtype
 
 import pandera as pa
 from pandera.engines import pandas_engine
@@ -388,20 +389,20 @@ def test_coerce_cast(dtypes, examples, data):
     assert expected_dtype.check(pandas_engine.Engine.dtype(coerced_dtype))
 
 
+dt_examples_to_coerce = [
+    "2021-09-01",
+    datetime.datetime(2021, 1, 7),
+    pd.NaT,
+    "not_a_date",
+]
+
+
 @pytest.mark.parametrize(
     "examples, type_, failure_indices",
     [
         (["a", 0, "b"], int, [0, 2]),
-        (
-            [
-                "2021-09-01",
-                datetime.datetime(2021, 1, 7),
-                pd.NaT,
-                "not_a_date",
-            ],
-            datetime.datetime,
-            [3],
-        ),
+        (dt_examples_to_coerce, datetime.datetime, [3]),
+        (dt_examples_to_coerce, DatetimeTZDtype(tz="UTC"), [3]),
     ],
 )
 def test_try_coerce(examples, type_, failure_indices):

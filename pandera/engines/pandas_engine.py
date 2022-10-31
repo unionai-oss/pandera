@@ -730,31 +730,6 @@ class _BaseDateTime(DataType):
 
         return to_datetime_fn
 
-    def _coerce(
-        self, data_container: PandasObject, pandas_dtype: Any
-    ) -> PandasObject:
-        to_datetime_fn = self._get_to_datetime_fn(data_container)
-
-        def _to_datetime(col: PandasObject) -> PandasObject:
-            col = to_datetime_fn(col, **self.to_datetime_kwargs)
-            return col.astype(pandas_dtype)
-
-        if isinstance(data_container, pd.DataFrame):
-            # pd.to_datetime transforms a df input into a series.
-            # We actually want to coerce every columns.
-            return data_container.transform(to_datetime_fn)
-
-        return _to_datetime(data_container)
-
-    def coerce(self, data_container: PandasObject) -> PandasObject:
-        return self._coerce(data_container, pandas_dtype=self.type)
-
-    def coerce_value(self, value: Any) -> Any:
-        """Coerce an value to specified datatime type."""
-        return self._get_to_datetime_fn(value)(
-            value, **self.to_datetime_kwargs
-        )
-
 
 @Engine.register_dtype(
     equivalents=[
@@ -777,12 +752,23 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     )
     unit: str = "ns"
     """The precision of the datetime data. Currently limited to "ns"."""
+
     tz: Optional[datetime.tzinfo] = None
     """The timezone."""
+
     to_datetime_kwargs: Dict[str, Any] = dataclasses.field(
         default_factory=dict, compare=False, repr=False
     )
     "Any additional kwargs passed to :func:`pandas.to_datetime` for coercion."
+
+    tz_localize_kwargs: Dict[str, Any] = dataclasses.field(
+        default_factory=dict, compare=False, repr=False
+    )
+    "Keyword arguments passed to :func:`pandas.Series.dt.tz_localize` for coercion."
+
+    _default_tz_localize_kwargs = {
+        "ambiguous": "infer",
+    }
 
     def __post_init__(self):
         if self.tz is None:
@@ -794,33 +780,50 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
-    @staticmethod
-    def _get_to_datetime_fn(obj: Any) -> Callable:
+    def _coerce(
+        self, data_container: PandasObject, pandas_dtype: Any
+    ) -> PandasObject:
+        to_datetime_fn = self._get_to_datetime_fn(data_container)
+        _tz_localize_kwargs = {
+            **self._default_tz_localize_kwargs,
+            **self.tz_localize_kwargs,
+        }
 
-        # NOTE: this is a hack to support pyspark.pandas. This needs to be
-        # thoroughly tested, right now pyspark.pandas returns NA when a
-        # dtype value can't be coerced into the target dtype.
-        to_datetime_fn = pd.to_datetime
-        if type(obj).__module__.startswith(
-            "pyspark.pandas"
-        ):  # pragma: no cover
-            # pylint: disable=import-outside-toplevel
-            import pyspark.pandas as ps
+        def _to_datetime(col: PandasObject) -> PandasObject:
+            col = to_datetime_fn(col, **self.to_datetime_kwargs)
+            if (
+                hasattr(pandas_dtype, "tz")
+                and pandas_dtype.tz is not None
+                and col.dt.tz is None
+            ):
+                # localize datetime column so that it's timezone-aware
+                col = col.dt.tz_localize(
+                    pandas_dtype.tz,
+                    **_tz_localize_kwargs,
+                )
+            return col.astype(pandas_dtype)
 
-            to_datetime_fn = ps.to_datetime
-        if type(obj).__module__.startswith("modin.pandas"):
-            # pylint: disable=import-outside-toplevel
-            import modin.pandas as mpd
+        if isinstance(data_container, pd.DataFrame):
+            # pd.to_datetime transforms a df input into a series.
+            # We actually want to coerce every columns.
+            return data_container.transform(_to_datetime)
 
-            to_datetime_fn = mpd.to_datetime
-
-        return to_datetime_fn
+        return _to_datetime(data_container)
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.DatetimeTZDtype):
         """Convert a :class:`pandas.DatetimeTZDtype` to
         a Pandera :class:`pandera.engines.pandas_engine.DateTime`."""
         return cls(unit=pd_dtype.unit, tz=pd_dtype.tz)  # type: ignore
+
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        return self._coerce(data_container, pandas_dtype=self.type)
+
+    def coerce_value(self, value: Any) -> Any:
+        """Coerce an value to specified datatime type."""
+        return self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
 
     def __str__(self) -> str:
         if self.type == np.dtype("datetime64[ns]"):
@@ -849,17 +852,36 @@ class Date(_BaseDateTime, dtypes.Date):
 
     # define __init__ to please mypy
     def __init__(  # pylint:disable=super-init-not-called
-        self, to_datetime_kwargs: Optional[Dict[str, Any]] = None
+        self,
+        to_datetime_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         object.__setattr__(
             self, "to_datetime_kwargs", to_datetime_kwargs or {}
         )
 
+    def _coerce(
+        self, data_container: PandasObject, pandas_dtype: Any
+    ) -> PandasObject:
+        to_datetime_fn = self._get_to_datetime_fn(data_container)
+
+        def _to_datetime(col: PandasObject) -> PandasObject:
+            col = to_datetime_fn(col, **self.to_datetime_kwargs)
+            return col.astype(pandas_dtype).dt.date
+
+        if isinstance(data_container, pd.DataFrame):
+            # pd.to_datetime transforms a df input into a series.
+            # We actually want to coerce every columns.
+            return data_container.transform(_to_datetime)
+
+        return _to_datetime(data_container)
+
     def coerce(self, data_container: PandasObject) -> PandasObject:
-        return self._coerce(data_container, pandas_dtype=np.datetime64).dt.date
+        return self._coerce(data_container, pandas_dtype="datetime64[ns]")
 
     def coerce_value(self, value: Any) -> Any:
-        coerced = _BaseDateTime.coerce_value(self, value)
+        coerced = self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
         return coerced.date() if coerced is not None else pd.NaT
 
     def check(  # type: ignore
