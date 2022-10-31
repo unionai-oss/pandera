@@ -2,6 +2,7 @@
 
 import platform
 import tempfile
+from io import StringIO
 from pathlib import Path
 from unittest import mock
 
@@ -701,7 +702,7 @@ def test_io_yaml_file_obj():
 )
 @pytest.mark.parametrize("index", ["single", "multi", None])
 def test_io_yaml(index):
-    """Test read and write operation on file names."""
+    """Test read and write operation on yaml strings, files and streams."""
     schema = _create_schema(index)
 
     # pass in a file name
@@ -717,6 +718,67 @@ def test_io_yaml(index):
         assert output is None
         schema_from_yaml = pandera.DataFrameSchema.from_yaml(Path(f.name))
         assert schema_from_yaml == schema
+
+
+@pytest.mark.parametrize("index", ["single", "multi", None])
+def test_io_json(index):
+    """Test read and write operation on json strings, files and streams."""
+    schema = _create_schema(index)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Check Path
+        pth = Path(tmpdir) / "something.json"
+        output = io.to_json(schema, pth)
+        assert output is None
+        schema_from_json = io.from_json(pth)
+        assert schema_from_json == schema
+
+        # DataFrameSchema method
+        output = schema.to_json(pth)
+        assert output is None
+        schema_from_json = schema.from_json(pth)
+        assert schema_from_json == schema
+
+        # Check path as string
+        output = io.to_json(schema, str(pth))
+        assert output is None
+        schema_from_json = io.from_json(str(pth))
+        assert schema_from_json == schema
+
+        # DataFrameSchema method
+        output = schema.to_json(str(pth))
+        assert output is None
+        schema_from_json = schema.from_json(pth)
+        assert schema_from_json == schema
+
+        # Check schema encoded as a string
+        text = io.to_json(schema)
+        assert text is not None
+        assert isinstance(text, str)
+        schema_from_json = io.from_json(text)
+        assert schema_from_json == schema
+
+        # DataFrameSchema method
+        text = schema.to_json()
+        assert text is not None
+        schema_from_json = schema.from_json(text)
+        assert schema_from_json == schema
+
+        # Check schema encoded in a stream
+        stream = StringIO()
+        output = io.to_json(schema, stream)
+        assert output is None
+        stream.seek(0)
+        schema_from_json = io.from_json(stream)
+        assert schema_from_json == schema
+
+        # DataFrameSchema method
+        stream = StringIO()
+        output = schema.to_json(stream)
+        assert output is None
+        stream.seek(0)
+        schema_from_json = schema.from_json(stream)
+        assert schema_from_json == schema
 
 
 @pytest.mark.skipif(
