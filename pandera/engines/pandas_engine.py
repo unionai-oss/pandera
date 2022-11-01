@@ -745,7 +745,11 @@ class _BaseDateTime(DataType):
 )
 @immutable(init=True)
 class DateTime(_BaseDateTime, dtypes.Timestamp):
-    """Semantic representation of a :class:`pandas.DatetimeTZDtype`."""
+    """Semantic representation of a potentially timezone-aware datetime.
+
+    Uses ``np.dtype("datetime64[ns]")`` for non-timezone aware datetimes and
+    :class:`pandas.DatetimeTZDtype` for timezone-aware datetimes.
+    """
 
     type: Optional[_PandasDatetime] = dataclasses.field(
         default=None, init=False

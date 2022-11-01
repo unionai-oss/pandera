@@ -34,8 +34,22 @@ except ImportError as exc:  # pragma: no cover
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def _get_qualified_name(cls: type) -> str:
-    return f"{cls.__module__}.{cls.__qualname__}"
+def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
+    """Get string alias of the datatype for serialization.
+
+    Calling pandas_engine.Engine.dtype(<string_alias>) should be a valid
+    operation
+    """
+    str_alias = str(dtype)
+    try:
+        pandas_engine.Engine.dtype(str_alias)
+    except TypeError as e:  # pragma: no cover
+        raise TypeError(
+            f"string alias {str_alias} for datatype "
+            f"'{dtype.__module__}.{dtype.__class__.__name__}' not "
+            "recognized."
+        ) from e
+    return f'"{dtype}"'
 
 
 def _serialize_check_stats(check_stats, dtype=None):
@@ -371,6 +385,7 @@ from pandera import (
 schema = DataFrameSchema(
     columns={{{columns}}},
     index={index},
+    dtype={dtype},
     coerce={coerce},
     strict={strict},
     name={name},
@@ -434,7 +449,7 @@ def _format_index(index_statistics):
         description = properties.get("description")
         title = properties.get("title")
         index_code = INDEX_TEMPLATE.format(
-            dtype=f"{_get_qualified_name(dtype.__class__)}",
+            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
             checks=(
                 "None"
                 if properties["checks"] is None
@@ -479,9 +494,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         description = properties["description"]
         title = properties["title"]
         column_code = COLUMN_TEMPLATE.format(
-            dtype=(
-                None if dtype is None else _get_qualified_name(dtype.__class__)
-            ),
+            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
             unique=properties["unique"],
@@ -504,6 +517,7 @@ def to_script(dataframe_schema, path_or_buf=None):
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
         index=index,
+        dtype=dataframe_schema.dtype,
         coerce=dataframe_schema.coerce,
         strict=dataframe_schema.strict,
         name=dataframe_schema.name.__repr__(),
