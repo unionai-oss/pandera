@@ -178,15 +178,15 @@ onto the appropriate branch:
 
 #### Bugfixes
 - branch naming convention: `bugfix/<issue number>` or `bugfix/<bugfix-name>`
-- pull request to: `dev`
+- pull request to: `main`
 
 #### Documentation
 - branch naming convention: `docs/<issue number>` or `docs/<doc-name>`
-- pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `dev`
+- pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `main`
 
 #### Enhancements
 - branch naming convention: `feature/<issue number>` or `feature/<bugfix-name>`
-- pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `dev`
+- pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `main`
 
 We will review your changes, and might ask you to make additional changes
 before it is finally ready to merge. However, once it's ready, we will merge
@@ -201,55 +201,55 @@ did with `pandera`, or want to discuss a topic related to the project.
 ### Dataframe Schema Style Guides
 
 We have guidelines regarding dataframe and schema styles that are encouraged
-for each pull request:
+for each pull request.
 
-- If specifying a single column DataFrame, this can be expressed as a one-liner:
+If specifying a single column DataFrame, this can be expressed as a one-liner:
 
-  ```python
-  DataFrameSchema({"col1": Column(...)})
-  ```
+```python
+DataFrameSchema({"col1": Column(...)})
+```
 
-- If specifying one column with multiple lines, or multiple columns:
+If specifying one column with multiple lines, or multiple columns:
 
-  ```python
-  DataFrameSchema(
-      {
-          "col1": Column(
-              int,
-              checks=[
-                  Check(...),
-                  Check(...),
-              ]
-          ),
-      }
-  )
-  ```
+```python
+DataFrameSchema(
+    {
+        "col1": Column(
+            int,
+            checks=[
+                Check(...),
+                Check(...),
+            ]
+        ),
+    }
+)
+```
 
-- If specifying columns with additional arguments that fit in one line:
+If specifying columns with additional arguments that fit in one line:
 
-  ```python
-  DataFrameSchema(
-      {"a": Column(int, nullable=True)},
-      strict=True
-  )
-  ```
+```python
+DataFrameSchema(
+    {"a": Column(int, nullable=True)},
+    strict=True
+)
+```
 
-- If specifying columns with additional arguments that don't fit in one line:
-  ```python
-  DataFrameSchema(
-      {
-          "a": Column(
-              int,
-              nullable=True,
-              coerce=True,
-              ...
-          ),
-          "b": Column(
-              ...,
-          )
-      },
-      strict=True)
-  ```
+If specifying columns with additional arguments that don't fit in one line:
+```python
+DataFrameSchema(
+    {
+        "a": Column(
+            int,
+            nullable=True,
+            coerce=True,
+            ...
+        ),
+        "b": Column(
+            ...,
+        )
+    },
+    strict=True)
+```
 
 ## Deprecation policy
 
@@ -259,4 +259,4 @@ This project adopts a rolling policy regarding the minimum supported version of 
 * **NumPy**: 24 months
 * **Pandas**: 18 months
 
-This means the latest minor (X.Y) version from N months prior. Patch versions (x.y.Z) are not pinned, and only the latest available at the moment of publishing the xarray release is guaranteed to work.
+This means the latest minor (X.Y) version from N months prior. Patch versions (x.y.Z) are not pinned, and only the latest available at the moment of publishing the release is guaranteed to work.

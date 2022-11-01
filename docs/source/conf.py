@@ -144,7 +144,7 @@ html_theme_options = {
         "color-api-highlight-on-target": "#e5fff5",
     },
     "source_repository": "https://github.com/pandera-dev/pandera",
-    "source_branch": "master",
+    "source_branch": "main",
     "source_directory": "docs/source/",
 }
 
@@ -254,7 +254,7 @@ def linkcode_resolve(domain, info):
     except subprocess.CalledProcessError:
         tag = None
 
-    if tag != "master":
+    if tag != "main":
         tag = (
             subprocess.check_output(["git", "rev-parse", "HEAD"])
             .decode("utf-8")

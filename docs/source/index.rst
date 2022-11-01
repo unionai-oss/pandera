@@ -1,4 +1,4 @@
-.. pandera documentation master file
+.. pandera documentation entrypoint
 
 A Statistical Data Testing Toolkit
 =======================================
@@ -7,8 +7,8 @@ A Statistical Data Testing Toolkit
 correctness.*
 
 
-.. image:: https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=master
-    :target: https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amaster
+.. image:: https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=main
+    :target: https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amain
     :alt: CI Build
 
 .. image:: https://readthedocs.org/projects/pandera/badge/?version=stable
@@ -35,7 +35,7 @@ correctness.*
     :target: https://pandera.readthedocs.io/en/stable/?badge=latest
     :alt: Documentation Latest Status
 
-.. image:: https://codecov.io/gh/unionai-oss/pandera/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/unionai-oss/pandera/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/unionai-oss/pandera
     :alt: Code Coverage
 
@@ -322,7 +322,7 @@ enhancements and ideas are welcome.
 
 A detailed overview on how to contribute can be found in the
 `contributing
-guide <https://github.com/pandera-dev/pandera/blob/master/.github/CONTRIBUTING.md>`__
+guide <https://github.com/pandera-dev/pandera/blob/main/.github/CONTRIBUTING.md>`__
 on GitHub.
 
 Issues
@@ -414,7 +414,7 @@ Software Package
 License and Credits
 -------------------
 
-``pandera`` is licensed under the `MIT license <https://github.com/pandera-dev/pandera/blob/master/LICENSE.txt>`_.
+``pandera`` is licensed under the `MIT license <https://github.com/pandera-dev/pandera/blob/main/LICENSE.txt>`_.
 and is written and maintained by Niels Bantilan (niels@pandera.ci)
 
 

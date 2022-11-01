@@ -2,13 +2,13 @@ name: CI Tests
 on:
   push:
     branches:
-      - master
+      - main
       - dev
       - bugfix
       - "release/*"
   pull_request:
     branches:
-      - master
+      - main
       - dev
       - bugfix
       - "release/*"

@@ -1,5 +1,5 @@
 <br>
-<div align="center"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/master/docs/source/_static/pandera-banner.png" width="400"></div>
+<div align="center"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/main/docs/source/_static/pandera-banner.png" width="400"></div>
 
 <hr>
 
@@ -10,14 +10,14 @@ correctness.*
 
 <br>
 
-[![CI Build](https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=master)](https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amaster)
+[![CI Build](https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=main)](https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amain)
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=stable)](https://pandera.readthedocs.io/en/stable/?badge=stable)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
 [![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/)
 [![pyOpenSci](https://tinyurl.com/y22nb8up)](https://github.com/pyOpenSci/software-review/issues/12)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest)](https://pandera.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/unionai-oss/pandera/branch/master/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
+[![codecov](https://codecov.io/gh/unionai-oss/pandera/branch/main/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg)](https://doi.org/10.5281/zenodo.3385265)
 [![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
@@ -202,7 +202,7 @@ All contributions, bug reports, bug fixes, documentation improvements,
 enhancements and ideas are welcome.
 
 A detailed overview on how to contribute can be found in the
-[contributing guide](https://github.com/pandera-dev/pandera/blob/master/.github/CONTRIBUTING.md)
+[contributing guide](https://github.com/pandera-dev/pandera/blob/main/.github/CONTRIBUTING.md)
 on GitHub.
 
 ## Issues

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # This script is a modified copy of generate_pip_deps_from_conda.py from
 # pandas and is distributed under the terms of the BSD 3 License that can be
-# found at: https://github.com/pandas-dev/pandas/blob/master/LICENSE
+# found at: https://github.com/pandas-dev/pandas/blob/main/LICENSE
 """
 Convert the conda environment.yml to the pip requirements-dev.txt,
 or check that they have the same packages (for the CI)
