@@ -102,7 +102,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
     schema = DataFrameSchema(
         columns={
             "column1": Column(
-                dtype=pandera.engines.numpy_engine.Int64,
+                dtype="int64",
                 checks=[
                     Check.greater_than_or_equal_to(min_value=5.0),
                     Check.less_than_or_equal_to(max_value=20.0),
@@ -116,7 +116,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 title=None,
             ),
             "column2": Column(
-                dtype=pandera.engines.numpy_engine.Object,
+                dtype="object",
                 checks=None,
                 nullable=False,
                 unique=False,
@@ -127,7 +127,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 title=None,
             ),
             "column3": Column(
-                dtype=pandera.engines.pandas_engine.DateTime,
+                dtype="datetime64[ns]",
                 checks=[
                     Check.greater_than_or_equal_to(
                         min_value=Timestamp("2010-01-01 00:00:00")
@@ -145,8 +145,9 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
                 title=None,
             ),
         },
+        checks=None,
         index=Index(
-            dtype=pandera.engines.numpy_engine.Int64,
+            dtype="int64",
             checks=[
                 Check.greater_than_or_equal_to(min_value=0.0),
                 Check.less_than_or_equal_to(max_value=2.0),
@@ -157,9 +158,16 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
             description=None,
             title=None,
         ),
+        dtype=None,
         coerce=True,
         strict=False,
         name=None,
+        ordered=False,
+        unique=None,
+        report_duplicates="all",
+        unique_column_names=False,
+        title=None,
+        description=None,
     )
 
 As a python script, you can iterate on an inferred schema and use it to
@@ -234,10 +242,16 @@ is a convenience method for this functionality.
       name: null
       unique: false
       coerce: false
+    dtype: null
     coerce: true
     strict: false
-    unique: null
+    name: null
     ordered: false
+    unique: null
+    report_duplicates: all
+    unique_column_names: false
+    title: null
+    description: null
 
 You can edit this yaml file to modify the schema. For example, you can specify
 new column names under the ``column`` key, and the respective values map onto
@@ -328,10 +342,16 @@ is a convenience method for this functionality.
                 "coerce": false
             }
         ],
+        "dtype": null,
         "coerce": true,
         "strict": false,
+        "name": null,
+        "ordered": false,
         "unique": null,
-        "ordered": false
+        "report_duplicates": "all",
+        "unique_column_names": false,
+        "title": null,
+        "description": null
     }
 
 You can edit this json file to update the schema as needed, and then load

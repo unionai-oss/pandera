@@ -34,8 +34,22 @@ except ImportError as exc:  # pragma: no cover
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def _get_qualified_name(cls: type) -> str:
-    return f"{cls.__module__}.{cls.__qualname__}"
+def _get_dtype_string_alias(dtype: pandas_engine.DataType) -> str:
+    """Get string alias of the datatype for serialization.
+
+    Calling pandas_engine.Engine.dtype(<string_alias>) should be a valid
+    operation
+    """
+    str_alias = str(dtype)
+    try:
+        pandas_engine.Engine.dtype(str_alias)
+    except TypeError as e:  # pragma: no cover
+        raise TypeError(
+            f"string alias {str_alias} for datatype "
+            f"'{dtype.__module__}.{dtype.__class__.__name__}' not "
+            "recognized."
+        ) from e
+    return f'"{dtype}"'
 
 
 def _serialize_check_stats(check_stats, dtype=None):
@@ -152,10 +166,16 @@ def serialize_schema(dataframe_schema):
         "columns": columns,
         "checks": checks,
         "index": index,
+        "dtype": dataframe_schema.dtype,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
-        "unique": dataframe_schema.unique,
+        "name": dataframe_schema.name,
         "ordered": dataframe_schema.ordered,
+        "unique": dataframe_schema.unique,
+        "report_duplicates": dataframe_schema._report_duplicates,
+        "unique_column_names": dataframe_schema.unique_column_names,
+        "title": dataframe_schema.title,
+        "description": dataframe_schema.description,
     }
 
 
@@ -272,10 +292,18 @@ def deserialize_schema(serialized_schema):
         columns=columns,
         checks=checks,
         index=index,
+        dtype=serialized_schema.get("dtype", None),
         coerce=serialized_schema.get("coerce", False),
         strict=serialized_schema.get("strict", False),
-        unique=serialized_schema.get("unique", None),
+        name=serialized_schema.get("name", None),
         ordered=serialized_schema.get("ordered", False),
+        unique=serialized_schema.get("unique", None),
+        report_duplicates=serialized_schema.get("_report_duplicates", "all"),
+        unique_column_names=serialized_schema.get(
+            "unique_column_names", False
+        ),
+        title=serialized_schema.get("title", None),
+        description=serialized_schema.get("description", None),
     )
 
 
@@ -370,10 +398,18 @@ from pandera import (
 
 schema = DataFrameSchema(
     columns={{{columns}}},
+    checks={checks},
     index={index},
+    dtype={dtype},
     coerce={coerce},
     strict={strict},
     name={name},
+    ordered={ordered},
+    unique={unique},
+    report_duplicates={report_duplicates},
+    unique_column_names={unique_column_names},
+    title={title},
+    description={description},
 )
 """
 
@@ -434,7 +470,7 @@ def _format_index(index_statistics):
         description = properties.get("description")
         title = properties.get("title")
         index_code = INDEX_TEMPLATE.format(
-            dtype=f"{_get_qualified_name(dtype.__class__)}",
+            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
             checks=(
                 "None"
                 if properties["checks"] is None
@@ -479,9 +515,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         description = properties["description"]
         title = properties["title"]
         column_code = COLUMN_TEMPLATE.format(
-            dtype=(
-                None if dtype is None else _get_qualified_name(dtype.__class__)
-            ),
+            dtype=(None if dtype is None else _get_dtype_string_alias(dtype)),
             checks=_format_checks(properties["checks"]),
             nullable=properties["nullable"],
             unique=properties["unique"],
@@ -503,11 +537,18 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
+        checks=statistics["checks"],
         index=index,
+        dtype=dataframe_schema.dtype,
         coerce=dataframe_schema.coerce,
         strict=dataframe_schema.strict,
         name=dataframe_schema.name.__repr__(),
+        ordered=dataframe_schema.ordered,
         unique=dataframe_schema.unique,
+        report_duplicates=f'"{dataframe_schema._report_duplicates}"',
+        unique_column_names=dataframe_schema.unique_column_names,
+        title=dataframe_schema.title,
+        description=dataframe_schema.description,
     ).strip()
 
     # add pandas imports to handle datetime and timedelta.

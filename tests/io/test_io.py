@@ -235,10 +235,16 @@ index:
   name: null
   unique: false
   coerce: false
+dtype: null
 coerce: false
 strict: true
-unique: null
+name: null
 ordered: false
+unique: null
+report_duplicates: all
+unique_column_names: false
+title: null
+description: null
 """
 
 
@@ -1215,10 +1221,16 @@ columns:
     regex: false
 checks: null
 index: null
+dtype: null
 coerce: true
 strict: true
-unique: null
+name: null
 ordered: false
+unique: null
+report_duplicates: all
+unique_column_names: false
+title: null
+description: null
 """
 
 VALID_FRICTIONLESS_DF = pd.DataFrame(
