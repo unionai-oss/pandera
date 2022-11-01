@@ -166,10 +166,16 @@ def serialize_schema(dataframe_schema):
         "columns": columns,
         "checks": checks,
         "index": index,
+        "dtype": dataframe_schema.dtype,
         "coerce": dataframe_schema.coerce,
         "strict": dataframe_schema.strict,
-        "unique": dataframe_schema.unique,
+        "name": dataframe_schema.name,
         "ordered": dataframe_schema.ordered,
+        "unique": dataframe_schema.unique,
+        "report_duplicates": dataframe_schema._report_duplicates,
+        "unique_column_names": dataframe_schema.unique_column_names,
+        "title": dataframe_schema.title,
+        "description": dataframe_schema.description,
     }
 
 
@@ -286,10 +292,18 @@ def deserialize_schema(serialized_schema):
         columns=columns,
         checks=checks,
         index=index,
+        dtype=serialized_schema.get("dtype", None),
         coerce=serialized_schema.get("coerce", False),
         strict=serialized_schema.get("strict", False),
-        unique=serialized_schema.get("unique", None),
+        name=serialized_schema.get("name", None),
         ordered=serialized_schema.get("ordered", False),
+        unique=serialized_schema.get("unique", None),
+        report_duplicates=serialized_schema.get("_report_duplicates", "all"),
+        unique_column_names=serialized_schema.get(
+            "unique_column_names", False
+        ),
+        title=serialized_schema.get("title", None),
+        description=serialized_schema.get("description", None),
     )
 
 
@@ -384,11 +398,18 @@ from pandera import (
 
 schema = DataFrameSchema(
     columns={{{columns}}},
+    checks={checks},
     index={index},
     dtype={dtype},
     coerce={coerce},
     strict={strict},
     name={name},
+    ordered={ordered},
+    unique={unique},
+    report_duplicates={report_duplicates},
+    unique_column_names={unique_column_names},
+    title={title},
+    description={description},
 )
 """
 
@@ -516,12 +537,18 @@ def to_script(dataframe_schema, path_or_buf=None):
 
     script = SCRIPT_TEMPLATE.format(
         columns=column_str,
+        checks=statistics["checks"],
         index=index,
         dtype=dataframe_schema.dtype,
         coerce=dataframe_schema.coerce,
         strict=dataframe_schema.strict,
         name=dataframe_schema.name.__repr__(),
+        ordered=dataframe_schema.ordered,
         unique=dataframe_schema.unique,
+        report_duplicates=f'"{dataframe_schema._report_duplicates}"',
+        unique_column_names=dataframe_schema.unique_column_names,
+        title=dataframe_schema.title,
+        description=dataframe_schema.description,
     ).strip()
 
     # add pandas imports to handle datetime and timedelta.
