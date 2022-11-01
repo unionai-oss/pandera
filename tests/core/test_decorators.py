@@ -514,6 +514,12 @@ class OnlyZeroesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
     a: Series[int] = Field(eq=0)
 
 
+class OnlyOnesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
+    """Schema with a single column containing ones."""
+
+    a: Series[int] = Field(eq=1)
+
+
 def test_check_types_arguments() -> None:
     """Test that check_types forwards key-words arguments to validate."""
     df = pd.DataFrame({"a": [0, 0]})
@@ -632,7 +638,6 @@ def test_check_types_error_input() -> None:
         transform(df)
     except errors.SchemaError as exc:
         assert exc.schema == InSchema.to_schema()
-        assert exc.data.equals(df)
 
 
 def test_check_types_error_output() -> None:
@@ -655,7 +660,6 @@ def test_check_types_error_output() -> None:
         transform_derived(df)
     except errors.SchemaError as exc:
         assert exc.schema == DerivedOutSchema.to_schema()
-        assert exc.data.equals(df)
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
 
@@ -672,7 +676,6 @@ def test_check_types_error_output() -> None:
         transform(df)
     except errors.SchemaError as exc:
         assert exc.schema == OutSchema.to_schema()
-        assert exc.data.equals(df)
 
 
 def test_check_types_optional_out() -> None:
@@ -882,6 +885,40 @@ def test_check_types_method_args() -> None:
         instance.static_method(in2, df2=in1)
     with pytest.raises(errors.SchemaError):
         instance.static_method(df1=in2, df2=in1)
+
+
+def test_check_types_union_args() -> None:
+    """Test that the @check_types decorator works with
+    typing.Union[pandera.typing.DataFrame[S1], pandera.typing.DataFrame[S2]] type inputs/outputs"""
+
+    @check_types
+    def validate_union(
+        df: typing.Union[
+            DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
+        ],
+    ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+        return df
+
+    validate_union(pd.DataFrame({"a": [0, 0]}))
+    validate_union(pd.DataFrame({"a": [1, 1]}))
+
+    with pytest.raises(errors.SchemaErrors):
+        validate_union(pd.DataFrame({"a": [0, 1]}))
+    with pytest.raises(errors.SchemaErrors):
+        validate_union(pd.DataFrame({"a": [2, 2]}))
+
+    @check_types
+    def validate_union_wrong_outputs(
+        df: typing.Union[
+            DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
+        ],
+    ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+        new_df = df.copy()
+        new_df["a"] = [0, 1]
+        return new_df
+
+    with pytest.raises(errors.SchemaErrors):
+        validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))
 
 
 def test_coroutines(event_loop: AbstractEventLoop) -> None:
