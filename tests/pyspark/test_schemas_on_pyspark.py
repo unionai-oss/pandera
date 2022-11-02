@@ -12,6 +12,7 @@ import pandera as pa
 from pandera import dtypes, extensions, system
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.typing import DataFrame, Index, Series
+from pandera.typing import pyspark as sparktype
 from tests.strategies.test_strategies import NULLABLE_DTYPES
 from tests.strategies.test_strategies import (
     UNSUPPORTED_DTYPE_CLS as UNSUPPORTED_STRATEGY_DTYPE_CLS,
@@ -31,10 +32,7 @@ else:
 DTYPES = [
     dtype_cls
     for dtype_cls in pandas_engine.Engine.get_registered_dtypes()
-    if not (
-        pandas_engine.GEOPANDAS_INSTALLED
-        and dtype_cls == pandas_engine.Geometry
-    )
+    if not (pandas_engine.GEOPANDAS_INSTALLED and dtype_cls == pandas_engine.Geometry)
 ]
 UNSUPPORTED_STRATEGY_DTYPE_CLS = set(UNSUPPORTED_STRATEGY_DTYPE_CLS)
 UNSUPPORTED_STRATEGY_DTYPE_CLS.add(numpy_engine.Object)
@@ -66,9 +64,7 @@ if SPARK_VERSION < "3.3.0":
     PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)
 
 if system.FLOAT_128_AVAILABLE:
-    PYSPARK_PANDAS_UNSUPPORTED.update(
-        {numpy_engine.Float128, numpy_engine.Complex256}
-    )
+    PYSPARK_PANDAS_UNSUPPORTED.update({numpy_engine.Float128, numpy_engine.Complex256})
 
 try:
     ps.Series(pd.to_datetime(["1900-01-01 00:03:59.999999999"]))
@@ -125,15 +121,9 @@ def _test_datatype_with_schema(
 
     sample = data.draw(schema.strategy(size=3))
 
-    if dtype is pandas_engine.DateTime or isinstance(
-        dtype, pandas_engine.DateTime
-    ):
-        if MIN_TIMESTAMP is not None and (sample < MIN_TIMESTAMP).any(
-            axis=None
-        ):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
+    if dtype is pandas_engine.DateTime or isinstance(dtype, pandas_engine.DateTime):
+        if MIN_TIMESTAMP is not None and (sample < MIN_TIMESTAMP).any(axis=None):
+            with pytest.raises(OverflowError, match="mktime argument out of range"):
                 data_container_cls(sample)
             return
     else:
@@ -154,8 +144,7 @@ def test_dataframe_schema_dtypes(
     """
     if dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS:
         pytest.skip(
-            f"type {dtype_cls} currently not supported by the strategies "
-            "module"
+            f"type {dtype_cls} currently not supported by the strategies " "module"
         )
 
     checks = None
@@ -186,8 +175,7 @@ def test_field_schema_dtypes(
     """
     if dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS:
         pytest.skip(
-            f"type {dtype_cls} currently not supported by the strategies "
-            "module"
+            f"type {dtype_cls} currently not supported by the strategies " "module"
         )
 
     checks = None
@@ -226,9 +214,7 @@ def test_index_dtypes(
     little finicky.
     """
     if coerce and dtype is pandas_engine.DateTime:
-        pytest.skip(
-            "pyspark.pandas cannot coerce a DateTime index to datetime."
-        )
+        pytest.skip("pyspark.pandas cannot coerce a DateTime index to datetime.")
 
     # there's an issue generating index strategies with string dtypes having to
     # do with encoding utf-8 characters... therefore this test restricts the
@@ -246,16 +232,12 @@ def test_index_dtypes(
         )
     sample = data.draw(schema.strategy(size=3))
 
-    if dtype is pandas_engine.DateTime or isinstance(
-        dtype, pandas_engine.DateTime
-    ):
+    if dtype is pandas_engine.DateTime or isinstance(dtype, pandas_engine.DateTime):
         # handle datetimes
-        if MIN_TIMESTAMP is not None and (
-            sample.to_frame() < MIN_TIMESTAMP
-        ).any(axis=None):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
+        if MIN_TIMESTAMP is not None and (sample.to_frame() < MIN_TIMESTAMP).any(
+            axis=None
+        ):
+            with pytest.raises(OverflowError, match="mktime argument out of range"):
                 ps.DataFrame(pd.DataFrame(index=sample))
             return
     else:
@@ -307,32 +289,22 @@ def test_nullable(
     nonnull_sample = data.draw(nonnullable_schema.strategy(size=5))
 
     # for some reason values less than MIN_TIMESTAMP are still sampled.
-    if dtype is pandas_engine.DateTime or isinstance(
-        dtype, pandas_engine.DateTime
-    ):
-        if MIN_TIMESTAMP is not None and (null_sample < MIN_TIMESTAMP).any(
-            axis=None
-        ):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
+    if dtype is pandas_engine.DateTime or isinstance(dtype, pandas_engine.DateTime):
+        if MIN_TIMESTAMP is not None and (null_sample < MIN_TIMESTAMP).any(axis=None):
+            with pytest.raises(OverflowError, match="mktime argument out of range"):
                 ps.DataFrame(null_sample)
             return
         if MIN_TIMESTAMP is not None and (nonnull_sample < MIN_TIMESTAMP).any(
             axis=None
         ):
-            with pytest.raises(
-                OverflowError, match="mktime argument out of range"
-            ):
+            with pytest.raises(OverflowError, match="mktime argument out of range"):
                 ps.DataFrame(nonnull_sample)
             return
     else:
         try:
             ks_null_sample: ps.DataFrame = ps.DataFrame(null_sample)
         except TypeError as exc:
-            match = re.search(
-                r"can not accept object (<NA>|NaT) in type", exc.args[0]
-            )
+            match = re.search(r"can not accept object (<NA>|NaT) in type", exc.args[0])
             if match is None:
                 raise
             pytest.skip(
@@ -397,9 +369,7 @@ def test_regex_columns():
 
 def test_required_column():
     """Test the required column raises error."""
-    required_schema = pa.DataFrameSchema(
-        {"field": pa.Column(int, required=True)}
-    )
+    required_schema = pa.DataFrameSchema({"field": pa.Column(int, required=True)})
     schema = pa.DataFrameSchema({"field_": pa.Column(int, required=False)})
 
     data = ps.DataFrame({"field": [1, 2, 3]})
@@ -421,14 +391,10 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
     # there's an issue generating index strategies with string dtypes having to
     # do with encoding utf-8 characters... therefore this test restricts the
     # generated strings to alphanumaric characters
-    from_check = (
-        pa.Check.str_matches("[0-9a-z]") if from_dtype is str else None
-    )
+    from_check = pa.Check.str_matches("[0-9a-z]") if from_dtype is str else None
     to_check = pa.Check.str_matches("[0-9a-z]") if to_dtype is str else None
 
-    from_schema = pa.DataFrameSchema(
-        {"field": pa.Column(from_dtype, from_check)}
-    )
+    from_schema = pa.DataFrameSchema({"field": pa.Column(from_dtype, from_check)})
     to_schema = pa.DataFrameSchema(
         {"field": pa.Column(to_dtype, to_check, coerce=True)}
     )
@@ -444,9 +410,7 @@ def test_dtype_coercion(from_dtype, to_dtype, data):
     if from_dtype is str and to_dtype in {int, float}:
         # first check if sample contains NAs
         if sample.astype(to_dtype).isna().any().item():
-            with pytest.raises(
-                pa.errors.SchemaError, match="non-nullable series"
-            ):
+            with pytest.raises(pa.errors.SchemaError, match="non-nullable series"):
                 to_schema(sample)
         return
 
@@ -459,9 +423,7 @@ def test_failure_cases(dtype, data):
     """Test that failure cases are correctly found."""
 
     value = data.draw(st.builds(dtype))
-    schema = pa.DataFrameSchema(
-        {"field": pa.Column(dtype, pa.Check.eq(value))}
-    )
+    schema = pa.DataFrameSchema({"field": pa.Column(dtype, pa.Check.eq(value))})
     generative_schema = pa.DataFrameSchema(
         {"field": pa.Column(dtype, pa.Check.ne(value))}
     )
@@ -536,9 +498,7 @@ def test_schema_model():
     class Schema(pa.SchemaModel):
         int_field: pa.typing.pyspark.Series[int] = pa.Field(gt=0)
         float_field: pa.typing.pyspark.Series[float] = pa.Field(lt=0)
-        str_field: pa.typing.pyspark.Series[str] = pa.Field(
-            isin=["a", "b", "c"]
-        )
+        str_field: pa.typing.pyspark.Series[str] = pa.Field(isin=["a", "b", "c"])
 
     valid_df = ps.DataFrame(
         {
@@ -560,10 +520,7 @@ def test_schema_model():
         Schema.validate(invalid_df, lazy=True)
     except pa.errors.SchemaErrors as err:
         expected_failures = {"-1", "d", "float_field"}
-        assert (
-            set(err.failure_cases["failure_case"].tolist())
-            == expected_failures
-        )
+        assert set(err.failure_cases["failure_case"].tolist()) == expected_failures
 
 
 @pytest.mark.parametrize(
@@ -697,3 +654,29 @@ def test_init_pyspark_dataframe_errors(invalid_data):
     """Test errors from initializing a pandas.typing.DataFrame with Schema."""
     with pytest.raises(pa.errors.SchemaError):
         DataFrame[InitSchema](invalid_data)
+
+
+# pylint: disable=too-few-public-methods
+class FilterSchema(pa.SchemaModel):
+    """Schema used to test dataframe strict = "filter" initialization."""
+
+    col1: Series[int]
+
+    class Config:
+        """Configuration for the FilterSchema."""
+
+        strict = "filter"
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"col1": [1], "col2": [2]},
+    ],
+)
+def test_strict_filter(data):
+    """Test that the strict = "filter" config option works."""
+    kdf = ps.DataFrame(data)
+    filtered = sparktype.DataFrame[FilterSchema](kdf)
+    assert set(filtered.columns) == {"col1"}
+    assert isinstance(filtered, ps.DataFrame)
