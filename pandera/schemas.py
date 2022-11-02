@@ -746,6 +746,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
+            except errors.SchemaDefinitionError:
+                raise
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the
                 # Check
