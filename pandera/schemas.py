@@ -746,6 +746,27 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the
+                # Check
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing check function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                error_handler.collect_error(
+                    "check_error",
+                    errors.SchemaError(
+                        self,
+                        check_obj,
+                        msg,
+                        failure_cases=scalar_failure_case(err_str),
+                        check=check,
+                        check_index=check_index,
+                    ),
+                    original_exc=err,
+                )
 
         # check for unique values across columns
         # skip this check if lazy_exclude_columns is not empty, indicating
@@ -2462,22 +2483,7 @@ def _handle_check_results(
     :returns: True if check results pass or check.raise_warning=True, otherwise
         False.
     """
-    try:
-        check_result = check(check_obj, *check_args)
-    except Exception as exc:
-        # catch exceptions that may occur in the check function (e.g. in custom
-        # check functions) and bubble up the error message as a failure case.
-        raise errors.SchemaError(
-            schema,
-            check_obj,
-            exc.args[0],
-            failure_cases=scalar_failure_case(
-                f'{type(exc).__name__}("{exc.args[0]}")'
-            ),
-            check=check,
-            check_index=check_index,
-        ) from exc
-
+    check_result = check(check_obj, *check_args)
     if not check_result.check_passed:
         if check_result.failure_cases is None:
             # encode scalar False values explicitly
