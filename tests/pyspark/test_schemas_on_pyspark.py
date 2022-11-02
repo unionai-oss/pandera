@@ -656,27 +656,34 @@ def test_init_pyspark_dataframe_errors(invalid_data):
         DataFrame[InitSchema](invalid_data)
 
 
-# pylint: disable=too-few-public-methods
-class FilterSchema(pa.SchemaModel):
-    """Schema used to test dataframe strict = "filter" initialization."""
-
-    col1: Series[int]
-
-    class Config:
-        """Configuration for the FilterSchema."""
-
-        strict = "filter"
-
-
 @pytest.mark.parametrize(
     "data",
     [
         {"col1": [1], "col2": [2]},
+        {
+            "col1": [1, 2, 3, 4],
+            "other": ["a", "b", "c", "d"],
+            "third": [True, False, False, True],
+        },
     ],
 )
 def test_strict_filter(data):
     """Test that the strict = "filter" config option works."""
+
+    # pylint: disable=too-few-public-methods
+    class FilterSchema(pa.SchemaModel):
+        """Schema used to test dataframe strict = "filter" initialization."""
+
+        col1: Series[int] = pa.Field()
+
+        class Config:
+            """Configuration for the FilterSchema."""
+
+            strict = "filter"
+
     kdf = ps.DataFrame(data)
-    filtered = sparktype.DataFrame[FilterSchema](kdf)
+    filtered = FilterSchema.validate(kdf)
+
+    # filtered = DataFrame[FilterSchema](kdf)
     assert set(filtered.columns) == {"col1"}
     assert isinstance(filtered, ps.DataFrame)

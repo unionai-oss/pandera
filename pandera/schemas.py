@@ -56,9 +56,7 @@ if TYPE_CHECKING:
 
 N_INDENT_SPACES = 4
 
-CheckList = Optional[
-    Union[Union[Check, Hypothesis], List[Union[Check, Hypothesis]]]
-]
+CheckList = Optional[Union[Union[Check, Hypothesis], List[Union[Check, Hypothesis]]]]
 
 CheckListProperty = List[Union[Check, Hypothesis]]
 
@@ -193,8 +191,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             "filter",
         ):
             raise errors.SchemaInitError(
-                "strict parameter must equal either `True`, `False`, "
-                "or `'filter'`."
+                "strict parameter must equal either `True`, `False`, " "or `'filter'`."
             )
 
         self.checks: CheckListProperty = checks
@@ -300,9 +297,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     def _set_column_names(self) -> None:
         def _set_column_handler(column, column_name):
             if column.name is not None and column.name != column_name:
-                warnings.warn(
-                    f"resetting column for {column} to '{column_name}'."
-                )
+                warnings.warn(f"resetting column for {column} to '{column_name}'.")
             elif column.name == column_name:
                 return column
             return column.set_name(column_name)
@@ -322,9 +317,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         :returns: dictionary of columns and their associated dtypes.
         """
-        regex_columns = [
-            name for name, col in self.columns.items() if col.regex
-        ]
+        regex_columns = [name for name, col in self.columns.items() if col.regex]
         if regex_columns:
             warnings.warn(
                 "Schema has columns specified as regex column names: "
@@ -370,8 +363,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     def _coerce_dtype(self, obj: pd.DataFrame) -> pd.DataFrame:
         if self.dtype is None:
             raise ValueError(
-                "dtype argument is None. Must specify this argument "
-                "to coerce dtype"
+                "dtype argument is None. Must specify this argument " "to coerce dtype"
             )
 
         try:
@@ -420,9 +412,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 and self.dtype is None
                 and colname in obj
             ):
-                obj[colname] = _try_coercion(
-                    col_schema.coerce_dtype, obj[colname]
-                )
+                obj[colname] = _try_coercion(col_schema.coerce_dtype, obj[colname])
 
         if self.dtype is not None:
             obj = _try_coercion(self._coerce_dtype, obj)
@@ -437,9 +427,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 obj.index = coerced_index
 
         if error_handler.collected_errors:
-            raise errors.SchemaErrors(
-                self, error_handler.collected_errors, obj
-            )
+            raise errors.SchemaErrors(self, error_handler.collected_errors, obj)
 
         return obj
 
@@ -633,7 +621,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         )
 
         if self.strict == "filter":
-            check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+            if type(check_obj).__module__.startswith("pyspark.pandas"):
+                check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
+            else:
+                check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
 
         if self._unique_column_names:
             failed = check_obj.columns[check_obj.columns.duplicated()]
@@ -665,9 +656,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             ):
                 if lazy:
                     lazy_exclude_columns.append(colname)
-                msg = (
-                    f"column '{colname}' not in dataframe\n{check_obj.head()}"
-                )
+                msg = f"column '{colname}' not in dataframe\n{check_obj.head()}"
                 error_handler.collect_error(
                     "column_not_in_dataframe",
                     errors.SchemaError(
@@ -740,9 +729,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         for check_index, check in enumerate(self.checks):
             try:
                 check_results.append(
-                    _handle_check_results(
-                        self, check_index, check, df_to_validate
-                    )
+                    _handle_check_results(self, check_index, check, df_to_validate)
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
@@ -757,23 +744,17 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 else self.unique
             )
             for lst in temp_unique:
-                duplicates = df_to_validate.duplicated(
-                    subset=lst, keep=keep_setting
-                )
+                duplicates = df_to_validate.duplicated(subset=lst, keep=keep_setting)
                 if duplicates.any():
                     # NOTE: this is a hack to support pyspark.pandas, need to
                     # figure out a workaround to error: "Cannot combine the
                     # series or dataframe because it comes from a different
                     # dataframe."
-                    if type(duplicates).__module__.startswith(
-                        "pyspark.pandas"
-                    ):
+                    if type(duplicates).__module__.startswith("pyspark.pandas"):
                         # pylint: disable=import-outside-toplevel
                         import pyspark.pandas as ps
 
-                        with ps.option_context(
-                            "compute.ops_on_diff_frames", True
-                        ):
+                        with ps.option_context("compute.ops_on_diff_frames", True):
                             failure_cases = df_to_validate.loc[duplicates, lst]
                     else:
                         failure_cases = df_to_validate.loc[duplicates, lst]
@@ -791,9 +772,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                     )
 
         if lazy and error_handler.collected_errors:
-            raise errors.SchemaErrors(
-                self, error_handler.collected_errors, check_obj
-            )
+            raise errors.SchemaErrors(self, error_handler.collected_errors, check_obj)
 
         assert all(check_results), "all check results must be True."
         return check_obj
@@ -826,9 +805,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
         """
-        return self.validate(
-            dataframe, head, tail, sample, random_state, lazy, inplace
-        )
+        return self.validate(dataframe, head, tail, sample, random_state, lazy, inplace)
 
     def __repr__(self) -> str:
         """Represent string for logging."""
@@ -900,16 +877,12 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             return NotImplemented
 
         def _compare_dict(obj):
-            return {
-                k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
-            }
+            return {k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"}
 
         return _compare_dict(self) == _compare_dict(other)
 
     @st.strategy_import_error
-    def strategy(
-        self, *, size: Optional[int] = None, n_regex_columns: int = 1
-    ):
+    def strategy(self, *, size: Optional[int] = None, n_regex_columns: int = 1):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
@@ -942,9 +915,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return self.strategy(
-                size=size, n_regex_columns=n_regex_columns
-            ).example()
+            return self.strategy(size=size, n_regex_columns=n_regex_columns).example()
 
     @_inferred_schema_guard
     def add_columns(self, extra_schema_cols: Dict[str, Any]) -> Self:
@@ -1111,9 +1082,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             raise ValueError(f"column '{column_name}' not in {self}")
         schema_copy = copy.deepcopy(self)
         column_copy = copy.deepcopy(self.columns[column_name])
-        new_column = column_copy.__class__(
-            **{**column_copy.properties, **kwargs}
-        )
+        new_column = column_copy.__class__(**{**column_copy.properties, **kwargs})
         schema_copy.columns.update({column_name: new_column})
         return schema_copy
 
@@ -1185,9 +1154,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             if update_dict.get(col):
                 new_properties = copy.deepcopy(original_properties)
                 new_properties.update(update_dict[col])
-                new_columns[col] = new_schema.columns[col].__class__(
-                    **new_properties
-                )
+                new_columns[col] = new_schema.columns[col].__class__(**new_properties)
             else:
                 new_columns[col] = new_schema.columns[col].__class__(
                     **original_properties
@@ -1400,20 +1367,14 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         return pandera.io.from_json(source)
 
     @overload
-    def to_json(
-        self, target: None = None, **kwargs
-    ) -> str:  # pragma: no cover
+    def to_json(self, target: None = None, **kwargs) -> str:  # pragma: no cover
         ...
 
     @overload
-    def to_json(
-        self, target: os.PathLike, **kwargs
-    ) -> None:  # pragma: no cover
+    def to_json(self, target: os.PathLike, **kwargs) -> None:  # pragma: no cover
         ...
 
-    def to_json(
-        self, target: Optional[os.PathLike] = None, **kwargs
-    ) -> Optional[str]:
+    def to_json(self, target: Optional[os.PathLike] = None, **kwargs) -> Optional[str]:
         """Write DataFrameSchema to json file.
 
         :param target: file target to write to. If None, dumps to string.
@@ -1510,9 +1471,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         new_schema = copy.deepcopy(self)
 
-        keys_temp: List = (
-            list(set(keys)) if not isinstance(keys, list) else keys
-        )
+        keys_temp: List = list(set(keys)) if not isinstance(keys, list) else keys
 
         # ensure all specified keys are present in the columns
         not_in_cols: List[str] = [
@@ -1545,9 +1504,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 )
             )
 
-        new_schema.index = (
-            ind_list[0] if len(ind_list) == 1 else MultiIndex(ind_list)
-        )
+        new_schema.index = ind_list[0] if len(ind_list) == 1 else MultiIndex(ind_list)
 
         # if drop is True as defaulted, drop the columns moved into the index
         if drop:
@@ -1674,9 +1631,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             else Index(
                 dtype=new_index.columns[list(new_index.columns)[0]].dtype,
                 checks=new_index.columns[list(new_index.columns)[0]].checks,
-                nullable=new_index.columns[
-                    list(new_index.columns)[0]
-                ].nullable,
+                nullable=new_index.columns[list(new_index.columns)[0]].nullable,
                 unique=new_index.columns[list(new_index.columns)[0]].unique,
                 coerce=new_index.columns[list(new_index.columns)[0]].coerce,
                 name=new_index.columns[list(new_index.columns)[0]].name,
@@ -1955,19 +1910,11 @@ class SeriesSchemaBase:
         if not inplace:
             check_obj = check_obj.copy()
 
-        series = (
-            check_obj
-            if check_utils.is_field(check_obj)
-            else check_obj[self.name]
-        )
+        series = check_obj if check_utils.is_field(check_obj) else check_obj[self.name]
 
-        series = _pandas_obj_to_validate(
-            series, head, tail, sample, random_state
-        )
+        series = _pandas_obj_to_validate(series, head, tail, sample, random_state)
 
-        check_obj = _pandas_obj_to_validate(
-            check_obj, head, tail, sample, random_state
-        )
+        check_obj = _pandas_obj_to_validate(check_obj, head, tail, sample, random_state)
 
         if self.name is not None and series.name != self._name:
             msg = (
@@ -2026,10 +1973,7 @@ class SeriesSchemaBase:
                 failed = series[duplicates]
 
             if duplicates.any():
-                msg = (
-                    f"series '{series.name}' contains duplicate values:\n"
-                    f"{failed}"
-                )
+                msg = f"series '{series.name}' contains duplicate values:\n" f"{failed}"
                 error_handler.collect_error(
                     "series_contains_duplicates",
                     errors.SchemaError(
@@ -2117,9 +2061,7 @@ class SeriesSchemaBase:
                 )
 
         if lazy and error_handler.collected_errors:
-            raise errors.SchemaErrors(
-                self, error_handler.collected_errors, check_obj
-            )
+            raise errors.SchemaErrors(self, error_handler.collected_errors, check_obj)
 
         assert all(check_results)
         return check_obj
@@ -2135,9 +2077,7 @@ class SeriesSchemaBase:
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Alias for ``validate`` method."""
-        return self.validate(
-            check_obj, head, tail, sample, random_state, lazy, inplace
-        )
+        return self.validate(check_obj, head, tail, sample, random_state, lazy, inplace)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -2384,19 +2324,13 @@ class SeriesSchema(SeriesSchemaBase):
                     )
         # validate series
         try:
-            super().validate(
-                check_obj, head, tail, sample, random_state, lazy, inplace
-            )
+            super().validate(check_obj, head, tail, sample, random_state, lazy, inplace)
         except errors.SchemaErrors as err:
             for schema_error_dict in err.schema_errors:
-                error_handler.collect_error(
-                    "series_check", schema_error_dict["error"]
-                )
+                error_handler.collect_error("series_check", schema_error_dict["error"])
 
         if error_handler.collected_errors:
-            raise errors.SchemaErrors(
-                self, error_handler.collected_errors, check_obj
-            )
+            raise errors.SchemaErrors(self, error_handler.collected_errors, check_obj)
 
         return check_obj
 
@@ -2411,9 +2345,7 @@ class SeriesSchema(SeriesSchemaBase):
         inplace: bool = False,
     ) -> pd.Series:
         """Alias for :func:`SeriesSchema.validate` method."""
-        return self.validate(
-            check_obj, head, tail, sample, random_state, lazy, inplace
-        )
+        return self.validate(check_obj, head, tail, sample, random_state, lazy, inplace)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -2438,9 +2370,7 @@ def _pandas_obj_to_validate(
     return (
         dataframe_or_series
         if not pandas_obj_subsample
-        else pd.concat(pandas_obj_subsample).pipe(
-            lambda x: x[~x.index.duplicated()]
-        )
+        else pd.concat(pandas_obj_subsample).pipe(lambda x: x[~x.index.duplicated()])
     )
 
 
@@ -2464,9 +2394,7 @@ def _handle_check_results(
         if check_result.failure_cases is None:
             # encode scalar False values explicitly
             failure_cases = scalar_failure_case(check_result.check_passed)
-            error_msg = format_generic_error_message(
-                schema, check, check_index
-            )
+            error_msg = format_generic_error_message(schema, check, check_index)
         else:
             failure_cases = reshape_failure_cases(
                 check_result.failure_cases, check.ignore_na
@@ -2504,7 +2432,5 @@ def convert_uniquesettings(unique: UniqueSettings) -> Union[bool, str]:
     elif unique == "all":
         keep_argument = False
     else:
-        raise ValueError(
-            str(unique) + " is not a recognized report_duplicates value"
-        )
+        raise ValueError(str(unique) + " is not a recognized report_duplicates value")
     return keep_argument
