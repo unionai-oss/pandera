@@ -724,9 +724,9 @@ def test_strict_filter(data):
 
             strict = "filter"
 
+    # Test with schema validation
     kdf = ps.DataFrame(data)
     filtered = FilterSchema.validate(kdf)
 
-    # filtered = DataFrame[FilterSchema](kdf)
     assert set(filtered.columns) == {"col1"}
     assert isinstance(filtered, ps.DataFrame)
