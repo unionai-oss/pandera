@@ -747,7 +747,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
 
-        if self.unique:
+        # check for unique values across columns
+        # skip this check if lazy_exclude_columns is not empty, indicating
+        # that there is a missing column in the dataframe
+        if not lazy_exclude_columns and self.unique:
             keep_setting = convert_uniquesettings(self._report_duplicates)
             # NOTE: fix this pylint error
             # pylint: disable=not-an-iterable
@@ -2459,7 +2462,22 @@ def _handle_check_results(
     :returns: True if check results pass or check.raise_warning=True, otherwise
         False.
     """
-    check_result = check(check_obj, *check_args)
+    try:
+        check_result = check(check_obj, *check_args)
+    except Exception as exc:
+        # catch exceptions that may occur in the check function (e.g. in custom
+        # check functions) and bubble up the error message as a failure case.
+        raise errors.SchemaError(
+            schema,
+            check_obj,
+            exc.args[0],
+            failure_cases=scalar_failure_case(
+                f'{type(exc).__name__}("{exc.args[0]}")'
+            ),
+            check=check,
+            check_index=check_index,
+        ) from exc
+
     if not check_result.check_passed:
         if check_result.failure_cases is None:
             # encode scalar False values explicitly
