@@ -894,7 +894,8 @@ def test_check_types_union_args() -> None:
     @check_types
     def validate_union(
         df: typing.Union[
-            DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
+            DataFrame[OnlyZeroesSchema],
+            DataFrame[OnlyOnesSchema],
         ],
     ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
         return df
@@ -919,6 +920,24 @@ def test_check_types_union_args() -> None:
 
     with pytest.raises(errors.SchemaErrors):
         validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))
+
+
+def test_check_types_non_dataframes() -> None:
+    """Test to skip check_types for non-dataframes"""
+
+    @check_types
+    def only_int_type(val: int) -> int:
+        return val
+
+    @check_types
+    def union_int_str_types(
+        val: typing.Union[int, str]
+    ) -> typing.Union[int, str]:
+        return val
+
+    only_int_type(1)
+    union_int_str_types(2)
+    union_int_str_types("2")
 
 
 def test_coroutines(event_loop: AbstractEventLoop) -> None:
