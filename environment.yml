@@ -21,7 +21,7 @@ dependencies:
   - pydantic
 
   # mypy extra
-  - pandas-stubs >= 1.4.3.220822
+  - pandas-stubs
   - pyspark-stubs
 
   # pyspark extra
