@@ -26,6 +26,7 @@ except ImportError:
 class DataType(ABC):
     """Base class of all Pandera data types."""
 
+    type: Any = None
     continuous: Optional[bool] = None
     """Whether the number data type is continuous."""
 

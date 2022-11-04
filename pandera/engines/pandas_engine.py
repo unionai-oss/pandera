@@ -153,7 +153,7 @@ class Engine(  # pylint:disable=too-few-public-methods
     """Pandas data type engine."""
 
     @classmethod
-    def dtype(cls, data_type: Any) -> "DataType":
+    def dtype(cls, data_type: Any) -> dtypes.DataType:
         """Convert input into a pandas-compatible
         Pandera :class:`~pandera.dtypes.DataType` object."""
         try:

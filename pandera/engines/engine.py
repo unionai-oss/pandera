@@ -181,7 +181,7 @@ class Engine(ABCMeta):
 
         return _wrapper
 
-    def dtype(cls: _EngineType, data_type: Any) -> _DataType:
+    def dtype(cls: _EngineType, data_type: Any) -> DataType:
         """Convert input into a Pandera :class:`DataType` object."""
         if isinstance(data_type, cls._base_pandera_dtypes):
             return data_type
