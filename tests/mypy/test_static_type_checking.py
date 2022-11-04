@@ -41,6 +41,15 @@ def _get_mypy_errors(stdout) -> typing.List[typing.Dict[str, str]]:
     return errors
 
 
+PANDAS_DATAFRAME_ERRORS = [
+    {"msg": "^Argument 1 to .+ has incompatible type", "errcode": "arg-type"},
+    {"msg": "^Incompatible return value type", "errcode": "return-value"},
+    {"msg": "^Argument 1 to .+ has incompatible type", "errcode": "arg-type"},
+    {"msg": "^Argument 1 to .+ has incompatible type", "errcode": "arg-type"},
+    {"msg": "^Incompatible return value type", "errcode": "return-value"},
+]
+
+
 def test_mypy_pandas_dataframe(capfd) -> None:
     """Test that mypy raises expected errors on pandera-decorated functions."""
     # pylint: disable=subprocess-run-check
@@ -54,27 +63,12 @@ def test_mypy_pandas_dataframe(capfd) -> None:
         text=True,
     )
     errors = _get_mypy_errors(capfd.readouterr().out)
-    # assert error messages on particular lines of code
-    assert errors[0]["errcode"] == "arg-type"
-    assert re.match(
-        "^Argument 1 to .+ has incompatible type", errors[0]["msg"]
-    )
-
-    assert errors[1]["errcode"] == "return-value"
-    assert re.match("^Incompatible return value type", errors[1]["msg"])
-
-    assert errors[2]["errcode"] == "arg-type"
-    assert re.match(
-        '^Argument 1 to ".+" has incompatible type', errors[2]["msg"]
-    )
-
-    assert errors[3]["errcode"] == "arg-type"
-    assert re.match(
-        '^Argument 1 to ".+" has incompatible type', errors[3]["msg"]
-    )
-
-    assert errors[4]["errcode"] == "return-value"
-    assert re.match("^Incompatible return value type", errors[4]["msg"])
+    assert len(PANDAS_DATAFRAME_ERRORS) == len(errors)
+    for expected, error in zip(PANDAS_DATAFRAME_ERRORS, errors):
+        assert error["errcode"] == expected["errcode"]
+        assert expected["msg"] == error["msg"] or re.match(
+            expected["msg"], error["msg"]
+        )
 
 
 @pytest.mark.parametrize(
@@ -129,9 +123,8 @@ PANDAS_SERIES_ERRORS = [
         ["python_slice.py", "plugin_mypy.ini", PYTHON_SLICE_ERRORS],
         ["pandas_index.py", None, PANDAS_INDEX_ERRORS],
         ["pandas_index.py", "plugin_mypy.ini", PANDAS_INDEX_ERRORS],
-        ["pandera_types.py", None, PANDERA_TYPES_ERRORS],
-        ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
         ["pandas_series.py", None, PANDAS_SERIES_ERRORS],
+        ["pandas_series.py", "plugin_mypy.ini", PANDAS_SERIES_ERRORS],
     ],
 )
 def test_pandas_stubs_false_positives(
