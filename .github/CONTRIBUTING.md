@@ -103,6 +103,19 @@ git checkout -b <my-branch>
 
 We recommend following the branch-naming convention described in [Making Pull Requests](#making-pull-requests).
 
+### DCO-signing Commits
+
+This project enforces the [DCO](https://developercertificate.org/) standard for
+contributions, which requires authors to sign off on their commits. This can be
+done with the `-s` or `--signoff` flag:
+
+```
+git commit -s -m 'my commit'
+```
+
+Refer to [this guide](https://github.com/src-d/guide/blob/master/developer-community/fix-DCO.md)
+to add sign-offs retroactivately.
+
 ### Run the Full Test Suite Locally
 
 Before submitting your changes for review, make sure to check that your changes
@@ -169,6 +182,7 @@ label, so if you find a bug create a new issue [here](https://github.com/pandera
 New feature issues can be found under the
 [enhancements](https://github.com/pandera-dev/pandera/labels/enhancement) label.
 You can request a feature by creating a new issue [here](https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=).
+
 ### Making Pull Requests
 
 Once your changes are ready to be submitted, make sure to push your changes to
