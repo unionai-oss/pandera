@@ -29,15 +29,18 @@ Then enable the plugin in your ``mypy.ini`` or ``setug.cfg`` file:
 .. warning::
 
     This functionality is experimental 🧪. Since the
-    `pandas-stubs <https://github.com/VirtusLab/pandas-stubs>`__ type stub
+    `pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`__ type stub
     annotations don't always match the official
     `pandas effort to support type annotations <https://github.com/pandas-dev/pandas/issues/28142#issuecomment-991967009>`__),
-    installing the ```pandera[mypy]`` extra may yield false positives in your
-    pandas code, many of which are are documented in ``tests/mypy/modules``.
+    installing the ``pandera[mypy]`` extra may yield false positives in your
+    pandas code, many of which are are documented in ``tests/mypy/modules``
+    (see `here <https://github.com/unionai-oss/pandera/tree/main/tests/mypy/modules>`__ ).
 
-    We encourage beta users to `file an issue <https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=bug,mypy&template=bug_report.md&title=>`__
-    if they find any false positives or negatives being reported by ``mypy``.
+    We encourage you to `file an issue <https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=bug,mypy&template=bug_report.md&title=>`__
+    if you find any false positives or negatives being reported by ``mypy``.
     A list of such issues can be found `here <https://github.com/pandera-dev/pandera/labels/mypy>`__.
+    We'll most likely have to escalate this to the official ``pandas-stubs``
+    `issues <https://github.com/pandas-dev/pandas-stubs/issues>`__ .
 
 
 In the example below, we define a few schemas to see how type-linting with

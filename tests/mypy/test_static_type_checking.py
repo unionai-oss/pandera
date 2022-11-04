@@ -21,9 +21,9 @@ from tests.mypy.modules import pandas_dataframe
 test_module_dir = Path(os.path.dirname(__file__))
 
 
-def _get_mypy_errors(stdout) -> typing.Dict[int, typing.Dict[str, str]]:
+def _get_mypy_errors(stdout) -> typing.List[typing.Dict[str, str]]:
     """Parse line number and error message."""
-    errors: typing.Dict[int, typing.Dict[str, typing.Any]] = {}
+    errors: typing.List[typing.Dict[str, str]] = []
     # last line is summary of errors
     for error in [x for x in stdout.split("\n") if x != ""][:-1]:
         matches = re.match(
@@ -32,10 +32,12 @@ def _get_mypy_errors(stdout) -> typing.Dict[int, typing.Dict[str, str]]:
         )
         if matches is not None:
             match_dict = matches.groupdict()
-            errors[int(match_dict["lineno"])] = {
-                "msg": match_dict["msg"],
-                "errcode": match_dict["errcode"],
-            }
+            errors.append(
+                {
+                    "msg": match_dict["msg"],
+                    "errcode": match_dict["errcode"],
+                }
+            )
     return errors
 
 
@@ -53,24 +55,26 @@ def test_mypy_pandas_dataframe(capfd) -> None:
     )
     errors = _get_mypy_errors(capfd.readouterr().out)
     # assert error messages on particular lines of code
-    assert errors[35]["errcode"] == "arg-type"
+    assert errors[0]["errcode"] == "arg-type"
     assert re.match(
-        'Argument 1 to "pipe" of "[A-Za-z]+" has incompatible type',
-        errors[35]["msg"],
+        "^Argument 1 to .+ has incompatible type", errors[0]["msg"]
     )
 
-    assert errors[41]["errcode"] == "return-value"
-    assert re.match("^Incompatible return value type", errors[41]["msg"])
+    assert errors[1]["errcode"] == "return-value"
+    assert re.match("^Incompatible return value type", errors[1]["msg"])
 
-    assert errors[54]["errcode"] == "arg-type"
+    assert errors[2]["errcode"] == "arg-type"
     assert re.match(
-        '^Argument 1 to "fn" has incompatible type', errors[54]["msg"]
+        '^Argument 1 to ".+" has incompatible type', errors[2]["msg"]
     )
 
-    assert errors[58]["errcode"] == "arg-type"
+    assert errors[3]["errcode"] == "arg-type"
     assert re.match(
-        '^Argument 1 to "fn" has incompatible type', errors[58]["msg"]
+        '^Argument 1 to ".+" has incompatible type', errors[3]["msg"]
     )
+
+    assert errors[4]["errcode"] == "return-value"
+    assert re.match("^Incompatible return value type", errors[4]["msg"])
 
 
 @pytest.mark.parametrize(
@@ -91,48 +95,43 @@ def test_pandera_runtime_errors(fn) -> None:
         assert e.failure_cases["failure_case"].item() == "age"
 
 
-# pylint: disable=line-too-long
-PANDAS_CONCAT_FALSE_POSITIVES = {
-    13: {
-        "msg": 'No overload variant of "concat" matches argument type "Generator[DataFrame, None, None]"',  # noqa
-        "errcode": "call-overload",
-    },
-    16: {
-        "msg": 'No overload variant of "concat" matches argument type "Generator[Series, None, None]"',  # noqa
-        "errcode": "call-overload",
-    },
-}
+PYTHON_SLICE_ERRORS = [
+    {"msg": "Slice index must be an integer or None", "errcode": "misc"},
+]
 
-PANDAS_TIME_FALSE_POSITIVES = {
-    4: {
+PANDAS_INDEX_ERRORS = [
+    {"msg": "Incompatible types in assignment", "errcode": "assignment"},
+] * 3
+
+PANDERA_TYPES_ERRORS = [
+    {"msg": 'Argument 1 to "fn" has incompatible type', "errcode": "arg-type"},
+] * 2
+
+PANDAS_SERIES_ERRORS = [
+    {
         "msg": (
-            'Unsupported operand types for + ("Timestamp" and "YearEnd")',
-            'No overload variant of "__add__" of "Timestamp" matches argument type "YearEnd"',  # noqa
+            'Argument 1 to "fn" has incompatible type "Series[float]"; '
+            'expected "Series[str]"'
         ),
-        "errcode": "operator",
-    },
-    6: {
-        "msg": 'Missing positional argument "value" in call to "Timedelta"',  # noqa
-        "errcode": "call-arg",
-    },
-    9: {
-        "msg": 'Missing positional argument "value" in call to "Timedelta"',  # noqa
-        "errcode": "call-arg",
-    },
-    10: {
-        "msg": 'Argument 1 to "Timedelta" has incompatible type "float"; expected "Union[Timedelta, timedelta, timedelta64, str, int]"',  # noqa
         "errcode": "arg-type",
-    },
-}
+    }
+]
 
 
 @pytest.mark.parametrize(
     "module,config,expected_errors",
     [
-        ["pandas_concat.py", None, PANDAS_CONCAT_FALSE_POSITIVES],
-        ["pandas_concat.py", "plugin_mypy.ini", {}],
-        ["pandas_time.py", None, PANDAS_TIME_FALSE_POSITIVES],
-        ["pandas_time.py", "plugin_mypy.ini", {}],
+        ["pandas_concat.py", None, []],
+        ["pandas_concat.py", "plugin_mypy.ini", []],
+        ["pandas_time.py", None, []],
+        ["pandas_time.py", "plugin_mypy.ini", []],
+        ["python_slice.py", None, PYTHON_SLICE_ERRORS],
+        ["python_slice.py", "plugin_mypy.ini", PYTHON_SLICE_ERRORS],
+        ["pandas_index.py", None, PANDAS_INDEX_ERRORS],
+        ["pandas_index.py", "plugin_mypy.ini", PANDAS_INDEX_ERRORS],
+        ["pandera_types.py", None, PANDERA_TYPES_ERRORS],
+        ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
+        ["pandas_series.py", None, PANDAS_SERIES_ERRORS],
     ],
 )
 def test_pandas_stubs_false_positives(
@@ -159,20 +158,27 @@ def test_pandas_stubs_false_positives(
     if config:
         commands += ["--config-file", str(test_module_dir / "config" / config)]
     # pylint: disable=subprocess-run-check
-    subprocess.run(
-        commands,
-        text=True,
-    )
+    subprocess.run(commands, text=True)
     resulting_errors = _get_mypy_errors(capfd.readouterr().out)
-    for lineno, error in resulting_errors.items():
-        assert error["errcode"] == expected_errors[lineno]["errcode"]
-        if isinstance(expected_errors[lineno]["msg"], tuple):
-            assert error["msg"] in expected_errors[lineno]["msg"]
-        else:
-            assert error["msg"] == expected_errors[lineno]["msg"]
+    assert len(expected_errors) == len(resulting_errors)
+    for expected, error in zip(expected_errors, resulting_errors):
+        assert error["errcode"] == expected["errcode"]
+        assert expected["msg"] == error["msg"] or re.match(
+            expected["msg"], error["msg"]
+        )
 
 
-@pytest.mark.parametrize("module", ["pandas_concat", "pandas_time"])
+@pytest.mark.parametrize(
+    "module",
+    [
+        "pandas_concat",
+        "pandas_time",
+        "python_slice",
+        "pandas_index",
+        "pandera_types",
+        "pandas_series",
+    ],
+)
 def test_pandas_modules_importable(module):
     """Make sure that static type linting modules can be executed."""
     importlib.import_module(f"tests.mypy.modules.{module}")

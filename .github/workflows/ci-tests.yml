@@ -167,6 +167,7 @@ jobs:
         run: pytest tests/io ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Mypy
+        if: ${{ matrix.python-version != '3.7' }}
         run: pytest tests/mypy ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Strategies
