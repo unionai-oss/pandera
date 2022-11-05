@@ -144,16 +144,18 @@ class SchemaErrors(ReducedPickleExceptionBase):
         schema,
         schema_errors: List[Dict[str, Any]],
         data: Union[pd.Series, pd.DataFrame],
+        include_failure_cases: bool,
     ):
         error_counts, failure_cases = self._parse_schema_errors(schema_errors)
         self.schema = schema
-        super().__init__(self._message(error_counts, failure_cases))
+        super().__init__(self._message(error_counts, failure_cases, include_failure_cases))
         self.schema_errors = schema_errors
         self.error_counts = error_counts
         self.failure_cases = failure_cases
         self.data = data
+        self.include_failure_cases = include_failure_cases
 
-    def _message(self, error_counts, schema_errors):
+    def _message(self, error_counts, schema_errors, include_failure_cases):
         """Format error message."""
         msg = (
             f"Schema {self.schema.name}: A total of "
@@ -195,7 +197,10 @@ class SchemaErrors(ReducedPickleExceptionBase):
         msg += "\nSchema Error Summary"
         msg += "\n--------------------\n"
         with pd.option_context("display.max_colwidth", 100):
-            msg += agg_schema_errors.to_string()
+            if include_failure_cases:
+                msg += agg_schema_errors.to_string()
+            else:
+                msg += agg_schema_errors.n_failure_cases.to_string()
         msg += SCHEMA_ERRORS_SUFFIX
         return msg
 

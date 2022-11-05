@@ -452,6 +452,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ) -> pd.DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
 
@@ -526,6 +527,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 random_state=random_state,
                 lazy=lazy,
                 inplace=inplace,
+                include_failure_cases=include_failure_cases,
                 meta=check_obj,
             )
 
@@ -539,6 +541,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            include_failure_cases=include_failure_cases,
         )
 
     def _validate(
@@ -550,6 +553,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ) -> pd.DataFrame:
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
 
@@ -789,10 +793,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                             check="multiple_fields_uniqueness",
                         ),
                     )
-
+  
+        #include_failure_cases = False
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
-                self, error_handler.collected_errors, check_obj
+                self, error_handler.collected_errors, check_obj, include_failure_cases
             )
 
         assert all(check_results), "all check results must be True."
@@ -807,6 +812,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ):
         """Alias for :func:`DataFrameSchema.validate` method.
 
@@ -827,7 +833,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             otherwise creates a copy of the data.
         """
         return self.validate(
-            dataframe, head, tail, sample, random_state, lazy, inplace
+            dataframe, head, tail, sample, random_state, lazy, inplace, include_failure_cases
         )
 
     def __repr__(self) -> str:
@@ -1882,6 +1888,7 @@ class SeriesSchemaBase:
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ) -> Union[pd.DataFrame, pd.Series]:
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a series or specific column in dataframe.
@@ -2077,9 +2084,10 @@ class SeriesSchemaBase:
                     original_exc=err,
                 )
 
+        #include_failure_cases = False
         if lazy and error_handler.collected_errors:
             raise errors.SchemaErrors(
-                self, error_handler.collected_errors, check_obj
+                self, error_handler.collected_errors, check_obj, include_failure_cases
             )
 
         assert all(check_results)
@@ -2094,6 +2102,7 @@ class SeriesSchemaBase:
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Alias for ``validate`` method."""
         return self.validate(
@@ -2225,6 +2234,7 @@ class SeriesSchema(SeriesSchemaBase):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ) -> pd.Series:
         """Validate a Series object.
 
@@ -2310,6 +2320,7 @@ class SeriesSchema(SeriesSchemaBase):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ) -> pd.Series:
         if not inplace:
             check_obj = check_obj.copy()
@@ -2370,6 +2381,7 @@ class SeriesSchema(SeriesSchemaBase):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        include_failure_cases: bool = True,
     ) -> pd.Series:
         """Alias for :func:`SeriesSchema.validate` method."""
         return self.validate(
