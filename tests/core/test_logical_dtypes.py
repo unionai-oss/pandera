@@ -233,7 +233,8 @@ def test_invalid_decimal_params(precision: int, scale: int):
         pd.Series([Decimal("100000")]),
     ],
 )
-def test_decimal_precision_zero(value):
+def test_decimal_scale_zero(value):
+    """Testing if a scale of 0 works."""
     check_type = pandas_engine.Decimal(28, 0)
 
     result = check_type.check(pa.Object, value)
@@ -252,8 +253,11 @@ def test_decimal_precision_zero(value):
         pd.Series([1.1]),
     ],
 )
-def test_decimal_precision_zero_violations(value):
-    """We want proper violations here, no raised exceptions."""
+def test_decimal_scale_zero_violations(value):
+    """Make sure we get proper violations here.
+
+    First half of regression test for #1008.
+    """
     check_type = pandas_engine.Decimal(28, 0)
 
     result = check_type.check(pa.Object, value)
@@ -269,7 +273,8 @@ def test_decimal_precision_zero_violations(value):
     raises=TypeError,
     strict=True,
 )
-def test_decimal_precision_zero_missing_violation():
+def test_decimal_scale_zero_missing_violation():
+    """Should be deleted once `check_output | isna` works with floats."""
     schema = pa.DataFrameSchema({"x": pa.Column(pandas_engine.Decimal)})
     df = pd.DataFrame({"x": [1.1]})
 
@@ -289,7 +294,11 @@ def test_decimal_precision_zero_missing_violation():
         pd.Series([1.1]),
     ],
 )
-def test_decimal_precision_zero_coercions(value):
+def test_decimal_scale_zero_coercions(value):
+    """Make sure coercions work.
+
+    Other half of regression test for #1008.
+    """
     check_type = pandas_engine.Decimal(28, 0)
 
     coerced = check_type.coerce(value)
