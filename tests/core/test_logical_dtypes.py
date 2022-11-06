@@ -12,7 +12,7 @@ from pandas.testing import assert_series_equal
 
 import pandera as pa
 from pandera.engines import pandas_engine
-from pandera.errors import ParserError
+from pandera.errors import ParserError, SchemaError
 
 
 @pytest.fixture(scope="module")
@@ -223,3 +223,76 @@ def test_invalid_decimal_params(precision: int, scale: int):
     """Test invalid decimal params."""
     with pytest.raises(ValueError):
         pa.Decimal(precision, scale)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([Decimal("1")]),
+        pd.Series([Decimal("10")]),
+        pd.Series([Decimal("100000")]),
+    ],
+)
+def test_decimal_precision_zero(value):
+    check_type = pandas_engine.Decimal(28, 0)
+
+    result = check_type.check(pa.Object, value)
+
+    assert result.all()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([Decimal("1.1")]),
+        pd.Series([Decimal("1.11")]),
+        pd.Series(["1"]),
+        pd.Series(["1.1"]),
+        pd.Series([1]),
+        pd.Series([1.1]),
+    ],
+)
+def test_decimal_precision_zero_violations(value):
+    """We want proper violations here, no raised exceptions."""
+    check_type = pandas_engine.Decimal(28, 0)
+
+    result = check_type.check(pa.Object, value)
+
+    assert not result.any()
+
+
+@pytest.mark.xfail(
+    reason=(
+        "This call should raise a schema error , but float values lead"
+        "to type errors instead - something wrong within the validate."
+    ),
+    raises=TypeError,
+    strict=True,
+)
+def test_decimal_precision_zero_missing_violation():
+    schema = pa.DataFrameSchema({"x": pa.Column(pandas_engine.Decimal)})
+    df = pd.DataFrame({"x": [1.1]})
+
+    with pytest.raises(SchemaError):
+        schema.validate(df)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([Decimal("1")]),
+        pd.Series([Decimal("1.1")]),
+        pd.Series([Decimal("1.11")]),
+        pd.Series(["1"]),
+        pd.Series(["1.1"]),
+        pd.Series([1]),
+        pd.Series([1.1]),
+    ],
+)
+def test_decimal_precision_zero_coercions(value):
+    check_type = pandas_engine.Decimal(28, 0)
+
+    coerced = check_type.coerce(value)
+    result = check_type.check(pa.Object, coerced)
+
+    assert result.all()

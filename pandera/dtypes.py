@@ -436,7 +436,9 @@ class Decimal(_Number):
         object.__setattr__(self, "scale", scale)
         object.__setattr__(self, "rounding", rounding)
         object.__setattr__(
-            self, "_exp", _scale_to_exp(scale) if scale else decimal.Decimal("1.")
+            self,
+            "_exp",
+            _scale_to_exp(scale) if scale else decimal.Decimal("1."),
         )
         object.__setattr__(
             self,
