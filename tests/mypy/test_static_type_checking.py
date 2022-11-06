@@ -169,9 +169,18 @@ def test_pandas_stubs_false_positives(
         "python_slice",
         "pandas_index",
         "pandera_types",
-        "pandas_series",
     ],
 )
 def test_pandas_modules_importable(module):
     """Make sure that static type linting modules can be executed."""
     importlib.import_module(f"tests.mypy.modules.{module}")
+
+
+@pytest.mark.parametrize(
+    "module",
+    ["pandas_series"],
+)
+def test_pandas_modules_not_importable(module):
+    """Make sure that static type linting modules can be executed."""
+    with pytest.raises(TypeError):
+        importlib.import_module(f"tests.mypy.modules.{module}")
