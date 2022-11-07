@@ -216,13 +216,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
 
-        # This restriction can be removed once logical types are introduced:
-        # https://github.com/pandera-dev/pandera/issues/788
-        if not coerce and isinstance(self.dtype, pandas_engine.PydanticModel):
-            raise errors.SchemaInitError(
-                "Specifying a PydanticModel type requires coerce=True."
-            )
-
     @property
     def coerce(self) -> bool:
         """Whether to coerce series to specified type."""

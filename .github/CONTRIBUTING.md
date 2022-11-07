@@ -74,9 +74,9 @@ To add new dependencies to the project, make sure to alter the *environment.yml*
 
 ```
 python scripts/generate_pip_deps_from_conda.py
-
 ```
-Moreover to add new dependecies in setup.py, it is necessary to add it to the **_extras_require** dictionary.
+
+Moreover to add new dependencies in setup.py, it is necessary to add it to the **_extras_require** dictionary.
 
 
 #### Set up `pre-commit`
