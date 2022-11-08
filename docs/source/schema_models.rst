@@ -815,7 +815,7 @@ get rid of them like this:
             return schema.remove_columns(["b", "c"])
 
     df = pd.DataFrame({"a": [99], "d": [101]})
-    print(Schema.validate(df))
+    print(Baz.validate(df))
 
 .. testoutput:: dataframe_schema_model
 
