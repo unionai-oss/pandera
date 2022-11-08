@@ -772,3 +772,61 @@ the class scope, and it will respect the alias.
 
           2020    a
     0       99  101
+
+
+Manipulating Schema Models post-definition
+------------------------------------------
+
+One caveat of using inheritance to build schemata on top of each other is that there
+is no clear way of how a child class can e.g. remove fields or update them without
+completely overriding previous settings, inheritance is strictly additive.
+
+:class:`~pandera.schemas.DataFrameSchema`s do have these options though, as described in
+:ref:`_dataframe schema transformations`, which you can leverage by overriding your
+Schema Model's :func:`~pandera.model.SchemaModel.to_schema` method.
+
+Schema Models are for the most part just a proxy for the Data Frame Schema API -- calling
+:func:`~pandera.model.SchemaModel.validate` will just redirect to the validate method of
+the Data Frame Schema's :class:`~pandera.schemas.DataFrameSchema.validate` returned by
+`to_schema`. As such, any updates to the schema that took place in there will propagate
+cleanly.
+
+As an example, the following class hierarchy can not remove the fields `b` and `c` from
+`Baz` into a base-class without completely convoluting the inheritance tree. So, we can
+get rid of them like this:
+
+.. testcode:: dataframe_schema_model
+
+    import pandera as pa
+    import pandas as pd
+
+    class Foo(pa.SchemaModel):
+        a: pa.typing.Series[int]
+        b: pa.typing.Series[int]
+
+    class Bar(pa.SchemaModel):
+        c: pa.typing.Series[int]
+        d: pa.typing.Series[int]
+
+    class Baz(pa.SchemaModel):
+        @classmethod
+        def to_schema(cls) -> pa.DataFrameSchema:
+            schema = super().to_schema()
+            return schema.remove_columns(["b", "c"])
+
+    df = pd.DataFrame({"a": [99], "d": [101]})
+    print(Schema.validate(df))
+
+.. testoutput:: dataframe_schema_model
+
+        a    d
+    0  99  101
+
+.. note::
+
+    There are drawbacks to manipulating schema shape in this way:
+     - Static code analysis has no way to figure out which fields a class.
+     - Any children of classes which have overriden `to_schema` might experience
+       surprising behavior -- if a child of `Baz` tries to define a field `b` or `c` again,
+       it will lose it in its `to_schema` call because `Baz`'s `to_schema` will always
+       be executed after any child's class body has already been fully assembled.
