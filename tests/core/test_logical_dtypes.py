@@ -12,7 +12,7 @@ from pandas.testing import assert_series_equal
 
 import pandera as pa
 from pandera.engines import pandas_engine
-from pandera.errors import ParserError, SchemaError
+from pandera.errors import ParserError
 
 
 @pytest.fixture(scope="module")
