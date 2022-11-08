@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 
 from pandera import Check, Column, DataFrameSchema
-from pandera.engines import pandas_engine
+from pandera.engines import pandas_engine, numpy_engine
 from pandera.errors import (
     ParserError,
     ReducedPickleExceptionBase,
@@ -324,3 +324,14 @@ def test_pickling_parser_error():
         assert unpickled.failure_cases == str(exc.failure_cases)
     else:
         pytest.fail("ParserError not raised")
+
+
+def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
+    """Regression test for #1013, make sure the SchemaErrors are well-built."""
+    schema = DataFrameSchema({"x": Column(numpy_engine.Object, Check.eq(0))})
+    unhashables = [set(), {}, []]
+
+    with pytest.raises(SchemaErrors) as e:
+        schema.validate(pd.DataFrame({"x": unhashables}), lazy=True)
+
+    assert e.value.failure_cases.failure_case.to_list() == unhashables

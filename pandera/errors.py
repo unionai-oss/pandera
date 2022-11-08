@@ -166,6 +166,8 @@ class SchemaErrors(ReducedPickleExceptionBase):
             msg += f"- {k}: {v}\n"
 
         def agg_failure_cases(df):
+            # FIXME(arne): hack to support unhashable types, #260 would enable
+            df.failure_case = df.failure_case.astype(str)
             # NOTE: this is a hack to add modin support
             if type(df).__module__.startswith("modin.pandas"):
                 return (
@@ -287,6 +289,5 @@ class SchemaErrors(ReducedPickleExceptionBase):
             concat_fn(check_failure_cases)
             .reset_index(drop=True)
             .sort_values("schema_context", ascending=False)
-            .drop_duplicates()
         )
         return error_counts, failure_cases
