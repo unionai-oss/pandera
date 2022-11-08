@@ -237,7 +237,7 @@ def test_decimal_scale_zero(value):
     """Testing if a scale of 0 works."""
     check_type = pandas_engine.Decimal(28, 0)
 
-    result = check_type.check(pa.Object, value)
+    result = check_type.check(value.dtype, value)
 
     assert result.all()
 
@@ -260,26 +260,19 @@ def test_decimal_scale_zero_violations(value):
     """
     check_type = pandas_engine.Decimal(28, 0)
 
-    result = check_type.check(pa.Object, value)
+    result = check_type.check(value.dtype, value)
 
     assert not result.any()
 
 
-@pytest.mark.xfail(
-    reason=(
-        "This call should raise a schema error , but float values lead"
-        "to type errors instead - something wrong within the validate."
-    ),
-    raises=TypeError,
-    strict=True,
-)
 def test_decimal_scale_zero_missing_violation():
-    """Should be deleted once `check_output | isna` works with floats."""
-    schema = pa.DataFrameSchema({"x": pa.Column(pandas_engine.Decimal)})
-    df = pd.DataFrame({"x": [1.1]})
+    """Additional regression test for #1008: `Decimal.check` returned non-bool Series."""
+    check_type = pandas_engine.Decimal(28, 0)
+    value = pd.Series([1.1])
 
-    with pytest.raises(SchemaError):
-        schema.validate(df)
+    result = check_type.check(value.dtype, value)
+
+    assert result.dtype == bool
 
 
 @pytest.mark.parametrize(
@@ -302,6 +295,6 @@ def test_decimal_scale_zero_coercions(value):
     check_type = pandas_engine.Decimal(28, 0)
 
     coerced = check_type.coerce(value)
-    result = check_type.check(pa.Object, coerced)
+    result = check_type.check(value.dtype, coerced)
 
     assert result.all()

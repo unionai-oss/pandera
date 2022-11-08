@@ -530,7 +530,7 @@ class Decimal(DataType, dtypes.Decimal):
             if data_container is None:
                 return False
             else:
-                return np.full_like(data_container, False)
+                return np.full_like(data_container, False, dtype=bool)
         if data_container is None:
             return True
         return _check_decimal(
