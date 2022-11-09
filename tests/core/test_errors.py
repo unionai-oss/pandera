@@ -327,7 +327,10 @@ def test_pickling_parser_error():
 
 
 def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
-    """Regression test for #1013, make sure the SchemaErrors are well-built."""
+    """Make sure that SchemaErrors from unhashable values are up to specification.
+
+    Regression test for https://github.com/unionai-oss/pandera/issues/1013
+    """
     schema = DataFrameSchema({"x": Column(numpy_engine.Object, Check.eq(0))})
     unhashables = [set(), {}, []]
 

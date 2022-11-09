@@ -166,7 +166,8 @@ class SchemaErrors(ReducedPickleExceptionBase):
             msg += f"- {k}: {v}\n"
 
         def agg_failure_cases(df):
-            # FIXME(arne): hack to support unhashable types, wait for #260
+            # TODO(arne): hack to support unhashable types, proper solution that only
+            #  casts where required: https://github.com/unionai-oss/pandera/issues/260
             df.failure_case = df.failure_case.astype(str)
             # NOTE: this is a hack to add modin support
             if type(df).__module__.startswith("modin.pandas"):
