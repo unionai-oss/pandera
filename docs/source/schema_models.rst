@@ -785,7 +785,7 @@ completely overriding previous settings. This is because inheritance is strictly
 :ref:`_dataframe schema transformations`, which you can leverage by overriding your
 Schema Model's :func:`~pandera.model.SchemaModel.to_schema` method.
 
-Schema Models are for the most part just a proxy for the Data Frame Schema API -- calling
+Schema Models are for the most part just a proxy for the ``DataFrameSchema`` API; calling
 :func:`~pandera.model.SchemaModel.validate` will just redirect to the validate method of
 the Data Frame Schema's :class:`~pandera.schemas.DataFrameSchema.validate` returned by
 `to_schema`. As such, any updates to the schema that took place in there will propagate
