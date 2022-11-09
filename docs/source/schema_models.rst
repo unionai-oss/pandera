@@ -781,7 +781,7 @@ One caveat of using inheritance to build schemas on top of each other is that th
 is no clear way of how a child class can e.g. remove fields or update them without
 completely overriding previous settings. This is because inheritance is strictly additive.
 
-:class:`~pandera.schemas.DataFrameSchema`s do have these options though, as described in
+:class:`~pandera.schemas.DataFrameSchema` objects do have these options though, as described in
 :ref:`_dataframe schema transformations`, which you can leverage by overriding your
 Schema Model's :func:`~pandera.model.SchemaModel.to_schema` method.
 
