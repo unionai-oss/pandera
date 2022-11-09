@@ -9,6 +9,7 @@ from abc import ABC
 from typing import (
     Any,
     Callable,
+    ClassVar,
     Iterable,
     Optional,
     Tuple,
@@ -28,6 +29,8 @@ class DataType(ABC):
 
     continuous: Optional[bool] = None
     """Whether the number data type is continuous."""
+    auto_coerce: ClassVar[bool] = False
+    """Whether to force coerce to be True in all cases"""
 
     def __init__(self):
         if self.__class__ is DataType:

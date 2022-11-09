@@ -219,6 +219,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     @property
     def coerce(self) -> bool:
         """Whether to coerce series to specified type."""
+        if isinstance(self.dtype, DataType):
+            return self.dtype.auto_coerce or self._coerce
         return self._coerce
 
     @coerce.setter
