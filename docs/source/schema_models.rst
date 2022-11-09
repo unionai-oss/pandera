@@ -791,8 +791,8 @@ the Data Frame Schema's :class:`~pandera.schemas.DataFrameSchema.validate` retur
 ``to_schema``. As such, any updates to the schema that took place in there will propagate
 cleanly.
 
-As an example, the following class hierarchy can not remove the fields `b` and `c` from
-`Baz` into a base-class without completely convoluting the inheritance tree. So, we can
+As an example, the following class hierarchy can not remove the fields ``b`` and ``c`` from
+``Baz`` into a base-class without completely convoluting the inheritance tree. So, we can
 get rid of them like this:
 
 .. testcode:: dataframe_schema_model
