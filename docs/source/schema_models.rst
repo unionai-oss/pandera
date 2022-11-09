@@ -788,7 +788,7 @@ Schema Model's :func:`~pandera.model.SchemaModel.to_schema` method.
 Schema Models are for the most part just a proxy for the ``DataFrameSchema`` API; calling
 :func:`~pandera.model.SchemaModel.validate` will just redirect to the validate method of
 the Data Frame Schema's :class:`~pandera.schemas.DataFrameSchema.validate` returned by
-`to_schema`. As such, any updates to the schema that took place in there will propagate
+``to_schema``. As such, any updates to the schema that took place in there will propagate
 cleanly.
 
 As an example, the following class hierarchy can not remove the fields `b` and `c` from
