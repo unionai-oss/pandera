@@ -826,7 +826,7 @@ get rid of them like this:
 
     There are drawbacks to manipulating schema shape in this way:
      - Static code analysis has no way to figure out which fields a class.
-     - Any children of classes which have overriden `to_schema` might experience
-       surprising behavior -- if a child of `Baz` tries to define a field `b` or `c` again,
-       it will lose it in its `to_schema` call because `Baz`'s `to_schema` will always
+     - Any children of classes which have overriden ``to_schema`` might experience
+       surprising behavior -- if a child of ``Baz`` tries to define a field ``b`` or ``c`` again,
+       it will lose it in its ``to_schema`` call because ``Baz``'s ``to_schema`` will always
        be executed after any child's class body has already been fully assembled.
