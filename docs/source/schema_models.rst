@@ -808,7 +808,7 @@ get rid of them like this:
         c: pa.typing.Series[int]
         d: pa.typing.Series[int]
 
-    class Baz(pa.SchemaModel):
+    class Baz(Foo, Bar):
         @classmethod
         def to_schema(cls) -> pa.DataFrameSchema:
             schema = super().to_schema()
