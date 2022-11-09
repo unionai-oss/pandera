@@ -777,7 +777,7 @@ the class scope, and it will respect the alias.
 Manipulating Schema Models post-definition
 ------------------------------------------
 
-One caveat of using inheritance to build schemata on top of each other is that there
+One caveat of using inheritance to build schemas on top of each other is that there
 is no clear way of how a child class can e.g. remove fields or update them without
 completely overriding previous settings, inheritance is strictly additive.
 
