@@ -107,6 +107,112 @@ In the example above, this will simply be the string `"year"`.
     2  2003  365
 
 
+Validate Against Multiple Schemas
+---------------------------------
+The built-in `typing.Union` type is supported for multiple `DataFrame` schemas.
+
+.. testcode:: union_dataframe_schema_models
+
+    from typing import Union
+    import pandas as pd
+    import pandera as pa
+    from pandera.typing import DataFrame, Series
+
+    class OnlyZeroesSchema(pa.SchemaModel):
+        a: Series[int] = pa.Field(eq=0)
+
+    class OnlyOnesSchema(pa.SchemaModel):
+        a: Series[int] = pa.Field(eq=1)
+
+    @pa.check_types
+    def return_zeros_or_ones(
+        df: Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]
+    ) -> Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+        return df
+
+    return_zeros_or_ones(pd.DataFrame({"a": [0, 0]}))
+    return_zeros_or_ones(pd.DataFrame({"a": [1, 1]}))
+
+    return_zeros_or_ones(pd.DataFrame({"a": [0, 2]}))
+
+.. testoutput:: union_dataframe_schema_models
+
+    Traceback (most recent call last):
+    ...
+    pandera.errors.SchemaErrors: Schema OnlyOnesSchema: A total of 2 schema errors were found.
+
+    Error Counts
+    ------------
+    - invalid_type: 2
+
+    Schema Error Summary
+    --------------------
+                                        failure_cases  n_failure_cases
+    schema_context  column check
+    DataFrameSchema <NA>   equal_to(0)            [2]                1
+                           equal_to(1)         [0, 2]                2
+
+
+Note that mixtures of `DataFrame` schemas and built-in types will ignore checking built-in types
+with pandera. Pydantic should be used to check any built-in types.
+
+.. testcode:: union_dataframe_built_in_types
+
+    from typing import Union
+    import pandas as pd
+    import pandera as pa
+    from pandera.typing import DataFrame, Series
+
+    class OnlyZeroesSchema(pa.SchemaModel):
+        a: Series[int] = pa.Field(eq=0)
+
+    @pa.check_types
+    def df_and_int_types(
+        val: Union[DataFrame[OnlyZeroesSchema], int]
+    ) -> Union[DataFrame[OnlyZeroesSchema], int]:
+        return val
+
+    df_and_int_types(pd.DataFrame({"a": [0, 0]}))
+    int_val = df_and_int_types(5)
+    str_val = df_and_int_types("5")
+
+    no_pydantic_report = f"No Pydantic: {isinstance(int_val, int)}, {isinstance(str_val, int)}"
+
+    @pa.check_types(with_pydantic=True)
+    def df_and_int_types_with_pydantic(
+        val: Union[DataFrame[OnlyZeroesSchema], int]
+    ) -> Union[DataFrame[OnlyZeroesSchema], int]:
+        return val
+
+    df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 0]}))
+    int_val_w_pyd = df_and_int_types_with_pydantic(5)
+    str_val_w_pyd = df_and_int_types_with_pydantic("5")
+
+    pydantic_report = f"With Pydantic: {isinstance(int_val_w_pyd, int)}, {isinstance(str_val_w_pyd, int)}"
+
+    print(no_pydantic_report)
+    print(pydantic_report)
+
+    df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 2]}))
+
+.. testoutput:: union_dataframe_built_in_types
+
+    No Pydantic: True, False
+    With Pydantic: True, True
+
+    Traceback (most recent call last):
+    ...
+    pydantic.error_wrappers.ValidationError: 2 validation errors for DfAndIntTypesWithPydantic
+    val
+        <Schema Column(name=a, type=DataType(int64))> failed element-wise validator 0:
+    <Check equal_to: equal_to(0)>
+    failure cases:
+    index  failure_case
+    0      1             2 (type=value_error)
+    val
+        value is not a valid integer (type=type_error.integer)
+
+
 Validate on Initialization
 --------------------------
 
