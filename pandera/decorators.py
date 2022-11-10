@@ -618,10 +618,7 @@ def check_types(
             arg_name, [(None, None)]
         )
 
-        # Don't check if value is a generic built in type
-        if isinstance(
-            arg_value, (int, str, bool, float, dict, list, set, tuple)
-        ):
+        if not annotation_model_pairs:
             return arg_value
 
         error_handler = SchemaErrorHandler(lazy=True)
@@ -644,6 +641,12 @@ def check_types(
                     arg_value = data_container_type.from_format(
                         arg_value, config
                     )
+
+                # Don't do checks if value is still a built-in type
+                if isinstance(
+                    arg_value, (int, str, bool, float, dict, list, tuple, set)
+                ):
+                    return arg_value
 
                 if (
                     arg_value.pandera.schema is None
