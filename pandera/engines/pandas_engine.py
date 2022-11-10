@@ -440,6 +440,8 @@ def _check_decimal(
     is_decimal = pandas_obj.apply(
         lambda x: isinstance(x, decimal.Decimal)
     ).astype("bool") | pd.isnull(pandas_obj)
+    if not is_decimal.any():
+        return is_decimal
 
     decimals = pandas_obj[is_decimal]
     # fix for modin unamed series raises KeyError
@@ -447,6 +449,8 @@ def _check_decimal(
     decimals.name = "decimals"
 
     splitted = decimals.astype("string").str.split(".", n=1, expand=True)
+    if splitted.shape[1] < 2:
+        splitted[1] = ""
     len_left = splitted[0].str.len().fillna(0)
     len_right = splitted[1].str.len().fillna(0)
     precisions = len_left + len_right
@@ -502,15 +506,13 @@ class Decimal(DataType, dtypes.Decimal):
         dtypes.Decimal.__init__(self, precision, scale, rounding)
 
     def coerce_value(self, value: Any) -> decimal.Decimal:
-        """Coerce an value to a particular type."""
+        """Coerce a value to a particular type."""
 
         if pd.isna(value):
             return pd.NA
 
         dec = decimal.Decimal(str(value))
-        if self._exp:
-            return dec.quantize(self._exp, context=self._ctx)
-        return dec
+        return dec.quantize(self._exp, context=self._ctx)
 
     def coerce(self, data_container: pd.Series) -> pd.Series:
         return data_container.apply(self.coerce_value)
@@ -528,7 +530,7 @@ class Decimal(DataType, dtypes.Decimal):
             if data_container is None:
                 return False
             else:
-                return np.full_like(data_container, False)
+                return np.full_like(data_container, False, dtype=bool)
         if data_container is None:
             return True
         return _check_decimal(
@@ -1030,6 +1032,7 @@ class PydanticModel(DataType):
     """A pydantic model datatype applying to rows in a dataframe."""
 
     type: Type[BaseModel] = dataclasses.field(default=None, init=False)  # type: ignore # noqa
+    auto_coerce = True
 
     # pylint:disable=super-init-not-called
     def __init__(self, model: Type[BaseModel]) -> None:

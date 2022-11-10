@@ -216,16 +216,11 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
 
-        # This restriction can be removed once logical types are introduced:
-        # https://github.com/pandera-dev/pandera/issues/788
-        if not coerce and isinstance(self.dtype, pandas_engine.PydanticModel):
-            raise errors.SchemaInitError(
-                "Specifying a PydanticModel type requires coerce=True."
-            )
-
     @property
     def coerce(self) -> bool:
         """Whether to coerce series to specified type."""
+        if isinstance(self.dtype, DataType):
+            return self.dtype.auto_coerce or self._coerce
         return self._coerce
 
     @coerce.setter
@@ -633,7 +628,10 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         )
 
         if self.strict == "filter":
-            check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+            if type(check_obj).__module__.startswith("pyspark.pandas"):
+                check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
+            else:
+                check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
 
         if self._unique_column_names:
             failed = check_obj.columns[check_obj.columns.duplicated()]

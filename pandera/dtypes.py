@@ -29,6 +29,8 @@ class DataType(ABC):
     type: Any = None
     continuous: Optional[bool] = None
     """Whether the number data type is continuous."""
+    auto_coerce: bool = False
+    """Whether to force coerce to be True in all cases"""
 
     def __init__(self):
         if self.__class__ is DataType:
@@ -437,7 +439,9 @@ class Decimal(_Number):
         object.__setattr__(self, "scale", scale)
         object.__setattr__(self, "rounding", rounding)
         object.__setattr__(
-            self, "_exp", _scale_to_exp(scale) if scale else None
+            self,
+            "_exp",
+            _scale_to_exp(scale) if scale else decimal.Decimal("1."),
         )
         object.__setattr__(
             self,

@@ -14,7 +14,7 @@ typing_extensions >= 3.7.4.3
 frictionless
 pyarrow
 pydantic
-pandas-stubs <= 1.4.3.220807
+pandas-stubs
 pyspark >= 3.2.0
 modin
 protobuf <= 3.20.3

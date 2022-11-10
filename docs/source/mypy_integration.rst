@@ -42,6 +42,9 @@ Then enable the plugin in your ``mypy.ini`` or ``setug.cfg`` file:
     We'll most likely have to escalate this to the official ``pandas-stubs``
     `issues <https://github.com/pandas-dev/pandas-stubs/issues>`__ .
 
+    Also, be aware that the latest pandas-stubs versions only support Python 3.8+.
+    So, if you are using Python 3.7, you will not face an error when installing this package,
+    but pip will install an older version of pandas-stubs with outdated type annotations.
 
 In the example below, we define a few schemas to see how type-linting with
 pandera works.
