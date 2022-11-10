@@ -158,42 +158,42 @@ with pandera. Pydantic should be used to check any built-in types.
 
 .. testcode:: union_dataframe_built_in_types
 
-from typing import Union
-import pandas as pd
-import pandera as pa
-from pandera.typing import DataFrame, Series
+    from typing import Union
+    import pandas as pd
+    import pandera as pa
+    from pandera.typing import DataFrame, Series
 
-class OnlyZeroesSchema(pa.SchemaModel):
-    a: Series[int] = pa.Field(eq=0)
+    class OnlyZeroesSchema(pa.SchemaModel):
+        a: Series[int] = pa.Field(eq=0)
 
-@pa.check_types
-def df_and_int_types(
-    val: Union[DataFrame[OnlyZeroesSchema], int]
-) -> Union[DataFrame[OnlyZeroesSchema], int]:
-    return val
+    @pa.check_types
+    def df_and_int_types(
+        val: Union[DataFrame[OnlyZeroesSchema], int]
+    ) -> Union[DataFrame[OnlyZeroesSchema], int]:
+        return val
 
-df_and_int_types(pd.DataFrame({"a": [0, 0]}))
-int_val = df_and_int_types(5)
-str_val = df_and_int_types("5")
+    df_and_int_types(pd.DataFrame({"a": [0, 0]}))
+    int_val = df_and_int_types(5)
+    str_val = df_and_int_types("5")
 
-no_pydantic_report = f"No Pydantic: {isinstance(int_val, int)}, {isinstance(str_val, int)}"
+    no_pydantic_report = f"No Pydantic: {isinstance(int_val, int)}, {isinstance(str_val, int)}"
 
-@pa.check_types(with_pydantic=True)
-def df_and_int_types_with_pydantic(
-    val: Union[DataFrame[OnlyZeroesSchema], int]
-) -> Union[DataFrame[OnlyZeroesSchema], int]:
-    return val
+    @pa.check_types(with_pydantic=True)
+    def df_and_int_types_with_pydantic(
+        val: Union[DataFrame[OnlyZeroesSchema], int]
+    ) -> Union[DataFrame[OnlyZeroesSchema], int]:
+        return val
 
-df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 0]}))
-int_val_w_pyd = df_and_int_types_with_pydantic(5)
-str_val_w_pyd = df_and_int_types_with_pydantic("5")
+    df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 0]}))
+    int_val_w_pyd = df_and_int_types_with_pydantic(5)
+    str_val_w_pyd = df_and_int_types_with_pydantic("5")
 
-pydantic_report = f"With Pydantic: {isinstance(int_val_w_pyd, int)}, {isinstance(str_val_w_pyd, int)}"
+    pydantic_report = f"With Pydantic: {isinstance(int_val_w_pyd, int)}, {isinstance(str_val_w_pyd, int)}"
 
-print(no_pydantic_report)
-print(pydantic_report)
+    print(no_pydantic_report)
+    print(pydantic_report)
 
-df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 2]}))
+    df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 2]}))
 
 .. testoutput:: union_dataframe_built_in_types
 
