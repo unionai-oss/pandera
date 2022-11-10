@@ -1,11 +1,14 @@
 """Unit tests for pydantic datatype."""
 
+from typing import Type
+
 import pandas as pd
 import pytest
 from pydantic import BaseModel
 
 import pandera as pa
 from pandera.engines.pandas_engine import PydanticModel
+from pandera.schemas import SeriesSchemaBase
 
 
 class Record(BaseModel):
@@ -23,7 +26,6 @@ class PydanticSchema(pa.SchemaModel):
         """Config with dataframe-level data type."""
 
         dtype = PydanticModel(Record)
-        coerce = True
 
 
 class PanderaSchema(pa.SchemaModel):
@@ -72,16 +74,20 @@ def test_pydantic_model():
         )
 
 
-def test_pydantic_model_init_errors():
-    """SchemaInitError should be raised when coerce=False"""
+@pytest.mark.parametrize("series_type", [pa.SeriesSchema, pa.Column, pa.Index])
+def test_pydantic_model_init_errors(series_type: Type[SeriesSchemaBase]):
+    """
+    Should raise SchemaInitError with PydanticModel as `SeriesSchemaBase.dtype`
+    """
     with pytest.raises(pa.errors.SchemaInitError):
-        pa.DataFrameSchema(dtype=PydanticModel(Record), coerce=False)
+        series_type(dtype=PydanticModel(Record))
 
-    with pytest.raises(pa.errors.SchemaInitError):
-        pa.SeriesSchema(dtype=PydanticModel(Record))
 
-    with pytest.raises(pa.errors.SchemaInitError):
-        pa.Column(dtype=PydanticModel(Record))
+@pytest.mark.parametrize("coerce", [True, False])
+def test_pydantic_model_coerce(coerce: bool):
+    """Test that DataFrameSchema.coerce is always True with pydantic model"""
 
-    with pytest.raises(pa.errors.SchemaInitError):
-        pa.Index(dtype=PydanticModel(Record))
+    dataframe_schema = pa.DataFrameSchema(
+        dtype=PydanticModel(Record), coerce=coerce
+    )
+    assert dataframe_schema.coerce is True

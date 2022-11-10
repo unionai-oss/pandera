@@ -39,8 +39,8 @@ Then enable the plugin in your ``mypy.ini`` or ``setug.cfg`` file:
     if they find any false positives or negatives being reported by ``mypy``.
     A list of such issues can be found `here <https://github.com/pandera-dev/pandera/labels/mypy>`__.
 
-    Also, be aware that the latest pandas-stubs versions only support Python 3.8+. 
-    So, if you are using Python 3.7, you will not face an error when installing this package, 
+    Also, be aware that the latest pandas-stubs versions only support Python 3.8+.
+    So, if you are using Python 3.7, you will not face an error when installing this package,
     but pip will install an older version of pandas-stubs with outdated type annotations.
 
 In the example below, we define a few schemas to see how type-linting with

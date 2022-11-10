@@ -28,6 +28,8 @@ class DataType(ABC):
 
     continuous: Optional[bool] = None
     """Whether the number data type is continuous."""
+    auto_coerce: bool = False
+    """Whether to force coerce to be True in all cases"""
 
     def __init__(self):
         if self.__class__ is DataType:
