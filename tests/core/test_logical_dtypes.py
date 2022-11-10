@@ -223,3 +223,80 @@ def test_invalid_decimal_params(precision: int, scale: int):
     """Test invalid decimal params."""
     with pytest.raises(ValueError):
         pa.Decimal(precision, scale)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([Decimal("1")]),
+        pd.Series([Decimal("10")]),
+        pd.Series([Decimal("100000")]),
+    ],
+)
+def test_decimal_scale_zero(value):
+    """Testing if a scale of 0 works."""
+    check_type = pandas_engine.Decimal(28, 0)
+
+    result = check_type.check(value.dtype, value)
+
+    assert result.all()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([Decimal("1.1")]),
+        pd.Series([Decimal("1.11")]),
+        pd.Series(["1"]),
+        pd.Series(["1.1"]),
+        pd.Series([1]),
+        pd.Series([1.1]),
+    ],
+)
+def test_decimal_scale_zero_violations(value):
+    """Make sure we get proper violations here.
+
+    First half of regression test for #1008.
+    """
+    check_type = pandas_engine.Decimal(28, 0)
+
+    result = check_type.check(value.dtype, value)
+
+    assert not result.any()
+
+
+def test_decimal_scale_zero_missing_violation():
+    """Additional regression test for #1008: `Decimal.check` returned non-bool Series."""
+    check_type = pandas_engine.Decimal(28, 0)
+    value = pd.Series([1.1])
+
+    result = check_type.check(value.dtype, value)
+
+    assert result.dtype == bool
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series([Decimal("1")]),
+        pd.Series([Decimal("1.1")]),
+        pd.Series([Decimal("1.11")]),
+        pd.Series(["1"]),
+        pd.Series(["1.1"]),
+        pd.Series([1]),
+        pd.Series([1.1]),
+    ],
+)
+def test_decimal_scale_zero_coercions(value):
+    """Make sure coercions work.
+
+    Other half of regression test for #1008.
+    """
+    check_type = pandas_engine.Decimal(28, 0)
+
+    coerced = check_type.coerce(value)
+    result = check_type.check(
+        pandas_engine.Engine.dtype(coerced.dtype), coerced
+    )
+
+    assert result.all()
