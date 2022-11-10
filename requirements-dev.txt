@@ -15,7 +15,6 @@ frictionless
 pyarrow
 pydantic
 pandas-stubs <= 1.4.3.220807
-pyspark-stubs
 pyspark >= 3.2.0
 modin
 protobuf <= 3.20.3

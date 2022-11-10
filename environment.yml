@@ -22,7 +22,6 @@ dependencies:
 
   # mypy extra
   - pandas-stubs <= 1.4.3.220807
-  - pyspark-stubs
 
   # pyspark extra
   - pyspark >= 3.2.0
