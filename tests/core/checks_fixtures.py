@@ -31,4 +31,8 @@ def extra_registered_checks() -> Generator[None, None, None]:
         def no_param_check(_: pd.DataFrame) -> bool:
             return True
 
+        @pa_ext.register_check_method()
+        def raise_an_error_check(_: pd.DataFrame) -> bool:
+            raise TypeError("Test error in custom check")
+
         yield
