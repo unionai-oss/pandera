@@ -618,6 +618,12 @@ def check_types(
             arg_name, [(None, None)]
         )
 
+        # Don't check if value is a generic built in type
+        if isinstance(
+            arg_value, (int, str, bool, float, dict, list, set, tuple)
+        ):
+            return arg_value
+
         error_handler = SchemaErrorHandler(lazy=True)
         for schema_model, annotation_info in annotation_model_pairs:
             if schema_model is None:

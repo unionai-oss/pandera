@@ -936,8 +936,22 @@ def test_check_types_non_dataframes() -> None:
         return val
 
     only_int_type(1)
-    union_int_str_types(2)
-    union_int_str_types("2")
+    int_val = union_int_str_types(2)
+    str_val = union_int_str_types("2")
+    assert isinstance(int_val, int)
+    assert isinstance(str_val, str)
+
+    @check_types(with_pydantic=True)
+    def union_df_int_types_pydantic_check(
+        val: typing.Union[DataFrame[OnlyZeroesSchema], int]
+    ) -> typing.Union[DataFrame[OnlyZeroesSchema], int]:
+        return val
+
+    union_df_int_types_pydantic_check(pd.DataFrame({"a": [0, 0]}))
+    int_val_pydantic = union_df_int_types_pydantic_check(5)
+    str_val_pydantic = union_df_int_types_pydantic_check("5")  # type: ignore[arg-type]
+    assert isinstance(int_val_pydantic, int)
+    assert isinstance(str_val_pydantic, int)
 
 
 def test_coroutines(event_loop: AbstractEventLoop) -> None:
