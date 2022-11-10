@@ -295,6 +295,8 @@ def test_decimal_scale_zero_coercions(value):
     check_type = pandas_engine.Decimal(28, 0)
 
     coerced = check_type.coerce(value)
-    result = check_type.check(pandas_engine.Engine.dtype(coerced.dtype), coerced)
+    result = check_type.check(
+        pandas_engine.Engine.dtype(coerced.dtype), coerced
+    )
 
     assert result.all()
