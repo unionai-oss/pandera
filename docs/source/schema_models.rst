@@ -258,7 +258,7 @@ The built-in :class:`typing.Union` type is supported for multiple ``DataFrame`` 
 
 
 Note that mixtures of ``DataFrame`` schemas and built-in types will ignore checking built-in types
-with pandera. Pydantic should be used to check any built-in types.
+with pandera. Pydantic should be used to check and/or coerce any built-in types.
 
 .. testcode:: union_dataframe_built_in_types
 
@@ -302,24 +302,10 @@ with pandera. Pydantic should be used to check any built-in types.
     print(no_pydantic_report)
     print(pydantic_report)
 
-    df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 2]}))
-
 .. testoutput:: union_dataframe_built_in_types
 
     No Pydantic: True, False
     With Pydantic: True, True
-
-    Traceback (most recent call last):
-    ...
-    pydantic.error_wrappers.ValidationError: 2 validation errors for DfAndIntTypesWithPydantic
-    val
-        <Schema Column(name=a, type=DataType(int64))> failed element-wise validator 0:
-        <Check equal_to: equal_to(0)>
-    failure cases:
-    index  failure_case
-    0      1             2 (type=value_error)
-    val
-        value is not a valid integer (type=type_error.integer)
 
 
 Excluded attributes
