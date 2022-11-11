@@ -9,6 +9,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     NoReturn,
     Optional,
@@ -24,6 +25,7 @@ import wrapt
 from pydantic import validate_arguments
 
 from . import errors, schemas
+from .error_handlers import SchemaErrorHandler
 from .inspection_utils import (
     is_classmethod_from_meta,
     is_decorated_classmethod,
@@ -91,18 +93,39 @@ def _handle_schema_error(
     :raises SchemaError: when ``DataFrame`` violates built-in or custom
         checks.
     """
+    raise _parse_schema_error(
+        decorator_name, fn, schema, arg_df, schema_error
+    ) from schema_error
+
+
+def _parse_schema_error(
+    decorator_name,
+    fn: Callable,
+    schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+    arg_df: pd.DataFrame,
+    schema_error: errors.SchemaError,
+) -> NoReturn:
+    """Parse schema validation error with decorator context.
+
+    :param fn: check the DataFrame or Series input of this function.
+    :param schema: dataframe/series schema object
+    :param arg_df: dataframe/series we are validating.
+    :param schema_error: original exception.
+    :raises SchemaError: when ``DataFrame`` violates built-in or custom
+        checks.
+    """
     func_name = fn.__name__
     if isinstance(fn, types.MethodType):
         func_name = fn.__self__.__class__.__name__ + "." + func_name
     msg = f"error in {decorator_name} decorator of function '{func_name}': {schema_error}"
-    raise errors.SchemaError(
+    return errors.SchemaError(  # type: ignore[misc]
         schema,
         arg_df,
         msg,
         failure_cases=schema_error.failure_cases,
         check=schema_error.check,
         check_index=schema_error.check_index,
-    ) from schema_error
+    )
 
 
 def check_input(
@@ -524,6 +547,7 @@ def check_types(
     lazy: bool = False,
     inplace: bool = False,
 ) -> Callable:
+    # pylint: disable=too-many-statements
     """Validate function inputs and output based on type annotations.
 
     See the :ref:`User Guide <schema_models>` for more.
@@ -558,66 +582,110 @@ def check_types(
         )
 
     # Front-load annotation parsing
-    annotated_schema_models: Dict[str, Tuple[SchemaModel, AnnotationInfo]] = {}
+    annotated_schema_models: Dict[
+        str,
+        Iterable[Tuple[Union[SchemaModel, None], Union[AnnotationInfo, None]]],
+    ] = {}
     for arg_name_, annotation in typing.get_type_hints(wrapped).items():
         annotation_info = AnnotationInfo(annotation)
         if not annotation_info.is_generic_df:
-            continue
+            # pylint: disable=comparison-with-callable
+            if annotation_info.origin == Union:
+                annotation_model_pairs = []
+                for annot in annotation_info.args:  # type: ignore[union-attr]
+                    sub_annotation_info = AnnotationInfo(annot)
+                    if not sub_annotation_info.is_generic_df:
+                        continue
 
-        schema_model = cast(SchemaModel, annotation_info.arg)
-        annotated_schema_models[arg_name_] = (schema_model, annotation_info)
+                    schema_model = cast(SchemaModel, sub_annotation_info.arg)
+                    annotation_model_pairs.append(
+                        (schema_model, sub_annotation_info)
+                    )
+            else:
+                continue
+        else:
+            schema_model = cast(SchemaModel, annotation_info.arg)
+            annotation_model_pairs = [(schema_model, annotation_info)]
+
+        annotated_schema_models[arg_name_] = annotation_model_pairs
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
         """
         Validate function's argument if annoted with a schema, else
         pass-through.
         """
-        schema_model, annotation_info = annotated_schema_models.get(
-            arg_name, (None, None)
+        annotation_model_pairs = annotated_schema_models.get(
+            arg_name, [(None, None)]
         )
 
-        if schema_model is None:
+        if not annotation_model_pairs:
             return arg_value
 
-        if (
-            annotation_info
-            and not (annotation_info.optional and arg_value is None)
-            # the pandera.schema attribute should only be available when
-            # schema.validate has been called in the DF. There's probably
-            # a better way of doing this
-        ):
-            config = schema_model.__config__
-            data_container_type = annotation_info.origin
-            schema = schema_model.to_schema()
-
-            if data_container_type and config and config.from_format:
-                arg_value = data_container_type.from_format(arg_value, config)
+        error_handler = SchemaErrorHandler(lazy=True)
+        for schema_model, annotation_info in annotation_model_pairs:
+            if schema_model is None:
+                return arg_value
 
             if (
-                arg_value.pandera.schema is None
-                # don't re-validate a dataframe that contains the same exact
-                # schema
-                or arg_value.pandera.schema != schema
+                annotation_info
+                and not (annotation_info.optional and arg_value is None)
+                # the pandera.schema attribute should only be available when
+                # schema.validate has been called in the DF. There's probably
+                # a better way of doing this
             ):
-                try:
-                    arg_value = schema.validate(
-                        arg_value,
-                        head,
-                        tail,
-                        sample,
-                        random_state,
-                        lazy,
-                        inplace,
-                    )
-                except errors.SchemaError as e:
-                    _handle_schema_error(
-                        "check_types", wrapped, schema, arg_value, e
+                config = schema_model.__config__
+                data_container_type = annotation_info.origin
+                schema = schema_model.to_schema()
+
+                if data_container_type and config and config.from_format:
+                    arg_value = data_container_type.from_format(
+                        arg_value, config
                     )
 
-            if data_container_type and config and config.to_format:
-                arg_value = data_container_type.to_format(arg_value, config)
+                # Don't do checks if value is still a built-in type
+                if isinstance(
+                    arg_value, (int, str, bool, float, dict, list, tuple, set)
+                ):
+                    return arg_value
 
-            return arg_value
+                if (
+                    arg_value.pandera.schema is None
+                    # don't re-validate a dataframe that contains the same exact
+                    # schema
+                    or arg_value.pandera.schema != schema
+                ):
+                    try:
+                        arg_value = schema.validate(
+                            arg_value,
+                            head,
+                            tail,
+                            sample,
+                            random_state,
+                            lazy,
+                            inplace,
+                        )
+                    except errors.SchemaError as e:
+                        error_handler.collect_error(
+                            "invalid_type",
+                            _parse_schema_error(
+                                "check_types", wrapped, schema, arg_value, e
+                            ),
+                        )
+                        continue
+
+                if data_container_type and config and config.to_format:
+                    arg_value = data_container_type.to_format(
+                        arg_value, config
+                    )
+
+                return arg_value
+
+        if error_handler.collected_errors:
+            if len(error_handler.collected_errors) == 1:
+                raise error_handler.collected_errors[0]["error"]  # type: ignore[misc]
+            raise errors.SchemaErrors(
+                schema, error_handler.collected_errors, arg_value
+            )
 
     sig = inspect.signature(wrapped)
 

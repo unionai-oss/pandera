@@ -208,6 +208,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
 
     Attributes:
         origin: The non-parameterized generic class.
+        args: All generic types for accessing as an iterable.
         arg: The first generic type (SchemaModel does not support more than
             1 argument).
         literal: Whether the annotation is a literal.
@@ -247,6 +248,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.origin = typing_inspect.get_origin(raw_annotation)
         # Replace empty tuple returned from get_args by None
         args = typing_inspect.get_args(raw_annotation) or None
+        self.args = args
         self.arg = args[0] if args else args
 
         self.metadata = getattr(self.arg, "__metadata__", None)
