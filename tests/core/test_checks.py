@@ -476,7 +476,8 @@ def test_prepare_series_check_output_df_level():
     assert result.check_output.tolist() == expected_output
 
 
-def test_custom_check_error_is_failure_case():
+# pylint: disable=unused-argument
+def test_custom_check_error_is_failure_case(extra_registered_checks):
     """Test that an error in a custom check is returned as a failure case"""
     test_schema = DataFrameSchema(checks=[Check.raise_an_error_check()])
 
