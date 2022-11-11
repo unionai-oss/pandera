@@ -1911,6 +1911,22 @@ def test_schema_level_unique_keyword(unique_kw, expected):
         assert isinstance(test_schema.validate(df), pd.DataFrame)
 
 
+def test_schema_level_unique_missing_columns():
+    """Test that the uniqueness level check is skipped if a column is missing"""
+    test_schema = DataFrameSchema(
+        columns={"a": Column(int), "b": Column(int)},
+        unique=["a", "b"],
+    )
+
+    df = pd.DataFrame({"a": [1, 2, 1], "c": [1, 5, 1]})
+
+    try:
+        test_schema.validate(df, lazy=True)
+    except errors.SchemaErrors as err:
+        assert len(err.failure_cases) == 1
+        assert err.schema_errors[0]["reason_code"] == "column_not_in_dataframe"
+
+
 def test_column_set_unique():
     """
     Test that unique Column attribute can be set via property setter and

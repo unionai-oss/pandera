@@ -744,8 +744,34 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 )
             except errors.SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
+            except errors.SchemaDefinitionError:
+                raise
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the
+                # Check
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing check function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                error_handler.collect_error(
+                    "check_error",
+                    errors.SchemaError(
+                        self,
+                        check_obj,
+                        msg,
+                        failure_cases=scalar_failure_case(err_str),
+                        check=check,
+                        check_index=check_index,
+                    ),
+                    original_exc=err,
+                )
 
-        if self.unique:
+        # check for unique values across columns
+        # skip this check if lazy_exclude_columns is not empty, indicating
+        # that there is a missing column in the dataframe
+        if not lazy_exclude_columns and self.unique:
             keep_setting = convert_uniquesettings(self._report_duplicates)
             # NOTE: fix this pylint error
             # pylint: disable=not-an-iterable
