@@ -214,6 +214,8 @@ validate dataframes, which is syntactic sugar that simply delegates to the
 Validate Against Multiple Schemas
 ---------------------------------
 
+*new in 0.14.0*
+
 The built-in :class:`typing.Union` type is supported for multiple ``DataFrame`` schemas.
 
 .. testcode:: union_dataframe_schema_models
