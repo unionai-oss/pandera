@@ -12,7 +12,17 @@ import datetime
 import decimal
 import inspect
 import warnings
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -307,7 +317,7 @@ _register_numpy_numbers(
 class INT64(DataType, dtypes.Int):
     """Semantic representation of a :class:`pandas.Int64Dtype`."""
 
-    type = pd.Int64Dtype()
+    type = pd.Int64Dtype()  # type: ignore[assignment]
     bit_width: int = 64
 
 
@@ -316,7 +326,7 @@ class INT64(DataType, dtypes.Int):
 class INT32(INT64):
     """Semantic representation of a :class:`pandas.Int32Dtype`."""
 
-    type = pd.Int32Dtype()
+    type = pd.Int32Dtype()  # type: ignore[assignment]
     bit_width: int = 32
 
 
@@ -325,7 +335,7 @@ class INT32(INT64):
 class INT16(INT32):
     """Semantic representation of a :class:`pandas.Int16Dtype`."""
 
-    type = pd.Int16Dtype()
+    type = pd.Int16Dtype()  # type: ignore[assignment]
     bit_width: int = 16
 
 
@@ -334,7 +344,7 @@ class INT16(INT32):
 class INT8(INT16):
     """Semantic representation of a :class:`pandas.Int8Dtype`."""
 
-    type = pd.Int8Dtype()
+    type = pd.Int8Dtype()  # type: ignore[assignment]
     bit_width: int = 8
 
 
@@ -363,7 +373,7 @@ class UINT64(DataType, dtypes.UInt):
 class UINT32(UINT64):
     """Semantic representation of a :class:`pandas.UInt32Dtype`."""
 
-    type = pd.UInt32Dtype()
+    type = pd.UInt32Dtype()  # type: ignore[assignment]
     bit_width: int = 32
 
 
@@ -372,7 +382,7 @@ class UINT32(UINT64):
 class UINT16(UINT32):
     """Semantic representation of a :class:`pandas.UInt16Dtype`."""
 
-    type = pd.UInt16Dtype()
+    type = pd.UInt16Dtype()  # type: ignore[assignment]
     bit_width: int = 16
 
 
@@ -381,7 +391,7 @@ class UINT16(UINT32):
 class UINT8(UINT16):
     """Semantic representation of a :class:`pandas.UInt8Dtype`."""
 
-    type = pd.UInt8Dtype()
+    type = pd.UInt8Dtype()  # type: ignore[assignment]
     bit_width: int = 8
 
 
@@ -410,7 +420,7 @@ if PANDAS_1_2_0_PLUS:
     class FLOAT32(FLOAT64):
         """Semantic representation of a :class:`pandas.Float32Dtype`."""
 
-        type = pd.Float32Dtype()
+        type = pd.Float32Dtype()  # type: ignore[assignment]
         bit_width: int = 32
 
 
@@ -467,7 +477,7 @@ def _check_decimal(
         is_valid &= precisions <= precision
     if scale is not None:
         is_valid &= scales <= scale
-    return is_valid.to_numpy()
+    return is_valid
 
 
 @Engine.register_dtype(
@@ -509,12 +519,12 @@ class Decimal(DataType, dtypes.Decimal):
         """Coerce a value to a particular type."""
 
         if pd.isna(value):
-            return pd.NA
+            return cast(decimal.Decimal, pd.NA)
 
         dec = decimal.Decimal(str(value))
         return dec.quantize(self._exp, context=self._ctx)
 
-    def coerce(self, data_container: pd.Series) -> pd.Series:
+    def coerce(self, data_container: PandasObject) -> PandasObject:
         return data_container.apply(self.coerce_value)
 
     def check(  # type: ignore
@@ -558,7 +568,7 @@ class Decimal(DataType, dtypes.Decimal):
 class Category(DataType, dtypes.Category):
     """Semantic representation of a :class:`pandas.CategoricalDtype`."""
 
-    type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)
+    type: pd.CategoricalDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
 
     def __init__(  # pylint:disable=super-init-not-called
         self, categories: Optional[Iterable[Any]] = None, ordered: bool = False
@@ -573,7 +583,7 @@ class Category(DataType, dtypes.Category):
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Pure coerce without catching exceptions."""
         coerced = data_container.astype(self.type)
-        if (coerced.isna() & data_container.notna()).any(axis=None):
+        if (coerced.isna() & data_container.notna()).any(axis=None):  # type: ignore[arg-type]
             raise TypeError(
                 f"Data container cannot be coerced to type {self.type}"
             )
@@ -603,7 +613,7 @@ if PANDAS_1_3_0_PLUS:
     class STRING(DataType, dtypes.String):
         """Semantic representation of a :class:`pandas.StringDtype`."""
 
-        type: pd.StringDtype = dataclasses.field(default=None, init=False)
+        type: pd.StringDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]
         storage: Optional[Literal["python", "pyarrow"]] = "python"
 
         def __post_init__(self):
@@ -621,7 +631,7 @@ if PANDAS_1_3_0_PLUS:
         def from_parametrized_dtype(cls, pd_dtype: pd.StringDtype):
             """Convert a :class:`pandas.StringDtype` to
             a Pandera :class:`pandera.engines.pandas_engine.STRING`."""
-            return cls(pd_dtype.storage)
+            return cls(pd_dtype.storage)  # type: ignore[attr-defined]
 
         def __str__(self) -> str:
             return repr(self.type)
@@ -645,7 +655,10 @@ else:
 class NpString(numpy_engine.String):
     """Specializes numpy_engine.String.coerce to handle pd.NA values."""
 
-    def coerce(self, data_container: PandasObject) -> np.ndarray:
+    def coerce(
+        self,
+        data_container: Union[PandasObject, np.ndarray],
+    ) -> Union[PandasObject, np.ndarray]:
         def _to_str(obj):
             # NOTE: this is a hack to handle the following case:
             # pyspark.pandas.Index doesn't support .where method yet, use numpy
@@ -933,7 +946,7 @@ Engine.register_dtype(
 class Period(DataType):
     """Representation of pandas :class:`pd.Period`."""
 
-    type: pd.PeriodDtype = dataclasses.field(default=None, init=False)
+    type: pd.PeriodDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
     freq: Union[str, pd.tseries.offsets.DateOffset]
 
     def __post_init__(self):
@@ -956,7 +969,7 @@ class Period(DataType):
 class Sparse(DataType):
     """Representation of pandas :class:`pd.SparseDtype`."""
 
-    type: pd.SparseDtype = dataclasses.field(default=None, init=False)
+    type: pd.SparseDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
     dtype: PandasDataType = np.float_
     fill_value: Any = np.nan
 
@@ -981,7 +994,7 @@ class Sparse(DataType):
 class Interval(DataType):
     """Representation of pandas :class:`pd.IntervalDtype`."""
 
-    type: pd.IntervalDtype = dataclasses.field(default=None, init=False)
+    type: pd.IntervalDtype = dataclasses.field(default=None, init=False)  # type: ignore[assignment]  # noqa
     subtype: Union[str, np.dtype]
 
     def __post_init__(self):
@@ -1038,7 +1051,7 @@ class PydanticModel(DataType):
     def __init__(self, model: Type[BaseModel]) -> None:
         object.__setattr__(self, "type", model)
 
-    def coerce(self, data_container: pd.DataFrame) -> pd.DataFrame:
+    def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce pandas dataframe with pydantic record model."""
 
         # pylint: disable=import-outside-toplevel

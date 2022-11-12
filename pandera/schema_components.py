@@ -148,12 +148,12 @@ class Column(SeriesSchemaBase):
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
         if check_utils.is_field(obj) or check_utils.is_index(obj):
-            return super(Column, self).coerce_dtype(obj)
-        return obj.apply(
+            return super(Column, self).coerce_dtype(obj)  # type: ignore
+        return obj.apply(  # type: ignore
             lambda x: super(Column, self).coerce_dtype(x), axis="columns"
         )
 
-    def validate(
+    def validate(  # type: ignore
         self,
         check_obj: pd.DataFrame,
         head: Optional[int] = None,
@@ -209,7 +209,7 @@ class Column(SeriesSchemaBase):
             else [self._name]
         )
 
-        for column_name in column_keys_to_check:
+        for column_name in column_keys_to_check:  # type: ignore
             if self.coerce:
                 check_obj[column_name] = self.coerce_dtype(
                     check_obj[column_name]
@@ -257,7 +257,7 @@ class Column(SeriesSchemaBase):
             column_keys_to_check = columns[
                 # str.match will return nan values when the index value is
                 # not a string.
-                pd.Index(columns.astype(str).str.match(self.name))
+                pd.Index(columns.astype(str).str.match(self.name))  # type: ignore
                 .fillna(False)
                 .tolist()
             ]
@@ -271,7 +271,7 @@ class Column(SeriesSchemaBase):
             )
         # drop duplicates to account for potential duplicated columns in the
         # dataframe.
-        return column_keys_to_check.drop_duplicates()
+        return column_keys_to_check.drop_duplicates()  # type: ignore
 
     @st.strategy_import_error
     def strategy(self, *, size=None):
@@ -292,7 +292,7 @@ class Column(SeriesSchemaBase):
             name=self.name,
         )
 
-    def example(self, size=None) -> pd.DataFrame:
+    def example(self, size=None) -> pd.DataFrame:  # type: ignore
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
@@ -373,7 +373,7 @@ class Index(SeriesSchemaBase):
             )
 
         if self.coerce:
-            check_obj.index = self.coerce_dtype(check_obj.index)
+            check_obj.index = self.coerce_dtype(check_obj.index)  # type: ignore
             # handles case where pandas native string type is not supported
             # by index.
             obj_to_validate = self.dtype.coerce(
@@ -423,7 +423,7 @@ class Index(SeriesSchemaBase):
             name=self.name,
         )
 
-    def example(self, size: int = None) -> pd.Index:
+    def example(self, size: int = None) -> pd.Index:  # type: ignore
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
@@ -553,7 +553,7 @@ class MultiIndex(DataFrameSchema):
         """Set coerce attribute."""
         self._coerce = value
 
-    def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:
+    def coerce_dtype(self, obj: pd.MultiIndex) -> pd.MultiIndex:  # type: ignore
         """Coerce type of a pd.Series by type specified in dtype.
 
         :param obj: multi-index to coerce.
@@ -574,7 +574,7 @@ class MultiIndex(DataFrameSchema):
                 index_array = obj.get_level_values(index_level)
                 if index.coerce or self._coerce:
                     try:
-                        index_array = index.coerce_dtype(index_array)
+                        index_array = index.coerce_dtype(index_array)  # type: ignore
                     except errors.SchemaError as err:
                         error_handler.collect_error(
                             "dtype_coercion_error", err
@@ -583,7 +583,7 @@ class MultiIndex(DataFrameSchema):
 
         if error_handler.collected_errors:
             raise errors.SchemaErrors(
-                self, error_handler.collected_errors, obj
+                self, error_handler.collected_errors, obj  # type: ignore
             )
 
         multiindex_cls = pd.MultiIndex
@@ -613,7 +613,7 @@ class MultiIndex(DataFrameSchema):
             names=obj.names,
         )
 
-    def validate(
+    def validate(  # type: ignore
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
         head: Optional[int] = None,
@@ -643,7 +643,7 @@ class MultiIndex(DataFrameSchema):
         # pylint: disable=too-many-locals
         if self.coerce:
             try:
-                check_obj.index = self.coerce_dtype(check_obj.index)
+                check_obj.index = self.coerce_dtype(check_obj.index)  # type: ignore
             except errors.SchemaErrors as err:
                 if lazy:
                     raise

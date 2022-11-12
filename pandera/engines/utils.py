@@ -56,22 +56,22 @@ def numpy_pandas_coerce_failure_cases(
             )
 
     if check_utils.is_index(data_container):
-        data_container = data_container.to_series()  # type: ignore[union-attr]
+        data_container = data_container.to_series()  # type: ignore[union-attr,operator]
 
     if check_utils.is_table(data_container):
-        check_output = data_container.apply(  # type: ignore[union-attr]
+        check_output = data_container.apply(  # type: ignore[union-attr,call-overload]
             numpy_pandas_coercible,
             args=(data_type,),
         )
         _, failure_cases = check_utils.prepare_dataframe_check_output(
-            data_container,
+            data_container,  # type: ignore[arg-type]
             check_output,
             ignore_na=False,
         )
     elif check_utils.is_field(data_container):
-        check_output = numpy_pandas_coercible(data_container, data_type)
+        check_output = numpy_pandas_coercible(data_container, data_type)  # type: ignore[arg-type]  # noqa
         _, failure_cases = check_utils.prepare_series_check_output(
-            data_container,
+            data_container,  # type: ignore[arg-type]
             check_output,
             ignore_na=False,
         )

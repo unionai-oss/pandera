@@ -6,7 +6,7 @@ import dataclasses
 import datetime
 import inspect
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 import numpy as np
 
@@ -43,7 +43,9 @@ class DataType(dtypes.DataType):
             self, "type", np.dtype(self.type)
         )  # pragma: no cover
 
-    def coerce(self, data_container: PandasObject) -> PandasObject:
+    def coerce(
+        self, data_container: Union[PandasObject, np.ndarray]
+    ) -> Union[PandasObject, np.ndarray]:
         """Pure coerce without catching exceptions."""
         coerced = data_container.astype(self.type)
         if type(data_container).__module__.startswith("modin.pandas"):
@@ -59,7 +61,7 @@ class DataType(dtypes.DataType):
         self, data_container: Union[PandasObject, np.ndarray]
     ) -> Union[PandasObject, np.ndarray]:
         try:
-            return self.coerce(data_container)
+            return self.coerce(cast(PandasObject, data_container))
         except Exception as exc:  # pylint:disable=broad-except
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
@@ -344,7 +346,10 @@ class Bytes(DataType):
 class String(DataType, dtypes.String):
     type = np.dtype("str")
 
-    def coerce(self, data_container: np.ndarray) -> np.ndarray:
+    def coerce(
+        self,
+        data_container: Union[PandasObject, np.ndarray],
+    ) -> Union[PandasObject, np.ndarray]:
         data_container = data_container.astype(object)
         try:
             notna = ~np.isnan(data_container)

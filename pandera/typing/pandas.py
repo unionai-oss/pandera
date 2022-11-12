@@ -114,7 +114,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             Formats.pickle: pd.read_pickle,
         }[Formats(config.from_format)]
 
-        return reader(obj, **(config.from_format_kwargs or {}))
+        return reader(obj, **(config.from_format_kwargs or {}))  # type: ignore
 
     @classmethod
     def to_format(cls, data: pd.DataFrame, config) -> Any:
@@ -139,7 +139,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         }[Formats(config.to_format)]
 
         args = [] if buffer is None else [buffer]
-        out = writer(*args, **(config.to_format_kwargs or {}))
+        out = writer(*args, **(config.to_format_kwargs or {}))  # type: ignore
         if buffer is None:
             return out
         elif buffer.closed:
@@ -188,9 +188,9 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         return cls.to_format(valid_data, schema_model.__config__)
 
     @staticmethod
-    def from_records(
+    def from_records(  # type: ignore
         schema: T,
-        data: Union[
+        data: Union[  # type: ignore
             np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
         ],
         **kwargs,
