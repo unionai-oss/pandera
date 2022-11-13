@@ -4,7 +4,7 @@ import pandas as pd
 import pandera as pa
 
 
-def fn(series: pa.typing.Series) -> None:
+def fn(series: pa.typing.Series[int]) -> None:
     pass
 
 

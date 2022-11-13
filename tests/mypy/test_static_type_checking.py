@@ -89,6 +89,14 @@ def test_pandera_runtime_errors(fn) -> None:
         assert e.failure_cases["failure_case"].item() == "age"
 
 
+PANDERA_INHERITANCE_ERRORS = [
+    {"msg": "Incompatible types in assignment", "errcode": "assignment"}
+] * 3
+
+PANDERA_TYPES_ERRORS = [
+    {"msg": 'Argument 1 to "fn" has incompatible type', "errcode": "arg-type"},
+] * 2
+
 PYTHON_SLICE_ERRORS = [
     {"msg": "Slice index must be an integer or None", "errcode": "misc"},
 ]
@@ -96,10 +104,6 @@ PYTHON_SLICE_ERRORS = [
 PANDAS_INDEX_ERRORS = [
     {"msg": "Incompatible types in assignment", "errcode": "assignment"},
 ] * 3
-
-PANDERA_TYPES_ERRORS = [
-    {"msg": 'Argument 1 to "fn" has incompatible type', "errcode": "arg-type"},
-] * 2
 
 PANDAS_SERIES_ERRORS = [
     {
@@ -115,6 +119,10 @@ PANDAS_SERIES_ERRORS = [
 @pytest.mark.parametrize(
     "module,config,expected_errors",
     [
+        ["pandera_inheritance.py", None, PANDERA_INHERITANCE_ERRORS],
+        ["pandera_inheritance.py", None, PANDERA_INHERITANCE_ERRORS],
+        ["pandera_types.py", None, PANDERA_TYPES_ERRORS],
+        ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
         ["pandas_concat.py", None, []],
         ["pandas_concat.py", "plugin_mypy.ini", []],
         ["pandas_time.py", None, []],
@@ -164,6 +172,8 @@ def test_pandas_stubs_false_positives(
 @pytest.mark.parametrize(
     "module",
     [
+        "pandera_inheritance",
+        "pandera_types",
         "pandas_concat",
         "pandas_time",
         "python_slice",
