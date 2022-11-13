@@ -119,19 +119,23 @@ PANDAS_SERIES_ERRORS = [
 @pytest.mark.parametrize(
     "module,config,expected_errors",
     [
-        ["pandera_inheritance.py", None, PANDERA_INHERITANCE_ERRORS],
-        ["pandera_inheritance.py", None, PANDERA_INHERITANCE_ERRORS],
-        ["pandera_types.py", None, PANDERA_TYPES_ERRORS],
+        [
+            "pandera_inheritance.py",
+            "no_plugin.ini",
+            PANDERA_INHERITANCE_ERRORS,
+        ],
+        ["pandera_inheritance.py", "plugin_mypy.ini", []],
+        ["pandera_types.py", "no_plugin.ini", PANDERA_TYPES_ERRORS],
         ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
-        ["pandas_concat.py", None, []],
+        ["pandas_concat.py", "no_plugin.ini", []],
         ["pandas_concat.py", "plugin_mypy.ini", []],
-        ["pandas_time.py", None, []],
+        ["pandas_time.py", "no_plugin.ini", []],
         ["pandas_time.py", "plugin_mypy.ini", []],
-        ["python_slice.py", None, PYTHON_SLICE_ERRORS],
+        ["python_slice.py", "no_plugin.ini", PYTHON_SLICE_ERRORS],
         ["python_slice.py", "plugin_mypy.ini", PYTHON_SLICE_ERRORS],
-        ["pandas_index.py", None, PANDAS_INDEX_ERRORS],
+        ["pandas_index.py", "no_plugin.ini", PANDAS_INDEX_ERRORS],
         ["pandas_index.py", "plugin_mypy.ini", PANDAS_INDEX_ERRORS],
-        ["pandas_series.py", None, PANDAS_SERIES_ERRORS],
+        ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS],
         ["pandas_series.py", "plugin_mypy.ini", PANDAS_SERIES_ERRORS],
     ],
 )
@@ -142,10 +146,7 @@ def test_pandas_stubs_false_positives(
     expected_errors,
 ) -> None:
     """Test pandas-stubs type stub false positives."""
-    if config is None:
-        cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
-    else:
-        cache_dir = str(test_module_dir / ".mypy_cache" / f"test-{config}")
+    cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
 
     commands = [
         sys.executable,
@@ -154,10 +155,9 @@ def test_pandas_stubs_false_positives(
         str(test_module_dir / "modules" / module),
         "--cache-dir",
         cache_dir,
+        "--config-file",
+        str(test_module_dir / "config" / config),
     ]
-
-    if config:
-        commands += ["--config-file", str(test_module_dir / "config" / config)]
     # pylint: disable=subprocess-run-check
     subprocess.run(commands, text=True)
     resulting_errors = _get_mypy_errors(capfd.readouterr().out)
