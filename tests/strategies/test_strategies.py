@@ -841,7 +841,7 @@ def test_schema_model_strategy_df_check(data) -> None:
 def test_schema_model_example() -> None:
     """Test that examples can be drawn from a SchemaModel."""
     sample_data = Schema.example(size=10)
-    Schema.validate(sample_data)
+    Schema.validate(sample_data)  # type: ignore[arg-type]
 
 
 def test_schema_component_with_no_pdtype() -> None:

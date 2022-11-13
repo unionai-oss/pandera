@@ -116,7 +116,7 @@ string_dtypes = {
 nullable_string_dtypes = {pd.StringDtype: "string"}
 if pa.PANDAS_1_3_0_PLUS and pandas_engine.PYARROW_INSTALLED:
     nullable_string_dtypes.update(
-        {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}
+        {pd.StringDtype(storage="pyarrow"): "string[pyarrow]"}  # type: ignore
     )
 
 object_dtypes = {object: "object", np.object_: "object"}
@@ -173,18 +173,18 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (object_dtypes, ["A", "B"]),
     (nullable_string_dtypes, [1, 2, None]),
     (category_dtypes, [1, 2, None]),
-    (
+    (  # type: ignore
         timestamp_dtypes,
         pd.to_datetime(["2019/01/01", "2018/05/21"]).to_series(),
     ),
-    (
+    (  # type: ignore
         period_dtypes,
         pd.to_datetime(["2019/01/01", "2018/05/21"])
         .to_period("D")
         .to_series(),
     ),
-    (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),
-    (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),
+    (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),  # type: ignore
+    (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),  # type: ignore
 ]
 
 

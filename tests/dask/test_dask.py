@@ -25,15 +25,15 @@ def test_model_validation() -> None:
     df = pd.DataFrame({"col": ["1"]})
     ddf = dd.from_pandas(df, npartitions=1)
 
-    ddf = StrSchema.validate(ddf)
+    ddf = StrSchema.validate(ddf)  # type: ignore[arg-type]
     pd.testing.assert_frame_equal(df, ddf.compute())  # type: ignore [attr-defined]
 
-    ddf = IntSchema.validate(ddf)
+    ddf = IntSchema.validate(ddf)  # type: ignore[arg-type]
 
     with pytest.raises(pa.errors.SchemaError):
         ddf.compute()  # type: ignore [attr-defined]
 
-    IntSchema.validate(ddf, inplace=True)
+    IntSchema.validate(ddf, inplace=True)  # type: ignore[arg-type]
 
     with pytest.raises(pa.errors.SchemaError):
         ddf.compute()  # type: ignore [attr-defined]
@@ -50,18 +50,18 @@ def test_dataframe_schema() -> None:
     df = pd.DataFrame({"col": ["1"]})
     ddf = dd.from_pandas(df, npartitions=1)
 
-    ddf = str_schema.validate(ddf)
-    pd.testing.assert_frame_equal(df, ddf.compute())
+    ddf = str_schema.validate(ddf)  # type: ignore[arg-type]
+    pd.testing.assert_frame_equal(df, ddf.compute())  # type: ignore[operator]
 
     ddf = int_schema.validate(ddf)
 
     with pytest.raises(pa.errors.SchemaError):
-        ddf.compute()
+        ddf.compute()  # type: ignore[operator]
 
     IntSchema.validate(ddf, inplace=True)
 
     with pytest.raises(pa.errors.SchemaError):
-        ddf.compute()
+        ddf.compute()  # type: ignore[operator]
 
 
 def test_series_schema() -> None:
@@ -74,7 +74,7 @@ def test_series_schema() -> None:
     series = pd.Series(["1"])
     dseries = dd.from_pandas(series, npartitions=1)
 
-    dseries = string_schema.validate(dseries)
+    dseries = string_schema.validate(dseries)  # type: ignore[arg-type]
     pd.testing.assert_series_equal(series, dseries.compute())
 
     dseries = integer_schema.validate(dseries)

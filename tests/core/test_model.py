@@ -472,7 +472,7 @@ def test_inherit_schemamodel_fields() -> None:
         idx: Index[str]
 
     class Child(Mid):
-        b: Series[int]
+        b: Series[int]  # type: ignore
 
     expected = pa.DataFrameSchema(
         name="Child",
@@ -495,7 +495,7 @@ def test_inherit_schemamodel_fields_alias() -> None:
         idx: Index[str]
 
     class ChildOverrideAttr(Mid):
-        b: Series[int]
+        b: Series[int]  # type: ignore
 
     class ChildOverrideAlias(Mid):
         b: Series[str] = pa.Field(alias="new_b")
@@ -581,18 +581,18 @@ def test_dataframe_check() -> None:
         @pa.dataframe_check
         @classmethod
         def value_max(cls, df: pd.DataFrame) -> Iterable[bool]:
-            return df < 200
+            return df < 200  # type: ignore
 
     class Child(Base):
         @pa.dataframe_check()
         @classmethod
         def value_min(cls, df: pd.DataFrame) -> Iterable[bool]:
-            return df > 0
+            return df > 0  # type: ignore
 
         @pa.dataframe_check
         @classmethod
         def value_max(cls, df: pd.DataFrame) -> Iterable[bool]:
-            return df < 100
+            return df < 100  # type: ignore
 
     schema = Child.to_schema()
     assert len(schema.checks) == 2
@@ -781,12 +781,12 @@ class Output(Input):
 def test_check_types() -> None:
     @pa.check_types
     def transform(df: DataFrame[Input]) -> DataFrame[Output]:
-        return df.assign(c=lambda x: x.a + x.b)
+        return df.assign(c=lambda x: x.a + x.b)  # type: ignore
 
     data = pd.DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6]}, index=pd.Index(["a", "b", "c"])
     )
-    assert isinstance(transform(data), pd.DataFrame)
+    assert isinstance(transform(data), pd.DataFrame)  # type: ignore
 
     for invalid_data in [
         data.drop("a", axis="columns"),
@@ -796,7 +796,7 @@ def test_check_types() -> None:
         data.reset_index(drop=True),
     ]:
         with pytest.raises(pa.errors.SchemaError):
-            transform(invalid_data)
+            transform(invalid_data)  # type: ignore
 
 
 def test_alias() -> None:
@@ -854,9 +854,9 @@ def test_inherit_alias() -> None:
     assert schema_ext.columns.get("extra") == pa.Column(str, name="extra")
 
     class ChildOmitted(Base):
-        a: Series[str]
-        b: Series[str]
-        c: Series[str]
+        a: Series[str]  # type: ignore
+        b: Series[str]  # type: ignore
+        c: Series[str]  # type: ignore
 
     schema_omitted = ChildOmitted.to_schema()
     assert len(schema_omitted.columns) == 3
@@ -865,9 +865,9 @@ def test_inherit_alias() -> None:
     assert schema_omitted.columns.get("c") == pa.Column(str, name="c")
 
     class ChildField(Base):
-        a: Series[str] = pa.Field()
-        b: Series[str] = pa.Field()
-        c: Series[str] = pa.Field()
+        a: Series[str] = pa.Field()  # type: ignore
+        b: Series[str] = pa.Field()  # type: ignore
+        c: Series[str] = pa.Field()  # type: ignore
 
     schema_field = ChildField.to_schema()
     assert len(schema_field.columns) == 3
@@ -876,9 +876,9 @@ def test_inherit_alias() -> None:
     assert schema_field.columns.get("c") == pa.Column(str, name="c")
 
     class ChildAlias(Base):
-        a: Series[str] = pa.Field(alias="_a")
-        b: Series[str] = pa.Field(alias="_b")
-        c: Series[str] = pa.Field(alias="_c")
+        a: Series[str] = pa.Field(alias="_a")  # type: ignore
+        b: Series[str] = pa.Field(alias="_b")  # type: ignore
+        c: Series[str] = pa.Field(alias="_c")  # type: ignore
 
     schema_alias = ChildAlias.to_schema()
     assert len(schema_alias.columns) == 3
@@ -918,13 +918,13 @@ def test_field_name_access_inherit() -> None:
         i2: Index[int] = pa.Field()
 
     class Child(Base):
-        b: Series[str] = pa.Field(alias="_b")
-        c: Series[str]
-        d: Series[str] = pa.Field()
+        b: Series[str] = pa.Field(alias="_b")  # type: ignore
+        c: Series[str]  # type: ignore
+        d: Series[str] = pa.Field()  # type: ignore
         extra1: Series[int]
         extra2: Series[int] = pa.Field()
         extra3: Series[int] = pa.Field(alias="_extra3")
-        i1: Index[str]
+        i1: Index[str]  # type: ignore
         i3: Index[int] = pa.Field(alias="_i3")
 
     expected_base = pa.DataFrameSchema(
