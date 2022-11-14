@@ -175,7 +175,7 @@ jobs:
 
       - name: Unit Tests - Mypy
         if: ${{ matrix.python-version != '3.7' }}
-        run: pytest tests/mypy ${{ env.PYTEST_FLAGS }}
+        run: pytest -v tests/mypy ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Strategies
         run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} ${{ env.HYPOTHESIS_FLAGS }}
