@@ -513,7 +513,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             else:
                 check_obj = check_obj.copy()
 
-            check_obj = check_obj.map_partitions(
+            check_obj = check_obj.map_partitions(  # type: ignore
                 self._validate,
                 head=head,
                 tail=tail,
@@ -587,7 +587,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             if check_obj.columns.has_duplicates:
                 columns = [k for k, _ in itertools.groupby(check_obj.columns)]
             else:
-                columns = check_obj.columns
+                columns = check_obj.columns  # type: ignore
 
             filter_out_columns = []
 
@@ -635,7 +635,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
 
         if self._unique_column_names:
             failed = check_obj.columns[check_obj.columns.duplicated()]
-            if failed.any():
+            if failed.any():  # type: ignore
                 msg = (
                     "dataframe contains multiple columns with label(s): "
                     f"{failed.tolist()}"
@@ -781,8 +781,8 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 else self.unique
             )
             for lst in temp_unique:
-                duplicates = df_to_validate.duplicated(
-                    subset=lst, keep=keep_setting
+                duplicates = df_to_validate.duplicated(  # type: ignore
+                    subset=lst, keep=keep_setting  # type: ignore
                 )
                 if duplicates.any():
                     # NOTE: this is a hack to support pyspark.pandas, need to
@@ -1982,7 +1982,7 @@ class SeriesSchemaBase:
         series = (
             check_obj
             if check_utils.is_field(check_obj)
-            else check_obj[self.name]
+            else check_obj[self.name]  # type: ignore
         )
 
         series = _pandas_obj_to_validate(
@@ -2012,7 +2012,7 @@ class SeriesSchemaBase:
         if not self._nullable:
             nulls = series.isna()
             if nulls.sum() > 0:
-                failed = series[nulls]
+                failed = series[nulls]  # type: ignore
                 msg = (
                     f"non-nullable series '{series.name}' contains null "
                     f"values:\n{failed}"
@@ -2024,7 +2024,7 @@ class SeriesSchemaBase:
                         check_obj,
                         msg,
                         failure_cases=reshape_failure_cases(
-                            series[nulls], ignore_na=False
+                            series[nulls], ignore_na=False  # type: ignore
                         ),
                         check="not_nullable",
                     ),
@@ -2036,8 +2036,8 @@ class SeriesSchemaBase:
 
             if type(series).__module__.startswith("pyspark.pandas"):
                 duplicates = (
-                    series.to_frame()
-                    .duplicated(keep=keep_argument)
+                    series.to_frame()  # type: ignore
+                    .duplicated(keep=keep_argument)  # type: ignore
                     .reindex(series.index)
                 )
                 # pylint: disable=import-outside-toplevel
@@ -2046,7 +2046,7 @@ class SeriesSchemaBase:
                 with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = series[duplicates]
             else:
-                duplicates = series.duplicated(keep=keep_argument)
+                duplicates = series.duplicated(keep=keep_argument)  # type: ignore
                 failed = series[duplicates]
 
             if duplicates.any():
@@ -2078,13 +2078,13 @@ class SeriesSchemaBase:
                     + f"got {series.dtype}"
                 )
             elif not isinstance(check_output, bool):
-                _, failure_cases = check_utils.prepare_series_check_output(
+                _, failure_cases = check_utils.prepare_series_check_output(  # type: ignore
                     series,
                     pd.Series(list(check_output))
                     if not isinstance(check_output, pd.Series)
                     else check_output,
                 )
-                failure_cases = reshape_failure_cases(failure_cases)
+                failure_cases = reshape_failure_cases(failure_cases)  # type: ignore
                 msg = (
                     f"expected series '{series.name}' to have type {self._dtype}:\n"
                     f"failure cases:\n{failure_cases}"
@@ -2279,7 +2279,7 @@ class SeriesSchema(SeriesSchemaBase):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def validate(
+    def validate(  # type: ignore
         self,
         check_obj: pd.Series,
         head: Optional[int] = None,
@@ -2424,7 +2424,7 @@ class SeriesSchema(SeriesSchemaBase):
 
         return check_obj
 
-    def __call__(
+    def __call__(  # type: ignore
         self,
         check_obj: pd.Series,
         head: Optional[int] = None,
@@ -2462,7 +2462,7 @@ def _pandas_obj_to_validate(
     return (
         dataframe_or_series
         if not pandas_obj_subsample
-        else pd.concat(pandas_obj_subsample).pipe(
+        else pd.concat(pandas_obj_subsample).pipe(  # type: ignore
             lambda x: x[~x.index.duplicated()]
         )
     )

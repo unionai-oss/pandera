@@ -181,7 +181,7 @@ def test_to_format(schema, from_fn, buf_cls):
 
     @pa.check_types
     def fn(df: pa.typing.DataFrame[InSchema]) -> pa.typing.DataFrame[schema]:
-        return df.assign(float_col=1.1)
+        return df.assign(float_col=1.1)  # type: ignore
 
     @pa.check_types
     def invalid_fn(

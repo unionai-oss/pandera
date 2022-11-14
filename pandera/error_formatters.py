@@ -92,7 +92,7 @@ def reshape_failure_cases(
         failure_cases.index
     ):
         reshaped_failure_cases = (
-            failure_cases.rename_axis("column", axis=1)
+            failure_cases.rename_axis("column", axis=1)  # type: ignore[call-overload]
             .assign(
                 index=lambda df: (
                     df.index.to_frame().apply(tuple, axis=1).astype(str)
@@ -107,7 +107,7 @@ def reshape_failure_cases(
         failure_cases.index
     ):
         reshaped_failure_cases = (
-            failure_cases.rename("failure_case")
+            failure_cases.rename("failure_case")  # type: ignore[call-overload]
             .to_frame()
             .assign(
                 index=lambda df: (
@@ -118,9 +118,9 @@ def reshape_failure_cases(
         )
     elif check_utils.is_table(failure_cases):
         reshaped_failure_cases = failure_cases.unstack().reset_index()
-        reshaped_failure_cases.columns = ["column", "index", "failure_case"]
+        reshaped_failure_cases.columns = ["column", "index", "failure_case"]  # type: ignore[call-overload,assignment]  # noqa
     elif check_utils.is_field(failure_cases):
-        reshaped_failure_cases = failure_cases.rename("failure_case")
+        reshaped_failure_cases = failure_cases.rename("failure_case")  # type: ignore[call-overload]
         reshaped_failure_cases.index.name = "index"
         reshaped_failure_cases = reshaped_failure_cases.reset_index()
     else:
@@ -130,7 +130,7 @@ def reshape_failure_cases(
         )
 
     return (
-        reshaped_failure_cases.dropna()
+        reshaped_failure_cases.dropna()  # type: ignore[return-value]
         if ignore_na
         else reshaped_failure_cases
     )

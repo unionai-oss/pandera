@@ -18,7 +18,7 @@ def _create_dataframe(
             names=["int_index", "str_index"],
         )
     else:
-        index = pd.Index([10, 11, 12], name="int_index")
+        index = pd.Index([10, 11, 12], name="int_index")  # type: ignore
 
     df = pd.DataFrame(
         data={
@@ -32,7 +32,7 @@ def _create_dataframe(
     )
 
     if nullable:
-        df.iloc[0, :] = None
+        df.iloc[0, :] = None  # type: ignore
 
     return df
 

@@ -30,7 +30,8 @@ CheckResult = namedtuple(
 )
 
 GroupbyObject = Union[
-    pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy
+    pd.core.groupby.generic.SeriesGroupBy,
+    pd.core.groupby.generic.DataFrameGroupBy,
 ]
 
 SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
@@ -292,8 +293,8 @@ class _CheckBase(metaclass=_CheckMeta):
         :returns: dictionary mapping group names to Series or DataFrame.
         """
         if groups is None:
-            return dict(list(groupby_obj))
-        group_keys = set(group_key for group_key, _ in groupby_obj)
+            return dict(list(groupby_obj))  # type: ignore[call-overload]
+        group_keys = set(group_key for group_key, _ in groupby_obj)  # type: ignore[union-attr]
         invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:
             raise KeyError(
@@ -302,7 +303,7 @@ class _CheckBase(metaclass=_CheckMeta):
             )
         return {
             group_key: group
-            for group_key, group in groupby_obj
+            for group_key, group in groupby_obj  # type: ignore[union-attr]
             if group_key in groups
         }
 
@@ -322,16 +323,16 @@ class _CheckBase(metaclass=_CheckMeta):
 
         """
         if check_utils.is_field(df_or_series):
-            return df_or_series
+            return df_or_series  # type: ignore[return-value]
         elif self.groupby is None:
-            return df_or_series[column]
+            return df_or_series[column]  # type: ignore[index]
         elif isinstance(self.groupby, list):
-            return self._format_groupby_input(
-                df_or_series.groupby(self.groupby)[column],
+            return self._format_groupby_input(  # type: ignore[return-value]
+                df_or_series.groupby(self.groupby)[column],  # type: ignore[index]
                 self.groups,
             )
         elif callable(self.groupby):
-            return self._format_groupby_input(
+            return self._format_groupby_input(  # type: ignore[return-value]
                 self.groupby(df_or_series)[column],
                 self.groups,
             )
@@ -349,7 +350,7 @@ class _CheckBase(metaclass=_CheckMeta):
         if self.groupby is None:
             return dataframe
         groupby_obj = dataframe.groupby(self.groupby)
-        return self._format_groupby_input(groupby_obj, self.groups)
+        return self._format_groupby_input(groupby_obj, self.groups)  # type: ignore[return-value]
 
     def __call__(
         self,
@@ -384,7 +385,7 @@ class _CheckBase(metaclass=_CheckMeta):
         ):
             check_obj = self._prepare_series_input(df_or_series, column)
         elif check_utils.is_table(df_or_series):
-            check_obj = self._prepare_dataframe_input(df_or_series)
+            check_obj = self._prepare_dataframe_input(df_or_series)  # type: ignore[assignment,arg-type]
         else:
             raise ValueError(
                 f"object of type {type(df_or_series)} not supported. Must be "
@@ -422,7 +423,7 @@ class _CheckBase(metaclass=_CheckMeta):
                 failure_cases,
             ) = check_utils.prepare_series_check_output(
                 check_obj,
-                check_output,
+                check_output,  # type: ignore[arg-type]
                 ignore_na=self.ignore_na,
                 n_failure_cases=self.n_failure_cases,
             )
@@ -431,9 +432,9 @@ class _CheckBase(metaclass=_CheckMeta):
                 check_output,
                 failure_cases,
             ) = check_utils.prepare_dataframe_check_output(
-                check_obj,
-                check_output,
-                df_orig=df_or_series,
+                check_obj,  # type: ignore[arg-type]
+                check_output,  # type: ignore[arg-type]
+                df_orig=df_or_series,  # type: ignore[arg-type]
                 ignore_na=self.ignore_na,
                 n_failure_cases=self.n_failure_cases,
             )
@@ -443,9 +444,9 @@ class _CheckBase(metaclass=_CheckMeta):
             )
 
         check_passed = (
-            check_output.all()
+            check_output.all()  # type: ignore[union-attr]
             if check_utils.is_field(check_output)
-            else check_output.all(axis=None)
+            else check_output.all(axis=None)  # type: ignore
             if check_utils.is_table(check_output)
             else check_output
         )
@@ -883,7 +884,7 @@ class Check(_CheckBase):
             """
             Check if all strings in the series match the regular expression.
             """
-            return series.str.match(regex, na=False)
+            return series.str.match(regex, na=False)  # type: ignore[arg-type]
 
         return cls(
             _match,
@@ -917,7 +918,7 @@ class Check(_CheckBase):
 
         def _contains(series: pd.Series) -> pd.Series:
             """Check if a regex search is successful within each value"""
-            return series.str.contains(regex, na=False)
+            return series.str.contains(regex, na=False)  # type: ignore[arg-type]
 
         return cls(
             _contains,
@@ -1001,20 +1002,20 @@ class Check(_CheckBase):
 
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for the minimum string length"""
-                return series.str.len() >= min_value
+                return series.str.len() >= min_value  # type: ignore[operator]
 
         elif min_value is None:
 
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for the maximum string length"""
-                return series.str.len() <= max_value
+                return series.str.len() <= max_value  # type: ignore[operator]
 
         else:
 
             def _str_length(series: pd.Series) -> pd.Series:
                 """Check for both, minimum and maximum string length"""
-                return (series.str.len() <= max_value) & (
-                    series.str.len() >= min_value
+                return (series.str.len() <= max_value) & (  # type: ignore[operator]
+                    series.str.len() >= min_value  # type: ignore[operator]
                 )
 
         return cls(
@@ -1047,7 +1048,7 @@ class Check(_CheckBase):
 
         def _unique_values_eq(series: pd.Series) -> pd.Series:
             """Comparison function for check"""
-            return set(series.unique()) == set_values
+            return set(series.unique()) == set_values  # type: ignore[return-value]
 
         return cls(
             _unique_values_eq,

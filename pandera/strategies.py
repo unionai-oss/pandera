@@ -72,11 +72,11 @@ F = TypeVar("F", bound=Callable)
 def _mask(
     val: Union[pd.Series, pd.Index], null_mask: List[bool]
 ) -> Union[pd.Series, pd.Index]:
-    if pd.api.types.is_timedelta64_dtype(val):
-        return val.mask(null_mask, pd.NaT)
+    if pd.api.types.is_timedelta64_dtype(val):  # type: ignore [arg-type]
+        return val.mask(null_mask, pd.NaT)  # type: ignore [union-attr,arg-type]
     elif val.dtype == pd.StringDtype():
-        return val.mask(null_mask, pd.NA)
-    return val.mask(null_mask)
+        return val.mask(null_mask, pd.NA)  # type: ignore [union-attr,arg-type]
+    return val.mask(null_mask)  # type: ignore [union-attr]
 
 
 @composite
@@ -231,8 +231,8 @@ def _datetime_strategy(
 
         def _to_datetime(value) -> pd.DatetimeTZDtype:
             if isinstance(value, pd.Timestamp):
-                return value.tz_convert(tz=dtype.tz)  # type: ignore[union-attr]
-            return pd.Timestamp(value, unit=dtype.unit, tz=dtype.tz)  # type: ignore[union-attr]
+                return value.tz_convert(tz=dtype.tz)  # type: ignore[union-attr,return-value]
+            return pd.Timestamp(value, unit=dtype.unit, tz=dtype.tz)  # type: ignore[union-attr,return-value]
 
         return st.builds(_to_datetime, strategy)
     else:
@@ -1183,7 +1183,9 @@ def multiindex_strategy(
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
-    ).map(lambda x: x.astype(index_dtypes))
+    ).map(
+        lambda x: x.astype(index_dtypes)  # type: ignore[arg-type]
+    )
 
     # this is a hack to convert np.str_ data values into native python str.
     for name, dtype in index_dtypes.items():

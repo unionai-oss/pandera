@@ -188,9 +188,9 @@ class Hypothesis(_CheckBase):
                 "be used in Column checks."
             )
         if self.is_one_sample_test:
-            return dataframe[self.samples[0]]
+            return dataframe[self.samples[0]]  # type: ignore
         check_obj = [(sample, dataframe[sample]) for sample in self.samples]
-        return self._format_groupby_input(check_obj, self.samples)
+        return self._format_groupby_input(check_obj, self.samples)  # type: ignore
 
     def _relationships(self, relationship: Union[str, Callable]):
         """Impose a relationship on a supplied Test function.

@@ -204,7 +204,7 @@ def _test_annotated_dtype(
 
 
 def _test_default_annotated_dtype(
-    model: Type[pa.SchemaModel], dtype: Type, has_mandatory_args: bool
+    model: Type[pa.SchemaModel], dtype: Any, has_mandatory_args: bool
 ):
     if has_mandatory_args:
         err_msg = "cannot be instantiated"

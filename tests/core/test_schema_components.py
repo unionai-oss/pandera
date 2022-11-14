@@ -388,7 +388,7 @@ def test_column_regex_multiindex() -> None:
         ),
     )
     for columns in failure_column_cases:
-        data.columns = columns
+        data.columns = columns  # type: ignore
         with pytest.raises(IndexError):
             column_schema.validate(data)
         with pytest.raises(IndexError):

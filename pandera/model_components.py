@@ -328,7 +328,7 @@ class CheckInfo:  # pylint:disable=too-few-public-methods
         def _adapter(arg: Any) -> Union[bool, Iterable[bool]]:
             return self.check_fn(model_cls, arg)
 
-        return Check(_adapter, name=name, **self.check_kwargs)
+        return Check(_adapter, name=name, **self.check_kwargs)  # type: ignore
 
 
 class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods

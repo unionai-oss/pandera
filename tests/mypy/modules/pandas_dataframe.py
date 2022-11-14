@@ -77,7 +77,9 @@ def fn_mutate_inplace(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
 
 @pa.check_types
 def fn_assign_and_get_index(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
-    return df.assign(foo=30).iloc[:3]  # okay for mypy, pandera raises error
+    return df.assign(foo=30).iloc[:3]
+    # error: Incompatible return value type (got "pandas.core.frame.DataFrame",
+    # expected "pandera.typing.pandas.DataFrame[SchemaOut]")  [return-value]
 
 
 @pa.check_types

@@ -350,7 +350,7 @@ def test_reshape_failure_cases_exceptions() -> None:
     for data in [1, "foobar", 1.0, {"key": "value"}, list(range(10))]:
         with pytest.raises(TypeError):
             error_formatters.reshape_failure_cases(
-                data, bool(check.n_failure_cases)
+                data, bool(check.n_failure_cases)  # type: ignore
             )
 
 

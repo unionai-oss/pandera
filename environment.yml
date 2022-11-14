@@ -22,7 +22,6 @@ dependencies:
 
   # mypy extra
   - pandas-stubs
-  - pyspark-stubs
 
   # pyspark extra
   - pyspark >= 3.2.0
@@ -48,7 +47,7 @@ dependencies:
   # testing
   - isort >= 5.7.0
   - codecov
-  - mypy <= 0.971
+  - mypy <= 0.982
   - pylint = 2.12.2
   - pytest
   - pytest-cov
@@ -86,4 +85,5 @@ dependencies:
       - types-pyyaml
       - types-pkg_resources
       - types-requests
+      - types-pytz
       - jupyterlite_sphinx

@@ -376,7 +376,7 @@ def test_series_schema() -> None:
 
     for data in [-1, {"a": 1}, -1.0]:
         with pytest.raises(TypeError):
-            int_schema.validate(TypeError)
+            int_schema.validate(TypeError)  # type: ignore
 
     non_duplicate_schema = SeriesSchema(Int, unique=True)
     with pytest.raises(errors.SchemaError):
@@ -717,7 +717,7 @@ def test_sample_dataframe_schema() -> None:
 
     for seed in [11, 123456, 9000, 654]:
         sample_index = df.sample(100, random_state=seed).index
-        df.loc[sample_index] = -1
+        df.loc[sample_index] = -1  # type: ignore
         assert schema.validate(df, sample=100, random_state=seed).equals(df)
 
 
@@ -1092,7 +1092,7 @@ def test_lazy_dataframe_validation_error() -> None:
 
         # data in the caught exception should be equal to the dataframe
         # passed into validate
-        assert err.data.equals(dataframe)
+        assert err.data.equals(dataframe)  # type: ignore
 
         # make sure all expected check errors are in schema errors
         for schema_context, check_failure_cases in expectation.items():
@@ -1306,7 +1306,7 @@ def test_lazy_dataframe_scalar_false_check(
     )
     schema = schema_cls(checks=check)
     with pytest.raises(errors.SchemaErrors):
-        schema(data, lazy=True)
+        schema(data, lazy=True)  # type: ignore
 
 
 def test_lazy_dataframe_unique() -> None:
@@ -1552,7 +1552,7 @@ def test_schema_coerce_inplace_validation(
     )
     to_dtype = to_dtype if to_dtype is not int else str(Engine.dtype(to_dtype))
     df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})
-    schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})
+    schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})  # type: ignore
     validated_df = schema.validate(df, inplace=inplace)
 
     assert validated_df["column"].dtype == to_dtype

@@ -429,7 +429,7 @@ def test_check_io() -> None:
         if isinstance(result, pd.DataFrame):
             _assert_equals(result, out)
         else:
-            for _result, _out in zip(result, out):
+            for _result, _out in zip(result, out):  # type: ignore
                 _assert_equals(_result, _out)
 
         expected_error = (
@@ -530,32 +530,32 @@ def test_check_types_arguments() -> None:
     ) -> DataFrame[OnlyZeroesSchema]:  # pylint: disable=unused-argument
         return df
 
-    transform_empty_parenthesis(df)
+    transform_empty_parenthesis(df)  # type: ignore
 
     @check_types(head=1)
     def transform_head(
         df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
     ) -> DataFrame[OnlyZeroesSchema]:
-        return pd.DataFrame({"a": [0, 0]})
+        return pd.DataFrame({"a": [0, 0]})  # type: ignore
 
-    transform_head(df)
+    transform_head(df)  # type: ignore
 
     @check_types(tail=1)
     def transform_tail(
         df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
     ) -> DataFrame[OnlyZeroesSchema]:
-        return pd.DataFrame({"a": [1, 0]})
+        return pd.DataFrame({"a": [1, 0]})  # type: ignore
 
-    transform_tail(df)
+    transform_tail(df)  # type: ignore
 
     @check_types(lazy=True)
     def transform_lazy(
         df: DataFrame[OnlyZeroesSchema],  # pylint: disable=unused-argument
     ) -> DataFrame[OnlyZeroesSchema]:
-        return pd.DataFrame({"a": [1, 1]})
+        return pd.DataFrame({"a": [1, 1]})  # type: ignore
 
     with pytest.raises(errors.SchemaErrors, match="Usage Tip"):
-        transform_lazy(df)
+        transform_lazy(df)  # type: ignore
 
 
 def test_check_types_unchanged() -> None:
@@ -570,7 +570,7 @@ def test_check_types_unchanged() -> None:
         return df
 
     df = pd.DataFrame({"a": [0]})
-    pd.testing.assert_frame_equal(transform(df, 2), df)
+    pd.testing.assert_frame_equal(transform(df, 2), df)  # type: ignore
 
 
 # required to be globals:
@@ -612,13 +612,13 @@ def test_check_types_multiple_inputs() -> None:
         return pd.concat([df_1, df_2])
 
     correct = pd.DataFrame({"a": [1]}, index=["1"])
-    transform(correct, df_2=correct)
+    transform(correct, df_2=correct)  # type: ignore
 
     wrong = pd.DataFrame({"b": [1]})
     with pytest.raises(
         errors.SchemaError, match="column 'a' not in dataframe"
     ):
-        transform(correct, wrong)
+        transform(correct, wrong)  # type: ignore
 
 
 def test_check_types_error_input() -> None:
@@ -632,10 +632,10 @@ def test_check_types_error_input() -> None:
     with pytest.raises(
         errors.SchemaError, match="column 'a' not in dataframe"
     ):
-        transform(df)
+        transform(df)  # type: ignore
 
     try:
-        transform(df)
+        transform(df)  # type: ignore
     except errors.SchemaError as exc:
         assert exc.schema == InSchema.to_schema()
 
@@ -649,15 +649,15 @@ def test_check_types_error_output() -> None:
     def transform_derived(
         df: DataFrame[InSchema],
     ) -> DataFrame[DerivedOutSchema]:
-        return df
+        return df  # type: ignore
 
     with pytest.raises(
         errors.SchemaError, match="column 'b' not in dataframe"
     ):
-        transform_derived(df)
+        transform_derived(df)  # type: ignore
 
     try:
-        transform_derived(df)
+        transform_derived(df)  # type: ignore
     except errors.SchemaError as exc:
         assert exc.schema == DerivedOutSchema.to_schema()
 
@@ -665,15 +665,15 @@ def test_check_types_error_output() -> None:
 
     @check_types
     def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
-        return df
+        return df  # type: ignore
 
     with pytest.raises(
         errors.SchemaError, match="column 'b' not in dataframe"
     ):
-        transform(df)
+        transform(df)  # type: ignore
 
     try:
-        transform(df)
+        transform(df)  # type: ignore
     except errors.SchemaError as exc:
         assert exc.schema == OutSchema.to_schema()
 
@@ -688,7 +688,7 @@ def test_check_types_optional_out() -> None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
-    assert optional_derived_out(df) is None
+    assert optional_derived_out(df) is None  # type: ignore
 
     @check_types
     def optional_out(
@@ -697,7 +697,7 @@ def test_check_types_optional_out() -> None:
         return None
 
     df = pd.DataFrame({"a": [1]}, index=["1"])
-    assert optional_out(df) is None
+    assert optional_out(df) is None  # type: ignore
 
 
 def test_check_types_optional_in() -> None:
@@ -745,14 +745,14 @@ def test_check_types_coerce() -> None:
     def transform_in(df: DataFrame[InSchema]):
         return df
 
-    df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))
+    df = transform_in(pd.DataFrame({"a": ["1"]}, index=["1"]))  # type: ignore
     expected = InSchema.to_schema().columns["a"].dtype
     assert Engine.dtype(df["a"].dtype) == expected
 
     @check_types()
     def transform_out() -> DataFrame[OutSchema]:
         # OutSchema.b should be coerced to an integer.
-        return pd.DataFrame({"b": ["1"]})
+        return pd.DataFrame({"b": ["1"]})  # type: ignore
 
     out_df = transform_out()
     expected = OutSchema.to_schema().columns["b"].dtype
@@ -780,7 +780,7 @@ def test_check_types_with_literal_type(arg_examples):
             # pylint: disable=unused-argument,cell-var-from-loop
             arg: arg_type,
         ) -> DataFrame[OutSchema]:
-            return df.assign(b=100)
+            return df.assign(b=100)  # type: ignore
 
         df = pd.DataFrame({"a": [1]})
         invalid_df = pd.DataFrame()
@@ -852,11 +852,11 @@ def test_check_types_method_args() -> None:
     )
 
     with pytest.raises(errors.SchemaError):
-        instance.regular_method(in2, in1)  # Used to fail
+        instance.regular_method(in2, in1)  # type: ignore
     with pytest.raises(errors.SchemaError):
-        instance.regular_method(in2, df2=in1)
+        instance.regular_method(in2, df2=in1)  # type: ignore
     with pytest.raises(errors.SchemaError):
-        instance.regular_method(df1=in2, df2=in1)
+        instance.regular_method(df1=in2, df2=in1)  # type: ignore
 
     pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, in2))
     pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, df2=in2))
@@ -865,11 +865,11 @@ def test_check_types_method_args() -> None:
     )
 
     with pytest.raises(errors.SchemaError):
-        instance.class_method(in2, in1)
+        instance.class_method(in2, in1)  # type: ignore
     with pytest.raises(errors.SchemaError):
-        instance.class_method(in2, df2=in1)
+        instance.class_method(in2, df2=in1)  # type: ignore
     with pytest.raises(errors.SchemaError):
-        instance.class_method(df1=in2, df2=in1)
+        instance.class_method(df1=in2, df2=in1)  # type: ignore
 
     pd.testing.assert_frame_equal(out, instance.static_method(in1, in2))
     pd.testing.assert_frame_equal(out, SomeClass.static_method(in1, in2))
@@ -880,11 +880,11 @@ def test_check_types_method_args() -> None:
     )
 
     with pytest.raises(errors.SchemaError):
-        instance.static_method(in2, in1)
+        instance.static_method(in2, in1)  # type: ignore
     with pytest.raises(errors.SchemaError):
-        instance.static_method(in2, df2=in1)
+        instance.static_method(in2, df2=in1)  # type: ignore
     with pytest.raises(errors.SchemaError):
-        instance.static_method(df1=in2, df2=in1)
+        instance.static_method(df1=in2, df2=in1)  # type: ignore
 
 
 def test_check_types_union_args() -> None:

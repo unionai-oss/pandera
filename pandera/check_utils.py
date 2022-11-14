@@ -1,7 +1,7 @@
 """Utility functions for validation."""
 
 from functools import lru_cache
-from typing import NamedTuple, Optional, Tuple, Union
+from typing import NamedTuple, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -113,7 +113,7 @@ def prepare_series_check_output(
             check_output = check_output | isna
         except AttributeError:
             # convert check_output to numpy for modin compatibility
-            check_output = check_output.to_numpy() | isna
+            check_output = check_output.to_numpy() | isna  # type: ignore[assignment]  # noqa
 
     failure_cases = check_obj[~check_output]
     if not failure_cases.empty and n_failure_cases is not None:
@@ -123,7 +123,7 @@ def prepare_series_check_output(
             failure_cases
         ).__module__.startswith("modin.pandas"):
             failure_cases = (
-                failure_cases.rename("failure_cases")
+                failure_cases.rename("failure_cases")  # type: ignore[call-overload]  # noqa
                 .to_frame()
                 .assign(check_output=check_output)
                 .groupby("check_output")
@@ -133,7 +133,7 @@ def prepare_series_check_output(
             failure_cases = failure_cases.groupby(check_output).head(
                 n_failure_cases
             )
-    return check_output, failure_cases
+    return cast(Tuple[pd.Series, pd.Series], (check_output, failure_cases))
 
 
 def prepare_dataframe_check_output(
@@ -157,11 +157,11 @@ def prepare_dataframe_check_output(
     if ignore_na:
         check_output = check_output | df_orig.unstack().isna()
     failure_cases = (
-        check_obj.unstack()[~check_output]
+        check_obj.unstack()[~check_output]  # type: ignore[call-overload,index]
         .rename("failure_case")
         .rename_axis(["column", "index"])
         .reset_index()
     )
     if not failure_cases.empty and n_failure_cases is not None:
         failure_cases = failure_cases.drop_duplicates().head(n_failure_cases)
-    return check_output, failure_cases
+    return cast(Tuple[pd.Series, pd.Series], (check_output, failure_cases))

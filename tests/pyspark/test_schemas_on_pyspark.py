@@ -345,7 +345,7 @@ def test_nullable(
         assert n_nulls >= 0
         if n_nulls > 0:
             with pytest.raises(pa.errors.SchemaError):
-                nonnullable_schema(ks_null_sample)
+                nonnullable_schema(ks_null_sample)  # type: ignore
 
 
 def test_unique():

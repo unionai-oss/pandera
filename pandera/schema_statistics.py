@@ -16,7 +16,7 @@ def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     column_statistics = {
         col: {
             "dtype": dtype,
-            "nullable": bool(nullable_columns[col]),
+            "nullable": bool(nullable_columns[col]),  # type: ignore
             "checks": _get_array_check_statistics(df[col], dtype),
         }
         for col, dtype in inferred_column_dtypes.items()

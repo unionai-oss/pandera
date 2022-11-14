@@ -268,7 +268,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
             # pylint: disable=import-outside-toplevel
             import pyspark.pandas as ps
 
-            concat_fn = ps.concat
+            concat_fn = ps.concat  # type: ignore[assignment]
             check_failure_cases = [
                 x if isinstance(x, ps.DataFrame) else ps.DataFrame(x)
                 for x in check_failure_cases
