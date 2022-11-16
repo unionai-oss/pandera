@@ -752,4 +752,11 @@ def check_types(
                 out = wrapped_(*validated_pos.values(), **validated_kwd)
             return _check_arg("return", out)
 
-    return _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
+    wrapped_fn = _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
+
+    # The wrapt.decorator function returns a FunctionWrapper, which
+    # exposes an __iter__ method that causes the function to be recognized as
+    # an iterable. This causes unintended downstream issues, see for example:
+    # https://github.com/unionai-oss/pandera/issues/1021
+    wrapped_fn.__iter__ = None
+    return wrapped_fn
