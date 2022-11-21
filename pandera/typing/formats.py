@@ -1,7 +1,7 @@
 """Serialization formats for dataframes."""
 
 from enum import Enum
-from typing import Union
+from typing import Callable, Union
 
 try:
     from typing import Literal  # type: ignore
@@ -41,6 +41,9 @@ class Formats(Enum):
     #: python pickle file format
     pickle = "pickle"
 
+    #: generic callable function for import / export
+    custom = Callable
+
 
 Format = Union[
     Literal[Formats.csv],
@@ -49,4 +52,5 @@ Format = Union[
     Literal[Formats.feather],
     Literal[Formats.parquet],
     Literal[Formats.pickle],
+    Literal[Formats.custom],
 ]
