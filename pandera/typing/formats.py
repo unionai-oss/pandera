@@ -41,9 +41,6 @@ class Formats(Enum):
     #: python pickle file format
     pickle = "pickle"
 
-    #: generic callable function for import / export
-    custom = Callable
-
 
 Format = Union[
     Literal[Formats.csv],
@@ -52,5 +49,4 @@ Format = Union[
     Literal[Formats.feather],
     Literal[Formats.parquet],
     Literal[Formats.pickle],
-    Literal[Formats.custom],
 ]

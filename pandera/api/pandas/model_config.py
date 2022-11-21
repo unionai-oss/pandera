@@ -1,6 +1,6 @@
 """Class-based dataframe model API configuration for pandas."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from pandera.api.base.model_config import BaseModelConfig
 from pandera.api.pandas.types import PandasDtypeInputTypes, StrictType
@@ -51,7 +51,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, assumes a data structure
     #: compatible with the ``pandas.DataFrame`` constructor.
-    from_format: Optional[Format] = None
+    from_format: Optional[Union[Format, Callable]] = None
 
     #: a dictionary keyword arguments to pass into the reader function that
     #: converts the object of type ``from_format`` to a pandera-validate-able
@@ -62,7 +62,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: data format to serialize into after validation. This option only applies
     #: to  schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, returns a dataframe.
-    to_format: Optional[Format] = None
+    to_format: Optional[Union[Format, Callable]] = None
 
     #: a dictionary keyword arguments to pass into the writer function that
     #: converts the pandera-validate-able object to type ``to_format``.
