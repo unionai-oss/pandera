@@ -1,7 +1,7 @@
 """Serialization formats for dataframes."""
 
 from enum import Enum
-from typing import Callable, Union
+from typing import Union
 
 try:
     from typing import Literal  # type: ignore
