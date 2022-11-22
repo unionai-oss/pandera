@@ -72,7 +72,7 @@ dataframe.
 
 Note that the ``{to/from}_format_kwargs`` configuration option should be
 supplied with a dictionary of key-word arguments to be passed into the
-respective pandas ``to_{format}`` method.
+respective pandas ``{to/from}_format`` method.
 
 Finally, we redefine our ``transform`` function:
 
@@ -122,6 +122,30 @@ We can test this out using a buffer to store the parquet file.
         }
     ]
 
+In addition to specifying a literal string argument for ``{to/from}_format`` a generic callable that returns a pandas dataframe can be passed. For example, ``pd.read_excel``, ``pd.read_sql``, or ``pd.read_gbq``. Depending on the function passed, some of the kwargs arguments may be required rather than optional in ``{to/from}_format_kwargs`` (``pd.read_sql`` requires a connection object).
+
+The full set of configuration options are:
+
+.. list-table:: Title
+   :widths: 50 60
+   :header-rows: 1
+
+   * - Format
+     - Argument
+   * - dict
+     - "dict" 
+   * - csv
+     - "csv"
+   * - json
+     - "json"
+   * - feather
+     - "feather"
+   * - parquet
+     - "parquet"
+   * - pickle
+     - "pickle"
+   * - Callable
+     - Callable
 
 Takeaway
 --------
