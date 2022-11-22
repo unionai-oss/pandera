@@ -4,7 +4,6 @@ import io
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
-    Callable,
     Dict,
     Generic,
     List,
@@ -112,7 +111,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                     ) from exc
             return obj
 
-        if isinstance(config.from_format, Callable):
+        if callable(config.from_format):
             reader = config.from_format
         else:
             reader = {
@@ -139,7 +138,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         if config.to_format is None:
             return data
 
-        if isinstance(config.to_format, Callable):
+        if callable(config.to_format):
             writer, buffer = config.to_format, None
         else:
             writer, buffer = {
