@@ -64,6 +64,8 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: ``pa.typing.DataFrame[Schema](data)``. If None, returns a dataframe.
     to_format: Optional[Union[Format, Callable]] = None
 
+    to_format_buffer: Optional[Union[str, Callable]] = None
+
     #: a dictionary keyword arguments to pass into the writer function that
     #: converts the pandera-validate-able object to type ``to_format``.
     #: The writer function is implemented in the pandera.typing

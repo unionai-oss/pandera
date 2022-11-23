@@ -1,5 +1,6 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
+import functools
 import io
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
@@ -139,7 +140,8 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             return data
 
         if callable(config.to_format):
-            writer, buffer = config.to_format, None
+            writer = functools.partial(config.to_format, data)
+            buffer = config.to_format_buffer or None
         else:
             writer, buffer = {
                 Formats.dict: (data.to_dict, None),
