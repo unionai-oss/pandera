@@ -1855,6 +1855,11 @@ class SeriesSchemaBase:
     def nullable(self) -> bool:
         """Whether the series is nullable."""
         return self._nullable
+    
+    @nullable.setter
+    def nullable(self: bool) -> None:
+        """Set nullable attribute"""
+        self._nullable = value
 
     @property
     def unique(self) -> bool:
