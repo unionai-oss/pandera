@@ -122,7 +122,19 @@ We can test this out using a buffer to store the parquet file.
         }
     ]
 
-In addition to specifying a literal string argument for ``{to/from}_format`` a generic callable that returns a pandas dataframe can be passed. For example, ``pd.read_excel``, ``pd.read_sql``, or ``pd.read_gbq``. Depending on the function passed, some of the kwargs arguments may be required rather than optional in ``{to/from}_format_kwargs`` (``pd.read_sql`` requires a connection object).
+In addition to specifying a literal string argument for ``from_format`` a generic callable that returns a pandas dataframe can be passed. For example, ``pd.read_excel``, ``pd.read_sql``, or ``pd.read_gbq``. Depending on the function passed, some of the kwargs arguments may be required rather than optional in ``from_format_kwargs`` (``pd.read_sql`` requires a connection object).
+
+A callable can also be an argument for the ``to_format`` parameter, with the additional, optional, ``to_format_buffer`` parameter. Some pandas dataframe writing methods, such as ``pd.to_pickle``, have a required path argument, that must be either a string file path or a bytes object. An example for writing data to a pickle file would be:
+
+.. testcode:: format_serialization
+
+    def custom_to_pickle(data, *args, **kwargs):
+        return data.to_pickle(*args, **kwargs)
+
+    class OutSchemaPickleCallable(OutSchema):
+        class Config:
+            to_format = custom_to_pickle
+            to_format_buffer = "pickle_file.pkl"
 
 The full set of configuration options are:
 

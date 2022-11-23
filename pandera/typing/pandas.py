@@ -141,7 +141,16 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
         if callable(config.to_format):
             writer = functools.partial(config.to_format, data)
-            buffer = config.to_format_buffer or None
+            if callable(config.to_format_buffer):
+                buffer = config.to_format_buffer()
+            elif isinstance(config.to_format_buffer, str):
+                buffer = config.to_format_buffer
+            elif config.to_format_buffer is None:
+                buffer = None
+            else:
+                raise TypeError(
+                    "To format buffer must be None, callable, or str"
+                )
         else:
             writer, buffer = {
                 Formats.dict: (data.to_dict, None),

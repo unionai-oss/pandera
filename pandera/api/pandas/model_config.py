@@ -64,6 +64,8 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: ``pa.typing.DataFrame[Schema](data)``. If None, returns a dataframe.
     to_format: Optional[Union[Format, Callable]] = None
 
+    #: Buffer to be provided when to_format is a custom callable. See docs for
+    #: example of how to implement an example of a to format function.
     to_format_buffer: Optional[Union[str, Callable]] = None
 
     #: a dictionary keyword arguments to pass into the writer function that

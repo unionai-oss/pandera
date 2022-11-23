@@ -68,6 +68,15 @@ class OutSchemaCsv(OutSchema):
 
 
 def custom_to_csv(data: Any, *args, **kwargs):
+    """
+    Function to save data to csv, used in to_format function.
+
+    Args:
+        data: The data object to be saved.
+
+    Returns:
+        Returns none if file path provided, else to_format buffer
+    """
     return data.to_csv(*args, **kwargs)
 
 
@@ -105,13 +114,22 @@ class OutSchemaPickle(OutSchema):
 
 
 def custom_to_pickle(data: Any, *args, **kwargs):
+    """
+    Function to save data to pickle, used in to_format function.
+
+    Args:
+        data: The data object to be saved.
+
+    Returns:
+        Returns none if file path provided, else to_format buffer
+    """
     return data.to_pickle(*args, **kwargs)
 
 
 class OutSchemaPickleCallable(OutSchema):
     class Config:
         to_format = custom_to_pickle
-        to_format_buffer = io.BytesIO()
+        to_format_buffer = io.BytesIO
 
 
 def mock_dataframe() -> pd.DataFrame:
