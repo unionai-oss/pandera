@@ -258,7 +258,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
                     column = (
                         err.schema.name
                         if reason_code
-                        == SchemaErrorReason.SCHEMA_COMPONENT_CHECK
+                        == SchemaErrorReason.SCHEMA_COMPONENT_CHECK.value
                         else None
                     )
 
