@@ -70,6 +70,20 @@ def test_empty_schema() -> None:
     assert empty_parent_schema == EmptyParentSchema.to_schema()
 
 
+def test_create_empty_dataframe():
+    """Ensure that SchemaModel proxies the `empty` method correctly."""
+
+    class Schema(pa.SchemaModel):
+        col_a: pa.typing.Series[int]
+        col_b: pa.typing.Series[str]
+        col_c: pa.typing.Series[float]
+
+    result = Schema.empty()
+
+    assert result.empty
+    assert Schema.validate(result).empty
+
+
 def test_invalid_annotations() -> None:
     """Test that SchemaModel.to_schema() fails if annotations or types are not
     recognized.

@@ -798,9 +798,9 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                         with ps.option_context(
                             "compute.ops_on_diff_frames", True
                         ):
-                            failure_cases = df_to_validate.loc[duplicates, lst]
+                            failure_cases = df_to_validate.loc[duplicates, lst]  # type: ignore
                     else:
-                        failure_cases = df_to_validate.loc[duplicates, lst]
+                        failure_cases = df_to_validate.loc[duplicates, lst]  # type: ignore
 
                     failure_cases = reshape_failure_cases(failure_cases)
                     error_handler.collect_error(
@@ -1746,6 +1746,15 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             raise TypeError(f"{schema} is not a {cls}.")
 
         return cast("DataFrameSchema", schema)
+
+    def empty(self) -> pd.DataFrame:
+        """Return an empty dataframe with correctly named and typed columns."""
+        coerce_old = self.coerce
+        try:
+            self.coerce = True
+            return self.coerce_dtype(pd.DataFrame(columns=[*self.columns]))
+        finally:
+            self.coerce = coerce_old
 
 
 class SeriesSchemaBase:

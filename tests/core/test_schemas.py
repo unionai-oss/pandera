@@ -25,6 +25,7 @@ from pandera import (
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
 from pandera.schemas import SeriesSchemaBase
+from pandera.engines.engine import DataType
 
 
 def test_dataframe_schema() -> None:
@@ -1281,6 +1282,48 @@ def test_lazy_dataframe_validation_nullable_with_checks() -> None:
         pd.testing.assert_frame_equal(
             err.failure_cases, expected_failure_cases
         )
+
+
+def test_schema_empty():
+    """Ensure that an empty dataframe works for all valid pandera dtypes."""
+    # make sure all subclasses of pandera.dtypes.DataType are instantiated
+    import pandera.dtypes  # pylint: disable=C0415:
+    import pandera.engines.pandas_engine  # pylint: disable=C0415:
+    import pandera.engines.numpy_engine  # pylint: disable=C0415:
+
+    # find all subclasses
+    def get_subclasses(parent: type):
+        yield parent
+        for child in parent.__subclasses__():
+            yield from get_subclasses(child)
+
+    # create a valid schema of all possible dtypes pandera supports
+    skip = {
+        # these are abstract and should be excluded from column creation
+        pandera.dtypes.DataType,
+        pandera.engines.numpy_engine.DataType,
+        pandera.engines.pandas_engine.DataType,
+        # these fail when trying to make columns from them, but probably shouldn't
+        pandera.dtypes._Number,
+        pandera.dtypes._PhysicalNumber,
+        pandera.engines.pandas_engine.Period,
+        pandera.engines.pandas_engine.PydanticModel,
+        pandera.engines.pandas_engine.Interval,
+        # these fail during validation, and definitely shouldn't
+        pandera.engines.numpy_engine.DateTime64,
+        pandera.engines.numpy_engine.Bytes,
+    }
+    columns = {
+        f"{cls.__module__}.{cls.__qualname__}": pandera.Column(cls)
+        for cls in get_subclasses(DataType)
+        if cls not in skip
+    }
+    schema = pandera.DataFrameSchema(columns=columns)
+
+    result = schema.empty()
+
+    assert result.empty
+    assert schema.validate(result).empty
 
 
 @pytest.mark.parametrize(
