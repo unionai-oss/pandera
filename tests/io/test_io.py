@@ -1423,17 +1423,13 @@ def test_frictionless_schema_primary_key(frictionless_schema):
         (dtypes.Date, pyarrow.date64()),
         (pandas_engine.Date, pyarrow.date64()),
         (dtypes.Timestamp, pyarrow.timestamp("ns")),
-        (numpy_engine.DateTime64, pyarrow.date64()),  # unbound
+        (numpy_engine.DateTime64, pyarrow.date64()),
         (pandas_engine.DateTime, pyarrow.timestamp("ns")),
         (dtypes.Timedelta, pyarrow.duration("ns")),
         (numpy_engine.Timedelta64, pyarrow.duration("ns")),
         (
             dtypes.Category(categories=["foo", "bar", "baz"], ordered=True),
-            pyarrow.dictionary(
-                pyarrow.int8(),
-                pyarrow.string(),
-                ordered=True,
-            ),
+            pyarrow.dictionary(pyarrow.int8(), pyarrow.string(), ordered=True),
         ),
     ],
 )
