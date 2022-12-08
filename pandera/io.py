@@ -894,11 +894,8 @@ def to_pyarrow_schema(
             columns[name] = Index(dtypes.Int64, nullable=False, name=name)
         else:
             # Only preserve metadata of index
-            metadata[
-                "index_columns"
-            ] = b"""[
-                {"kind": "range", "name": pyarrow.null, "step": 1}
-            ]"""
+            meta_val = b'[{"kind": "range", "name": pyarrow.null, "step": 1}]'
+            metadata["index_columns"] = meta_val
     elif preserve_index is not False:
         # Add column(s) for index(es)
         if isinstance(index, Index):
