@@ -5,8 +5,9 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
+import numpy as np
 import pandas as pd
 
 import pandera.errors
@@ -807,9 +808,12 @@ def from_frictionless_schema(
     return deserialize_schema(assembled_schema)
 
 
-def to_pyarrow_field(pandera_field: SeriesSchemaBase) -> pyarrow.Field:
+def to_pyarrow_field(
+    name: str,
+    pandera_field: SeriesSchemaBase,
+) -> pyarrow.Field:
     """
-    Convert a :class:`~pandera.schema_components.SeriesSchemaBase` to
+    Convert a :class:`~pandera.schema_components.SeriesSchemaBase` to a
     ``pyarrow.Field``
 
     :param pandera_field: pandera Index or Column
@@ -847,12 +851,17 @@ def to_pyarrow_field(pandera_field: SeriesSchemaBase) -> pyarrow.Field:
             pandera_dtype.type.categories.inferred_type,
             ordered=pandera_dtype.ordered,  # type: ignore[attr-defined]
         )
+    elif pandas_dtype.type == np.object_:
+        pyarrow_type = pyarrow.string()
     else:
         pyarrow_type = pyarrow.from_numpy_dtype(pandas_dtype)
 
-    return pyarrow.field(
-        pandera_field.name, pyarrow_type, pandera_field.nullable
-    )
+    return pyarrow.field(name, pyarrow_type, pandera_field.nullable)
+
+
+def _get_index_name(level: int) -> str:
+    """Generate an index name for pyarrow if none is specified"""
+    return f"__index_level_{level}__"
 
 
 def to_pyarrow_schema(
@@ -872,28 +881,37 @@ def to_pyarrow_schema(
     """
 
     # List of columns that will be present in the pyarrow schema
-    columns: List[SeriesSchemaBase] = list(dataframe_schema.columns.values())
+    columns: Dict[str, SeriesSchemaBase] = dataframe_schema.columns  # type: ignore[assignment]
 
     # pyarrow schema metadata
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, bytes] = {}
 
     index = dataframe_schema.index
     if index is None:
         if preserve_index:
             # Create column for RangeIndex
-            columns.append(
-                Index(dtypes.Int64, nullable=False, name="__index_level_0__")
-            )
+            name = _get_index_name(0)
+            columns[name] = Index(dtypes.Int64, nullable=False, name=name)
         else:
             # Only preserve metadata of index
-            metadata["index_columns"] = [
+            metadata[
+                "index_columns"
+            ] = b"""[
                 {"kind": "range", "name": pyarrow.null, "step": 1}
-            ]
+            ]"""
     elif preserve_index is not False:
         # Add column(s) for index(es)
         if isinstance(index, Index):
-            columns.append(index)
-        elif isinstance(index, MultiIndex):
-            columns += index.indexes
+            name = index.name or _get_index_name(0)
+            # Ensure index is added at dictionary beginning
+            columns = {**{name: index}, **columns}
 
-    return pyarrow.Schema([to_pyarrow_field(c) for c in columns])
+        elif isinstance(index, MultiIndex):
+            for i, value in enumerate(reversed(index.indexes)):
+                name = value.name or _get_index_name(i)
+                columns = {**{name: value}, **columns}
+
+    return pyarrow.schema(
+        [to_pyarrow_field(k, v) for k, v in columns.items()],
+        metadata=metadata,
+    )

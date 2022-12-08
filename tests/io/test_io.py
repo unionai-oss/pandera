@@ -4,6 +4,7 @@ import platform
 import tempfile
 from io import StringIO
 from pathlib import Path
+from typing import Type
 from unittest import mock
 
 import pandas as pd
@@ -1417,6 +1418,7 @@ def test_frictionless_schema_primary_key(frictionless_schema):
         (numpy_engine.String, pyarrow.string()),
         (pandas_engine.STRING, pyarrow.string()),
         (pandas_engine.NpString, pyarrow.string()),
+        (numpy_engine.Object, pyarrow.string()),
         (numpy_engine.Bytes, pyarrow.binary()),
         (dtypes.Date, pyarrow.date64()),
         (pandas_engine.Date, pyarrow.date64()),
@@ -1436,13 +1438,137 @@ def test_frictionless_schema_primary_key(frictionless_schema):
     ],
 )
 @pytest.mark.parametrize("nullable", [True, False])
-def test_to_pyarrow_field(pandera_dtype, nullable, expected_pyarrow_dtype):
+def test_to_pyarrow_field(
+    pandera_dtype: Type[dtypes.DataType],
+    nullable: bool,
+    expected_pyarrow_dtype: pyarrow.DataType,
+):
     """Test if pandera_dtype is correctly converted to pyarrow dtype"""
     name = "foo"
 
     pandera_field = Column(pandera_dtype, nullable=nullable, name=name)
-    pyarrow_dtype = io.to_pyarrow_field(pandera_field)
+    pyarrow_dtype = io.to_pyarrow_field(name, pandera_field)
 
     assert pyarrow_dtype.type == expected_pyarrow_dtype
     assert pyarrow_dtype.name == name
     assert pyarrow_dtype.nullable == nullable
+
+
+@pytest.mark.skipif(SKIP_PYARROW_TESTS, reason="pyarrow required")
+@pytest.mark.parametrize(
+    "dataframe_schema, preserve_index, expected",
+    [
+        (
+            _create_schema("single"),
+            True,
+            pyarrow.schema(
+                [
+                    pyarrow.field("__index_level_0__", pyarrow.int64(), False),
+                    pyarrow.field("int_column", pyarrow.int64(), False),
+                    pyarrow.field("float_column", pyarrow.float64(), False),
+                    pyarrow.field("str_column", pyarrow.string(), False),
+                    pyarrow.field(
+                        "datetime_column", pyarrow.timestamp("ns"), False
+                    ),
+                    pyarrow.field(
+                        "timedelta_column", pyarrow.duration("ns"), False
+                    ),
+                    pyarrow.field(
+                        "optional_props_column", pyarrow.string(), True
+                    ),
+                ]
+            ),
+        ),
+        (
+            _create_schema(None),
+            None,
+            pyarrow.schema(
+                [
+                    pyarrow.field("int_column", pyarrow.int64(), False),
+                    pyarrow.field("float_column", pyarrow.float64(), False),
+                    pyarrow.field("str_column", pyarrow.string(), False),
+                    pyarrow.field(
+                        "datetime_column", pyarrow.timestamp("ns"), False
+                    ),
+                    pyarrow.field(
+                        "timedelta_column", pyarrow.duration("ns"), False
+                    ),
+                    pyarrow.field(
+                        "optional_props_column", pyarrow.string(), True
+                    ),
+                ]
+            ),
+        ),
+        (
+            _create_schema("multi"),
+            None,
+            pyarrow.schema(
+                [
+                    pyarrow.field("int_index0", pyarrow.int64(), False),
+                    pyarrow.field("int_index1", pyarrow.int64(), False),
+                    pyarrow.field("int_index2", pyarrow.int64(), False),
+                    pyarrow.field("int_column", pyarrow.int64(), False),
+                    pyarrow.field("float_column", pyarrow.float64(), False),
+                    pyarrow.field("str_column", pyarrow.string(), False),
+                    pyarrow.field(
+                        "datetime_column", pyarrow.timestamp("ns"), False
+                    ),
+                    pyarrow.field(
+                        "timedelta_column", pyarrow.duration("ns"), False
+                    ),
+                    pyarrow.field(
+                        "optional_props_column", pyarrow.string(), True
+                    ),
+                ]
+            ),
+        ),
+        (
+            _create_schema("multi"),
+            False,
+            pyarrow.schema(
+                [
+                    pyarrow.field("int_column", pyarrow.int64(), False),
+                    pyarrow.field("float_column", pyarrow.float64(), False),
+                    pyarrow.field("str_column", pyarrow.string(), False),
+                    pyarrow.field(
+                        "datetime_column", pyarrow.timestamp("ns"), False
+                    ),
+                    pyarrow.field(
+                        "timedelta_column", pyarrow.duration("ns"), False
+                    ),
+                    pyarrow.field(
+                        "optional_props_column", pyarrow.string(), True
+                    ),
+                ]
+            ),
+        ),
+        (
+            _create_schema_python_types(),
+            None,
+            pyarrow.schema(
+                [
+                    pyarrow.field("int_column", pyarrow.int64(), False),
+                    pyarrow.field("float_column", pyarrow.float64(), False),
+                    pyarrow.field("str_column", pyarrow.string(), False),
+                    pyarrow.field("object_column", pyarrow.string(), False),
+                ]
+            ),
+        ),
+    ],
+)
+def test_to_pyarrow_schema(
+    dataframe_schema: pandera.schemas.DataFrameSchema,
+    preserve_index: bool,
+    expected: pyarrow.Schema,
+):
+    """Test if pandera schema is correctly converted to pyarrow.Schema"""
+
+    # Drop column with no dtype specified
+    dataframe_schema.columns = {
+        k: v
+        for k, v in dataframe_schema.columns.items()
+        if k != "notype_column"
+    }
+
+    pyarrow_schema = io.to_pyarrow_schema(dataframe_schema, preserve_index)
+    assert expected.equals(pyarrow_schema)
