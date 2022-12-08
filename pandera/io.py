@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -13,19 +13,20 @@ import pandera.errors
 
 from . import dtypes
 from .checks import Check
-from .engines import pandas_engine
-from .schema_components import Column
+from .engines import numpy_engine, pandas_engine
+from .schema_components import Column, Index, MultiIndex, SeriesSchemaBase
 from .schema_statistics import get_dataframe_schema_statistics
 from .schemas import DataFrameSchema
 
 try:
     import black
+    import pyarrow
     import yaml
     from frictionless import Schema as FrictionlessSchema
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        "IO and formatting requires 'pyyaml', 'black' and 'frictionless'"
-        "to be installed.\n"
+        "IO and formatting requires 'pyyaml', 'black', 'frictionless' and "
+        "`pyarrow` to be installed.\n"
         "You can install pandera together with the IO dependencies with:\n"
         "pip install pandera[io]\n"
     ) from exc
@@ -246,8 +247,6 @@ def deserialize_schema(serialized_schema):
     :returns:
         the schema de-serialized into :class:`~pandera.schemas.DataFrameSchema`
     """
-    # pylint: disable=import-outside-toplevel
-    from pandera import Index, MultiIndex
 
     # GH#475
     serialized_schema = serialized_schema if serialized_schema else {}
@@ -806,3 +805,95 @@ def from_frictionless_schema(
         ),
     }
     return deserialize_schema(assembled_schema)
+
+
+def to_pyarrow_field(pandera_field: SeriesSchemaBase) -> pyarrow.Field:
+    """
+    Convert a :class:`~pandera.schema_components.SeriesSchemaBase` to
+    ``pyarrow.Field``
+
+    :param pandera_field: pandera Index or Column
+    :returns: ``pyarrow.Field`` representation of ``pandera_field``
+    """
+
+    pandera_dtype = pandera_field.dtype
+    pandas_dtype = pandas_engine.Engine.dtype(pandera_dtype).type
+
+    pandas_types = {
+        pd.BooleanDtype(): pyarrow.bool_(),
+        pd.Int8Dtype(): pyarrow.int8(),
+        pd.Int16Dtype(): pyarrow.int16(),
+        pd.Int32Dtype(): pyarrow.int32(),
+        pd.Int64Dtype(): pyarrow.int64(),
+        pd.UInt8Dtype(): pyarrow.uint8(),
+        pd.UInt16Dtype(): pyarrow.uint16(),
+        pd.UInt32Dtype(): pyarrow.uint32(),
+        pd.UInt64Dtype(): pyarrow.uint64(),
+        pd.Float32Dtype(): pyarrow.float32(),  # type: ignore[attr-defined]
+        pd.Float64Dtype(): pyarrow.float64(),  # type: ignore[attr-defined]
+        pd.StringDtype(): pyarrow.string(),
+    }
+
+    if pandas_dtype in pandas_types:
+        pyarrow_type = pandas_types[pandera_field.dtype.type]
+    elif isinstance(
+        pandera_dtype, (pandas_engine.Date, numpy_engine.DateTime64)
+    ):
+        pyarrow_type = pyarrow.date64()
+    elif isinstance(pandera_field.dtype, dtypes.Category):
+        # Categorical data types
+        pyarrow_type = pyarrow.dictionary(
+            pyarrow.int8(),
+            pandera_dtype.type.categories.inferred_type,
+            ordered=pandera_dtype.ordered,  # type: ignore[attr-defined]
+        )
+    else:
+        pyarrow_type = pyarrow.from_numpy_dtype(pandas_dtype)
+
+    return pyarrow.field(
+        pandera_field.name, pyarrow_type, pandera_field.nullable
+    )
+
+
+def to_pyarrow_schema(
+    dataframe_schema: DataFrameSchema,
+    preserve_index: Optional[bool] = None,
+) -> pyarrow.Schema:
+    """
+    Convert a :class:`~pandera.schemas.DataFrameSchema` to ``pyarrow.Schema``.
+
+    :param dataframe_schema: schema to convert to ``pyarrow.Schema``
+    :param preserve_index: whether to store the index as an additional column
+        (or columns, for MultiIndex) in the resulting Table. The default of
+        None will store the index as a column, except for RangeIndex which is
+        stored as metadata only. Use ``preserve_index=True`` to force it to be
+        stored as a column.
+    :returns: ``pyarrow.Schema`` representation of DataFrameSchema
+    """
+
+    # List of columns that will be present in the pyarrow schema
+    columns: List[SeriesSchemaBase] = list(dataframe_schema.columns.values())
+
+    # pyarrow schema metadata
+    metadata: Dict[str, Any] = {}
+
+    index = dataframe_schema.index
+    if index is None:
+        if preserve_index:
+            # Create column for RangeIndex
+            columns.append(
+                Index(dtypes.Int64, nullable=False, name="__index_level_0__")
+            )
+        else:
+            # Only preserve metadata of index
+            metadata["index_columns"] = [
+                {"kind": "range", "name": pyarrow.null, "step": 1}
+            ]
+    elif preserve_index is not False:
+        # Add column(s) for index(es)
+        if isinstance(index, Index):
+            columns.append(index)
+        elif isinstance(index, MultiIndex):
+            columns += index.indexes
+
+    return pyarrow.Schema([to_pyarrow_field(c) for c in columns])

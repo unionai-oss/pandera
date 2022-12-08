@@ -13,7 +13,9 @@ from packaging import version
 import pandera
 import pandera.extensions as pa_ext
 import pandera.typing as pat
-from pandera.engines import pandas_engine
+from pandera import dtypes
+from pandera.engines import numpy_engine, pandas_engine
+from pandera.schema_components import Column
 
 try:
     from pandera import io
@@ -32,6 +34,14 @@ else:
 
 
 SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  # type: ignore
+
+
+try:
+    import pyarrow
+except ImportError:
+    SKIP_PYARROW_TESTS = True
+else:
+    SKIP_PYARROW_TESTS = False
 
 
 # skip all tests in module if "io" depends aren't installed
@@ -1362,3 +1372,77 @@ def test_frictionless_schema_primary_key(frictionless_schema):
         assert schema.unique == frictionless_schema["primaryKey"]
         for key in frictionless_schema["primaryKey"]:
             assert not schema.columns[key].unique
+
+
+@pytest.mark.skipif(SKIP_PYARROW_TESTS, reason="pyarrow required")
+@pytest.mark.parametrize(
+    "pandera_dtype, expected_pyarrow_dtype",
+    [
+        (dtypes.Bool, pyarrow.bool_()),
+        (numpy_engine.Bool, pyarrow.bool_()),
+        (pandas_engine.BOOL, pyarrow.bool_()),
+        (dtypes.Int8, pyarrow.int8()),
+        (dtypes.Int16, pyarrow.int16()),
+        (dtypes.Int32, pyarrow.int32()),
+        (dtypes.Int64, pyarrow.int64()),
+        (numpy_engine.Int8, pyarrow.int8()),
+        (numpy_engine.Int16, pyarrow.int16()),
+        (numpy_engine.Int32, pyarrow.int32()),
+        (numpy_engine.Int64, pyarrow.int64()),
+        (pandas_engine.INT8, pyarrow.int8()),
+        (pandas_engine.INT16, pyarrow.int16()),
+        (pandas_engine.INT32, pyarrow.int32()),
+        (pandas_engine.INT64, pyarrow.int64()),
+        (dtypes.UInt8, pyarrow.uint8()),
+        (dtypes.UInt16, pyarrow.uint16()),
+        (dtypes.UInt32, pyarrow.uint32()),
+        (dtypes.UInt64, pyarrow.uint64()),
+        (numpy_engine.UInt8, pyarrow.uint8()),
+        (numpy_engine.UInt16, pyarrow.uint16()),
+        (numpy_engine.UInt32, pyarrow.uint32()),
+        (numpy_engine.UInt64, pyarrow.uint64()),
+        (pandas_engine.UINT8, pyarrow.uint8()),
+        (pandas_engine.UINT16, pyarrow.uint16()),
+        (pandas_engine.UINT32, pyarrow.uint32()),
+        (pandas_engine.UINT64, pyarrow.uint64()),
+        (dtypes.Float16, pyarrow.float16()),
+        (dtypes.Float32, pyarrow.float32()),
+        (dtypes.Float64, pyarrow.float64()),
+        (numpy_engine.Float16, pyarrow.float16()),
+        (numpy_engine.Float32, pyarrow.float32()),
+        (numpy_engine.Float64, pyarrow.float64()),
+        (pandas_engine.FLOAT32, pyarrow.float32()),
+        (pandas_engine.FLOAT64, pyarrow.float64()),
+        (dtypes.String, pyarrow.string()),
+        (numpy_engine.String, pyarrow.string()),
+        (pandas_engine.STRING, pyarrow.string()),
+        (pandas_engine.NpString, pyarrow.string()),
+        (numpy_engine.Bytes, pyarrow.binary()),
+        (dtypes.Date, pyarrow.date64()),
+        (pandas_engine.Date, pyarrow.date64()),
+        (dtypes.Timestamp, pyarrow.timestamp("ns")),
+        (numpy_engine.DateTime64, pyarrow.date64()),  # unbound
+        (pandas_engine.DateTime, pyarrow.timestamp("ns")),
+        (dtypes.Timedelta, pyarrow.duration("ns")),
+        (numpy_engine.Timedelta64, pyarrow.duration("ns")),
+        (
+            dtypes.Category(categories=["foo", "bar", "baz"], ordered=True),
+            pyarrow.dictionary(
+                pyarrow.int8(),
+                pyarrow.string(),
+                ordered=True,
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize("nullable", [True, False])
+def test_to_pyarrow_field(pandera_dtype, nullable, expected_pyarrow_dtype):
+    """Test if pandera_dtype is correctly converted to pyarrow dtype"""
+    name = "foo"
+
+    pandera_field = Column(pandera_dtype, nullable=nullable, name=name)
+    pyarrow_dtype = io.to_pyarrow_field(pandera_field)
+
+    assert pyarrow_dtype.type == expected_pyarrow_dtype
+    assert pyarrow_dtype.name == name
+    assert pyarrow_dtype.nullable == nullable
