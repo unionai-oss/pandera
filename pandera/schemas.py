@@ -1857,7 +1857,7 @@ class SeriesSchemaBase:
         return self._nullable
     
     @nullable.setter
-    def nullable(self: bool) -> None:
+    def nullable(self, value: bool) -> None:
         """Set nullable attribute"""
         self._nullable = value
 
