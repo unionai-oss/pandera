@@ -186,6 +186,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
             checks = [checks]
 
         self.columns: Dict[Any, Column] = {} if columns is None else columns
+        _validate_columns(self.columns)
 
         if strict not in (
             False,
@@ -209,7 +210,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._unique_column_names = unique_column_names
         self._title = title
         self._description = description
-        self._validate_schema()
         self._set_column_names()
 
         # this attribute is not meant to be accessed by users and is explicitly
@@ -277,20 +277,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     def _is_inferred(self, value: bool) -> None:
         self._IS_INFERRED = value
 
-    def _validate_schema(self) -> None:
-        for column_name, column in self.columns.items():
-            for check in column.checks:
-                if check.groupby is None or callable(check.groupby):
-                    continue
-                nonexistent_groupby_columns = [
-                    c for c in check.groupby if c not in self.columns
-                ]
-                if nonexistent_groupby_columns:
-                    raise errors.SchemaInitError(
-                        f"groupby argument {nonexistent_groupby_columns} in "
-                        f"Check for Column {column_name} not "
-                        "specified in the DataFrameSchema."
-                    )
 
     def _set_column_names(self) -> None:
         def _set_column_handler(column, column_name):
@@ -2532,3 +2518,19 @@ def convert_uniquesettings(unique: UniqueSettings) -> Union[bool, str]:
             str(unique) + " is not a recognized report_duplicates value"
         )
     return keep_argument
+
+
+def _validate_columns(column_dict: dict[Any, Column]) -> None:
+    for column_name, column in column_dict.items():
+        for check in column.checks:
+            if check.groupby is None or callable(check.groupby):
+                continue
+            nonexistent_groupby_columns = [
+                c for c in check.groupby if c not in column_dict
+            ]
+            if nonexistent_groupby_columns:
+                raise errors.SchemaInitError(
+                    f"groupby argument {nonexistent_groupby_columns} in "
+                    f"Check for Column {column_name} not "
+                    "specified in the DataFrameSchema."
+                )
