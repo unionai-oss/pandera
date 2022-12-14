@@ -47,7 +47,7 @@ twine
 asv
 pre_commit
 furo
-ray <= 1.7.0; python_version < '3.10'
+ray; python_version < '3.10'
 types-click
 types-pyyaml
 types-pkg_resources
