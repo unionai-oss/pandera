@@ -347,7 +347,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 )
         return {
             **{n: c.dtype for n, c in self.columns.items() if not c.regex},
-            **regex_dtype,
+            **regex_dtype,  # type: ignore
         }
 
     @property
@@ -595,7 +595,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 is_schema_col = column in expanded_column_names
                 if (self.strict is True) and not is_schema_col:
                     msg = (
-                        f"column '{column}' not in {self.__class__.__name__}"
+                        f"column '{column!r}' not in {self.__class__.__name__}"
                         f" {self.columns}"
                     )
                     error_handler.collect_error(
@@ -621,7 +621,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                             errors.SchemaError(
                                 self,
                                 check_obj,
-                                message=f"column '{column}' out-of-order",
+                                message=f"column '{column!r}' out-of-order",
                                 failure_cases=scalar_failure_case(column),
                                 check="column_ordered",
                             ),

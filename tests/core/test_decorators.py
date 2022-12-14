@@ -900,13 +900,13 @@ def test_check_types_union_args() -> None:
     ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
         return df
 
-    validate_union(pd.DataFrame({"a": [0, 0]}))
-    validate_union(pd.DataFrame({"a": [1, 1]}))
+    validate_union(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
+    validate_union(pd.DataFrame({"a": [1, 1]}))  # type: ignore [arg-type]
 
     with pytest.raises(errors.SchemaErrors):
-        validate_union(pd.DataFrame({"a": [0, 1]}))
+        validate_union(pd.DataFrame({"a": [0, 1]}))  # type: ignore [arg-type]
     with pytest.raises(errors.SchemaErrors):
-        validate_union(pd.DataFrame({"a": [2, 2]}))
+        validate_union(pd.DataFrame({"a": [2, 2]}))  # type: ignore [arg-type]
 
     @check_types
     def validate_union_wrong_outputs(
@@ -916,10 +916,10 @@ def test_check_types_union_args() -> None:
     ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
         new_df = df.copy()
         new_df["a"] = [0, 1]
-        return new_df
+        return new_df  # type: ignore [return-value]
 
     with pytest.raises(errors.SchemaErrors):
-        validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))
+        validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
 
 
 def test_check_types_non_dataframes() -> None:
@@ -947,7 +947,7 @@ def test_check_types_non_dataframes() -> None:
     ) -> typing.Union[DataFrame[OnlyZeroesSchema], int]:
         return val
 
-    union_df_int_types_pydantic_check(pd.DataFrame({"a": [0, 0]}))
+    union_df_int_types_pydantic_check(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
     int_val_pydantic = union_df_int_types_pydantic_check(5)
     str_val_pydantic = union_df_int_types_pydantic_check("5")  # type: ignore[arg-type]
     assert isinstance(int_val_pydantic, int)

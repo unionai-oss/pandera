@@ -54,6 +54,8 @@ repos:
         entry: mypy
         language: python
         types: [python]
-        files: (^pandera/|^tests/|^scripts/)
+        pass_filenames: false
         exclude: (^docs/|^tests/mypy/modules/)
         require_serial: true
+        args: ["pandera", "tests", "scripts"]
+        verbose: true
