@@ -59,12 +59,17 @@ PANDAS_DATAFRAME_ERRORS = [
 def test_mypy_pandas_dataframe(capfd) -> None:
     """Test that mypy raises expected errors on pandera-decorated functions."""
     # pylint: disable=subprocess-run-check
+    cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
     subprocess.run(
         [
             sys.executable,
             "-m",
             "mypy",
             str(test_module_dir / "modules" / "pandas_dataframe.py"),
+            "--cache-dir",
+            cache_dir,
+            "--config-file",
+            str(test_module_dir / "config" / "no_plugin.ini"),
         ],
         text=True,
     )
