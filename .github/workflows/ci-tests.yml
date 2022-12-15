@@ -149,11 +149,11 @@ jobs:
 
       - name: Install Conda Deps [Latest]
         if: ${{ matrix.pandas-version == 'latest' }}
-        run: mamba install -c conda-forge pandas geopandas ray
+        run: mamba install -c conda-forge pandas geopandas ray-default
 
       - name: Install Conda Deps
         if: ${{ matrix.pandas-version != 'latest' }}
-        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas ray
+        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas ray-default
 
       - name: Install Pip Deps
         run: |
