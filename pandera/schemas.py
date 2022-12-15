@@ -180,13 +180,15 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         See :ref:`here<DataFrameSchemas>` for more usage details.
 
         """
+        if columns is None:
+            columns = {}
+        _validate_columns(columns)
+        columns = _columns_renamed(columns)
+
         if checks is None:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
-
-        self.columns: Dict[Any, Column] = {} if columns is None else columns
-        _validate_columns(self.columns)
 
         if strict not in (
             False,
@@ -198,6 +200,7 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
                 "or `'filter'`."
             )
 
+        self.columns: Dict[Any, Column] = columns
         self.checks: CheckListProperty = checks
         self.index = index
         self.strict: StrictType = strict
@@ -210,7 +213,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
         self._unique_column_names = unique_column_names
         self._title = title
         self._description = description
-        self._set_column_names()
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
@@ -276,22 +278,6 @@ class DataFrameSchema:  # pylint: disable=too-many-public-methods
     @_is_inferred.setter
     def _is_inferred(self, value: bool) -> None:
         self._IS_INFERRED = value
-
-
-    def _set_column_names(self) -> None:
-        def _set_column_handler(column, column_name):
-            if column.name is not None and column.name != column_name:
-                warnings.warn(
-                    f"resetting column for {column} to '{column_name}'."
-                )
-            elif column.name == column_name:
-                return column
-            return column.set_name(column_name)
-
-        self.columns = {
-            column_name: _set_column_handler(column, column_name)
-            for column_name, column in self.columns.items()
-        }
 
     @property
     def dtypes(self) -> Dict[str, DataType]:
@@ -2534,3 +2520,15 @@ def _validate_columns(column_dict: dict[Any, Column]) -> None:
                     f"Check for Column {column_name} not "
                     "specified in the DataFrameSchema."
                 )
+
+
+def _columns_renamed(columns: dict[Any, Column]) -> dict[Any, Column]:
+    def renamed(column, new_name):
+        column = copy.deepcopy(column)
+        column.set_name(new_name)
+        return column
+
+    return {
+        column_name: renamed(column, column_name)
+        for column_name, column in columns.items()
+    }
