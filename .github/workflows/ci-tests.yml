@@ -92,8 +92,10 @@ jobs:
       NOX_FLAGS: -v --no-install --no-venv --non-interactive
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
+    concurrency:
+      group: ${{ github.ref }}
+      cancel-in-progress: true
     strategy:
-      fail-fast: true
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
