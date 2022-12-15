@@ -19,6 +19,10 @@ env:
   # Increase this value to reset cache if environment.yml has not changed
   CACHE_VERSION: 6
 
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
 jobs:
 
   lint:
@@ -92,10 +96,8 @@ jobs:
       NOX_FLAGS: -v --no-install --no-venv --non-interactive
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
-    concurrency:
-      group: ${{ github.ref }}
-      cancel-in-progress: true
     strategy:
+      fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
