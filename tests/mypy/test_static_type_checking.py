@@ -30,9 +30,7 @@ def _get_mypy_errors(
     # last line is summary of errors
     for error in [x for x in stdout.split("\n") if x != ""][:-1]:
         regex = (
-            r".+\/{module_name}:".format(
-                module_name=module_name.replace(".", r"\.")
-            )
+            r".+{}:".format(module_name.replace(".", r"\."))
             + r"(?P<lineno>\d+): error: (?P<msg>.+)  \[(?P<errcode>.+)\]"
         )
         matches = re.match(regex, error)
