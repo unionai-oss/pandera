@@ -149,11 +149,16 @@ jobs:
 
       - name: Install Conda Deps [Latest]
         if: ${{ matrix.pandas-version == 'latest' }}
-        run: mamba install -c conda-forge pandas geopandas ray-default
+        run: mamba install -c conda-forge pandas geopandas
 
       - name: Install Conda Deps
         if: ${{ matrix.pandas-version != 'latest' }}
-        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas ray-default
+        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }}
+
+      # ray currently cannot be installed on python 3.10, windows
+      - name: Remove Ray from Deps
+        if: ${{ matrix.os == 'windows-latest' && matrix.python-version == '3.10' }}
+        run: sed -i 's/^ray//g' requirements-dev.txt
 
       - name: Install Pip Deps
         run: |
@@ -203,7 +208,7 @@ jobs:
           CI_MODIN_ENGINES: dask
 
       - name: Unit Tests - Modin-Ray
-        if: ${{ matrix.python-version != '3.10' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
