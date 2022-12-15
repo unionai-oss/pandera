@@ -335,16 +335,16 @@ def test_schema_model():
 
     valid_df = mpd.DataFrame(
         {
-            "int_field": [1, 2, 3],
-            "float_field": [-1.1, -2.1, -3.1],
-            "str_field": ["a", "b", "c"],
+            "int_field": [1, 2, 3] * 10,
+            "float_field": [-1.1, -2.1, -3.1] * 10,
+            "str_field": ["a", "b", "c"] * 10,
         }
     )
     invalid_df = mpd.DataFrame(
         {
-            "int_field": [-1],
-            "field_field": [1],
-            "str_field": ["d"],
+            "int_field": [-1] * 100,
+            "field_field": [1] * 100,
+            "str_field": ["d"] * 100,
         }
     )
 
