@@ -51,6 +51,7 @@ pip install -e .
 pip install virtualenv
 virtualenv .venv/pandera-dev
 source .venv/pandera-dev/bin/activate
+pip install --upgrade pip
 pip install -r requirements-dev.txt
 pip install -e .
 ```
