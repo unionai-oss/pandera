@@ -153,7 +153,7 @@ jobs:
 
       - name: Install Conda Deps
         if: ${{ matrix.pandas-version != 'latest' }}
-        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }}
+        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas
 
       # ray currently cannot be installed on python 3.10, windows
       - name: Remove Ray from Deps
