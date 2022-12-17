@@ -15,7 +15,7 @@ import pytest
 from _pytest.mark.structures import ParameterSet
 from _pytest.python import Metafunc
 from hypothesis import strategies as st
-from pandas import DatetimeTZDtype
+from pandas import DatetimeTZDtype, to_datetime
 
 import pandera as pa
 from pandera.engines import pandas_engine
@@ -417,6 +417,49 @@ def test_try_coerce(examples, type_, failure_indices):
         data_type.try_coerce(data)
     except pa.errors.ParserError as exc:
         assert exc.failure_cases["index"].to_list() == failure_indices
+
+
+@pytest.mark.parametrize(
+    "examples, type_, has_tz",
+    [
+        (
+            ["2022-04-30T00:00:00Z", "2022-04-30T00:00:01Z"],
+            DatetimeTZDtype(tz="UTC"),
+            True,
+        ),
+        (
+            ["2022-04-30T00:00:00", "2022-04-30T00:00:01"],
+            DatetimeTZDtype(tz="UTC"),
+            True,
+        ),
+        (
+            ["2022-04-30T00:00:00Z", "2022-04-30T00:00:01Z"],
+            pandas_engine.DateTime,
+            False,
+        ),
+        (
+            ["2022-04-30T00:00:00", "2022-04-30T00:00:01"],
+            pandas_engine.DateTime,
+            False,
+        ),
+    ],
+)
+@pytest.mark.parametrize("is_index", [True, False])
+def test_coerce_dt(examples, type_, has_tz, is_index):
+    """Test coercion of Series and Indexes to DateTime with and without Time Zones."""
+    data = pd.Index(examples) if is_index else pd.Series(examples)
+    data_type = pandas_engine.Engine.dtype(type_)
+    if has_tz:
+        expected = [
+            to_datetime("2022-04-30 00:00:00", utc=True),
+            to_datetime("2022-04-30 00:00:01", utc=True),
+        ]
+    else:
+        expected = [
+            to_datetime("2022-04-30 00:00:00"),
+            to_datetime("2022-04-30 00:00:01"),
+        ]
+    assert data_type.try_coerce(data).to_list() == expected
 
 
 def test_coerce_string():
