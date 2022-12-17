@@ -211,7 +211,8 @@ jobs:
         # ray CI issues with the following:
         # - windows, python 3.10
         # - mac, python 3.7
-        if: ${{ (matrix.os != 'windows-latest' && matrix.python-version != '3.10') || (matrix.os != 'macos-latest' && matrix.python-version != '3.7') }}
+        # Tracking issue: https://github.com/modin-project/modin/issues/5466
+        if: ${{ (matrix.os != 'windows-latest' && matrix.python-version != '3.10') || matrix.python-version != '3.7' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
