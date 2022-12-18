@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import os
 import warnings
@@ -15,9 +17,9 @@ from pandera.core.checks import Check
 from pandera.core.pandas.types import (
     CheckList,
     PandasDtypeInputTypes,
-    is_table,
+    StrictType,
 )
-from pandera.dtypes import DataType
+from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 from pandera.hypotheses import Hypothesis
 
@@ -38,10 +40,11 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         index=None,
         dtype: PandasDtypeInputTypes = None,
         coerce: bool = False,
-        strict: Union[bool, str] = False,
+        strict: StrictType = False,
         name: Optional[str] = None,
         ordered: bool = False,
         unique: Optional[Union[str, List[str]]] = None,
+        report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -69,6 +72,10 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param name: name of the schema.
         :param ordered: whether or not to validate the columns order.
         :param unique: a list of columns that should be jointly unique.
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
@@ -106,6 +113,12 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         See :ref:`here<DataFrameSchemas>` for more usage details.
 
         """
+
+        if columns is None:
+            columns = {}
+        _validate_columns(columns)
+        columns = _columns_renamed(columns)
+
         if checks is None:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
@@ -130,25 +143,29 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self.strict: Union[bool, str] = strict
         self.name: Optional[str] = name
         self.dtype: PandasDtypeInputTypes = dtype  # type: ignore
-        self.coerce = coerce
+        self._coerce = coerce
         self.ordered = ordered
         self._unique = unique
+        self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
         self.title = title
         self.description = description
-        self._validate_schema()
-        self._set_column_names()
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
 
-        # This restriction can be removed once logical types are introduced:
-        # https://github.com/pandera-dev/pandera/issues/788
-        if not coerce and isinstance(self.dtype, pandas_engine.PydanticModel):
-            raise errors.SchemaInitError(
-                "Specifying a PydanticModel type requires coerce=True."
-            )
+    @property
+    def coerce(self) -> bool:
+        """Whether to coerce series to specified type."""
+        if isinstance(self.dtype, DataType):
+            return self.dtype.auto_coerce or self._coerce
+        return self._coerce
+
+    @coerce.setter
+    def coerce(self, value: bool) -> None:
+        """Set coerce attribute"""
+        self._coerce = value
 
     @property
     def unique(self):
@@ -168,36 +185,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     @_is_inferred.setter
     def _is_inferred(self, value: bool) -> None:
         self._IS_INFERRED = value
-
-    def _validate_schema(self) -> None:
-        for column_name, column in self.columns.items():
-            for check in column.checks:
-                if check.groupby is None or callable(check.groupby):
-                    continue
-                nonexistent_groupby_columns = [
-                    c for c in check.groupby if c not in self.columns
-                ]
-                if nonexistent_groupby_columns:
-                    raise errors.SchemaInitError(
-                        f"groupby argument {nonexistent_groupby_columns} in "
-                        f"Check for Column {column_name} not "
-                        "specified in the DataFrameSchema."
-                    )
-
-    def _set_column_names(self) -> None:
-        def _set_column_handler(column, column_name):
-            if column.name is not None and column.name != column_name:
-                warnings.warn(
-                    f"resetting column for {column} to '{column_name}'."
-                )
-            elif column.name == column_name:
-                return column
-            return column.set_name(column_name)
-
-        self.columns = {
-            column_name: _set_column_handler(column, column_name)
-            for column_name, column in self.columns.items()
-        }
 
     @property
     def dtypes(self) -> Dict[str, DataType]:
@@ -826,6 +813,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 f"Keys {not_in_cols} not found in schema columns!"
             )
 
+        # remove any mapping to itself as this is a no-op
+        rename_dict = {k: v for k, v in rename_dict.items() if k != v}
+
         # ensure all new keys are not present in the current column names
         already_in_columns: List[str] = [
             x for x in rename_dict.values() if x in new_schema.columns.keys()
@@ -848,7 +838,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         }
 
         new_schema.columns = new_columns
-
         return cast(DataFrameSchema, new_schema)
 
     def select_columns(self, columns: List[Any]) -> "DataFrameSchema":
@@ -1123,6 +1112,10 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel,cyclic-import
         from pandera.core.pandas.components import Column, Index, MultiIndex
 
+        # explcit check for an empty list
+        if level == []:
+            return self
+
         new_schema = copy.deepcopy(self)
 
         if new_schema.index is None:
@@ -1132,7 +1125,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         # ensure no duplicates
         level_temp: Union[List[Any], List[str]] = (
-            list(set(level)) if level is not None else []
+            new_schema.index.names if level is None else list(set(level))
         )
 
         # ensure all specified keys are present in the index
@@ -1195,7 +1188,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         new_schema.index = new_index
 
-        return cast(DataFrameSchema, new_schema)
+        return new_schema
 
     #####################
     # Schema IO Methods #
@@ -1287,3 +1280,35 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             return self.strategy(
                 size=size, n_regex_columns=n_regex_columns
             ).example()
+
+
+def _validate_columns(
+    column_dict: dict[Any, "pandera.core.pandas.components.Column"],
+) -> None:
+    for column_name, column in column_dict.items():
+        for check in column.checks:
+            if check.groupby is None or callable(check.groupby):
+                continue
+            nonexistent_groupby_columns = [
+                c for c in check.groupby if c not in column_dict
+            ]
+            if nonexistent_groupby_columns:
+                raise errors.SchemaInitError(
+                    f"groupby argument {nonexistent_groupby_columns} in "
+                    f"Check for Column {column_name} not "
+                    "specified in the DataFrameSchema."
+                )
+
+
+def _columns_renamed(
+    columns: dict[Any, "pandera.core.pandas.components.Column"],
+) -> dict[Any, "pandera.core.pandas.components.Column"]:
+    def renamed(column, new_name):
+        column = copy.deepcopy(column)
+        column.set_name(new_name)
+        return column
+
+    return {
+        column_name: renamed(column, column_name)
+        for column_name, column in columns.items()
+    }

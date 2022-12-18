@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
-from multimethod import multimethod
+from multimethod import multimethod, DispatchError
 
 from pandera.backends.base import BaseCheckBackend
 from pandera.core.base.checks import CheckResult
@@ -204,7 +204,7 @@ class PandasCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         if check_obj.index.equals(check_output.index) and self.check.ignore_na:
-            check_output = check_output | check_obj.isna().any(axis="columns")
+            check_output = check_output | check_obj.isna().all(axis="columns")
         return CheckResult(
             check_output,
             check_output.all(),
@@ -279,5 +279,8 @@ class PandasCheckBackend(BaseCheckBackend):
         key: Optional[str] = None,
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
-        check_output = self.apply(check_obj)
+        try:
+            check_output = self.apply(check_obj)
+        except DispatchError as exc:
+            raise exc.__cause__
         return self.postprocess(check_obj, check_output)

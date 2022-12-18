@@ -16,7 +16,7 @@ def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     column_statistics = {
         col: {
             "dtype": dtype,
-            "nullable": bool(nullable_columns[col]),
+            "nullable": bool(nullable_columns[col]),  # type: ignore
             "checks": _get_array_check_statistics(df[col], dtype),
         }
         for col, dtype in inferred_column_dtypes.items()
@@ -93,6 +93,8 @@ def get_dataframe_schema_statistics(dataframe_schema):
                 "regex": column.regex,
                 "checks": parse_checks(column.checks),
                 "unique": column.unique,
+                "description": column.description,
+                "title": column.title,
             }
             for col_name, column in dataframe_schema.columns.items()
         },
@@ -180,7 +182,7 @@ def _get_array_type(x):
     data_type = pandas_engine.Engine.dtype(x.dtype)
     # for object arrays, try to infer dtype
     if data_type is pandas_engine.Engine.dtype("object"):
-        inferred_alias = pd.api.types.infer_dtype(x, skipna=True)
+        inferred_alias = pd.api.types.infer_dtype(x, skipna=False)
         if inferred_alias != "string":
             data_type = pandas_engine.Engine.dtype(inferred_alias)
     return data_type
@@ -190,6 +192,8 @@ def _get_array_check_statistics(
     x, data_type: dtypes.DataType
 ) -> Union[Dict[str, Any], None]:
     """Get check statistics from an array-like object."""
+    if x.isna().all():
+        return None
     if dtypes.is_datetime(data_type):
         check_stats = {
             "greater_than_or_equal_to": x.min(),

@@ -21,11 +21,8 @@ def datacontainer_lib(request) -> Generator[ModuleType, None, None]:
     local_path = str(request.fspath)
     if "modin" in local_path:
         import modin.pandas as mpd  # pylint: disable=import-outside-toplevel
-        import ray  # pylint: disable=import-outside-toplevel
 
-        ray.init()
         yield mpd
-        ray.shutdown()
 
     elif "pyspark" in local_path:
         import pyspark.pandas as ps  # pylint: disable=import-outside-toplevel

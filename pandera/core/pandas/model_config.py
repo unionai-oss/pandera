@@ -1,11 +1,11 @@
 from typing import Any, Dict, List, Optional, Union
 
 from pandera.core.base.model_config import BaseModelConfig
-from pandera.core.pandas.types import PandasDtypeInputTypes
+from pandera.core.pandas.types import PandasDtypeInputTypes, StrictType
 from pandera.typing.formats import Format
 
 
-class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
+class BaseConfig:  # pylint:disable=R0903
     """Define DataFrameSchema-wide options.
 
     *new in 0.5.0*
@@ -25,7 +25,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
 
     #: make sure all specified columns are in the validated dataframe -
     #: if ``"filter"``, removes columns not specified in the schema
-    strict: Union[bool, str] = False
+    strict: StrictType = False
 
     ordered: bool = False  #: validate columns order
     multiindex_name: Optional[str] = None  #: name of multiindex
@@ -33,9 +33,11 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: coerce types of all MultiIndex components
     multiindex_coerce: bool = False
 
+    #: make sure the MultiIndex is unique along the list of columns
+    multiindex_unique = None
     #: make sure all specified columns are in validated MultiIndex -
     #: if ``"filter"``, removes indexes not specified in the schema
-    multiindex_strict: bool = False
+    multiindex_strict: StrictType = False
 
     #: validate MultiIndex in order
     multiindex_ordered: bool = True

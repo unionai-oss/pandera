@@ -15,6 +15,7 @@ from pandera.backends.pandas.components import (
 from pandera.core.pandas.array import ArraySchema
 from pandera.core.pandas.container import DataFrameSchema
 from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
+from pandera.dtypes import UniqueSettings
 
 
 class Column(ArraySchema):
@@ -28,6 +29,7 @@ class Column(ArraySchema):
         checks: Optional[CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         required: bool = True,
         name: Union[str, Tuple[str, ...], None] = None,
@@ -44,6 +46,10 @@ class Column(ArraySchema):
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -74,14 +80,15 @@ class Column(ArraySchema):
         See :ref:`here<column>` for more usage details.
         """
         super().__init__(
-            dtype,
-            checks,
-            nullable,
-            unique,
-            coerce,
-            name,
-            title,
-            description,
+            dtype=dtype,
+            checks=checks,
+            nullable=nullable,
+            unique=unique,
+            report_duplicates=report_duplicates,
+            coerce=coerce,
+            name=name,
+            title=title,
+            description=description,
         )
         if (
             name is not None
@@ -109,6 +116,7 @@ class Column(ArraySchema):
             "checks": self.checks,
             "nullable": self.nullable,
             "unique": self.unique,
+            "report_duplicates": self.report_duplicates,
             "coerce": self.coerce,
             "required": self.required,
             "name": self.name,

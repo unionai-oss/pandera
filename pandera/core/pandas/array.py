@@ -17,7 +17,7 @@ from pandera.core.pandas.types import (
     PandasDtypeInputTypes,
     is_field,
 )
-from pandera.dtypes import DataType
+from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 from pandera.hypotheses import Hypothesis
 
@@ -35,6 +35,7 @@ class ArraySchema(BaseSchema):
         checks: Optional[CheckList] = None,
         nullable: bool = False,
         unique: bool = False,
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         name: Any = None,
         title: Optional[str] = None,
@@ -54,6 +55,10 @@ class ArraySchema(BaseSchema):
         :param nullable: Whether or not column can contain null values.
         :param unique: Whether or not column can contain duplicate
             values.
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -73,6 +78,7 @@ class ArraySchema(BaseSchema):
         self.checks = checks
         self.name = name
         self.unique = unique
+        self.report_duplicates = report_duplicates
         self.title = title
         self.description = description
 
@@ -285,6 +291,7 @@ class SeriesSchema(ArraySchema):
         index=None,
         nullable: bool = False,
         unique: bool = False,
+        report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
         name: str = None,
         title: Optional[str] = None,
@@ -305,6 +312,10 @@ class SeriesSchema(ArraySchema):
         :param nullable: Whether or not column can contain null values.
         :param unique: Whether or not column can contain duplicate
             values.
+        :param report_duplicates: how to report unique errors
+            - `exclude_first`: report all duplicates except first occurence
+            - `exclude_last`: report all duplicates except last occurence
+            - `all`: (default) report all duplicates
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
@@ -318,6 +329,7 @@ class SeriesSchema(ArraySchema):
             checks,
             nullable,
             unique,
+            report_duplicates,
             coerce,
             name,
             title,

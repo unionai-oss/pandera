@@ -1032,5 +1032,5 @@ def test_unique_values_eq(series_values, check_arg, passes, failure_cases):
 @pytest.mark.parametrize("values", [1, 1.0])
 def test_unique_values_eq_raise_error(values):
     """Test that unique_values_eq raises an error arg is not iterable."""
-    with pytest.raises(TypeError):
+    with pytest.raises((TypeError, ValueError)):
         Check.unique_values_eq(values)

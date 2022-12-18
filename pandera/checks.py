@@ -508,6 +508,17 @@ class _CheckBase(metaclass=_CheckMeta):
         )
 
 
+def _check_kwargs(
+    kwargs: Dict[str, Any],
+    default_name: str,
+    default_error: str,
+) -> Dict[str, Any]:
+    """Replace built-in check kwargs with customized name and error."""
+    kwargs["name"] = kwargs.get("name", default_name)
+    kwargs["error"] = kwargs.get("error", default_error)
+    return kwargs
+
+
 class Check(_CheckBase):
     """Check a pandas Series or DataFrame for certain properties."""
 
@@ -533,9 +544,9 @@ class Check(_CheckBase):
 
         return cls(
             _equal,
-            name=cls.equal_to.__name__,
-            error=f"equal_to({value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs, cls.equal_to.__name__, f"equal_to({value})"
+            ),
         )
 
     eq = equal_to
@@ -562,9 +573,9 @@ class Check(_CheckBase):
 
         return cls(
             _not_equal,
-            name=cls.not_equal_to.__name__,
-            error=f"not_equal_to({value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs, cls.not_equal_to.__name__, f"not_equal_to({value})"
+            ),
         )
 
     ne = not_equal_to
@@ -594,9 +605,11 @@ class Check(_CheckBase):
 
         return cls(
             _greater_than,
-            name=cls.greater_than.__name__,
-            error=f"greater_than({min_value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.greater_than.__name__,
+                f"greater_than({min_value})",
+            ),
         )
 
     gt = greater_than
@@ -626,9 +639,11 @@ class Check(_CheckBase):
 
         return cls(
             _greater_or_equal,
-            name=cls.greater_than_or_equal_to.__name__,
-            error=f"greater_than_or_equal_to({min_value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.greater_than_or_equal_to.__name__,
+                f"greater_than_or_equal_to({min_value})",
+            ),
         )
 
     ge = greater_than_or_equal_to
@@ -658,9 +673,11 @@ class Check(_CheckBase):
 
         return cls(
             _less_than,
-            name=cls.less_than.__name__,
-            error=f"less_than({max_value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.less_than.__name__,
+                f"less_than({max_value})",
+            ),
         )
 
     lt = less_than
@@ -690,9 +707,11 @@ class Check(_CheckBase):
 
         return cls(
             _less_or_equal,
-            name=cls.less_than_or_equal_to.__name__,
-            error=f"less_than_or_equal_to({max_value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.less_than_or_equal_to.__name__,
+                f"less_than_or_equal_to({max_value})",
+            ),
         )
 
     le = less_than_or_equal_to
@@ -745,9 +764,11 @@ class Check(_CheckBase):
 
         return cls(
             _in_range,
-            name=cls.in_range.__name__,
-            error=f"in_range({min_value}, {max_value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.in_range.__name__,
+                f"in_range({min_value}, {max_value})",
+            ),
         )
 
     @classmethod
@@ -789,9 +810,11 @@ class Check(_CheckBase):
 
         return cls(
             _isin,
-            name=cls.isin.__name__,
-            error=f"isin({set(allowed_values)})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.isin.__name__,
+                f"isin({set(allowed_values)})",
+            ),
         )
 
     @classmethod
@@ -829,9 +852,11 @@ class Check(_CheckBase):
 
         return cls(
             _notin,
-            name=cls.notin.__name__,
-            error=f"notin({set(forbidden_values)})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.notin.__name__,
+                f"notin({set(forbidden_values)})",
+            ),
         )
 
     @classmethod
@@ -863,9 +888,11 @@ class Check(_CheckBase):
 
         return cls(
             _match,
-            name=cls.str_matches.__name__,
-            error=f"str_matches({regex})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.str_matches.__name__,
+                f"str_matches({regex})",
+            ),
         )
 
     @classmethod
@@ -895,9 +922,11 @@ class Check(_CheckBase):
 
         return cls(
             _contains,
-            name=cls.str_contains.__name__,
-            error=f"str_contains({regex})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.str_contains.__name__,
+                f"str_contains({regex})",
+            ),
         )
 
     @classmethod
@@ -918,9 +947,11 @@ class Check(_CheckBase):
 
         return cls(
             _startswith,
-            name=cls.str_startswith.__name__,
-            error=f"str_startswith({string})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.str_startswith.__name__,
+                f"str_startswith({string})",
+            ),
         )
 
     @classmethod
@@ -941,9 +972,11 @@ class Check(_CheckBase):
 
         return cls(
             _endswith,
-            name=cls.str_endswith.__name__,
-            error=f"str_endswith({string})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.str_endswith.__name__,
+                f"str_endswith({string})",
+            ),
         )
 
     @classmethod
@@ -987,9 +1020,11 @@ class Check(_CheckBase):
 
         return cls(
             _str_length,
-            name=cls.str_length.__name__,
-            error=f"str_length({min_value}, {max_value})",
-            **kwargs,
+            **_check_kwargs(
+                kwargs,
+                cls.str_length.__name__,
+                f"str_length({min_value}, {max_value})",
+            ),
         )
 
     @classmethod

@@ -111,7 +111,9 @@ def reshape_failure_cases(
             .to_frame()
             .assign(
                 index=lambda df: (
-                    df.index.to_frame().apply(tuple, axis=1).astype(str)
+                    df.index.to_frame(allow_duplicates=True)
+                    .apply(tuple, axis=1)
+                    .astype(str)
                 )
             )[["failure_case", "index"]]
             .reset_index(drop=True)

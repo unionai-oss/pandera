@@ -395,4 +395,23 @@ def str_length(
     return (str_len <= max_value) & (str_len >= min_value)
 
 
+def unique_values_eq_init_hook(statistics_kwargs):
+    values = statistics_kwargs["values"]
+    try:
+        values = frozenset(values)
+    except TypeError as exc:
+        raise ValueError(
+            f"Argument values must be iterable. Got {values}"
+        ) from exc
+    return {"values": values}
+
+
+@register_check(
+    pre_init_hook=unique_values_eq_init_hook,
+    error="unique_values_eq({values})",
+)
+def unique_values_eq(data: PandasData, values: Iterable):
+    return set(data.unique()) == values  # type: ignore[return-value]
+
+
 # TODO: implement hypothesis tests in the Check namespace

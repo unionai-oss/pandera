@@ -1,7 +1,7 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import List, NamedTuple, Optional, Tuple, Type, Union
+from typing import List, Literal, NamedTuple, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,8 @@ PandasDtypeInputTypes = Union[
     pd.core.dtypes.base.ExtensionDtype,
     np.dtype,
 ]
+
+StrictType = Union[bool, Literal["filter"]]
 
 SupportedTypes = NamedTuple(
     "SupportedTypes",

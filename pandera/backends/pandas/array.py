@@ -6,6 +6,7 @@ import pandas as pd
 from multimethod import DispatchError, multimethod
 
 from pandera.backends.pandas.base import FieldCheckObj, PandasSchemaBackend
+from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.core.pandas.types import is_field
 from pandera.engines.pandas_engine import Engine
 from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
@@ -161,17 +162,20 @@ class ArraySchemaBackend(PandasSchemaBackend):
         message = None
 
         if schema.unique:
+            keep_argument = convert_uniquesettings(schema.report_duplicates)
             if type(check_obj).__module__.startswith("pyspark.pandas"):
                 # pylint: disable=import-outside-toplevel
                 import pyspark.pandas as ps
 
                 duplicates = (
-                    check_obj.to_frame().duplicated().reindex(check_obj.index)
+                    check_obj.to_frame()  # type: ignore
+                    .duplicated(keep=keep_argument)  # type: ignore
+                    .reindex(check_obj.index)
                 )
                 with ps.option_context("compute.ops_on_diff_frames", True):
                     failed = check_obj[duplicates]
             else:
-                duplicates = check_obj.duplicated()
+                duplicates = check_obj.duplicated(keep=keep_argument)  # type: ignore
                 failed = check_obj[duplicates]
 
             if duplicates.any():

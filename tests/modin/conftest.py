@@ -9,7 +9,8 @@ from tests.core.checks_fixtures import custom_check_teardown  # noqa
 
 ENGINES = os.getenv("CI_MODIN_ENGINES", "").split(",")
 if ENGINES == [""]:
-    ENGINES = ["ray", "dask"]
+    # ENGINES = ["ray", "dask"]
+    ENGINES = ["dask"]
 
 
 @pytest.fixture(scope="session", params=ENGINES, autouse=True)
@@ -20,6 +21,7 @@ def setup_modin_engine(request):
     """
     engine = request.param
     os.environ["MODIN_ENGINE"] = engine
+    os.environ["MODIN_STORAGE_FORMAT"] = "pandas"
     os.environ["MODIN_MEMORY"] = "100000000"
     os.environ["RAY_IGNORE_UNHANDLED_ERRORS"] = "1"
 
@@ -27,7 +29,9 @@ def setup_modin_engine(request):
         # pylint: disable=import-outside-toplevel
         import ray
 
-        ray.init()
+        ray.init(
+            runtime_env={"env_vars": {"__MODIN_AUTOIMPORT_PANDAS__": "1"}}
+        )
         yield
         ray.shutdown()
 
@@ -37,6 +41,6 @@ def setup_modin_engine(request):
 
         client = Client()
         yield
-        client.shutdown()
+        client.close()
     else:
         raise ValueError(f"Not supported engine: {engine}")

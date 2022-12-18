@@ -27,6 +27,7 @@ from pydantic import validate_arguments
 from pandera import errors
 from pandera.core.pandas import DataFrameSchema, SeriesSchema
 from pandera.core.pandas.model import SchemaModel
+from pandera.error_handlers import SchemaErrorHandler
 from pandera.inspection_utils import (
     is_classmethod_from_meta,
     is_decorated_classmethod,
@@ -101,7 +102,7 @@ def _handle_schema_error(
 def _parse_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[schemas.DataFrameSchema, schemas.SeriesSchema],
+    schema: Union[DataFrameSchema, SeriesSchema],
     arg_df: pd.DataFrame,
     schema_error: errors.SchemaError,
 ) -> NoReturn:
@@ -345,7 +346,7 @@ def check_output(
         schema.coerce
         or (schema.index is not None and schema.index.coerce)
         or (
-            isinstance(schema, schemas.DataFrameSchema)
+            isinstance(schema, DataFrameSchema)
             and any(col.coerce for col in schema.columns.values())
         )
     ):

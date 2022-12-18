@@ -2,15 +2,22 @@
 
 import copy
 import itertools
-from typing import Any, List, Optional
+import traceback
+from typing import Any, List, Optional, Union
 
 import pandas as pd
 
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
+from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.core.pandas.types import is_table
 from pandera.error_formatters import reshape_failure_cases, scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import ParserError, SchemaError, SchemaErrors
+from pandera.errors import (
+    ParserError,
+    SchemaError,
+    SchemaErrors,
+    SchemaDefinitionError,
+)
 
 
 class DataFrameSchemaBackend(PandasSchemaBackend):
@@ -135,6 +142,28 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
             except SchemaError as err:
                 error_handler.collect_error("dataframe_check", err)
+            except SchemaDefinitionError:
+                raise
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the check
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing check function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                error_handler.collect_error(
+                    "check_error",
+                    SchemaError(
+                        self,
+                        check_obj,
+                        msg,
+                        failure_cases=scalar_failure_case(err_str),
+                        check=check,
+                        check_index=check_index,
+                    ),
+                    original_exc=err,
+                )
 
     def collect_column_info(
         self,
@@ -197,9 +226,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             if (
                 col.required or col_name in check_obj
             ) and col_name not in column_info.lazy_exclude_column_names:
+                col = copy.deepcopy(col)
                 if schema.dtype is not None:
                     # override column dtype with dataframe dtype
-                    col = copy.deepcopy(col)
                     col.dtype = schema.dtype
 
                 # disable coercion at the schema component level since the
@@ -433,13 +462,17 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         # NOTE: fix this pylint error
         # pylint: disable=not-an-iterable
+        keep_setting = convert_uniquesettings(schema.report_duplicates)
         temp_unique: List[List] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
             else schema.unique
         )
         for lst in temp_unique:
-            duplicates = check_obj.duplicated(subset=lst, keep=False)
+            subset = [x for x in lst if x in check_obj]
+            duplicates = check_obj.duplicated(  # type: ignore
+                subset=subset, keep=keep_setting  # type: ignore
+            )
             if duplicates.any():
                 # NOTE: this is a hack to support pyspark.pandas, need to
                 # figure out a workaround to error: "Cannot combine the
@@ -450,15 +483,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     import pyspark.pandas as ps
 
                     with ps.option_context("compute.ops_on_diff_frames", True):
-                        failure_cases = check_obj.loc[duplicates, lst]
+                        failure_cases = check_obj.loc[duplicates, subset]
                 else:
-                    failure_cases = check_obj.loc[duplicates, lst]
+                    failure_cases = check_obj.loc[duplicates, subset]
 
                 failure_cases = reshape_failure_cases(failure_cases)
                 raise SchemaError(
                     schema=schema,
                     data=check_obj,
-                    message=f"columns '{*lst,}' not unique:\n{failure_cases}",
+                    message=f"columns '{*subset,}' not unique:\n{failure_cases}",
                     failure_cases=failure_cases,
                     check="multiple_fields_uniqueness",
                     reason_code="duplicates",
