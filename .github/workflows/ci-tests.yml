@@ -210,7 +210,7 @@ jobs:
         # - windows, python 3.10
         # - mac, python 3.7
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && !contains(['3.7', '3.10'], matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
@@ -219,9 +219,9 @@ jobs:
         uses: codecov/codecov-action@v3
 
       - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && !contains(['3.7', '3.10'], matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' && !contains(['3.7', '3.10'], matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session docs
