@@ -37,7 +37,7 @@ from .model_components import (
     FieldInfo,
 )
 from .schemas import DataFrameSchema
-from .typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
+from .typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo, DataFrame
 from .typing.common import DataFrameBase
 from .typing.config import BaseConfig
 
@@ -520,6 +520,12 @@ class SchemaModel(metaclass=_MetaSchema):
     def __modify_schema__(cls, field_schema):
         """Update pydantic field schema."""
         field_schema.update(to_json_schema(cls.to_schema()))
+
+    @classmethod
+    @docstring_substitution(validate_doc=DataFrameSchema.empty.__doc__)
+    def empty(cls: Type[TSchemaModel]) -> DataFrame[TSchemaModel]:
+        """%(validate_doc)s"""
+        return cast(DataFrame[TSchemaModel], cls.to_schema().empty())
 
     def __class_getitem__(
         cls: Type[TSchemaModel],
