@@ -4,13 +4,14 @@ from typing import overload
 
 import pandas as pd
 
-from .schema_components import Column, Index, MultiIndex
-from .schema_statistics import (
+from pandera.core.pandas.components import Column, Index, MultiIndex
+from pandera.core.pandas.container import DataFrameSchema
+from pandera.core.pandas.array import SeriesSchema
+from pandera.schema_statistics import (
     infer_dataframe_statistics,
     infer_series_statistics,
     parse_check_statistics,
 )
-from .schemas import DataFrameSchema, SeriesSchema
 
 
 @overload

@@ -13,6 +13,7 @@ from packaging import version
 import pandera
 import pandera.extensions as pa_ext
 import pandera.typing as pat
+from pandera.core.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
 
 try:
@@ -132,8 +133,8 @@ columns:
       in_range:
         min_value: 0
         max_value: 10
-        include_min: null
-        include_max: null
+        include_min: true
+        include_max: true
     unique: false
     coerce: false
     required: true
@@ -149,8 +150,8 @@ columns:
       in_range:
         min_value: -10
         max_value: 20
-        include_min: null
-        include_max: null
+        include_min: true
+        include_max: true
     unique: false
     coerce: false
     required: true
@@ -383,6 +384,8 @@ schema_type: dataframe
 version: {pandera.__version__}
 columns:
   int_column:
+    title: null
+    description: null
     dtype: int64
     nullable: false
     checks:
@@ -391,13 +394,15 @@ columns:
       in_range:
         min_value: 0
         max_value: 10
-        include_min: null
-        include_max: null
+        include_min: true
+        include_max: true
     unique: false
     coerce: false
     required: true
     regex: false
   float_column:
+    title: null
+    description: null
     dtype: float64
     nullable: false
     checks:
@@ -406,13 +411,15 @@ columns:
       in_range:
         min_value: -10
         max_value: 20
-        include_min: null
-        include_max: null
+        include_min: true
+        include_max: true
     unique: false
     coerce: false
     required: true
     regex: false
   str_column:
+    title: null
+    description: null
     dtype: str
     nullable: false
     checks:
@@ -429,6 +436,8 @@ columns:
     required: true
     regex: false
   datetime_column:
+    title: null
+    description: null
     dtype: datetime64[ns]
     nullable: false
     checks:
@@ -439,6 +448,8 @@ columns:
     required: true
     regex: false
   timedelta_column:
+    title: null
+    description: null
     dtype: timedelta64[ns]
     nullable: false
     checks:
@@ -449,6 +460,8 @@ columns:
     required: true
     regex: false
   optional_props_column:
+    title: null
+    description: null
     dtype: str
     nullable: true
     checks:
@@ -460,6 +473,8 @@ columns:
     required: false
     regex: true
   notype_column:
+    title: null
+    description: null
     dtype: null
     nullable: false
     checks:
@@ -474,15 +489,24 @@ columns:
     regex: false
 checks: null
 index:
-- dtype: int64
+- title: null
+  description: null
+  dtype: int64
   nullable: false
   checks: null
   name: null
   unique: false
   coerce: false
+dtype: null
 coerce: false
 strict: true
+name: null
+ordered: false
 unique: null
+report_duplicates: all
+unique_column_names: false
+title: null
+description: null
 """
 
 
@@ -1117,8 +1141,8 @@ columns:
       in_range:
         min_value: 10
         max_value: 99
-        include_min: null
-        include_max: null
+        include_min: true
+        include_max: true
     unique: true
     coerce: true
     required: true
@@ -1278,7 +1302,7 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
 
     assert isinstance(
-        schema, pandera.schemas.DataFrameSchema
+        schema, DataFrameSchema
     ), "schema object not loaded successfully"
 
     df = schema.validate(VALID_FRICTIONLESS_DF)
@@ -1302,20 +1326,20 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     assert err.value.failure_cases[["check", "failure_case"]].fillna(
         "NaN"
     ).to_dict(orient="records") == [
-        {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {"check": "column_in_dataframe", "failure_case": "date_col"},
+        {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {
             "check": "str_length(3, 80)",
             "failure_case": "dddddddddddddddddddddddddddddddddddddddddddddddddddd"
             "dddddddddddddddddddddddddddddddddddddddddddddddd",
         },
-        {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 3.8},
-        {"check": "isin({1.0, 2.0, 3.0})", "failure_case": 1.1},
+        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 3.8},
+        {"check": "isin([1.0, 2.0, 3.0])", "failure_case": 1.1},
         {"check": "not_nullable", "failure_case": "NaN"},
         {"check": "str_length(None, 3)", "failure_case": "123A"},
         {"check": "str_length(3, None)", "failure_case": "1A"},
         {
-            "check": "str_matches(re.compile('^\\\\d{3}[A-Z]$'))",
+            "check": "str_matches('^\\d{3}[A-Z]$')",
             "failure_case": "789c",
         },
         {"check": "str_length(3, 80)", "failure_case": "a"},

@@ -11,12 +11,12 @@ import pandas as pd
 
 import pandera.errors
 
-from . import dtypes
-from .checks import Check
-from .engines import pandas_engine
-from .schema_components import Column
-from .schema_statistics import get_dataframe_schema_statistics
-from .schemas import DataFrameSchema
+from pandera import dtypes
+from pandera.core.pandas.container import DataFrameSchema
+from pandera.core.pandas.components import Column
+from pandera.core.checks import Check
+from pandera.engines import pandas_engine
+from pandera.schema_statistics import get_dataframe_schema_statistics
 
 try:
     import black
@@ -172,7 +172,7 @@ def serialize_schema(dataframe_schema):
         "name": dataframe_schema.name,
         "ordered": dataframe_schema.ordered,
         "unique": dataframe_schema.unique,
-        "report_duplicates": dataframe_schema._report_duplicates,
+        "report_duplicates": dataframe_schema.report_duplicates,
         "unique_column_names": dataframe_schema.unique_column_names,
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
@@ -545,7 +545,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         name=dataframe_schema.name.__repr__(),
         ordered=dataframe_schema.ordered,
         unique=dataframe_schema.unique,
-        report_duplicates=f'"{dataframe_schema._report_duplicates}"',
+        report_duplicates=f'"{dataframe_schema.report_duplicates}"',
         unique_column_names=dataframe_schema.unique_column_names,
         title=dataframe_schema.title,
         description=dataframe_schema.description,

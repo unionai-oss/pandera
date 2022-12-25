@@ -2,19 +2,7 @@
 
 import operator
 import re
-from functools import partial, wraps
-from inspect import Parameter, Signature, signature
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Iterable, TypeVar, Union
 
 import pandas as pd
 
@@ -245,12 +233,6 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
     :param allowed_values: The set of allowed values. May be any iterable.
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    try:
-        allowed_values = frozenset(allowed_values)
-    except TypeError as exc:
-        raise ValueError(
-            f"Argument allowed_values must be iterable. Got {allowed_values}"
-        ) from exc
     return data.isin(allowed_values)
 
 
@@ -412,6 +394,3 @@ def unique_values_eq_init_hook(statistics_kwargs):
 )
 def unique_values_eq(data: PandasData, values: Iterable):
     return set(data.unique()) == values  # type: ignore[return-value]
-
-
-# TODO: implement hypothesis tests in the Check namespace

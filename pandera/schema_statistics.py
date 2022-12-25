@@ -4,9 +4,9 @@ from typing import Any, Dict, Union
 
 import pandas as pd
 
-from . import dtypes
-from .checks import Check
-from .engines import pandas_engine
+from pandera import dtypes
+from pandera.core.checks import Check
+from pandera.engines import pandas_engine
 
 
 def infer_dataframe_statistics(df: pd.DataFrame) -> Dict[str, Any]:

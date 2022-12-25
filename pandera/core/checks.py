@@ -220,7 +220,7 @@ def register_check(
     pre_init_hook: Optional[Callable] = None,
     aliases: Optional[List[str]] = None,
     strategy: Optional[Callable] = None,
-    error: Optional[str] = None,
+    error: Optional[Union[str, Callable]] = None,
     **kwargs,
 ):
     """Register a check method to the Check namespace.
@@ -271,11 +271,17 @@ def register_check(
                 elif stat not in statistics_kwargs:
                     statistics_kwargs[stat] = statistics_defaults[stat]
 
-            _check_kwargs = {"error": error.format(**statistics_kwargs)}
+            _check_kwargs = {
+                "error": (
+                    error.format(**statistics_kwargs)
+                    if isinstance(error, str)
+                    else error(**statistics_kwargs)
+                )
+            }
             _check_kwargs.update(kwargs)
             _check_kwargs.update(check_kwargs)
 
-            # TODO: This is kind of ugly... basically we're creating another
+            # This is kind of ugly... basically we're creating another
             # stats kwargs variable that's actually used when invoking the check
             # function (which may or may not be processed by pre_init_hook)
             # This is so that the original value is not modified by
@@ -293,7 +299,7 @@ def register_check(
             @wraps(fn)
             def _check_fn(check_obj, **inner_kwargs):
                 """inner_kwargs will be based in via Check.__init__ kwargs."""
-                # TODO: Raise more informative error when this fails to dispatch
+                # Raise more informative error when this fails to dispatch
                 return check_function_proxy(
                     cls,
                     check_obj,
