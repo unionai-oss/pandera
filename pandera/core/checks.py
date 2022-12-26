@@ -29,7 +29,7 @@ class Check(BaseCheck):
         title: Optional[str] = None,
         description: Optional[str] = None,
         statistics: Dict[str, Any] = None,
-        strategy: SearchStrategy = None,
+        strategy: Optional[SearchStrategy] = None,
         **check_kwargs,
     ) -> None:
         """Apply a validation function to each element, Series, or DataFrame.
@@ -287,11 +287,11 @@ def register_check(
             # This is so that the original value is not modified by
             # pre_init_hook when, for e.g. the check is serialized with the io
             # module. Figure out a better way to do this!
-            if pre_init_hook is not None:
-                # this is the statistics that are used in the check function
-                check_fn_stats_kwargs = pre_init_hook(statistics_kwargs)
-            else:
-                check_fn_stats_kwargs = statistics_kwargs
+            check_fn_stats_kwargs = (
+                pre_init_hook(statistics_kwargs)
+                if pre_init_hook is not None
+                else statistics_kwargs
+            )
 
             # internal wrapper is needed here to: make sure the inner check_fn
             # produced by this method is consistent with the registered check
@@ -310,7 +310,11 @@ def register_check(
             return cls(
                 _check_fn,
                 statistics=statistics_kwargs,
-                strategy=strategy,
+                strategy=(
+                    None
+                    if strategy is None
+                    else partial(strategy, **statistics_kwargs)
+                ),
                 **_check_kwargs,
             )
 

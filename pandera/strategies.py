@@ -775,7 +775,7 @@ def field_element_strategy(
         ).filter(check._check_fn)
 
     for check in checks:
-        if hasattr(check, "strategy"):
+        if check.strategy is not None:
             elements = check.strategy(pandera_dtype, elements)
         elif check.element_wise:
             elements = undefined_check_strategy(elements, check)
@@ -847,7 +847,7 @@ def series_strategy(
         return strategy.filter(_check_fn)
 
     for check in checks if checks is not None else []:
-        if not hasattr(check, "strategy") and not check.element_wise:
+        if check.strategy is None and not check.element_wise:
             strategy = undefined_check_strategy(strategy, check)
 
     return strategy
@@ -1004,7 +1004,7 @@ def dataframe_strategy(
     def make_row_strategy(col, checks):
         strategy = None
         for check in checks:
-            if hasattr(check, "strategy"):
+            if check.strategy is not None:
                 strategy = check.strategy(col.dtype, strategy)
             else:
                 strategy = undefined_check_strategy(
@@ -1024,7 +1024,7 @@ def dataframe_strategy(
         row_strategy_checks = []
         undefined_strat_df_checks = []
         for check in checks:
-            if hasattr(check, "strategy") or check.element_wise:
+            if check.strategy is not None or check.element_wise:
                 # we can apply element-wise checks defined at the dataframe
                 # level to the row strategy
                 row_strategy_checks.append(check)
@@ -1066,7 +1066,7 @@ def dataframe_strategy(
             undefined_strat_column_checks[col_name].extend(
                 check
                 for check in column.checks
-                if not hasattr(check, "strategy") and not check.element_wise
+                if check.strategy is None and not check.element_wise
             )
 
         # override the column datatype with dataframe-level datatype if
