@@ -8,7 +8,7 @@ from pyspark.pandas.extensions import (
     register_series_accessor,
 )
 
-from pandera._accessors.pandas_accessor import (
+from pandera.accessors.pandas_accessor import (
     PanderaDataFrameAccessor,
     PanderaSeriesAccessor,
 )

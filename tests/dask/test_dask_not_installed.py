@@ -15,11 +15,11 @@ def test_dask_not_installed() -> None:
             import dask.dataframe
 
         del sys.modules["pandera"]
-        del sys.modules["pandera.dask_accessor"]
+        del sys.modules["pandera.accessors.dask_accessor"]
         # pylint: disable=import-outside-toplevel,unused-import
         import pandera
 
-        assert "pandera.dask_accessor" not in sys.modules
+        assert "pandera.accessors.dask_accessor" not in sys.modules
 
         del sys.modules["pandera"]
         del sys.modules["pandera.check_utils"]

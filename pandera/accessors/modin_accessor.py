@@ -6,7 +6,7 @@ https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/api/pysp
 
 import warnings
 
-from pandera._accessors.pandas_accessor import (
+from pandera.accessors.pandas_accessor import (
     PanderaDataFrameAccessor,
     PanderaSeriesAccessor,
 )

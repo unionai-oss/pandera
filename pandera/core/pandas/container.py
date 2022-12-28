@@ -331,7 +331,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 inplace=inplace,
                 meta=check_obj,
             )
-
             return check_obj.pandera.add_schema(self)
 
         return self._validate(

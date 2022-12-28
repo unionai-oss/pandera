@@ -54,7 +54,7 @@ except ImportError:  # pragma: no cover
     class SearchStrategy:  # type: ignore
         """placeholder type."""
 
-    def composite(fn):
+    def composite(fn):  # type: ignore
         """placeholder composite strategy."""
         return fn
 
@@ -72,11 +72,11 @@ F = TypeVar("F", bound=Callable)
 def _mask(
     val: Union[pd.Series, pd.Index], null_mask: List[bool]
 ) -> Union[pd.Series, pd.Index]:
-    if pd.api.types.is_timedelta64_dtype(val):
-        return val.mask(null_mask, pd.NaT)
-    elif val.dtype == pd.StringDtype():
-        return val.mask(null_mask, pd.NA)
-    return val.mask(null_mask)
+    if pd.api.types.is_timedelta64_dtype(val):  # type: ignore [arg-type]
+        return val.mask(null_mask, pd.NaT)  # type: ignore [union-attr,arg-type]
+    elif val.dtype == pd.StringDtype():  # type: ignore [call-arg]
+        return val.mask(null_mask, pd.NA)  # type: ignore [union-attr,arg-type]
+    return val.mask(null_mask)  # type: ignore [union-attr]
 
 
 @composite
@@ -213,8 +213,10 @@ def register_check_strategy(strategy_fn: StrategyFn):
 # pylint: disable=line-too-long
 # Values taken from
 # https://hypothesis.readthedocs.io/en/latest/_modules/hypothesis/extra/numpy.html#from_dtype  # noqa
-MIN_DT_VALUE = -(2**63)
-MAX_DT_VALUE = 2**63 - 1
+# NOTE: We're reducing the range here by an order of magnitude to avoid overflows
+# when synthesizing timezone-aware timestamps.
+MIN_DT_VALUE = -(2**62) + 1
+MAX_DT_VALUE = 2**62 - 1
 
 
 def _is_datetime_tz(pandera_dtype: DataType) -> bool:
@@ -225,13 +227,12 @@ def _is_datetime_tz(pandera_dtype: DataType) -> bool:
 def _datetime_strategy(
     dtype: Union[np.dtype, pd.DatetimeTZDtype], strategy
 ) -> SearchStrategy:
-
     if isinstance(dtype, pd.DatetimeTZDtype):
 
         def _to_datetime(value) -> pd.DatetimeTZDtype:
             if isinstance(value, pd.Timestamp):
-                return value.tz_convert(tz=dtype.tz)  # type: ignore[union-attr]
-            return pd.Timestamp(value, unit=dtype.unit, tz=dtype.tz)  # type: ignore[union-attr]
+                return value.tz_convert(tz=dtype.tz)  # type: ignore[union-attr,return-value]
+            return pd.Timestamp(value, unit=dtype.unit, tz=dtype.tz)  # type: ignore[union-attr,return-value]
 
         return st.builds(_to_datetime, strategy)
     else:
@@ -377,7 +378,7 @@ def pandas_dtype_strategy(
         )
 
     np_dtype = to_numpy_dtype(pandera_dtype)
-    if strategy:
+    if strategy is not None:
         if _is_datetime_tz(pandera_dtype):
             return _datetime_strategy(pandera_dtype.type, strategy)  # type: ignore
         return strategy.map(np_dtype.type)
@@ -774,7 +775,7 @@ def field_element_strategy(
         ).filter(check._check_fn)
 
     for check in checks:
-        if hasattr(check, "strategy"):
+        if check.strategy is not None:
             elements = check.strategy(pandera_dtype, elements)
         elif check.element_wise:
             elements = undefined_check_strategy(elements, check)
@@ -823,7 +824,7 @@ def series_strategy(
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
-            unique=unique,
+            unique=bool(unique),
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
@@ -846,7 +847,7 @@ def series_strategy(
         return strategy.filter(_check_fn)
 
     for check in checks if checks is not None else []:
-        if not hasattr(check, "strategy") and not check.element_wise:
+        if check.strategy is None and not check.element_wise:
             strategy = undefined_check_strategy(strategy, check)
 
     return strategy
@@ -913,7 +914,7 @@ def index_strategy(
         dtype=to_numpy_dtype(pandera_dtype),
         min_size=0 if size is None else size,
         max_size=size,
-        unique=unique,
+        unique=bool(unique),
     ).map(lambda x: x.astype(pandera_dtype.type))
 
     # this is a hack to convert np.str_ data values into native python str.
@@ -1003,7 +1004,7 @@ def dataframe_strategy(
     def make_row_strategy(col, checks):
         strategy = None
         for check in checks:
-            if hasattr(check, "strategy"):
+            if check.strategy is not None:
                 strategy = check.strategy(col.dtype, strategy)
             else:
                 strategy = undefined_check_strategy(
@@ -1023,7 +1024,7 @@ def dataframe_strategy(
         row_strategy_checks = []
         undefined_strat_df_checks = []
         for check in checks:
-            if hasattr(check, "strategy") or check.element_wise:
+            if check.strategy is not None or check.element_wise:
                 # we can apply element-wise checks defined at the dataframe
                 # level to the row strategy
                 row_strategy_checks.append(check)
@@ -1065,7 +1066,7 @@ def dataframe_strategy(
             undefined_strat_column_checks[col_name].extend(
                 check
                 for check in column.checks
-                if not hasattr(check, "strategy") and not check.element_wise
+                if check.strategy is None and not check.element_wise
             )
 
         # override the column datatype with dataframe-level datatype if
@@ -1102,14 +1103,23 @@ def dataframe_strategy(
         )
 
         # this is a hack to convert np.str_ data values into native python str.
+        string_columns = []
         for col_name, col_dtype in col_dtypes.items():
             if col_dtype in {"object", "str"} or col_dtype.startswith(
                 "string"
             ):
-                # pylint: disable=cell-var-from-loop,undefined-loop-variable
-                strategy = strategy.map(
-                    lambda df: df.assign(**{col_name: df[col_name].map(str)})
+                string_columns.append(col_name)
+
+        if string_columns:
+            # pylint: disable=cell-var-from-loop,undefined-loop-variable
+            strategy = strategy.map(
+                lambda df: df.assign(
+                    **{
+                        col_name: df[col_name].map(str)
+                        for col_name in string_columns
+                    }
                 )
+            )
 
         strategy = strategy.map(
             lambda df: df if df.empty else df.astype(col_dtypes)
@@ -1173,7 +1183,9 @@ def multiindex_strategy(
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
-    ).map(lambda x: x.astype(index_dtypes))
+    ).map(
+        lambda x: x.astype(index_dtypes)  # type: ignore[arg-type]
+    )
 
     # this is a hack to convert np.str_ data values into native python str.
     for name, dtype in index_dtypes.items():

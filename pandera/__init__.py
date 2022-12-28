@@ -2,7 +2,7 @@
 import platform
 
 from pandera import errors, external_config, typing
-from pandera._accessors import pandas_accessor
+from pandera.accessors import pandas_accessor
 from pandera.core.checks import Check
 from pandera.core.pandas import (
     Column,
@@ -71,7 +71,7 @@ if platform.system() != "Windows":
 try:
     import dask.dataframe
 
-    from pandera._accessors import dask_accessor
+    from pandera.accessors import dask_accessor
 except ImportError:
     pass
 
@@ -79,7 +79,7 @@ except ImportError:
 try:
     import pyspark.pandas
 
-    from pandera._accessors import pyspark_accessor
+    from pandera.accessors import pyspark_accessor
 except ImportError:
     pass
 
@@ -87,7 +87,7 @@ except ImportError:
 try:
     import modin.pandas
 
-    from pandera._accessors import modin_accessor
+    from pandera.accessors import modin_accessor
 except ImportError:
     pass
 
