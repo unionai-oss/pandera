@@ -140,7 +140,11 @@ PANDAS_SERIES_ERRORS = [
             "no_plugin.ini",
             PANDERA_INHERITANCE_ERRORS,
         ],
-        ["pandera_inheritance.py", "plugin_mypy.ini", []],
+        [
+            "pandera_inheritance.py",
+            "plugin_mypy.ini",
+            PANDERA_INHERITANCE_ERRORS,
+        ],
         ["pandera_types.py", "no_plugin.ini", PANDERA_TYPES_ERRORS],
         ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
         ["pandas_concat.py", "no_plugin.ini", []],
@@ -162,7 +166,11 @@ def test_pandas_stubs_false_positives(
     expected_errors,
 ) -> None:
     """Test pandas-stubs type stub false positives."""
-    cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
+    cache_dir = str(
+        test_module_dir
+        / ".mypy_cache"
+        / f'{module.replace(".", "_")}-{config.replace(".", "_")}'
+    )
 
     commands = [
         sys.executable,
