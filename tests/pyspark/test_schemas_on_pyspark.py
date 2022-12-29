@@ -3,9 +3,11 @@ import re
 import typing
 from unittest.mock import MagicMock
 
+import numpy as np
 import pandas as pd
 import pyspark.pandas as ps
 import pytest
+from packaging import version
 from pyspark import SparkContext
 
 import pandera as pa
@@ -60,9 +62,9 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.Date,
 }
 
-SPARK_VERSION = SparkContext().version
+SPARK_VERSION = version.parse(SparkContext().version)
 
-if SPARK_VERSION < "3.3.0":
+if SPARK_VERSION < version.parse("3.3.0"):
     PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)
 
 if system.FLOAT_128_AVAILABLE:
@@ -288,6 +290,14 @@ def test_nullable(
     data: st.DataObject,
 ):
     """Test nullable checks on pyspark.pandas dataframes."""
+
+    if version.parse(np.__version__) >= version.parse(
+        "1.24.0"
+    ) and SPARK_VERSION <= version.parse("3.3.1"):
+        # this should raise an error due to pyspark code using numpy.bool,
+        # which is deprecated.
+        pytest.xfail()
+
     checks = None
     if dtypes.is_datetime(type(dtype)) and MIN_TIMESTAMP is not None:
         checks = [pa.Check.gt(MIN_TIMESTAMP)]
@@ -417,6 +427,13 @@ def test_required_column():
 @hypothesis.given(st.data())
 def test_dtype_coercion(from_dtype, to_dtype, data):
     """Test the datatype coercion provides informative errors."""
+
+    if version.parse(np.__version__) >= version.parse(
+        "1.24.0"
+    ) and SPARK_VERSION <= version.parse("3.3.1"):
+        # this should raise an error due to pyspark code using numpy.bool,
+        # which is deprecated.
+        pytest.xfail()
 
     # there's an issue generating index strategies with string dtypes having to
     # do with encoding utf-8 characters... therefore this test restricts the

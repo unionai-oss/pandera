@@ -287,7 +287,12 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     )
 
         if schema.strict == "filter":
-            check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+            if type(check_obj).__module__.startswith("pyspark.pandas"):
+                # NOTE: remove this when we have a seperate backend for pyspark
+                # pandas.
+                check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
+            else:
+                check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
 
         return check_obj
 

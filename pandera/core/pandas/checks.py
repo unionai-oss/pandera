@@ -14,8 +14,15 @@ PandasData = Union[pd.Series, pd.DataFrame]
 
 
 if pandera.typing.modin.MODIN_INSTALLED:
-    from modin.pandas import Series, DataFrame
-    PandasData = Union[PandasData, Series, DataFrame]
+    import modin.pandas as mpd
+
+    PandasData = Union[PandasData, mpd.Series, mpd.DataFrame]
+
+
+if pandera.typing.pyspark.PYSPARK_INSTALLED:
+    import pyspark.pandas as ppd
+
+    PandasData = Union[PandasData, ppd.Series, ppd.DataFrame]
 
 
 T = TypeVar("T")
