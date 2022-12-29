@@ -122,7 +122,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 result = schema_component.validate(
                     check_obj, lazy=lazy, inplace=True
                 )
-                check_results.append(isinstance(result, pd.DataFrame))
+                check_results.append(is_table(result))
             except SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
             except SchemaErrors as err:

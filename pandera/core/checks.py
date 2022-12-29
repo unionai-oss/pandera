@@ -293,7 +293,7 @@ def register_check(
                 else statistics_kwargs
             )
 
-            # internal wrapper is needed here to: make sure the inner check_fn
+            # internal wrapper is needed here to make sure the inner check_fn
             # produced by this method is consistent with the registered check
             # function
             @wraps(fn)

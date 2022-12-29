@@ -35,7 +35,7 @@ SupportedTypes = NamedTuple(
 
 
 @lru_cache(maxsize=None)
-def _supported_types():
+def supported_types() -> SupportedTypes:
     # pylint: disable=import-outside-toplevel
     table_types = [pd.DataFrame]
     field_types = [pd.Series]
@@ -83,7 +83,7 @@ def is_table(obj):
     Where a table is a 2-dimensional data matrix of rows and columns, which
     can be indexed in multiple different ways.
     """
-    return isinstance(obj, _supported_types().table_types)
+    return isinstance(obj, supported_types().table_types)
 
 
 def is_field(obj):
@@ -92,19 +92,32 @@ def is_field(obj):
     Where a field is a columnar representation of data in a table-like
     data structure.
     """
-    return isinstance(obj, _supported_types().field_types)
+    return isinstance(obj, supported_types().field_types)
 
 
 def is_index(obj):
     """Verifies whether an object is a table index."""
-    return isinstance(obj, _supported_types().index_types)
+    return isinstance(obj, supported_types().index_types)
 
 
 def is_multiindex(obj):
     """Verifies whether an object is a multi-level table index."""
-    return isinstance(obj, _supported_types().multiindex_types)
+    return isinstance(obj, supported_types().multiindex_types)
 
 
-def is_supported_check_obj(obj):
+def is_table_or_field(obj):
     """Verifies whether an object is table- or field-like."""
     return is_table(obj) or is_field(obj)
+
+
+is_supported_check_obj = is_table_or_field
+
+
+def is_bool(x):
+    """Verifies whether an object is a boolean type."""
+    return isinstance(x, (bool, np.bool_))
+
+
+def is_pandas_key(x):
+    """Verifies whether an object is a pandas index key."""
+    return isinstance(x, (str, tuple))

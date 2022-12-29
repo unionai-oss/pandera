@@ -7,9 +7,15 @@ from typing import Any, Iterable, TypeVar, Union
 import pandas as pd
 
 import pandera.strategies as st
+import pandera.typing
 from pandera.core.checks import register_check
 
 PandasData = Union[pd.Series, pd.DataFrame]
+
+
+if pandera.typing.modin.MODIN_INSTALLED:
+    from modin.pandas import Series, DataFrame
+    PandasData = Union[PandasData, Series, DataFrame]
 
 
 T = TypeVar("T")
