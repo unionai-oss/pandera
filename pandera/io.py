@@ -298,7 +298,7 @@ def deserialize_schema(serialized_schema):
         name=serialized_schema.get("name", None),
         ordered=serialized_schema.get("ordered", False),
         unique=serialized_schema.get("unique", None),
-        report_duplicates=serialized_schema.get("_report_duplicates", "all"),
+        report_duplicates=serialized_schema.get("report_duplicates", "all"),
         unique_column_names=serialized_schema.get(
             "unique_column_names", False
         ),
@@ -545,7 +545,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         name=dataframe_schema.name.__repr__(),
         ordered=dataframe_schema.ordered,
         unique=dataframe_schema.unique,
-        report_duplicates=f'"{dataframe_schema._report_duplicates}"',
+        report_duplicates=f'"{dataframe_schema.report_duplicates}"',
         unique_column_names=dataframe_schema.unique_column_names,
         title=dataframe_schema.title,
         description=dataframe_schema.description,

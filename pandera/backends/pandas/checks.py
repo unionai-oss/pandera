@@ -12,7 +12,11 @@ from pandera.backends.base import BaseCheckBackend
 from pandera.core.base.checks import CheckResult
 from pandera.core.checks import Check
 from pandera.core.pandas.types import (
-    is_table, is_field, is_table_or_field, is_bool, is_pandas_key,
+    is_table,
+    is_field,
+    is_table_or_field,
+    is_bool,
+    is_pandas_key,
 )
 
 GroupbyObject = Union[
@@ -154,7 +158,7 @@ class PandasCheckBackend(BaseCheckBackend):
     @overload
     def postprocess(
         self,
-        check_obj: Any,
+        check_obj,
         check_output: is_bool,
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
