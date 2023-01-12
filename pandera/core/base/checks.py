@@ -1,8 +1,6 @@
 """Data validation base check."""
 
 import inspect
-import operator
-import re
 from collections import ChainMap, namedtuple
 from functools import wraps
 from itertools import chain
@@ -11,8 +9,6 @@ from typing import (
     Callable,
     Dict,
     Iterable,
-    List,
-    Mapping,
     Optional,
     Type,
     TypeVar,
@@ -23,7 +19,6 @@ from typing import (
 import pandas as pd
 
 from pandera.backends.base import BaseCheckBackend
-from pandera.strategies import SearchStrategy
 
 CheckResult = namedtuple(
     "CheckResult",
@@ -112,42 +107,17 @@ class MetaCheck(type):  # pragma: no cover
 class BaseCheck(metaclass=MetaCheck):
     """Check base class."""
 
-    def __init__(
-        self,
-        check_fn: Callable,
-        groups: Optional[Union[str, List[str]]] = None,
-        groupby: Optional[Union[str, List[str], Callable]] = None,
-        ignore_na: bool = True,
-        element_wise: bool = False,
-        name: Optional[str] = None,
-        error: Optional[str] = None,
-        raise_warning: bool = False,
-        n_failure_cases: Optional[int] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        statistics: List[str] = None,
-        strategy: SearchStrategy = None,
-    ) -> None:
-        self.check_fn = check_fn
-        self.groups = groups
-        self.groupby = groupby
-        self.ignore_na = ignore_na
-        self.element_wise = element_wise
+    def __init__(self, name: Optional[str] = None):
         self.name = name
-        self.error = error
-        self.raise_warning = raise_warning
-        self.n_failure_cases = n_failure_cases
-        self.title = title
-        self.description = description
-        self.statistics = statistics
-        self.strategy = strategy
 
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):
+        """Register a backend for the specified type."""
         cls.BACKEND_REGISTRY[type_] = backend
 
     @classmethod
     def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:
+        """Get the backend associated with the type of ``check_obj`` ."""
         return cls.BACKEND_REGISTRY[type(check_obj)]
 
     def __eq__(self, other: object) -> bool:

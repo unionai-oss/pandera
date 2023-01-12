@@ -1,3 +1,5 @@
+"""Class-based schema model API configuration for pandas."""
+
 from typing import Any, Dict, List, Optional, Union
 
 from pandera.core.base.model_config import BaseModelConfig
@@ -5,7 +7,7 @@ from pandera.core.pandas.types import PandasDtypeInputTypes, StrictType
 from pandera.typing.formats import Format
 
 
-class BaseConfig:  # pylint:disable=R0903
+class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     """Define DataFrameSchema-wide options.
 
     *new in 0.5.0*

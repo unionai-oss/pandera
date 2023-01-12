@@ -149,6 +149,7 @@ class Check(BaseCheck):
         See :ref:`here<checks>` for more usage details.
 
         """
+        super().__init__(name=name)
 
         if element_wise and groupby is not None:
             raise errors.SchemaInitError(
@@ -215,6 +216,7 @@ class Check(BaseCheck):
         return backend(check_obj, column)
 
 
+# pylint: disable=too-many-locals
 def register_check(
     fn=None,
     pre_init_hook: Optional[Callable] = None,
@@ -255,8 +257,9 @@ def register_check(
 
         # create proxy function so we can modify the signature and docstring
         # of the method to reflect correctly in the documentation
+        # pylint: disable=unused-argument
         def check_function_proxy(cls, *args, **kwargs):
-            return dispatch_check_fn(*args)
+            return dispatch_check_fn(*args, **kwargs)
 
         update_check_fn_proxy(
             check_function_proxy, fn, fn_sig, statistics_params
@@ -332,13 +335,14 @@ def register_check(
 
 
 def generate_check_signature(
-    signature: Signature,
+    sig: Signature,
     statistics_params: List[Parameter],
 ) -> Signature:
+    """Generates a check signature from check statistics."""
     # assume the first argument is the check object
-    return signature.replace(
+    return sig.replace(
         parameters=[
-            # This first parameter will be ignored when
+            # This first parameter will be ignored since it's the check object
             Parameter("_", Parameter.POSITIONAL_OR_KEYWORD),
             Parameter("cls", Parameter.POSITIONAL_OR_KEYWORD),
             *statistics_params,
@@ -353,6 +357,7 @@ def generate_check_signature(
 def generate_check_annotations(
     statistics_params: List[Parameter],
 ) -> Dict[str, Type]:
+    """Generates a check type annotations from check statistics."""
     return {
         **{p.name: p.annotation for p in statistics_params},
         "kwargs": Dict[

@@ -1,3 +1,5 @@
+"""Backend implementation for pandas schema components."""
+
 import traceback
 from copy import copy, deepcopy
 from typing import Iterable, Optional, Union
@@ -19,6 +21,8 @@ from pandera.errors import SchemaError, SchemaErrors
 
 
 class ColumnBackend(ArraySchemaBackend):
+    """Backend implementation for pandas dataframe columns."""
+
     def validate(
         self,
         check_obj: pd.DataFrame,
@@ -31,10 +35,10 @@ class ColumnBackend(ArraySchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
+        """Validation backend implementation for pandas dataframe columns.."""
         if not inplace:
             check_obj = check_obj.copy()
 
-        foo = check_obj.copy()
         error_handler = SchemaErrorHandler(lazy=lazy)
 
         if schema.name is None:
@@ -48,7 +52,7 @@ class ColumnBackend(ArraySchemaBackend):
 
         def validate_column(check_obj, column_name):
             try:
-                super(ColumnBackend, self).validate(
+                super().validate(
                     check_obj,
                     copy(schema).set_name(column_name),
                     head=head,
@@ -154,6 +158,7 @@ class ColumnBackend(ArraySchemaBackend):
     ) -> Union[pd.DataFrame, pd.Series]:
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
+        # pylint: disable=fixme
         # TODO: use singledispatchmethod here
         if is_field(check_obj) or is_index(check_obj):
             return super(ColumnBackend, self).coerce_dtype(
@@ -205,6 +210,8 @@ class ColumnBackend(ArraySchemaBackend):
 
 
 class IndexBackend(ArraySchemaBackend):
+    """Backend implementation for pandas index."""
+
     def validate(
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
@@ -261,8 +268,11 @@ class IndexBackend(ArraySchemaBackend):
 
 
 class MultiIndexBackend(DataFrameSchemaBackend):
+    """Backend implementation for pandas multiindex."""
+
     def coerce_dtype(  # type: ignore[override]
         self,
+        # pylint: disable=fixme
         # TODO: make MultiIndex not inherit from DataFrameSchemaBackend
         check_obj: pd.MultiIndex,
         *,
@@ -429,7 +439,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             return df
 
         try:
-            validation_result = super(MultiIndexBackend, self).validate(
+            validation_result = super().validate(
                 to_dataframe(check_obj.index),
                 schema_copy,
                 head=head,
@@ -457,7 +467,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 schema_error_dict["error"] = error
                 schema_error_dicts.append(schema_error_dict)
 
-            raise SchemaErrors(schema, schema_error_dicts, check_obj)
+            raise SchemaErrors(schema, schema_error_dicts, check_obj) from err
 
         assert is_table(validation_result)
         return check_obj

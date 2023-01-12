@@ -1,11 +1,12 @@
+"""Pandera array backends."""
+
 import traceback
-from functools import singledispatchmethod
-from typing import Iterable, NamedTuple, Optional, Union, overload
+from typing import Iterable, NamedTuple, Optional
 
 import pandas as pd
-from multimethod import DispatchError, multimethod
+from multimethod import DispatchError
 
-from pandera.backends.pandas.base import FieldCheckObj, PandasSchemaBackend
+from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.core.pandas.types import is_field
 from pandera.engines.pandas_engine import Engine
@@ -15,6 +16,8 @@ from pandera.errors import ParserError, SchemaError, SchemaErrors
 
 
 class CoreCheckResult(NamedTuple):
+    """Namedtuple for holding results of core checks."""
+
     check: str
     reason_code: str
     passed: bool
@@ -23,6 +26,8 @@ class CoreCheckResult(NamedTuple):
 
 
 class ArraySchemaBackend(PandasSchemaBackend):
+    """Backend for pandas arrays."""
+
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj if inplace else check_obj.copy()
 
@@ -38,6 +43,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
+        # pylint: disable=too-many-locals
         error_handler = SchemaErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
@@ -102,6 +108,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         check_obj,
         *,
         schema=None,
+        # pylint: disable=unused-argument
         error_handler: SchemaErrorHandler = None,
     ):
         """Coerce type of a pd.Series by type specified in dtype.
@@ -215,6 +222,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failure_cases=failure_cases,
         )
 
+    # pylint: disable=unused-argument
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
         for check_index, check in enumerate(schema.checks):
@@ -258,6 +266,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
 
 class SeriesSchemaBackend(ArraySchemaBackend):
+    """Backend for pandas Series objects."""
+
     def coerce_dtype(
         self,
         check_obj,

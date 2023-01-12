@@ -19,6 +19,7 @@ class SchemaErrorHandler:
 
     @property
     def lazy(self) -> bool:
+        """Whether or not the schema error handler raises errors immediately."""
         return self._lazy
 
     def collect_error(

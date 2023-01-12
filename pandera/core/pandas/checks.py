@@ -65,6 +65,7 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
 
 
 def gt_ge_pre_init_hook(statistics_kwargs):
+    """Pre-init hook for greater than/greater or equal to check."""
     if statistics_kwargs["min_value"] is None:
         raise ValueError("min_value must not be None")
     return statistics_kwargs
@@ -113,6 +114,7 @@ def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
 
 
 def lt_le_pre_init_hook(statistics_kwargs):
+    """Pre-init hook for less than/less than or equal to check."""
     if statistics_kwargs["max_value"] is None:
         raise ValueError("max_value must not be None")
     return statistics_kwargs
@@ -163,6 +165,7 @@ def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
 
 
 def in_range_pre_init_hook(statistics_kwargs):
+    """Pre-init hook for ``in_range`` check."""
     min_value = statistics_kwargs["min_value"]
     max_value = statistics_kwargs["max_value"]
     include_min = statistics_kwargs["include_min"]
@@ -218,6 +221,7 @@ def in_range(
 
 
 def isin_pre_init_hook(statistics_kwargs):
+    """Pre-init hook for ``isin`` check."""
     allowed_values = statistics_kwargs["allowed_values"]
     try:
         allowed_values = frozenset(allowed_values)
@@ -250,6 +254,7 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
 
 
 def notin_pre_init_hook(statistics_kwargs):
+    """Pre-init hook for ``notin`` check."""
     forbidden_values = statistics_kwargs["forbidden_values"]
     try:
         forbidden_values = frozenset(forbidden_values)
@@ -282,6 +287,7 @@ def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
 
 
 def str_regex_pre_init_hook(statistics_kwargs):
+    """Pre-init hook for string regex checks."""
     pattern = statistics_kwargs["pattern"]
     try:
         regex = re.compile(pattern)
@@ -352,6 +358,7 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
 
 
 def str_length_pre_init_hook(statistics_kwargs):
+    """Pre-init hook for ``str_length`` check."""
     min_value = statistics_kwargs["min_value"]
     max_value = statistics_kwargs["max_value"]
     if min_value is None and max_value is None:
@@ -391,6 +398,7 @@ def str_length(
 
 
 def unique_values_eq_init_hook(statistics_kwargs):
+    """Pre-init hook for ``unique_values`` check."""
     values = statistics_kwargs["values"]
     try:
         values = frozenset(values)
@@ -406,4 +414,12 @@ def unique_values_eq_init_hook(statistics_kwargs):
     error="unique_values_eq({values})",
 )
 def unique_values_eq(data: PandasData, values: Iterable):
+    """Ensure that unique values in the data object contain all values.
+
+    .. note::
+        In constrast with :func:`isin`, this check makes sure that all the items
+        in the ``values`` iterable are contained within the series.
+
+    :param values: The set of values that must be present. Maybe any iterable.
+    """
     return set(data.unique()) == values  # type: ignore[return-value]

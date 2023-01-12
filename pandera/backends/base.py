@@ -6,12 +6,7 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Optional, Sequence, Union
-
-import pandas as pd
-
-from pandera.checks import Check
-from pandera.dtypes import DataType
+from typing import Optional
 
 
 class BaseSchemaBackend(ABC):
@@ -49,7 +44,8 @@ class BaseSchemaBackend(ABC):
         inplace: bool = False,
     ):
         """
-        Parse and validate a check object, returning type-coerced and validated object.
+        Parse and validate a check object, returning type-coerced and validated
+        object.
         """
         raise NotImplementedError
 
@@ -74,8 +70,18 @@ class BaseSchemaBackend(ABC):
         """Run a single check on the check object."""
         raise NotImplementedError
 
-    def run_checks(self, check_obj, schema, error_handler):
+    def run_checks(self, check_obj, schema, error_handler, lazy):
         """Run a list of checks on the check object."""
+        raise NotImplementedError
+
+    def run_schema_component_checks(
+        self,
+        check_obj,
+        schema_components,
+        lazy,
+        error_handler,
+    ):
+        """Run checks for all schema components."""
         raise NotImplementedError
 
     def check_name(self, check_obj, schema):
@@ -98,9 +104,6 @@ class BaseSchemaBackend(ABC):
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""
 
-    def __init__(self, check):
-        raise NotImplementedError
-
     def __call__(self, check_obj, key=None):
         raise NotImplementedError
 
@@ -120,11 +123,11 @@ class BaseCheckBackend(ABC):
         """Preprocesses a check object before applying the check function."""
         raise NotImplementedError
 
-    def postprocess(self, check_obj, key):
+    def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
         raise NotImplementedError
 
-    def apply(self, check_obj, key):
+    def apply(self, check_obj):
         """Apply the check function to a check object."""
         raise NotImplementedError
 

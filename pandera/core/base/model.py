@@ -18,11 +18,6 @@ from pandera.core.base.model_config import BaseModelConfig
 from pandera.core.checks import Check
 from pandera.typing import AnnotationInfo
 
-try:
-    from pydantic.fields import ModelField
-except ImportError:
-    ModelField = Any  # type: ignore
-
 
 TBaseModel = TypeVar("TBaseModel", bound="BaseModel")
 

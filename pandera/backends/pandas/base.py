@@ -1,10 +1,8 @@
 """Pandas Parsing, Validation, and Error Reporting Backends."""
 
-import copy
 import warnings
 from typing import (
     FrozenSet,
-    Generic,
     Iterable,
     List,
     NamedTuple,
@@ -26,6 +24,8 @@ from pandera.errors import SchemaError
 
 
 class ColumnInfo(NamedTuple):
+    """Column metadata used during validation."""
+
     sorted_column_names: Iterable
     expanded_column_names: FrozenSet
     destuttered_column_names: List
@@ -45,6 +45,8 @@ T = TypeVar(
 
 
 class PandasSchemaBackend(BaseSchemaBackend):
+    """Base backend for pandas schemas."""
+
     def subsample(
         self,
         check_obj,

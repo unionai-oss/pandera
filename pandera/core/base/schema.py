@@ -26,6 +26,7 @@ class BaseSchema(ABC):
         title=None,
         description=None,
     ):
+        """Abstract base schema initializer."""
         self.dtype = dtype
         self.checks = checks
         self.coerce = coerce
@@ -43,13 +44,16 @@ class BaseSchema(ABC):
         lazy=False,
         inplace=False,
     ):
+        """Validate method to be implemented by subclass."""
         raise NotImplementedError
 
     def coerce_dtype(self, check_obj):
+        """Coerce object to the expected type."""
         raise NotImplementedError
 
     @property
     def properties(self):
+        """Get the properties of the schema for serialization purposes."""
         raise NotImplementedError
 
 

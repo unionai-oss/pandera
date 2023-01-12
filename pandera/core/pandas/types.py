@@ -36,6 +36,7 @@ SupportedTypes = NamedTuple(
 
 @lru_cache(maxsize=None)
 def supported_types() -> SupportedTypes:
+    """Get the types supported by pandera schemas."""
     # pylint: disable=import-outside-toplevel
     table_types = [pd.DataFrame]
     field_types = [pd.Series]

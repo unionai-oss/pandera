@@ -19,6 +19,7 @@ AnyCallable = Callable[..., Any]
 
 
 def to_checklist(checks: Optional[CheckArg]) -> List[Check]:
+    """Convert value to list of checks."""
     checks = checks or []
     return [checks] if isinstance(checks, Check) else checks
 

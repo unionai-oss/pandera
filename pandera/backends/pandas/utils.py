@@ -1,3 +1,5 @@
+"""Pandas backend utilities."""
+
 from typing import Union
 
 from pandera.dtypes import UniqueSettings

@@ -3,7 +3,7 @@
 import copy
 import itertools
 import traceback
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 import pandas as pd
 
@@ -21,7 +21,10 @@ from pandera.errors import (
 
 
 class DataFrameSchemaBackend(PandasSchemaBackend):
+    """Backend for pandas DataFrameSchema."""
+
     def preprocess(self, check_obj: pd.DataFrame, inplace: bool = False):
+        """Preprocesses a check object before applying check functions."""
         if not inplace:
             check_obj = check_obj.copy()
         return check_obj
@@ -38,6 +41,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
+        """
+        Parse and validate a check object, returning type-coerced and validated
+        object.
+        """
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
@@ -115,6 +122,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         lazy: bool,
         error_handler: SchemaErrorHandler,
     ):
+        """Run checks for all schema components."""
         check_results = []
         # schema-component-level checks
         for schema_component in schema_components:
@@ -133,6 +141,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         assert all(check_results)
 
     def run_checks(self, check_obj: pd.DataFrame, schema, error_handler):
+        """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results = []
         for check_index, check in enumerate(schema.checks):
@@ -171,6 +180,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         schema,
         lazy: bool,
     ) -> ColumnInfo:
+        """Collect column metadata."""
         column_names: List[Any] = []
         absent_column_names: List[Any] = []
         lazy_exclude_column_names: List[Any] = []
@@ -183,7 +193,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             ):
                 absent_column_names.append(col_name)
                 if lazy:
-                    # TODO: remove this since we can just use
+                    # NOTE: remove this since we can just use
                     # absent_column_names in the collect_schema_components
                     # method
                     lazy_exclude_column_names.append(col_name)
@@ -221,6 +231,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         schema,
         column_info: ColumnInfo,
     ):
+        """Collects all schema components to use for validation."""
         schema_components = []
         for col_name, col in schema.columns.items():
             if (
@@ -247,6 +258,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def strict_filter_columns(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
     ):
+        """Filters columns that aren't specified in the schema."""
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
         if not (schema.strict or schema.ordered):
@@ -303,6 +315,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         schema=None,
         error_handler: Optional[SchemaErrorHandler] = None,
     ):
+        """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
 
         _error_handler = error_handler or SchemaErrorHandler(lazy=True)
@@ -349,7 +362,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         :param obj: dataframe to coerce.
         :returns: dataframe with coerced dtypes
         """
-        # TODO: clean up the error handling!
+        # NOTE: clean up the error handling!
         error_handler = SchemaErrorHandler(lazy=True)
 
         def _coerce_df_dtype(obj: pd.DataFrame) -> pd.DataFrame:
@@ -427,6 +440,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     ##########
 
     def check_column_names_are_unique(self, check_obj: pd.DataFrame, schema):
+        """Check for column name uniquness."""
         if not schema.unique_column_names:
             return
         failed = check_obj.columns[check_obj.columns.duplicated()]
@@ -446,8 +460,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
     ):
+        """Check for presence of specified columns in the data object."""
         if column_info.absent_column_names:
-            # TODO: only report the first absent column for now, need to update
+            # NOTE: only report the first absent column for now, need to update
             # this when backend stuff is complete
             colname, *_ = column_info.absent_column_names
             raise SchemaError(
@@ -462,6 +477,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
     def check_column_values_are_unique(self, check_obj: pd.DataFrame, schema):
+        """Check that column values are unique."""
         if not schema.unique:
             return
 

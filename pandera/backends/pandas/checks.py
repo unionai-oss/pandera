@@ -1,13 +1,11 @@
 """Check backend for pandas."""
 
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
-import numpy as np
 import pandas as pd
-from multimethod import overload, multimethod, DispatchError
+from multimethod import overload, DispatchError
 
-import pandera.typing
 from pandera.backends.base import BaseCheckBackend
 from pandera.core.base.checks import CheckResult
 from pandera.core.checks import Check
@@ -25,7 +23,11 @@ GroupbyObject = Union[
 
 
 class PandasCheckBackend(BaseCheckBackend):
+    """Check backend ofr pandas."""
+
     def __init__(self, check: Check):
+        """Initializes a check backend object."""
+        super().__init__()
         assert check._check_fn is not None, "Check._check_fn must be set."
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
@@ -39,13 +41,11 @@ class PandasCheckBackend(BaseCheckBackend):
 
     def query(self, check_obj):
         """Implements querying behavior to produce subset of check object."""
-        # TODO
-        ...
+        raise NotImplementedError
 
     def aggregate(self, check_obj):
         """Implements aggregation behavior for check object."""
-        # TODO
-        ...
+        raise NotImplementedError
 
     @staticmethod
     def _format_groupby_input(
@@ -58,8 +58,8 @@ class PandasCheckBackend(BaseCheckBackend):
         :param groups: only include these groups in the output.
         :returns: dictionary mapping group names to Series or DataFrame.
         """
-        # TODO: this behavior should be deprecated such that the user deals with pandas
-        # groupby objects instead of dicts.
+        # NOTE: this behavior should be deprecated such that the user deals with
+        # pandas groupby objects instead of dicts.
         if groups is None:
             return dict(list(groupby_obj))
         group_keys = set(group_key for group_key, _ in groupby_obj)

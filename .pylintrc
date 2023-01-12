@@ -29,4 +29,8 @@ disable=
     too-many-ancestors,
     too-many-lines,
     too-few-public-methods,
-    line-too-long
+    line-too-long,
+    ungrouped-imports,
+    function-redefined,
+    arguments-differ,
+    no-self-use

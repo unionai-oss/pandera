@@ -2,8 +2,6 @@
 
 from typing import Any, Optional
 
-from pandera.dtypes import DataType
-
 
 class BaseModelConfig:  # pylint:disable=R0903
     """Model configuration base class."""

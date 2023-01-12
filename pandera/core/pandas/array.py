@@ -1,3 +1,5 @@
+"""Core pandas array specification."""
+
 import copy
 import warnings
 from typing import Any, List, Optional, TypeVar, Union, cast
@@ -67,16 +69,23 @@ class ArraySchema(BaseSchema):
         :param description: An arbitrary textual description of the series.
         :type nullable: bool
         """
+
+        super().__init__(
+            dtype=dtype,
+            checks=checks,
+            coerce=coerce,
+            name=name,
+            title=title,
+            description=description,
+        )
+
         if checks is None:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
-        self.dtype = dtype  # type: ignore
-        self.nullable = nullable
-        self.coerce = coerce
         self.checks = checks
-        self.name = name
+        self.nullable = nullable
         self.unique = unique
         self.report_duplicates = report_duplicates
         self.title = title
@@ -408,7 +417,6 @@ class SeriesSchema(ArraySchema):
         if hasattr(check_obj, "dask"):
             # special case for dask series
             if inplace:
-                # TODO: figure out where to handle this in a consistent place
                 check_obj = check_obj.pandera.add_schema(self)
             else:
                 check_obj = check_obj.copy()
@@ -423,7 +431,6 @@ class SeriesSchema(ArraySchema):
                 inplace=inplace,
                 meta=check_obj,
             )
-            # TODO: figure out where to handle this in a consistent place
             check_obj = check_obj.pandera.add_schema(self)
             return cast(pd.Series, check_obj)
 

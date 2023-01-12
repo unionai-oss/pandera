@@ -561,7 +561,7 @@ def test_coerce_dtype_in_dataframe():
         coerce=True,
     )
 
-    for schema in [schema2]:
+    for schema in [schema1, schema2]:
         result = schema.validate(df)
         column1_datatype = Engine.dtype(result.column1.dtype)
         assert column1_datatype == Engine.dtype(int)
@@ -1439,7 +1439,7 @@ def test_lazy_dataframe_unique() -> None:
                 # into a Series
                 "data": pd.Series(["a", "b", "d"]),
                 "schema_errors": {
-                    "Index": {f"isin(['a', 'b', 'c'])": ["d"]},
+                    "Index": {"isin(['a', 'b', 'c'])": ["d"]},
                 },
             },
         ],

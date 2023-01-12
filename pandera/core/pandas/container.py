@@ -1,3 +1,5 @@
+"""Core pandas dataframe container specification."""
+
 from __future__ import annotations
 
 import copy
@@ -8,7 +10,6 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 
 import pandas as pd
 
-import pandera.core
 from pandera import errors
 from pandera import strategies as st
 from pandera.backends.pandas.container import DataFrameSchemaBackend
@@ -124,6 +125,14 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
+        super().__init__(
+            dtype=dtype,
+            checks=checks,
+            name=name,
+            title=title,
+            description=description,
+        )
+
         self.columns: Dict[Any, "pandera.core.pandas.components.Column"] = (
             {} if columns is None else columns
         )
@@ -138,18 +147,13 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 "or `'filter'`."
             )
 
-        self.checks: CheckList = checks
         self.index = index
         self.strict: Union[bool, str] = strict
-        self.name: Optional[str] = name
-        self.dtype: PandasDtypeInputTypes = dtype  # type: ignore
         self._coerce = coerce
         self.ordered = ordered
         self._unique = unique
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
-        self.title = title
-        self.description = description
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
@@ -311,7 +315,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         4         0.80      dog
         5         0.76      dog
         """
-        # TODO: Move this into its own schema-backend variant. This is where
+        # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
         # implementation comes in.
         if hasattr(check_obj, "dask"):
@@ -718,6 +722,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         )>
 
         """
+        # pylint: disable=import-outside-toplevel,import-outside-toplevel
         from pandera.core.pandas.components import Column
 
         new_schema = copy.deepcopy(self)
@@ -1199,7 +1204,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param path: str, Path to write script
         :returns: dataframe schema.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
         import pandera.io
 
         return pandera.io.to_script(self, fp)
@@ -1212,7 +1217,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             string.
         :returns: dataframe schema.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
         import pandera.io
 
         return pandera.io.from_yaml(yaml_schema)
@@ -1231,7 +1236,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param stream: file stream to write to. If None, dumps to string.
         :returns: yaml string if stream is None, otherwise returns None.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
         import pandera.io
 
         return pandera.io.to_yaml(self, stream=stream)
@@ -1244,7 +1249,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             string.
         :returns: dataframe schema.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
         import pandera.io
 
         return pandera.io.from_json(source)
@@ -1269,7 +1274,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param target: file target to write to. If None, dumps to string.
         :returns: json string if target is None, otherwise returns None.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import,redefined-outer-name
         import pandera.io
 
         return pandera.io.to_json(self, target, **kwargs)

@@ -1,7 +1,7 @@
+"""Core pandas schema component specifications."""
+
 import warnings
-from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
-from unicodedata import name
 
 import pandas as pd
 
