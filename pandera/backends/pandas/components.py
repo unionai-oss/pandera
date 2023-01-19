@@ -15,7 +15,7 @@ from pandera.core.pandas.types import (
     is_multiindex,
     is_table,
 )
-from pandera.error_formatters import scalar_failure_case
+from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import SchemaError, SchemaErrors
 

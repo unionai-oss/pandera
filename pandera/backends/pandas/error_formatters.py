@@ -1,10 +1,11 @@
 """Make schema error messages human-friendly."""
 
-from typing import Union, cast
+from typing import Union
 
 import pandas as pd
 
 from pandera.core.pandas.types import is_field, is_multiindex, is_table
+from pandera.engines.pandas_engine import PANDAS_1_5_0_PLUS
 
 
 def format_generic_error_message(
@@ -87,7 +88,7 @@ def reshape_failure_cases(
         reshaped_failure_cases = failure_cases
     elif is_table(failure_cases) and is_multiindex(failure_cases.index):
         reshaped_failure_cases = (
-            failure_cases.rename_axis("column", axis=1)  # type: ignore [call-overload]  # noqa
+            failure_cases.rename_axis("column", axis=1)  # type: ignore[call-overload]
             .assign(
                 index=lambda df: (
                     df.index.to_frame().apply(tuple, axis=1).astype(str)
@@ -100,20 +101,20 @@ def reshape_failure_cases(
         )
     elif is_field(failure_cases) and is_multiindex(failure_cases.index):
         reshaped_failure_cases = (
-            failure_cases.rename("failure_case")  # type: ignore [call-overload]  # noqa
+            failure_cases.rename("failure_case")  # type: ignore[call-overload]
             .to_frame()
             .assign(
                 index=lambda df: (
-                    df.index.to_frame().apply(tuple, axis=1).astype(str)
+                    _multiindex_to_frame(df).apply(tuple, axis=1).astype(str)
                 )
             )[["failure_case", "index"]]
             .reset_index(drop=True)
         )
     elif is_table(failure_cases):
         reshaped_failure_cases = failure_cases.unstack().reset_index()
-        reshaped_failure_cases.columns = ["column", "index", "failure_case"]  # type: ignore [assignment]  # noqa
+        reshaped_failure_cases.columns = ["column", "index", "failure_case"]  # type: ignore[call-overload,assignment]  # noqa
     elif is_field(failure_cases):
-        reshaped_failure_cases = failure_cases.rename("failure_case")  # type: ignore [call-overload]  # noqa
+        reshaped_failure_cases = failure_cases.rename("failure_case")  # type: ignore[call-overload]
         reshaped_failure_cases.index.name = "index"
         reshaped_failure_cases = reshaped_failure_cases.reset_index()
     else:
@@ -122,9 +123,14 @@ def reshape_failure_cases(
             f"{type(failure_cases)}"
         )
 
-    reshaped_failure_cases = cast(pd.DataFrame, reshaped_failure_cases)
     return (
-        reshaped_failure_cases.dropna()
+        reshaped_failure_cases.dropna()  # type: ignore[return-value]
         if ignore_na
         else reshaped_failure_cases
     )
+
+
+def _multiindex_to_frame(df):
+    if PANDAS_1_5_0_PLUS:
+        return df.index.to_frame(allow_duplicates=True)
+    return df.index.to_frame().duplicates()

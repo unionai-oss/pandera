@@ -51,6 +51,7 @@ def pandas_version():
 
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
+PANDAS_1_5_0_PLUS = pandas_version().release >= (1, 5, 0)
 
 try:
     from typing import Literal  # type: ignore

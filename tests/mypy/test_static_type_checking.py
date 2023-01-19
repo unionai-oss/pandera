@@ -166,6 +166,13 @@ def test_pandas_stubs_false_positives(
     expected_errors,
 ) -> None:
     """Test pandas-stubs type stub false positives."""
+    xfail_modules = {"pandas_time.py", "pandas_index.py"}
+    if module in xfail_modules:
+        pytest.xfail(
+            f"{xfail_modules} are unstable when it comes due to maturing "
+            "pandas-stubs library"
+        )
+
     cache_dir = str(
         test_module_dir
         / ".mypy_cache"
