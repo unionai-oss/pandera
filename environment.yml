@@ -66,7 +66,7 @@ dependencies:
   # documentation
   - sphinx
   - sphinx-panels
-  - sphinx-autodoc-typehints <= 1.14.1
+  - sphinx-autodoc-typehints
   - sphinx-copybutton
   - recommonmark
 
@@ -74,7 +74,7 @@ dependencies:
   - twine
 
   # performance testing
-  - asv
+  - asv >= 0.5.1
 
   # optional
   - pre_commit

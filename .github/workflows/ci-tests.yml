@@ -155,21 +155,15 @@ jobs:
 
       - name: Install Conda Deps [Latest]
         if: ${{ matrix.pandas-version == 'latest' }}
-        run: mamba install -c conda-forge pandas geopandas
+        run: |
+          mamba install -c conda-forge asv pandas geopandas bokeh
+          mamba env update -n=pandera-dev -f=environment.yaml
 
       - name: Install Conda Deps
         if: ${{ matrix.pandas-version != 'latest' }}
-        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas
-
-      - name: List Working Directory
-        run:
-          ls .
-
-      - name: Install Pip Deps
         run: |
-          python -m pip install -U pip
-          python -m pip install -r requirements-dev.txt --verbose
-          python -m pip install bokeh
+          mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
+          mamba env update -n=pandera-dev -f=environment.yaml
 
       - run: |
           conda info

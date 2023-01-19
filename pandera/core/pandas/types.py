@@ -1,7 +1,12 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import List, Literal, NamedTuple, Tuple, Type, Union
+from typing import List, NamedTuple, Tuple, Type, Union
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore [misc]
 
 import numpy as np
 import pandas as pd
