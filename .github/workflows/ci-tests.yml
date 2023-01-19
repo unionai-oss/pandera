@@ -157,13 +157,13 @@ jobs:
         if: ${{ matrix.pandas-version == 'latest' }}
         run: |
           mamba install -c conda-forge asv pandas geopandas bokeh
-          mamba env update -n=pandera-dev -f=environment.yaml
+          mamba env update -n=pandera-dev -f=environment.yml
 
       - name: Install Conda Deps
         if: ${{ matrix.pandas-version != 'latest' }}
         run: |
           mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
-          mamba env update -n=pandera-dev -f=environment.yaml
+          mamba env update -n=pandera-dev -f=environment.yml
 
       - run: |
           conda info
