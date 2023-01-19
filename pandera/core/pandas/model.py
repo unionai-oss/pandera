@@ -42,9 +42,9 @@ from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
 
 try:
-    from typing import get_type_hints
+    from typing_extensions import get_type_hints
 except ImportError:
-    from typing_extensions import get_type_hints  # type: ignore
+    from typing import get_type_hints  # type: ignore
 
 try:
     from pydantic.fields import ModelField  # pylint:disable=unused-import
