@@ -66,7 +66,7 @@ dependencies:
   # documentation
   - sphinx
   - sphinx-panels
-  - sphinx-autodoc-typehints
+  - sphinx-autodoc-typehints <= 1.14.1
   - sphinx-copybutton
   - recommonmark
 
