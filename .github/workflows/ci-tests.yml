@@ -144,7 +144,7 @@ jobs:
           mamba-version: "*"
           activate-environment: pandera-dev
           channels: conda-forge
-          channel-priority: flexible
+          channel-priority: true
           use-only-tar-bz2: true
 
       - name: Install Conda Deps [Latest]
