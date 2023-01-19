@@ -104,9 +104,9 @@ class BaseSchemaBackend(ABC):
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""
 
-    def __init__(self, check):
+    def __init__(self, check):  # pylint: disable=unused-argument
         """Initializes a check backend object."""
-        raise NotImplementedError
+        ...
 
     def __call__(self, check_obj, key=None):
         raise NotImplementedError
