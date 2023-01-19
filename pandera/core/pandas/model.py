@@ -417,7 +417,7 @@ class DataFrameModel(BaseModel):
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
         annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
-            cls, include_extras=True
+            cls, include_extras=True  # type: ignore [call-arg]
         )
         attrs = cls._get_model_attrs()
 
