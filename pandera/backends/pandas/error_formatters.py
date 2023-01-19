@@ -111,7 +111,7 @@ def reshape_failure_cases(
         )
     elif is_table(failure_cases):
         reshaped_failure_cases = failure_cases.unstack().reset_index()
-        reshaped_failure_cases.columns = ["column", "index", "failure_case"]
+        reshaped_failure_cases.columns = ["column", "index", "failure_case"]  # type: ignore [assignment]  # noqa
     elif is_field(failure_cases):
         reshaped_failure_cases = failure_cases.rename("failure_case")  # type: ignore [call-overload]  # noqa
         reshaped_failure_cases.index.name = "index"

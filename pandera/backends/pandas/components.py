@@ -52,7 +52,8 @@ class ColumnBackend(ArraySchemaBackend):
 
         def validate_column(check_obj, column_name):
             try:
-                super().validate(
+                # pylint: disable=super-with-arguments
+                super(ColumnBackend, self).validate(
                     check_obj,
                     copy(schema).set_name(column_name),
                     head=head,
@@ -380,8 +381,8 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         # pylint: disable=too-many-locals
         if schema.coerce:
             try:
-                check_obj.index = self.coerce_dtype(  # type: ignore [arg-type]  # noqa
-                    check_obj.index, schema=schema
+                check_obj.index = self.coerce_dtype(
+                    check_obj.index, schema=schema  # type: ignore [arg-type]
                 )
             except SchemaErrors as err:
                 if lazy:

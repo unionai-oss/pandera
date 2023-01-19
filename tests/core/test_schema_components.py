@@ -480,7 +480,7 @@ def test_column_regex_matching_non_str_types(
     columns = pd.Index([1, 2.2, 3.1415, -1, -3.6, pd.Timestamp("2018/01/01")])
     column_schema = Column(name=column_name_regex, regex=True)
     matched_columns = column_schema.get_regex_columns(columns)
-    assert expected_matches == matched_columns.tolist()
+    assert expected_matches == [*matched_columns]
 
 
 @pytest.mark.parametrize(
@@ -523,7 +523,7 @@ def test_column_regex_matching_non_str_types_multiindex(
     )
     column_schema = Column(name=column_name_regex, regex=True)
     matched_columns = column_schema.get_regex_columns(columns)
-    assert expected_matches == matched_columns.tolist()
+    assert expected_matches == [*matched_columns]
 
 
 def test_column_regex_strict() -> None:

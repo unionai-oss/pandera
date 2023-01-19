@@ -1,7 +1,7 @@
 """Pandera array backends."""
 
 import traceback
-from typing import Iterable, NamedTuple, Optional
+from typing import cast, Iterable, NamedTuple, Optional
 
 import pandas as pd
 from multimethod import DispatchError
@@ -153,7 +153,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         return CoreCheckResult(
             check="not_nullable",
             reason_code="series_contains_nulls",
-            passed=passed,
+            passed=cast(bool, passed),
             message=(
                 f"non-nullable series '{check_obj.name}' contains "
                 f"null values:\n{check_obj[isna]}"

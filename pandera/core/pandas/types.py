@@ -10,7 +10,7 @@ from pandera.core.checks import Check
 from pandera.dtypes import DataType
 from pandera.hypotheses import Hypothesis
 
-CheckList = List[Union[Check, Hypothesis]]
+CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 
 PandasDtypeInputTypes = Union[
     str,

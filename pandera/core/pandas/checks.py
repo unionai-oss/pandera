@@ -2,27 +2,39 @@
 
 import operator
 import re
-from typing import Any, Iterable, TypeVar, Union
+from typing import cast, Any, Iterable, TypeVar, Union
 
 import pandas as pd
 
 import pandera.strategies as st
-import pandera.typing
 from pandera.core.checks import register_check
 
-PandasData = Union[pd.Series, pd.DataFrame]
+from pandera.typing.modin import MODIN_INSTALLED
+from pandera.typing.pyspark import PYSPARK_INSTALLED
 
 
-if pandera.typing.modin.MODIN_INSTALLED:
+if MODIN_INSTALLED and not PYSPARK_INSTALLED:
     import modin.pandas as mpd
 
-    PandasData = Union[PandasData, mpd.Series, mpd.DataFrame]
-
-
-if pandera.typing.pyspark.PYSPARK_INSTALLED:
+    PandasData = Union[pd.Series, pd.DataFrame, mpd.Series, mpd.DataFrame]
+elif not MODIN_INSTALLED and PYSPARK_INSTALLED:
     import pyspark.pandas as ppd
 
-    PandasData = Union[PandasData, ppd.Series, ppd.DataFrame]
+    PandasData = Union[pd.Series, pd.DataFrame, ppd.Series, ppd.DataFrame]  # type: ignore[misc]
+elif MODIN_INSTALLED and PYSPARK_INSTALLED:
+    import modin.pandas as mpd
+    import pyspark.pandas as ppd
+
+    PandasData = Union[  # type: ignore[misc]
+        pd.Series,
+        pd.DataFrame,
+        mpd.Series,
+        mpd.DataFrame,
+        ppd.Series,
+        ppd.DataFrame,
+    ]
+else:
+    PandasData = Union[pd.Series, pd.DataFrame]  # type: ignore[misc]
 
 
 T = TypeVar("T")
@@ -35,10 +47,6 @@ T = TypeVar("T")
 )
 def equal_to(data: PandasData, value: Any) -> PandasData:
     """Ensure all elements of a data container equal a certain value.
-
-    *New in version 0.4.5*
-
-    Alias: ``equal_to``
 
     :param value: values in this pandas data structure must be
         equal to this value.
@@ -53,10 +61,6 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
 )
 def not_equal_to(data: PandasData, value: Any) -> PandasData:
     """Ensure no elements of a data container equals a certain value.
-
-    *New in version 0.4.5*
-
-    Alias: ``not_equal_to``
 
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
@@ -82,10 +86,6 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     Ensure values of a data container are strictly greater than a minimum
     value.
 
-    *New in version 0.4.5*
-
-    Alias: ``greater_than``
-
     :param min_value: Lower bound to be exceeded. Must be a type comparable
         to the dtype of the :class:`pandas.Series` to be validated (e.g. a
         numerical type for float or int and a datetime for datetime).
@@ -101,10 +101,6 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
 )
 def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
     """Ensure all values are greater or equal a certain value.
-
-    *New in version 0.4.5*
-
-    Alias: ``greater_than_or_equal_to``
 
     :param min_value: Allowed minimum value for values of a series. Must be
         a type comparable to the dtype of the :class:`pandas.Series` to be
@@ -129,10 +125,6 @@ def lt_le_pre_init_hook(statistics_kwargs):
 def less_than(data: PandasData, max_value: Any) -> PandasData:
     """Ensure values of a series are strictly below a maximum value.
 
-    *New in version 0.4.5*
-
-    Alias: ``lt``
-
     :param max_value: All elements of a series must be strictly smaller
         than this. Must be a type comparable to the dtype of the
         :class:`pandas.Series` to be validated.
@@ -150,10 +142,6 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
 )
 def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
     """Ensure values of a series are strictly below a maximum value.
-
-    *New in version 0.4.5*
-
-    Alias: ``lt``
 
     :param max_value: Upper bound not to be exceeded. Must be a type
         comparable to the dtype of the :class:`pandas.Series` to be
@@ -312,7 +300,7 @@ def str_matches(
     :param pattern: Regular expression pattern to use for matching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data.str.match(pattern, na=False)
+    return data.str.match(cast(str, pattern), na=False)
 
 
 @register_check(
@@ -329,7 +317,7 @@ def str_contains(
     :param pattern: Regular expression pattern to use for searching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data.str.contains(pattern, na=False)
+    return data.str.contains(cast(str, pattern), na=False)
 
 
 @register_check(
@@ -384,14 +372,14 @@ def str_length(
     :param min_value: Minimum length of strings (default: no minimum)
     :param max_value: Maximum length of strings (default: no maximum)
     """
+    str_len = data.str.len()
     if min_value is None and max_value is None:
         raise ValueError(
             "At least a minimum or a maximum need to be specified. Got "
             "None."
         )
-    str_len = data.str.len()
     if max_value is None:
-        return str_len >= min_value
+        return str_len >= min_value  # type: ignore[operator]
     elif min_value is None:
         return str_len <= max_value
     return (str_len <= max_value) & (str_len >= min_value)
@@ -422,4 +410,4 @@ def unique_values_eq(data: PandasData, values: Iterable):
 
     :param values: The set of values that must be present. Maybe any iterable.
     """
-    return set(data.unique()) == values  # type: ignore[return-value]
+    return set(data.unique()) == values  # type: ignore[return-value,operator]

@@ -1,7 +1,7 @@
 """Data validation base check."""
 
 import inspect
-from collections import ChainMap, namedtuple
+from collections import namedtuple
 from functools import wraps
 from itertools import chain
 from typing import (
@@ -27,7 +27,8 @@ CheckResult = namedtuple(
 
 
 GroupbyObject = Union[
-    pd.core.groupby.SeriesGroupBy, pd.core.groupby.DataFrameGroupBy
+    pd.core.groupby.generic.SeriesGroupBy,
+    pd.core.groupby.generic.DataFrameGroupBy,
 ]
 
 SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
@@ -70,9 +71,11 @@ class MetaCheck(type):  # pragma: no cover
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
-        attr = ChainMap(
-            cls.__dict__, cls.CHECK_REGISTRY, cls.REGISTERED_CUSTOM_CHECKS
-        ).get(name)
+        attr = {
+            **cls.__dict__,
+            **cls.CHECK_REGISTRY,
+            **cls.REGISTERED_CUSTOM_CHECKS,
+        }.get(name)
         if attr is None:
             raise AttributeError(
                 f"'{cls}' object has no attribute '{name}'. "
@@ -107,8 +110,13 @@ class MetaCheck(type):  # pragma: no cover
 class BaseCheck(metaclass=MetaCheck):
     """Check base class."""
 
-    def __init__(self, name: Optional[str] = None):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        error: Optional[str] = None,
+    ):
         self.name = name
+        self.error = error
 
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):

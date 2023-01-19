@@ -268,8 +268,8 @@ class ArraySchema(BaseSchema):
     def example(self, size=None) -> Union[pd.Series, pd.Index, pd.DataFrame]:
         """Generate an example of a particular size.
 
-        :param size: number of elements in the generated Series.
-        :returns: pandas Series object.
+        :param size: number of elements in the generated array.
+        :returns: array object.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import,import-error
         import hypothesis
@@ -444,3 +444,12 @@ class SeriesSchema(ArraySchema):
             inplace=inplace,
         )
         return cast(pd.Series, validated_obj)
+
+    def example(self, size=None) -> pd.Series:
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Series.
+        :returns: pandas Series object.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        return cast(pd.Series, super().example(size=size))

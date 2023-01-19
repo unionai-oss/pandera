@@ -149,7 +149,7 @@ class Check(BaseCheck):
         See :ref:`here<checks>` for more usage details.
 
         """
-        super().__init__(name=name)
+        super().__init__(name=name, error=error)
 
         if element_wise and groupby is not None:
             raise errors.SchemaInitError(
@@ -158,7 +158,6 @@ class Check(BaseCheck):
         self._check_fn = check_fn
         self._check_kwargs = check_kwargs
         self.element_wise = element_wise
-        self.error = error
         self.name = name or getattr(
             self._check_fn, "__name__", self._check_fn.__class__.__name__
         )

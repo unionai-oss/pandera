@@ -70,7 +70,7 @@ class BaseSchemaBackend(ABC):
         """Run a single check on the check object."""
         raise NotImplementedError
 
-    def run_checks(self, check_obj, schema, error_handler, lazy):
+    def run_checks(self, check_obj, schema, error_handler):
         """Run a list of checks on the check object."""
         raise NotImplementedError
 
@@ -103,6 +103,10 @@ class BaseSchemaBackend(ABC):
 
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""
+
+    def __init__(self, check):
+        """Initializes a check backend object."""
+        raise NotImplementedError
 
     def __call__(self, check_obj, key=None):
         raise NotImplementedError
