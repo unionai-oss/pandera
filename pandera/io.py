@@ -736,7 +736,7 @@ class FrictionlessFieldParser:
 def from_frictionless_schema(
     schema: Union[str, Path, Dict, FrictionlessSchema]
 ) -> DataFrameSchema:
-    # pylint: disable=line-too-long
+    # pylint: disable=line-too-long,anomalous-backslash-in-string
     """Create a :class:`~pandera.schemas.DataFrameSchema` from either a
     frictionless json/yaml schema file saved on disk, or from a frictionless
     schema already loaded into memory.
@@ -783,7 +783,7 @@ def from_frictionless_schema(
     >>> schema.columns["column_1"].unique
     True
     >>> schema.columns["column_2"].checks
-    [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches(re.compile('^\\\\S+$'))>]
+    [<Check str_length: str_length(None, 10)>, <Check str_matches: str_matches('^\S+$')>]
     """
     if not isinstance(schema, FrictionlessSchema):
         schema = FrictionlessSchema(schema)
