@@ -10,7 +10,7 @@ with open("pandera/version.py") as fp:
 _extras_require = {
     "strategies": ["hypothesis >= 5.41.1"],
     "hypotheses": ["scipy"],
-    "io": ["pyyaml >= 5.1", "black", "frictionless"],
+    "io": ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"],
     "pyspark": ["pyspark >= 3.2.0"],
     "modin": ["modin", "ray", "dask"],
     "modin-ray": ["modin", "ray"],
