@@ -882,7 +882,7 @@ is no clear way of how a child class can e.g. remove fields or update them witho
 completely overriding previous settings. This is because inheritance is strictly additive.
 
 :class:`~pandera.schemas.DataFrameSchema` objects do have these options though, as described in
-:ref:`_dataframe schema transformations`, which you can leverage by overriding your
+:ref:`dataframe schema transformations`, which you can leverage by overriding your
 Schema Model's :func:`~pandera.model.SchemaModel.to_schema` method.
 
 Schema Models are for the most part just a proxy for the ``DataFrameSchema`` API; calling

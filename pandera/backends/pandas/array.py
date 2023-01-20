@@ -207,21 +207,36 @@ class ArraySchemaBackend(PandasSchemaBackend):
     def check_dtype(self, check_obj: pd.Series, schema):
         passed = True
         failure_cases = None
+        msg = None
 
-        if schema.dtype is not None and (
-            not schema.dtype.check(Engine.dtype(check_obj.dtype))
-        ):
-            passed = False
-            failure_cases = scalar_failure_case(str(check_obj.dtype))
+        if schema.dtype is not None:
+            dtype_check_results = schema.dtype.check(
+                Engine.dtype(check_obj.dtype),
+                check_obj,
+            )
+            if isinstance(dtype_check_results, bool):
+                passed = dtype_check_results
+                failure_cases = scalar_failure_case(str(check_obj.dtype))
+                msg = (
+                    f"expected series '{check_obj.name}' to have type "
+                    f"{schema.dtype}, got {check_obj.dtype}"
+                )
+            else:
+                passed = dtype_check_results.all()
+                failure_cases = reshape_failure_cases(
+                    check_obj[~dtype_check_results.astype(bool)],
+                    ignore_na=False,
+                )
+                msg = (
+                    f"expected series '{check_obj.name}' to have type "
+                    f"{schema.dtype}:\nfailure cases:\n{failure_cases}"
+                )
 
         return CoreCheckResult(
             check=f"dtype('{schema.dtype}')",
             reason_code="wrong_dtype",
             passed=passed,
-            message=(
-                f"expected series '{check_obj.name}' to have type "
-                f"{schema.dtype}, got {check_obj.dtype}"
-            ),
+            message=msg,
             failure_cases=failure_cases,
         )
 

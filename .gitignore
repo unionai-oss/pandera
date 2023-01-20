@@ -1,6 +1,7 @@
 .vscode
 dask-worker-space
 spark-warehouse
+docs/source/_contents
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

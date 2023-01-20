@@ -122,8 +122,3 @@ is_supported_check_obj = is_table_or_field
 def is_bool(x):
     """Verifies whether an object is a boolean type."""
     return isinstance(x, (bool, np.bool_))
-
-
-def is_pandas_key(x):
-    """Verifies whether an object is a pandas index key."""
-    return isinstance(x, (str, tuple))

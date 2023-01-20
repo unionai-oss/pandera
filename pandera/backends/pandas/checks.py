@@ -14,7 +14,6 @@ from pandera.core.pandas.types import (
     is_field,
     is_table_or_field,
     is_bool,
-    is_pandas_key,
 )
 
 
@@ -97,7 +96,7 @@ class PandasCheckBackend(BaseCheckBackend):
     def preprocess(
         self,
         check_obj: is_table,  # type: ignore [valid-type]
-        key: is_pandas_key,  # type: ignore [valid-type]
+        key,
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         if self.check.groupby is None:
             return check_obj[key]
