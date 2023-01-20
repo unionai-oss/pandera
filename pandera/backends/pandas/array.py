@@ -152,7 +152,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
     def check_nullable(self, check_obj: pd.Series, schema):
         isna = check_obj.isna()
-        passed = schema.nullable or ~(isna.any())
+        passed = schema.nullable or not isna.any()
         return CoreCheckResult(
             check="not_nullable",
             reason_code="series_contains_nulls",

@@ -133,4 +133,4 @@ def reshape_failure_cases(
 def _multiindex_to_frame(df):
     if PANDAS_1_5_0_PLUS:
         return df.index.to_frame(allow_duplicates=True)
-    return df.index.to_frame().duplicates()
+    return df.index.to_frame().drop_duplicates()
