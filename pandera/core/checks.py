@@ -89,6 +89,10 @@ class Check(BaseCheck):
             None, report all failure cases.
         :param title: A human-readable label for the check.
         :param description: An arbitrary textual description of the check.
+        :param statistics: kwargs to pass into the check function. These values
+            are serialized and represent the constraints of the checks.
+        :param strategy: A hypothesis strategy, used for implementing data
+            synthesis strategies for this check.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
@@ -211,7 +215,7 @@ class Check(BaseCheck):
 
             ``failure_cases``: subset of the check_object that failed.
         """
-        backend = Check.get_backend(check_obj)(self)
+        backend = self.get_backend(check_obj)(self)
         return backend(check_obj, column)
 
 
@@ -222,13 +226,18 @@ def register_check(
     aliases: Optional[List[str]] = None,
     strategy: Optional[Callable] = None,
     error: Optional[Union[str, Callable]] = None,
-    **kwargs,
+    check_cls: Type = Check,
+    samples_kwtypes: Optional[Dict[str, Type]] = None,
+    **outer_kwargs,
 ):
     """Register a check method to the Check namespace.
 
     This is the primary way for extending the Check api to define additional
     built-in checks.
     """
+    # pylint: disable=import-outside-toplevel
+    from pandera.core.hypotheses import Hypothesis
+
     if fn is None:
         return partial(
             register_check,
@@ -236,14 +245,41 @@ def register_check(
             aliases=aliases,
             strategy=strategy,
             error=error,
+            check_cls=check_cls,
+            samples_kwtypes=samples_kwtypes,
+            **outer_kwargs,
         )
 
     name = fn.__name__
-    check_fn = Check.CHECK_FUNCTION_REGISTRY.get(name)
+
+    # see if the check function is already registered
+    check_fn = check_cls.CHECK_FUNCTION_REGISTRY.get(name)
 
     fn_sig = signature(fn)
-    statistics = [*fn_sig.parameters.keys()][1:]
-    statistics_params = [*fn_sig.parameters.values()][1:]
+
+    # this is a special case for handling hypotheses, since the sample keys
+    # need to be treated like statistics and is used during preprocessing, not
+    # in the check function itself.
+    if samples_kwtypes is None:
+        samples_args = []
+        samples_params = []
+    else:
+        samples_args = [*samples_kwtypes]
+        samples_params = [
+            Parameter(
+                name,
+                Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=samples_kwtypes[name],
+            )
+            for name in samples_kwtypes
+        ]
+
+    # derive statistics from function arguments after the 0th positional arg
+    statistics = [*samples_args, *[*fn_sig.parameters.keys()][1:]]
+    statistics_params = [
+        *samples_params,
+        *[*fn_sig.parameters.values()][1:],
+    ]
     statistics_defaults = {
         p.name: p.default
         for p in fn_sig.parameters.values()
@@ -257,21 +293,25 @@ def register_check(
         # create proxy function so we can modify the signature and docstring
         # of the method to reflect correctly in the documentation
         # pylint: disable=unused-argument
-        def check_function_proxy(cls, *args, **kwargs):
-            return dispatch_check_fn(*args, **kwargs)
+        def check_function_proxy(cls, *args, **kws):
+            return dispatch_check_fn(*args, **kws)
 
         update_check_fn_proxy(
-            check_function_proxy, fn, fn_sig, statistics_params
+            check_cls, check_function_proxy, fn, fn_sig, statistics_params
         )
 
         @wraps(check_function_proxy)
         def check_method(cls, *args, **check_kwargs):
+            args = list(args)
+
             statistics_kwargs = dict(zip(statistics, args))
             for stat in statistics:
                 if stat in check_kwargs:
                     statistics_kwargs[stat] = check_kwargs.pop(stat)
                 elif stat not in statistics_kwargs:
-                    statistics_kwargs[stat] = statistics_defaults[stat]
+                    statistics_kwargs[stat] = statistics_defaults.get(
+                        stat, None
+                    )
 
             _check_kwargs = {
                 "error": (
@@ -280,8 +320,17 @@ def register_check(
                     else error(**statistics_kwargs)
                 )
             }
-            _check_kwargs.update(kwargs)
+            _check_kwargs.update(outer_kwargs)
             _check_kwargs.update(check_kwargs)
+
+            # this is a special case for handling hypotheses, since the sample
+            # keys need to be treated like statistics and is used during
+            # preprocessing, not in the check function itself.
+            if samples_kwtypes is not None:
+                samples = []
+                for sample_arg in samples_kwtypes:
+                    samples.append(statistics_kwargs.pop(sample_arg))
+                _check_kwargs["samples"] = samples
 
             # This is kind of ugly... basically we're creating another
             # stats kwargs variable that's actually used when invoking the check
@@ -298,16 +347,40 @@ def register_check(
             # internal wrapper is needed here to make sure the inner check_fn
             # produced by this method is consistent with the registered check
             # function
-            @wraps(fn)
-            def _check_fn(check_obj, **inner_kwargs):
-                """inner_kwargs will be based in via Check.__init__ kwargs."""
-                # Raise more informative error when this fails to dispatch
-                return check_function_proxy(
-                    cls,
-                    check_obj,
-                    *check_fn_stats_kwargs.values(),
-                    **inner_kwargs,
-                )
+            if check_cls is Check:
+
+                @wraps(fn)
+                def _check_fn(check_obj, **inner_kwargs):
+                    """
+                    inner_kwargs will be based in via Check.__init__ kwargs.
+                    """
+                    # Raise more informative error when this fails to dispatch
+                    return check_function_proxy(
+                        cls,
+                        check_obj,
+                        *check_fn_stats_kwargs.values(),
+                        **inner_kwargs,
+                    )
+
+            elif check_cls is Hypothesis:
+
+                @wraps(fn)
+                def _check_fn(*samples, **inner_kwargs):
+                    """
+                    inner_kwargs will be based in via Check.__init__ kwargs.
+                    """
+                    # Raise more informative error when this fails to dispatch
+                    return check_function_proxy(
+                        cls,
+                        *samples,
+                        **{
+                            **check_fn_stats_kwargs,
+                            **inner_kwargs,
+                        },
+                    )
+
+            else:
+                raise TypeError(f"check_cls {check_cls} not recognized")
 
             return cls(
                 _check_fn,
@@ -320,20 +393,21 @@ def register_check(
                 **_check_kwargs,
             )
 
-        Check.CHECK_FUNCTION_REGISTRY[name] = dispatch_check_fn
-        setattr(Check, name, classmethod(check_method))
+        check_cls.CHECK_FUNCTION_REGISTRY[name] = dispatch_check_fn
+        setattr(check_cls, name, classmethod(check_method))
 
-        class_check_method = getattr(Check, name)
+        class_check_method = getattr(check_cls, name)
 
         for _name in [] if aliases is None else aliases:
-            setattr(Check, _name, class_check_method)
+            setattr(check_cls, _name, class_check_method)
     else:
         check_fn.register(fn)  # type: ignore
 
-    return getattr(Check, name)
+    return getattr(check_cls, name)
 
 
 def generate_check_signature(
+    check_cls: Type,
     sig: Signature,
     statistics_params: List[Parameter],
 ) -> Signature:
@@ -349,11 +423,12 @@ def generate_check_signature(
                 "kwargs", Parameter.VAR_KEYWORD, annotation=Dict[str, Any]
             ),
         ],
-        return_annotation=Check,
+        return_annotation=check_cls,
     )
 
 
 def generate_check_annotations(
+    check_cls: Type,
     statistics_params: List[Parameter],
 ) -> Dict[str, Type]:
     """Generates a check type annotations from check statistics."""
@@ -363,7 +438,7 @@ def generate_check_annotations(
             str,
             Any,
         ],
-        "return": Check,
+        "return": check_cls,
     }
 
 
@@ -375,7 +450,9 @@ def modify_check_fn_doc(doc: str) -> str:
     )
 
 
-def update_check_fn_proxy(check_function_proxy, fn, fn_sig, statistics_params):
+def update_check_fn_proxy(
+    check_cls: Type, check_function_proxy, fn, fn_sig, statistics_params
+):
     """
     Manually update the signature of `check_function` so that docstring matches
     original function's signature, but includes **kwargs, etc.
@@ -384,9 +461,11 @@ def update_check_fn_proxy(check_function_proxy, fn, fn_sig, statistics_params):
     check_function_proxy.__module__ = fn.__module__
     check_function_proxy.__qualname__ = fn.__qualname__
     check_function_proxy.__signature__ = generate_check_signature(
-        fn_sig, statistics_params
+        check_cls,
+        fn_sig,
+        statistics_params,
     )
     check_function_proxy.__doc__ = modify_check_fn_doc(fn.__doc__)
     check_function_proxy.__annotations__ = generate_check_annotations(
-        statistics_params
+        check_cls, statistics_params
     )

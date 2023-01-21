@@ -4,6 +4,7 @@ import platform
 from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
 from pandera.core.checks import Check
+from pandera.core.hypotheses import Hypothesis
 from pandera.core.pandas import (
     Column,
     DataFrameSchema,
@@ -59,7 +60,6 @@ from pandera.engines.pandas_engine import (
 )
 
 from .decorators import check_input, check_io, check_output, check_types
-from .hypotheses import Hypothesis
 from .schema_inference import infer_schema
 from .version import __version__
 

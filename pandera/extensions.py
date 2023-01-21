@@ -14,7 +14,7 @@ from typing import Callable, List, Optional, Tuple, Union
 import pandas as pd
 
 from pandera import strategies as st
-from pandera.checks import register_check_statistics
+from pandera.core.base.checks import register_check_statistics
 from pandera.core.checks import Check
 
 

@@ -7,36 +7,37 @@ import pandas as pd
 
 import pandera.typing
 from pandera.backends.pandas.checks import PandasCheckBackend
+from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
 
-from .checks import Check
-from .pandas import checks
-from .pandas.array import SeriesSchema
-from .pandas.components import Column, Index, MultiIndex
-from .pandas.container import DataFrameSchema
+from pandera.core.checks import Check
+from pandera.core.hypotheses import Hypothesis
+from pandera.core.pandas import checks, hypotheses
+from pandera.core.pandas.array import SeriesSchema
+from pandera.core.pandas.components import Column, Index, MultiIndex
+from pandera.core.pandas.container import DataFrameSchema
 
-Check.register_backend(pd.DataFrame, PandasCheckBackend)
-Check.register_backend(pd.Series, PandasCheckBackend)
+data_types = [pd.DataFrame, pd.Series]
 
 if pandera.typing.dask.DASK_INSTALLED:
     import dask.dataframe as dd
 
-    Check.register_backend(dd.DataFrame, PandasCheckBackend)
-    Check.register_backend(dd.Series, PandasCheckBackend)
+    data_types.extend([dd.DataFrame, dd.Series])
 
 if pandera.typing.modin.MODIN_INSTALLED:
     import modin.pandas as mpd
 
-    Check.register_backend(mpd.DataFrame, PandasCheckBackend)
-    Check.register_backend(mpd.Series, PandasCheckBackend)
+    data_types.extend([mpd.DataFrame, mpd.Series])
 
 if pandera.typing.pyspark.PYSPARK_INSTALLED:
     import pyspark.pandas as ps
 
-    Check.register_backend(ps.DataFrame, PandasCheckBackend)
-    Check.register_backend(ps.Series, PandasCheckBackend)
+    data_types.extend([ps.DataFrame, ps.Series])
 
 if pandera.typing.geopandas.GEOPANDAS_INSTALLED:
     import geopandas as gpd
 
-    Check.register_backend(gpd.GeoDataFrame, PandasCheckBackend)
-    Check.register_backend(gpd.GeoSeries, PandasCheckBackend)
+    data_types.extend([gpd.GeoDataFrame, gpd.GeoSeries])
+
+for t in data_types:
+    Check.register_backend(t, PandasCheckBackend)
+    Hypothesis.register_backend(t, PandasHypothesisBackend)

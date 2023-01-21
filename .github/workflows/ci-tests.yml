@@ -97,11 +97,8 @@ jobs:
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        # os: ["ubuntu-latest"]
-        # python-version: ["3.7", "3.8", "3.9", "3.10"]
-        # pandas-version: ["latest"]
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
         pandas-version: ["1.2.0", "1.3.0", "latest"]

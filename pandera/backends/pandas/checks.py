@@ -22,7 +22,7 @@ class PandasCheckBackend(BaseCheckBackend):
 
     def __init__(self, check: Check):
         """Initializes a check backend object."""
-        super().__init__(self)
+        super().__init__(check)
         assert check._check_fn is not None, "Check._check_fn must be set."
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
@@ -61,8 +61,8 @@ class PandasCheckBackend(BaseCheckBackend):
         invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:
             raise KeyError(
-                f"groups {invalid_groups} provided in `groups` argument not a valid group "
-                f"key. Valid group keys: {group_keys}"
+                f"groups {invalid_groups} provided in `groups` argument not a "
+                f"valid group key. Valid group keys: {group_keys}"
             )
         return {
             group_key: group

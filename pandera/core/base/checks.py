@@ -10,6 +10,7 @@ from typing import (
     Dict,
     Iterable,
     Optional,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -64,7 +65,9 @@ _T = TypeVar("_T", bound="BaseCheck")
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
-    BACKEND_REGISTRY: Dict[Type, Type[BaseCheckBackend]] = {}  # noqa
+    BACKEND_REGISTRY: Dict[
+        Tuple[Type, Type], Type[BaseCheckBackend]
+    ] = {}  # noqa
     CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa
     CHECK_REGISTRY: Dict[str, Callable] = {}  # noqa
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
@@ -121,12 +124,12 @@ class BaseCheck(metaclass=MetaCheck):
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):
         """Register a backend for the specified type."""
-        cls.BACKEND_REGISTRY[type_] = backend
+        cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
     def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:
         """Get the backend associated with the type of ``check_obj`` ."""
-        return cls.BACKEND_REGISTRY[type(check_obj)]
+        return cls.BACKEND_REGISTRY[(cls, type(check_obj))]
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
