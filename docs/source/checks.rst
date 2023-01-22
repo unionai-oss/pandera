@@ -309,7 +309,7 @@ want the resulting table for further analysis.
     :skipif: SKIP_PANDAS_LT_V1
 
     <Schema Column(name=var2, type=None)> failed series or dataframe validator 0:
-    <Check _hypothesis_check: normality test>
+    <Check normaltest: normality test>
 
 
 Registering Custom Checks

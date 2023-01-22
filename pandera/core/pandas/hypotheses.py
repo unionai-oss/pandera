@@ -3,7 +3,7 @@
 from typing import Tuple
 
 from pandera.backends.pandas.hypotheses import HAS_SCIPY
-from pandera.core.hypotheses import register_hypothesis
+from pandera.core.extensions import register_hypothesis
 from pandera.core.pandas.checks import PandasData
 
 

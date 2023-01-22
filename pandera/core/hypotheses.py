@@ -1,10 +1,10 @@
 """Data validation checks for hypothesis testing."""
 
-from functools import partial
+from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from pandera import errors
-from pandera.core.checks import Check, register_check
+from pandera.core.checks import Check
 from pandera.strategies import SearchStrategy
 
 
@@ -147,6 +147,7 @@ class Hypothesis(Check):
             )
 
         self.test = partial(test, **{} if test_kwargs is None else test_kwargs)
+        update_wrapper(self.test, test)
         self.relationship = relationship
 
         relationship_kwargs = relationship_kwargs or {}
@@ -173,13 +174,3 @@ class Hypothesis(Check):
             strategy=strategy,
             **check_kwargs,
         )
-
-
-def register_hypothesis(samples_kwtypes=None, **kwargs):
-    """Register a new hypothesis"""
-    return partial(
-        register_check,
-        check_cls=Hypothesis,
-        samples_kwtypes=samples_kwtypes,
-        **kwargs,
-    )
