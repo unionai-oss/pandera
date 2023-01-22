@@ -70,6 +70,7 @@ def two_sample_ttest(
 
     The the built-in class method to do a two-sample t-test.
 
+    >>> import pandas as pd
     >>> import pandera as pa
     >>>
     >>>
