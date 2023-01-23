@@ -151,7 +151,7 @@ class DataFrameModel(BaseModel):
         )
 
     def __init_subclass__(cls, **kwargs):
-        """Ensure :class:`~pandera.model_components.FieldInfo` instances."""
+        """Ensure :class:`~pandera.core.pandas.model_components.FieldInfo` instances."""
         if "Config" in cls.__dict__:
             cls.Config.name = (
                 cls.Config.name

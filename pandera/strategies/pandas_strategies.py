@@ -178,7 +178,7 @@ def strategy_import_error(fn: F) -> F:
 def register_check_strategy(strategy_fn: StrategyFn):
     """Decorate a Check method with a strategy.
 
-    This should be applied to a built-in :class:`~pandera.checks.Check` method.
+    This should be applied to a built-in :class:`~pandera.core.checks.Check` method.
 
     :param strategy_fn: add strategy to a check, using check statistics to
         generate a ``hypothesis`` strategy.
@@ -749,7 +749,7 @@ def field_element_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
+    :param checks: sequence of :class:`~pandera.core.checks.Check` s to constrain
         the values of the data in the column/index.
     :returns: ``hypothesis`` strategy
     """
@@ -808,7 +808,7 @@ def series_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
+    :param checks: sequence of :class:`~pandera.core.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
     :param unique: whether or not generated Series contains unique values.
@@ -867,7 +867,7 @@ def column_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
+    :param checks: sequence of :class:`~pandera.core.checks.Check` s to constrain
         the values of the data in the column/index.
     :param unique: whether or not generated Series contains unique values.
     :param name: name of the Series.
@@ -898,7 +898,7 @@ def index_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
+    :param checks: sequence of :class:`~pandera.core.checks.Check` s to constrain
         the values of the data in the column/index.
     :param nullable: whether or not generated Series contains null values.
     :param unique: whether or not generated Series contains unique values.
@@ -947,8 +947,8 @@ def dataframe_strategy(
     :param strategy: if specified, this will raise a BaseStrategyOnlyError,
         since it cannot be chained to a prior strategy.
     :param columns: a dictionary where keys are column names and values
-        are :class:`~pandera.schema_components.Column` objects.
-    :param checks: sequence of :class:`~pandera.checks.Check` s to constrain
+        are :class:`~pandera.core.pandas.components.Column` objects.
+    :param checks: sequence of :class:`~pandera.core.checks.Check` s to constrain
         the values of the data at the dataframe level.
     :param unique: a list of column names that should be jointly unique.
     :param index: Index or MultiIndex schema component.
@@ -1158,7 +1158,7 @@ def multiindex_strategy(
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
     :param strategy: an optional hypothesis strategy. If specified, the
         pandas dtype strategy will be chained onto this strategy.
-    :param indexes: a list of :class:`~pandera.schema_components.Index`
+    :param indexes: a list of :class:`~pandera.core.pandas.components.Index`
         objects.
     :param size: number of elements in the Series.
     :returns: ``hypothesis`` strategy.

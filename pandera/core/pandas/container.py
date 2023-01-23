@@ -622,7 +622,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         :param column_name:
         :param kwargs: key-word arguments supplied to
-            :class:`~pandera.schema_components.Column`
+            :class:`~pandera.core.pandas.components.Column`
         :returns: a new :class:`DataFrameSchema` with updated column
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.

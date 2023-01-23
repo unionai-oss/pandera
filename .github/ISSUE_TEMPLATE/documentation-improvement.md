@@ -9,7 +9,7 @@ assignees: ''
 
 #### Location of the documentation
 
-[this should provide the location of the documentation, e.g. "pandera.schemas.DataFrameSchema" or the URL of the documentation, e.g. "https://pandera.readthedocs.io/en/stable/dataframe_schemas.html#column-validation"]
+[this should provide the location of the documentation, e.g. "pandera.core.pandas.container.DataFrameSchema" or the URL of the documentation, e.g. "https://pandera.readthedocs.io/en/stable/dataframe_schemas.html#column-validation"]
 
 **Note**: You can check the latest versions of the docs on `master` [here](https://pandera.readthedocs.io/en/latest/).
 

@@ -8,7 +8,7 @@ FastAPI
 *new in 0.9.0*
 
 Since both FastAPI and Pandera integrates seamlessly with Pydantic, you can
-use the :py:class:`~pandera.model.SchemaModel` types to validate incoming
+use the :py:class:`~pandera.core.pandas.model.DataFrameModel` types to validate incoming
 or outgoing data with respect to your API endpoints.
 
 Using SchemaModels to Validate Endpoint Inputs and Outputs
@@ -83,5 +83,5 @@ Takeaway
 --------
 
 With the FastAPI and Pandera integration, you can use Pandera
-:py:class:`~pandera.model.SchemaModel` types to validate the dataframe inputs
+:py:class:`~pandera.core.pandas.model.DataFrameModel` types to validate the dataframe inputs
 and outputs of your FastAPI endpoints.

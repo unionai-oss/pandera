@@ -258,7 +258,7 @@ def update_check_fn_proxy(
 ):
     """
     Manually update the signature of `check_function` so that docstring matches
-    original function's signature, but includes **kwargs, etc.
+    original function's signature, but includes ``**kwargs``, etc.
     """
     check_function_proxy.__name__ = fn.__name__
     check_function_proxy.__module__ = fn.__module__
@@ -299,7 +299,7 @@ def register_check_method(
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
-    """Registers a function as a :class:`~pandera.checks.Check` method.
+    """Registers a function as a :class:`~pandera.core.checks.Check` method.
 
     See the :ref:`user guide<extensions>` for more details.
 
@@ -385,7 +385,7 @@ def register_check_method(
                 )
 
     def register_check_wrapper(check_fn: Callable):
-        """Register a function as a :class:`~pandera.checks.Check` method."""
+        """Register a function as a :class:`~pandera.core.checks.Check` method."""
 
         if hasattr(Check, check_fn.__name__):
             raise ValueError(

@@ -10,7 +10,7 @@ Lazy Validation
 By default, when you call the ``validate`` method on schema or schema component
 objects, a :class:`~pandera.errors.SchemaError` is raised as soon as one of the
 assumptions specified in the schema is falsified. For example, for a
-:class:`~pandera.schemas.DataFrameSchema` object, the following situations will raise an
+:class:`~pandera.core.pandas.container.DataFrameSchema` object, the following situations will raise an
 exception:
 
 * a column specified in the schema is not present in the dataframe.
@@ -18,7 +18,7 @@ exception:
 * the ``data type`` does not match.
 * if ``coerce=True``, the dataframe column cannot be coerced into the specified
   ``data type``.
-* the :class:`~pandera.checks.Check` specified in one of the columns returns ``False`` or
+* the :class:`~pandera.core.checks.Check` specified in one of the columns returns ``False`` or
   a boolean series containing at least one ``False`` value.
 
 

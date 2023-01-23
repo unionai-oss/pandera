@@ -11,8 +11,8 @@ Schemas
    :template: class.rst
    :nosignatures:
 
-   pandera.schemas.DataFrameSchema
-   pandera.schemas.SeriesSchema
+   pandera.core.pandas.container.DataFrameSchema
+   pandera.core.pandas.array.SeriesSchema
 
 Schema Components
 -----------------
@@ -22,9 +22,9 @@ Schema Components
    :template: class.rst
    :nosignatures:
 
-   pandera.schema_components.Column
-   pandera.schema_components.Index
-   pandera.schema_components.MultiIndex
+   pandera.core.pandas.components.Column
+   pandera.core.pandas.components.Index
+   pandera.core.pandas.components.MultiIndex
 
 Checks
 ------
@@ -34,6 +34,6 @@ Checks
    :template: class.rst
    :nosignatures:
 
-   pandera.checks.Check
-   pandera.hypotheses.Hypothesis
+   pandera.core.checks.Check
+   pandera.core.hypotheses.Hypothesis
    pandera.core.checks.Check

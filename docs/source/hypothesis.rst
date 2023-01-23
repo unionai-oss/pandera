@@ -18,7 +18,7 @@ Hypothesis Testing
 Overview
 --------
 
-The :class:`~pandera.hypotheses.Hypothesis` class defines built in methods,
+The :class:`~pandera.core.hypotheses.Hypothesis` class defines built in methods,
 which can be called as in this example of a two-sample t-test:
 
 .. testcode:: hypothesis_testing

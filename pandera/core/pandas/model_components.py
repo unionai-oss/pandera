@@ -130,7 +130,7 @@ def Field(
     See the :ref:`User Guide <schema_models>` for more information.
 
     The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
-    to the built-in :py:class:`~pandera.checks.Check` methods.
+    to the built-in :py:class:`~pandera.core.checks.Check` methods.
 
     :param nullable: Whether or not the column/index can contain null values.
     :param unique: Whether column values should be unique.

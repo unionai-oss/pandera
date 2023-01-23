@@ -1,4 +1,4 @@
-"""Tests for builtin checks in pandera.checks.Check
+"""Tests for builtin checks in pandera.core.checks.Check
 """
 
 from typing import Iterable

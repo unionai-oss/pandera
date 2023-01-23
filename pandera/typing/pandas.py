@@ -95,7 +95,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def from_format(cls, obj: Any, config) -> pd.DataFrame:
         """
         Converts serialized data from a specific format
-        specified in the :py:class:`pandera.model.SchemaModel` config options
+        specified in the :py:class:`pandera.core.pandas.model.DataFrameModel` config options
         ``from_format`` and ``from_format_kwargs``.
 
         :param obj: object representing a serialized dataframe.
@@ -126,7 +126,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def to_format(cls, data: pd.DataFrame, config) -> Any:
         """
         Converts a dataframe to the format specified in the
-        :py:class:`pandera.model.SchemaModel` config options ``to_format``
+        :py:class:`pandera.core.pandas.model.DataFrameModel` config options ``to_format``
         and ``to_format_kwargs``.
 
         :param data: convert this data to the specified format
