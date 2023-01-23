@@ -3,6 +3,7 @@ import platform
 
 from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
+from pandera.core import extensions
 from pandera.core.checks import Check
 from pandera.core.hypotheses import Hypothesis
 from pandera.core.pandas import (

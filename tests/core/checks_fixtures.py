@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-import pandera.extensions as pa_ext
+import pandera.core.extensions as pa_ext
 
 __all__ = "custom_check_teardown", "extra_registered_checks"
 

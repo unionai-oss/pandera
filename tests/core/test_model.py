@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-import pandera.extensions as pax
+import pandera.core.extensions as pax
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
 
