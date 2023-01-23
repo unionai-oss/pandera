@@ -29,11 +29,15 @@ import pandas as pd
 from packaging import version
 from pydantic import BaseModel, ValidationError
 
-from .. import dtypes, errors
-from ..dtypes import immutable
-from ..system import FLOAT_128_AVAILABLE
-from . import engine, numpy_engine, utils
-from .type_aliases import PandasDataType, PandasExtensionType, PandasObject
+from pandera import dtypes, errors
+from pandera.dtypes import immutable
+from pandera.system import FLOAT_128_AVAILABLE
+from pandera.engines import engine, numpy_engine, utils
+from pandera.engines.type_aliases import (
+    PandasDataType,
+    PandasExtensionType,
+    PandasObject,
+)
 
 try:
     import pyarrow  # pylint:disable=unused-import

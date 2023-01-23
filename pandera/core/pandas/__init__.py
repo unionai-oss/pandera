@@ -1,6 +1,6 @@
 """Pandas core."""
 
-from . import checks
-from .array import SeriesSchema
-from .components import Column, Index, MultiIndex
-from .container import DataFrameSchema
+from pandera.core.pandas import checks
+from pandera.core.pandas.array import SeriesSchema
+from pandera.core.pandas.components import Column, Index, MultiIndex
+from pandera.core.pandas.container import DataFrameSchema
