@@ -15,6 +15,7 @@ from pandera import strategies as st
 from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.core.base.schema import BaseSchema, inferred_schema_guard
 from pandera.core.checks import Check
+from pandera.core.hypotheses import Hypothesis
 from pandera.core.pandas.types import (
     CheckList,
     PandasDtypeInputTypes,
@@ -22,7 +23,6 @@ from pandera.core.pandas.types import (
 )
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
-from pandera.hypotheses import Hypothesis
 
 N_INDENT_SPACES = 4
 

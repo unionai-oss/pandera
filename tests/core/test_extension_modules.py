@@ -2,7 +2,8 @@
 
 import pytest
 
-from pandera.hypotheses import HAS_SCIPY, Hypothesis
+from pandera.core.hypotheses import Hypothesis
+from pandera.backends.pandas.hypotheses import HAS_SCIPY
 
 
 def test_hypotheses_module_import() -> None:

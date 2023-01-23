@@ -1056,7 +1056,7 @@ class PydanticModel(DataType):
         """Coerce pandas dataframe with pydantic record model."""
 
         # pylint: disable=import-outside-toplevel
-        from pandera import error_formatters
+        from pandera.backends.pandas import error_formatters
 
         def _coerce_row(row):
             """

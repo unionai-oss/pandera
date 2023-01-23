@@ -12,7 +12,8 @@ import pytest
 
 import pandera as pa
 from pandera import strategies
-from pandera.checks import _CheckBase, register_check_statistics
+from pandera.core.checks import Check
+from pandera.core.base.checks import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
 from pandera.engines import pandas_engine
 
@@ -373,7 +374,7 @@ def test_register_check_strategy(data) -> None:
         return st.just(value).map(strategies.to_numpy_dtype(pandas_dtype).type)
 
     # pylint: disable=no-member
-    class CustomCheck(_CheckBase):
+    class CustomCheck(Check):
         """Custom check class."""
 
         @classmethod
@@ -404,7 +405,7 @@ def test_register_check_strategy_exception() -> None:
     def custom_strat() -> None:
         pass
 
-    class CustomCheck(_CheckBase):
+    class CustomCheck(Check):
         """Custom check class."""
 
         @classmethod
@@ -423,11 +424,7 @@ def test_register_check_strategy_exception() -> None:
                 **kwargs,
             )
 
-    with pytest.raises(
-        AttributeError,
-        match="check object doesn't have a defined statistics property",
-    ):
-        CustomCheck.custom_check()
+    assert not CustomCheck.custom_check().statistics
 
 
 @hypothesis.given(st.data())

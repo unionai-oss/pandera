@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 
 from pandera.core.checks import Check
+from pandera.core.hypotheses import Hypothesis
 from pandera.dtypes import DataType
-from pandera.hypotheses import Hypothesis
 
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 

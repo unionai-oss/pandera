@@ -15,9 +15,9 @@ from pandera import (
     Int,
     SeriesSchema,
     String,
-    error_formatters,
     errors,
 )
+from pandera.backends.pandas import error_formatters
 
 
 def test_vectorized_checks() -> None:

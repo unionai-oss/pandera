@@ -14,6 +14,7 @@ from pandera.backends.pandas.array import (
 )
 from pandera.core.base.schema import BaseSchema, inferred_schema_guard
 from pandera.core.checks import Check
+from pandera.core.hypotheses import Hypothesis
 from pandera.core.pandas.types import (
     CheckList,
     PandasDtypeInputTypes,
@@ -21,7 +22,6 @@ from pandera.core.pandas.types import (
 )
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
-from pandera.hypotheses import Hypothesis
 
 TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 

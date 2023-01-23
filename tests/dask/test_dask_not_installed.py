@@ -7,29 +7,39 @@ import pytest
 
 
 def test_dask_not_installed() -> None:
-    """Test that Pandera and its modules can be imported and continue to work
-    without dask"""
+    """
+    Test that Pandera and its modules can be imported and continue to work
+    without dask.
+    """
     with mock.patch.dict("sys.modules", {"dask": None}):
         with pytest.raises(ImportError):
             # pylint: disable=import-outside-toplevel,unused-import
             import dask.dataframe
 
-        del sys.modules["pandera"]
-        del sys.modules["pandera.accessors.dask_accessor"]
+        for module in ["pandera", "pandera.accessors.dask_accessor"]:
+            try:
+                del sys.modules[module]
+            except KeyError:
+                ...
+
         # pylint: disable=import-outside-toplevel,unused-import
         import pandera
 
         assert "pandera.accessors.dask_accessor" not in sys.modules
 
         del sys.modules["pandera"]
-        del sys.modules["pandera.check_utils"]
+        del sys.modules["pandera.core.pandas.types"]
         # pylint: disable=import-outside-toplevel
-        import pandera.check_utils
+        from pandera.core.pandas.types import is_table
 
-        assert not pandera.check_utils.is_table(pd.Series([1]))
+        assert not is_table(pd.Series([1]))
 
-        del sys.modules["pandera"]
-        del sys.modules["pandera.typing"]
+        for module in ["pandera", "pandera.typing"]:
+            try:
+                del sys.modules[module]
+            except KeyError:
+                ...
+
         # pylint: disable=import-outside-toplevel
         import pandera.typing
 
