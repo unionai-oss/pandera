@@ -24,7 +24,7 @@ from pandera import (
 )
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
-from pandera.schemas import SeriesSchemaBase
+from pandera.core.pandas.array import ArraySchema
 
 
 def test_dataframe_schema() -> None:
@@ -784,7 +784,7 @@ def test_schema_equality_operators():
         unique=False,
         name="my_series",
     )
-    series_schema_base = SeriesSchemaBase(
+    series_schema_base = ArraySchema(
         str,
         checks=[Check(lambda s: s.str.startswith("foo"))],
         nullable=False,
