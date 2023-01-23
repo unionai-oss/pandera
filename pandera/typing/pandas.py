@@ -16,9 +16,15 @@ from typing import (  # type: ignore[attr-defined]
 import numpy as np
 import pandas as pd
 
-from ..errors import SchemaError, SchemaInitError
-from .common import DataFrameBase, GenericDtype, IndexBase, Schema, SeriesBase
-from .formats import Formats
+from pandera.errors import SchemaError, SchemaInitError
+from pandera.typing.common import (
+    DataFrameBase,
+    GenericDtype,
+    IndexBase,
+    Schema,
+    SeriesBase,
+)
+from pandera.typing.formats import Formats
 
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]

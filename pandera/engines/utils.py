@@ -5,7 +5,7 @@ from typing import Any, Union
 import numpy as np
 import pandas as pd
 
-from .type_aliases import PandasObject
+from pandera.engines.type_aliases import PandasObject
 
 
 def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:

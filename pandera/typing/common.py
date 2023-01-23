@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union
 import pandas as pd
 import typing_inspect
 
-from .. import dtypes
-from ..engines import numpy_engine, pandas_engine
+from pandera import dtypes
+from pandera.engines import numpy_engine, pandas_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 Date = dtypes.Date  #: ``datetime.date`` object dtype

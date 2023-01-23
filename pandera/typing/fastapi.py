@@ -2,7 +2,7 @@
 
 from typing import Any, Callable, Generic, Iterable, Type
 
-from .common import T
+from pandera.typing.common import T
 
 try:
     from pydantic.fields import ModelField

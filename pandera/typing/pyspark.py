@@ -2,8 +2,8 @@
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from .common import DataFrameBase, IndexBase, SeriesBase
-from .pandas import GenericDtype, Schema, _GenericAlias
+from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
+from pandera.typing.pandas import GenericDtype, Schema, _GenericAlias
 
 try:
     import pyspark.pandas as ps

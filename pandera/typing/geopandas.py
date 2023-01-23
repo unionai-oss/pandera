@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from pandera.typing.common import DataFrameBase, SeriesBase
 
-from .pandas import Schema
+from pandera.typing.pandas import Schema
 
 try:
     import geopandas as gpd

@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Union
 
-from .errors import SchemaError
+from pandera.errors import SchemaError
 
 
 class SchemaErrorHandler:

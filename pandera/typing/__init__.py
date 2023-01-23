@@ -6,8 +6,8 @@ the typing module.
 
 from typing import Set, Type
 
-from . import dask, fastapi, geopandas, modin, pyspark
-from .common import (
+from pandera.typing import dask, fastapi, geopandas, modin, pyspark
+from pandera.typing.common import (
     BOOL,
     INT8,
     INT16,
@@ -41,7 +41,7 @@ from .common import (
     UInt32,
     UInt64,
 )
-from .pandas import DataFrame, Index, Series
+from pandera.typing.pandas import DataFrame, Index, Series
 
 DATAFRAME_TYPES: Set[Type] = {DataFrame}
 SERIES_TYPES: Set[Type] = {Series}
