@@ -4,9 +4,6 @@ from typing import Union
 
 import pandas as pd
 
-from pandera.core.pandas.types import is_field, is_multiindex, is_table
-from pandera.engines.pandas_engine import PANDAS_1_5_0_PLUS
-
 
 def format_generic_error_message(
     parent_schema,
@@ -74,6 +71,9 @@ def reshape_failure_cases(
         representing how many failures of that case occurred.
 
     """
+    # pylint: disable=import-outside-toplevel,cyclic-import
+    from pandera.core.pandas.types import is_field, is_multiindex, is_table
+
     if not (is_table(failure_cases) or is_field(failure_cases)):
         raise TypeError(
             "Expected failure_cases to be a DataFrame or Series, found "
@@ -131,6 +131,9 @@ def reshape_failure_cases(
 
 
 def _multiindex_to_frame(df):
-    if PANDAS_1_5_0_PLUS:
+    # pylint: disable=import-outside-toplevel,cyclic-import
+    from pandera.engines.utils import pandas_version
+
+    if pandas_version().release >= (1, 5, 0):
         return df.index.to_frame(allow_duplicates=True)
     return df.index.to_frame().drop_duplicates()
