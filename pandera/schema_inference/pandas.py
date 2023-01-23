@@ -4,7 +4,7 @@ from typing import overload
 
 import pandas as pd
 
-from pandera._schema_statistics.pandas import (
+from pandera.schema_statistics.pandas import (
     infer_dataframe_statistics,
     infer_series_statistics,
     parse_check_statistics,

@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera._schema_inference.pandas import (
+from pandera.schema_inference.pandas import (
     infer_dataframe_schema,
     infer_schema,
     infer_series_schema,

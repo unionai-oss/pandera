@@ -23,7 +23,7 @@ from typing import (
 
 import pandas as pd
 
-from pandera._strategies import pandas_strategies as st
+from pandera.strategies import pandas_strategies as st
 from pandera.core.base.model import BaseModel
 from pandera.core.checks import Check
 from pandera.core.pandas.components import Column, Index, MultiIndex
