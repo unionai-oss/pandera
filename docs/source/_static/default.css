@@ -93,6 +93,6 @@ article .align-center, article .align-default {
 }
 
 /* make font size of API reference smaller */
-section[id^=pandera-] h1  {
+section[id^=pandera-]:not(id=pandera-data-types) h1  {
   font-size: 1.75em;
 }
