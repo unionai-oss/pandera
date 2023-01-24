@@ -221,7 +221,7 @@ or pandera's ``DataType``:
 For more details on data types, see :class:`~pandera.dtypes.DataType`
 
 
-dataframe Model
+Dataframe Model
 ---------------
 
 ``pandera`` also provides an alternative API for expressing schemas inspired
