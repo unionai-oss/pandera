@@ -7,10 +7,10 @@
 DataFrame Schemas
 =================
 
-The :class:`~pandera.schemas.DataFrameSchema` class enables the specification of a schema
+The :class:`~pandera.core.pandas.container.DataFrameSchema` class enables the specification of a schema
 that verifies the columns and index of a pandas ``DataFrame`` object.
 
-The :class:`~pandera.schemas.DataFrameSchema` object consists of |column|_\s and an |index|_.
+The :class:`~pandera.core.pandas.container.DataFrameSchema` object consists of |column|_\s and an |index|_.
 
 .. |column| replace:: ``Column``
 .. |index| replace:: ``Index``
@@ -39,7 +39,7 @@ The :class:`~pandera.schemas.DataFrameSchema` object consists of |column|_\s and
         coerce=True,
     )
 
-You can refer to :ref:`schema_models` to see how to define dataframe schemas
+You can refer to :ref:`dataframe_models` to see how to define dataframe schemas
 using the alternative pydantic/dataclass-style syntax.
 
 
@@ -48,7 +48,7 @@ using the alternative pydantic/dataclass-style syntax.
 Column Validation
 -----------------
 
-A :class:`~pandera.schema_components.Column` must specify the properties of a
+A :class:`~pandera.core.pandas.components.Column` must specify the properties of a
 column in a dataframe object. It can be optionally verified for its data type,
 `null values`_ or
 duplicate values. The column can be coerced_ into the specified type, and the
@@ -287,7 +287,7 @@ objects can also be used to validate columns in a dataframe on its own:
     validated_df = df.pipe(column1_schema).pipe(column2_schema)
 
 
-For multi-column use cases, the :class:`~pandera.schemas.DataFrameSchema` is still recommended, but
+For multi-column use cases, the :class:`~pandera.core.pandas.container.DataFrameSchema` is still recommended, but
 if you have one or a small number of columns to verify, using ``Column``
 objects by themselves is appropriate.
 
@@ -536,7 +536,7 @@ To control how unique errors are reported, the `report_duplicates` argument acce
 Index Validation
 ----------------
 
-You can also specify an :class:`~pandera.schema_components.Index` in the :class:`~pandera.schemas.DataFrameSchema`.
+You can also specify an :class:`~pandera.core.pandas.components.Index` in the :class:`~pandera.core.pandas.container.DataFrameSchema`.
 
 .. testcode:: index_validation
 
@@ -633,7 +633,7 @@ tuples for each level in the index hierarchy:
 MultiIndex Indexes
 ~~~~~~~~~~~~~~~~~~
 
-The :class:`~pandera.schema_components.MultiIndex` class allows you to define multi-index
+The :class:`~pandera.core.pandas.components.MultiIndex` class allows you to define multi-index
 indexes by composing a list of ``pandera.Index`` objects.
 
 .. testcode:: multiindex_indexes
@@ -677,8 +677,8 @@ Get Pandas Data Types
 ---------------------
 
 Pandas provides a `dtype` parameter for casting a dataframe to a specific dtype
-schema. :class:`~pandera.schemas.DataFrameSchema` provides
-a :attr:`~pandera.schemas.DataFrameSchema.dtypes` property which returns a
+schema. :class:`~pandera.core.pandas.container.DataFrameSchema` provides
+a :attr:`~pandera.core.pandas.container.DataFrameSchema.dtypes` property which returns a
 dictionary whose keys are column names and values are :class:`~pandera.dtypes.DataType`.
 
 Some examples of where this can be provided to pandas are:
@@ -809,7 +809,7 @@ data pipeline:
 
 If during the course of a data pipeline one of your columns is moved into the
 index, you can simply update the initial input schema using the
-:func:`~pandera.schemas.DataFrameSchema.set_index` method to create a schema for
+:func:`~pandera.core.pandas.container.DataFrameSchema.set_index` method to create a schema for
 the pipeline output.
 
 .. testcode:: set_index
@@ -857,9 +857,9 @@ the pipeline output.
 
 
 The available methods for altering the schema are:
-:func:`~pandera.schemas.DataFrameSchema.add_columns` ,
-:func:`~pandera.schemas.DataFrameSchema.remove_columns`,
-:func:`~pandera.schemas.DataFrameSchema.update_columns`,
-:func:`~pandera.schemas.DataFrameSchema.rename_columns`,
-:func:`~pandera.schemas.DataFrameSchema.set_index`,
-and :func:`~pandera.schemas.DataFrameSchema.reset_index`.
+:func:`~pandera.core.pandas.container.DataFrameSchema.add_columns` ,
+:func:`~pandera.core.pandas.container.DataFrameSchema.remove_columns`,
+:func:`~pandera.core.pandas.container.DataFrameSchema.update_columns`,
+:func:`~pandera.core.pandas.container.DataFrameSchema.rename_columns`,
+:func:`~pandera.core.pandas.container.DataFrameSchema.set_index`,
+and :func:`~pandera.core.pandas.container.DataFrameSchema.reset_index`.

@@ -10,7 +10,7 @@ Checks
 Checking column properties
 --------------------------
 
-:class:`~pandera.checks.Check` objects accept a function as a required argument, which is
+:class:`~pandera.core.checks.Check` objects accept a function as a required argument, which is
 expected to take a ``pa.Series`` input and output a ``boolean`` or a ``Series``
 of boolean values. For the check to pass, all of the elements in the boolean
 series must evaluate to ``True``, for example:
@@ -53,7 +53,7 @@ For common validation tasks, built-in checks are available in ``pandera``.
       "phone_number": Column(str, Check.str_matches(r'^[a-z0-9-]+$')),
   })
 
-See the :class:`~pandera.checks.Check` API reference for a complete list of built-in checks.
+See the :class:`~pandera.core.checks.Check` API reference for a complete list of built-in checks.
 
 
 .. _elementwise checks:
@@ -61,7 +61,7 @@ See the :class:`~pandera.checks.Check` API reference for a complete list of buil
 Vectorized vs. Element-wise Checks
 ------------------------------------
 
-By default, :class:`~pandera.checks.Check` objects operate on ``pd.Series``
+By default, :class:`~pandera.core.checks.Check` objects operate on ``pd.Series``
 objects. If you want to make atomic checks for each element in the Column, then
 you can provide the ``element_wise=True`` keyword argument:
 
@@ -106,7 +106,7 @@ with any null value are dropped.
 If you want to check the properties of a pandas data structure while preserving
 null values, specify ``Check(..., ignore_na=False)`` when defining a check.
 
-Note that this is different from the ``nullable`` argument in :class:`~pandera.schema_components.Column`
+Note that this is different from the ``nullable`` argument in :class:`~pandera.core.pandas.components.Column`
 objects, which simply checks for null values in a column.
 
 .. _column_check_groups:
@@ -114,21 +114,21 @@ objects, which simply checks for null values in a column.
 Column Check Groups
 -------------------
 
-:class:`~pandera.schema_components.Column` checks support grouping by a different column so that you
+:class:`~pandera.core.pandas.components.Column` checks support grouping by a different column so that you
 can make assertions about subsets of the column of interest. This
-changes the function signature of the :class:`~pandera.checks.Check` function so that its
+changes the function signature of the :class:`~pandera.core.checks.Check` function so that its
 input is a dict where keys are the group names and values are subsets of the
 series being validated.
 
 Specifying ``groupby`` as a column name, list of column names, or
-callable changes the expected signature of the :class:`~pandera.checks.Check`
+callable changes the expected signature of the :class:`~pandera.core.checks.Check`
 function argument to:
 
 ``Callable[Dict[Any, pd.Series] -> Union[bool, pd.Series]``
 
 where the dict keys are the discrete keys in the ``groupby`` columns.
 
-In the example below we define a :class:`~pandera.schemas.DataFrameSchema` with column checks
+In the example below we define a :class:`~pandera.core.pandas.container.DataFrameSchema` with column checks
 for ``height_in_feet`` using a single column, multiple columns, and a more
 complex groupby function that creates a new column ``age_less_than_15`` on the
 fly.
@@ -309,12 +309,12 @@ want the resulting table for further analysis.
     :skipif: SKIP_PANDAS_LT_V1
 
     <Schema Column(name=var2, type=None)> failed series or dataframe validator 0:
-    <Check _hypothesis_check: normality test>
+    <Check normaltest: normality test>
 
 
 Registering Custom Checks
 -------------------------
 
 ``pandera`` now offers an interface to register custom checks functions so
-that they're available in the :class:`~pandera.checks.Check` namespace. See
+that they're available in the :class:`~pandera.core.checks.Check` namespace. See
 :ref:`the extensions<extensions>` document for more information.

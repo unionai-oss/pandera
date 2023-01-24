@@ -325,10 +325,10 @@ def test_custom_checks(custom_check_teardown):
 
 def test_schema_model():
     # pylint: disable=missing-class-docstring
-    """Test that SchemaModel subclasses work on modin dataframes."""
+    """Test that DataFrameModel subclasses work on modin dataframes."""
 
     # pylint: disable=too-few-public-methods
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         int_field: pa.typing.modin.Series[int] = pa.Field(gt=0)
         float_field: pa.typing.modin.Series[float] = pa.Field(lt=0)
         str_field: pa.typing.modin.Series[str] = pa.Field(isin=["a", "b", "c"])
@@ -393,7 +393,7 @@ def test_check_decorators():
     out_schema = in_schema.add_columns({"b": pa.Column(int)})
 
     # pylint: disable=too-few-public-methods
-    class InSchema(pa.SchemaModel):
+    class InSchema(pa.DataFrameModel):
         a: pa.typing.modin.Series[int]
 
     class OutSchema(InSchema):
@@ -462,7 +462,7 @@ def test_check_decorators():
 
 
 # pylint: disable=too-few-public-methods
-class InitSchema(pa.SchemaModel):
+class InitSchema(pa.DataFrameModel):
     """Schema used for dataframe initialization."""
 
     col1: Series[int]

@@ -11,7 +11,7 @@ the goal of interoperating with libraries that you know and love.
    :widths: 25 75
 
    * - :ref:`FastAPI <fastapi_integration>`
-     - Use pandera SchemaModels in your FastAPI app
+     - Use pandera DataFrameModels in your FastAPI app
    * - :ref:`Frictionless <frictionless_integration>`
      - Convert frictionless schemas to pandera schemas
    * - :ref:`Hypothesis <data synthesis strategies>`
@@ -19,7 +19,7 @@ the goal of interoperating with libraries that you know and love.
    * - :ref:`Mypy <mypy_integration>`
      - Type-lint your pandas and pandera code with mypy for static type safety [experimental 🧪]
    * - :ref:`Pydantic <pydantic_integration>`
-     - Use pandera SchemaModels when defining  your pydantic BaseModels
+     - Use pandera DataFrameModels when defining  your pydantic BaseModels
 
 .. toctree::
     :maxdepth: 1

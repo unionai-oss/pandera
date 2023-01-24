@@ -12,8 +12,8 @@ API
      - The core objects for defining pandera schemas
    * - :ref:`Data Types <api-dtypes>`
      - Data types for type checking and coercion.
-   * - :ref:`Schema Models <api-schema-models>`
-     - Alternative class-based API for defining pandera schemas.
+   * - :ref:`DataFrame Models <api-dataframe-models>`
+     - Alternative class-based API for defining types for tabular/array-like data.
    * - :ref:`Decorators <api-decorators>`
      - Decorators for integrating pandera schemas with python functions.
    * - :ref:`Schema Inference <api-schema-inference>`
@@ -32,7 +32,7 @@ API
 
    core
    dtypes
-   schema_models
+   dataframe_models
    decorators
    schema_inference
    io

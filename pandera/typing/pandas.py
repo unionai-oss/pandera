@@ -16,9 +16,15 @@ from typing import (  # type: ignore[attr-defined]
 import numpy as np
 import pandas as pd
 
-from ..errors import SchemaError, SchemaInitError
-from .common import DataFrameBase, GenericDtype, IndexBase, Schema, SeriesBase
-from .formats import Formats
+from pandera.errors import SchemaError, SchemaInitError
+from pandera.typing.common import (
+    DataFrameBase,
+    GenericDtype,
+    IndexBase,
+    DataFrameModel,
+    SeriesBase,
+)
+from pandera.typing.formats import Formats
 
 try:
     from typing import _GenericAlias  # type: ignore[attr-defined]
@@ -61,7 +67,7 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
-    T = Schema
+    T = DataFrameModel
 
 
 # pylint:disable=too-few-public-methods
@@ -89,11 +95,11 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def from_format(cls, obj: Any, config) -> pd.DataFrame:
         """
         Converts serialized data from a specific format
-        specified in the :py:class:`pandera.model.SchemaModel` config options
+        specified in the :py:class:`pandera.core.pandas.model.DataFrameModel` config options
         ``from_format`` and ``from_format_kwargs``.
 
         :param obj: object representing a serialized dataframe.
-        :param config: schema model configuration object.
+        :param config: dataframe model configuration object.
         """
         if config.from_format is None:
             if not isinstance(obj, pd.DataFrame):
@@ -120,7 +126,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def to_format(cls, data: pd.DataFrame, config) -> Any:
         """
         Converts a dataframe to the format specified in the
-        :py:class:`pandera.model.SchemaModel` config options ``to_format``
+        :py:class:`pandera.core.pandas.model.DataFrameModel` config options ``to_format``
         and ``to_format_kwargs``.
 
         :param data: convert this data to the specified format
@@ -165,7 +171,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         except SchemaInitError as exc:
             raise ValueError(
                 f"Cannot use {cls.__name__} as a pydantic type as its "
-                "SchemaModel cannot be converted to a DataFrameSchema.\n"
+                "DataFrameModel cannot be converted to a DataFrameSchema.\n"
                 f"Please revisit the model to address the following errors:"
                 f"\n{exc}"
             ) from exc

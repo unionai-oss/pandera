@@ -23,7 +23,7 @@ Consider this simple example:
     import pandera as pa
     from pandera.typing import DataFrame, Series
 
-    class InSchema(pa.SchemaModel):
+    class InSchema(pa.DataFrameModel):
         str_col: Series[str] = pa.Field(unique=True, isin=[*"abcd"])
         int_col: Series[int]
 

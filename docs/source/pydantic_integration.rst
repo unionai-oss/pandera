@@ -10,9 +10,9 @@ Pydantic
 Using Pandera Schemas in Pydantic Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:class:`~pandera.model.SchemaModel` is fully compatible with
+:class:`~pandera.core.pandas.model.DataFrameModel` is fully compatible with
 `pydantic <https://pydantic-docs.helpmanual.io/>`_. You can specify
-a :class:`~pandera.model.SchemaModel` in a pydantic ``BaseModel`` as you would
+a :class:`~pandera.core.pandas.model.DataFrameModel` in a pydantic ``BaseModel`` as you would
 any other field:
 
 .. testcode:: dataframe_schema_model
@@ -23,7 +23,7 @@ any other field:
     import pydantic
 
 
-    class SimpleSchema(pa.SchemaModel):
+    class SimpleSchema(pa.DataFrameModel):
         str_col: Series[str] = pa.Field(unique=True)
 
 
@@ -56,12 +56,12 @@ Other pandera components are also compatible with pydantic:
     validates the type of a schema object, e.g. if your pydantic
     ``BaseModel`` contained a schema object, not a ``pandas`` object.
 
-- :class:`~pandera.model.SchemaModel`
-- :class:`~pandera.schemas.DataFrameSchema`
-- :class:`~pandera.schemas.SeriesSchema`
-- :class:`~pandera.schema_components.MultiIndex`
-- :class:`~pandera.schema_components.Column`
-- :class:`~pandera.schema_components.Index`
+- :class:`~pandera.core.pandas.model.DataFrameModel`
+- :class:`~pandera.core.pandas.container.DataFrameSchema`
+- :class:`~pandera.core.pandas.array.SeriesSchema`
+- :class:`~pandera.core.pandas.components.MultiIndex`
+- :class:`~pandera.core.pandas.components.Column`
+- :class:`~pandera.core.pandas.components.Index`
 
 
 Using Pydantic Models in Pandera Schemas
@@ -94,7 +94,7 @@ specify the ``Record`` model as a row-wise type.
     from pandera.engines.pandas_engine import PydanticModel
 
 
-    class PydanticSchema(pa.SchemaModel):
+    class PydanticSchema(pa.DataFrameModel):
         """Pandera schema using the pydantic model."""
 
         class Config:
@@ -115,7 +115,7 @@ The equivalent pandera schema would look like this:
 
 .. testcode:: pydantic_model_in_schema
 
-    class PanderaSchema(pa.SchemaModel):
+    class PanderaSchema(pa.DataFrameModel):
         """Pandera schema that's equivalent to PydanticSchema."""
 
         name: pa.typing.Series[str]

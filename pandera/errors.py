@@ -88,6 +88,7 @@ class SchemaError(ReducedPickleExceptionBase):
         "failure_cases",
         "check",
         "check_output",
+        "reason_code",
     ]
 
     def __init__(
@@ -99,6 +100,7 @@ class SchemaError(ReducedPickleExceptionBase):
         check=None,
         check_index=None,
         check_output=None,
+        reason_code=None,
     ):
         super().__init__(message)
         self.schema = schema
@@ -107,6 +109,7 @@ class SchemaError(ReducedPickleExceptionBase):
         self.check = check
         self.check_index = check_index
         self.check_output = check_output
+        self.reason_code = reason_code
 
 
 class BaseStrategyOnlyError(Exception):
@@ -143,7 +146,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self,
         schema,
         schema_errors: List[Dict[str, Any]],
-        data: Union[pd.Series, pd.DataFrame],
+        data: Union[pd.Series, pd.DataFrame, pd.Index, pd.MultiIndex],
     ):
         error_counts, failure_cases = self._parse_schema_errors(schema_errors)
         self.schema = schema
@@ -260,7 +263,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
                 check_failure_cases.append(failure_cases[column_order])
 
         # NOTE: this is a hack to support pyspark.pandas and modin
-        concat_fn = pd.concat
+        concat_fn = pd.concat  # type: ignore
         if any(
             type(x).__module__.startswith("pyspark.pandas")
             for x in check_failure_cases
@@ -268,7 +271,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
             # pylint: disable=import-outside-toplevel
             import pyspark.pandas as ps
 
-            concat_fn = ps.concat  # type: ignore[assignment]
+            concat_fn = ps.concat  # type: ignore
             check_failure_cases = [
                 x if isinstance(x, ps.DataFrame) else ps.DataFrame(x)
                 for x in check_failure_cases
@@ -280,7 +283,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
             # pylint: disable=import-outside-toplevel
             import modin.pandas as mpd
 
-            concat_fn = mpd.concat
+            concat_fn = mpd.concat  # type: ignore
             check_failure_cases = [
                 x if isinstance(x, mpd.DataFrame) else mpd.DataFrame(x)
                 for x in check_failure_cases

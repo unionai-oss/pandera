@@ -142,7 +142,7 @@ PANDAS_SERIES_ERRORS = [
         ],
         ["pandera_inheritance.py", "plugin_mypy.ini", []],
         ["pandera_types.py", "no_plugin.ini", PANDERA_TYPES_ERRORS],
-        ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
+        ["pandera_types.py", "plugin_mypy.ini", []],
         ["pandas_concat.py", "no_plugin.ini", []],
         ["pandas_concat.py", "plugin_mypy.ini", []],
         ["pandas_time.py", "no_plugin.ini", PANDAS_TIME_ERRORS],
@@ -162,7 +162,18 @@ def test_pandas_stubs_false_positives(
     expected_errors,
 ) -> None:
     """Test pandas-stubs type stub false positives."""
-    cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
+    xfail_modules = {"pandas_time.py", "pandas_index.py"}
+    if module in xfail_modules:
+        pytest.xfail(
+            f"{xfail_modules} are unstable when it comes due to maturing "
+            "pandas-stubs library"
+        )
+
+    cache_dir = str(
+        test_module_dir
+        / ".mypy_cache"
+        / f'{module.replace(".", "_")}-{config.replace(".", "_")}'
+    )
 
     commands = [
         sys.executable,

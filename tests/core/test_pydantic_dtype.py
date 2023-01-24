@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 import pandera as pa
 from pandera.engines.pandas_engine import PydanticModel
-from pandera.schemas import SeriesSchemaBase
+from pandera.core.pandas.array import ArraySchema
 
 
 class Record(BaseModel):
@@ -19,7 +19,7 @@ class Record(BaseModel):
     ycoord: int
 
 
-class PydanticSchema(pa.SchemaModel):
+class PydanticSchema(pa.DataFrameModel):
     """Pandera schema using the pydantic model."""
 
     class Config:
@@ -28,7 +28,7 @@ class PydanticSchema(pa.SchemaModel):
         dtype = PydanticModel(Record)
 
 
-class PanderaSchema(pa.SchemaModel):
+class PanderaSchema(pa.DataFrameModel):
     """Pandera schema that's equivalent to PydanticSchema."""
 
     name: pa.typing.Series[str]
@@ -75,7 +75,7 @@ def test_pydantic_model():
 
 
 @pytest.mark.parametrize("series_type", [pa.SeriesSchema, pa.Column, pa.Index])
-def test_pydantic_model_init_errors(series_type: Type[SeriesSchemaBase]):
+def test_pydantic_model_init_errors(series_type: Type[ArraySchema]):
     """
     Should raise SchemaInitError with PydanticModel as `SeriesSchemaBase.dtype`
     """

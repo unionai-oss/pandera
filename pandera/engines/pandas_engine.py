@@ -26,14 +26,18 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from packaging import version
 from pydantic import BaseModel, ValidationError
 
-from .. import dtypes, errors
-from ..dtypes import immutable
-from ..system import FLOAT_128_AVAILABLE
-from . import engine, numpy_engine, utils
-from .type_aliases import PandasDataType, PandasExtensionType, PandasObject
+from pandera import dtypes, errors
+from pandera.dtypes import immutable
+from pandera.system import FLOAT_128_AVAILABLE
+from pandera.engines import engine, numpy_engine, utils
+from pandera.engines.type_aliases import (
+    PandasDataType,
+    PandasExtensionType,
+    PandasObject,
+)
+from pandera.engines.utils import pandas_version
 
 try:
     import pyarrow  # pylint:disable=unused-import
@@ -41,12 +45,6 @@ try:
     PYARROW_INSTALLED = True
 except ImportError:
     PYARROW_INSTALLED = False
-
-
-def pandas_version():
-    """Return the pandas version."""
-
-    return version.parse(pd.__version__)
 
 
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
@@ -1055,7 +1053,7 @@ class PydanticModel(DataType):
         """Coerce pandas dataframe with pydantic record model."""
 
         # pylint: disable=import-outside-toplevel
-        from pandera import error_formatters
+        from pandera.backends.pandas import error_formatters
 
         def _coerce_row(row):
             """

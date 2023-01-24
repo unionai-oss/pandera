@@ -91,3 +91,8 @@ div.sponsorship {
 article .align-center, article .align-default {
   text-align: left;
 }
+
+/* make font size of API reference smaller */
+section[id^=pandera-] h1  {
+  font-size: 1.75em;
+}

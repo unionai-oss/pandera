@@ -3,9 +3,11 @@ import re
 import typing
 from unittest.mock import MagicMock
 
+import numpy as np
 import pandas as pd
 import pyspark.pandas as ps
 import pytest
+from packaging import version
 from pyspark import SparkContext
 
 import pandera as pa
@@ -60,9 +62,9 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.Date,
 }
 
-SPARK_VERSION = SparkContext().version
+SPARK_VERSION = version.parse(SparkContext().version)
 
-if SPARK_VERSION < "3.3.0":
+if SPARK_VERSION < version.parse("3.3.0"):
     PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)
 
 if system.FLOAT_128_AVAILABLE:
@@ -288,6 +290,14 @@ def test_nullable(
     data: st.DataObject,
 ):
     """Test nullable checks on pyspark.pandas dataframes."""
+
+    if version.parse(np.__version__) >= version.parse(
+        "1.24.0"
+    ) and SPARK_VERSION <= version.parse("3.3.1"):
+        # this should raise an error due to pyspark code using numpy.bool,
+        # which is deprecated.
+        pytest.xfail()
+
     checks = None
     if dtypes.is_datetime(type(dtype)) and MIN_TIMESTAMP is not None:
         checks = [pa.Check.gt(MIN_TIMESTAMP)]
@@ -418,6 +428,13 @@ def test_required_column():
 def test_dtype_coercion(from_dtype, to_dtype, data):
     """Test the datatype coercion provides informative errors."""
 
+    if version.parse(np.__version__) >= version.parse(
+        "1.24.0"
+    ) and SPARK_VERSION <= version.parse("3.3.1"):
+        # this should raise an error due to pyspark code using numpy.bool,
+        # which is deprecated.
+        pytest.xfail()
+
     # there's an issue generating index strategies with string dtypes having to
     # do with encoding utf-8 characters... therefore this test restricts the
     # generated strings to alphanumaric characters
@@ -529,11 +546,11 @@ def test_custom_checks():
 def test_schema_model():
     # pylint: disable=missing-class-docstring
     """
-    Test that SchemaModel subclasses work on pyspark_pandas_eq dataframes.
+    Test that DataFrameModel subclasses work on pyspark_pandas_eq dataframes.
     """
 
     # pylint: disable=too-few-public-methods
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         int_field: pa.typing.pyspark.Series[int] = pa.Field(gt=0)
         float_field: pa.typing.pyspark.Series[float] = pa.Field(lt=0)
         str_field: pa.typing.pyspark.Series[str] = pa.Field(
@@ -600,7 +617,7 @@ def test_check_decorators():
     out_schema = in_schema.add_columns({"b": pa.Column(int)})
 
     # pylint: disable=too-few-public-methods
-    class InSchema(pa.SchemaModel):
+    class InSchema(pa.DataFrameModel):
         a: pa.typing.pyspark.Series[int]
 
     class OutSchema(InSchema):
@@ -667,7 +684,7 @@ def test_check_decorators():
 
 
 # pylint: disable=too-few-public-methods
-class InitSchema(pa.SchemaModel):
+class InitSchema(pa.DataFrameModel):
     """Schema used to test dataframe initialization."""
 
     col1: Series[int]
@@ -714,7 +731,7 @@ def test_strict_filter(data):
     """Test that the strict = "filter" config option works."""
 
     # pylint: disable=too-few-public-methods
-    class FilterSchema(pa.SchemaModel):
+    class FilterSchema(pa.DataFrameModel):
         """Schema used to test dataframe strict = "filter" initialization."""
 
         col1: Series[int] = pa.Field()

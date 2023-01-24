@@ -13,16 +13,16 @@ import pandera as pa
 from pandera.typing import DataFrame, Series
 
 
-class Schema(pa.SchemaModel):
+class Schema(pa.DataFrameModel):
     id: Series[int]
     name: Series[str]
 
 
-class SchemaOut(pa.SchemaModel):
+class SchemaOut(pa.DataFrameModel):
     age: Series[int]
 
 
-class AnotherSchema(pa.SchemaModel):
+class AnotherSchema(pa.DataFrameModel):
     id: Series[int]
     first_name: Series[str]
 

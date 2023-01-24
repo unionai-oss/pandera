@@ -106,7 +106,7 @@ master_doc = "index"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = [".ipynb_checkpoints/*", "notebooks/try_pandera.ipynb"]
 
 autoclass_content = "both"
 
@@ -200,7 +200,7 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.DataFrame"',
                     "Cannot resolve forward reference in type annotations of "
-                    '"pandera.schemas.DataFrameSchema',
+                    '"pandera.core.pandas.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.DataFrame.style"',
                 )

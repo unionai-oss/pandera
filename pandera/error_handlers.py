@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Union
 
-from .errors import SchemaError
+from pandera.errors import SchemaError
 
 
 class SchemaErrorHandler:
@@ -16,6 +16,11 @@ class SchemaErrorHandler:
         """
         self._lazy = lazy
         self._collected_errors = []  # type: ignore
+
+    @property
+    def lazy(self) -> bool:
+        """Whether or not the schema error handler raises errors immediately."""
+        return self._lazy
 
     def collect_error(
         self,

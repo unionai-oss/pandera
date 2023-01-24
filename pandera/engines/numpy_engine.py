@@ -10,11 +10,11 @@ from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 import numpy as np
 
-from .. import dtypes, errors
-from ..dtypes import immutable
-from ..system import FLOAT_128_AVAILABLE
-from . import engine, utils
-from .type_aliases import PandasObject
+from pandera import dtypes, errors
+from pandera.dtypes import immutable
+from pandera.system import FLOAT_128_AVAILABLE
+from pandera.engines import engine, utils
+from pandera.engines.type_aliases import PandasObject
 
 
 @immutable(init=True)

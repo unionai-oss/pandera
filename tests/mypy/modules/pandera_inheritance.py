@@ -4,7 +4,7 @@
 import pandera as pa
 
 
-class Schema(pa.SchemaModel):
+class Schema(pa.DataFrameModel):
     a: pa.typing.Series[int]
     b: pa.typing.Series[str]
     c: pa.typing.Series[bool]

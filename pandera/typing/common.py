@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union
 import pandas as pd
 import typing_inspect
 
-from .. import dtypes
-from ..engines import numpy_engine, pandas_engine
+from pandera import dtypes
+from pandera.engines import numpy_engine, pandas_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 Date = dtypes.Date  #: ``datetime.date`` object dtype
@@ -134,14 +134,14 @@ else:
         ],
     )
 
-Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
+DataFrameModel = TypeVar("Schema", bound="DataFrameModel")  # type: ignore
 
 
 # pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
-    T = Schema
+    T = DataFrameModel
 
 
 class DataFrameBase(Generic[T]):
@@ -160,10 +160,12 @@ class DataFrameBase(Generic[T]):
             orig_class = getattr(self, "__orig_class__")
             class_args = getattr(orig_class, "__args__", None)
             if class_args is not None and any(
-                x.__name__ == "SchemaModel"
+                x.__name__ == "DataFrameModel"
                 for x in inspect.getmro(class_args[0])
             ):
                 schema_model = value.__args__[0]
+            else:
+                raise TypeError("Could not find DataFrameModel in class args")
 
             # prevent the double validation problem by preventing checks for
             # dataframes with a defined pandera.schema
@@ -209,7 +211,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
     Attributes:
         origin: The non-parameterized generic class.
         args: All generic types for accessing as an iterable.
-        arg: The first generic type (SchemaModel does not support more than
+        arg: The first generic type (DataFrameModel does not support more than
             1 argument).
         literal: Whether the annotation is a literal.
         optional: Whether the annotation is optional.

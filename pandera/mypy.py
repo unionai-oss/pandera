@@ -15,7 +15,7 @@ from mypy.plugin import (
 )
 from mypy.types import CallableType, Instance, UnionType
 
-SCHEMAMODEL_FULLNAME = "pandera.model.SchemaModel"
+DATAFRAMEMODEL_FULLNAME = "pandera.core.pandas.model.DataFrameModel"
 PANDERA_PANDAS_DATAFRAME_FULLNAME = "pandera.typing.pandas.DataFrame"
 PANDERA_PANDAS_SERIES_FULLNAME = "pandera.typing.pandas.Series"
 PANDERA_PANDAS_INDEX_FULLNAME = "pandera.typing.pandas.Index"
@@ -80,7 +80,7 @@ class PanderaPlugin(Plugin):
         sym = self.lookup_fully_qualified(fullname)
         if sym and isinstance(sym.node, TypeInfo):  # pragma: no branch
             if any(
-                get_fullname(base) == SCHEMAMODEL_FULLNAME
+                get_fullname(base) == DATAFRAMEMODEL_FULLNAME
                 for base in sym.node.mro
             ):
                 return self._pandera_model_class_maker_callback
@@ -89,7 +89,7 @@ class PanderaPlugin(Plugin):
     def _pandera_model_class_maker_callback(
         self, ctx: ClassDefContext
     ) -> None:
-        transformer = SchemaModelTransformer(ctx, self.plugin_config)
+        transformer = DataFrameModelTransformer(ctx, self.plugin_config)
         transformer.transform()
 
     def pandas_concat_callback(
@@ -117,7 +117,7 @@ class PanderaPlugin(Plugin):
         return ctx.default_signature.copy_modified(arg_types=arg_types)
 
 
-class SchemaModelTransformer:
+class DataFrameModelTransformer:
     def __init__(self, ctx: ClassDefContext, plugin_config):
         self.ctx = ctx
 
@@ -125,12 +125,12 @@ class SchemaModelTransformer:
         self.erase_field_type_arg()
 
     def erase_field_type_arg(self):
-        """Erase type information of SchemaModel fields.
+        """Erase type information of DataFrameModel fields.
 
-        This allows for overriding types when subclassing SchemaModels. For
+        This allows for overriding types when subclassing DataFrameModels. For
         example:
 
-        class BaseSchema(pa.SchemaModel):
+        class BaseSchema(pa.DataFrameModel):
             x: pa.typing.Series[int]
 
         class Schema(BaseSchema):

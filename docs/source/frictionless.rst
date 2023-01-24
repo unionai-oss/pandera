@@ -20,8 +20,8 @@ Frictionless Data Schema
 
 .. autofunction:: pandera.io.from_frictionless_schema
 
-under the hood, this uses the :class:`~pandera.io.FrictionlessFieldParser` class
+under the hood, this uses the :class:`~pandera.io.pandas_io.FrictionlessFieldParser` class
 to parse each frictionless field (column):
 
-.. autoclass:: pandera.io.FrictionlessFieldParser
+.. autoclass:: pandera.io.pandas_io.FrictionlessFieldParser
     :members:

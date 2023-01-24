@@ -16,9 +16,10 @@ dependencies:
   - pyyaml >=5.1
   - typing_inspect >= 0.6.0
   - typing_extensions >= 3.7.4.3
-  - frictionless
+  - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow
   - pydantic
+  - multimethod
 
   # mypy extra
   - pandas-stubs <= 1.5.2.221213
@@ -73,7 +74,7 @@ dependencies:
   - twine
 
   # performance testing
-  - asv
+  - asv >= 0.5.1
 
   # optional
   - pre_commit

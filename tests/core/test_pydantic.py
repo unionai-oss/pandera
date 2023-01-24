@@ -14,8 +14,8 @@ except ImportError:
     pytest.skip("Pydantic not available", allow_module_level=True)
 
 
-class SimpleSchema(pa.SchemaModel):
-    """Test SchemaModel."""
+class SimpleSchema(pa.DataFrameModel):
+    """Test DataFrameModel."""
 
     str_col: Series[str] = pa.Field(unique=True)
 
@@ -26,8 +26,8 @@ class TypedDfPydantic(BaseModel):
     df: DataFrame[SimpleSchema]
 
 
-class SchemaModelPydantic(BaseModel):
-    """Test pydantic model with a SchemaModel."""
+class DataFrameModelPydantic(BaseModel):
+    """Test pydantic model with a DataFrameModel."""
 
     pa_schema: SimpleSchema
 
@@ -62,8 +62,8 @@ def test_invalid_typed_dataframe():
     with pytest.raises(ValidationError):
         TypedDfPydantic(df=1)
 
-    class InvalidSchema(pa.SchemaModel):
-        """Test SchemaModel."""
+    class InvalidSchema(pa.DataFrameModel):
+        """Test DataFrameModel."""
 
         str_col = pa.Field(unique=True)  # omit annotation
 
@@ -74,24 +74,24 @@ def test_invalid_typed_dataframe():
         PydanticModel(pa_schema=InvalidSchema)
 
 
-def test_schemamodel():
-    """Test that SchemaModel is compatible with pydantic."""
+def test_dataframemodel():
+    """Test that DataFrameModel is compatible with pydantic."""
     assert isinstance(
-        SchemaModelPydantic(pa_schema=SimpleSchema),
-        SchemaModelPydantic,
+        DataFrameModelPydantic(pa_schema=SimpleSchema),
+        DataFrameModelPydantic,
     )
 
 
-def test_invalid_schemamodel():
-    """Test that an invalid typed SchemaModel is recognized by pydantic."""
+def test_invalid_dataframemodel():
+    """Test that an invalid typed DataFrameModel is recognized by pydantic."""
     with pytest.raises(ValidationError):
-        SchemaModelPydantic(pa_schema=1)
+        DataFrameModelPydantic(pa_schema=1)
 
     with pytest.raises(ValidationError):
-        SchemaModelPydantic(pa_schema=SimpleSchema.to_schema())
+        DataFrameModelPydantic(pa_schema=SimpleSchema.to_schema())
 
-    class InvalidSchema(pa.SchemaModel):
-        """Test SchemaModel."""
+    class InvalidSchema(pa.DataFrameModel):
+        """Test SchemaDataFrameModelModel."""
 
         str_col = pa.Field(unique=True)  # omit annotation
 
@@ -102,10 +102,10 @@ def test_invalid_schemamodel():
         PydanticModel(pa_schema=InvalidSchema)
 
 
-def test_schemamodel_inheritance():
-    """Test that an inherited SchemaModel is compatible with pydantic."""
+def test_dataframemodel_inheritance():
+    """Test that an inherited DataFrameModel is compatible with pydantic."""
 
-    class Parent(pa.SchemaModel):
+    class Parent(pa.DataFrameModel):
         a: Series[str]
 
     class Child(Parent):
@@ -117,7 +117,7 @@ def test_schemamodel_inheritance():
     assert isinstance(PydanticModel(pa_schema=Parent), PydanticModel)
     assert isinstance(PydanticModel(pa_schema=Child), PydanticModel)
 
-    class NotChild(pa.SchemaModel):
+    class NotChild(pa.DataFrameModel):
         b: Series[str]
 
     with pytest.raises(ValidationError):

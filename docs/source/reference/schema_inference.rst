@@ -7,4 +7,4 @@ Schema Inference
    :toctree: generated
    :nosignatures:
 
-   pandera.schema_inference.infer_schema
+   pandera.schema_inference.pandas.infer_schema

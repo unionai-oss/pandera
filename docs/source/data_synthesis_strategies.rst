@@ -45,7 +45,7 @@ Once you've defined a schema, it's easy to generate examples:
 
 
 Note that here we've constrained the specific values in each column using
-:class:`~pandera.checks.Check` s  in order to make the data generation process
+:class:`~pandera.core.checks.Check` s  in order to make the data generation process
 deterministic for documentation purposes.
 
 Usage in Unit Tests
@@ -99,18 +99,18 @@ Now the ``test_processing_fn`` simply becomes an execution test, raising a
 :class:`~pandera.errors.SchemaError` if ``processing_fn`` doesn't add
 ``column4`` to the dataframe.
 
-Strategies and Examples from Schema Models
-------------------------------------------
+Strategies and Examples from DataFrame Models
+---------------------------------------------
 
-You can also use the :ref:`class-based API<schema_models>` to generate examples.
-Here's the equivalent schema model for the above examples:
+You can also use the :ref:`class-based API<dataframe_models>` to generate examples.
+Here's the equivalent dataframe model for the above examples:
 
 .. testcode:: data_synthesis_strategies
    :skipif: SKIP_STRATEGY
 
    from pandera.typing import Series, DataFrame
 
-   class InSchema(pa.SchemaModel):
+   class InSchema(pa.DataFrameModel):
        column1: Series[int] = pa.Field(eq=10)
        column2: Series[float] = pa.Field(eq=0.25)
        column3: Series[str] = pa.Field(eq="foo")
@@ -130,7 +130,7 @@ Here's the equivalent schema model for the above examples:
 Checks as Constraints
 ---------------------
 
-As you may have noticed in the first example, :class:`~pandera.checks.Check` s
+As you may have noticed in the first example, :class:`~pandera.core.checks.Check` s
 further constrain the data synthesized from a strategy. Without checks, the
 ``example`` method would simply generate any value of the specified type. You
 can specify multiple checks on a column and ``pandera`` should be able to
@@ -222,7 +222,7 @@ register custom checks and define strategies that correspond to them.
 Defining Custom Strategies
 --------------------------
 
-All built-in :class:`~pandera.checks.Check` s are associated with a data
+All built-in :class:`~pandera.core.checks.Check` s are associated with a data
 synthesis strategy. You can define your own data synthesis strategies by using
 the :ref:`extensions API<extensions>` to register a custom check function with
 a corresponding strategy.

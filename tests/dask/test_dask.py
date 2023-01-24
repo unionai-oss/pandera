@@ -10,11 +10,11 @@ import pandera as pa
 from pandera.typing.dask import DataFrame, Index, Series
 
 
-class IntSchema(pa.SchemaModel):  # pylint: disable=missing-class-docstring
+class IntSchema(pa.DataFrameModel):  # pylint: disable=missing-class-docstring
     col: Series[int]
 
 
-class StrSchema(pa.SchemaModel):  # pylint: disable=missing-class-docstring
+class StrSchema(pa.DataFrameModel):  # pylint: disable=missing-class-docstring
     col: Series[str]
 
 
@@ -111,7 +111,7 @@ def test_decorator() -> None:
         print(result.compute())
 
 
-class InitSchema(pa.SchemaModel):
+class InitSchema(pa.DataFrameModel):
     """Schema used to test dataframe initialization."""
 
     col1: Series[int]

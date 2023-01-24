@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera import dtypes, schema_statistics
+import pandera.schema_statistics.pandas as schema_statistics
+from pandera import dtypes
 from pandera.engines import pandas_engine
 
 DEFAULT_FLOAT = pandas_engine.Engine.dtype(float)

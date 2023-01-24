@@ -12,7 +12,8 @@ import pytest
 
 import pandera as pa
 from pandera import strategies
-from pandera.checks import _CheckBase, register_check_statistics
+from pandera.core.checks import Check
+from pandera.core.base.checks import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
 from pandera.engines import pandas_engine
 
@@ -373,7 +374,7 @@ def test_register_check_strategy(data) -> None:
         return st.just(value).map(strategies.to_numpy_dtype(pandas_dtype).type)
 
     # pylint: disable=no-member
-    class CustomCheck(_CheckBase):
+    class CustomCheck(Check):
         """Custom check class."""
 
         @classmethod
@@ -404,7 +405,7 @@ def test_register_check_strategy_exception() -> None:
     def custom_strat() -> None:
         pass
 
-    class CustomCheck(_CheckBase):
+    class CustomCheck(Check):
         """Custom check class."""
 
         @classmethod
@@ -423,11 +424,7 @@ def test_register_check_strategy_exception() -> None:
                 **kwargs,
             )
 
-    with pytest.raises(
-        AttributeError,
-        match="check object doesn't have a defined statistics property",
-    ):
-        CustomCheck.custom_check()
+    assert not CustomCheck.custom_check().statistics
 
 
 @hypothesis.given(st.data())
@@ -803,8 +800,8 @@ def test_unsatisfiable_checks():
             schema.example(size=10)
 
 
-class Schema(pa.SchemaModel):
-    """Schema model for strategy testing."""
+class Schema(pa.DataFrameModel):
+    """DataFrame model for strategy testing."""
 
     col1: pa.typing.Series[int]
     col2: pa.typing.Series[float]
@@ -813,7 +810,7 @@ class Schema(pa.SchemaModel):
 
 @hypothesis.given(st.data())
 def test_schema_model_strategy(data) -> None:
-    """Test that strategy can be created from a SchemaModel."""
+    """Test that strategy can be created from a DataFrameModel."""
     strat = Schema.strategy(size=10)
     sample_data = data.draw(strat)
     Schema.validate(sample_data)
@@ -839,7 +836,7 @@ def test_schema_model_strategy_df_check(data) -> None:
 
 
 def test_schema_model_example() -> None:
-    """Test that examples can be drawn from a SchemaModel."""
+    """Test that examples can be drawn from a DataFrameModel."""
     sample_data = Schema.example(size=10)
     Schema.validate(sample_data)  # type: ignore[arg-type]
 

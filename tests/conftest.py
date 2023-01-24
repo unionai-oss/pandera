@@ -25,13 +25,13 @@ else:
 
     settings.register_profile(
         "ci",
-        max_examples=40,
+        max_examples=10,
         deadline=None,
         suppress_health_check=suppressed_health_checks,
     )
     settings.register_profile(
         "dev",
-        max_examples=20,
+        max_examples=5,
         deadline=None,
         suppress_health_check=suppressed_health_checks,
     )

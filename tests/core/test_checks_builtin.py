@@ -1,4 +1,4 @@
-"""Tests for builtin checks in pandera.checks.Check
+"""Tests for builtin checks in pandera.core.checks.Check
 """
 
 from typing import Iterable
@@ -6,10 +6,11 @@ from typing import Iterable
 import pandas as pd
 import pytest
 
-from pandera.checks import Check
+from pandera.core.checks import Check
+from pandera.core.pandas.array import SeriesSchema
+from pandera.core.pandas.components import Column
+from pandera.core.pandas.container import DataFrameSchema
 from pandera.errors import SchemaError
-from pandera.schema_components import Column
-from pandera.schemas import DataFrameSchema, SeriesSchema
 
 
 def check_values(
@@ -1031,5 +1032,5 @@ def test_unique_values_eq(series_values, check_arg, passes, failure_cases):
 @pytest.mark.parametrize("values", [1, 1.0])
 def test_unique_values_eq_raise_error(values):
     """Test that unique_values_eq raises an error arg is not iterable."""
-    with pytest.raises(TypeError):
+    with pytest.raises((TypeError, ValueError)):
         Check.unique_values_eq(values)

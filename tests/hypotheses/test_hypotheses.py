@@ -12,7 +12,7 @@ from pandera import (
     String,
     errors,
 )
-from pandera.hypotheses import HAS_SCIPY
+from pandera.backends.pandas.hypotheses import HAS_SCIPY
 
 if HAS_SCIPY:
     from scipy import stats  # pylint: disable=import-error

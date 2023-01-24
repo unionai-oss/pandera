@@ -2,7 +2,7 @@
 
 from typing import Any, Callable, Generic, Iterable, Type
 
-from .common import T
+from pandera.typing.common import T
 
 try:
     from pydantic.fields import ModelField
@@ -25,8 +25,8 @@ if FASTAPI_INSTALLED:
         """Pandera-specific subclass of fastapi.UploadFile.
 
         This type uses :py:class:`pandera.typing.DataFrame` to read files into
-        dataframe format based on the :py:class:`pandera.models.SchemaModel`
-        configuration.
+        dataframe format based on the
+        :py:class:`pandera.core.pandas.models.DataFrameModel` configuration.
         """
 
         __slots__ = (

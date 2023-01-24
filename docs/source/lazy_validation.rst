@@ -10,7 +10,7 @@ Lazy Validation
 By default, when you call the ``validate`` method on schema or schema component
 objects, a :class:`~pandera.errors.SchemaError` is raised as soon as one of the
 assumptions specified in the schema is falsified. For example, for a
-:class:`~pandera.schemas.DataFrameSchema` object, the following situations will raise an
+:class:`~pandera.core.pandas.container.DataFrameSchema` object, the following situations will raise an
 exception:
 
 * a column specified in the schema is not present in the dataframe.
@@ -18,7 +18,7 @@ exception:
 * the ``data type`` does not match.
 * if ``coerce=True``, the dataframe column cannot be coerced into the specified
   ``data type``.
-* the :class:`~pandera.checks.Check` specified in one of the columns returns ``False`` or
+* the :class:`~pandera.core.checks.Check` specified in one of the columns returns ``False`` or
   a boolean series containing at least one ``False`` value.
 
 
@@ -133,8 +133,8 @@ catch these errors and inspect the failure cases in a more granular form:
 
     Schema errors and failure cases:
         schema_context        column                check check_number  \
-    0  DataFrameSchema          None     column_in_schema         None
-    1  DataFrameSchema          None  column_in_dataframe         None
+    0  DataFrameSchema          None  column_in_dataframe         None
+    1  DataFrameSchema          None     column_in_schema         None
     2           Column    int_column       dtype('int64')         None
     3           Column  float_column     dtype('float64')         None
     4           Column  float_column      greater_than(0)            0
@@ -142,8 +142,8 @@ catch these errors and inspect the failure cases in a more granular form:
     6           Column    str_column          equal_to(a)            0
 
          failure_case index
-    0  unknown_column  None
-    1     date_column  None
+    0     date_column  None
+    1  unknown_column  None
     2          object  None
     3           int64  None
     4               0     0

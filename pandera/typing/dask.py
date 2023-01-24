@@ -2,8 +2,8 @@
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from .common import DataFrameBase, IndexBase, SeriesBase
-from .pandas import GenericDtype, Schema
+from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
+from pandera.typing.pandas import GenericDtype, DataFrameModel
 
 try:
     import dask.dataframe as dd
@@ -17,7 +17,7 @@ except ImportError:
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
-    T = Schema
+    T = DataFrameModel
 
 
 if DASK_INSTALLED:

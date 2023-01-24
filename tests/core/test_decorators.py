@@ -14,7 +14,7 @@ from pandera import (
     Field,
     Float,
     Int,
-    SchemaModel,
+    DataFrameModel,
     String,
     check_input,
     check_io,
@@ -508,13 +508,15 @@ def test_check_io_unrecognized_obj_getter(out, error, msg) -> None:
 
 # required to be a global: see
 # https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class OnlyZeroesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
+class OnlyZeroesSchema(
+    DataFrameModel
+):  # pylint:disable=too-few-public-methods
     """Schema with a single column containing zeroes."""
 
     a: Series[int] = Field(eq=0)
 
 
-class OnlyOnesSchema(SchemaModel):  # pylint:disable=too-few-public-methods
+class OnlyOnesSchema(DataFrameModel):  # pylint:disable=too-few-public-methods
     """Schema with a single column containing ones."""
 
     a: Series[int] = Field(eq=1)
@@ -575,7 +577,7 @@ def test_check_types_unchanged() -> None:
 
 # required to be globals:
 # see https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class InSchema(SchemaModel):  # pylint:disable=too-few-public-methods
+class InSchema(DataFrameModel):  # pylint:disable=too-few-public-methods
     """Test schema used as input."""
 
     a: Series[int]
@@ -593,7 +595,7 @@ class DerivedOutSchema(InSchema):
     b: Series[int]
 
 
-class OutSchema(SchemaModel):  # pylint: disable=too-few-public-methods
+class OutSchema(DataFrameModel):  # pylint: disable=too-few-public-methods
     """Test schema used as output."""
 
     b: Series[int]
@@ -782,7 +784,7 @@ def test_check_types_with_literal_type(arg_examples):
         ) -> DataFrame[OutSchema]:
             return df.assign(b=100)  # type: ignore
 
-        df = pd.DataFrame({"a": [1]})
+        df = pd.DataFrame({"a": [1]}, index=["a"])
         invalid_df = pd.DataFrame()
 
         transform_with_literal(df, example)
@@ -796,19 +798,19 @@ def test_check_types_method_args() -> None:
     """
     # pylint: disable=unused-argument,missing-class-docstring,too-few-public-methods,missing-function-docstring
 
-    class SchemaIn1(SchemaModel):
+    class SchemaIn1(DataFrameModel):
         col1: Series[int]
 
         class Config:
             strict = True
 
-    class SchemaIn2(SchemaModel):
+    class SchemaIn2(DataFrameModel):
         col2: Series[int]
 
         class Config:
             strict = True
 
-    class SchemaOut(SchemaModel):
+    class SchemaOut(DataFrameModel):
         col3: Series[int]
 
         class Config:
@@ -956,7 +958,7 @@ def test_check_types_non_dataframes() -> None:
 
 def test_coroutines(event_loop: AbstractEventLoop) -> None:
     # pylint: disable=missing-class-docstring,too-few-public-methods,missing-function-docstring
-    class Schema(SchemaModel):
+    class Schema(DataFrameModel):
         col1: Series[int]
 
         class Config:

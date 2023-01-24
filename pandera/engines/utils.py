@@ -4,9 +4,15 @@ from typing import Any, Union
 
 import numpy as np
 import pandas as pd
+from packaging import version
 
-from .. import check_utils
-from .type_aliases import PandasObject
+from pandera.engines.type_aliases import PandasObject
+
+
+def pandas_version():
+    """Return the pandas version."""
+
+    return version.parse(pd.__version__)
 
 
 def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
@@ -40,10 +46,17 @@ def numpy_pandas_coerce_failure_cases(
     into particular data type.
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
-    from pandera import error_formatters
     from pandera.engines import pandas_engine
+    from pandera.core.checks import Check
+    from pandera.core.pandas.types import is_index, is_field, is_table
+    from pandera.backends.pandas import error_formatters
+    from pandera.backends.pandas.checks import PandasCheckBackend
 
     data_type = pandas_engine.Engine.dtype(type_)
+
+    # this is check backend initialized here to use the postprocessing step
+    # for formatting the failure cases obtained by the coercible function.
+    stub_backend = PandasCheckBackend(Check(lambda _: _, ignore_na=False))
 
     if isinstance(data_container, np.ndarray):
         if len(data_container.shape) == 1:
@@ -55,26 +68,24 @@ def numpy_pandas_coerce_failure_cases(
                 "only numpy arrays of 1 or 2 dimensions are supported"
             )
 
-    if check_utils.is_index(data_container):
+    if is_index(data_container):
         data_container = data_container.to_series()  # type: ignore[union-attr,operator]
 
-    if check_utils.is_table(data_container):
+    if is_table(data_container):
         check_output = data_container.apply(  # type: ignore[union-attr,call-overload]
             numpy_pandas_coercible,
             args=(data_type,),
         )
-        _, failure_cases = check_utils.prepare_dataframe_check_output(
+        failure_cases = stub_backend.postprocess(
             data_container,  # type: ignore[arg-type]
             check_output,
-            ignore_na=False,
-        )
-    elif check_utils.is_field(data_container):
+        ).failure_cases
+    elif is_field(data_container):
         check_output = numpy_pandas_coercible(data_container, data_type)  # type: ignore[arg-type]  # noqa
-        _, failure_cases = check_utils.prepare_series_check_output(
+        failure_cases = stub_backend.postprocess(
             data_container,  # type: ignore[arg-type]
             check_output,
-            ignore_na=False,
-        )
+        ).failure_cases
     else:
         raise TypeError(
             f"type of data_container {type(data_container)} not understood. "

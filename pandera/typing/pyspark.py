@@ -2,8 +2,8 @@
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from .common import DataFrameBase, IndexBase, SeriesBase
-from .pandas import GenericDtype, Schema, _GenericAlias
+from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
+from pandera.typing.pandas import GenericDtype, DataFrameModel, _GenericAlias
 
 try:
     import pyspark.pandas as ps
@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
-    T = Schema
+    T = DataFrameModel
 
 
 if PYSPARK_INSTALLED:
