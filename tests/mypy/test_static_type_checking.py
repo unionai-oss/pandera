@@ -142,7 +142,7 @@ PANDAS_SERIES_ERRORS = [
         ],
         ["pandera_inheritance.py", "plugin_mypy.ini", []],
         ["pandera_types.py", "no_plugin.ini", PANDERA_TYPES_ERRORS],
-        ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
+        ["pandera_types.py", "plugin_mypy.ini", []],
         ["pandas_concat.py", "no_plugin.ini", []],
         ["pandas_concat.py", "plugin_mypy.ini", []],
         ["pandas_time.py", "no_plugin.ini", PANDAS_TIME_ERRORS],
