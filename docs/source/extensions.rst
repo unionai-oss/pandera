@@ -240,13 +240,13 @@ Registered Custom Checks with the Class-based API
 -------------------------------------------------
 
 Since registered checks are part of the :class:`~pandera.core.checks.Check` namespace,
-you can also use custom checks with the :ref:`class-based API<schema_models>`:
+you can also use custom checks with the :ref:`class-based API<dataframe_models>`:
 
 .. testcode:: extensions
 
    from pandera.typing import Series
 
-   class Schema(pa.SchemaModel):
+   class Schema(pa.DataFrameModel):
        col1: Series[str] = pa.Field(custom_equals="value")
        col2: Series[int] = pa.Field(is_between={"min_value": 0, "max_value": 10})
 
@@ -301,7 +301,7 @@ For example, to register zero, one, and two statistic dataframe checks one could
     from pandera.typing import Series
 
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         col1: Series[float] = pa.Field(nullable=True, ignore_na=False)
         col2: Series[float] = pa.Field(nullable=True, ignore_na=False)
 

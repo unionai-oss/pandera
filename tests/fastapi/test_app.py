@@ -60,7 +60,9 @@ def test_transactions_endpoint(app):
 
 @given(Transactions.strategy(size=10))
 def test_upload_file_endpoint(app, sample):
-    """Test upload file endpoint with Upload[DataFrame[SchemaModel]] input."""
+    """
+    Test upload file endpoint with Upload[DataFrame[DataFrameModel]] input.
+    """
     buf = io.BytesIO()
     sample.to_parquet(buf)
     buf.seek(0)

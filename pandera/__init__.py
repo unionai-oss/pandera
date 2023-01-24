@@ -13,7 +13,7 @@ from pandera.core.pandas import (
     MultiIndex,
     SeriesSchema,
 )
-from pandera.core.pandas.model import SchemaModel
+from pandera.core.pandas.model import DataFrameModel, SchemaModel
 from pandera.core.pandas.model_components import Field, check, dataframe_check
 from pandera.dtypes import (
     Bool,
@@ -146,6 +146,7 @@ __all__ = [
     # hypotheses
     "Hypothesis",
     # model
+    "DataFrameModel",
     "SchemaModel",
     # model_components
     "Field",

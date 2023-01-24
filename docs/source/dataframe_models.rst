@@ -2,19 +2,32 @@
 
 .. currentmodule:: pandera
 
-.. _schema_models:
+.. _dataframe_models:
 
-Schema Models
-=============
+DataFrame Models
+================
+
+Formerly known as ``SchemaModel``.
 
 *new in 0.5.0*
 
+.. important::
+
+    As of pandera ``0.14.0`` :py:class:`~pandera.core.pandas.model.SchemaModel`
+    is simply an alias of :py:class:`~pandera.core.pandas.model.DataFrameModel`.
+    ``SchemaModel`` will continue to work as a valid way of specifying types
+    for DataFrame models for the foreseeable future, and will be deprecated in
+    version ``0.20.0``.
+
+    For the purposes of documentation, ``SchemaModel`` and ``DataFrameModel``
+    are equivalent.
+
 ``pandera`` provides a class-based API that's heavily inspired by
 `pydantic <https://pydantic-docs.helpmanual.io/>`_. In contrast to the
-:ref:`object-based API<DataFrameSchemas>`, you can define schema models in
+:ref:`object-based API<DataFrameSchemas>`, you can define dataframe models in
 much the same way you'd define ``pydantic`` models.
 
-`Schema Models` are annotated with the :mod:`pandera.typing` module using the standard
+``DataFrameModel`` s are annotated with the :mod:`pandera.typing` module using the standard
 `typing <https://docs.python.org/3/library/typing.html>`_ syntax. Models can be
 explicitly converted to a :class:`~pandera.core.pandas.container.DataFrameSchema` or used to validate a
 :class:`~pandas.DataFrame` directly.
@@ -23,10 +36,9 @@ explicitly converted to a :class:`~pandera.core.pandas.container.DataFrameSchema
 
    Due to current limitations in the pandas library (see discussion
    `here <https://github.com/pandera-dev/pandera/issues/253#issuecomment-665338337>`_),
-   ``pandera`` annotations are only used for **run-time** validation and **cannot** be
-   leveraged by static-type checkers like `mypy <http://mypy-lang.org/>`_. See the
-   discussion `here <https://github.com/pandera-dev/pandera/issues/253#issuecomment-665338337>`_
-   for more details.
+   ``pandera`` annotations are only used for **run-time** validation and has
+   limited support for static-type checkers like `mypy <http://mypy-lang.org/>`_.
+   See the :ref:`Mypy Integration <mypy_integration>` for more details.
 
 
 Basic Usage
@@ -39,7 +51,7 @@ Basic Usage
     from pandera.typing import Index, DataFrame, Series
 
 
-    class InputSchema(pa.SchemaModel):
+    class InputSchema(pa.DataFrameModel):
         year: Series[int] = pa.Field(gt=2000, coerce=True)
         month: Series[int] = pa.Field(ge=1, le=12, coerce=True)
         day: Series[int] = pa.Field(ge=0, le=365, coerce=True)
@@ -125,7 +137,7 @@ on initialization:
     from pandera.typing import DataFrame, Series
 
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         state: Series[str]
         city: Series[str]
         price: Series[int] = pa.Field(in_range={"min_value": 5, "max_value": 20})
@@ -225,10 +237,10 @@ The built-in :class:`typing.Union` type is supported for multiple ``DataFrame`` 
     import pandera as pa
     from pandera.typing import DataFrame, Series
 
-    class OnlyZeroesSchema(pa.SchemaModel):
+    class OnlyZeroesSchema(pa.DataFrameModel):
         a: Series[int] = pa.Field(eq=0)
 
-    class OnlyOnesSchema(pa.SchemaModel):
+    class OnlyOnesSchema(pa.DataFrameModel):
         a: Series[int] = pa.Field(eq=1)
 
     @pa.check_types
@@ -270,7 +282,7 @@ with pandera. Pydantic should be used to check and/or coerce any built-in types.
     from pandera.typing import DataFrame, Series
 
 
-    class OnlyZeroesSchema(pa.SchemaModel):
+    class OnlyZeroesSchema(pa.DataFrameModel):
         a: Series[int] = pa.Field(eq=0)
 
 
@@ -333,7 +345,7 @@ Dtype aliases
     import pandera as pa
     from pandera.typing import Series, String
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[String]
 
 Type Vs instance
@@ -348,7 +360,7 @@ You must give a **type**, not an **instance**.
 
     import pandas as pd
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[pd.StringDtype]
 
 :red:`✘` Bad:
@@ -356,7 +368,7 @@ You must give a **type**, not an **instance**.
 .. testcode:: dataframe_schema_model
     :skipif: SKIP_SCHEMA_MODEL
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[pd.StringDtype()]
 
 .. testoutput:: dataframe_schema_model
@@ -405,7 +417,7 @@ to python 3.6.
     except ImportError:
         from typing_extensions import Annotated
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
 Furthermore, you must pass all parameters in the order defined in the dtype's
@@ -416,7 +428,7 @@ constructor (see :ref:`table <parameterized dtypes>`).
 .. testcode:: dataframe_schema_model
     :skipif: PY36
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
 
     Schema.to_schema()
@@ -435,7 +447,7 @@ Field
 
 .. testcode:: dataframe_schema_model
 
-    class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+    class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
         col: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
 
 You cannot use both :data:`typing.Annotated` and ``dtype_kwargs``.
@@ -445,7 +457,7 @@ You cannot use both :data:`typing.Annotated` and ``dtype_kwargs``.
 .. testcode:: dataframe_schema_model
     :skipif: PY36
 
-    class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+    class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
 
     Schema.to_schema()
@@ -475,7 +487,7 @@ thrown. If you want to make a column optional, annotate it with :data:`typing.Op
     from pandera.typing import Series
 
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[str]
         b: Optional[Series[int]]
 
@@ -491,7 +503,7 @@ You can also use inheritance to build schemas on top of a base schema.
 
 .. testcode:: dataframe_schema_model
 
-    class BaseSchema(pa.SchemaModel):
+    class BaseSchema(pa.DataFrameModel):
         year: Series[str]
 
     class FinalSchema(BaseSchema):
@@ -525,13 +537,13 @@ You can also use inheritance to build schemas on top of a base schema.
 Config
 ------
 
-Schema-wide options can be controlled via the ``Config`` class on the ``SchemaModel``
+Schema-wide options can be controlled via the ``Config`` class on the ``DataFrameModel``
 subclass. The full set of options can be found in the :class:`~pandera.core.pandas.model_config.BaseConfig`
 class.
 
 .. testcode:: dataframe_schema_model
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
 
         year: Series[int] = pa.Field(gt=2000, coerce=True)
         month: Series[int] = pa.Field(ge=1, le=12, coerce=True)
@@ -559,7 +571,7 @@ the class-based API:
     import pandera as pa
     from pandera.typing import Index, Series
 
-    class MultiIndexSchema(pa.SchemaModel):
+    class MultiIndexSchema(pa.DataFrameModel):
 
         year: Index[int] = pa.Field(gt=2000, coerce=True)
         month: Index[int] = pa.Field(ge=1, le=12, coerce=True)
@@ -614,7 +626,7 @@ Use ``check_name`` to validate the index name of a single-index dataframe:
     import pandera as pa
     from pandera.typing import Index, Series
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         year: Series[int] = pa.Field(gt=2000, coerce=True)
         passengers: Series[int]
         idx: Index[int] = pa.Field(ge=0, check_name=True)
@@ -649,7 +661,7 @@ Column/Index checks
     import pandera as pa
     from pandera.typing import Index, Series
 
-    class CustomCheckSchema(pa.SchemaModel):
+    class CustomCheckSchema(pa.DataFrameModel):
 
         a: Series[int] = pa.Field(gt=0, coerce=True)
         abc: Series[int]
@@ -677,13 +689,13 @@ Column/Index checks
       :func:`~pandera.core.pandas.model_components.check` decorator if your static-type checker or
       linter complains.
     * Since ``checks`` are class methods, the first argument value they receive is a
-      SchemaModel subclass, not an instance of a model.
+      DataFrameModel subclass, not an instance of a model.
 
 .. testcode:: dataframe_schema_model
 
     from typing import Dict
 
-    class GroupbyCheckSchema(pa.SchemaModel):
+    class GroupbyCheckSchema(pa.DataFrameModel):
 
         value: Series[int] = pa.Field(gt=0, coerce=True)
         group: Series[str] = pa.Field(isin=["A", "B"])
@@ -721,7 +733,7 @@ You can also define dataframe-level checks, similar to the
     import pandera as pa
     from pandera.typing import Index, Series
 
-    class DataFrameCheckSchema(pa.SchemaModel):
+    class DataFrameCheckSchema(pa.DataFrameModel):
 
         col1: Series[int] = pa.Field(gt=0, coerce=True)
         col2: Series[float] = pa.Field(gt=0, coerce=True)
@@ -750,7 +762,7 @@ The custom checks are inherited and therefore can be overwritten by the subclass
     import pandera as pa
     from pandera.typing import Index, Series
 
-    class Parent(pa.SchemaModel):
+    class Parent(pa.DataFrameModel):
 
         a: Series[int] = pa.Field(coerce=True)
 
@@ -806,7 +818,7 @@ Checks must reference the aliased names.
     import pandera as pa
     import pandas as pd
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
         idx: pa.typing.Index[int] = pa.Field(alias="_idx", check_name=True)
 
@@ -852,7 +864,7 @@ the class scope, and it will respect the alias.
     import pandera as pa
     import pandas as pd
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: pa.typing.Series[int] = pa.Field()
         col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
 
@@ -874,8 +886,8 @@ the class scope, and it will respect the alias.
     0       99  101
 
 
-Manipulating Schema Models post-definition
-------------------------------------------
+Manipulating DataFrame Models post-definition
+---------------------------------------------
 
 One caveat of using inheritance to build schemas on top of each other is that there
 is no clear way of how a child class can e.g. remove fields or update them without
@@ -883,9 +895,9 @@ completely overriding previous settings. This is because inheritance is strictly
 
 :class:`~pandera.core.pandas.container.DataFrameSchema` objects do have these options though, as described in
 :ref:`dataframe schema transformations`, which you can leverage by overriding your
-Schema Model's :func:`~pandera.core.pandas.model.DataFrameModel.to_schema` method.
+DataFrame Model's :func:`~pandera.core.pandas.model.DataFrameModel.to_schema` method.
 
-Schema Models are for the most part just a proxy for the ``DataFrameSchema`` API; calling
+DataFrame Models are for the most part just a proxy for the ``DataFrameSchema`` API; calling
 :func:`~pandera.core.pandas.model.DataFrameModel.validate` will just redirect to the validate method of
 the Data Frame Schema's :class:`~pandera.core.pandas.container.DataFrameSchema.validate` returned by
 ``to_schema``. As such, any updates to the schema that took place in there will propagate
@@ -900,11 +912,11 @@ get rid of them like this:
     import pandera as pa
     import pandas as pd
 
-    class Foo(pa.SchemaModel):
+    class Foo(pa.DataFrameModel):
         a: pa.typing.Series[int]
         b: pa.typing.Series[int]
 
-    class Bar(pa.SchemaModel):
+    class Bar(pa.DataFrameModel):
         c: pa.typing.Series[int]
         d: pa.typing.Series[int]
 

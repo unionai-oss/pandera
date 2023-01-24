@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 from packaging import version
 
 from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
-from pandera.typing.pandas import GenericDtype, Schema
+from pandera.typing.pandas import GenericDtype, DataFrameModel
 
 try:
     import modin
@@ -25,7 +25,7 @@ def modin_version():
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
-    T = Schema
+    T = DataFrameModel
 
 
 if MODIN_INSTALLED:

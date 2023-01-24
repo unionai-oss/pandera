@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from pandera.typing.common import DataFrameBase, SeriesBase
 
-from pandera.typing.pandas import Schema
+from pandera.typing.pandas import DataFrameModel
 
 try:
     import geopandas as gpd
@@ -21,7 +21,7 @@ if GEOPANDAS_INSTALLED:
     if TYPE_CHECKING:
         T = TypeVar("T")  # pragma: no cover
     else:
-        T = Schema
+        T = DataFrameModel
 
     # pylint:disable=too-few-public-methods
     class GeoSeries(SeriesBase, gpd.GeoSeries, Generic[T]):

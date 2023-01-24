@@ -17,116 +17,116 @@ except ImportError:
     from typing_extensions import Annotated  # type: ignore
 
 
-class SchemaBool(pa.SchemaModel):
+class SchemaBool(pa.DataFrameModel):
     col: Series[pa.typing.Bool]
 
 
-class SchemaDateTime(pa.SchemaModel):
+class SchemaDateTime(pa.DataFrameModel):
     col: Series[pa.typing.DateTime]
 
 
-class SchemaCategory(pa.SchemaModel):
+class SchemaCategory(pa.DataFrameModel):
     col: Series[pa.typing.Category]
 
 
-class SchemaFloat(pa.SchemaModel):
+class SchemaFloat(pa.DataFrameModel):
     col: Series[pa.typing.Float]
 
 
-class SchemaFloat16(pa.SchemaModel):
+class SchemaFloat16(pa.DataFrameModel):
     col: Series[pa.typing.Float16]
 
 
-class SchemaFloat32(pa.SchemaModel):
+class SchemaFloat32(pa.DataFrameModel):
     col: Series[pa.typing.Float32]
 
 
-class SchemaFloat64(pa.SchemaModel):
+class SchemaFloat64(pa.DataFrameModel):
     col: Series[pa.typing.Float64]
 
 
-class SchemaInt(pa.SchemaModel):
+class SchemaInt(pa.DataFrameModel):
     col: Series[pa.typing.Int]
 
 
-class SchemaInt8(pa.SchemaModel):
+class SchemaInt8(pa.DataFrameModel):
     col: Series[pa.typing.Int8]
 
 
-class SchemaUInt8(pa.SchemaModel):
+class SchemaUInt8(pa.DataFrameModel):
     col: Series[pa.typing.UInt8]
 
 
-class SchemaInt16(pa.SchemaModel):
+class SchemaInt16(pa.DataFrameModel):
     col: Series[pa.typing.Int16]
 
 
-class SchemaUInt16(pa.SchemaModel):
+class SchemaUInt16(pa.DataFrameModel):
     col: Series[pa.typing.UInt16]
 
 
-class SchemaInt32(pa.SchemaModel):
+class SchemaInt32(pa.DataFrameModel):
     col: Series[pa.typing.Int32]
 
 
-class SchemaUInt32(pa.SchemaModel):
+class SchemaUInt32(pa.DataFrameModel):
     col: Series[pa.typing.UInt32]
 
 
-class SchemaInt64(pa.SchemaModel):
+class SchemaInt64(pa.DataFrameModel):
     col: Series[pa.typing.Int64]
 
 
-class SchemaUInt64(pa.SchemaModel):
+class SchemaUInt64(pa.DataFrameModel):
     col: Series[pa.typing.UInt64]
 
 
-class SchemaObject(pa.SchemaModel):
+class SchemaObject(pa.DataFrameModel):
     col: Series[pa.typing.Object]
 
 
-class SchemaString(pa.SchemaModel):
+class SchemaString(pa.DataFrameModel):
     col: Series[pa.typing.String]
 
 
-class SchemaTimedelta(pa.SchemaModel):
+class SchemaTimedelta(pa.DataFrameModel):
     col: Series[pa.typing.Timedelta]
 
 
-class SchemaINT8(pa.SchemaModel):
+class SchemaINT8(pa.DataFrameModel):
     col: Series[pa.typing.INT8]
 
 
-class SchemaUINT8(pa.SchemaModel):
+class SchemaUINT8(pa.DataFrameModel):
     col: Series[pa.typing.UINT8]
 
 
-class SchemaINT16(pa.SchemaModel):
+class SchemaINT16(pa.DataFrameModel):
     col: Series[pa.typing.INT16]
 
 
-class SchemaUINT16(pa.SchemaModel):
+class SchemaUINT16(pa.DataFrameModel):
     col: Series[pa.typing.UINT16]
 
 
-class SchemaINT32(pa.SchemaModel):
+class SchemaINT32(pa.DataFrameModel):
     col: Series[pa.typing.INT32]
 
 
-class SchemaUINT32(pa.SchemaModel):
+class SchemaUINT32(pa.DataFrameModel):
     col: Series[pa.typing.UINT32]
 
 
-class SchemaINT64(pa.SchemaModel):
+class SchemaINT64(pa.DataFrameModel):
     col: Series[pa.typing.INT64]
 
 
-class SchemaUINT64(pa.SchemaModel):
+class SchemaUINT64(pa.DataFrameModel):
     col: Series[pa.typing.UINT64]
 
 
 def _test_literal_pandas_dtype(
-    model: Type[pa.SchemaModel], pandas_dtype: DataType
+    model: Type[pa.DataFrameModel], pandas_dtype: DataType
 ):
     schema = model.to_schema()
     expected = pa.Column(pandas_dtype, name="col").dtype
@@ -158,7 +158,7 @@ def _test_literal_pandas_dtype(
     ],
 )
 def test_literal_legacy_pandas_dtype(
-    model: Type[pa.SchemaModel], pandas_dtype: DataType
+    model: Type[pa.DataFrameModel], pandas_dtype: DataType
 ):
     """Test literal annotations with the legacy pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
@@ -178,20 +178,20 @@ def test_literal_legacy_pandas_dtype(
     ],
 )
 def test_literal_new_pandas_dtype(
-    model: Type[pa.SchemaModel], pandas_dtype: DataType
+    model: Type[pa.DataFrameModel], pandas_dtype: DataType
 ):
     """Test literal annotations with the new nullable pandas dtypes."""
     _test_literal_pandas_dtype(model, pandas_dtype)
 
 
-class SchemaFieldCategoricalDtype(pa.SchemaModel):
+class SchemaFieldCategoricalDtype(pa.DataFrameModel):
     col: Series[pd.CategoricalDtype] = pa.Field(
         dtype_kwargs={"categories": ["b", "a"], "ordered": True}
     )
 
 
 def _test_annotated_dtype(
-    model: Type[pa.SchemaModel],
+    model: Type[pa.DataFrameModel],
     dtype: Type,
     dtype_kwargs: Optional[Dict[str, Any]] = None,
 ):
@@ -204,7 +204,7 @@ def _test_annotated_dtype(
 
 
 def _test_default_annotated_dtype(
-    model: Type[pa.SchemaModel], dtype: Any, has_mandatory_args: bool
+    model: Type[pa.DataFrameModel], dtype: Any, has_mandatory_args: bool
 ):
     if has_mandatory_args:
         err_msg = "cannot be instantiated"
@@ -214,21 +214,21 @@ def _test_default_annotated_dtype(
         _test_annotated_dtype(model, dtype)
 
 
-class SchemaFieldDatetimeTZDtype(pa.SchemaModel):
+class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
     col: Series[pd.DatetimeTZDtype] = pa.Field(
         dtype_kwargs={"unit": "ns", "tz": "EST"}
     )
 
 
-class SchemaFieldIntervalDtype(pa.SchemaModel):
+class SchemaFieldIntervalDtype(pa.DataFrameModel):
     col: Series[pd.IntervalDtype] = pa.Field(dtype_kwargs={"subtype": "int32"})
 
 
-class SchemaFieldPeriodDtype(pa.SchemaModel):
+class SchemaFieldPeriodDtype(pa.DataFrameModel):
     col: Series[pd.PeriodDtype] = pa.Field(dtype_kwargs={"freq": "D"})
 
 
-class SchemaFieldSparseDtype(pa.SchemaModel):
+class SchemaFieldSparseDtype(pa.DataFrameModel):
     col: Series[pd.SparseDtype] = pa.Field(
         dtype_kwargs={"dtype": np.int32, "fill_value": 0}
     )
@@ -257,29 +257,29 @@ class SchemaFieldSparseDtype(pa.SchemaModel):
     ],
 )
 def test_parametrized_pandas_extension_dtype_field(
-    model: Type[pa.SchemaModel], dtype: Type, dtype_kwargs: Dict[str, Any]
+    model: Type[pa.DataFrameModel], dtype: Type, dtype_kwargs: Dict[str, Any]
 ):
     """Test type annotations for parametrized pandas extension dtypes."""
     _test_annotated_dtype(model, dtype, dtype_kwargs)
 
 
-class SchemaDefaultCategoricalDtype(pa.SchemaModel):
+class SchemaDefaultCategoricalDtype(pa.DataFrameModel):
     col: Series[pd.CategoricalDtype]
 
 
-class SchemaDefaultDatetimeTZDtype(pa.SchemaModel):
+class SchemaDefaultDatetimeTZDtype(pa.DataFrameModel):
     col: Series[pd.DatetimeTZDtype]
 
 
-class SchemaDefaultIntervalDtype(pa.SchemaModel):
+class SchemaDefaultIntervalDtype(pa.DataFrameModel):
     col: Series[pd.IntervalDtype]
 
 
-class SchemaDefaultPeriodDtype(pa.SchemaModel):
+class SchemaDefaultPeriodDtype(pa.DataFrameModel):
     col: Series[pd.PeriodDtype]
 
 
-class SchemaDefaultSparseDtype(pa.SchemaModel):
+class SchemaDefaultSparseDtype(pa.DataFrameModel):
     col: Series[pd.SparseDtype]
 
 
@@ -303,28 +303,28 @@ def test_legacy_default_pandas_extension_dtype(
     _test_default_annotated_dtype(model, dtype, has_mandatory_args)
 
 
-class SchemaAnnotatedCategoricalDtype(pa.SchemaModel):
+class SchemaAnnotatedCategoricalDtype(pa.DataFrameModel):
     col: Series[Annotated[pd.CategoricalDtype, ["b", "a"], True]]
 
 
-class SchemaAnnotatedDatetimeTZDtype(pa.SchemaModel):
+class SchemaAnnotatedDatetimeTZDtype(pa.DataFrameModel):
     col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 
 
 if pa.PANDAS_1_3_0_PLUS:
 
-    class SchemaAnnotatedIntervalDtype(pa.SchemaModel):
+    class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):
         col: Series[Annotated[pd.IntervalDtype, "int32", "both"]]
 
 else:
 
-    class SchemaAnnotatedIntervalDtype(pa.SchemaModel):  # type: ignore
+    class SchemaAnnotatedIntervalDtype(pa.DataFrameModel):  # type: ignore
         col: Series[Annotated[pd.IntervalDtype, "int32"]]
 
-    class SchemaAnnotatedPeriodDtype(pa.SchemaModel):
+    class SchemaAnnotatedPeriodDtype(pa.DataFrameModel):
         col: Series[Annotated[pd.PeriodDtype, "D"]]
 
-    class SchemaAnnotatedSparseDtype(pa.SchemaModel):
+    class SchemaAnnotatedSparseDtype(pa.DataFrameModel):
         col: Series[Annotated[pd.SparseDtype, np.int32, 0]]
 
     @pytest.mark.parametrize(
@@ -358,12 +358,14 @@ else:
         ],
     )
     def test_annotated_dtype(
-        model: Type[pa.SchemaModel], dtype: Type, dtype_kwargs: Dict[str, Any]
+        model: Type[pa.DataFrameModel],
+        dtype: Type,
+        dtype_kwargs: Dict[str, Any],
     ):
         """Test type annotations for parametrized pandas extension dtypes."""
         _test_annotated_dtype(model, dtype, dtype_kwargs)
 
-    class SchemaInvalidAnnotatedDtype(pa.SchemaModel):
+    class SchemaInvalidAnnotatedDtype(pa.DataFrameModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
 
     def test_invalid_annotated_dtype():
@@ -378,7 +380,7 @@ else:
         with pytest.raises(TypeError, match=err_msg):
             SchemaInvalidAnnotatedDtype.to_schema()
 
-    class SchemaRedundantField(pa.SchemaModel):
+    class SchemaRedundantField(pa.DataFrameModel):
         col: Series[Annotated[pd.DatetimeTZDtype, "utc"]] = pa.Field(
             dtype_kwargs={"tz": "utc"}
         )
@@ -393,43 +395,43 @@ else:
             SchemaRedundantField.to_schema()
 
 
-class SchemaInt8Dtype(pa.SchemaModel):
+class SchemaInt8Dtype(pa.DataFrameModel):
     col: Series[pd.Int8Dtype]
 
 
-class SchemaInt16Dtype(pa.SchemaModel):
+class SchemaInt16Dtype(pa.DataFrameModel):
     col: Series[pd.Int16Dtype]
 
 
-class SchemaInt32Dtype(pa.SchemaModel):
+class SchemaInt32Dtype(pa.DataFrameModel):
     col: Series[pd.Int32Dtype]
 
 
-class SchemaInt64Dtype(pa.SchemaModel):
+class SchemaInt64Dtype(pa.DataFrameModel):
     col: Series[pd.Int64Dtype]
 
 
-class SchemaUInt8Dtype(pa.SchemaModel):
+class SchemaUInt8Dtype(pa.DataFrameModel):
     col: Series[pd.UInt8Dtype]
 
 
-class SchemaUInt16Dtype(pa.SchemaModel):
+class SchemaUInt16Dtype(pa.DataFrameModel):
     col: Series[pd.UInt16Dtype]
 
 
-class SchemaUInt32Dtype(pa.SchemaModel):
+class SchemaUInt32Dtype(pa.DataFrameModel):
     col: Series[pd.UInt32Dtype]
 
 
-class SchemaUInt64Dtype(pa.SchemaModel):
+class SchemaUInt64Dtype(pa.DataFrameModel):
     col: Series[pd.UInt64Dtype]
 
 
-class SchemaStringDtype(pa.SchemaModel):
+class SchemaStringDtype(pa.DataFrameModel):
     col: Series[pd.StringDtype]
 
 
-class SchemaBooleanDtype(pa.SchemaModel):
+class SchemaBooleanDtype(pa.DataFrameModel):
     col: Series[pd.BooleanDtype]
 
 
@@ -457,7 +459,7 @@ def test_new_pandas_extension_dtype_class(
     _test_default_annotated_dtype(model, dtype, has_mandatory_args)
 
 
-class InitSchema(pa.SchemaModel):
+class InitSchema(pa.DataFrameModel):
     col1: Series[int]
     col2: Series[float]
     col3: Series[str]

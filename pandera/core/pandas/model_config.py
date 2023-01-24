@@ -1,4 +1,4 @@
-"""Class-based schema model API configuration for pandas."""
+"""Class-based dataframe model API configuration for pandas."""
 
 from typing import Any, Dict, List, Optional, Union
 

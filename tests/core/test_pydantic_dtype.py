@@ -19,7 +19,7 @@ class Record(BaseModel):
     ycoord: int
 
 
-class PydanticSchema(pa.SchemaModel):
+class PydanticSchema(pa.DataFrameModel):
     """Pandera schema using the pydantic model."""
 
     class Config:
@@ -28,7 +28,7 @@ class PydanticSchema(pa.SchemaModel):
         dtype = PydanticModel(Record)
 
 
-class PanderaSchema(pa.SchemaModel):
+class PanderaSchema(pa.DataFrameModel):
     """Pandera schema that's equivalent to PydanticSchema."""
 
     name: pa.typing.Series[str]

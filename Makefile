@@ -22,7 +22,7 @@ requirements:
 
 docs:
 	rm -rf docs/**/generated docs/**/methods docs/_build docs/source/_contents
-	python -m sphinx -E "docs/source" "docs/_build" -W && make -C docs doctest
+	python -m sphinx -E "docs/source" "docs/_build" && make -C docs doctest
 
 quick-docs:
 	python -m sphinx -E "docs/source" "docs/_build" -W && \

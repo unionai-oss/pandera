@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 import pandera as pa
 
 
-class Transactions(pa.SchemaModel):
+class Transactions(pa.DataFrameModel):
     id: pa.typing.Series[int]
     cost: pa.typing.Series[float] = pa.Field(ge=0, le=1000)
 

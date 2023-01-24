@@ -251,7 +251,7 @@ def test_schema_model_field_kwarg(custom_check_teardown: None) -> None:
     def custom_in_range(pandas_obj, min_value, max_value):
         return (min_value <= pandas_obj) & (pandas_obj <= max_value)
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         """Schema that uses registered checks in Field."""
 
         col1: pa.typing.Series[int] = pa.Field(custom_gt=100)
@@ -288,7 +288,7 @@ def test_register_before_schema_definitions() -> None:
         match="custom check 'custom_eq' is not available",
     ):
 
-        class Schema1(pa.SchemaModel):
+        class Schema1(pa.DataFrameModel):
             col: pa.typing.Series[int] = pa.Field(custom_eq=1)
 
     with pytest.raises(AttributeError):
@@ -298,7 +298,7 @@ def test_register_before_schema_definitions() -> None:
     def custom_eq(pandas_obj, val):
         return pandas_obj == val
 
-    class Schema2(pa.SchemaModel):  # noqa F811
+    class Schema2(pa.DataFrameModel):  # noqa F811
         col: pa.typing.Series[int] = pa.Field(custom_eq=1)
 
     pa.Check.custom_eq(1)

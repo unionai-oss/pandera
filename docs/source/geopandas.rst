@@ -18,8 +18,8 @@ and :py:func:`~geopandas.GeoSeries` objects directly. First, install
 
 
 Then you can use pandera schemas to validate geodataframes. In the example
-below we'll use the :ref:`class-based API <schema_models>` to define a
-:py:class:`SchemaModel` for validation.
+below we'll use the :ref:`class-based API <dataframe_models>` to define a
+:py:class:`~pandera.core.pandas.model.DataFrameModel` for validation.
 
 .. testcode:: geopandas
 
@@ -63,7 +63,7 @@ un-instantiated form:
 
 If you want to validate-on-instantiation, you can use the
 :py:class:`~pandera.typing.geopangas.GeoDataFrame` generic type with the
-schema model defined above:
+dataframe model defined above:
 
 .. testcode:: geopandas
 
@@ -71,7 +71,7 @@ schema model defined above:
     from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         geometry: GeoSeries
         region: Series[str]
 

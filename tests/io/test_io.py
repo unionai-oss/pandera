@@ -958,7 +958,7 @@ def test_to_yaml_bugfix_warn_unregistered_global_checks():
     """Ensure that unregistered global checks raises a warning."""
     # pylint: disable=no-self-use
 
-    class CheckedSchemaModel(pandera.SchemaModel):
+    class CheckedDataFrameModel(pandera.DataFrameModel):
         """Schema with a global check"""
 
         a: pat.Series[pat.Int64]
@@ -970,7 +970,7 @@ def test_to_yaml_bugfix_warn_unregistered_global_checks():
             ...
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
-        CheckedSchemaModel.to_yaml()
+        CheckedDataFrameModel.to_yaml()
 
 
 @pytest.mark.parametrize(

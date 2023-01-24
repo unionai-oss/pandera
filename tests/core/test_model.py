@@ -15,11 +15,11 @@ from pandera.typing import DataFrame, Index, Series, String
 
 def test_to_schema_and_validate() -> None:
     """
-    Test that SchemaModel.to_schema() can produce the correct schema and
+    Test that DataFrameModel.to_schema() can produce the correct schema and
     can validate dataframe objects.
     """
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
         b: Series[str]
         c: Series[Any]
@@ -38,16 +38,16 @@ def test_to_schema_and_validate() -> None:
 
 
 def test_empty_schema() -> None:
-    """Test that SchemaModel supports empty schemas."""
+    """Test that DataFrameModel supports empty schemas."""
 
     empty_schema = pa.DataFrameSchema(name="EmptySchema")
 
-    class EmptySchema(pa.SchemaModel):
+    class EmptySchema(pa.DataFrameModel):
         pass
 
     assert empty_schema == EmptySchema.to_schema()
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
 
     class EmptySubSchema(Schema):
@@ -71,11 +71,11 @@ def test_empty_schema() -> None:
 
 
 def test_invalid_annotations() -> None:
-    """Test that SchemaModel.to_schema() fails if annotations or types are not
+    """Test that DataFrameModel.to_schema() fails if annotations or types are not
     recognized.
     """
 
-    class Missing(pa.SchemaModel):
+    class Missing(pa.DataFrameModel):
         a = pa.Field()
         b: Series[int]
         c = pa.Field()
@@ -85,7 +85,7 @@ def test_invalid_annotations() -> None:
     with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
         Missing.to_schema()
 
-    class Invalid(pa.SchemaModel):
+    class Invalid(pa.DataFrameModel):
         a: int
 
     with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
@@ -94,7 +94,7 @@ def test_invalid_annotations() -> None:
     class DummyType:
         pass
 
-    class InvalidDtype(pa.SchemaModel):
+    class InvalidDtype(pa.DataFrameModel):
         d: Series[DummyType]  # type: ignore
 
     with pytest.raises(
@@ -106,7 +106,7 @@ def test_invalid_annotations() -> None:
 def test_optional_column() -> None:
     """Test that optional columns are not required."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Optional[Series[str]]
         b: Optional[Series[str]] = pa.Field(eq="b")
         c: Optional[Series[String]]  # test pandera.typing alias
@@ -120,10 +120,10 @@ def test_optional_column() -> None:
 def test_optional_index() -> None:
     """Test that optional indices are not required."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         idx: Optional[Index[str]]
 
-    class SchemaWithAliasDtype(pa.SchemaModel):
+    class SchemaWithAliasDtype(pa.DataFrameModel):
         idx: Optional[Index[String]]  # test pandera.typing alias
 
     for model in (Schema, SchemaWithAliasDtype):
@@ -139,16 +139,16 @@ def test_empty_dtype() -> None:
         columns={"empty_column": pa.Column()},
     )
 
-    class EmptyDtypeSchema(pa.SchemaModel):
+    class EmptyDtypeSchema(pa.DataFrameModel):
         empty_column: pa.typing.Series
 
     assert EmptyDtypeSchema.to_schema() == expected
 
 
-def test_schemamodel_with_fields() -> None:
+def test_dataframemodel_with_fields() -> None:
     """Test that Fields are translated in the schema."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int] = pa.Field(eq=9, ne=0)
         b: Series[str]
         idx: Index[str] = pa.Field(str_length={"min_value": 1})
@@ -169,7 +169,7 @@ def test_schemamodel_with_fields() -> None:
 
 
 def test_invalid_field() -> None:
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int] = 0  # type: ignore[assignment]  # mypy identifies the wrong usage correctly
 
     with pytest.raises(
@@ -181,7 +181,7 @@ def test_invalid_field() -> None:
 def test_multiindex() -> None:
     """Test that multiple Index annotations create a MultiIndex."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Index[int] = pa.Field(gt=0)
         b: Index[str]
 
@@ -200,7 +200,7 @@ def test_multiindex() -> None:
 def test_column_check_name() -> None:
     """Test that column name is mandatory."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int] = pa.Field(check_name=False)
 
     with pytest.raises(pa.errors.SchemaInitError):
@@ -211,22 +211,22 @@ def test_single_index_check_name() -> None:
     """Test single index name."""
     df = pd.DataFrame(index=pd.Index(["cat", "dog"], name="animal"))
 
-    class DefaultSchema(pa.SchemaModel):
+    class DefaultSchema(pa.DataFrameModel):
         a: Index[str]
 
     assert isinstance(DefaultSchema.validate(df), pd.DataFrame)
 
-    class DefaultFieldSchema(pa.SchemaModel):
+    class DefaultFieldSchema(pa.DataFrameModel):
         a: Index[str] = pa.Field(check_name=None)
 
     assert isinstance(DefaultFieldSchema.validate(df), pd.DataFrame)
 
-    class NotCheckNameSchema(pa.SchemaModel):
+    class NotCheckNameSchema(pa.DataFrameModel):
         a: Index[str] = pa.Field(check_name=False)
 
     assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
 
-    class SchemaNamedIndex(pa.SchemaModel):
+    class SchemaNamedIndex(pa.DataFrameModel):
         a: Index[str] = pa.Field(check_name=True)
 
     err_msg = "name 'a', found 'animal'"
@@ -243,19 +243,19 @@ def test_multiindex_check_name() -> None:
         )
     )
 
-    class DefaultSchema(pa.SchemaModel):
+    class DefaultSchema(pa.DataFrameModel):
         a: Index[str]
         b: Index[int]
 
     assert isinstance(DefaultSchema.validate(df), pd.DataFrame)
 
-    class CheckNameSchema(pa.SchemaModel):
+    class CheckNameSchema(pa.DataFrameModel):
         a: Index[str] = pa.Field(check_name=True)
         b: Index[int] = pa.Field(check_name=True)
 
     assert isinstance(CheckNameSchema.validate(df), pd.DataFrame)
 
-    class NotCheckNameSchema(pa.SchemaModel):
+    class NotCheckNameSchema(pa.DataFrameModel):
         a: Index[str] = pa.Field(check_name=False)
         b: Index[int] = pa.Field(check_name=False)
 
@@ -268,7 +268,7 @@ def test_multiindex_check_name() -> None:
 def test_check_validate_method() -> None:
     """Test validate method on valid data."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
 
         @pa.check("a")
@@ -284,7 +284,7 @@ def test_check_validate_method() -> None:
 def test_check_validate_method_field() -> None:
     """Test validate method on valid data."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int] = pa.Field()
         b: Series[int]
 
@@ -307,7 +307,7 @@ def test_check_validate_method_field() -> None:
 def test_check_validate_method_aliased_field() -> None:
     """Test validate method on valid data."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int] = pa.Field(alias=2020, gt=50)
 
         @pa.check(a)
@@ -324,7 +324,7 @@ def test_check_validate_method_aliased_field() -> None:
 def test_check_single_column() -> None:
     """Test the behaviour of a check on a single column."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
 
         @pa.check("a")
@@ -343,7 +343,7 @@ def test_check_single_column() -> None:
 def test_check_single_index() -> None:
     """Test the behaviour of a check on a single index."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Index[str]
 
         @pa.check("a")
@@ -361,7 +361,7 @@ def test_check_single_index() -> None:
 def test_field_and_check() -> None:
     """Test the combination of a field and a check on the same column."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int] = pa.Field(eq=1)
 
         @pa.check("a")
@@ -376,7 +376,7 @@ def test_field_and_check() -> None:
 def test_check_non_existing() -> None:
     """Test a check on a non-existing column."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
 
         @pa.check("nope")
@@ -394,7 +394,7 @@ def test_check_non_existing() -> None:
 def test_multiple_checks() -> None:
     """Test multiple checks on the same column."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
 
         @pa.check("a")
@@ -424,7 +424,7 @@ def test_multiple_checks() -> None:
 def test_check_multiple_columns() -> None:
     """Test a single check decorator targeting multiple columns."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
         b: Series[int]
 
@@ -443,7 +443,7 @@ def test_check_multiple_columns() -> None:
 def test_check_regex() -> None:
     """Test the regex argument of the check decorator."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         a: Series[int]
         abc: Series[int]
         cba: Series[int]
@@ -460,10 +460,10 @@ def test_check_regex() -> None:
         Schema.validate(df, lazy=True)
 
 
-def test_inherit_schemamodel_fields() -> None:
+def test_inherit_dataframemodel_fields() -> None:
     """Test that columns and indices are inherited."""
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         idx: Index[str]
 
@@ -483,10 +483,10 @@ def test_inherit_schemamodel_fields() -> None:
     assert expected == Child.to_schema()
 
 
-def test_inherit_schemamodel_fields_alias() -> None:
+def test_inherit_dataframemodel_fields_alias() -> None:
     """Test that columns and index aliases are inherited."""
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         idx: Index[str]
 
@@ -541,7 +541,7 @@ def test_inherit_schemamodel_fields_alias() -> None:
 def test_inherit_field_checks() -> None:
     """Test that checks are inherited and overridden."""
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         abc: Series[int]
 
@@ -574,7 +574,7 @@ def test_inherit_field_checks() -> None:
 def test_dataframe_check() -> None:
     """Test dataframe checks."""
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         b: Series[int]
 
@@ -628,7 +628,7 @@ def test_registered_dataframe_checks(
         "one_arg_prime": "not_150",
     }
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         b: Series[int]
 
@@ -667,7 +667,7 @@ def test_registered_dataframe_checks(
     # check that unregistered checks raise
     with pytest.raises(AttributeError, match=".*custom checks.*"):
 
-        class ErrorSchema(pa.SchemaModel):
+        class ErrorSchema(pa.DataFrameModel):
             class Config:
                 unknown_check = {}  # type: ignore[var-annotated]
 
@@ -681,7 +681,7 @@ def test_registered_dataframe_checks(
 def test_config() -> None:
     """Test that Config can be inherited and translate into DataFrameSchema options."""
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         idx_1: Index[str]
         idx_2: Index[str]
@@ -726,7 +726,7 @@ def test_config() -> None:
 
 
 def test_multiindex_unique() -> None:
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         idx_1: Index[str]
         idx_2: Index[str]
@@ -760,7 +760,7 @@ def test_multiindex_unique() -> None:
 
 
 def test_config_docstrings() -> None:
-    class Model(pa.SchemaModel):
+    class Model(pa.DataFrameModel):
         """foo"""
 
         a: Series[int]
@@ -768,7 +768,7 @@ def test_config_docstrings() -> None:
     assert Model.__doc__ == Model.to_schema().description
 
 
-class Input(pa.SchemaModel):
+class Input(pa.DataFrameModel):
     a: Series[int]
     b: Series[int]
     idx: Index[str]
@@ -802,7 +802,7 @@ def test_check_types() -> None:
 def test_alias() -> None:
     """Test that columns and indices can be aliased."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         col_2020: Series[int] = pa.Field(alias=2020)
         idx: Index[int] = pa.Field(alias="_idx", check_name=True)
 
@@ -822,7 +822,7 @@ def test_alias() -> None:
     assert isinstance(Schema.validate(df), pd.DataFrame)
 
     # test multiindex
-    class MISchema(pa.SchemaModel):
+    class MISchema(pa.DataFrameModel):
         idx1: Index[int] = pa.Field(alias="index0")
         idx2: Index[int] = pa.Field(alias="index1")
 
@@ -838,7 +838,7 @@ def test_inherit_alias() -> None:
     #   - Field
     #   - Field with alias
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         b: Series[int] = pa.Field()
         c: Series[int] = pa.Field(alias="_c")
@@ -890,7 +890,7 @@ def test_inherit_alias() -> None:
 def test_field_name_access():
     """Test that column and index names can be accessed through the class"""
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         b: Series[int] = pa.Field()
         c: Series[int] = pa.Field(alias="_c")
@@ -909,7 +909,7 @@ def test_field_name_access():
 def test_field_name_access_inherit() -> None:
     """Test that column and index names can be accessed through the class"""
 
-    class Base(pa.SchemaModel):
+    class Base(pa.DataFrameModel):
         a: Series[int]
         b: Series[int] = pa.Field()
         c: Series[int] = pa.Field(alias="_c")
@@ -980,7 +980,7 @@ def test_field_name_access_inherit() -> None:
 def test_column_access_regex() -> None:
     """Test that column regex alias is reflected in schema attribute."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         col_regex: Series[str] = pa.Field(alias="column_([0-9])+", regex=True)
 
     assert Schema.col_regex == "column_([0-9])+"
@@ -989,13 +989,13 @@ def test_column_access_regex() -> None:
 def test_schema_name_override():
     """
     Test that setting name in Config manually does not propagate to other
-    SchemaModels.
+    DataFrameModels.
     """
 
-    class Foo(pa.SchemaModel):
+    class Foo(pa.DataFrameModel):
         pass
 
-    class Bar(pa.SchemaModel):
+    class Bar(pa.DataFrameModel):
         pass
 
     assert Foo.Config.name == "Foo"
@@ -1009,7 +1009,7 @@ def test_schema_name_override():
 def test_validate_coerce_on_init():
     """Test that DataFrame[Schema] validates and coerces on initialization."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         state: Series[str]
         city: Series[str]
         price: Series[float] = pa.Field(
@@ -1044,7 +1044,7 @@ def test_validate_coerce_on_init():
 def test_from_records_validates_the_schema():
     """Test that DataFrame[Schema] validates the schema"""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         state: Series[str]
         city: Series[str]
         price: Series[float]
@@ -1088,7 +1088,7 @@ def test_from_records_validates_the_schema():
 def test_from_records_sets_the_index_from_schema():
     """Test that DataFrame[Schema] validates the schema"""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         state: Index[str] = pa.Field(check_name=True)
         city: Series[str]
         price: Series[float]
@@ -1115,7 +1115,7 @@ def test_from_records_sets_the_index_from_schema():
 def test_from_records_sorts_the_columns():
     """Test that DataFrame[Schema] validates the schema"""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         state: Series[str]
         city: Series[str]
         price: Series[float]
@@ -1140,11 +1140,11 @@ def test_from_records_sorts_the_columns():
 
 
 def test_schema_model_generic_inheritance() -> None:
-    """Test that a schema model subclass can also inherit from typing.Generic"""
+    """Test that a dataframe model subclass can also inherit from typing.Generic"""
 
     T = TypeVar("T")
 
-    class Foo(pa.SchemaModel, Generic[T]):
+    class Foo(pa.DataFrameModel, Generic[T]):
         @classmethod
         def bar(cls) -> T:
             raise NotImplementedError
@@ -1168,7 +1168,7 @@ def test_schema_model_generic_inheritance() -> None:
 def test_generic_no_generic_fields() -> None:
     T = TypeVar("T", int, float, str)
 
-    class GenericModel(pa.SchemaModel, Generic[T]):
+    class GenericModel(pa.DataFrameModel, Generic[T]):
         x: Series[int]
 
     GenericModel.to_schema()
@@ -1177,7 +1177,7 @@ def test_generic_no_generic_fields() -> None:
 def test_generic_model_single_generic_field() -> None:
     T = TypeVar("T", int, float, str)
 
-    class GenericModel(pa.SchemaModel, Generic[T]):
+    class GenericModel(pa.DataFrameModel, Generic[T]):
         x: Series[int]
         y: Series[T]
 
@@ -1206,7 +1206,7 @@ def test_generic_model_single_generic_field() -> None:
 def test_generic_optional_field() -> None:
     T = TypeVar("T", int, float, str)
 
-    class GenericModel(pa.SchemaModel, Generic[T]):
+    class GenericModel(pa.DataFrameModel, Generic[T]):
         x: Series[int]
         y: Optional[Series[T]]
 
@@ -1232,11 +1232,11 @@ def test_generic_optional_field() -> None:
 def test_generic_model_multiple_inheritance() -> None:
     T = TypeVar("T", int, float, str)
 
-    class GenericYModel(pa.SchemaModel, Generic[T]):
+    class GenericYModel(pa.DataFrameModel, Generic[T]):
         x: Series[int]
         y: Series[T]
 
-    class GenericZModel(pa.SchemaModel, Generic[T]):
+    class GenericZModel(pa.DataFrameModel, Generic[T]):
         z: Series[T]
 
     class IntYFloatZModel(GenericYModel[int], GenericZModel[float]):
@@ -1285,7 +1285,7 @@ def test_multiple_generic() -> None:
     T1 = TypeVar("T1", int, float, str)
     T2 = TypeVar("T2", int, float, str)
 
-    class GenericModel(pa.SchemaModel, Generic[T1, T2]):
+    class GenericModel(pa.DataFrameModel, Generic[T1, T2]):
         y: Series[T1]
         z: Series[T2]
 
@@ -1321,7 +1321,7 @@ def test_repeated_generic() -> None:
     T2 = TypeVar("T2", int, float, str)
     T3 = TypeVar("T3", int, float, str)
 
-    class GenericYZModel(pa.SchemaModel, Generic[T1, T2]):
+    class GenericYZModel(pa.DataFrameModel, Generic[T1, T2]):
         y: Series[T1]
         z: Series[T2]
 

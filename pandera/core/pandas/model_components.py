@@ -1,4 +1,4 @@
-"""SchemaModel components"""
+"""DataFrameModel components"""
 from typing import (
     Any,
     Callable,
@@ -122,12 +122,12 @@ def Field(
     description: Optional[str] = None,
     **kwargs,
 ) -> Any:
-    """Used to provide extra information about a field of a SchemaModel.
+    """Used to provide extra information about a field of a DataFrameModel.
 
     *new in 0.5.0*
 
     Some arguments apply only to numeric dtypes and some apply only to ``str``.
-    See the :ref:`User Guide <schema_models>` for more information.
+    See the :ref:`User Guide <dataframe_models>` for more information.
 
     The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
     to the built-in :py:class:`~pandera.core.checks.Check` methods.
@@ -248,7 +248,7 @@ ClassCheck = Callable[[Union[classmethod, AnyCallable]], classmethod]
 
 
 def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
-    """Decorator to make SchemaModel method a column/index check function.
+    """Decorator to make DataFrameModel method a column/index check function.
 
     *new in 0.5.0*
 
@@ -275,11 +275,11 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
 
 
 def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
-    """Decorator to make SchemaModel method a dataframe-wide check function.
+    """Decorator to make DataFrameModel method a dataframe-wide check function.
 
     *new in 0.5.0*
 
-    Decorate a method on the SchemaModel indicating that it should be used to
+    Decorate a method on the DataFrameModel indicating that it should be used to
     validate the DataFrame. The method will be converted to a classmethod.
     Therefore its signature must start with `cls` followed by regular check
     arguments. See the :ref:`User Guide <schema_model_dataframe_check>` for

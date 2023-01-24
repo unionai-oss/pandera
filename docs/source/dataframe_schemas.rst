@@ -39,7 +39,7 @@ The :class:`~pandera.core.pandas.container.DataFrameSchema` object consists of |
         coerce=True,
     )
 
-You can refer to :ref:`schema_models` to see how to define dataframe schemas
+You can refer to :ref:`dataframe_models` to see how to define dataframe schemas
 using the alternative pydantic/dataclass-style syntax.
 
 

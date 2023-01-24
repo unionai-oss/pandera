@@ -134,14 +134,14 @@ else:
         ],
     )
 
-Schema = TypeVar("Schema", bound="SchemaModel")  # type: ignore
+DataFrameModel = TypeVar("Schema", bound="DataFrameModel")  # type: ignore
 
 
 # pylint:disable=invalid-name
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
-    T = Schema
+    T = DataFrameModel
 
 
 class DataFrameBase(Generic[T]):
@@ -211,7 +211,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
     Attributes:
         origin: The non-parameterized generic class.
         args: All generic types for accessing as an iterable.
-        arg: The first generic type (SchemaModel does not support more than
+        arg: The first generic type (DataFrameModel does not support more than
             1 argument).
         literal: Whether the annotation is a literal.
         optional: Whether the annotation is optional.

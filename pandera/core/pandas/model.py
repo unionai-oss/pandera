@@ -126,11 +126,16 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
 
 
 class DataFrameModel(BaseModel):
-    """Definition of a :class:`~pandera.DataFrameSchema`.
+    """Definition of a :class:`~pandera.core.pandas.container.DataFrameSchema`.
 
     *new in 0.5.0*
 
-    See the :ref:`User Guide <schema_models>` for more.
+    .. important::
+
+        This class is the new name for ``SchemaModel``, which will be deprecated
+        in pandera version ``0.20.0``.
+
+    See the :ref:`User Guide <dataframe_models>` for more.
     """
 
     Config: Type[BaseConfig] = BaseConfig
@@ -530,7 +535,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def pydantic_validate(cls, schema_model: Any) -> "DataFrameModel":
-        """Verify that the input is a compatible schema model."""
+        """Verify that the input is a compatible dataframe model."""
         if not inspect.isclass(schema_model):  # type: ignore
             raise TypeError(f"{schema_model} is not a pandera.DataFrameModel")
 
@@ -555,7 +560,17 @@ class DataFrameModel(BaseModel):
         field_schema.update(_to_json_schema(cls.to_schema()))
 
 
-SchemaModel = DataFrameModel
+class SchemaModel(DataFrameModel):
+    """Alias for DataFrameModel.
+
+    .. warning::
+
+       This subclass is necessary for backwards compatibility, and will be
+       deprecated in pandera version ``0.20.0`` in favor of
+       :py:class:`~pandera.core.pandas.model.DataFrameModel`
+    """
+
+    ...
 
 
 def _build_schema_index(

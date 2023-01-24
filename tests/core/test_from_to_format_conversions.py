@@ -10,7 +10,7 @@ import pandera as pa
 from pandera.engines import pandas_engine
 
 
-class InSchema(pa.SchemaModel):
+class InSchema(pa.DataFrameModel):
     str_col: pa.typing.Series[str] = pa.Field(unique=True, isin=[*"abcd"])
     int_col: pa.typing.Series[int]
 

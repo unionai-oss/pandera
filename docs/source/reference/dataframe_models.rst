@@ -10,6 +10,7 @@ DataFrame Model
    :toctree: generated
    :template: class.rst
 
+   pandera.core.pandas.model.SchemaModel
    pandera.core.pandas.model.DataFrameModel
 
 Model Components

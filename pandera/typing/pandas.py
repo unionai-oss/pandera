@@ -21,7 +21,7 @@ from pandera.typing.common import (
     DataFrameBase,
     GenericDtype,
     IndexBase,
-    Schema,
+    DataFrameModel,
     SeriesBase,
 )
 from pandera.typing.formats import Formats
@@ -67,7 +67,7 @@ class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
 if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
-    T = Schema
+    T = DataFrameModel
 
 
 # pylint:disable=too-few-public-methods
@@ -99,7 +99,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         ``from_format`` and ``from_format_kwargs``.
 
         :param obj: object representing a serialized dataframe.
-        :param config: schema model configuration object.
+        :param config: dataframe model configuration object.
         """
         if config.from_format is None:
             if not isinstance(obj, pd.DataFrame):
@@ -171,7 +171,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         except SchemaInitError as exc:
             raise ValueError(
                 f"Cannot use {cls.__name__} as a pydantic type as its "
-                "SchemaModel cannot be converted to a DataFrameSchema.\n"
+                "DataFrameModel cannot be converted to a DataFrameSchema.\n"
                 f"Please revisit the model to address the following errors:"
                 f"\n{exc}"
             ) from exc

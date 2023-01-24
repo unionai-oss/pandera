@@ -23,7 +23,7 @@ any other field:
     import pydantic
 
 
-    class SimpleSchema(pa.SchemaModel):
+    class SimpleSchema(pa.DataFrameModel):
         str_col: Series[str] = pa.Field(unique=True)
 
 
@@ -94,7 +94,7 @@ specify the ``Record`` model as a row-wise type.
     from pandera.engines.pandas_engine import PydanticModel
 
 
-    class PydanticSchema(pa.SchemaModel):
+    class PydanticSchema(pa.DataFrameModel):
         """Pandera schema using the pydantic model."""
 
         class Config:
@@ -115,7 +115,7 @@ The equivalent pandera schema would look like this:
 
 .. testcode:: pydantic_model_in_schema
 
-    class PanderaSchema(pa.SchemaModel):
+    class PanderaSchema(pa.DataFrameModel):
         """Pandera schema that's equivalent to PydanticSchema."""
 
         name: pa.typing.Series[str]

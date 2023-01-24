@@ -1,4 +1,4 @@
-"""Class-based schema model API configuration."""
+"""Class-based dataframe model API configuration."""
 
 from typing import Any, Optional
 

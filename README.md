@@ -44,8 +44,8 @@ This is useful in production-critical or reproducible research settings. With
    [hypothesis testing](https://pandera.readthedocs.io/en/stable/hypothesis.html#hypothesis).
 1. Seamlessly integrate with existing data analysis/processing pipelines
    via [function decorators](https://pandera.readthedocs.io/en/stable/decorators.html#decorators).
-1. Define schema models with the
-   [class-based API](https://pandera.readthedocs.io/en/stable/schema_models.html#schema-models)
+1. Define dataframe models with the
+   [class-based API](https://pandera.readthedocs.io/en/stable/dataframe_models.html#dataframe-models)
    with pydantic-style syntax and validate dataframes using the typing syntax.
 1. [Synthesize data](https://pandera.readthedocs.io/en/stable/data_synthesis_strategies.html#data-synthesis-strategies)
    from schema objects for property-based testing with pandas data structures.
@@ -155,18 +155,18 @@ print(validated_df)
 #  4        9    -20.4  value_1
 ```
 
-## Schema Model
+## DataFrame Model
 
 `pandera` also provides an alternative API for expressing schemas inspired
 by [dataclasses](https://docs.python.org/3/library/dataclasses.html) and
-[pydantic](https://pydantic-docs.helpmanual.io/). The equivalent `SchemaModel`
+[pydantic](https://pydantic-docs.helpmanual.io/). The equivalent `DataFrameModel`
 for the above `DataFrameSchema` would be:
 
 
 ```python
 from pandera.typing import Series
 
-class Schema(pa.SchemaModel):
+class Schema(pa.DataFrameModel):
 
     column1: Series[int] = pa.Field(le=10)
     column2: Series[float] = pa.Field(lt=-1.2)
@@ -223,7 +223,7 @@ page or reach out to the maintainers and pandera community on
   [column nullability](https://pandera.readthedocs.io/en/stable/dataframe_schemas.html#null-values-in-columns),
   and [uniqueness](https://pandera.readthedocs.io/en/stable/dataframe_schemas.html#validating-the-joint-uniqueness-of-columns)
   are first-class concepts.
-- Define [schema models](https://pandera.readthedocs.io/en/stable/schema_models.html) with the class-based API with
+- Define [dataframe models](https://pandera.readthedocs.io/en/stable/schema_models.html) with the class-based API with
   [pydantic](https://pydantic-docs.helpmanual.io/)-style syntax and validate dataframes using the typing syntax.
 - `check_input` and `check_output` [decorators](https://pandera.readthedocs.io/en/stable/decorators.html#decorators-for-pipeline-integration)
   enable seamless integration with existing code.

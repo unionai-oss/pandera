@@ -20,8 +20,8 @@ and :py:func:`~pyspark.pandas.Series` objects directly. First, install
 
 
 Then you can use pandera schemas to validate pyspark dataframes. In the example
-below we'll use the :ref:`class-based API <schema_models>` to define a
-:py:class:`SchemaModel` for validation.
+below we'll use the :ref:`class-based API <dataframe_models>` to define a
+:py:class:`~pandera.core.pandas.model.DataFrameModel` for validation.
 
 .. testcode:: scaling_pyspark
 
@@ -32,7 +32,7 @@ below we'll use the :ref:`class-based API <schema_models>` to define a
     from pandera.typing.pyspark import DataFrame, Series
 
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         state: Series[str]
         city: Series[str]
         price: Series[int] = pa.Field(in_range={"min_value": 5, "max_value": 20})

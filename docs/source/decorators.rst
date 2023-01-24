@@ -194,7 +194,7 @@ All decorators work on sync/async regular/class/static methods of metaclasses as
     import pandera as pa
     from pandera.typing import DataFrame, Series
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         col1: Series[int]
 
         class Config:

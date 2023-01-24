@@ -37,9 +37,9 @@ def test_dataframe_schema():
 )
 def test_schema_model(data, invalid: bool):
     # pylint: disable=missing-class-docstring
-    """Test that SchemaModel works on GeoDataFrames."""
+    """Test that DataFrameModel works on GeoDataFrames."""
 
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
         geometry: GeoSeries
 

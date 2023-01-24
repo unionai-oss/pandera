@@ -87,7 +87,7 @@ settings. With ``pandera``, you can:
    :ref:`hypothesis testing<hypothesis>`.
 #. Seamlessly integrate with existing data analysis/processing pipelines
    via :ref:`function decorators<decorators>`.
-#. Define schema models with the :ref:`class-based API<schema_models>` with
+#. Define dataframe models with the :ref:`class-based API<dataframe_models>` with
    pydantic-style syntax and validate dataframes using the typing syntax.
 #. :ref:`Synthesize data<data synthesis strategies>` from schema objects for
    property-based testing with pandas data structures.
@@ -221,8 +221,8 @@ or pandera's ``DataType``:
 For more details on data types, see :class:`~pandera.dtypes.DataType`
 
 
-Schema Model
-------------
+dataframe Model
+---------------
 
 ``pandera`` also provides an alternative API for expressing schemas inspired
 by `dataclasses <https://docs.python.org/3/library/dataclasses.html>`_ and
@@ -234,7 +234,7 @@ by `dataclasses <https://docs.python.org/3/library/dataclasses.html>`_ and
 
    from pandera.typing import Series
 
-   class Schema(pa.SchemaModel):
+   class Schema(pa.DataFrameModel):
 
        column1: Series[int] = pa.Field(le=10)
        column2: Series[float] = pa.Field(lt=-1.2)
@@ -353,7 +353,7 @@ page or reach out to the maintainers and pandera community on
    :hidden:
 
    dataframe_schemas
-   schema_models
+   dataframe_models
    series_schemas
    checks
    hypothesis

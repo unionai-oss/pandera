@@ -546,11 +546,11 @@ def test_custom_checks():
 def test_schema_model():
     # pylint: disable=missing-class-docstring
     """
-    Test that SchemaModel subclasses work on pyspark_pandas_eq dataframes.
+    Test that DataFrameModel subclasses work on pyspark_pandas_eq dataframes.
     """
 
     # pylint: disable=too-few-public-methods
-    class Schema(pa.SchemaModel):
+    class Schema(pa.DataFrameModel):
         int_field: pa.typing.pyspark.Series[int] = pa.Field(gt=0)
         float_field: pa.typing.pyspark.Series[float] = pa.Field(lt=0)
         str_field: pa.typing.pyspark.Series[str] = pa.Field(
@@ -617,7 +617,7 @@ def test_check_decorators():
     out_schema = in_schema.add_columns({"b": pa.Column(int)})
 
     # pylint: disable=too-few-public-methods
-    class InSchema(pa.SchemaModel):
+    class InSchema(pa.DataFrameModel):
         a: pa.typing.pyspark.Series[int]
 
     class OutSchema(InSchema):
@@ -684,7 +684,7 @@ def test_check_decorators():
 
 
 # pylint: disable=too-few-public-methods
-class InitSchema(pa.SchemaModel):
+class InitSchema(pa.DataFrameModel):
     """Schema used to test dataframe initialization."""
 
     col1: Series[int]
@@ -731,7 +731,7 @@ def test_strict_filter(data):
     """Test that the strict = "filter" config option works."""
 
     # pylint: disable=too-few-public-methods
-    class FilterSchema(pa.SchemaModel):
+    class FilterSchema(pa.DataFrameModel):
         """Schema used to test dataframe strict = "filter" initialization."""
 
         col1: Series[int] = pa.Field()

@@ -11,11 +11,11 @@ Since both FastAPI and Pandera integrates seamlessly with Pydantic, you can
 use the :py:class:`~pandera.core.pandas.model.DataFrameModel` types to validate incoming
 or outgoing data with respect to your API endpoints.
 
-Using SchemaModels to Validate Endpoint Inputs and Outputs
------------------------------------------------------------
+Using DataFrameModels to Validate Endpoint Inputs and Outputs
+--------------------------------------------------------------
 
 Suppose we want to process transactions, where each transaction has an
-``id`` and ``cost``. We can model this with a pandera schema model:
+``id`` and ``cost``. We can model this with a pandera dataframe model:
 
 .. literalinclude:: ../../tests/fastapi/models.py
     :language: python
@@ -30,7 +30,7 @@ data:
 
 Let's also assume that the output of the endpoint should be a list of dictionary
 records containing the named transactions data. We can do this easily with the
-``to_format`` option in the schema model :py:class:`~pandera.typing.config.BaseConfig`.
+``to_format`` option in the dataframe model :py:class:`~pandera.typing.config.BaseConfig`.
 
 .. literalinclude:: ../../tests/fastapi/models.py
     :language: python
@@ -53,7 +53,7 @@ Reading File Uploads
 
 Similar to the ``TransactionsDictOut`` example to convert dataframes to a
 particular format as an endpoint response, pandera also provides a
-``from_format`` schema model configuration option to read a dataframe from
+``from_format`` dataframe model configuration option to read a dataframe from
 a particular serialization format.
 
 .. literalinclude:: ../../tests/fastapi/models.py
