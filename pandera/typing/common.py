@@ -95,7 +95,7 @@ if GEOPANDAS_INSTALLED:
 else:
     GenericDtype = TypeVar(  # type: ignore
         "GenericDtype",
-        bound=Union[
+        bound=Union[  # type: ignore
             bool,
             int,
             str,
@@ -134,7 +134,7 @@ else:
         ],
     )
 
-DataFrameModel = TypeVar("Schema", bound="DataFrameModel")  # type: ignore
+DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
 
 # pylint:disable=invalid-name

@@ -6,8 +6,14 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
 
-from ..errors import SchemaError, SchemaInitError
-from .common import DataFrameBase, GenericDtype, IndexBase, Schema, SeriesBase
+from pandera.errors import SchemaError, SchemaInitError
+from pandera.typing.common import (
+    DataFrameBase,
+    GenericDtype,
+    IndexBase,
+    DataFrameModel,
+    SeriesBase,
+)
 from .formats import Formats
 
 try:
@@ -50,7 +56,7 @@ try:
     if TYPE_CHECKING:
         T = TypeVar("T")  # pragma: no cover
     else:
-        T = Schema
+        T = DataFrameModel
 
     # pylint:disable=too-few-public-methods
     class DataFrame(DataFrameBase, cudf.DataFrame, Generic[T]):

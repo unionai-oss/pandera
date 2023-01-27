@@ -3,7 +3,7 @@
 
 import pytest
 
-from pandera import cudf_accessor
+from pandera.accessors import cudf_accessor
 
 
 # pylint: disable=too-few-public-methods
