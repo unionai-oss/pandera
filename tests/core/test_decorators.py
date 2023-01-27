@@ -934,7 +934,7 @@ def test_check_types_dict_args() -> None:
     ) -> typing.Dict[str, DataFrame[OnlyZeroesSchema]]:
         return {'b': df}
 
-    validate_dict({'a': pd.DataFrame({"a": [0, 1]})})
+    validate_dict({'a': pd.DataFrame({"a": [0, 0]})})
 
     with pytest.raises(errors.SchemaErrors):
         validate_dict({'a': pd.DataFrame({"a": [0, 1]})})
