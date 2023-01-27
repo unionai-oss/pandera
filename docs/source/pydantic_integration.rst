@@ -81,7 +81,7 @@ a ``Record`` model:
 
     class Record(BaseModel):
         name: str
-        xcoord: str
+        xcoord: int
         ycoord: int
 
 
