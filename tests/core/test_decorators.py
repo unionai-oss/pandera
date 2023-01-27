@@ -923,6 +923,33 @@ def test_check_types_union_args() -> None:
     with pytest.raises(errors.SchemaErrors):
         validate_union_wrong_outputs(pd.DataFrame({"a": [0, 0]}))  # type: ignore [arg-type]
 
+# TODO: make this test pass.
+def test_check_types_dict_args() -> None:
+    """Test that the @check_types decorator works with
+    typing.Dict[Any, pandera.typing.DataFrame[Schema]] type inputs/outputs"""
+
+    @check_types
+    def validate_dict(
+        df: typing.Dict[str, DataFrame[OnlyZeroesSchema],],
+    ) -> typing.Dict[str, DataFrame[OnlyZeroesSchema]]:
+        return {'b': df}
+
+    validate_dict({'a': pd.DataFrame({"a": [0, 1]})})
+
+    with pytest.raises(errors.SchemaErrors):
+        validate_dict({'a': pd.DataFrame({"a": [0, 1]})})
+
+    @check_types
+    def validate_dict_wrong_outputs(
+        df: typing.Dict[typing.Any, DataFrame[OnlyZeroesSchema]]
+    ) -> typing.Dict[typing.Any, DataFrame[OnlyZeroesSchema]]:
+        new_df = df.copy()
+        new_df["a"] = [0, 1]
+        return {'b': new_df}
+
+    with pytest.raises(errors.SchemaErrors):
+        validate_dict_wrong_outputs({'a': pd.DataFrame({"a": [0, 0]})}) 
+
 
 def test_check_types_non_dataframes() -> None:
     """Test to skip check_types for non-dataframes"""
