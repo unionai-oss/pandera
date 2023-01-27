@@ -181,37 +181,38 @@ def test_nullable(
             nonnullable_schema(ks_null_sample)
 
 
-# def test_unique():  # cudf 22.08.00 not implemented `df.duplicated()`
-#     """Test uniqueness checks on modin dataframes."""
-#     schema = pa.DataFrameSchema({"field": pa.Column(int)}, unique=["field"])
-#     column_schema = pa.Column(int, unique=True, name="field")
-#     series_schema = pa.SeriesSchema(int, unique=True, name="field")
-#
-#     data_unique = cudf.DataFrame({"field": [1, 2, 3]})
-#     data_non_unique = cudf.DataFrame({"field": [1, 1, 1]})
-#
-#     assert isinstance(schema(data_unique), cudf.DataFrame)
-#     assert isinstance(column_schema(data_unique), cudf.DataFrame)
-#     assert isinstance(series_schema(data_unique["field"]), cudf.Series)
-#
-#     with pytest.raises(pa.errors.SchemaError, match="columns .+ not unique"):
-#         schema(data_non_unique)
-#     with pytest.raises(
-#         pa.errors.SchemaError, match="series .+ contains duplicate values"
-#     ):
-#         column_schema(data_non_unique)
-#     with pytest.raises(
-#         pa.errors.SchemaError, match="series .+ contains duplicate values"
-#     ):
-#         series_schema(data_non_unique["field"])
-#
-#     schema.unique = None
-#     column_schema.unique = False
-#     series_schema.unique = False
-#
-#     assert isinstance(schema(data_non_unique), mpd.DataFrame)
-#     assert isinstance(column_schema(data_non_unique), mpd.DataFrame)
-#     assert isinstance(series_schema(data_non_unique["field"]), mpd.Series)
+@pytest.mark.skip(reason="cudf 22.08.00 not implemented `df.duplicated()`")
+def test_unique():
+    """Test uniqueness checks on modin dataframes."""
+    schema = pa.DataFrameSchema({"field": pa.Column(int)}, unique=["field"])
+    column_schema = pa.Column(int, unique=True, name="field")
+    series_schema = pa.SeriesSchema(int, unique=True, name="field")
+
+    data_unique = cudf.DataFrame({"field": [1, 2, 3]})
+    data_non_unique = cudf.DataFrame({"field": [1, 1, 1]})
+
+    assert isinstance(schema(data_unique), cudf.DataFrame)
+    assert isinstance(column_schema(data_unique), cudf.DataFrame)
+    assert isinstance(series_schema(data_unique["field"]), cudf.Series)
+
+    with pytest.raises(pa.errors.SchemaError, match="columns .+ not unique"):
+        schema(data_non_unique)
+    with pytest.raises(
+        pa.errors.SchemaError, match="series .+ contains duplicate values"
+    ):
+        column_schema(data_non_unique)
+    with pytest.raises(
+        pa.errors.SchemaError, match="series .+ contains duplicate values"
+    ):
+        series_schema(data_non_unique["field"])
+
+    schema.unique = None
+    column_schema.unique = False
+    series_schema.unique = False
+
+    assert isinstance(schema(data_non_unique), cudf.DataFrame)
+    assert isinstance(column_schema(data_non_unique), cudf.DataFrame)
+    assert isinstance(series_schema(data_non_unique["field"]), cudf.Series)
 
 
 def test_required_column():
