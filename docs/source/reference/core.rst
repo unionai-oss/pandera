@@ -36,4 +36,3 @@ Checks
 
    pandera.core.checks.Check
    pandera.core.hypotheses.Hypothesis
-   pandera.core.checks.Check
