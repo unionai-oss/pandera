@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md") as f:
     long_description = f.read()
@@ -12,8 +12,8 @@ _extras_require = {
     "hypotheses": ["scipy"],
     "io": ["pyyaml >= 5.1", "black", "frictionless"],
     "pyspark": ["pyspark >= 3.2.0"],
-    "modin": ["modin", "ray <= 1.7.0", "dask"],
-    "modin-ray": ["modin", "ray <= 1.7.0"],
+    "modin": ["modin", "ray", "dask"],
+    "modin-ray": ["modin", "ray"],
     "modin-dask": ["modin", "dask"],
     "dask": ["dask"],
     "mypy": ["pandas-stubs"],

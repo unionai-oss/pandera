@@ -21,15 +21,19 @@ from tests.mypy.modules import pandas_dataframe
 test_module_dir = Path(os.path.dirname(__file__))
 
 
-def _get_mypy_errors(stdout) -> typing.List[typing.Dict[str, str]]:
+def _get_mypy_errors(
+    module_name: str,
+    stdout,
+) -> typing.List[typing.Dict[str, str]]:
     """Parse line number and error message."""
     errors: typing.List[typing.Dict[str, str]] = []
     # last line is summary of errors
     for error in [x for x in stdout.split("\n") if x != ""][:-1]:
-        matches = re.match(
-            r".+\.py:(?P<lineno>\d+): error: (?P<msg>.+)  \[(?P<errcode>.+)\]",
-            error,
+        regex = (
+            r".+{}:".format(module_name.replace(".", r"\."))
+            + r"(?P<lineno>\d+): error: (?P<msg>.+)  \[(?P<errcode>.+)\]"
         )
+        matches = re.match(regex, error)
         if matches is not None:
             match_dict = matches.groupdict()
             errors.append(
@@ -53,16 +57,21 @@ PANDAS_DATAFRAME_ERRORS = [
 def test_mypy_pandas_dataframe(capfd) -> None:
     """Test that mypy raises expected errors on pandera-decorated functions."""
     # pylint: disable=subprocess-run-check
+    cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
     subprocess.run(
         [
             sys.executable,
             "-m",
             "mypy",
             str(test_module_dir / "modules" / "pandas_dataframe.py"),
+            "--cache-dir",
+            cache_dir,
+            "--config-file",
+            str(test_module_dir / "config" / "no_plugin.ini"),
         ],
         text=True,
     )
-    errors = _get_mypy_errors(capfd.readouterr().out)
+    errors = _get_mypy_errors("pandas_dataframe.py", capfd.readouterr().out)
     assert len(PANDAS_DATAFRAME_ERRORS) == len(errors)
     for expected, error in zip(PANDAS_DATAFRAME_ERRORS, errors):
         assert error["errcode"] == expected["errcode"]
@@ -97,6 +106,13 @@ PANDERA_TYPES_ERRORS = [
     {"msg": 'Argument 1 to "fn" has incompatible type', "errcode": "arg-type"},
 ] * 2
 
+PANDAS_TIME_ERRORS = [
+    {
+        "msg": 'Argument 1 to "Timedelta" has incompatible type "float"',
+        "errcode": "arg-type",
+    },
+]
+
 PYTHON_SLICE_ERRORS = [
     {"msg": "Slice index must be an integer or None", "errcode": "misc"},
 ]
@@ -129,12 +145,12 @@ PANDAS_SERIES_ERRORS = [
         ["pandera_types.py", "plugin_mypy.ini", PANDERA_TYPES_ERRORS],
         ["pandas_concat.py", "no_plugin.ini", []],
         ["pandas_concat.py", "plugin_mypy.ini", []],
-        ["pandas_time.py", "no_plugin.ini", []],
-        ["pandas_time.py", "plugin_mypy.ini", []],
+        ["pandas_time.py", "no_plugin.ini", PANDAS_TIME_ERRORS],
+        ["pandas_time.py", "plugin_mypy.ini", PANDAS_TIME_ERRORS],
         ["python_slice.py", "no_plugin.ini", PYTHON_SLICE_ERRORS],
         ["python_slice.py", "plugin_mypy.ini", PYTHON_SLICE_ERRORS],
-        ["pandas_index.py", "no_plugin.ini", PANDAS_INDEX_ERRORS],
-        ["pandas_index.py", "plugin_mypy.ini", PANDAS_INDEX_ERRORS],
+        ["pandas_index.py", "no_plugin.ini", []],
+        ["pandas_index.py", "plugin_mypy.ini", []],
         ["pandas_series.py", "no_plugin.ini", PANDAS_SERIES_ERRORS],
         ["pandas_series.py", "plugin_mypy.ini", PANDAS_SERIES_ERRORS],
     ],
@@ -160,7 +176,7 @@ def test_pandas_stubs_false_positives(
     ]
     # pylint: disable=subprocess-run-check
     subprocess.run(commands, text=True)
-    resulting_errors = _get_mypy_errors(capfd.readouterr().out)
+    resulting_errors = _get_mypy_errors(module, capfd.readouterr().out)
     assert len(expected_errors) == len(resulting_errors)
     for expected, error in zip(expected_errors, resulting_errors):
         assert error["errcode"] == expected["errcode"]

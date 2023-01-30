@@ -525,7 +525,7 @@ class Decimal(DataType, dtypes.Decimal):
         return dec.quantize(self._exp, context=self._ctx)
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
-        return data_container.apply(self.coerce_value)
+        return data_container.apply(self.coerce_value)  # type: ignore
 
     def check(  # type: ignore
         self,
@@ -577,7 +577,7 @@ class Category(DataType, dtypes.Category):
         object.__setattr__(
             self,
             "type",
-            pd.CategoricalDtype(self.categories, self.ordered),
+            pd.CategoricalDtype(self.categories, self.ordered),  # type: ignore
         )
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
@@ -639,13 +639,13 @@ if PANDAS_1_3_0_PLUS:
 else:
 
     @Engine.register_dtype(
-        equivalents=["string", pd.StringDtype, pd.StringDtype()]
-    )  # type: ignore
+        equivalents=["string", pd.StringDtype, pd.StringDtype()]  # type: ignore
+    )
     @immutable
     class STRING(DataType, dtypes.String):  # type: ignore
         """Semantic representation of a :class:`pandas.StringDtype`."""
 
-        type = pd.StringDtype()
+        type = pd.StringDtype()  # type: ignore
 
 
 @Engine.register_dtype(
@@ -984,8 +984,8 @@ class Sparse(DataType):
     def from_parametrized_dtype(cls, pd_dtype: pd.SparseDtype):
         """Convert a :class:`pandas.SparseDtype` to
         a Pandera :class:`pandera.engines.pandas_engine.Sparse`."""
-        return cls(  # type: ignore
-            dtype=pd_dtype.subtype, fill_value=pd_dtype.fill_value
+        return cls(
+            dtype=pd_dtype.subtype, fill_value=pd_dtype.fill_value  # type: ignore
         )
 
 

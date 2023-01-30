@@ -112,12 +112,12 @@ def test_logical_datatype_check(
     "data, expected_datatype, failure_cases",
     [
         (
-            [Decimal("1.2"), Decimal("12.3")],
+            [Decimal("1.2"), Decimal("12.3")] * 100,
             pandas_engine.Decimal(2, 1),
-            [Decimal("12.3")],
+            [Decimal("12.3")] * 100,
         ),
         (
-            [Decimal("1.2"), None, pd.NA, np.nan],
+            [Decimal("1.2"), None, pd.NA, np.nan] * 100,
             pandas_engine.Decimal(19, 5),
             [],
         ),
@@ -129,14 +129,15 @@ def test_logical_datatype_check(
                 pd.NA,
                 np.nan,
                 pd.NaT,
-            ],
+            ]
+            * 100,
             pandas_engine.Date(),
             [],
         ),
         (
-            ["2022-01-01", "01/01/2022"],
+            ["2022-01-01", "01/01/2022"] * 100,
             pandas_engine.Date(to_datetime_kwargs={"format": "%Y-%m-%d"}),
-            ["01/01/2022"],
+            ["01/01/2022"] * 100,
         ),
     ],
 )

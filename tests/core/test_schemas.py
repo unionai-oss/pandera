@@ -246,10 +246,14 @@ def test_dataframe_coerce_regex() -> None:
         schema_required(no_match_df)
 
 
-def test_dataframe_reset_column_name() -> None:
-    """Test resetting column name at DataFrameSchema init on named column."""
-    with pytest.warns(UserWarning):
-        DataFrameSchema(columns={"new_name": Column(name="old_name")})
+def test_dataframe_reuse_column() -> None:
+    """Test reusing columns in a dataframe schema."""
+    unnamed = Column()
+    named = Column(name="old_name")
+    schema = DataFrameSchema(columns={"a": named, "b": unnamed})
+    assert set(schema.columns) == {"a", "b"}
+    assert named.name == "old_name"
+    assert unnamed.name is None
 
 
 @pytest.mark.parametrize(

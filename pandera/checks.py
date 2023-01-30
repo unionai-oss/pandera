@@ -325,7 +325,7 @@ class _CheckBase(metaclass=_CheckMeta):
         if check_utils.is_field(df_or_series):
             return df_or_series  # type: ignore[return-value]
         elif self.groupby is None:
-            return df_or_series[column]  # type: ignore[index]
+            return df_or_series[column]  # type: ignore
         elif isinstance(self.groupby, list):
             return self._format_groupby_input(  # type: ignore[return-value]
                 df_or_series.groupby(self.groupby)[column],  # type: ignore[index]
