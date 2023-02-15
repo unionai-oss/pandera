@@ -10,4 +10,5 @@ from pandera.core.extensions import (
     update_check_fn_proxy,
     CheckType,
     register_check_method,
+    register_check_statistics,
 )

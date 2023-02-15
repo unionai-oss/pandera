@@ -174,3 +174,15 @@ class Hypothesis(Check):
             strategy=strategy,
             **check_kwargs,
         )
+
+    @classmethod
+    def two_sample_ttest(
+        cls,
+        equal_var: bool = True,
+        nan_policy: str = "propagate",
+    ) -> "Hypothesis":
+        raise NotImplementedError
+
+    @classmethod
+    def one_sample_ttest(cls, popmean: float) -> "Hypothesis":
+        raise NotImplementedError

@@ -1,5 +1,6 @@
 """Extensions module."""
 
+import inspect
 import warnings
 from enum import Enum
 from functools import partial, wraps
@@ -7,11 +8,12 @@ from inspect import signature, Parameter, Signature, _empty
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import pandas as pd
+import typing_inspect
 from multimethod import multidispatch
 
-from pandera.core.base.checks import register_check_statistics
 from pandera.core.checks import Check
 from pandera.core.hypotheses import Hypothesis
+from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
 
 # pylint: disable=too-many-locals
@@ -47,6 +49,7 @@ def register_check(
 
     # see if the check function is already registered
     check_fn = check_cls.CHECK_FUNCTION_REGISTRY.get(name)
+    check_meth = getattr(check_cls, name)
 
     fn_sig = signature(fn)
 
@@ -84,17 +87,42 @@ def register_check(
         dispatch_check_fn = multidispatch(fn)
 
         # create proxy function so we can modify the signature and docstring
-        # of the method to reflect correctly in the documentation
+        # of the method to reflect correctly in the documentation. The
+        # check_method function below wraps the check_function_proxy, which is
+        # ultimately set as an attribute of the check_cls
         # pylint: disable=unused-argument
         def check_function_proxy(cls, *args, **kws):
             return dispatch_check_fn(*args, **kws)
 
+        # this makes sure that the attributes of check_function_proxy match
+        # the original function
         update_check_fn_proxy(
             check_cls, check_function_proxy, fn, fn_sig, statistics_params
         )
 
-        @wraps(check_function_proxy)
+        # register the check strategy for this particular check, identified
+        # by the check `name`, and the data type of the check function. This
+        # supports Union types. Also assume that the data type of the data
+        # object to validate is the first argument.
+        data_type = [*fn_sig.parameters.values()][0].annotation
+
+        if typing_inspect.get_origin(data_type) is Tuple:
+            data_type, *_ = typing_inspect.get_args(data_type)
+
+        if typing_inspect.get_origin(data_type) is Union:
+            data_types = typing_inspect.get_args(data_type)
+        else:
+            data_types = (data_type,)
+
+        for dt in data_types:
+            STRATEGY_DISPATCHER[(name, dt)] = strategy
+
+        # TODO: Create a decorator for the corresponding check method defined
+        # in pandera.core.checks.Check so that this wrapped check_method
+        # function below modifies its behavior
+        @wraps(check_meth)
         def check_method(cls, *args, **check_kwargs):
+            # This is the method that is set as a classmethod of the check_cls.
             args = list(args)
 
             statistics_kwargs = dict(zip(statistics, args))
@@ -189,10 +217,8 @@ def register_check(
         check_cls.CHECK_FUNCTION_REGISTRY[name] = dispatch_check_fn
         setattr(check_cls, name, classmethod(check_method))
 
-        class_check_method = getattr(check_cls, name)
-
         for _name in [] if aliases is None else aliases:
-            setattr(check_cls, _name, class_check_method)
+            setattr(check_cls, _name, classmethod(check_method))
     else:
         check_fn.register(fn)  # type: ignore
 
@@ -289,6 +315,29 @@ class CheckType(Enum):
     VECTORIZED = 1  #: Check applied to a Series or DataFrame
     ELEMENT_WISE = 2  #: Check applied to an element of a Series or DataFrame
     GROUPBY = 3  #: Check applied to dictionary of Series or DataFrames.
+
+
+def register_check_statistics(statistics_args):
+    """Decorator to set statistics based on Check method."""
+
+    def register_check_statistics_decorator(class_method):
+        @wraps(class_method)
+        def _wrapper(cls, *args, **kwargs):
+            args = list(args)
+            arg_names = inspect.getfullargspec(class_method).args[1:]
+            if not arg_names:
+                arg_names = statistics_args
+            args_dict = {**dict(zip(arg_names, args)), **kwargs}
+            check = class_method(cls, *args, **kwargs)
+            check.statistics = {
+                stat: args_dict.get(stat) for stat in statistics_args
+            }
+            check.statistics_args = statistics_args
+            return check
+
+        return _wrapper
+
+    return register_check_statistics_decorator
 
 
 def register_check_method(

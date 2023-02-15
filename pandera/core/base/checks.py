@@ -36,29 +36,6 @@ SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
-def register_check_statistics(statistics_args):
-    """Decorator to set statistics based on Check method."""
-
-    def register_check_statistics_decorator(class_method):
-        @wraps(class_method)
-        def _wrapper(cls, *args, **kwargs):
-            args = list(args)
-            arg_names = inspect.getfullargspec(class_method).args[1:]
-            if not arg_names:
-                arg_names = statistics_args
-            args_dict = {**dict(zip(arg_names, args)), **kwargs}
-            check = class_method(cls, *args, **kwargs)
-            check.statistics = {
-                stat: args_dict.get(stat) for stat in statistics_args
-            }
-            check.statistics_args = statistics_args
-            return check
-
-        return _wrapper
-
-    return register_check_statistics_decorator
-
-
 _T = TypeVar("_T", bound="BaseCheck")
 
 
@@ -77,6 +54,7 @@ class MetaCheck(type):  # pragma: no cover
         attr = {
             **cls.__dict__,
             **cls.CHECK_REGISTRY,
+            **cls.CHECK_FUNCTION_REGISTRY,
             **cls.REGISTERED_CUSTOM_CHECKS,
         }.get(name)
         if attr is None:
@@ -87,11 +65,21 @@ class MetaCheck(type):  # pragma: no cover
             )
         return attr
 
+    # def __getattribute__(cls, name: str) -> Any:
+    #     if name == "CHECK_FUNCTION_REGISTRY":
+    #         return super().__getattribute__(name)
+
+    #     if name in cls.CHECK_FUNCTION_REGISTRY:
+    #         return cls.CHECK_FUNCTION_REGISTRY.get(name)
+
+    #     return super().__getattribute__(name)
+
     def __dir__(cls) -> Iterable[str]:
         """Allow custom checks to show up as attributes when autocompleting."""
         return chain(
             super().__dir__(),
             cls.CHECK_REGISTRY.keys(),
+            cls.CHECK_FUNCTION_REGISTRY.keys(),
             cls.REGISTERED_CUSTOM_CHECKS.keys(),
         )
 

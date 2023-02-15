@@ -13,6 +13,9 @@ if HAS_SCIPY:
 
 @register_hypothesis(
     error="failed two sample ttest between '{sample1}' and '{sample2}'",
+    # NOTE: an idea here is to use the function signature as a way of
+    # inferring the sample name and types, e.g.
+    # two_sample_ttest(s1: str, s3: str, *, **kwargs)
     samples_kwtypes={"sample1": str, "sample2": str},
 )
 def two_sample_ttest(

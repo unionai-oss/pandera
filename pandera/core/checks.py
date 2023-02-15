@@ -1,6 +1,16 @@
 """Data validation check definition."""
 
-from typing import Any, Callable, Dict, List, Optional, Union
+import re
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import pandas as pd
 
@@ -9,8 +19,11 @@ from pandera.core.base.checks import BaseCheck, CheckResult
 from pandera.strategies import SearchStrategy
 
 
+T = TypeVar("T")
+
+
 class Check(BaseCheck):
-    """Check a pandas Series or DataFrame for certain properties."""
+    """Check a data object for certain properties."""
 
     def __init__(
         self,
@@ -29,7 +42,7 @@ class Check(BaseCheck):
         strategy: Optional[SearchStrategy] = None,
         **check_kwargs,
     ) -> None:
-        """Apply a validation function to each element, Series, or DataFrame.
+        """Apply a validation function to a data object.
 
         :param check_fn: A function to check pandas data structure. For Column
             or SeriesSchema checks, if element_wise is True, this function
@@ -214,3 +227,97 @@ class Check(BaseCheck):
         """
         backend = self.get_backend(check_obj)(self)
         return backend(check_obj, column)
+
+    @classmethod
+    def equal_to(cls, value: Any) -> "Check":
+        ...
+
+    @classmethod
+    def not_equal_to(cls, value: Any) -> "Check":
+        ...
+
+    @classmethod
+    def greater_than(cls, min_value: Any) -> "Check":
+        ...
+
+    @classmethod
+    def greater_than_or_equal_to(cls, min_value: Any) -> "Check":
+        ...
+
+    @classmethod
+    def less_than(cls, max_value: Any) -> "Check":
+        ...
+
+    @classmethod
+    def less_than_or_equal_to(cls, max_value: Any) -> "Check":
+        ...
+
+    @classmethod
+    def in_range(
+        cls,
+        min_value: T,
+        max_value: T,
+        include_min: bool = True,
+        include_max: bool = True,
+    ) -> "Check":
+        ...
+
+    @classmethod
+    def isin(cls, allowed_values: Iterable) -> "Check":
+        ...
+
+    @classmethod
+    def notin(cls, forbidden_values: Iterable) -> "Check":
+        ...
+
+    @classmethod
+    def str_matches(cls, pattern: Union[str, re.Pattern]) -> "Check":
+        ...
+
+    @classmethod
+    def str_contains(cls, pattern: Union[str, re.Pattern]) -> "Check":
+        ...
+
+    @classmethod
+    def str_startswith(cls, string: str) -> "Check":
+        ...
+
+    @classmethod
+    def str_endswith(cls, string: str) -> "Check":
+        ...
+
+    @classmethod
+    def str_length(
+        cls,
+        min_value: int = None,
+        max_value: int = None,
+    ) -> "Check":
+        raise NotImplementedError
+
+    @classmethod
+    def unique_values_eq(cls, string: str) -> "Check":
+        raise NotImplementedError
+
+    # Aliases
+    # -------
+
+    """Alias of :meth:`~pandera.core.checks.Check.equal_to`"""
+    eq = equal_to
+
+    """Alias of :meth:`~pandera.core.checks.Check.not_equal_to`"""
+    ne = not_equal_to
+
+    """Alias of :meth:`~pandera.core.checks.Check.greater_than`"""
+    gt = greater_than
+
+    """Alias of :meth:`~pandera.core.checks.Check.greater_than_or_equal_to`"""
+    ge = greater_than_or_equal_to
+
+    """Alias of :meth:`~pandera.core.checks.Check.less_than`"""
+    lt = less_than
+
+    """Alias of :meth:`~pandera.core.checks.Check.less_than_or_equal_to`"""
+    le = less_than_or_equal_to
+
+    """Alias of :meth:`~pandera.core.checks.Check.in_range`"""
+    between = in_range

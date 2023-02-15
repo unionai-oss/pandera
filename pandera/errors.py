@@ -25,7 +25,7 @@ class ReducedPickleExceptionBase(Exception):
     string via `TO_STRING_KEYS`.
     """
 
-    TO_STRING_KEYS: List[str]
+    TO_STRING_KEYS: List[str] = []
 
     def __reduce__(self):
         """Exception.__reduce__ is incompatible. Override with custom layout.
