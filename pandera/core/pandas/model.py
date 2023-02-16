@@ -360,10 +360,7 @@ class DataFrameModel(BaseModel):
 
             dtype = None if dtype is Any else dtype
 
-            if (
-                annotation.origin in SERIES_TYPES
-                or annotation.raw_annotation in SERIES_TYPES
-            ):
+            if _annotation_is_valid_column(annotation):
                 col_constructor = field.to_column if field else Column
 
                 if check_name is False:
@@ -583,6 +580,17 @@ def _build_schema_index(
         else:
             index = MultiIndex(indices, **multiindex_kwargs)
     return index
+
+
+def _annotation_is_valid_column(annotation: AnnotationInfo) -> bool:
+    if annotation.origin in SERIES_TYPES:
+        return True
+    if annotation.raw_annotation in SERIES_TYPES:
+        return True
+    if isinstance(annotation.origin, type):
+        if issubclass(annotation.origin, tuple(SERIES_TYPES)):
+            return True
+    return False
 
 
 def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
