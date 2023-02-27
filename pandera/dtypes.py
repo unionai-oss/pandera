@@ -6,16 +6,7 @@ import dataclasses
 import decimal
 import inspect
 from abc import ABC
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Iterable, Optional, Tuple, Type, TypeVar, Union
 
 try:
     from typing import Literal
@@ -567,7 +558,7 @@ def is_complex(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
 
 
 def is_numeric(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
-    """Return True if :class:`pandera.dtypes.DataType` is a complex number."""
+    """Return True if :class:`pandera.dtypes.DataType` is a numeric."""
     return is_subdtype(pandera_dtype, _Number)
 
 
