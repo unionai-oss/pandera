@@ -289,6 +289,21 @@ class SchemaErrors(ReducedPickleExceptionBase):
                 for x in check_failure_cases
             ]
 
+        elif any(
+            type(x).__module__.startswith("cudf") for x in check_failure_cases
+        ):
+            # pylint: disable=import-outside-toplevel
+            # The current version of cudf is not compatible with sort_values() of strings.
+            # The workaround is to convert all the cuda dataframe to pandas.
+            import cudf
+
+            # concat_fn = cudf.concat
+            check_failure_cases = [
+                # x if isinstance(x, cudf.DataFrame) else cudf.DataFrame(x)
+                x.to_pandas() if isinstance(x, cudf.DataFrame) else x
+                for x in check_failure_cases
+            ]
+
         failure_cases = (
             concat_fn(check_failure_cases)
             .reset_index(drop=True)

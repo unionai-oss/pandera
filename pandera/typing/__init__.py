@@ -6,7 +6,7 @@ the typing module.
 
 from typing import Set, Type
 
-from pandera.typing import dask, fastapi, geopandas, modin, pyspark
+from pandera.typing import dask, fastapi, geopandas, modin, cudf, pyspark
 from pandera.typing.common import (
     BOOL,
     INT8,
@@ -56,6 +56,11 @@ if modin.MODIN_INSTALLED:
     DATAFRAME_TYPES.update({modin.DataFrame})
     SERIES_TYPES.update({modin.Series})
     INDEX_TYPES.update({modin.Index})
+
+if cudf.CUDF_INSTALLED:
+    DATAFRAME_TYPES.update({cudf.DataFrame})
+    SERIES_TYPES.update({cudf.Series})
+    INDEX_TYPES.update({cudf.Index})
 
 if pyspark.PYSPARK_INSTALLED:
     DATAFRAME_TYPES.update({pyspark.DataFrame})

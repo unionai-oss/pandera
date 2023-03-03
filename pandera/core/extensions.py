@@ -3,7 +3,7 @@
 import warnings
 from enum import Enum
 from functools import partial, wraps
-from inspect import signature, Parameter, Signature, _empty
+from inspect import signature, Parameter, Signature, _empty  # type: ignore
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import pandas as pd
