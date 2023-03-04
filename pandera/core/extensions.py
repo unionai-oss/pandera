@@ -82,6 +82,24 @@ def register_check(
         if p.default is not _empty
     }
 
+    # register the check strategy for this particular check, identified
+    # by the check `name`, and the data type of the check function. This
+    # supports Union types. Also assume that the data type of the data
+    # object to validate is the first argument.
+    data_type = [*fn_sig.parameters.values()][0].annotation
+
+    if typing_inspect.get_origin(data_type) is Tuple:
+        data_type, *_ = typing_inspect.get_args(data_type)
+
+    if typing_inspect.get_origin(data_type) is Union:
+        data_types = typing_inspect.get_args(data_type)
+    else:
+        data_types = (data_type,)
+
+    if strategy is not None:
+        for dt in data_types:
+            STRATEGY_DISPATCHER[(name, dt)] = strategy
+
     if check_fn is None:
 
         dispatch_check_fn = multidispatch(fn)
@@ -100,26 +118,6 @@ def register_check(
             check_cls, check_function_proxy, fn, fn_sig, statistics_params
         )
 
-        # register the check strategy for this particular check, identified
-        # by the check `name`, and the data type of the check function. This
-        # supports Union types. Also assume that the data type of the data
-        # object to validate is the first argument.
-        data_type = [*fn_sig.parameters.values()][0].annotation
-
-        if typing_inspect.get_origin(data_type) is Tuple:
-            data_type, *_ = typing_inspect.get_args(data_type)
-
-        if typing_inspect.get_origin(data_type) is Union:
-            data_types = typing_inspect.get_args(data_type)
-        else:
-            data_types = (data_type,)
-
-        for dt in data_types:
-            STRATEGY_DISPATCHER[(name, dt)] = strategy
-
-        # TODO: Create a decorator for the corresponding check method defined
-        # in pandera.core.checks.Check so that this wrapped check_method
-        # function below modifies its behavior
         @wraps(check_meth)
         def check_method(cls, *args, **check_kwargs):
             # This is the method that is set as a classmethod of the check_cls.

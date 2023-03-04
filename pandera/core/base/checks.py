@@ -1,8 +1,6 @@
 """Data validation base check."""
 
-import inspect
 from collections import namedtuple
-from functools import wraps
 from itertools import chain
 from typing import (
     Any,
@@ -16,8 +14,8 @@ from typing import (
     Union,
     no_type_check,
 )
-
 import pandas as pd
+from multimethod import multidispatch as _multidispatch
 
 from pandera.backends.base import BaseCheckBackend
 
@@ -39,6 +37,28 @@ DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 _T = TypeVar("_T", bound="BaseCheck")
 
 
+# pylint: disable=invalid-name
+class multidispatch(_multidispatch):
+    """
+    Custom multidispatch class to handle copy, deepcopy, and code retrieval.
+    """
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
+
+    @property
+    def __code__(self):
+        """Retrieves the 'root' function of the multidispatch object."""
+        assert (
+            len(self) > 0
+        ), f"multidispatch object {self} has no functions registered"
+        fn, *_ = [*self.values()]  # type: ignore[misc]
+        return fn.__code__
+
+
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
@@ -46,14 +66,12 @@ class MetaCheck(type):  # pragma: no cover
         Tuple[Type, Type], Type[BaseCheckBackend]
     ] = {}  # noqa
     CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa
-    CHECK_REGISTRY: Dict[str, Callable] = {}  # noqa
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
         attr = {
             **cls.__dict__,
-            **cls.CHECK_REGISTRY,
             **cls.CHECK_FUNCTION_REGISTRY,
             **cls.REGISTERED_CUSTOM_CHECKS,
         }.get(name)
@@ -65,20 +83,10 @@ class MetaCheck(type):  # pragma: no cover
             )
         return attr
 
-    # def __getattribute__(cls, name: str) -> Any:
-    #     if name == "CHECK_FUNCTION_REGISTRY":
-    #         return super().__getattribute__(name)
-
-    #     if name in cls.CHECK_FUNCTION_REGISTRY:
-    #         return cls.CHECK_FUNCTION_REGISTRY.get(name)
-
-    #     return super().__getattribute__(name)
-
     def __dir__(cls) -> Iterable[str]:
         """Allow custom checks to show up as attributes when autocompleting."""
         return chain(
             super().__dir__(),
-            cls.CHECK_REGISTRY.keys(),
             cls.CHECK_FUNCTION_REGISTRY.keys(),
             cls.REGISTERED_CUSTOM_CHECKS.keys(),
         )
@@ -105,9 +113,46 @@ class BaseCheck(metaclass=MetaCheck):
         self,
         name: Optional[str] = None,
         error: Optional[str] = None,
+        statistics: Optional[Dict[str, Any]] = None,
     ):
         self.name = name
         self.error = error
+        self.statistics = statistics
+
+    @classmethod
+    def register_builtin_check_fn(cls, fn: Callable):
+        """Registers a built-in check function"""
+        cls.CHECK_FUNCTION_REGISTRY[fn.__name__] = multidispatch(fn)
+
+    @classmethod
+    def get_builtin_check_fn(cls, name: str):
+        """Gets a built-in check function"""
+        return cls.CHECK_FUNCTION_REGISTRY[name]
+
+    @classmethod
+    def from_builtin_check_name(
+        cls,
+        name: str,
+        init_kwargs,
+        error: Union[str, Callable],
+        statistics: Dict[str, Any] = None,
+        **check_kwargs,
+    ):
+        """Create a Check object from a built-in check's name."""
+        kws = {**init_kwargs, **check_kwargs}
+        if "error" not in kws:
+            kws["error"] = error
+
+        # statistics are the raw check constraint values that are untransformed
+        # by the check object
+        if statistics is None:
+            statistics = check_kwargs
+
+        return cls(
+            cls.get_builtin_check_fn(name),
+            statistics=statistics,
+            **kws,
+        )
 
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):

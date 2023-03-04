@@ -11,7 +11,14 @@ from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
 
 from pandera.core.checks import Check
 from pandera.core.hypotheses import Hypothesis
-from pandera.core.pandas import builtin_checks, builtin_hypotheses
+from pandera.core.base import (
+    builtin_checks as base_builtin_checks,
+    builtin_hypotheses as base_builtin_hypotheses,
+)
+from pandera.core.pandas import (
+    builtin_checks as pandas_builtin_checks,
+    builtin_hypotheses as pandas_builtin_hypotheses,
+)
 from pandera.core.pandas.array import SeriesSchema
 from pandera.core.pandas.components import Column, Index, MultiIndex
 from pandera.core.pandas.container import DataFrameSchema

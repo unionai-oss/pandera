@@ -1,3 +1,4 @@
+# pylint: disable=missing-function-docstring
 """Built-in hypothesis functions base implementation.
 
 This module contains hypothesis function abstract definitions that
@@ -9,7 +10,10 @@ dispatching specific implementations based on the data object type, e.g.
 
 from typing import Any, Tuple
 
+from pandera.core.hypotheses import Hypothesis
 
+
+@Hypothesis.register_builtin_check_fn
 def two_sample_ttest(
     *samples: Tuple[Any, ...],
     equal_var: bool = True,
@@ -18,8 +22,9 @@ def two_sample_ttest(
     raise NotImplementedError
 
 
+@Hypothesis.register_builtin_check_fn
 def one_sample_ttest(
     *samples: Tuple[Any, ...],
     popmean: float,
 ):
-    ...
+    raise NotImplementedError

@@ -130,7 +130,7 @@ def test_optional_index() -> None:
         with pytest.raises(
             pa.errors.SchemaInitError, match="Index 'idx' cannot be Optional."
         ):
-            model.to_schema()
+            model.to_schema()  # type: ignore[attr-defined]
 
 
 def test_empty_dtype() -> None:
