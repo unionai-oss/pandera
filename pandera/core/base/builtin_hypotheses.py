@@ -26,5 +26,6 @@ def two_sample_ttest(
 def one_sample_ttest(
     *samples: Tuple[Any, ...],
     popmean: float,
+    nan_policy: str = "propagate",
 ):
     raise NotImplementedError
