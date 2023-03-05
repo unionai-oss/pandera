@@ -65,8 +65,13 @@ class MetaCheck(type):  # pragma: no cover
     BACKEND_REGISTRY: Dict[
         Tuple[Type, Type], Type[BaseCheckBackend]
     ] = {}  # noqa
+    """Registry of check backends implemented for specific data objects."""
+
     CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa
+    """Built-in check function registry."""
+
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
+    """User-defined custom checks."""
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
