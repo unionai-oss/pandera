@@ -8,7 +8,6 @@ from pandera.core.hypotheses import Hypothesis
 
 from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
-
 from pandera.backends.pandas import builtin_checks, builtin_hypotheses
 
 
