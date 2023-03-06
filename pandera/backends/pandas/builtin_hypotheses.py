@@ -3,9 +3,9 @@
 
 from typing import Tuple
 
+from pandera.backends.pandas.builtin_checks import PandasData
 from pandera.backends.pandas.hypotheses import HAS_SCIPY
 from pandera.core.extensions import register_hypothesis
-from pandera.core.pandas.builtin_checks import PandasData
 
 
 if HAS_SCIPY:

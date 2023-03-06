@@ -60,9 +60,12 @@ from pandera.engines.pandas_engine import (
     pandas_version,
 )
 
+import pandera.backends.pandas
+
 from pandera.schema_inference.pandas import infer_schema
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.version import __version__
+
 
 if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports
