@@ -4,16 +4,23 @@ import inspect
 import warnings
 from enum import Enum
 from functools import partial, wraps
-from inspect import signature, Parameter, Signature, _empty
+from inspect import signature, Parameter, Signature
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import pandas as pd
 import typing_inspect
-from multimethod import multidispatch
 
 from pandera.core.checks import Check
 from pandera.core.hypotheses import Hypothesis
 from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
+
+
+class BuiltinCheckRegistrationError(Exception):
+    """
+    Exception raised when registering a built-in check implementation but the
+    default check function implementation hasn't been registered with
+    :py:meth:`~flytekit.core.base.BaseCheck.register_builtin_check_fn`.
+    """
 
 
 # pylint: disable=too-many-locals
@@ -23,8 +30,7 @@ def register_check(
     aliases: Optional[List[str]] = None,
     strategy: Optional[Callable] = None,
     error: Optional[Union[str, Callable]] = None,
-    check_cls: Type = Check,
-    samples_kwtypes: Optional[Dict[str, Type]] = None,
+    _check_cls: Type = Check,
     **outer_kwargs,
 ):
     """Register a check method to the Check namespace.
@@ -40,47 +46,15 @@ def register_check(
             aliases=aliases,
             strategy=strategy,
             error=error,
-            check_cls=check_cls,
-            samples_kwtypes=samples_kwtypes,
+            _check_cls=_check_cls,
             **outer_kwargs,
         )
 
     name = fn.__name__
 
     # see if the check function is already registered
-    check_fn = check_cls.CHECK_FUNCTION_REGISTRY.get(name)
-    check_meth = getattr(check_cls, name)
-
+    check_fn = _check_cls.CHECK_FUNCTION_REGISTRY.get(name)
     fn_sig = signature(fn)
-
-    # this is a special case for handling hypotheses, since the sample keys
-    # need to be treated like statistics and is used during preprocessing, not
-    # in the check function itself.
-    if samples_kwtypes is None:
-        samples_args = []
-        samples_params = []
-    else:
-        samples_args = [*samples_kwtypes]
-        samples_params = [
-            Parameter(
-                name,
-                Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=samples_kwtypes[name],
-            )
-            for name in samples_kwtypes
-        ]
-
-    # derive statistics from function arguments after the 0th positional arg
-    statistics = [*samples_args, *[*fn_sig.parameters.keys()][1:]]
-    statistics_params = [
-        *samples_params,
-        *[*fn_sig.parameters.values()][1:],
-    ]
-    statistics_defaults = {
-        p.name: p.default
-        for p in fn_sig.parameters.values()
-        if p.default is not _empty
-    }
 
     # register the check strategy for this particular check, identified
     # by the check `name`, and the data type of the check function. This
@@ -101,134 +75,25 @@ def register_check(
             STRATEGY_DISPATCHER[(name, dt)] = strategy
 
     if check_fn is None:
-
-        dispatch_check_fn = multidispatch(fn)
-
-        # create proxy function so we can modify the signature and docstring
-        # of the method to reflect correctly in the documentation. The
-        # check_method function below wraps the check_function_proxy, which is
-        # ultimately set as an attribute of the check_cls
-        # pylint: disable=unused-argument
-        def check_function_proxy(cls, *args, **kws):
-            return dispatch_check_fn(*args, **kws)
-
-        # this makes sure that the attributes of check_function_proxy match
-        # the original function
-        update_check_fn_proxy(
-            check_cls, check_function_proxy, fn, fn_sig, statistics_params
+        raise BuiltinCheckRegistrationError(
+            f"Check '{name}' doesn't have a base check implementation. "
+            f"You need to create a stub method in the {_check_cls} class and "
+            "then register a base check function implementation with the "
+            f"{_check_cls}.register_builtin_check_fn method.\n"
+            "See the `pandera.core.base.builtin_checks` and "
+            "`pandera.backends.pandas.builtin_checks` modules as an example."
         )
 
-        @wraps(check_meth)
-        def check_method(cls, *args, **check_kwargs):
-            # This is the method that is set as a classmethod of the check_cls.
-            args = list(args)
+    check_fn.register(fn)  # type: ignore
 
-            statistics_kwargs = dict(zip(statistics, args))
-            for stat in statistics:
-                if stat in check_kwargs:
-                    statistics_kwargs[stat] = check_kwargs.pop(stat)
-                elif stat not in statistics_kwargs:
-                    statistics_kwargs[stat] = statistics_defaults.get(
-                        stat, None
-                    )
-
-            _check_kwargs = {
-                "error": (
-                    error.format(**statistics_kwargs)
-                    if isinstance(error, str)
-                    else error(**statistics_kwargs)
-                )
-            }
-            _check_kwargs.update(outer_kwargs)
-            _check_kwargs.update(check_kwargs)
-
-            # this is a special case for handling hypotheses, since the sample
-            # keys need to be treated like statistics and is used during
-            # preprocessing, not in the check function itself.
-            if samples_kwtypes is not None:
-                samples = []
-                for sample_arg in samples_kwtypes:
-                    samples.append(statistics_kwargs.pop(sample_arg))
-                _check_kwargs["samples"] = samples
-
-            # This is kind of ugly... basically we're creating another
-            # stats kwargs variable that's actually used when invoking the check
-            # function (which may or may not be processed by pre_init_hook)
-            # This is so that the original value is not modified by
-            # pre_init_hook when, for e.g. the check is serialized with the io
-            # module. Figure out a better way to do this!
-            check_fn_stats_kwargs = (
-                pre_init_hook(statistics_kwargs)
-                if pre_init_hook is not None
-                else statistics_kwargs
-            )
-
-            # internal wrapper is needed here to make sure the inner check_fn
-            # produced by this method is consistent with the registered check
-            # function
-            if check_cls is Check:
-
-                @wraps(fn)
-                def _check_fn(check_obj, **inner_kwargs):
-                    """
-                    inner_kwargs will be based in via Check.__init__ kwargs.
-                    """
-                    # Raise more informative error when this fails to dispatch
-                    return check_function_proxy(
-                        cls,
-                        check_obj,
-                        *check_fn_stats_kwargs.values(),
-                        **inner_kwargs,
-                    )
-
-            elif check_cls is Hypothesis:
-
-                @wraps(fn)
-                def _check_fn(*samples, **inner_kwargs):
-                    """
-                    inner_kwargs will be based in via Check.__init__ kwargs.
-                    """
-                    # Raise more informative error when this fails to dispatch
-                    return check_function_proxy(
-                        cls,
-                        *samples,
-                        **{
-                            **check_fn_stats_kwargs,
-                            **inner_kwargs,
-                        },
-                    )
-
-            else:
-                raise TypeError(f"check_cls {check_cls} not recognized")
-
-            return cls(
-                _check_fn,
-                statistics=statistics_kwargs,
-                strategy=(
-                    None
-                    if strategy is None
-                    else partial(strategy, **statistics_kwargs)
-                ),
-                **_check_kwargs,
-            )
-
-        check_cls.CHECK_FUNCTION_REGISTRY[name] = dispatch_check_fn
-        setattr(check_cls, name, classmethod(check_method))
-
-        for _name in [] if aliases is None else aliases:
-            setattr(check_cls, _name, classmethod(check_method))
-    else:
-        check_fn.register(fn)  # type: ignore
-
-    return getattr(check_cls, name)
+    return getattr(_check_cls, name)
 
 
-def register_hypothesis(samples_kwtypes=None, **kwargs):
+def register_hypothesis(**kwargs):
     """Register a new hypothesis."""
     return partial(
         register_check,
-        check_cls=Hypothesis,
-        samples_kwtypes=samples_kwtypes,
+        _check_cls=Hypothesis,
         **kwargs,
     )
 

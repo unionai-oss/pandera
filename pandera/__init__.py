@@ -60,7 +60,7 @@ from pandera.engines.pandas_engine import (
     pandas_version,
 )
 
-import pandera.backends.pandas
+import pandera.backends
 
 from pandera.schema_inference.pandas import infer_schema
 from pandera.decorators import check_input, check_io, check_output, check_types
