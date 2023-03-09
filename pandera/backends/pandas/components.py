@@ -140,11 +140,15 @@ class ColumnBackend(ArraySchemaBackend):
             ]
         if column_keys_to_check.shape[0] == 0:
             raise SchemaError(
-                self,
-                columns,
-                f"Column regex name='{schema.name}' did not match any columns "
-                "in the dataframe. Update the regex pattern so that it "
-                f"matches at least one column:\n{columns.tolist()}",
+                schema=schema,
+                data=columns,
+                message=(
+                    f"Column regex name='{schema.name}' did not match any "
+                    "columns in the dataframe. Update the regex pattern so "
+                    f"that it matches at least one column:\n{columns.tolist()}",
+                ),
+                failure_cases=scalar_failure_case(str(columns.tolist())),
+                check=f"no_regex_column_match('{schema.name}')",
             )
         # drop duplicates to account for potential duplicated columns in the
         # dataframe.
