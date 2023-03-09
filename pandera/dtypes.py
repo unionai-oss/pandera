@@ -6,7 +6,16 @@ import dataclasses
 import decimal
 import inspect
 from abc import ABC
-from typing import Any, Callable, Iterable, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 try:
     from typing import Literal
