@@ -518,6 +518,23 @@ def test_numpy_dtypes(alias, np_dtype):
         )
 
 
+def test_numpy_string():
+    """
+    Test that numpy string dtype check identifies the correct failure case.
+    """
+    schema: pa.DataFrameSchema = pa.DataFrameSchema(
+        columns={
+            "col1": pa.Column(str),
+        }
+    )
+    df: pd.DataFrame = pd.DataFrame({"col1": ["1", "2", 3]})
+    try:
+        print(schema(df, lazy=True))
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases["failure_case"].item() == 3
+        assert exc.failure_cases["index"].item() == 2
+
+
 @pytest.mark.parametrize(
     "examples",
     [
