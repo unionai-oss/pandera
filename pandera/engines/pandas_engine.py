@@ -685,7 +685,18 @@ class NpString(numpy_engine.String):
         pandera_dtype: dtypes.DataType,
         data_container: Optional[PandasObject] = None,
     ) -> Union[bool, Iterable[bool]]:
-        return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
+        if data_container is None:
+            return isinstance(pandera_dtype, (numpy_engine.Object, type(self)))
+
+        # NOTE: this is a hack to handle the following case:
+        # pyspark.pandas doesn't support types with a Series of type object
+        if type(data_container).__module__.startswith("pyspark.pandas"):
+            is_python_string = data_container.map(lambda x: str(type(x))).isin(  # type: ignore[operator]
+                ["<class 'str'>", "<class 'numpy.str_'>"]
+            )
+        else:
+            is_python_string = data_container.map(type).isin([str, np.str_])  # type: ignore[operator]
+        return is_python_string | data_container.isna()
 
 
 Engine.register_dtype(

@@ -558,9 +558,8 @@ def test_dataframe_strategy_with_indexes(data_type, data):
     )
 
     dataframe_schema_index(data.draw(dataframe_schema_index.strategy(size=10)))
-    dataframe_schema_multiindex(
-        data.draw(dataframe_schema_multiindex.strategy(size=10))
-    )
+    example = data.draw(dataframe_schema_multiindex.strategy(size=10))
+    dataframe_schema_multiindex(example)
 
 
 @hypothesis.given(st.data())
