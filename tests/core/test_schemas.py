@@ -176,6 +176,23 @@ def test_dataframe_schema_strict_regex() -> None:
         )
 
 
+def test_dataframe_schema_regex_error() -> None:
+    """Test that regex schemas raise an error when no column is found."""
+    schema = DataFrameSchema({"old_name.*": Column(regex=True)})
+    df = pd.DataFrame(
+        [
+            {"error_name": 1},
+        ]
+    )
+
+    try:
+        schema.validate(df, lazy=True)
+    except errors.SchemaErrors as exc:
+        assert exc.failure_cases["check"].tolist() == [
+            "no_regex_column_match('old_name.*')"
+        ]
+
+
 def test_dataframe_dtype_coerce():
     """
     Test that pandas dtype specified at the dataframe level overrides
