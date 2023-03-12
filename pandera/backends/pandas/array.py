@@ -102,7 +102,9 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(
-                schema, error_handler.collected_errors, check_obj
+                schema=schema,
+                schema_errors=error_handler.collected_errors,
+                data=check_obj,
             )
         return check_obj
 

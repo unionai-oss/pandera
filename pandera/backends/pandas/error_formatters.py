@@ -1,6 +1,7 @@
 """Make schema error messages human-friendly."""
 
-from typing import Union
+from collections import defaultdict
+from typing import Any, Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -137,3 +138,168 @@ def _multiindex_to_frame(df):
     if pandas_version().release >= (1, 5, 0):
         return df.index.to_frame(allow_duplicates=True)
     return df.index.to_frame().drop_duplicates()
+
+
+def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
+    """Consolidate schema error dicts to produce data for error message."""
+    check_failure_cases = []
+
+    column_order = [
+        "schema_context",
+        "column",
+        "check",
+        "check_number",
+        "failure_case",
+        "index",
+    ]
+
+    for schema_error_dict in schema_errors:
+        reason_code = schema_error_dict["reason_code"]
+        err = schema_error_dict["error"]
+
+        check_identifier = (
+            None
+            if err.check is None
+            else err.check
+            if isinstance(err.check, str)
+            else err.check.error
+            if err.check.error is not None
+            else err.check.name
+            if err.check.name is not None
+            else str(err.check)
+        )
+
+        if err.failure_cases is not None:
+            if "column" in err.failure_cases:
+                column = err.failure_cases["column"]
+            else:
+                column = (
+                    err.schema.name
+                    if reason_code == "schema_component_check"
+                    else None
+                )
+
+            failure_cases = err.failure_cases.assign(
+                schema_context=err.schema.__class__.__name__,
+                check=check_identifier,
+                check_number=err.check_index,
+                # if the column key is a tuple (for MultiIndex column
+                # names), explicitly wrap `column` in a list of the
+                # same length as the number of failure cases.
+                column=(
+                    [column] * err.failure_cases.shape[0]
+                    if isinstance(column, tuple)
+                    else column
+                ),
+            )
+            check_failure_cases.append(failure_cases[column_order])
+
+    # NOTE: this is a hack to support pyspark.pandas and modin
+    concat_fn = pd.concat  # type: ignore
+    if any(
+        type(x).__module__.startswith("pyspark.pandas")
+        for x in check_failure_cases
+    ):
+        # pylint: disable=import-outside-toplevel
+        import pyspark.pandas as ps
+
+        concat_fn = ps.concat  # type: ignore
+        check_failure_cases = [
+            x if isinstance(x, ps.DataFrame) else ps.DataFrame(x)
+            for x in check_failure_cases
+        ]
+    elif any(
+        type(x).__module__.startswith("modin.pandas")
+        for x in check_failure_cases
+    ):
+        # pylint: disable=import-outside-toplevel
+        import modin.pandas as mpd
+
+        concat_fn = mpd.concat  # type: ignore
+        check_failure_cases = [
+            x if isinstance(x, mpd.DataFrame) else mpd.DataFrame(x)
+            for x in check_failure_cases
+        ]
+
+    return (
+        concat_fn(check_failure_cases)
+        .reset_index(drop=True)
+        .sort_values("schema_context", ascending=False)
+    )
+
+
+SCHEMA_ERRORS_SUFFIX = """
+
+Usage Tip
+---------
+
+Directly inspect all errors by catching the exception:
+
+```
+try:
+    schema.validate(dataframe, lazy=True)
+except SchemaErrors as err:
+    err.failure_cases  # dataframe of schema errors
+    err.data  # invalid dataframe
+```
+"""
+
+
+def summarize_failure_cases(
+    schema_name: str,
+    schema_errors: List[Dict[str, Any]],
+    failure_cases: pd.DataFrame,
+) -> Tuple[str, Dict[str, int]]:
+    """Format error message."""
+
+    error_counts = defaultdict(int)  # type: ignore
+    for schema_error_dict in schema_errors:
+        reason_code = schema_error_dict["reason_code"]
+        error_counts[reason_code] += 1
+
+    msg = (
+        f"Schema {schema_name}: A total of "
+        f"{sum(error_counts.values())} schema errors were found.\n"
+    )
+
+    msg += "\nError Counts"
+    msg += "\n------------\n"
+    for k, v in error_counts.items():
+        msg += f"- {k}: {v}\n"
+
+    def agg_failure_cases(df):
+        # Note: hack to support unhashable types, proper solution that only transforms
+        # when requires https://github.com/unionai-oss/pandera/issues/260
+        df.failure_case = df.failure_case.astype(str)
+        # NOTE: this is a hack to add modin support
+        if type(df).__module__.startswith("modin.pandas"):
+            return (
+                df.groupby(["schema_context", "column", "check"])
+                .agg({"failure_case": "unique"})
+                .failure_case
+            )
+        return df.groupby(
+            ["schema_context", "column", "check"]
+        ).failure_case.unique()
+
+    summarized_failure_cases = (
+        failure_cases.fillna({"column": "<NA>"})
+        .pipe(agg_failure_cases)
+        .rename("failure_cases")
+        .to_frame()
+        .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
+    )
+    index_labels = [
+        summarized_failure_cases.index.names.index(name)
+        for name in ["schema_context", "column"]
+    ]
+    summarized_failure_cases = summarized_failure_cases.sort_index(
+        level=index_labels,
+        ascending=[False, True],
+    )
+    msg += "\nSchema Error Summary"
+    msg += "\n--------------------\n"
+    with pd.option_context("display.max_colwidth", 100):
+        msg += summarized_failure_cases.to_string()
+    msg += SCHEMA_ERRORS_SUFFIX
+    return msg, error_counts

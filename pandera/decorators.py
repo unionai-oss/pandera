@@ -685,7 +685,9 @@ def check_types(
             if len(error_handler.collected_errors) == 1:
                 raise error_handler.collected_errors[0]["error"]  # type: ignore[misc]
             raise errors.SchemaErrors(
-                schema, error_handler.collected_errors, arg_value
+                schema=schema,
+                schema_errors=error_handler.collected_errors,
+                data=arg_value,
             )
 
     sig = inspect.signature(wrapped)

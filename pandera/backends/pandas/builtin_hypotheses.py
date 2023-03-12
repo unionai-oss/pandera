@@ -5,14 +5,14 @@ from typing import Tuple
 
 from pandera.backends.pandas.builtin_checks import PandasData
 from pandera.backends.pandas.hypotheses import HAS_SCIPY
-from pandera.core.extensions import register_hypothesis
+from pandera.core.extensions import register_builtin_hypothesis
 
 
 if HAS_SCIPY:
     from scipy import stats
 
 
-@register_hypothesis(
+@register_builtin_hypothesis(
     error="failed two sample ttest between '{sample1}' and '{sample2}'",
     samples_kwtypes={"sample1": str, "sample2": str},
 )
@@ -32,7 +32,7 @@ def two_sample_ttest(
     )
 
 
-@register_hypothesis(
+@register_builtin_hypothesis(
     error="failed one sample ttest for column '{sample}'",
     samples_kwtypes={"sample": str},
 )

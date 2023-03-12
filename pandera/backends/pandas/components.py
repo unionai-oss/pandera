@@ -95,7 +95,9 @@ class ColumnBackend(ArraySchemaBackend):
 
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(
-                schema, error_handler.collected_errors, check_obj
+                schema=schema,
+                schema_errors=error_handler.collected_errors,
+                data=check_obj,
             )
 
         return check_obj
@@ -318,7 +320,9 @@ class MultiIndexBackend(DataFrameSchemaBackend):
 
         if error_handler.collected_errors:
             raise SchemaErrors(
-                schema, error_handler.collected_errors, check_obj
+                schema=schema,
+                schema_errors=error_handler.collected_errors,
+                data=check_obj,
             )
 
         multiindex_cls = pd.MultiIndex
@@ -468,7 +472,11 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 schema_error_dict["error"] = error
                 schema_error_dicts.append(schema_error_dict)
 
-            raise SchemaErrors(schema, schema_error_dicts, check_obj) from err
+            raise SchemaErrors(
+                schema=schema,
+                schema_errors=schema_error_dicts,
+                data=check_obj,
+            ) from err
 
         assert is_table(validation_result)
         return check_obj

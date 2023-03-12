@@ -7,7 +7,7 @@ from typing import cast, Any, Iterable, TypeVar, Union
 import pandas as pd
 
 import pandera.strategies as st
-from pandera.core.extensions import register_check
+from pandera.core.extensions import register_builtin_check
 
 from pandera.typing.modin import MODIN_INSTALLED
 from pandera.typing.pyspark import PYSPARK_INSTALLED
@@ -40,7 +40,7 @@ else:
 T = TypeVar("T")
 
 
-@register_check(
+@register_builtin_check(
     aliases=["eq"],
     strategy=st.eq_strategy,
     error="equal_to({value})",
@@ -54,7 +54,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
     return data == value
 
 
-@register_check(
+@register_builtin_check(
     aliases=["ne"],
     strategy=st.ne_strategy,
     error="not_equal_to({value})",
@@ -75,7 +75,7 @@ def gt_ge_pre_init_hook(statistics_kwargs):
     return statistics_kwargs
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=gt_ge_pre_init_hook,
     aliases=["gt"],
     strategy=st.gt_strategy,
@@ -93,7 +93,7 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     return data > min_value
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=gt_ge_pre_init_hook,
     aliases=["ge"],
     strategy=st.ge_strategy,
@@ -116,7 +116,7 @@ def lt_le_pre_init_hook(statistics_kwargs):
     return statistics_kwargs
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=lt_le_pre_init_hook,
     aliases=["lt"],
     strategy=st.lt_strategy,
@@ -134,7 +134,7 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
     return data < max_value
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=lt_le_pre_init_hook,
     aliases=["le"],
     strategy=st.le_strategy,
@@ -173,7 +173,7 @@ def in_range_pre_init_hook(statistics_kwargs):
     return statistics_kwargs
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=in_range_pre_init_hook,
     aliases=["between"],
     strategy=st.in_range_strategy,
@@ -220,7 +220,7 @@ def isin_pre_init_hook(statistics_kwargs):
     return {"allowed_values": allowed_values}
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=isin_pre_init_hook,
     strategy=st.isin_strategy,
     error="isin({allowed_values})",
@@ -253,7 +253,7 @@ def notin_pre_init_hook(statistics_kwargs):
     return {"forbidden_values": forbidden_values}
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=notin_pre_init_hook,
     strategy=st.notin_strategy,
     error="notin({forbidden_values})",
@@ -286,7 +286,7 @@ def str_regex_pre_init_hook(statistics_kwargs):
     return {"pattern": regex}
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=str_regex_pre_init_hook,
     strategy=st.str_matches_strategy,
     error="str_matches('{pattern}')",
@@ -303,7 +303,7 @@ def str_matches(
     return data.str.match(cast(str, pattern), na=False)
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=str_regex_pre_init_hook,
     strategy=st.str_contains_strategy,
     error="str_contains('{pattern}')",
@@ -320,7 +320,7 @@ def str_contains(
     return data.str.contains(cast(str, pattern), na=False)
 
 
-@register_check(
+@register_builtin_check(
     strategy=st.str_startswith_strategy,
     error="str_startswith('{string}')",
 )
@@ -333,7 +333,7 @@ def str_startswith(data: PandasData, string: str) -> PandasData:
     return data.str.startswith(string, na=False)
 
 
-@register_check(
+@register_builtin_check(
     strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
 def str_endswith(data: PandasData, string: str) -> PandasData:
@@ -357,7 +357,7 @@ def str_length_pre_init_hook(statistics_kwargs):
     return statistics_kwargs
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=str_length_pre_init_hook,
     strategy=st.str_length_strategy,
     error="str_length({min_value}, {max_value})",
@@ -397,7 +397,7 @@ def unique_values_eq_init_hook(statistics_kwargs):
     return {"values": values}
 
 
-@register_check(
+@register_builtin_check(
     pre_init_hook=unique_values_eq_init_hook,
     error="unique_values_eq({values})",
 )

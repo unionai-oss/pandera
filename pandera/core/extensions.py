@@ -24,7 +24,7 @@ class BuiltinCheckRegistrationError(Exception):
 
 
 # pylint: disable=too-many-locals
-def register_check(
+def register_builtin_check(
     fn=None,
     pre_init_hook: Optional[Callable] = None,
     aliases: Optional[List[str]] = None,
@@ -41,7 +41,7 @@ def register_check(
 
     if fn is None:
         return partial(
-            register_check,
+            register_builtin_check,
             pre_init_hook=pre_init_hook,
             aliases=aliases,
             strategy=strategy,
@@ -89,10 +89,10 @@ def register_check(
     return getattr(_check_cls, name)
 
 
-def register_hypothesis(**kwargs):
+def register_builtin_hypothesis(**kwargs):
     """Register a new hypothesis."""
     return partial(
-        register_check,
+        register_builtin_check,
         _check_cls=Hypothesis,
         **kwargs,
     )

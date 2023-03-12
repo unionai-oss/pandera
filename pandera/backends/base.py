@@ -6,7 +6,7 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 
 class BaseSchemaBackend(ABC):
@@ -98,6 +98,12 @@ class BaseSchemaBackend(ABC):
 
     def check_dtype(self, check_obj, schema):
         """Core check that checks the data type of a check object."""
+        raise NotImplementedError
+
+    def failure_cases_metadata(
+        self, schema_name: str, schema_errors: List[Dict[str, Any]]
+    ):
+        """Get failure cases metadata for lazy validation."""
         raise NotImplementedError
 
 
