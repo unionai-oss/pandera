@@ -1,6 +1,6 @@
-"""Base functions for Parsing, Validation, and Error Reporting Backends.
+"""Base classes for parsing, validation, and error Reporting Backends.
 
-This class should implement a common interface of operations needed for
+These classes implement a common interface of operations needed for
 data validation. These operations are exposed as methods that are composed
 together to implement the pandera schema specification.
 """
