@@ -92,10 +92,14 @@ class PandasHypothesisBackend(PandasCheckBackend):
         :param check_obj: object to validate.
         """
         if is_field(check_obj):
-            return self.relationship(*self.check._check_fn(check_obj))
+            return self.relationship(
+                *self.check._check_fn(check_obj, **self.check._check_kwargs)
+            )
 
         _check_obj = [check_obj.get(s) for s in self.check.samples]
-        return self.relationship(*self.check._check_fn(*_check_obj))
+        return self.relationship(
+            *self.check._check_fn(*_check_obj, **self.check._check_kwargs)
+        )
 
     @property
     def is_one_sample_test(self):

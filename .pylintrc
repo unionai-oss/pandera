@@ -15,6 +15,13 @@ good-names=
     fp,
     bar,
     _IS_INFERRED,
+    eq,
+    ne,
+    gt,
+    ge,
+    lt,
+    le,
+    dt
 
 [MESSAGES CONTROL]
 disable=

@@ -111,9 +111,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         if error_handler.collected_errors:
             raise SchemaErrors(
-                schema,
-                error_handler.collected_errors,
-                check_obj,
+                schema=schema,
+                schema_errors=error_handler.collected_errors,
+                data=check_obj,
             )
 
         return check_obj
@@ -350,7 +350,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             # raise SchemaErrors if this method is called without an
             # error_handler
             raise SchemaErrors(
-                schema, _error_handler.collected_errors, check_obj
+                schema=schema,
+                schema_errors=_error_handler.collected_errors,
+                data=check_obj,
             )
 
         return check_obj
@@ -434,7 +436,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 obj.index = coerced_index
 
         if error_handler.collected_errors:
-            raise SchemaErrors(schema, error_handler.collected_errors, obj)
+            raise SchemaErrors(
+                schema=schema,
+                schema_errors=error_handler.collected_errors,
+                data=obj,
+            )
 
         return obj
 

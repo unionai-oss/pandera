@@ -7,21 +7,21 @@ from typing import cast, Any, Iterable, TypeVar, Union
 import pandas as pd
 
 import pandera.strategies as st
-from pandera.core.extensions import register_check
+from pandera.core.extensions import register_builtin_check
 
 from pandera.typing.modin import MODIN_INSTALLED
 from pandera.typing.pyspark import PYSPARK_INSTALLED
 
 
-if MODIN_INSTALLED and not PYSPARK_INSTALLED:
+if MODIN_INSTALLED and not PYSPARK_INSTALLED:  # pragma: no cover
     import modin.pandas as mpd
 
     PandasData = Union[pd.Series, pd.DataFrame, mpd.Series, mpd.DataFrame]
-elif not MODIN_INSTALLED and PYSPARK_INSTALLED:
+elif not MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
     import pyspark.pandas as ppd
 
     PandasData = Union[pd.Series, pd.DataFrame, ppd.Series, ppd.DataFrame]  # type: ignore[misc]
-elif MODIN_INSTALLED and PYSPARK_INSTALLED:
+elif MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
     import modin.pandas as mpd
     import pyspark.pandas as ppd
 
@@ -33,14 +33,14 @@ elif MODIN_INSTALLED and PYSPARK_INSTALLED:
         ppd.Series,
         ppd.DataFrame,
     ]
-else:
+else:  # pragma: no cover
     PandasData = Union[pd.Series, pd.DataFrame]  # type: ignore[misc]
 
 
 T = TypeVar("T")
 
 
-@register_check(
+@register_builtin_check(
     aliases=["eq"],
     strategy=st.eq_strategy,
     error="equal_to({value})",
@@ -54,7 +54,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
     return data == value
 
 
-@register_check(
+@register_builtin_check(
     aliases=["ne"],
     strategy=st.ne_strategy,
     error="not_equal_to({value})",
@@ -68,15 +68,7 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
     return data != value
 
 
-def gt_ge_pre_init_hook(statistics_kwargs):
-    """Pre-init hook for greater than/greater or equal to check."""
-    if statistics_kwargs["min_value"] is None:
-        raise ValueError("min_value must not be None")
-    return statistics_kwargs
-
-
-@register_check(
-    pre_init_hook=gt_ge_pre_init_hook,
+@register_builtin_check(
     aliases=["gt"],
     strategy=st.gt_strategy,
     error="greater_than({min_value})",
@@ -93,8 +85,7 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     return data > min_value
 
 
-@register_check(
-    pre_init_hook=gt_ge_pre_init_hook,
+@register_builtin_check(
     aliases=["ge"],
     strategy=st.ge_strategy,
     error="greater_than_or_equal_to({min_value})",
@@ -109,15 +100,7 @@ def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
     return data >= min_value
 
 
-def lt_le_pre_init_hook(statistics_kwargs):
-    """Pre-init hook for less than/less than or equal to check."""
-    if statistics_kwargs["max_value"] is None:
-        raise ValueError("max_value must not be None")
-    return statistics_kwargs
-
-
-@register_check(
-    pre_init_hook=lt_le_pre_init_hook,
+@register_builtin_check(
     aliases=["lt"],
     strategy=st.lt_strategy,
     error="less_than({max_value})",
@@ -134,8 +117,7 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
     return data < max_value
 
 
-@register_check(
-    pre_init_hook=lt_le_pre_init_hook,
+@register_builtin_check(
     aliases=["le"],
     strategy=st.le_strategy,
     error="less_than_or_equal_to({max_value})",
@@ -152,29 +134,7 @@ def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
     return data <= max_value
 
 
-def in_range_pre_init_hook(statistics_kwargs):
-    """Pre-init hook for ``in_range`` check."""
-    min_value = statistics_kwargs["min_value"]
-    max_value = statistics_kwargs["max_value"]
-    include_min = statistics_kwargs["include_min"]
-    include_max = statistics_kwargs["include_max"]
-
-    if min_value is None:
-        raise ValueError("min_value must not be None")
-    if max_value is None:
-        raise ValueError("max_value must not be None")
-    if max_value < min_value or (  # type: ignore
-        min_value == max_value and (not include_min or not include_max)
-    ):
-        raise ValueError(
-            f"The combination of min_value = {min_value} and "
-            f"max_value = {max_value} defines an empty interval!"
-        )
-    return statistics_kwargs
-
-
-@register_check(
-    pre_init_hook=in_range_pre_init_hook,
+@register_builtin_check(
     aliases=["between"],
     strategy=st.in_range_strategy,
     error="in_range({min_value}, {max_value})",
@@ -208,20 +168,7 @@ def in_range(
     return left_op(min_value, data) & right_op(max_value, data)  # type: ignore
 
 
-def isin_pre_init_hook(statistics_kwargs):
-    """Pre-init hook for ``isin`` check."""
-    allowed_values = statistics_kwargs["allowed_values"]
-    try:
-        allowed_values = frozenset(allowed_values)
-    except TypeError as exc:
-        raise ValueError(
-            f"Argument allowed_values must be iterable. Got {allowed_values}"
-        ) from exc
-    return {"allowed_values": allowed_values}
-
-
-@register_check(
-    pre_init_hook=isin_pre_init_hook,
+@register_builtin_check(
     strategy=st.isin_strategy,
     error="isin({allowed_values})",
 )
@@ -241,20 +188,7 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
     return data.isin(allowed_values)
 
 
-def notin_pre_init_hook(statistics_kwargs):
-    """Pre-init hook for ``notin`` check."""
-    forbidden_values = statistics_kwargs["forbidden_values"]
-    try:
-        forbidden_values = frozenset(forbidden_values)
-    except TypeError as exc:
-        raise ValueError(
-            f"Argument forbidden_values must be iterable. Got {forbidden_values}"
-        ) from exc
-    return {"forbidden_values": forbidden_values}
-
-
-@register_check(
-    pre_init_hook=notin_pre_init_hook,
+@register_builtin_check(
     strategy=st.notin_strategy,
     error="notin({forbidden_values})",
 )
@@ -274,20 +208,7 @@ def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
     return ~data.isin(forbidden_values)
 
 
-def str_regex_pre_init_hook(statistics_kwargs):
-    """Pre-init hook for string regex checks."""
-    pattern = statistics_kwargs["pattern"]
-    try:
-        regex = re.compile(pattern)
-    except TypeError as exc:
-        raise ValueError(
-            f'pattern="{pattern}" cannot be compiled as regular expression'
-        ) from exc
-    return {"pattern": regex}
-
-
-@register_check(
-    pre_init_hook=str_regex_pre_init_hook,
+@register_builtin_check(
     strategy=st.str_matches_strategy,
     error="str_matches('{pattern}')",
 )
@@ -303,8 +224,7 @@ def str_matches(
     return data.str.match(cast(str, pattern), na=False)
 
 
-@register_check(
-    pre_init_hook=str_regex_pre_init_hook,
+@register_builtin_check(
     strategy=st.str_contains_strategy,
     error="str_contains('{pattern}')",
 )
@@ -320,7 +240,7 @@ def str_contains(
     return data.str.contains(cast(str, pattern), na=False)
 
 
-@register_check(
+@register_builtin_check(
     strategy=st.str_startswith_strategy,
     error="str_startswith('{string}')",
 )
@@ -333,7 +253,7 @@ def str_startswith(data: PandasData, string: str) -> PandasData:
     return data.str.startswith(string, na=False)
 
 
-@register_check(
+@register_builtin_check(
     strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
 def str_endswith(data: PandasData, string: str) -> PandasData:
@@ -345,20 +265,7 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
     return data.str.endswith(string, na=False)
 
 
-def str_length_pre_init_hook(statistics_kwargs):
-    """Pre-init hook for ``str_length`` check."""
-    min_value = statistics_kwargs["min_value"]
-    max_value = statistics_kwargs["max_value"]
-    if min_value is None and max_value is None:
-        raise ValueError(
-            "At least a minimum or a maximum need to be specified. Got "
-            "None."
-        )
-    return statistics_kwargs
-
-
-@register_check(
-    pre_init_hook=str_length_pre_init_hook,
+@register_builtin_check(
     strategy=st.str_length_strategy,
     error="str_length({min_value}, {max_value})",
 )
@@ -385,20 +292,7 @@ def str_length(
     return (str_len <= max_value) & (str_len >= min_value)
 
 
-def unique_values_eq_init_hook(statistics_kwargs):
-    """Pre-init hook for ``unique_values`` check."""
-    values = statistics_kwargs["values"]
-    try:
-        values = frozenset(values)
-    except TypeError as exc:
-        raise ValueError(
-            f"Argument values must be iterable. Got {values}"
-        ) from exc
-    return {"values": values}
-
-
-@register_check(
-    pre_init_hook=unique_values_eq_init_hook,
+@register_builtin_check(
     error="unique_values_eq({values})",
 )
 def unique_values_eq(data: PandasData, values: Iterable):

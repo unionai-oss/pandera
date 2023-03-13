@@ -20,7 +20,6 @@ from typing import (
     overload,
 )
 
-import pandas as pd
 import wrapt
 from pydantic import validate_arguments
 
@@ -82,7 +81,7 @@ def _handle_schema_error(
     decorator_name,
     fn: Callable,
     schema: Union[DataFrameSchema, SeriesSchema],
-    arg_df: pd.DataFrame,
+    data_obj: Any,
     schema_error: errors.SchemaError,
 ) -> NoReturn:
     """Reraise schema validation error with decorator context.
@@ -95,7 +94,7 @@ def _handle_schema_error(
         checks.
     """
     raise _parse_schema_error(
-        decorator_name, fn, schema, arg_df, schema_error
+        decorator_name, fn, schema, data_obj, schema_error
     ) from schema_error
 
 
@@ -103,7 +102,7 @@ def _parse_schema_error(
     decorator_name,
     fn: Callable,
     schema: Union[DataFrameSchema, SeriesSchema],
-    arg_df: pd.DataFrame,
+    data_obj: Any,
     schema_error: errors.SchemaError,
 ) -> NoReturn:
     """Parse schema validation error with decorator context.
@@ -121,7 +120,7 @@ def _parse_schema_error(
     msg = f"error in {decorator_name} decorator of function '{func_name}': {schema_error}"
     return errors.SchemaError(  # type: ignore[misc]
         schema,
-        arg_df,
+        data_obj,
         msg,
         failure_cases=schema_error.failure_cases,
         check=schema_error.check,
@@ -685,7 +684,9 @@ def check_types(
             if len(error_handler.collected_errors) == 1:
                 raise error_handler.collected_errors[0]["error"]  # type: ignore[misc]
             raise errors.SchemaErrors(
-                schema, error_handler.collected_errors, arg_value
+                schema=schema,
+                schema_errors=error_handler.collected_errors,
+                data=arg_value,
             )
 
     sig = inspect.signature(wrapped)

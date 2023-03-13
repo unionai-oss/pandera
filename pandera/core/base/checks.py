@@ -1,8 +1,6 @@
 """Data validation base check."""
 
-import inspect
 from collections import namedtuple
-from functools import wraps
 from itertools import chain
 from typing import (
     Any,
@@ -16,8 +14,8 @@ from typing import (
     Union,
     no_type_check,
 )
-
 import pandas as pd
+from multimethod import multidispatch as _multidispatch
 
 from pandera.backends.base import BaseCheckBackend
 
@@ -36,30 +34,44 @@ SeriesCheckObj = Union[pd.Series, Dict[str, pd.Series]]
 DataFrameCheckObj = Union[pd.DataFrame, Dict[str, pd.DataFrame]]
 
 
-def register_check_statistics(statistics_args):
-    """Decorator to set statistics based on Check method."""
-
-    def register_check_statistics_decorator(class_method):
-        @wraps(class_method)
-        def _wrapper(cls, *args, **kwargs):
-            args = list(args)
-            arg_names = inspect.getfullargspec(class_method).args[1:]
-            if not arg_names:
-                arg_names = statistics_args
-            args_dict = {**dict(zip(arg_names, args)), **kwargs}
-            check = class_method(cls, *args, **kwargs)
-            check.statistics = {
-                stat: args_dict.get(stat) for stat in statistics_args
-            }
-            check.statistics_args = statistics_args
-            return check
-
-        return _wrapper
-
-    return register_check_statistics_decorator
-
-
 _T = TypeVar("_T", bound="BaseCheck")
+
+
+# pylint: disable=invalid-name
+class multidispatch(_multidispatch):
+    """
+    Custom multidispatch class to handle copy, deepcopy, and code retrieval.
+    """
+
+    @property
+    def __code__(self):
+        """Retrieves the 'base' function of the multidispatch object."""
+        assert (
+            len(self) > 0
+        ), f"multidispatch object {self} has no functions registered"
+        fn, *_ = [*self.values()]  # type: ignore[misc]
+        return fn.__code__
+
+    def __reduce__(self):
+        """
+        Handle custom pickling reduction method by initializing a new
+        multidispatch object, wrapped with the base function.
+        """
+        state = self.__dict__
+        # make sure all registered functions at time of pickling are captured
+        state["__registered_functions__"] = [*self.values()]
+        return (
+            multidispatch,  # object creation function
+            (state["__wrapped__"],),  # arguments to said function
+            state,  # arguments to `__setstate__` after creation
+        )
+
+    def __setstate__(self, state):
+        """Custom unpickling logic."""
+        self.__dict__ = state
+        # rehydrate the multidispatch object with unpickled registered functions
+        for fn in state["__registered_functions__"]:
+            self.register(fn)
 
 
 class MetaCheck(type):  # pragma: no cover
@@ -68,15 +80,19 @@ class MetaCheck(type):  # pragma: no cover
     BACKEND_REGISTRY: Dict[
         Tuple[Type, Type], Type[BaseCheckBackend]
     ] = {}  # noqa
+    """Registry of check backends implemented for specific data objects."""
+
     CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa
-    CHECK_REGISTRY: Dict[str, Callable] = {}  # noqa
+    """Built-in check function registry."""
+
     REGISTERED_CUSTOM_CHECKS: Dict[str, Callable] = {}  # noqa
+    """User-defined custom checks."""
 
     def __getattr__(cls, name: str) -> Any:
         """Prevent attribute errors for registered checks."""
         attr = {
             **cls.__dict__,
-            **cls.CHECK_REGISTRY,
+            **cls.CHECK_FUNCTION_REGISTRY,
             **cls.REGISTERED_CUSTOM_CHECKS,
         }.get(name)
         if attr is None:
@@ -91,7 +107,7 @@ class MetaCheck(type):  # pragma: no cover
         """Allow custom checks to show up as attributes when autocompleting."""
         return chain(
             super().__dir__(),
-            cls.CHECK_REGISTRY.keys(),
+            cls.CHECK_FUNCTION_REGISTRY.keys(),
             cls.REGISTERED_CUSTOM_CHECKS.keys(),
         )
 
@@ -117,9 +133,47 @@ class BaseCheck(metaclass=MetaCheck):
         self,
         name: Optional[str] = None,
         error: Optional[str] = None,
+        statistics: Optional[Dict[str, Any]] = None,
     ):
         self.name = name
         self.error = error
+        self.statistics = statistics
+
+    @classmethod
+    def register_builtin_check_fn(cls, fn: Callable):
+        """Registers a built-in check function"""
+        cls.CHECK_FUNCTION_REGISTRY[fn.__name__] = multidispatch(fn)
+        return fn
+
+    @classmethod
+    def get_builtin_check_fn(cls, name: str):
+        """Gets a built-in check function"""
+        return cls.CHECK_FUNCTION_REGISTRY[name]
+
+    @classmethod
+    def from_builtin_check_name(
+        cls,
+        name: str,
+        init_kwargs,
+        error: Union[str, Callable],
+        statistics: Dict[str, Any] = None,
+        **check_kwargs,
+    ):
+        """Create a Check object from a built-in check's name."""
+        kws = {**init_kwargs, **check_kwargs}
+        if "error" not in kws:
+            kws["error"] = error
+
+        # statistics are the raw check constraint values that are untransformed
+        # by the check object
+        if statistics is None:
+            statistics = check_kwargs
+
+        return cls(
+            cls.get_builtin_check_fn(name),
+            statistics=statistics,
+            **kws,
+        )
 
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):

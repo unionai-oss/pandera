@@ -41,6 +41,7 @@ from pandera.dtypes import (
 )
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import BaseStrategyOnlyError, SchemaDefinitionError
+from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
 try:
     import hypothesis
@@ -775,8 +776,11 @@ def field_element_strategy(
         ).filter(check._check_fn)
 
     for check in checks:
-        if check.strategy is not None:
-            elements = check.strategy(pandera_dtype, elements)
+        check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
+        if check_strategy is not None:
+            elements = check_strategy(
+                pandera_dtype, elements, **check.statistics
+            )
         elif check.element_wise:
             elements = undefined_check_strategy(elements, check)
         # NOTE: vectorized checks with undefined strategies should be handled
@@ -847,7 +851,8 @@ def series_strategy(
         return strategy.filter(_check_fn)
 
     for check in checks if checks is not None else []:
-        if check.strategy is None and not check.element_wise:
+        check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
+        if check_strategy is None and not check.element_wise:
             strategy = undefined_check_strategy(strategy, check)
 
     return strategy
@@ -1004,8 +1009,13 @@ def dataframe_strategy(
     def make_row_strategy(col, checks):
         strategy = None
         for check in checks:
-            if check.strategy is not None:
-                strategy = check.strategy(col.dtype, strategy)
+            check_strategy = STRATEGY_DISPATCHER.get(
+                (check.name, pd.DataFrame), None
+            )
+            if check_strategy is not None:
+                strategy = check_strategy(
+                    col.dtype, strategy, **check.statistics
+                )
             else:
                 strategy = undefined_check_strategy(
                     strategy=(
@@ -1024,7 +1034,10 @@ def dataframe_strategy(
         row_strategy_checks = []
         undefined_strat_df_checks = []
         for check in checks:
-            if check.strategy is not None or check.element_wise:
+            check_strategy = STRATEGY_DISPATCHER.get(
+                (check.name, pd.DataFrame)
+            )
+            if check_strategy is not None or check.element_wise:
                 # we can apply element-wise checks defined at the dataframe
                 # level to the row strategy
                 row_strategy_checks.append(check)
@@ -1066,7 +1079,8 @@ def dataframe_strategy(
             undefined_strat_column_checks[col_name].extend(
                 check
                 for check in column.checks
-                if check.strategy is None and not check.element_wise
+                if STRATEGY_DISPATCHER.get((check.name, pd.DataFrame)) is None
+                and not check.element_wise
             )
 
         # override the column datatype with dataframe-level datatype if

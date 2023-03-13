@@ -32,7 +32,7 @@ def equivalents() -> List[Any]:
 @pytest.fixture
 def engine() -> Generator[Engine, None, None]:
     class FakeEngine(  # pylint:disable=too-few-public-methods
-        metaclass=Engine, base_pandera_dtypes=BaseDataType
+        metaclass=Engine, base_pandera_dtypes=BaseDataType  # type: ignore[call-arg]
     ):
         pass
 
