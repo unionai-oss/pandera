@@ -1,6 +1,7 @@
 """Tests for builtin checks in pandera.core.checks.Check
 """
 
+import pickle
 from typing import Iterable
 
 import pandas as pd
@@ -1034,3 +1035,23 @@ def test_unique_values_eq_raise_error(values):
     """Test that unique_values_eq raises an error arg is not iterable."""
     with pytest.raises((TypeError, ValueError)):
         Check.unique_values_eq(values)
+
+
+def test_check_pickling(tmp_path):
+    """Test that built-in checks can be pickled/unpickled correctly."""
+    check = Check.gt(0)
+    valid_data = pd.Series([1, 2, 3])
+    invalid_data = valid_data * -1
+
+    fp = tmp_path / "check.pickle"
+    with fp.open("wb") as f:
+        pickle.dump(check, f)
+
+    with fp.open("rb") as f:
+        loaded_check = pickle.load(f)
+
+    assert check == loaded_check
+    assert check(valid_data).check_passed
+    assert loaded_check(valid_data).check_passed
+    assert not check(invalid_data).check_passed
+    assert not loaded_check(invalid_data).check_passed

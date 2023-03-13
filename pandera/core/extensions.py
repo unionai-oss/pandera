@@ -4,8 +4,8 @@ import inspect
 import warnings
 from enum import Enum
 from functools import partial, wraps
-from inspect import signature, Parameter, Signature
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from inspect import signature
+from typing import Callable, List, Optional, Tuple, Type, Union
 
 import pandas as pd
 import typing_inspect
@@ -26,10 +26,7 @@ class BuiltinCheckRegistrationError(Exception):
 # pylint: disable=too-many-locals
 def register_builtin_check(
     fn=None,
-    pre_init_hook: Optional[Callable] = None,
-    aliases: Optional[List[str]] = None,
     strategy: Optional[Callable] = None,
-    error: Optional[Union[str, Callable]] = None,
     _check_cls: Type = Check,
     **outer_kwargs,
 ):
@@ -42,10 +39,7 @@ def register_builtin_check(
     if fn is None:
         return partial(
             register_builtin_check,
-            pre_init_hook=pre_init_hook,
-            aliases=aliases,
             strategy=strategy,
-            error=error,
             _check_cls=_check_cls,
             **outer_kwargs,
         )
@@ -74,7 +68,7 @@ def register_builtin_check(
         for dt in data_types:
             STRATEGY_DISPATCHER[(name, dt)] = strategy
 
-    if check_fn is None:
+    if check_fn is None:  # pragma: no cover
         raise BuiltinCheckRegistrationError(
             f"Check '{name}' doesn't have a base check implementation. "
             f"You need to create a stub method in the {_check_cls} class and "
@@ -86,7 +80,7 @@ def register_builtin_check(
 
     check_fn.register(fn)  # type: ignore
 
-    return getattr(_check_cls, name)
+    return fn
 
 
 def register_builtin_hypothesis(**kwargs):
@@ -98,73 +92,8 @@ def register_builtin_hypothesis(**kwargs):
     )
 
 
-def generate_check_signature(
-    check_cls: Type,
-    sig: Signature,
-    statistics_params: List[Parameter],
-) -> Signature:
-    """Generates a check signature from check statistics."""
-    # assume the first argument is the check object
-    return sig.replace(
-        parameters=[
-            # This first parameter will be ignored since it's the check object
-            Parameter("_", Parameter.POSITIONAL_OR_KEYWORD),
-            Parameter("cls", Parameter.POSITIONAL_OR_KEYWORD),
-            *statistics_params,
-            Parameter(
-                "kwargs", Parameter.VAR_KEYWORD, annotation=Dict[str, Any]
-            ),
-        ],
-        return_annotation=check_cls,
-    )
-
-
-def generate_check_annotations(
-    check_cls: Type,
-    statistics_params: List[Parameter],
-) -> Dict[str, Type]:
-    """Generates a check type annotations from check statistics."""
-    return {
-        **{p.name: p.annotation for p in statistics_params},
-        "kwargs": Dict[
-            str,
-            Any,
-        ],
-        "return": check_cls,
-    }
-
-
-def modify_check_fn_doc(doc: str) -> str:
-    """Adds"""
-    return (
-        f"{doc}\n{' ' * 4}:param kwargs: arguments forwarded to the "
-        ":py:class:`~pandera.core.checks.Check` constructor."
-    )
-
-
-def update_check_fn_proxy(
-    check_cls: Type, check_function_proxy, fn, fn_sig, statistics_params
-):
-    """
-    Manually update the signature of `check_function` so that docstring matches
-    original function's signature, but includes ``**kwargs``, etc.
-    """
-    check_function_proxy.__name__ = fn.__name__
-    check_function_proxy.__module__ = fn.__module__
-    check_function_proxy.__qualname__ = fn.__qualname__
-    check_function_proxy.__signature__ = generate_check_signature(
-        check_cls,
-        fn_sig,
-        statistics_params,
-    )
-    check_function_proxy.__doc__ = modify_check_fn_doc(fn.__doc__)
-    check_function_proxy.__annotations__ = generate_check_annotations(
-        check_cls, statistics_params
-    )
-
-
 # --------------------------------
-# LEGACY CHECK REGISTRATION METHOD
+# CUSTOM CHECK REGISTRATION METHOD
 # --------------------------------
 #
 # The `register_check_method` decorator is the legacy method for registering
