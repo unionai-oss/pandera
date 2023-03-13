@@ -5,7 +5,7 @@ from typing import Tuple
 
 from pandera.backends.pandas.builtin_checks import PandasData
 from pandera.backends.pandas.hypotheses import HAS_SCIPY
-from pandera.core.extensions import register_builtin_hypothesis
+from pandera.api.extensions import register_builtin_hypothesis
 
 
 if HAS_SCIPY:

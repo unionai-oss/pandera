@@ -15,7 +15,7 @@ from typing import (
 import pandas as pd
 
 from pandera import errors
-from pandera.core.base.checks import BaseCheck, CheckResult
+from pandera.api.base.checks import BaseCheck, CheckResult
 from pandera.strategies import SearchStrategy
 
 

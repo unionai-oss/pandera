@@ -12,7 +12,7 @@ from typing import (
     cast,
 )
 
-from pandera.core.checks import Check
+from pandera.api.checks import Check
 
 CheckArg = Union[Check, List[Check]]
 AnyCallable = Callable[..., Any]

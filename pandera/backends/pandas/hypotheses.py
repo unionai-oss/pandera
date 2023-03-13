@@ -8,8 +8,8 @@ from multimethod import overload
 
 from pandera import errors
 from pandera.backends.pandas.checks import PandasCheckBackend
-from pandera.core.hypotheses import Hypothesis
-from pandera.core.pandas.types import is_field, is_table
+from pandera.api.hypotheses import Hypothesis
+from pandera.api.pandas.types import is_field, is_table
 
 
 try:

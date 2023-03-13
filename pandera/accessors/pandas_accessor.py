@@ -4,8 +4,8 @@ from typing import Optional, Union
 
 import pandas as pd
 
-from pandera.core.pandas.array import SeriesSchema
-from pandera.core.pandas.container import DataFrameSchema
+from pandera.api.pandas.array import SeriesSchema
+from pandera.api.pandas.container import DataFrameSchema
 
 Schemas = Union[DataFrameSchema, SeriesSchema]
 

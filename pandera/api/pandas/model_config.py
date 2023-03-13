@@ -2,8 +2,8 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-from pandera.core.base.model_config import BaseModelConfig
-from pandera.core.pandas.types import PandasDtypeInputTypes, StrictType
+from pandera.api.base.model_config import BaseModelConfig
+from pandera.api.pandas.types import PandasDtypeInputTypes, StrictType
 from pandera.typing.formats import Format
 
 

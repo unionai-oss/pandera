@@ -47,8 +47,8 @@ def numpy_pandas_coerce_failure_cases(
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
     from pandera.engines import pandas_engine
-    from pandera.core.checks import Check
-    from pandera.core.pandas.types import is_index, is_field, is_table
+    from pandera.api.checks import Check
+    from pandera.api.pandas.types import is_index, is_field, is_table
     from pandera.backends.pandas import error_formatters
     from pandera.backends.pandas.checks import PandasCheckBackend
 

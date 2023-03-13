@@ -24,7 +24,7 @@ from pandera import (
 )
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
-from pandera.core.pandas.array import ArraySchema
+from pandera.api.pandas.array import ArraySchema
 
 
 def test_dataframe_schema() -> None:

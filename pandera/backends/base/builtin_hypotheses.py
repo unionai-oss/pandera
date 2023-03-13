@@ -10,7 +10,7 @@ dispatching specific implementations based on the data object type, e.g.
 
 from typing import Any, Tuple
 
-from pandera.core.hypotheses import Hypothesis
+from pandera.api.hypotheses import Hypothesis
 
 
 @Hypothesis.register_builtin_check_fn

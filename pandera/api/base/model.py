@@ -13,9 +13,9 @@ from typing import (
     Union,
 )
 
-from pandera.core.base.model_components import BaseFieldInfo
-from pandera.core.base.model_config import BaseModelConfig
-from pandera.core.checks import Check
+from pandera.api.base.model_components import BaseFieldInfo
+from pandera.api.base.model_config import BaseModelConfig
+from pandera.api.checks import Check
 from pandera.typing import AnnotationInfo
 
 

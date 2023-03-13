@@ -12,10 +12,10 @@ from pandera.backends.pandas.array import (
     ArraySchemaBackend,
     SeriesSchemaBackend,
 )
-from pandera.core.base.schema import BaseSchema, inferred_schema_guard
-from pandera.core.checks import Check
-from pandera.core.hypotheses import Hypothesis
-from pandera.core.pandas.types import (
+from pandera.api.base.schema import BaseSchema, inferred_schema_guard
+from pandera.api.checks import Check
+from pandera.api.hypotheses import Hypothesis
+from pandera.api.pandas.types import (
     CheckList,
     PandasDtypeInputTypes,
     is_field,

@@ -11,7 +11,7 @@ specific implementations based on the data object type, e.g.
 import re
 from typing import Any, Iterable, TypeVar, Union
 
-from pandera.core.checks import Check
+from pandera.api.checks import Check
 
 
 T = TypeVar("T")

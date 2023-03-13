@@ -13,16 +13,16 @@ from typing import (
     cast,
 )
 
-from pandera.core.base.model_components import (
+from pandera.api.base.model_components import (
     BaseCheckInfo,
     BaseFieldInfo,
     CheckArg,
     to_checklist,
 )
-from pandera.core.checks import Check
-from pandera.core.pandas.array import ArraySchema
-from pandera.core.pandas.components import Column, Index
-from pandera.core.pandas.types import PandasDtypeInputTypes
+from pandera.api.checks import Check
+from pandera.api.pandas.array import ArraySchema
+from pandera.api.pandas.components import Column, Index
+from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]

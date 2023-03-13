@@ -11,8 +11,8 @@ except ImportError:
 import numpy as np
 import pandas as pd
 
-from pandera.core.checks import Check
-from pandera.core.hypotheses import Hypothesis
+from pandera.api.checks import Check
+from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
 
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]

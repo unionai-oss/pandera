@@ -9,7 +9,7 @@ import pandas as pd
 
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
 from pandera.backends.pandas.utils import convert_uniquesettings
-from pandera.core.pandas.types import is_table
+from pandera.api.pandas.types import is_table
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,

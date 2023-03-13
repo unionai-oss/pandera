@@ -24,11 +24,11 @@ from typing import (
 import pandas as pd
 
 from pandera.strategies import pandas_strategies as st
-from pandera.core.base.model import BaseModel
-from pandera.core.checks import Check
-from pandera.core.pandas.components import Column, Index, MultiIndex
-from pandera.core.pandas.container import DataFrameSchema
-from pandera.core.pandas.model_components import (
+from pandera.api.base.model import BaseModel
+from pandera.api.checks import Check
+from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.pandas.container import DataFrameSchema
+from pandera.api.pandas.model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     CheckInfo,
@@ -36,7 +36,7 @@ from pandera.core.pandas.model_components import (
     FieldCheckInfo,
     FieldInfo,
 )
-from pandera.core.pandas.model_config import BaseConfig
+from pandera.api.pandas.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase

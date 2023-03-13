@@ -30,7 +30,7 @@ def test_dask_not_installed() -> None:
         del sys.modules["pandera"]
         del sys.modules["pandera.core.pandas.types"]
         # pylint: disable=import-outside-toplevel
-        from pandera.core.pandas.types import is_table
+        from pandera.api.pandas.types import is_table
 
         assert not is_table(pd.Series([1]))
 

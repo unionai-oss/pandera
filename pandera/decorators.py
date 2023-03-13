@@ -24,8 +24,8 @@ import wrapt
 from pydantic import validate_arguments
 
 from pandera import errors
-from pandera.core.pandas import DataFrameSchema, SeriesSchema
-from pandera.core.pandas.model import SchemaModel
+from pandera.api.pandas import DataFrameSchema, SeriesSchema
+from pandera.api.pandas.model import SchemaModel
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.inspection_utils import (
     is_classmethod_from_meta,

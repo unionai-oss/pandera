@@ -10,8 +10,8 @@ from typing import Callable, List, Optional, Tuple, Type, Union
 import pandas as pd
 import typing_inspect
 
-from pandera.core.checks import Check
-from pandera.core.hypotheses import Hypothesis
+from pandera.api.checks import Check
+from pandera.api.hypotheses import Hypothesis
 from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
 

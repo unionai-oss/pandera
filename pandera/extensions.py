@@ -1,7 +1,7 @@
 """Extensions module, for backwards compatibility."""
 
 # pylint: disable=unused-import
-from pandera.core.extensions import (
+from pandera.api.extensions import (
     register_builtin_check,
     register_builtin_hypothesis,
     CheckType,

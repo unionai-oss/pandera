@@ -10,7 +10,7 @@ import pytest
 import pandera as pa
 import pandera.strategies as st
 from pandera import DataType, extensions
-from pandera.core.checks import Check
+from pandera.api.checks import Check
 
 
 def test_custom_checks_in_dir(extra_registered_checks):

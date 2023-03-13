@@ -9,7 +9,7 @@ import pandas as pd
 
 from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.backends.pandas.container import DataFrameSchemaBackend
-from pandera.core.pandas.types import (
+from pandera.api.pandas.types import (
     is_field,
     is_index,
     is_multiindex,
