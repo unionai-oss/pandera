@@ -2,7 +2,7 @@
 """Built-in check functions base implementation.
 
 This module contains check function abstract definitions that correspond to
-the pandera.core.base.checks.Check methods. These functions do not actually
+the pandera.api.base.checks.Check methods. These functions do not actually
 implement any validation logic and serve as the entrypoint for dispatching
 specific implementations based on the data object type, e.g.
 `pandas.DataFrame`s.

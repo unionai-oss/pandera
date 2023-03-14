@@ -15,7 +15,7 @@ class Formats(Enum):
     The values of this enum specify the valid values taken by the ``to_format``
     and ``from_format`` attributes in
     :py:class:`~pandera.typing.config.BaseConfig` when specifying a
-    :py:class:`~pandera.core.pandas.model.DataFrameModel`.
+    :py:class:`~pandera.api.pandas.model.DataFrameModel`.
     """
 
     # pylint: disable=invalid-name

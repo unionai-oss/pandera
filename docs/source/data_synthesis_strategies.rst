@@ -45,7 +45,7 @@ Once you've defined a schema, it's easy to generate examples:
 
 
 Note that here we've constrained the specific values in each column using
-:class:`~pandera.core.checks.Check` s  in order to make the data generation process
+:class:`~pandera.api.checks.Check` s  in order to make the data generation process
 deterministic for documentation purposes.
 
 Usage in Unit Tests
@@ -130,7 +130,7 @@ Here's the equivalent dataframe model for the above examples:
 Checks as Constraints
 ---------------------
 
-As you may have noticed in the first example, :class:`~pandera.core.checks.Check` s
+As you may have noticed in the first example, :class:`~pandera.api.checks.Check` s
 further constrain the data synthesized from a strategy. Without checks, the
 ``example`` method would simply generate any value of the specified type. You
 can specify multiple checks on a column and ``pandera`` should be able to
@@ -222,7 +222,7 @@ register custom checks and define strategies that correspond to them.
 Defining Custom Strategies
 --------------------------
 
-All built-in :class:`~pandera.core.checks.Check` s are associated with a data
+All built-in :class:`~pandera.api.checks.Check` s are associated with a data
 synthesis strategy. You can define your own data synthesis strategies by using
 the :ref:`extensions API<extensions>` to register a custom check function with
 a corresponding strategy.

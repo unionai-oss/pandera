@@ -1,4 +1,5 @@
-"""Pandera core module.
+"""Pandera api package.
 
-This module contains the schema specifications for all supported data objects.
+This package contains the public-facing api schema specifications for all
+supported data objects.
 """

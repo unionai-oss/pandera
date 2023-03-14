@@ -26,7 +26,7 @@ if FASTAPI_INSTALLED:
 
         This type uses :py:class:`pandera.typing.DataFrame` to read files into
         dataframe format based on the
-        :py:class:`pandera.core.pandas.models.DataFrameModel` configuration.
+        :py:class:`pandera.api.pandas.models.DataFrameModel` configuration.
         """
 
         __slots__ = (

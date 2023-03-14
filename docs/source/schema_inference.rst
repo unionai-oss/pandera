@@ -55,16 +55,16 @@ These inferred schemas are **rough drafts** that shouldn't be used for
 validation without modification. You can modify the inferred schema to
 obtain the schema definition that you're satisfied with.
 
-For :class:`~pandera.core.pandas.container.DataFrameSchema` objects, the following methods create
+For :class:`~pandera.api.pandas.container.DataFrameSchema` objects, the following methods create
 modified copies of the schema:
 
-* :func:`~pandera.core.pandas.container.DataFrameSchema.add_columns`
-* :func:`~pandera.core.pandas.container.DataFrameSchema.remove_columns`
-* :func:`~pandera.core.pandas.container.DataFrameSchema.update_column`
+* :func:`~pandera.api.pandas.container.DataFrameSchema.add_columns`
+* :func:`~pandera.api.pandas.container.DataFrameSchema.remove_columns`
+* :func:`~pandera.api.pandas.container.DataFrameSchema.update_column`
 
-For :class:`~pandera.core.pandas.array.SeriesSchema` objects:
+For :class:`~pandera.api.pandas.array.SeriesSchema` objects:
 
-* :func:`~pandera.core.pandas.array.SeriesSchema.set_checks`
+* :func:`~pandera.api.pandas.array.SeriesSchema.set_checks`
 
 The section below describes two workflows for persisting and modifying an
 inferred schema.
@@ -179,7 +179,7 @@ Write to YAML
 
 You can also write the schema object to a yaml file with :func:`~pandera.io.to_yaml`,
 and you can then read it into memory with :func:`~pandera.io.from_yaml`. The
-:func:`~pandera.core.pandas.container.DataFrameSchema.to_yaml` and :func:`~pandera.core.pandas.container.DataFrameSchema.from_yaml`
+:func:`~pandera.api.pandas.container.DataFrameSchema.to_yaml` and :func:`~pandera.api.pandas.container.DataFrameSchema.from_yaml`
 is a convenience method for this functionality.
 
 .. testcode:: infer_dataframe_schema
@@ -255,11 +255,11 @@ is a convenience method for this functionality.
 
 You can edit this yaml file to modify the schema. For example, you can specify
 new column names under the ``column`` key, and the respective values map onto
-key-word arguments in the :class:`~pandera.core.pandas.components.Column` class.
+key-word arguments in the :class:`~pandera.api.pandas.components.Column` class.
 
 .. note::
 
-   Currently, only built-in :class:`~pandera.core.checks.Check` methods are supported under the
+   Currently, only built-in :class:`~pandera.api.checks.Check` methods are supported under the
    ``checks`` key.
 
 
@@ -268,7 +268,7 @@ Write to JSON
 
 Finally, you can also write the schema object to a json file with :func:`~pandera.io.to_json`,
 and you can then read it into memory with :func:`~pandera.io.from_json`. The
-:func:`~pandera.core.pandas.container.DataFrameSchema.to_json` and :func:`~pandera.core.pandas.container.DataFrameSchema.from_json`
+:func:`~pandera.api.pandas.container.DataFrameSchema.to_json` and :func:`~pandera.api.pandas.container.DataFrameSchema.from_json`
 is a convenience method for this functionality.
 
 .. testcode:: infer_dataframe_schema
@@ -356,4 +356,4 @@ is a convenience method for this functionality.
 
 You can edit this json file to update the schema as needed, and then load
 it back into a pandera schema object with :func:`~pandera.io.from_json` or
-:func:`~pandera.core.pandas.container.DataFrameSchema.from_json`.
+:func:`~pandera.api.pandas.container.DataFrameSchema.from_json`.

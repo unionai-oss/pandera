@@ -1,4 +1,4 @@
-"""Tests for builtin checks in pandera.core.checks.Check
+"""Tests for builtin checks in pandera.api.checks.Check
 """
 
 import pickle

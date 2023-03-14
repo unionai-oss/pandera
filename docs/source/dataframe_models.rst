@@ -13,8 +13,8 @@ Formerly known as ``SchemaModel``.
 
 .. important::
 
-    As of pandera ``0.14.0`` :py:class:`~pandera.core.pandas.model.SchemaModel`
-    is simply an alias of :py:class:`~pandera.core.pandas.model.DataFrameModel`.
+    As of pandera ``0.14.0`` :py:class:`~pandera.api.pandas.model.SchemaModel`
+    is simply an alias of :py:class:`~pandera.api.pandas.model.DataFrameModel`.
     ``SchemaModel`` will continue to work as a valid way of specifying types
     for DataFrame models for the foreseeable future, and will be deprecated in
     version ``0.20.0``.
@@ -29,7 +29,7 @@ much the same way you'd define ``pydantic`` models.
 
 ``DataFrameModel`` s are annotated with the :mod:`pandera.typing` module using the standard
 `typing <https://docs.python.org/3/library/typing.html>`_ syntax. Models can be
-explicitly converted to a :class:`~pandera.core.pandas.container.DataFrameSchema` or used to validate a
+explicitly converted to a :class:`~pandera.api.pandas.container.DataFrameSchema` or used to validate a
 :class:`~pandas.DataFrame` directly.
 
 .. note::
@@ -92,12 +92,12 @@ Basic Usage
 
 
 As you can see in the example above, you can define a schema by sub-classing
-:class:`~pandera.core.pandas.model.DataFrameModel` and defining column/index fields as class attributes.
+:class:`~pandera.api.pandas.model.DataFrameModel` and defining column/index fields as class attributes.
 The :func:`~pandera.decorators.check_types` decorator is required to perform validation of the dataframe at
 run-time.
 
-Note that :class:`~pandera.core.pandas.model_components.Field` s apply to both
-:class:`~pandera.core.pandas.components.Column` and :class:`~pandera.core.pandas.components.Index`
+Note that :class:`~pandera.api.pandas.model_components.Field` s apply to both
+:class:`~pandera.api.pandas.components.Column` and :class:`~pandera.api.pandas.components.Index`
 objects, exposing the built-in :class:`Check` s via key-word arguments.
 
 *(New in 0.6.2)* When you access a class attribute defined on the schema,
@@ -126,7 +126,7 @@ Validate on Initialization
 
 Pandera provides an interface for validating dataframes on initialization.
 This API uses the :py:class:`pandera.typing.pandas.DataFrame` generic type
-to validated against the :py:class:`~pandera.core.pandas.model.DataFrameModel` type variable
+to validated against the :py:class:`~pandera.api.pandas.model.DataFrameModel` type variable
 on initialization:
 
 .. testcode:: validate_on_init
@@ -168,8 +168,8 @@ to other supported dataframe types.
 Converting to DataFrameSchema
 -----------------------------
 
-You can easily convert a :class:`~pandera.core.pandas.model.DataFrameModel` class into a
-:class:`~pandera.core.pandas.container.DataFrameSchema`:
+You can easily convert a :class:`~pandera.api.pandas.model.DataFrameModel` class into a
+:class:`~pandera.api.pandas.container.DataFrameSchema`:
 
 .. testcode:: dataframe_schema_model
 
@@ -193,7 +193,7 @@ You can easily convert a :class:`~pandera.core.pandas.model.DataFrameModel` clas
         unique_column_names=False
     )>
 
-You can also use the :meth:`~pandera.core.pandas.model.DataFrameModel.validate` method to
+You can also use the :meth:`~pandera.api.pandas.model.DataFrameModel.validate` method to
 validate dataframes:
 
 .. testcode:: dataframe_schema_model
@@ -207,9 +207,9 @@ validate dataframes:
     1  2002      6  156
     2  2003     12  365
 
-Or you can use the :meth:`~pandera.core.pandas.model.DataFrameModel` class directly to
+Or you can use the :meth:`~pandera.api.pandas.model.DataFrameModel` class directly to
 validate dataframes, which is syntactic sugar that simply delegates to the
-:meth:`~pandera.core.pandas.model.DataFrameModel.validate` method.
+:meth:`~pandera.api.pandas.model.DataFrameModel.validate` method.
 
 .. testcode:: dataframe_schema_model
 
@@ -538,7 +538,7 @@ Config
 ------
 
 Schema-wide options can be controlled via the ``Config`` class on the ``DataFrameModel``
-subclass. The full set of options can be found in the :class:`~pandera.core.pandas.model_config.BaseConfig`
+subclass. The full set of options can be found in the :class:`~pandera.api.pandas.model_config.BaseConfig`
 class.
 
 .. testcode:: dataframe_schema_model
@@ -555,7 +555,7 @@ class.
             coerce = True
             foo = "bar"  # Interpreted as dataframe check
 
-It is not required for the ``Config`` to subclass :class:`~pandera.core.pandas.model_config.BaseConfig` but
+It is not required for the ``Config`` to subclass :class:`~pandera.api.pandas.model_config.BaseConfig` but
 it **must** be named '**Config**'.
 
 See :ref:`class_based_api_dataframe_checks` for details on using registered dataframe checks.
@@ -563,7 +563,7 @@ See :ref:`class_based_api_dataframe_checks` for details on using registered data
 MultiIndex
 ----------
 
-The :class:`~pandera.core.pandas.components.MultiIndex` capabilities are also supported with
+The :class:`~pandera.api.pandas.components.MultiIndex` capabilities are also supported with
 the class-based API:
 
 .. testcode:: dataframe_schema_model
@@ -612,7 +612,7 @@ the class-based API:
     'year': [<Check greater_than: greater_than(2000)>]}
 
 Multiple :class:`~pandera.typing.Index` annotations are automatically converted into a
-:class:`~pandera.core.pandas.components.MultiIndex`. MultiIndex options are given in the
+:class:`~pandera.api.pandas.components.MultiIndex`. MultiIndex options are given in the
 :ref:`schema_model_config`.
 
 Index Name
@@ -642,7 +642,7 @@ Use ``check_name`` to validate the index name of a single-index dataframe:
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaError: Expected <class 'pandera.core.pandas.components.Index'> to have name 'idx', found 'None'
+    pandera.errors.SchemaError: Expected <class 'pandera.api.pandas.components.Index'> to have name 'idx', found 'None'
 
 ``check_name`` default value of ``None`` translates to ``True`` for columns and multi-index.
 
@@ -681,12 +681,12 @@ Column/Index checks
 
 .. note::
 
-    * You can supply the key-word arguments of the :class:`~pandera.core.checks.Check` class
+    * You can supply the key-word arguments of the :class:`~pandera.api.checks.Check` class
       initializer to get the flexibility of :ref:`groupby checks <column_check_groups>`
     * Similarly to ``pydantic``, :func:`classmethod` decorator is added behind the scenes
       if omitted.
     * You still may need to add the ``@classmethod`` decorator *after* the
-      :func:`~pandera.core.pandas.model_components.check` decorator if your static-type checker or
+      :func:`~pandera.api.pandas.model_components.check` decorator if your static-type checker or
       linter complains.
     * Since ``checks`` are class methods, the first argument value they receive is a
       DataFrameModel subclass, not an instance of a model.
@@ -725,7 +725,7 @@ DataFrame Checks
 
 You can also define dataframe-level checks, similar to the
 :ref:`object-based API <wide_checks>`, using the
-:func:`~pandera.core.pandas.components.dataframe_check` decorator:
+:func:`~pandera.api.pandas.components.dataframe_check` decorator:
 
 .. testcode:: dataframe_schema_model
 
@@ -808,8 +808,8 @@ The custom checks are inherited and therefore can be overwritten by the subclass
 Aliases
 -------
 
-:class:`~pandera.core.pandas.model.DataFrameModel` supports columns which are not valid python variable names via the argument
-`alias` of :class:`~pandera.core.pandas.model_components.Field`.
+:class:`~pandera.api.pandas.model.DataFrameModel` supports columns which are not valid python variable names via the argument
+`alias` of :class:`~pandera.api.pandas.model_components.Field`.
 
 Checks must reference the aliased names.
 
@@ -857,7 +857,7 @@ the class scope, and it will respect the alias.
 .. note::
 
     To access a variable from the class scope, you need to make it a class attribute,
-    and therefore assign it a default :class:`~pandera.core.pandas.model_components.Field`.
+    and therefore assign it a default :class:`~pandera.api.pandas.model_components.Field`.
 
 .. testcode:: dataframe_schema_model
 
@@ -893,13 +893,13 @@ One caveat of using inheritance to build schemas on top of each other is that th
 is no clear way of how a child class can e.g. remove fields or update them without
 completely overriding previous settings. This is because inheritance is strictly additive.
 
-:class:`~pandera.core.pandas.container.DataFrameSchema` objects do have these options though, as described in
+:class:`~pandera.api.pandas.container.DataFrameSchema` objects do have these options though, as described in
 :ref:`dataframe schema transformations`, which you can leverage by overriding your
-DataFrame Model's :func:`~pandera.core.pandas.model.DataFrameModel.to_schema` method.
+DataFrame Model's :func:`~pandera.api.pandas.model.DataFrameModel.to_schema` method.
 
 DataFrame Models are for the most part just a proxy for the ``DataFrameSchema`` API; calling
-:func:`~pandera.core.pandas.model.DataFrameModel.validate` will just redirect to the validate method of
-the Data Frame Schema's :class:`~pandera.core.pandas.container.DataFrameSchema.validate` returned by
+:func:`~pandera.api.pandas.model.DataFrameModel.validate` will just redirect to the validate method of
+the Data Frame Schema's :class:`~pandera.api.pandas.container.DataFrameSchema.validate` returned by
 ``to_schema``. As such, any updates to the schema that took place in there will propagate
 cleanly.
 

@@ -35,7 +35,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     def __init__(
         self,
         columns: Optional[  # type: ignore [name-defined]
-            Dict[Any, "pandera.core.pandas.components.Column"]  # type: ignore [name-defined]
+            Dict[Any, "pandera.api.pandas.components.Column"]  # type: ignore [name-defined]
         ] = None,
         checks: Optional[CheckList] = None,
         index=None,
@@ -133,7 +133,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             description=description,
         )
 
-        self.columns: Dict[Any, "pandera.core.pandas.components.Column"] = (  # type: ignore [name-defined]
+        self.columns: Dict[Any, "pandera.api.pandas.components.Column"] = (  # type: ignore [name-defined]
             {} if columns is None else columns
         )
 
@@ -622,7 +622,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         :param column_name:
         :param kwargs: key-word arguments supplied to
-            :class:`~pandera.core.pandas.components.Column`
+            :class:`~pandera.api.pandas.components.Column`
         :returns: a new :class:`DataFrameSchema` with updated column
         :raises: :class:`~pandera.errors.SchemaInitError`: if column not in
             schema or you try to change the name.
@@ -1325,7 +1325,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
 
 def _validate_columns(
-    column_dict: dict[Any, "pandera.core.pandas.components.Column"],  # type: ignore [name-defined]
+    column_dict: dict[Any, "pandera.api.pandas.components.Column"],  # type: ignore [name-defined]
 ) -> None:
     for column_name, column in column_dict.items():
         for check in column.checks:
@@ -1343,8 +1343,8 @@ def _validate_columns(
 
 
 def _columns_renamed(
-    columns: dict[Any, "pandera.core.pandas.components.Column"],  # type: ignore [name-defined]
-) -> dict[Any, "pandera.core.pandas.components.Column"]:  # type: ignore [name-defined]
+    columns: dict[Any, "pandera.api.pandas.components.Column"],  # type: ignore [name-defined]
+) -> dict[Any, "pandera.api.pandas.components.Column"]:  # type: ignore [name-defined]
     def renamed(column, new_name):
         column = copy.deepcopy(column)
         column.set_name(new_name)

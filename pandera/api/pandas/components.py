@@ -346,7 +346,7 @@ class Index(ArraySchema):
 class MultiIndex(DataFrameSchema):
     """Validate types and properties of a DataFrame MultiIndex.
 
-    This class inherits from :class:`~pandera.core.pandas.container.DataFrameSchema` to
+    This class inherits from :class:`~pandera.api.pandas.container.DataFrameSchema` to
     leverage its validation logic.
     """
 

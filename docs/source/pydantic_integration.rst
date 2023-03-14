@@ -10,9 +10,9 @@ Pydantic
 Using Pandera Schemas in Pydantic Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:class:`~pandera.core.pandas.model.DataFrameModel` is fully compatible with
+:class:`~pandera.api.pandas.model.DataFrameModel` is fully compatible with
 `pydantic <https://pydantic-docs.helpmanual.io/>`_. You can specify
-a :class:`~pandera.core.pandas.model.DataFrameModel` in a pydantic ``BaseModel`` as you would
+a :class:`~pandera.api.pandas.model.DataFrameModel` in a pydantic ``BaseModel`` as you would
 any other field:
 
 .. testcode:: dataframe_schema_model
@@ -56,12 +56,12 @@ Other pandera components are also compatible with pydantic:
     validates the type of a schema object, e.g. if your pydantic
     ``BaseModel`` contained a schema object, not a ``pandas`` object.
 
-- :class:`~pandera.core.pandas.model.DataFrameModel`
-- :class:`~pandera.core.pandas.container.DataFrameSchema`
-- :class:`~pandera.core.pandas.array.SeriesSchema`
-- :class:`~pandera.core.pandas.components.MultiIndex`
-- :class:`~pandera.core.pandas.components.Column`
-- :class:`~pandera.core.pandas.components.Index`
+- :class:`~pandera.api.pandas.model.DataFrameModel`
+- :class:`~pandera.api.pandas.container.DataFrameSchema`
+- :class:`~pandera.api.pandas.array.SeriesSchema`
+- :class:`~pandera.api.pandas.components.MultiIndex`
+- :class:`~pandera.api.pandas.components.Column`
+- :class:`~pandera.api.pandas.components.Index`
 
 
 Using Pydantic Models in Pandera Schemas
