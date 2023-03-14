@@ -61,7 +61,7 @@ match the function's return signature.
 It'll also complain if the input type doesn't match the expected input type.
 Note that we're using the :py:class:`pandera.typing.pandas.DataFrame` generic
 type to define dataframes that are validated against the
-:py:class:`~pandera.core.pandas.model.DataFrameModel` type variable on initialization.
+:py:class:`~pandera.api.pandas.model.DataFrameModel` type variable on initialization.
 
 .. literalinclude:: ../../tests/mypy/modules/pandas_dataframe.py
     :lines: 47-60
@@ -92,7 +92,7 @@ Limitations
 An important caveat to static type-linting with pandera dataframe types is that,
 since pandas dataframes are mutable objects, there's no way for ``mypy`` to
 know whether a mutated instance of a
-:py:class:`~pandera.core.pandas.model.DataFrameModel`-typed dataframe has the correct
+:py:class:`~pandera.api.pandas.model.DataFrameModel`-typed dataframe has the correct
 contents. Fortunately, we can simply rely on the :py:func:`~pandera.check_types`
 decorator to verify that the output dataframe is valid.
 

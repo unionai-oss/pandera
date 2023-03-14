@@ -12,8 +12,8 @@ import pytest
 
 import pandera as pa
 from pandera import strategies
-from pandera.core.checks import Check
-from pandera.core.extensions import register_check_statistics
+from pandera.api.checks import Check
+from pandera.api.extensions import register_check_statistics
 from pandera.dtypes import is_category, is_complex, is_float
 from pandera.engines import pandas_engine
 

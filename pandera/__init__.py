@@ -3,18 +3,18 @@ import platform
 
 from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
-from pandera.core import extensions
-from pandera.core.checks import Check
-from pandera.core.hypotheses import Hypothesis
-from pandera.core.pandas import (
+from pandera.api import extensions
+from pandera.api.checks import Check
+from pandera.api.hypotheses import Hypothesis
+from pandera.api.pandas import (
     Column,
     DataFrameSchema,
     Index,
     MultiIndex,
     SeriesSchema,
 )
-from pandera.core.pandas.model import DataFrameModel, SchemaModel
-from pandera.core.pandas.model_components import Field, check, dataframe_check
+from pandera.api.pandas.model import DataFrameModel, SchemaModel
+from pandera.api.pandas.model_components import Field, check, dataframe_check
 from pandera.dtypes import (
     Bool,
     Category,

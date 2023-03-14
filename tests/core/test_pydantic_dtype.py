@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 import pandera as pa
 from pandera.engines.pandas_engine import PydanticModel
-from pandera.core.pandas.array import ArraySchema
+from pandera.api.pandas.array import ArraySchema
 
 
 class Record(BaseModel):

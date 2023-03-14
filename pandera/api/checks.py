@@ -15,7 +15,7 @@ from typing import (
 import pandas as pd
 
 from pandera import errors
-from pandera.core.base.checks import BaseCheck, CheckResult
+from pandera.api.base.checks import BaseCheck, CheckResult
 from pandera.strategies import SearchStrategy
 
 
@@ -555,34 +555,34 @@ class Check(BaseCheck):
 
     @classmethod
     def eq(cls, value: Any, **kwargs) -> "Check":
-        """Alias of :meth:`~pandera.core.checks.Check.equal_to`"""
+        """Alias of :meth:`~pandera.api.checks.Check.equal_to`"""
         return cls.equal_to(value, **kwargs)
 
     @classmethod
     def ne(cls, value: Any, **kwargs) -> "Check":
-        """Alias of :meth:`~pandera.core.checks.Check.not_equal_to`"""
+        """Alias of :meth:`~pandera.api.checks.Check.not_equal_to`"""
         return cls.not_equal_to(value, **kwargs)
 
     @classmethod
     def gt(cls, min_value: Any, **kwargs) -> "Check":
-        """Alias of :meth:`~pandera.core.checks.Check.greater_than`"""
+        """Alias of :meth:`~pandera.api.checks.Check.greater_than`"""
         return cls.greater_than(min_value, **kwargs)
 
     @classmethod
     def ge(cls, min_value: Any, **kwargs) -> "Check":
         """
-        Alias of :meth:`~pandera.core.checks.Check.greater_than_or_equal_to`
+        Alias of :meth:`~pandera.api.checks.Check.greater_than_or_equal_to`
         """
         return cls.greater_than_or_equal_to(min_value, **kwargs)
 
     @classmethod
     def lt(cls, max_value: Any, **kwargs) -> "Check":
-        """Alias of :meth:`~pandera.core.checks.Check.less_than`"""
+        """Alias of :meth:`~pandera.api.checks.Check.less_than`"""
         return cls.less_than(max_value, **kwargs)
 
     @classmethod
     def le(cls, max_value: Any, **kwargs) -> "Check":
-        """Alias of :meth:`~pandera.core.checks.Check.less_than_or_equal_to`"""
+        """Alias of :meth:`~pandera.api.checks.Check.less_than_or_equal_to`"""
         return cls.less_than_or_equal_to(max_value, **kwargs)
 
     @classmethod
@@ -594,7 +594,7 @@ class Check(BaseCheck):
         include_max: bool = True,
         **kwargs,
     ) -> "Check":
-        """Alias of :meth:`~pandera.core.checks.Check.in_range`"""
+        """Alias of :meth:`~pandera.api.checks.Check.in_range`"""
         return cls.in_range(
             min_value,
             max_value,

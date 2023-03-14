@@ -10,8 +10,8 @@ DataFrame Model
    :toctree: generated
    :template: class.rst
 
-   pandera.core.pandas.model.SchemaModel
-   pandera.core.pandas.model.DataFrameModel
+   pandera.api.pandas.model.SchemaModel
+   pandera.api.pandas.model.DataFrameModel
 
 Model Components
 ----------------
@@ -19,9 +19,9 @@ Model Components
 .. autosummary::
    :toctree: generated
 
-   pandera.core.pandas.model_components.Field
-   pandera.core.pandas.model_components.check
-   pandera.core.pandas.model_components.dataframe_check
+   pandera.api.pandas.model_components.Field
+   pandera.api.pandas.model_components.check
+   pandera.api.pandas.model_components.dataframe_check
 
 Typing
 ------
@@ -41,4 +41,4 @@ Config
    :template: model_component_class.rst
    :nosignatures:
 
-   pandera.core.pandas.model_config.BaseConfig
+   pandera.api.pandas.model_config.BaseConfig

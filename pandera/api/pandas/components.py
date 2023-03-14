@@ -12,9 +12,9 @@ from pandera.backends.pandas.components import (
     IndexBackend,
     MultiIndexBackend,
 )
-from pandera.core.pandas.array import ArraySchema
-from pandera.core.pandas.container import DataFrameSchema
-from pandera.core.pandas.types import CheckList, PandasDtypeInputTypes
+from pandera.api.pandas.array import ArraySchema
+from pandera.api.pandas.container import DataFrameSchema
+from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 
 
@@ -346,7 +346,7 @@ class Index(ArraySchema):
 class MultiIndex(DataFrameSchema):
     """Validate types and properties of a DataFrame MultiIndex.
 
-    This class inherits from :class:`~pandera.core.pandas.container.DataFrameSchema` to
+    This class inherits from :class:`~pandera.api.pandas.container.DataFrameSchema` to
     leverage its validation logic.
     """
 

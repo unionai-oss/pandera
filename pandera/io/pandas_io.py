@@ -12,9 +12,9 @@ import pandas as pd
 import pandera.errors
 
 from pandera import dtypes
-from pandera.core.pandas.container import DataFrameSchema
-from pandera.core.pandas.components import Column
-from pandera.core.checks import Check
+from pandera.api.pandas.container import DataFrameSchema
+from pandera.api.pandas.components import Column
+from pandera.api.checks import Check
 from pandera.engines import pandas_engine
 from pandera.schema_statistics import get_dataframe_schema_statistics
 
@@ -244,7 +244,7 @@ def deserialize_schema(serialized_schema):
 
     :param serialized_schema: a mapping representing the schema
     :returns:
-        the schema de-serialized into :class:`~pandera.core.pandas.container.DataFrameSchema`
+        the schema de-serialized into :class:`~pandera.api.pandas.container.DataFrameSchema`
     """
     # pylint: disable=import-outside-toplevel
     from pandera import Index, MultiIndex
@@ -308,7 +308,7 @@ def deserialize_schema(serialized_schema):
 
 
 def from_yaml(yaml_schema):
-    """Create :class:`~pandera.core.pandas.container.DataFrameSchema` from yaml file.
+    """Create :class:`~pandera.api.pandas.container.DataFrameSchema` from yaml file.
 
     :param yaml_schema: str or Path to yaml schema, or serialized yaml string.
     :returns: dataframe schema.
@@ -322,7 +322,7 @@ def from_yaml(yaml_schema):
 
 
 def to_yaml(dataframe_schema, stream=None):
-    """Write :class:`~pandera.core.pandas.container.DataFrameSchema` to yaml file.
+    """Write :class:`~pandera.api.pandas.container.DataFrameSchema` to yaml file.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param stream: file stream to write to. If None, dumps to string.
@@ -342,7 +342,7 @@ def to_yaml(dataframe_schema, stream=None):
 
 def from_json(source):
     """
-    Create :class:`~pandera.core.pandas.container.DataFrameSchema` from json file.
+    Create :class:`~pandera.api.pandas.container.DataFrameSchema` from json file.
 
     :param source:
         Depending on the type, source is assumed to be:
@@ -371,7 +371,7 @@ def from_json(source):
 
 def to_json(dataframe_schema, target=None, **kwargs):
     """
-    Write :class:`~pandera.core.pandas.container.DataFrameSchema` to json file.
+    Write :class:`~pandera.api.pandas.container.DataFrameSchema` to json file.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param target: file path or stream to write to. If None, returns a
@@ -500,7 +500,7 @@ def _format_script(script):
 
 
 def to_script(dataframe_schema, path_or_buf=None):
-    """Write :class:`~pandera.core.pandas.container.DataFrameSchema` to a python script.
+    """Write :class:`~pandera.api.pandas.container.DataFrameSchema` to a python script.
 
     :param dataframe_schema: schema to write to file or dump to string.
     :param path_or_buf: filepath or buf stream to write to. If None, outputs
@@ -568,7 +568,7 @@ def to_script(dataframe_schema, path_or_buf=None):
 
 class FrictionlessFieldParser:
     """Parses frictionless data schema field specifications so we can convert
-    them to an equivalent Pandera :class:`~pandera.core.pandas.components.Column`
+    them to an equivalent Pandera :class:`~pandera.api.pandas.components.Column`
     schema.
 
     For this implementation, we are using field names, constraints and types
@@ -628,7 +628,7 @@ class FrictionlessFieldParser:
         `here <https://specs.frictionlessdata.io/table-schema/#constraints>`_
         and maps them into the equivalent pandera checks.
 
-        :returns: a dictionary of pandera :class:`~pandera.core.checks.Check`
+        :returns: a dictionary of pandera :class:`~pandera.api.checks.Check`
             objects which capture the standard constraint logic of a
             frictionless schema field.
         """
@@ -737,7 +737,7 @@ def from_frictionless_schema(
     schema: Union[str, Path, Dict, FrictionlessSchema]
 ) -> DataFrameSchema:
     # pylint: disable=line-too-long,anomalous-backslash-in-string
-    """Create a :class:`~pandera.core.pandas.container.DataFrameSchema` from either a
+    """Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a
     frictionless json/yaml schema file saved on disk, or from a frictionless
     schema already loaded into memory.
 
@@ -755,7 +755,7 @@ def from_frictionless_schema(
 
     Here, we're defining a very basic frictionless schema in memory before
     parsing it and then querying the resulting
-    :class:`~pandera.core.pandas.container.DataFrameSchema` object as per any other Pandera
+    :class:`~pandera.api.pandas.container.DataFrameSchema` object as per any other Pandera
     schema:
 
     >>> from pandera.io import from_frictionless_schema

@@ -12,7 +12,7 @@ from pandera.backends.pandas.error_formatters import (
     scalar_failure_case,
 )
 from pandera.backends.pandas.utils import convert_uniquesettings
-from pandera.core.pandas.types import is_field
+from pandera.api.pandas.types import is_field
 from pandera.engines.pandas_engine import Engine
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import ParserError, SchemaError, SchemaErrors

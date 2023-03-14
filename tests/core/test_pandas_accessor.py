@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-import pandera.core.pandas.container
+import pandera.api.pandas.container
 
 
 @pytest.mark.parametrize(
@@ -63,7 +63,7 @@ def test_dataframe_series_add_schema(
         return_value=True,
     ):
         with patch.object(
-            pandera.core.pandas.array,
+            pandera.api.pandas.array,
             "is_field",
             return_value=True,
         ):

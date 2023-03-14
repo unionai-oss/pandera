@@ -122,8 +122,8 @@ Validation by Partition
 There is an interesting use case that arises with bigger datasets. Frequently, there are logical
 groupings of data that require different validations. In the earlier sample data, the
 price range for the records with ``state`` FL is lower than the range for the ``state`` CA.
-Two :class:`~pandera.core.pandas.container.DataFrameSchema` will be created to reflect this. Notice their ranges
-for the :class:`~pandera.core.checks.Check` differ.
+Two :class:`~pandera.api.pandas.container.DataFrameSchema` will be created to reflect this. Notice their ranges
+for the :class:`~pandera.api.checks.Check` differ.
 
 .. testcode:: scaling_fugue
 

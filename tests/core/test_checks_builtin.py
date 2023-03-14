@@ -1,4 +1,4 @@
-"""Tests for builtin checks in pandera.core.checks.Check
+"""Tests for builtin checks in pandera.api.checks.Check
 """
 
 import pickle
@@ -7,10 +7,10 @@ from typing import Iterable
 import pandas as pd
 import pytest
 
-from pandera.core.checks import Check
-from pandera.core.pandas.array import SeriesSchema
-from pandera.core.pandas.components import Column
-from pandera.core.pandas.container import DataFrameSchema
+from pandera.api.checks import Check
+from pandera.api.pandas.array import SeriesSchema
+from pandera.api.pandas.components import Column
+from pandera.api.pandas.container import DataFrameSchema
 from pandera.errors import SchemaError
 
 

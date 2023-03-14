@@ -20,7 +20,7 @@ and :py:func:`~dask.dataframe.Series` objects directly. First, install
 
 Then you can use pandera schemas to validate dask dataframes. In the example
 below we'll use the :ref:`class-based API <dataframe_models>` to define a
-:py:class:`~pandera.core.pandas.model.DataFrameModel` for validation.
+:py:class:`~pandera.api.pandas.model.DataFrameModel` for validation.
 
 .. testcode:: scaling_dask
 

@@ -3,7 +3,7 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from pandera import errors
-from pandera.core.checks import Check
+from pandera.api.checks import Check
 from pandera.strategies import SearchStrategy
 
 

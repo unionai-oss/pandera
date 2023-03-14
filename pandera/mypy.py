@@ -15,7 +15,7 @@ from mypy.plugin import (
 )
 from mypy.types import CallableType, Instance, UnionType
 
-DATAFRAMEMODEL_FULLNAME = "pandera.core.pandas.model.DataFrameModel"
+DATAFRAMEMODEL_FULLNAME = "pandera.api.pandas.model.DataFrameModel"
 PANDERA_PANDAS_DATAFRAME_FULLNAME = "pandera.typing.pandas.DataFrame"
 PANDERA_PANDAS_SERIES_FULLNAME = "pandera.typing.pandas.Series"
 PANDERA_PANDAS_INDEX_FULLNAME = "pandera.typing.pandas.Index"

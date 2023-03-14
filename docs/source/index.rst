@@ -227,7 +227,7 @@ Dataframe Model
 ``pandera`` also provides an alternative API for expressing schemas inspired
 by `dataclasses <https://docs.python.org/3/library/dataclasses.html>`_ and
 `pydantic <https://pydantic-docs.helpmanual.io/>`_. The equivalent
-:class:`~pandera.core.pandas.model.DataFrameModel` for the above
+:class:`~pandera.api.pandas.model.DataFrameModel` for the above
 :class:`~pandera.scheams.DataFrameSchema` would be:
 
 .. testcode:: quick_start

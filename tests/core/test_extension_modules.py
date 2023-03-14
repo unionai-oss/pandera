@@ -2,7 +2,7 @@
 
 import pytest
 
-from pandera.core.hypotheses import Hypothesis
+from pandera.api.hypotheses import Hypothesis
 from pandera.backends.pandas.hypotheses import HAS_SCIPY
 
 

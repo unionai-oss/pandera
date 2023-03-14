@@ -3,8 +3,8 @@
 import pandas as pd
 
 import pandera.typing
-from pandera.core.checks import Check
-from pandera.core.hypotheses import Hypothesis
+from pandera.api.checks import Check
+from pandera.api.hypotheses import Hypothesis
 
 from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.backends.pandas.hypotheses import PandasHypothesisBackend

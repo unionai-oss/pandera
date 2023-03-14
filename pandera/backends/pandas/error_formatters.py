@@ -73,7 +73,7 @@ def reshape_failure_cases(
 
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
-    from pandera.core.pandas.types import is_field, is_multiindex, is_table
+    from pandera.api.pandas.types import is_field, is_multiindex, is_table
 
     if not (is_table(failure_cases) or is_field(failure_cases)):
         raise TypeError(

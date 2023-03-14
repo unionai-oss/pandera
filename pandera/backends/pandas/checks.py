@@ -7,9 +7,9 @@ import pandas as pd
 from multimethod import overload, DispatchError
 
 from pandera.backends.base import BaseCheckBackend
-from pandera.core.base.checks import CheckResult, GroupbyObject
-from pandera.core.checks import Check
-from pandera.core.pandas.types import (
+from pandera.api.base.checks import CheckResult, GroupbyObject
+from pandera.api.checks import Check
+from pandera.api.pandas.types import (
     is_table,
     is_field,
     is_table_or_field,

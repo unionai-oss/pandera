@@ -10,8 +10,8 @@ from typing import Callable, List, Optional, Tuple, Type, Union
 import pandas as pd
 import typing_inspect
 
-from pandera.core.checks import Check
-from pandera.core.hypotheses import Hypothesis
+from pandera.api.checks import Check
+from pandera.api.hypotheses import Hypothesis
 from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
 
@@ -74,7 +74,7 @@ def register_builtin_check(
             f"You need to create a stub method in the {_check_cls} class and "
             "then register a base check function implementation with the "
             f"{_check_cls}.register_builtin_check_fn method.\n"
-            "See the `pandera.core.base.builtin_checks` and "
+            "See the `pandera.api.base.builtin_checks` and "
             "`pandera.backends.pandas.builtin_checks` modules as an example."
         )
 
@@ -140,14 +140,14 @@ def register_check_method(
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
-    """Registers a function as a :class:`~pandera.core.checks.Check` method.
+    """Registers a function as a :class:`~pandera.api.checks.Check` method.
 
     See the :ref:`user guide<extensions>` for more details.
 
     .. warning::
 
         This is the legacy method for registering check methods. Use the
-        :py:func:`~pandera.core.extensions.register_check` decorator instead.
+        :py:func:`~pandera.api.extensions.register_check` decorator instead.
 
     :param check_fn: check function to register. The function should take one
         positional argument for the object to validate and additional
@@ -226,7 +226,7 @@ def register_check_method(
                 )
 
     def register_check_wrapper(check_fn: Callable):
-        """Register a function as a :class:`~pandera.core.checks.Check` method."""
+        """Register a function as a :class:`~pandera.api.checks.Check` method."""
 
         if hasattr(Check, check_fn.__name__):
             raise ValueError(

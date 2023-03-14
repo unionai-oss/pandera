@@ -11,9 +11,9 @@ import pytest
 from packaging import version
 
 import pandera
-import pandera.core.extensions as pa_ext
+import pandera.api.extensions as pa_ext
 import pandera.typing as pat
-from pandera.core.pandas.container import DataFrameSchema
+from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
 
 try:

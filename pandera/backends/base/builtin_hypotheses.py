@@ -2,7 +2,7 @@
 """Built-in hypothesis functions base implementation.
 
 This module contains hypothesis function abstract definitions that
-correspond to the pandera.core.base.checks.Check methods. These functions do not
+correspond to the pandera.api.base.checks.Check methods. These functions do not
 actually implement any validation logic and serve as the entrypoint for
 dispatching specific implementations based on the data object type, e.g.
 `pandas.DataFrame`s.
@@ -10,7 +10,7 @@ dispatching specific implementations based on the data object type, e.g.
 
 from typing import Any, Tuple
 
-from pandera.core.hypotheses import Hypothesis
+from pandera.api.hypotheses import Hypothesis
 
 
 @Hypothesis.register_builtin_check_fn

@@ -9,9 +9,9 @@ from pandera.schema_statistics.pandas import (
     infer_series_statistics,
     parse_check_statistics,
 )
-from pandera.core.pandas.array import SeriesSchema
-from pandera.core.pandas.components import Column, Index, MultiIndex
-from pandera.core.pandas.container import DataFrameSchema
+from pandera.api.pandas.array import SeriesSchema
+from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.pandas.container import DataFrameSchema
 
 
 @overload

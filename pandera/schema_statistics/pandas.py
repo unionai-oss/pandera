@@ -5,7 +5,7 @@ from typing import Any, Dict, Union
 import pandas as pd
 
 from pandera import dtypes
-from pandera.core.checks import Check
+from pandera.api.checks import Check
 from pandera.engines import pandas_engine
 
 

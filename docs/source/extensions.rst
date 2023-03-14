@@ -33,7 +33,7 @@ However, there are two main disadvantages of schemas with inline custom checks:
    because the checks are not associated with a ``hypothesis`` strategy.
 
 ``pandera`` now offers a way to register custom checks so that they're
-available in the :class:`~pandera.core.checks.Check` class as a check method. Here
+available in the :class:`~pandera.api.checks.Check` class as a check method. Here
 let's define a custom method that checks whether a pandas object contains
 elements that lie within two values.
 
@@ -239,7 +239,7 @@ In this groupby check, we're verifying that the values of one column for
 Registered Custom Checks with the Class-based API
 -------------------------------------------------
 
-Since registered checks are part of the :class:`~pandera.core.checks.Check` namespace,
+Since registered checks are part of the :class:`~pandera.api.checks.Check` namespace,
 you can also use custom checks with the :ref:`class-based API<dataframe_models>`:
 
 .. testcode:: extensions
@@ -268,7 +268,7 @@ you can also use custom checks with the :ref:`class-based API<dataframe_models>`
     4  value     4
 
 DataFrame checks can be attached by using the :ref:`schema_model_config` class. Any field names that
-do not conflict with existing fields of :class:`~pandera.core.pandas.model_config.BaseConfig` and do not start
+do not conflict with existing fields of :class:`~pandera.api.pandas.model_config.BaseConfig` and do not start
 with an underscore (``_``) are interpreted as the name of registered checks. If the value
 is a tuple or dict, it is interpreted as the positional or keyword arguments of the check, and
 as the first argument otherwise.

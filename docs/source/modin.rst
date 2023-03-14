@@ -22,7 +22,7 @@ and :py:func:`~modin.pandas.Series` objects directly. First, install
 
 Then you can use pandera schemas to validate modin dataframes. In the example
 below we'll use the :ref:`class-based API <dataframe_models>` to define a
-:py:class:`~pandera.core.model.pandas.DataFrameModel` for validation.
+:py:class:`~pandera.api.model.pandas.DataFrameModel` for validation.
 
 .. testcode:: scaling_modin
     :skipif: SKIP_MODIN
