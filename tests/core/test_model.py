@@ -11,6 +11,7 @@ import pandera as pa
 import pandera.core.extensions as pax
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing import DataFrame, Index, Series, String
+from pandera.typing.common import GenericDtype
 
 
 def test_to_schema_and_validate() -> None:
@@ -101,6 +102,28 @@ def test_invalid_annotations() -> None:
         TypeError, match="dtype '<class '.*DummyType'>' not understood"
     ):
         InvalidDtype.to_schema()
+
+
+def test_sublcassing_series():
+    """Test that when DataFrameModel.to_schema() does not raise an error for
+    sublcassed Series."""
+
+    class ValidSeries(Series, Generic[GenericDtype]):
+        pass
+
+    class ValidSchema(pa.DataFrameModel):
+        a: ValidSeries[int]
+
+    ValidSchema.to_schema()
+
+    class InvalidSeries(int, Generic[GenericDtype]):
+        pass
+
+    class InvalidSchema(pa.DataFrameModel):
+        a: InvalidSeries[int]
+
+    with pytest.raises(pa.errors.SchemaInitError, match="Invalid annotation"):
+        InvalidSchema.to_schema()
 
 
 def test_optional_column() -> None:
