@@ -67,8 +67,12 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         try:
             self.check_column_presence(check_obj, schema, column_info)
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+        except SchemaErrors as exc:
+            for schema_error in exc.schema_errors:
+                error_handler.collect_error(
+                    schema_error["reason_code"],
+                    schema_error["error"],
+                )
 
         # strictness check and filter
         try:
@@ -471,18 +475,27 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     ):
         """Check for presence of specified columns in the data object."""
         if column_info.absent_column_names:
-            # NOTE: only report the first absent column for now, need to update
-            # this when backend stuff is complete
-            colname, *_ = column_info.absent_column_names
-            raise SchemaError(
+            reason_code = "column_not_in_dataframe"
+            raise SchemaErrors(
                 schema=schema,
+                schema_errors=[
+                    {
+                        "reason_code": reason_code,
+                        "error": SchemaError(
+                            schema=schema,
+                            data=check_obj,
+                            message=(
+                                f"column '{colname}' not in dataframe"
+                                f"\n{check_obj.head()}"
+                            ),
+                            failure_cases=scalar_failure_case(colname),
+                            check="column_in_dataframe",
+                            reason_code=reason_code,
+                        ),
+                    }
+                    for colname in column_info.absent_column_names
+                ],
                 data=check_obj,
-                message=(
-                    f"column '{colname}' not in dataframe\n{check_obj.head()}"
-                ),
-                failure_cases=scalar_failure_case(colname),
-                check="column_in_dataframe",
-                reason_code="column_not_in_dataframe",
             )
 
     def check_column_values_are_unique(self, check_obj: pd.DataFrame, schema):

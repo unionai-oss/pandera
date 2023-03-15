@@ -1965,3 +1965,24 @@ def test_column_set_unique():
     assert not test_schema.columns["a"].unique
     test_schema = test_schema.update_column("a", unique=True)
     assert test_schema.columns["a"].unique
+
+
+def test_missing_columns():
+    """Test that multiple missing columns is correctly reported."""
+    schema = DataFrameSchema(
+        {
+            "column3": Column(int),
+            "column2": Column(float),
+        }
+    )
+
+    df = pd.DataFrame({"column1": [1]})
+
+    try:
+        schema.validate(df, lazy=True)
+    except errors.SchemaErrors as exc:
+        assert (exc.failure_cases["check"] == "column_in_dataframe").all()
+        assert exc.failure_cases["failure_case"].tolist() == [
+            "column3",
+            "column2",
+        ]
