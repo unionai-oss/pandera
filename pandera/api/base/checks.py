@@ -1,6 +1,7 @@
 """Data validation base check."""
 
 from collections import namedtuple
+import inspect
 from itertools import chain
 from typing import (
     Any,
@@ -183,7 +184,17 @@ class BaseCheck(metaclass=MetaCheck):
     @classmethod
     def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:
         """Get the backend associated with the type of ``check_obj`` ."""
-        return cls.BACKEND_REGISTRY[(cls, type(check_obj))]
+        check_obj_cls = type(check_obj)
+        classes = inspect.getmro(check_obj_cls)
+        for _class in classes:
+            try:
+                return cls.BACKEND_REGISTRY[(cls, _class)]
+            except KeyError:
+                pass
+        raise KeyError(
+            f"Backend not found for class: {check_obj_cls}. Looked up the "
+            f"following base classes: {classes}"
+        )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):

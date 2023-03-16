@@ -1986,3 +1986,20 @@ def test_missing_columns():
             "column3",
             "column2",
         ]
+
+
+def test_pandas_dataframe_subclass_validation():
+    """Test that DataFrame subclasses can be validated by pandera."""
+
+    class MyDataFrame(pd.DataFrame):
+        """A custom dataframe subclass"""
+
+        @property
+        def _constructor(self):
+            return MyDataFrame
+
+    dummy_check = Check(lambda _: True)
+    schema = DataFrameSchema({"x": Column(int, checks=dummy_check)})
+
+    dataframe = MyDataFrame([1, 2, 3], columns=["x"])
+    print(schema.validate(dataframe))
