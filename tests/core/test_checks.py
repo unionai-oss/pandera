@@ -487,3 +487,17 @@ def test_custom_check_error_is_failure_case(extra_registered_checks):
         test_schema.validate(df, lazy=True)
     except errors.SchemaErrors as err:
         assert err.error_counts == {"check_error": 1}
+
+
+def test_check_backend_not_found():
+    """Test that checks complain if a backend is not register for that type."""
+
+    class CustomDataObject:
+        """Custom data object."""
+
+        ...
+
+    dummy_check = Check(lambda _: True)
+
+    with pytest.raises(KeyError, match="Backend not found for class"):
+        dummy_check(CustomDataObject())
