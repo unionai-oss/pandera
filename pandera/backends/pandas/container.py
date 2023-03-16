@@ -350,7 +350,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 raise err
             _error_handler.collect_error("schema_component_check", err)
 
-        if error_handler is None:
+        if error_handler is None and _error_handler.collected_errors:
             # raise SchemaErrors if this method is called without an
             # error_handler
             raise SchemaErrors(
