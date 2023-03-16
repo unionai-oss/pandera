@@ -142,6 +142,10 @@ def _multiindex_to_frame(df):
 
 def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
     """Consolidate schema error dicts to produce data for error message."""
+    assert schema_errors, (
+        "schema_errors input cannot be empty. Check how the backend "
+        "validation logic is handling/raising SchemaError(s)."
+    )
     check_failure_cases = []
 
     column_order = [

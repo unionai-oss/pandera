@@ -579,22 +579,22 @@ def test_coerce_dtype_in_dataframe():
     )
 
     for schema in [schema1, schema2]:
-        result = schema.validate(df)
-        column1_datatype = Engine.dtype(result.column1.dtype)
-        assert column1_datatype == Engine.dtype(int)
+        validated = schema.validate(df)
+        coerced = schema.coerce_dtype(df)
+        assert Engine.dtype(validated.column1.dtype) == Engine.dtype(int)
+        assert Engine.dtype(coerced.column1.dtype) == Engine.dtype(int)
+        assert Engine.dtype(validated.column2.dtype) == Engine.dtype(datetime)
+        assert Engine.dtype(coerced.column2.dtype) == Engine.dtype(datetime)
 
-        column2_datatype = Engine.dtype(result.column2.dtype)
-        assert column2_datatype == Engine.dtype(datetime)
-
-        # make sure that correct error is raised when null values are present
-        # in a float column that's coerced to an int
-        schema = DataFrameSchema({"column4": Column(int, coerce=True)})
-        with pytest.raises(
-            errors.SchemaError,
-            match=r"^Error while coercing .+ to type u{0,1}int[0-9]{1,2}: "
-            r"Could not coerce .+ data_container into type",
-        ):
-            schema.validate(df)
+    # make sure that correct error is raised when null values are present
+    # in a float column that's coerced to an int
+    schema = DataFrameSchema({"column4": Column(int, coerce=True)})
+    with pytest.raises(
+        errors.SchemaError,
+        match=r"^Error while coercing .+ to type u{0,1}int[0-9]{1,2}: "
+        r"Could not coerce .+ data_container into type",
+    ):
+        schema.validate(df)
 
 
 def test_no_dtype_dataframe():
