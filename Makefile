@@ -1,5 +1,5 @@
 .PHONY: tests clean clean-pyc upload-pypi-test upload-pypi requirements docs \
-	code-cov
+	code-cov docs-clean
 
 clean:
 	python setup.py clean
@@ -20,8 +20,10 @@ upload-pypi:
 requirements:
 	pip install -r requirements-dev.txt
 
-docs:
+docs-clean:
 	rm -rf docs/**/generated docs/**/methods docs/_build docs/source/_contents
+
+docs: docs-clean
 	python -m sphinx -E "docs/source" "docs/_build" && make -C docs doctest
 
 quick-docs:

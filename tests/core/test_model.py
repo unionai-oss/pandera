@@ -25,16 +25,31 @@ def test_to_schema_and_validate() -> None:
         c: Series[Any]
         idx: Index[str]
 
+    class SchemaLegacy(pa.SchemaModel):
+        a: Series[int]
+        b: Series[str]
+        c: Series[Any]
+        idx: Index[str]
+
     expected = pa.DataFrameSchema(
         name="Schema",
         columns={"a": pa.Column(int), "b": pa.Column(str), "c": pa.Column()},
         index=pa.Index(str),
     )
+    expected_legacy = deepcopy(expected)
+    expected_legacy.name = "SchemaLegacy"
+
     assert expected == Schema.to_schema()
+    assert expected_legacy == SchemaLegacy.to_schema()
 
     Schema(pd.DataFrame({"a": [1], "b": ["foo"], "c": [3.4]}, index=["1"]))
+    SchemaLegacy(
+        pd.DataFrame({"a": [1], "b": ["foo"], "c": [3.4]}, index=["1"])
+    )
     with pytest.raises(pa.errors.SchemaError):
         Schema(pd.DataFrame({"a": [1]}))
+    with pytest.raises(pa.errors.SchemaError):
+        SchemaLegacy(pd.DataFrame({"a": [1]}))
 
 
 def test_empty_schema() -> None:
