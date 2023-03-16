@@ -560,17 +560,16 @@ class DataFrameModel(BaseModel):
         field_schema.update(_to_json_schema(cls.to_schema()))
 
 
-class SchemaModel(DataFrameModel):
-    """Alias for DataFrameModel.
+SchemaModel = DataFrameModel
+"""
+Alias for DataFrameModel.
 
-    .. warning::
+.. warning::
 
-       This subclass is necessary for backwards compatibility, and will be
-       deprecated in pandera version ``0.20.0`` in favor of
-       :py:class:`~pandera.api.pandas.model.DataFrameModel`
-    """
-
-    ...
+   This subclass is necessary for backwards compatibility, and will be
+   deprecated in pandera version ``0.20.0`` in favor of
+   :py:class:`~pandera.api.pandas.model.DataFrameModel`
+"""
 
 
 def _build_schema_index(
