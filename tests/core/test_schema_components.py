@@ -838,6 +838,11 @@ def test_multiindex_incorrect_input(indexes) -> None:
 def test_index_validation_pandas_string_dtype():
     """Test that pandas string type is correctly validated."""
 
+    if pandas_version().release <= (1, 3, 5):
+        pytest.xfail(
+            "pd.StringDtype is not supported in the pd.Index in pandas<=1.3.5"
+        )
+
     schema = DataFrameSchema(
         columns={"data": Column(int)},
         index=Index(pd.StringDtype(), name="uid"),

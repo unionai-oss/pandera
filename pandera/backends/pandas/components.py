@@ -238,8 +238,13 @@ class IndexBackend(ArraySchemaBackend):
 
         if schema.coerce:
             check_obj.index = schema.coerce_dtype(check_obj.index)
-
-        obj_to_validate = check_obj.index.to_series().reset_index(drop=True)
+            obj_to_validate = schema.dtype.coerce(
+                check_obj.index.to_series().reset_index(drop=True)
+            )
+        else:
+            obj_to_validate = check_obj.index.to_series().reset_index(
+                drop=True
+            )
 
         assert is_field(
             super().validate(
