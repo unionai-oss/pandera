@@ -695,7 +695,7 @@ class NpString(numpy_engine.String):
                 ["<class 'str'>", "<class 'numpy.str_'>"]
             )
         else:
-            is_python_string = data_container.map(lambda x: isinstance(x, str))
+            is_python_string = data_container.map(lambda x: isinstance(x, str))  # type: ignore[operator]
         return is_python_string | data_container.isna()
 
 
