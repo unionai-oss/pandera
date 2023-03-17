@@ -236,27 +236,14 @@ class IndexBackend(ArraySchemaBackend):
                 schema, check_obj, "Attempting to validate mismatch index"
             )
 
-        series_cls = pd.Series
-        # NOTE: this is a hack to get pyspark.pandas working, this needs a more
-        # principled implementation
-        if type(check_obj).__module__ == "pyspark.pandas.frame":
-            # pylint: disable=import-outside-toplevel
-            import pyspark.pandas as ps
-
-            series_cls = ps.Series
-
         if schema.coerce:
             check_obj.index = schema.coerce_dtype(check_obj.index)
-            # handles case where pandas native string type is not supported
-            # by index.
             obj_to_validate = schema.dtype.coerce(
-                series_cls(
-                    check_obj.index.to_numpy(), name=check_obj.index.name
-                )
+                check_obj.index.to_series().reset_index(drop=True)
             )
         else:
-            obj_to_validate = series_cls(
-                check_obj.index.to_numpy(), name=check_obj.index.name
+            obj_to_validate = check_obj.index.to_series().reset_index(
+                drop=True
             )
 
         assert is_field(

@@ -833,3 +833,24 @@ def test_multiindex_incorrect_input(indexes) -> None:
     """Passing in non-Index object raises SchemaInitError."""
     with pytest.raises((errors.SchemaInitError, TypeError)):
         MultiIndex(indexes)
+
+
+def test_index_validation_pandas_string_dtype():
+    """Test that pandas string type is correctly validated."""
+
+    if pandas_version().release <= (1, 3, 5):
+        pytest.xfail(
+            "pd.StringDtype is not supported in the pd.Index in pandas<=1.3.5"
+        )
+
+    schema = DataFrameSchema(
+        columns={"data": Column(int)},
+        index=Index(pd.StringDtype(), name="uid"),
+    )
+
+    df = pd.DataFrame(
+        {"data": range(2)},
+        index=pd.Index(["one", "two"], dtype=pd.StringDtype(), name="uid"),
+    )
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
