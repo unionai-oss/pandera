@@ -1943,8 +1943,14 @@ def test_schema_level_unique_missing_columns():
         test_schema.validate(df, lazy=True)
     except errors.SchemaErrors as err:
         assert len(err.failure_cases) == 3
-        assert err.schema_errors[0]["reason_code"] == "column_not_in_dataframe"
-        assert err.schema_errors[1]["reason_code"] == "duplicates"
+        assert (
+            err.schema_errors[0]["reason_code"]
+            == errors.SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
+        )
+        assert (
+            err.schema_errors[1]["reason_code"]
+            == errors.SchemaErrorReason.DUPLICATES
+        )
 
 
 def test_column_set_unique():

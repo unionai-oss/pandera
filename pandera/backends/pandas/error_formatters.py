@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Tuple, Union
 
 import pandas as pd
 
+from pandera.errors import SchemaErrorReason
+
 
 def format_generic_error_message(
     parent_schema,
@@ -179,7 +181,11 @@ def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
             else:
                 column = (
                     err.schema.name
-                    if reason_code == "schema_component_check"
+                    if reason_code
+                    in {
+                        SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                        SchemaErrorReason.DATAFRAME_CHECK,
+                    }
                     else None
                 )
 

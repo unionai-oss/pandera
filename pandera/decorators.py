@@ -666,7 +666,7 @@ def check_types(
                         )
                     except errors.SchemaError as e:
                         error_handler.collect_error(
-                            "invalid_type",
+                            errors.SchemaErrorReason.INVALID_TYPE,
                             _parse_schema_error(
                                 "check_types", wrapped, schema, arg_value, e
                             ),

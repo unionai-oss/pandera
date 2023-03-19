@@ -17,7 +17,7 @@ from pandera.api.pandas.types import (
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
 
 
 class ColumnBackend(ArraySchemaBackend):
@@ -193,13 +193,16 @@ class ColumnBackend(ArraySchemaBackend):
                     )
                 )
             except SchemaError as err:
-                error_handler.collect_error("dataframe_check", err)
+                error_handler.collect_error(
+                    SchemaErrorReason.DATAFRAME_CHECK,
+                    err,
+                )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(
-                    "check_error",
+                    SchemaErrorReason.CHECK_ERROR,
                     SchemaError(
                         schema=schema,
                         data=check_obj,
@@ -305,7 +308,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                         index_array = _index.coerce_dtype(index_array)
                     except SchemaError as err:
                         error_handler.collect_error(
-                            "dtype_coercion_error", err
+                            SchemaErrorReason.DATATYPE_COERCION, err
                         )
                 coerced_multi_index[index_level] = index_array
 

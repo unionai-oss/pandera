@@ -20,6 +20,7 @@ from pandera.errors import (
     SchemaError,
     SchemaErrors,
     SchemaDefinitionError,
+    SchemaErrorReason,
 )
 
 
@@ -139,11 +140,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
                 check_results.append(is_table(result))
             except SchemaError as err:
-                error_handler.collect_error("schema_component_check", err)
+                error_handler.collect_error(
+                    SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                    err,
+                )
             except SchemaErrors as err:
                 for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
-                        "schema_component_check", schema_error_dict["error"]
+                        SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                        schema_error_dict["error"],
                     )
         assert all(check_results)
 
@@ -157,7 +162,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     self.run_check(check_obj, schema, check, check_index)
                 )
             except SchemaError as err:
-                error_handler.collect_error("dataframe_check", err)
+                error_handler.collect_error(
+                    SchemaErrorReason.DATAFRAME_CHECK,
+                    err,
+                )
             except SchemaDefinitionError:
                 raise
             except Exception as err:  # pylint: disable=broad-except
@@ -169,7 +177,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     + traceback.format_exc()
                 )
                 error_handler.collect_error(
-                    "check_error",
+                    SchemaErrorReason.CHECK_ERROR,
                     SchemaError(
                         self,
                         check_obj,
@@ -286,7 +294,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     ),
                     failure_cases=scalar_failure_case(column),
                     check="column_in_schema",
-                    reason_code="column_not_in_schema",
+                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
                 )
             if schema.strict == "filter" and not is_schema_col:
                 filter_out_columns.append(column)
@@ -302,7 +310,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         message=f"column '{column}' out-of-order",
                         failure_cases=scalar_failure_case(column),
                         check="column_ordered",
-                        reason_code="column_not_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                     )
 
         if schema.strict == "filter":
@@ -343,12 +351,16 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     # validation
                     raise schema_error_dict["error"]
                 _error_handler.collect_error(
-                    "schema_component_check", schema_error_dict["error"]
+                    SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                    schema_error_dict["error"],
                 )
         except SchemaError as err:
             if not _error_handler.lazy:
                 raise err
-            _error_handler.collect_error("schema_component_check", err)
+            _error_handler.collect_error(
+                SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                err,
+            )
 
         if error_handler is None and _error_handler.collected_errors:
             # raise SchemaErrors if this method is called without an
@@ -399,7 +411,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             try:
                 return coerce_fn(obj)
             except SchemaError as exc:
-                error_handler.collect_error("dtype_coercion_error", exc)
+                error_handler.collect_error(
+                    SchemaErrorReason.DATATYPE_COERCION,
+                    exc,
+                )
                 return obj
 
         for colname, col_schema in schema.columns.items():
@@ -467,7 +482,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 ),
                 failure_cases=scalar_failure_case(failed),
                 check="dataframe_column_labels_unique",
-                reason_code="duplicate_dataframe_column_labels",
+                reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
             )
 
     def check_column_presence(
@@ -475,7 +490,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     ):
         """Check for presence of specified columns in the data object."""
         if column_info.absent_column_names:
-            reason_code = "column_not_in_dataframe"
+            reason_code = SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=[
@@ -537,5 +552,5 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     message=f"columns '{*subset,}' not unique:\n{failure_cases}",
                     failure_cases=failure_cases,
                     check="multiple_fields_uniqueness",
-                    reason_code="duplicates",
+                    reason_code=SchemaErrorReason.DUPLICATES,
                 )

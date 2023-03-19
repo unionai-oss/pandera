@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Union
 
-from pandera.errors import SchemaError
+from pandera.errors import SchemaError, SchemaErrorReason
 
 
 class SchemaErrorHandler:
@@ -24,7 +24,7 @@ class SchemaErrorHandler:
 
     def collect_error(
         self,
-        reason_code: str,
+        reason_code: SchemaErrorReason,
         schema_error: SchemaError,
         original_exc: BaseException = None,
     ):
