@@ -2,6 +2,7 @@
 """Test conversion of data from and to different formats."""
 
 import io
+import tempfile
 from typing import Any
 
 import pandas as pd
@@ -132,6 +133,17 @@ class OutSchemaPickleCallable(OutSchema):
         to_format_buffer = io.BytesIO
 
 
+def custom_to_buffer():
+    """Creates a file handle to a temporary file."""
+    return tempfile.NamedTemporaryFile()
+
+
+class OutSchemaPickleCallableWithFile(OutSchema):
+    class Config:
+        to_format = custom_to_pickle
+        to_format_buffer = custom_to_buffer
+
+
 def mock_dataframe() -> pd.DataFrame:
     """Create a valid mock dataframe."""
     return pd.DataFrame({"str_col": ["a"], "int_col": [1]})
@@ -159,8 +171,11 @@ def _needs_pyarrow(schema) -> bool:
     "schema,to_fn,buf_cls",
     [
         [InSchemaCsv, lambda df, x: df.to_csv(x, index=None), io.StringIO],
-        [InSchemaCsvCallable,
-            lambda df, x: df.to_csv(x, index=None), io.StringIO],
+        [
+            InSchemaCsvCallable,
+            lambda df, x: df.to_csv(x, index=None),
+            io.StringIO,
+        ],
         [InSchemaDict, lambda df: df.to_dict(orient="records"), None],
         [
             InSchemaJson,
@@ -214,6 +229,13 @@ def test_from_format(schema, to_fn, buf_cls):
             assert df.equals(out)
 
 
+def custom_pickle_file_reader(fp):
+    """Custom file reader that closes the file handle."""
+    out = pd.read_pickle(fp)
+    fp.close()
+    return out
+
+
 @pytest.mark.parametrize(
     "schema,from_fn,buf_cls",
     [
@@ -225,6 +247,11 @@ def test_from_format(schema, to_fn, buf_cls):
         [OutSchemaParquet, pd.read_parquet, io.BytesIO],
         [OutSchemaPickle, pd.read_pickle, io.BytesIO],
         [OutSchemaPickleCallable, pd.read_pickle, io.BytesIO],
+        [
+            OutSchemaPickleCallableWithFile,
+            custom_pickle_file_reader,
+            tempfile._TemporaryFileWrapper,
+        ],  # noqa
     ],
 )
 def test_to_format(schema, from_fn, buf_cls):

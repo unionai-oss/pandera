@@ -143,16 +143,15 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             writer = functools.partial(config.to_format, data)
             if callable(config.to_format_buffer):
                 buffer = config.to_format_buffer()
-            elif isinstance(config.to_format_buffer, str):
-                buffer = config.to_format_buffer
             elif config.to_format_buffer is None:
                 buffer = None
             else:
                 raise TypeError(
-                    "To format buffer must be None, callable, or str"
+                    "to_format_buffer must be Callable or None, found "
+                    f"{config.to_format_buffer}"
                 )
         else:
-            writer, buffer = {
+            writer, buffer = {  # type: ignore[assignment]
                 Formats.dict: (data.to_dict, None),
                 Formats.csv: (data.to_csv, None),
                 Formats.json: (data.to_json, None),
