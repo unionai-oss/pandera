@@ -145,7 +145,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                 buffer = config.to_format_buffer()
             elif config.to_format_buffer is None:
                 buffer = None
-            else:
+            else:  # pragma: no cover
                 raise TypeError(
                     "to_format_buffer must be Callable or None, found "
                     f"{config.to_format_buffer}"
