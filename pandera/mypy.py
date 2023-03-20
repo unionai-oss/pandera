@@ -137,6 +137,8 @@ class DataFrameModelTransformer:
             x: pa.typing.Series[str]  # mypy assignment error, cannot override types
         """
         for def_ in self.ctx.cls.defs.body:
+            if not hasattr(def_, "type"):
+                continue
             type_ = def_.type
             if get_typename(def_.type) in FIELD_GENERICS_FULLNAMES:
                 type_.args = ()  # erase generic type arg
