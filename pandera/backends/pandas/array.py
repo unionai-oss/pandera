@@ -15,14 +15,19 @@ from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.api.pandas.types import is_field
 from pandera.engines.pandas_engine import Engine
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import ParserError, SchemaError, SchemaErrors
+from pandera.errors import (
+    ParserError,
+    SchemaError,
+    SchemaErrors,
+    SchemaErrorReason,
+)
 
 
 class CoreCheckResult(NamedTuple):
     """Namedtuple for holding results of core checks."""
 
     check: str
-    reason_code: str
+    reason_code: SchemaErrorReason
     passed: bool
     message: Optional[str] = None
     failure_cases: Optional[Iterable] = None
@@ -143,7 +148,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
     def check_name(self, check_obj: pd.Series, schema):
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
-            reason_code="wrong_field_name",
+            reason_code=SchemaErrorReason.WRONG_FIELD_NAME,
             passed=schema.name is None or check_obj.name == schema.name,
             message=(
                 f"Expected {type(check_obj)} to have name '{schema.name}', "
@@ -157,7 +162,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         passed = schema.nullable or not isna.any()
         return CoreCheckResult(
             check="not_nullable",
-            reason_code="series_contains_nulls",
+            reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
             passed=cast(bool, passed),
             message=(
                 f"non-nullable series '{check_obj.name}' contains "
@@ -200,7 +205,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         return CoreCheckResult(
             check="field_uniqueness",
-            reason_code="series_contains_duplicates",
+            reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
             passed=passed,
             message=message,
             failure_cases=failure_cases,
@@ -236,7 +241,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         return CoreCheckResult(
             check=f"dtype('{schema.dtype}')",
-            reason_code="wrong_dtype",
+            reason_code=SchemaErrorReason.WRONG_DATATYPE,
             passed=passed,
             message=msg,
             failure_cases=failure_cases,
@@ -258,7 +263,10 @@ class ArraySchemaBackend(PandasSchemaBackend):
                     )
                 )
             except SchemaError as err:
-                error_handler.collect_error("dataframe_check", err)
+                error_handler.collect_error(
+                    SchemaErrorReason.DATAFRAME_CHECK,
+                    err,
+                )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
                 if isinstance(err, DispatchError):
@@ -268,7 +276,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(
-                    "check_error",
+                    SchemaErrorReason.CHECK_ERROR,
                     SchemaError(
                         schema=schema,
                         data=check_obj,

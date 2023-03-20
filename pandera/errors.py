@@ -1,6 +1,7 @@
 """pandera-specific errors."""
 
 import warnings
+from enum import Enum
 from typing import Any, Dict, List, NamedTuple
 
 
@@ -125,6 +126,27 @@ class FailureCaseMetadata(NamedTuple):
     failure_cases: Any
     message: str
     error_counts: Dict[str, int]
+
+
+class SchemaErrorReason(Enum):
+    """Reason codes for schema errors."""
+
+    INVALID_TYPE = "invalid_type"
+    DATATYPE_COERCION = "dtype_coercion_error"
+    COLUMN_NOT_IN_SCHEMA = "column_not_in_schema"
+    COLUMN_NOT_ORDERED = "column_not_ordered"
+    DUPLICATE_COLUMN_LABELS = "duplicate_dataframe_column_labels"
+    COLUMN_NOT_IN_DATAFRAME = "column_not_in_dataframe"
+    SCHEMA_COMPONENT_CHECK = "schema_component_check"
+    DATAFRAME_CHECK = "dataframe_check"
+    CHECK_ERROR = "check_error"
+    DUPLICATES = "duplicates"
+    WRONG_FIELD_NAME = "wrong_field_name"
+    SERIES_CONTAINS_NULLS = "series_contains_nulls"
+    SERIES_CONTAINS_DUPLICATES = "series_contains_duplicates"
+    SERIES_CHECK = "series_check"
+    WRONG_DATATYPE = "wrong_dtype"
+    INDEX_CHECK = "index_check"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):
