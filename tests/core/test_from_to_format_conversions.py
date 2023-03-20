@@ -2,6 +2,8 @@
 """Test conversion of data from and to different formats."""
 
 import io
+import tempfile
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -18,6 +20,11 @@ class InSchema(pa.DataFrameModel):
 class InSchemaCsv(InSchema):
     class Config:
         from_format = "csv"
+
+
+class InSchemaCsvCallable(InSchema):
+    class Config:
+        from_format = pd.read_csv
 
 
 class InSchemaDict(InSchema):
@@ -46,6 +53,11 @@ class InSchemaPickle(InSchema):
         from_format = "pickle"
 
 
+class InSchemaPickleCallable(InSchema):
+    class Config:
+        from_format = pd.read_pickle
+
+
 class OutSchema(InSchema):
     float_col: pa.typing.Series[float]
 
@@ -53,6 +65,25 @@ class OutSchema(InSchema):
 class OutSchemaCsv(OutSchema):
     class Config:
         to_format = "csv"
+        to_format_kwargs = {"index": None}
+
+
+def custom_to_csv(data: Any, *args, **kwargs):
+    """
+    Function to save data to csv, used in to_format function.
+
+    Args:
+        data: The data object to be saved.
+
+    Returns:
+        Returns none if file path provided, else to_format buffer
+    """
+    return data.to_csv(*args, **kwargs)
+
+
+class OutSchemaCsvCallable(OutSchema):
+    class Config:
+        to_format = custom_to_csv
         to_format_kwargs = {"index": None}
 
 
@@ -83,6 +114,36 @@ class OutSchemaPickle(OutSchema):
         to_format = "pickle"
 
 
+def custom_to_pickle(data: Any, *args, **kwargs):
+    """
+    Function to save data to pickle, used in to_format function.
+
+    Args:
+        data: The data object to be saved.
+
+    Returns:
+        Returns none if file path provided, else to_format buffer
+    """
+    return data.to_pickle(*args, **kwargs)
+
+
+class OutSchemaPickleCallable(OutSchema):
+    class Config:
+        to_format = custom_to_pickle
+        to_format_buffer = io.BytesIO
+
+
+def custom_to_buffer():
+    """Creates a file handle to a temporary file."""
+    return tempfile.NamedTemporaryFile()
+
+
+class OutSchemaPickleCallableWithFile(OutSchema):
+    class Config:
+        to_format = custom_to_pickle
+        to_format_buffer = custom_to_buffer
+
+
 def mock_dataframe() -> pd.DataFrame:
     """Create a valid mock dataframe."""
     return pd.DataFrame({"str_col": ["a"], "int_col": [1]})
@@ -110,6 +171,11 @@ def _needs_pyarrow(schema) -> bool:
     "schema,to_fn,buf_cls",
     [
         [InSchemaCsv, lambda df, x: df.to_csv(x, index=None), io.StringIO],
+        [
+            InSchemaCsvCallable,
+            lambda df, x: df.to_csv(x, index=None),
+            io.StringIO,
+        ],
         [InSchemaDict, lambda df: df.to_dict(orient="records"), None],
         [
             InSchemaJson,
@@ -120,6 +186,7 @@ def _needs_pyarrow(schema) -> bool:
         [InSchemaFeather, lambda df, x: df.to_feather(x), io.BytesIO],
         [InSchemaParquet, lambda df, x: df.to_parquet(x), io.BytesIO],
         [InSchemaPickle, lambda df, x: df.to_pickle(x), io.BytesIO],
+        [InSchemaPickleCallable, lambda df, x: df.to_pickle(x), io.BytesIO],
     ],
 )
 def test_from_format(schema, to_fn, buf_cls):
@@ -162,15 +229,29 @@ def test_from_format(schema, to_fn, buf_cls):
             assert df.equals(out)
 
 
+def custom_pickle_file_reader(fp):
+    """Custom file reader that closes the file handle."""
+    out = pd.read_pickle(fp)
+    fp.close()
+    return out
+
+
 @pytest.mark.parametrize(
     "schema,from_fn,buf_cls",
     [
         [OutSchemaCsv, pd.read_csv, io.StringIO],
+        [OutSchemaCsvCallable, pd.read_csv, io.StringIO],
         [OutSchemaDict, pd.DataFrame, None],
         [OutSchemaJson, lambda x: pd.read_json(x, orient="records"), None],
         [OutSchemaFeather, pd.read_feather, io.BytesIO],
         [OutSchemaParquet, pd.read_parquet, io.BytesIO],
         [OutSchemaPickle, pd.read_pickle, io.BytesIO],
+        [OutSchemaPickleCallable, pd.read_pickle, io.BytesIO],
+        [
+            OutSchemaPickleCallableWithFile,
+            custom_pickle_file_reader,
+            tempfile._TemporaryFileWrapper,
+        ],  # noqa
     ],
 )
 def test_to_format(schema, from_fn, buf_cls):

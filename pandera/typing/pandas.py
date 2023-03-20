@@ -1,5 +1,6 @@
 """Typing definitions and helpers."""
 # pylint:disable=abstract-method,disable=too-many-ancestors
+import functools
 import io
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
@@ -111,14 +112,17 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
                     ) from exc
             return obj
 
-        reader = {
-            Formats.dict: pd.DataFrame,
-            Formats.csv: pd.read_csv,
-            Formats.json: pd.read_json,
-            Formats.feather: pd.read_feather,
-            Formats.parquet: pd.read_parquet,
-            Formats.pickle: pd.read_pickle,
-        }[Formats(config.from_format)]
+        if callable(config.from_format):
+            reader = config.from_format
+        else:
+            reader = {
+                Formats.dict: pd.DataFrame,
+                Formats.csv: pd.read_csv,
+                Formats.json: pd.read_json,
+                Formats.feather: pd.read_feather,
+                Formats.parquet: pd.read_parquet,
+                Formats.pickle: pd.read_pickle,
+            }[Formats(config.from_format)]
 
         return reader(obj, **(config.from_format_kwargs or {}))  # type: ignore
 
@@ -135,14 +139,26 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         if config.to_format is None:
             return data
 
-        writer, buffer = {
-            Formats.dict: (data.to_dict, None),
-            Formats.csv: (data.to_csv, None),
-            Formats.json: (data.to_json, None),
-            Formats.feather: (data.to_feather, io.BytesIO()),
-            Formats.parquet: (data.to_parquet, io.BytesIO()),
-            Formats.pickle: (data.to_pickle, io.BytesIO()),
-        }[Formats(config.to_format)]
+        if callable(config.to_format):
+            writer = functools.partial(config.to_format, data)
+            if callable(config.to_format_buffer):
+                buffer = config.to_format_buffer()
+            elif config.to_format_buffer is None:
+                buffer = None
+            else:  # pragma: no cover
+                raise TypeError(
+                    "to_format_buffer must be Callable or None, found "
+                    f"{config.to_format_buffer}"
+                )
+        else:
+            writer, buffer = {  # type: ignore[assignment]
+                Formats.dict: (data.to_dict, None),
+                Formats.csv: (data.to_csv, None),
+                Formats.json: (data.to_json, None),
+                Formats.feather: (data.to_feather, io.BytesIO()),
+                Formats.parquet: (data.to_parquet, io.BytesIO()),
+                Formats.pickle: (data.to_pickle, io.BytesIO()),
+            }[Formats(config.to_format)]
 
         args = [] if buffer is None else [buffer]
         out = writer(*args, **(config.to_format_kwargs or {}))  # type: ignore
