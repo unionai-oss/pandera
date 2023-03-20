@@ -54,4 +54,5 @@ types-pyyaml
 types-pkg_resources
 types-requests
 types-pytz
+jupyterlite
 jupyterlite_sphinx
