@@ -1993,18 +1993,36 @@ def test_missing_columns():
             "column2",
         ]
 
-def test_default_with_correct_dtype():
+@pytest.mark.parametrize(
+    "array_schema,series,expected_values",
+    [
+       (
+        ArraySchema(str, default="the second"),
+        pd.Series(["the first", None], dtype=str),
+        ["the first", "the second"]
+       ),
+       (
+        ArraySchema(float, default=0.0),
+        pd.Series([1.0, None], dtype=float),
+        [1.0, 0.0]
+       ),
+       (
+        ArraySchema(bool, default=False),
+        pd.Series([True, None], dtype=bool),
+        [True, False]
+       ),
+       (
+        ArraySchema("Int64", default=0),
+        pd.Series([1, None], dtype="Int64"),
+        [1, 0]
+       )
+    ],
+)
+def test_default_with_correct_dtype(array_schema: ArraySchema, series: pd.Series, expected_values: list):
     """Test that missing rows are backfilled with the default if missing"""
-    array_schema = ArraySchema(
-        str,
-        default="the second",
-    )
-
-    series = pd.Series(["the first", None])
-
     array_schema.validate(series)
 
-    assert set(series.values) == set(["the first", "the second"])
+    assert set(series.values) == set(expected_values)
 
 def test_default_with_incorrect_dtype_raises_error():
     """Test that if a default with the incorrect dtype is passed, a SchemaError is raised"""

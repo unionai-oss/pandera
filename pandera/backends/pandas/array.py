@@ -75,8 +75,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
             random_state,
         )
 
-
-
         # run the core checks
         for core_check, args in (
             (self.check_name, (field_obj_subsample, schema)),
