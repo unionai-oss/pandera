@@ -1993,6 +1993,29 @@ def test_missing_columns():
             "column2",
         ]
 
+def test_default_with_correct_dtype():
+    """Test that missing rows are backfilled with the default if missing"""
+    array_schema = ArraySchema(
+        str,
+        default="the second",
+    )
+
+    series = pd.Series(["the first", None])
+
+    array_schema.validate(series)
+
+    assert set(series.values) == set(["the first", "the second"])
+
+def test_default_with_incorrect_dtype_raises_error():
+    """Test that if a default with the incorrect dtype is passed, a SchemaError is raised"""
+    array_schema = ArraySchema(
+        str,
+        default=1,
+    )
+
+    series = pd.Series(["the first", None])
+    with pytest.raises(errors.SchemaError):
+        array_schema.validate(series)
 
 def test_pandas_dataframe_subclass_validation():
     """Test that DataFrame subclasses can be validated by pandera."""

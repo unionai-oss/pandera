@@ -29,6 +29,7 @@ class Column(ArraySchema):
         regex: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
     ) -> None:
         """Create column validator object.
 
@@ -52,6 +53,7 @@ class Column(ArraySchema):
             regex pattern to apply to multiple columns in a dataframe.
         :param title: A human-readable label for the column.
         :param description: An arbitrary textual description of the column.
+        :param default: The default value for missing values in the column.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -82,6 +84,7 @@ class Column(ArraySchema):
             name=name,
             title=title,
             description=description,
+            default=default
         )
         if (
             name is not None
@@ -116,6 +119,7 @@ class Column(ArraySchema):
             "regex": self.regex,
             "title": self.title,
             "description": self.description,
+            "default": self.default,
         }
 
     def set_name(self, name: str):
@@ -260,6 +264,7 @@ class Index(ArraySchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 

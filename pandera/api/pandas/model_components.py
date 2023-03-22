@@ -120,6 +120,7 @@ def Field(
     dtype_kwargs: Optional[Dict[str, Any]] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    default: Optional[Any] = None,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a DataFrameModel.
@@ -148,6 +149,7 @@ def Field(
         field.
     :param title: A human-readable label for the field.
     :param description: An arbitrary textual description of the field.
+    :param default: Optional default value of the field.
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -189,6 +191,7 @@ def Field(
         alias=alias,
         title=title,
         description=description,
+        default=default,
         dtype_kwargs=dtype_kwargs,
     )
 

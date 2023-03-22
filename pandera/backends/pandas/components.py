@@ -2,7 +2,7 @@
 
 import traceback
 from copy import copy, deepcopy
-from typing import Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -240,6 +240,7 @@ class IndexBackend(ArraySchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        default: Optional[Any] = None
     ) -> Union[pd.DataFrame, pd.Series]:
         if is_multiindex(check_obj.index):
             raise SchemaError(
@@ -266,6 +267,7 @@ class IndexBackend(ArraySchemaBackend):
                 random_state=random_state,
                 lazy=lazy,
                 inplace=inplace,
+                default=default,
             ),
         )
         return check_obj
