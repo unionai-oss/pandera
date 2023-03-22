@@ -1299,7 +1299,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
 
 def _validate_columns(
-    column_dict: dict[Any, "pandera.api.pandas.components.Column"],  # type: ignore [name-defined]
+    column_dict: dict[Any, "pandera.api.pyspark.components.Column"],  # type: ignore [name-defined]
 ) -> None:
     for column_name, column in column_dict.items():
         for check in column.checks:
