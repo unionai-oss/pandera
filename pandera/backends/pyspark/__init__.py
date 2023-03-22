@@ -1,1 +1,1 @@
-"""PySpark native backend implementation for schemas and checks. """
+"""PySpark native backend implementation for schemas and checks."""
