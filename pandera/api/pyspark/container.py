@@ -18,27 +18,31 @@ from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 
-# from pandera.api.pandas.types import (
-#     CheckList,
-#     PandasDtypeInputTypes,
-#     StrictType,
-# )
+from pandera.api.pyspark.types import (
+    CheckList,
+    PandasDtypeInputTypes,
+    StrictType,
+)
 from pandera.dtypes import DataType, UniqueSettings
 
 # from pandera.engines import pandas_engine
 
 N_INDENT_SPACES = 4
 
+class DataFrameSchemaBackend:
+    """TODO: placeholder"""
+    ...
+
 
 class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
-    """A light-weight pandas DataFrame validator."""
+    """A light-weight PySpark DataFrame validator."""
 
     BACKEND = DataFrameSchemaBackend()
 
     def __init__(
         self,
         columns: Optional[  # type: ignore [name-defined]
-            Dict[Any, "pandera.api.pandas.components.Column"]  # type: ignore [name-defined]
+            Dict[Any, "pandera.api.pyspark.components.Column"]  # type: ignore [name-defined]
         ] = None,
         checks: Optional[CheckList] = None,
         index=None,
