@@ -17,13 +17,11 @@ from pandera.dtypes import DataType
 
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 
-PandasDtypeInputTypes = Union[
+PySparkDtypeInputTypes = Union[
     str,
     type,
     DataType,
     Type,
-    pd.core.dtypes.base.ExtensionDtype,
-    np.dtype,
 ]
 
 StrictType = Union[bool, Literal["filter"]]

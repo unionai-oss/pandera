@@ -13,25 +13,21 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 from pandera import errors
 from pandera import strategies as st
 
-# from pandera.backends.pandas.container import DataFrameSchemaBackend
+from pandera.backends.pyspark.container import DataFrameSchemaBackend
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 
 from pandera.api.pyspark.types import (
     CheckList,
-    PandasDtypeInputTypes,
+    PySparkDtypeInputTypes,
     StrictType,
 )
 from pandera.dtypes import DataType, UniqueSettings
 
-# from pandera.engines import pandas_engine
+from pandera.engines import pyspark_engine
 
 N_INDENT_SPACES = 4
-
-class DataFrameSchemaBackend:
-    """TODO: placeholder"""
-    ...
 
 
 class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
@@ -46,7 +42,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         ] = None,
         checks: Optional[CheckList] = None,
         index=None,
-        dtype: PandasDtypeInputTypes = None,
+        dtype: PySparkDtypeInputTypes = None,
         coerce: bool = False,
         strict: StrictType = False,
         name: Optional[str] = None,
@@ -140,7 +136,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             description=description,
         )
 
-        self.columns: Dict[Any, "pandera.api.pandas.components.Column"] = (  # type: ignore [name-defined]
+        self.columns: Dict[Any, "pandera.api.pyspark.components.Column"] = (  # type: ignore [name-defined]
             {} if columns is None else columns
         )
 
@@ -248,9 +244,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         return self._dtype  # type: ignore
 
     @dtype.setter
-    def dtype(self, value: PandasDtypeInputTypes) -> None:
-        """Set the pandas dtype property."""
-        self._dtype = pandas_engine.Engine.dtype(value) if value else None
+    def dtype(self, value: PySparkDtypeInputTypes) -> None:
+        """Set the pyspark dtype property."""
+        self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
     def coerce_dtype(self, check_obj: pd.DataFrame) -> pd.DataFrame:
         return self.BACKEND.coerce_dtype(check_obj, schema=self)
@@ -1104,7 +1100,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
-        from pandera.api.pandas.components import Column, Index, MultiIndex
+        from pandera.api.pyspark.components import Column, Index, MultiIndex
 
         # explcit check for an empty list
         if level == []:
