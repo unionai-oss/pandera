@@ -37,6 +37,10 @@ class ColumnBackend(ArraySchemaBackend):
         inplace: bool = False,
     ) -> pd.DataFrame:
         """Validation backend implementation for pandas dataframe columns.."""
+
+        if pd.notna(self.default):
+            inplace = True
+
         if not inplace:
             check_obj = check_obj.copy()
 
