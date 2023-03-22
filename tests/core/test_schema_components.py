@@ -863,3 +863,23 @@ def test_index_validation_pandas_string_dtype():
     )
 
     assert isinstance(schema.validate(df), pd.DataFrame)
+
+@pytest.mark.parametrize(
+    "dtype,default",
+    [
+        (str, "a default"),
+        (bool, True),
+        (float, 42.0),
+        ("Int64", 0),
+   ]
+)
+def test_column_default_works_when_dtype_match(dtype: Any, default:any):
+    column_name = 'column1'
+    col =  Column(dtype, default=default)
+
+    df = pd.DataFrame({column_name: [None]})
+
+    schema = DataFrameSchema(columns={column_name: col})
+    df = schema.validate(df)
+
+    assert df.iloc[0][column_name] == default
