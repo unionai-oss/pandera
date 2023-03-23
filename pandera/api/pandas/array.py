@@ -181,7 +181,6 @@ class ArraySchema(BaseSchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            default=self.default,
         )
 
     def __call__(

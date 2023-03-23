@@ -42,6 +42,7 @@ class BaseFieldInfo:
         "dtype_kwargs",
         "title",
         "description",
+        "default",
     )
 
     def __init__(
@@ -56,6 +57,7 @@ class BaseFieldInfo:
         dtype_kwargs: Optional[Dict[str, Any]] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
     ) -> None:
         self.checks = to_checklist(checks)
         self.nullable = nullable
@@ -68,6 +70,7 @@ class BaseFieldInfo:
         self.dtype_kwargs = dtype_kwargs
         self.title = title
         self.description = description
+        self.default = default
 
     @property
     def name(self) -> str:
