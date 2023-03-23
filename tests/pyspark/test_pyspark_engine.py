@@ -19,3 +19,5 @@ def test_pyspark_data_type(data_type):
         ps_dtype = pyspark_engine.DataType(data_type.type)
 
     assert ps_dtype != None
+    assert not ps_dtype.check("foo")
+    assert not ps_dtype.check(123)

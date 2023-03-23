@@ -66,22 +66,23 @@ class DataType(dtypes.DataType):
         # this method isn't called if __init__ is defined
         object.__setattr__(self, "type", self.type)  # pragma: no cover
 
-    # def check(
-    #     self,
-    #     pandera_dtype: dtypes.DataType,
-    # ) -> Union[bool, Iterable[bool]]:
-    #     try:
-    #         pandera_dtype = Engine.dtype(pandera_dtype)
-    #     except TypeError:
-    #         return False
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
 
-    #     # attempts to compare pandas native type if possible
-    #     # to let subclass inherit check
-    #     # (super will compare that DataType classes are exactly the same)
-    #     try:
-    #         return self.type == pandera_dtype.type or super().check(pandera_dtype)
-    #     except TypeError:
-    #         return super().check(pandera_dtype)
+        except TypeError:
+            return False
+
+        # attempts to compare pandas native type if possible
+        # to let subclass inherit check
+        # (super will compare that DataType classes are exactly the same)
+        try:
+            return self.type == pandera_dtype.type or super().check(pandera_dtype)
+        except TypeError:
+            return super().check(pandera_dtype)
 
     def __str__(self) -> str:
         return str(self.type)
