@@ -15,7 +15,7 @@ from pandera.engines import pyspark_engine
 def test_pyspark_data_type(data_type):
     if data_type.type is None:
         return
-
+    breakpoint()
     pyspark_engine.Engine.dtype(data_type)
     pyspark_engine.Engine.dtype(data_type.type)
     pyspark_engine.Engine.dtype(str(data_type.type))

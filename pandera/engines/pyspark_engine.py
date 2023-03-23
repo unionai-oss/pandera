@@ -108,54 +108,36 @@ class Engine(  # pylint:disable=too-few-public-methods
 
     @classmethod
     def dtype(cls, data_type: Any) -> dtypes.DataType:
-        """Convert input into a pandas-compatible
+        """Convert input into a pyspark-compatible
         Pandera :class:`~pandera.dtypes.DataType` object."""
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            if isinstance(data_type, type):
-                try:
-                    np_or_pd_dtype = data_type()
-                    # Convert to str here because some pandas dtypes allow
-                    # an empty constructor for compatibility but fail on
-                    # str(). e.g: PeriodDtype
-                    str(np_or_pd_dtype.name)
-                except (TypeError, AttributeError) as err:
-                    raise TypeError(
-                        f" dtype {data_type} cannot be instantiated: {err}\n"
-                        "Usage Tip: Use an instance or a string "
-                        "representation."
-                    ) from None
-            else:
-                # let pandas transform any acceptable value
-                # into a numpy or pandas dtype.
-                np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
-                if isinstance(np_or_pd_dtype, np.dtype):
-                    # cast alias to platform-agnostic dtype
-                    # e.g.: np.intc -> np.int32
-                    common_np_dtype = np.dtype(np_or_pd_dtype.name)
-                    np_or_pd_dtype = common_np_dtype.type
+            pass
+            # if isinstance(data_type, type):
+            #     try:
+            #         np_or_pd_dtype = data_type()
+            #         # Convert to str here because some pandas dtypes allow
+            #         # an empty constructor for compatibility but fail on
+            #         # str(). e.g: PeriodDtype
+            #         str(np_or_pd_dtype.name)
+            #     except (TypeError, AttributeError) as err:
+            #         raise TypeError(
+            #             f" dtype {data_type} cannot be instantiated: {err}\n"
+            #             "Usage Tip: Use an instance or a string "
+            #             "representation."
+            #         ) from None
+            # else:
+            #     # let pandas transform any acceptable value
+            #     # into a numpy or pandas dtype.
+            #     np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
+            #     if isinstance(np_or_pd_dtype, np.dtype):
+            #         # cast alias to platform-agnostic dtype
+            #         # e.g.: np.intc -> np.int32
+            #         common_np_dtype = np.dtype(np_or_pd_dtype.name)
+            #         np_or_pd_dtype = common_np_dtype.type
 
-            return engine.Engine.dtype(cls, np_or_pd_dtype)
-
-    @classmethod
-    def numpy_dtype(cls, pandera_dtype: dtypes.DataType) -> np.dtype:
-        """Convert a Pandera :class:`~pandera.dtypes.DataType
-        to a :class:`numpy.dtype`."""
-        pandera_dtype: dtypes.DataType = engine.Engine.dtype(cls, pandera_dtype)
-
-        alias = str(pandera_dtype).lower()
-        if alias == "boolean":
-            alias = "bool"
-        elif alias.startswith("string"):
-            alias = "str"
-
-        try:
-            return np.dtype(alias)
-        except TypeError as err:
-            raise TypeError(
-                f"Data type '{pandera_dtype}' cannot be cast to a numpy dtype."
-            ) from err
+            # return engine.Engine.dtype(cls, np_or_pd_dtype)
 
 
 ###############################################################################
@@ -164,23 +146,20 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 Engine.register_dtype(
-    numpy_engine.Bool,
-    equivalents=["bool", bool, np.bool_, dtypes.Bool, dtypes.Bool()],
+    pst.BooleanType,
+    equivalents=["bool", bool, dtypes.Bool, dtypes.Bool()],
 )
 
 
-@Engine.register_dtype(
-    equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()],
-)
 @immutable
 class BOOL(DataType, dtypes.Bool):
-    """Semantic representation of a :class:`pandas.BooleanDtype`."""
+    """Semantic representation of a :class:`pyspark.sql.types.BooleanType`."""
 
-    type = pd.BooleanDtype()
+    type = pst.BooleanType()
     _bool_like = frozenset({True, False})
 
     def coerce_value(self, value: Any) -> Any:
-        """Coerce an value to specified datatime type."""
+        """Coerce an value to specified boolean type."""
         if value not in self._bool_like:
             raise TypeError(f"value {value} cannot be coerced to type {self.type}")
         return super().coerce_value(value)
