@@ -449,7 +449,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             if schema.coerce:
                 # coercing at the dataframe-level should apply index coercion
                 # for both single- and multi-indexes.
-                index_schema._coerce = True
+                index_schema.coerce = True
             coerced_index = _try_coercion(index_schema.coerce_dtype, obj.index)
             if coerced_index is not None:
                 obj.index = coerced_index
