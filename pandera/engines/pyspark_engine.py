@@ -113,7 +113,7 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 @Engine.register_dtype(
-    equivalents=["bool", bool, dtypes.Bool, dtypes.Bool()],
+    equivalents=["bool", pst.BooleanType()],
 )
 @immutable
 class Bool(DataType, dtypes.Bool):
@@ -129,8 +129,13 @@ class Bool(DataType, dtypes.Bool):
         return super().coerce_value(value)
 
 
+###############################################################################
+# string
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["string", dtypes.String, dtypes.String()],  # type: ignore
+    equivalents=["string", pst.StringType()],  # type: ignore
 )
 @immutable
 class String(DataType, dtypes.String):  # type: ignore
@@ -139,8 +144,13 @@ class String(DataType, dtypes.String):  # type: ignore
     type = pst.StringType()  # type: ignore
 
 
+###############################################################################
+# integer
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["int", dtypes.Int, dtypes.Int()],  # type: ignore
+    equivalents=["int", pst.IntegerType()],  # type: ignore
 )
 @immutable
 class Int(DataType, dtypes.Int):  # type: ignore
@@ -149,8 +159,13 @@ class Int(DataType, dtypes.Int):  # type: ignore
     type = pst.IntegerType()  # type: ignore
 
 
+###############################################################################
+# float
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["float", dtypes.String, dtypes.Float()],  # type: ignore
+    equivalents=["float", pst.FloatType()],  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
