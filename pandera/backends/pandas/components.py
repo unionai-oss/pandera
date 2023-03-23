@@ -37,10 +37,6 @@ class ColumnBackend(ArraySchemaBackend):
         inplace: bool = False,
     ) -> pd.DataFrame:
         """Validation backend implementation for pandas dataframe columns.."""
-
-        if pd.notna(self.default):
-            inplace = True
-
         if not inplace:
             check_obj = check_obj.copy()
 
@@ -50,7 +46,7 @@ class ColumnBackend(ArraySchemaBackend):
             raise SchemaError(
                 schema,
                 check_obj,
-                "column name is set to None. Pass the ``name` argument when "
+                "column name is set to None. Pass the ``name`` argument when "
                 "initializing a Column object, or use the ``set_name`` "
                 "method.",
             )
@@ -244,7 +240,7 @@ class IndexBackend(ArraySchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        default: Optional[Any] = None
+        default: Optional[Any] = None,
     ) -> Union[pd.DataFrame, pd.Series]:
         if is_multiindex(check_obj.index):
             raise SchemaError(

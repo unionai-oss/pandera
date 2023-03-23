@@ -84,7 +84,7 @@ class Column(ArraySchema):
             name=name,
             title=title,
             description=description,
-            default=default
+            default=default,
         )
         if (
             name is not None
@@ -265,7 +265,6 @@ class Index(ArraySchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        default: Optional[Any] = None,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 
@@ -293,7 +292,7 @@ class Index(ArraySchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            default=self.default
+            default=self.default,
         )
 
     def __eq__(self, other):

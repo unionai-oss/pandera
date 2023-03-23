@@ -70,7 +70,7 @@ class FieldInfo(BaseFieldInfo):
             checks=checks,
             title=self.title,
             description=self.description,
-            default=self.default
+            default=self.default,
         )
 
     def to_index(

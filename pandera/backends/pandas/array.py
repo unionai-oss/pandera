@@ -43,9 +43,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
         default: Optional[Any] = None,
     ):
         # pylint: disable=too-many-locals
-        if pd.notna(schema.default):
-            inplace = True
-
         error_handler = SchemaErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 

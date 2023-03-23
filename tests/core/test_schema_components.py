@@ -864,6 +864,7 @@ def test_index_validation_pandas_string_dtype():
 
     assert isinstance(schema.validate(df), pd.DataFrame)
 
+
 @pytest.mark.parametrize(
     "dtype,default",
     [
@@ -871,15 +872,17 @@ def test_index_validation_pandas_string_dtype():
         (bool, True),
         (float, 42.0),
         ("Int64", 0),
-   ]
+    ],
 )
-def test_column_default_works_when_dtype_match(dtype: Any, default:any):
-    column =  Column(dtype, name='column1', default=default)
-    df = pd.DataFrame({'column1': [None]})
+def test_column_default_works_when_dtype_match(dtype: Any, default: any):
+    """Test ``default`` fills ``nan`` values as expected when the ``dtype`` matches that of the ``Column``"""
+    column = Column(dtype, name="column1", default=default)
+    df = pd.DataFrame({"column1": [None]})
 
-    df = column.validate(df)
+    column.validate(df, inplace=True)
 
-    assert df.iloc[0]['column1'] == default
+    assert df.iloc[0]["column1"] == default
+
 
 @pytest.mark.parametrize(
     "dtype,default",
@@ -888,13 +891,21 @@ def test_column_default_works_when_dtype_match(dtype: Any, default:any):
         (bool, 42.0),
         (float, True),
         ("Int64", "a default"),
-   ]
+    ],
 )
-def test_column_default_errors_on_dtype_mismatch(dtype: Any, default:any):
-    column =  Column(dtype, name='column1', default=default)
-    df = pd.DataFrame({'column1': [None]})
+def test_column_default_errors_on_dtype_mismatch(dtype: Any, default: any):
+    """Test that setting a ``default`` of different ``dtype`` to that of the ```Column`` raises an error"""
+    column = Column(dtype, name="column1", default=default)
+    df = pd.DataFrame({"column1": [None]})
 
     with pytest.raises(errors.SchemaError):
-        column.validate(df)
+        column.validate(df, inplace=True)
 
 
+def test_error_is_raised_when_default_is_set_and_inplace_is_false():
+    """Test that setting a ``default`` raises an error is ``inplace = False``"""
+    column = Column(str, name="column1", default="a default")
+    df = pd.DataFrame({"column1": [None]})
+
+    with pytest.raises(errors.SchemaError):
+        column.validate(df, inplace=False)

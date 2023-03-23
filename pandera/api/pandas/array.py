@@ -36,7 +36,7 @@ class ArraySchema(BaseSchema):
         name: Any = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        default:  Optional[Any] = None,
+        default: Optional[Any] = None,
     ) -> None:
         """Initialize array schema.
 
