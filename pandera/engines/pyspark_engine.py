@@ -66,22 +66,22 @@ class DataType(dtypes.DataType):
         # this method isn't called if __init__ is defined
         object.__setattr__(self, "type", self.type)  # pragma: no cover
 
-    def check(
-        self,
-        pandera_dtype: dtypes.DataType,
-    ) -> Union[bool, Iterable[bool]]:
-        try:
-            pandera_dtype = Engine.dtype(pandera_dtype)
-        except TypeError:
-            return False
+    # def check(
+    #     self,
+    #     pandera_dtype: dtypes.DataType,
+    # ) -> Union[bool, Iterable[bool]]:
+    #     try:
+    #         pandera_dtype = Engine.dtype(pandera_dtype)
+    #     except TypeError:
+    #         return False
 
-        # attempts to compare pandas native type if possible
-        # to let subclass inherit check
-        # (super will compare that DataType classes are exactly the same)
-        try:
-            return self.type == pandera_dtype.type or super().check(pandera_dtype)
-        except TypeError:
-            return super().check(pandera_dtype)
+    #     # attempts to compare pandas native type if possible
+    #     # to let subclass inherit check
+    #     # (super will compare that DataType classes are exactly the same)
+    #     try:
+    #         return self.type == pandera_dtype.type or super().check(pandera_dtype)
+    #     except TypeError:
+    #         return super().check(pandera_dtype)
 
     def __str__(self) -> str:
         return str(self.type)
@@ -97,47 +97,13 @@ class Engine(  # pylint:disable=too-few-public-methods
     """PySpark data type engine."""
 
     @classmethod
-    def get_registered_dtypes():
-        return list(
-            pst.BooleanType,
-            pst.StringType,
-            pst.DateType,
-            pst.IntegerType,
-            pst.DoubleType,
-        )
-
-    @classmethod
     def dtype(cls, data_type: Any) -> dtypes.DataType:
         """Convert input into a pyspark-compatible
         Pandera :class:`~pandera.dtypes.DataType` object."""
         try:
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
-            pass
-            # if isinstance(data_type, type):
-            #     try:
-            #         np_or_pd_dtype = data_type()
-            #         # Convert to str here because some pandas dtypes allow
-            #         # an empty constructor for compatibility but fail on
-            #         # str(). e.g: PeriodDtype
-            #         str(np_or_pd_dtype.name)
-            #     except (TypeError, AttributeError) as err:
-            #         raise TypeError(
-            #             f" dtype {data_type} cannot be instantiated: {err}\n"
-            #             "Usage Tip: Use an instance or a string "
-            #             "representation."
-            #         ) from None
-            # else:
-            #     # let pandas transform any acceptable value
-            #     # into a numpy or pandas dtype.
-            #     np_or_pd_dtype = pd.api.types.pandas_dtype(data_type)
-            #     if isinstance(np_or_pd_dtype, np.dtype):
-            #         # cast alias to platform-agnostic dtype
-            #         # e.g.: np.intc -> np.int32
-            #         common_np_dtype = np.dtype(np_or_pd_dtype.name)
-            #         np_or_pd_dtype = common_np_dtype.type
-
-            # return engine.Engine.dtype(cls, np_or_pd_dtype)
+            raise
 
 
 ###############################################################################
@@ -145,14 +111,11 @@ class Engine(  # pylint:disable=too-few-public-methods
 ###############################################################################
 
 
-Engine.register_dtype(
-    pst.BooleanType,
+@Engine.register_dtype(
     equivalents=["bool", bool, dtypes.Bool, dtypes.Bool()],
 )
-
-
 @immutable
-class BOOL(DataType, dtypes.Bool):
+class Bool(DataType, dtypes.Bool):
     """Semantic representation of a :class:`pyspark.sql.types.BooleanType`."""
 
     type = pst.BooleanType()
@@ -163,3 +126,33 @@ class BOOL(DataType, dtypes.Bool):
         if value not in self._bool_like:
             raise TypeError(f"value {value} cannot be coerced to type {self.type}")
         return super().coerce_value(value)
+
+
+@Engine.register_dtype(
+    equivalents=["string", dtypes.String, dtypes.String()],  # type: ignore
+)
+@immutable
+class String(DataType, dtypes.String):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.StringType`."""
+
+    type = pst.StringType()  # type: ignore
+
+
+@Engine.register_dtype(
+    equivalents=["int", dtypes.Int, dtypes.Int()],  # type: ignore
+)
+@immutable
+class Int(DataType, dtypes.Int):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.IntegerType`."""
+
+    type = pst.IntegerType()  # type: ignore
+
+
+@Engine.register_dtype(
+    equivalents=["float", dtypes.String, dtypes.Float()],  # type: ignore
+)
+@immutable
+class Float(DataType, dtypes.Float):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.FloatType`."""
+
+    type = pst.FloatType()  # type: ignore
