@@ -874,13 +874,12 @@ def test_index_validation_pandas_string_dtype():
    ]
 )
 def test_column_default_works_when_dtype_match(dtype: Any, default:any):
-    column_name = 'column1'
-    col =  Column(dtype, default=default)
-    df = pd.DataFrame({column_name: [None]})
-    schema = DataFrameSchema(columns={column_name: col})
-    df = schema.validate(df)
+    column =  Column(dtype, name='column1', default=default)
+    df = pd.DataFrame({'column1': [None]})
 
-    assert df.iloc[0][column_name] == default
+    df = column.validate(df)
+
+    assert df.iloc[0]['column1'] == default
 
 @pytest.mark.parametrize(
     "dtype,default",
@@ -892,10 +891,10 @@ def test_column_default_works_when_dtype_match(dtype: Any, default:any):
    ]
 )
 def test_column_default_errors_on_dtype_mismatch(dtype: Any, default:any):
-    column_name = 'column1'
-    col =  Column(dtype, default=default)
-    df = pd.DataFrame({column_name: [None]})
-    schema = DataFrameSchema(columns={column_name: col})
+    column =  Column(dtype, name='column1', default=default)
+    df = pd.DataFrame({'column1': [None]})
 
     with pytest.raises(errors.SchemaError):
-        schema.validate(df)
+        column.validate(df)
+
+
