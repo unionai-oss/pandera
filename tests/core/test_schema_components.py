@@ -82,6 +82,15 @@ def test_index_schema_coerce(dtype):
     assert schema.index.dtype.check(validated_index_dtype)
 
 
+@pytest.mark.parametrize("dtype", [Float, Int, String])
+def test_index_schema_coerce_when_coerce_specified_at_schema_level(dtype):
+    """Test that index can be type-coerced when coercion requested at schema level"""
+    schema = DataFrameSchema(index=Index(dtype), coerce=True)
+    df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
+    validated_index_dtype = Engine.dtype(schema(df).index.dtype)
+    assert schema.index.dtype.check(validated_index_dtype)
+
+
 def test_multi_index_columns() -> None:
     """Tests that multi-index Columns within DataFrames validate correctly."""
     schema = DataFrameSchema(
