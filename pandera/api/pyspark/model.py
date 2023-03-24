@@ -475,11 +475,6 @@ class DataFrameModel(BaseModel):
 
         return cast("DataFrameModel", schema_model)
 
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        """Update pydantic field schema."""
-        field_schema.update(_to_json_schema(cls.to_schema()))
-
 
 SchemaModel = DataFrameModel
 """
@@ -491,18 +486,6 @@ Alias for DataFrameModel.
    deprecated in pandera version ``0.20.0`` in favor of
    :py:class:`~pandera.api.pandas.model.DataFrameModel`
 """
-
-
-def _build_schema_index(
-    indices: List[Index], **multiindex_kwargs: Any
-) -> Optional[SchemaIndex]:
-    index: Optional[SchemaIndex] = None
-    if indices:
-        if len(indices) == 1:
-            index = indices[0]
-        else:
-            index = MultiIndex(indices, **multiindex_kwargs)
-    return index
 
 
 def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
@@ -523,34 +506,3 @@ def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
             + f"all positional arguments {dtype_arg_names}."
         )
     return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
-
-
-def _to_json_schema(dataframe_schema):
-    """Serialize schema metadata into json-schema format.
-
-    :param dataframe_schema: schema to write to json-schema format.
-
-    .. note::
-
-        This function is currently does not fully specify a pandera schema,
-        and is primarily used internally to render OpenAPI docs via the
-        FastAPI integration.
-    """
-    empty = pd.DataFrame(columns=dataframe_schema.columns.keys()).astype(
-        {k: v.type for k, v in dataframe_schema.dtypes.items()}
-    )
-    table_schema = pd.io.json.build_table_schema(empty)
-
-    def _field_json_schema(field):
-        return {
-            "type": "array",
-            "items": {"type": field["type"]},
-        }
-
-    return {
-        "title": dataframe_schema.name or "pandera.DataFrameSchema",
-        "type": "object",
-        "properties": {
-            field["name"]: _field_json_schema(field) for field in table_schema["fields"]
-        },
-    }
