@@ -3,8 +3,6 @@
 import warnings
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-import pandas as pd
-
 import pandera.strategies as st
 from pandera import errors
 from pandera.backends.pandas.components import (
@@ -12,9 +10,9 @@ from pandera.backends.pandas.components import (
     IndexBackend,
     MultiIndexBackend,
 )
-from pandera.api.pyspark.array import ColumnSchema
-from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
+from pandera.api.pyspark.column_schema import ColumnSchema
+from pandera.api.pyspark.container import DataFrameSchema
+from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 
 
