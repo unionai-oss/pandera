@@ -41,7 +41,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             Dict[Any, "pandera.api.pyspark.components.Column"]  # type: ignore [name-defined]
         ] = None,
         checks: Optional[CheckList] = None,
-        index=None,
         dtype: PySparkDtypeInputTypes = None,
         coerce: bool = False,
         strict: StrictType = False,

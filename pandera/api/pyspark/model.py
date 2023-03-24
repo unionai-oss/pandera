@@ -37,6 +37,7 @@ from pandera.api.pyspark.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
+import pyspark.sql as ps
 
 try:
     from typing_extensions import get_type_hints
@@ -52,6 +53,14 @@ except ImportError:
 
 
 _CONFIG_KEY = "Config"
+MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
+GENERIC_SCHEMA_CACHE: Dict[
+    Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
+    Type["DataFrameModel"],
+] = {}
+
+F = TypeVar("F", bound=Callable)
+TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 
 
 def _is_field(name: str) -> bool:
@@ -131,7 +140,7 @@ class DataFrameModel(BaseModel):
         return cast(DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs))
 
     def __init_subclass__(cls, **kwargs):
-        """Ensure :class:`~pandera.api.pandas.model_components.FieldInfo` instances."""
+        """Ensure :class:`~pandera.api.pyspark.model_components.FieldInfo` instances."""
         if "Config" in cls.__dict__:
             cls.Config.name = (
                 cls.Config.name if hasattr(cls.Config, "name") else cls.__name__
@@ -196,12 +205,6 @@ class DataFrameModel(BaseModel):
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
-        mi_kwargs = {
-            name[len("multiindex_") :]: value
-            for name, value in vars(cls.__config__).items()
-            if name.startswith("multiindex_")
-        }
-
         cls.__fields__ = cls._collect_fields()
         for field, (annot_info, _) in cls.__fields__.items():
             if isinstance(annot_info.arg, TypeVar):
@@ -222,9 +225,7 @@ class DataFrameModel(BaseModel):
         )
         cls.__root_checks__ = df_custom_checks + df_registered_checks
 
-        columns, index = cls._build_columns_index(
-            cls.__fields__, cls.__checks__, **mi_kwargs
-        )
+        columns = cls._build_columns_index(cls.__fields__, cls.__checks__)
         kwargs = {}
         if cls.__config__ is not None:
             kwargs = {
@@ -240,7 +241,6 @@ class DataFrameModel(BaseModel):
             }
         cls.__schema__ = DataFrameSchema(
             columns,
-            index=index,
             checks=cls.__root_checks__,  # type: ignore
             **kwargs,  # type: ignore
         )
@@ -259,7 +259,7 @@ class DataFrameModel(BaseModel):
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def validate(
         cls: Type[TDataFrameModel],
-        check_obj: pd.DataFrame,
+        check_obj: ps.DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -276,35 +276,17 @@ class DataFrameModel(BaseModel):
         )
 
     @classmethod
-    @docstring_substitution(strategy_doc=DataFrameSchema.strategy.__doc__)
-    @st.strategy_import_error
-    def strategy(cls: Type[TDataFrameModel], **kwargs):
-        """%(strategy_doc)s"""
-        return cls.to_schema().strategy(**kwargs)
-
-    @classmethod
-    @docstring_substitution(example_doc=DataFrameSchema.strategy.__doc__)
-    @st.strategy_import_error
-    def example(
-        cls: Type[TDataFrameModel],
-        **kwargs,
-    ) -> DataFrameBase[TDataFrameModel]:
-        """%(example_doc)s"""
-        return cast(DataFrameBase[TDataFrameModel], cls.to_schema().example(**kwargs))
-
-    @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals
         cls,
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
-        **multiindex_kwargs: Any,
-    ) -> Tuple[Dict[str, Column], Optional[Union[Index, MultiIndex]],]:
+    ) -> Dict[str, Column]:
         index_count = sum(
             annotation.origin in INDEX_TYPES for annotation, _ in fields.values()
         )
 
         columns: Dict[str, Column] = {}
-        indices: List[Index] = []
+
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_name = field.name
@@ -343,32 +325,13 @@ class DataFrameModel(BaseModel):
                     checks=field_checks,
                     name=field_name,
                 )
-            elif (
-                annotation.origin in INDEX_TYPES
-                or annotation.raw_annotation in INDEX_TYPES
-            ):
-                if annotation.optional:
-                    raise SchemaInitError(f"Index '{field_name}' cannot be Optional.")
-
-                if check_name is False or (
-                    # default single index
-                    check_name is None
-                    and index_count == 1
-                ):
-                    field_name = None  # type:ignore
-
-                index_constructor = field.to_index if field else Index
-                index = index_constructor(  # type: ignore
-                    dtype, checks=field_checks, name=field_name
-                )
-                indices.append(index)
             else:
                 raise SchemaInitError(
                     f"Invalid annotation '{field_name}: "
                     f"{annotation.raw_annotation}'"
                 )
 
-        return columns, _build_schema_index(indices, **multiindex_kwargs)
+        return columns
 
     @classmethod
     def _get_model_attrs(cls) -> Dict[str, Any]:
