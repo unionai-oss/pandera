@@ -33,7 +33,7 @@ from pandera.api.pyspark.model_components import (
     FieldCheckInfo,
     FieldInfo,
 )
-from pandera.api.pandas.model_config import BaseConfig
+from pandera.api.pyspark.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
@@ -51,27 +51,7 @@ except ImportError:
     HAS_PYDANTIC = False
 
 
-SchemaIndex = Union[Index, MultiIndex]
-
 _CONFIG_KEY = "Config"
-
-MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
-GENERIC_SCHEMA_CACHE: Dict[
-    Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
-    Type["DataFrameModel"],
-] = {}
-
-F = TypeVar("F", bound=Callable)
-TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
-
-
-def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Typed wrapper around pd.util.Substitution."""
-
-    def decorator(func: F) -> F:
-        return cast(F, pd.util.Substitution(*args, **kwargs)(func))
-
-    return decorator
 
 
 def _is_field(name: str) -> bool:
