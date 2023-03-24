@@ -25,7 +25,7 @@ TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 
 
 class ColumnSchema(BaseSchema):
-    """Base array validator object."""
+    """Base column validator object."""
 
     BACKEND = ArraySchemaBackend()
 
