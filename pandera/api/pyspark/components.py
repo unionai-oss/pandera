@@ -12,13 +12,13 @@ from pandera.backends.pandas.components import (
     IndexBackend,
     MultiIndexBackend,
 )
-from pandera.api.pandas.array import ArraySchema
+from pandera.api.pyspark.array import ColumnSchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 
 
-class Column(ArraySchema):
+class Column(ColumnSchema):
     """Validate types and properties of DataFrame columns."""
 
     BACKEND = ColumnBackend()
