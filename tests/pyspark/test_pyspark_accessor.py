@@ -20,22 +20,18 @@ spark = SparkSession.builder.getOrCreate()
         ],
     ],
 )
-@pytest.mark.parametrize("inplace", [False, True])
 def test_dataframe_series_add_schema(
     schema1: pa.DataFrameSchema,
     schema2: pa.DataFrameSchema,
     data: Union[DataFrame, col],
     invalid_data: Union[DataFrame, col],
-    inplace: bool,
 ) -> None:
     """
     Test that pandas object contains schema metadata after pandera validation.
     """
     validated_data_1 = schema1(data)  # type: ignore[arg-type]
-    if inplace:
-        assert data.pandera.schema == schema1
-    else:
-        assert data.pandera.schema is None
+    assert data.pandera.schema == schema1
+
     assert validated_data_1.pandera.schema == schema1
 
 

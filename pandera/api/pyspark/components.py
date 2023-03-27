@@ -5,10 +5,9 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandera.strategies as st
 from pandera import errors
-from pandera.backends.pandas.components import (
+from pandera.backends.pyspark.components import (
     ColumnBackend,
-    IndexBackend,
-    MultiIndexBackend,
+
 )
 from pandera.api.pyspark.column_schema import ColumnSchema
 from pandera.api.pyspark.container import DataFrameSchema
@@ -83,7 +82,6 @@ class Column(ColumnSchema):
         if (
             name is not None
             and not isinstance(name, str)
-            and not is_valid_multiindex_key(name)
             and regex
         ):
             raise ValueError(
@@ -105,6 +103,8 @@ class Column(ColumnSchema):
             "dtype": self.dtype,
             "checks": self.checks,
             "nullable": self.nullable,
+            "unique": self.unique,
+            "report_duplicates": self.report_duplicates,
             "coerce": self.coerce,
             "required": self.required,
             "name": self.name,
@@ -166,7 +166,7 @@ class Column(ColumnSchema):
         :param columns: columns to regex pattern match
         :returns: matchin columns
         """
-        raise NotImplementedError
+        return self.BACKEND.get_regex_columns(self, columns)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

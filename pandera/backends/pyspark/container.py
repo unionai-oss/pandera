@@ -83,7 +83,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             )
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
-
+        print(check_obj)
         # try to coerce datatypes
         check_obj = self.coerce_dtype(
             check_obj,
@@ -320,7 +320,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
     def coerce_dtype(
         self,
-        check_obj: pd.DataFrame,
+        check_obj: DataFrame,
         *,
         schema=None,
         error_handler: Optional[SchemaErrorHandler] = None,
@@ -366,9 +366,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
     def _coerce_dtype(
         self,
-        obj: pd.DataFrame,
+        obj: DataFrame,
         schema,
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
         """Coerce dataframe to the type specified in dtype.
 
         :param obj: dataframe to coerce.
@@ -398,7 +398,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     check=f"coerce_dtype('{schema.dtype}')",
                 ) from exc
 
-        def _try_coercion(coerce_fn, obj):
+        def _try_coercion(coerce_fn, obj, colname):
             try:
                 return coerce_fn(obj)
             except SchemaError as exc:
@@ -406,13 +406,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 return obj
 
         for colname, col_schema in schema.columns.items():
+
             if col_schema.regex:
                 try:
                     matched_columns = col_schema.BACKEND.get_regex_columns(
                         col_schema, obj.columns
                     )
                 except SchemaError:
-                    matched_columns = pd.Index([])
+                    matched_columns = None
 
                 for matched_colname in matched_columns:
                     if col_schema.coerce or schema.coerce:
@@ -426,21 +427,15 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             ):
                 _col_schema = copy.deepcopy(col_schema)
                 _col_schema.coerce = True
-                obj[colname] = _try_coercion(
-                    _col_schema.coerce_dtype, obj[colname]
+                print(_col_schema)
+                print(colname, col_schema)
+                obj = _try_coercion(
+                    _col_schema.coerce_dtype, obj, colname
                 )
 
         if schema.dtype is not None:
             obj = _try_coercion(_coerce_df_dtype, obj)
-        if schema.index is not None and (schema.index.coerce or schema.coerce):
-            index_schema = copy.deepcopy(schema.index)
-            if schema.coerce:
-                # coercing at the dataframe-level should apply index coercion
-                # for both single- and multi-indexes.
-                index_schema._coerce = True
-            coerced_index = _try_coercion(index_schema.coerce_dtype, obj.index)
-            if coerced_index is not None:
-                obj.index = coerced_index
+
 
         if error_handler.collected_errors:
             raise SchemaErrors(
@@ -540,9 +535,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 # series or dataframe because it comes from a different
                 # dataframe."
                 # Todo How to handle the error
-                failure_cases = check_obj.loc[duplicates, subset]
+                #failure_cases = check_obj.loc[duplicates, subset]
 
-                failure_cases = reshape_failure_cases(failure_cases)
+                #failure_cases = reshape_failure_cases(failure_cases)
+                failure_cases = None
                 raise SchemaError(
                     schema=schema,
                     data=check_obj,
