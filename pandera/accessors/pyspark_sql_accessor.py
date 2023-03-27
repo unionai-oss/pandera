@@ -13,10 +13,9 @@ from typing import Optional, Union
 
 import pandas as pd
 
-from pandera.api.pyspark.array import SeriesSchema
 from pandera.api.pyspark.container import DataFrameSchema
 
-Schemas = Union[DataFrameSchema, SeriesSchema]
+Schemas = Union[DataFrameSchema]
 
 # Todo Refactor to create a seperate module for panderaAccessor
 class PanderaAccessor:
@@ -120,19 +119,19 @@ def register_dataframe_accessor(name):
     return _register_accessor(name, DataFrame)
 
 
-def register_series_accessor(name):
-    """
-    Register a custom accessor with a Series object
-
-    :param name: name used when calling the accessor after its registered
-    :returns: a callable class decorator
-    """
-    # pylint: disable=import-outside-toplevel
-
-    from pyspark.sql.functions import col
-
-    return _register_accessor(name, col)
-
+# def register_series_accessor(name):
+#     """
+#     Register a custom accessor with a Series object
+#
+#     :param name: name used when calling the accessor after its registered
+#     :returns: a callable class decorator
+#     """
+#     # pylint: disable=import-outside-toplevel
+#
+#     from pyspark.sql.functions import col
+#
+#     return _register_accessor(name, col)
+#
 
 
 def register_dataframe_method(method):
@@ -170,17 +169,17 @@ class PanderaDataFrameAccessor(PanderaAccessor):
             )
 
 
-@register_series_accessor("pandera")
-class PanderaSeriesAccessor(PanderaAccessor):
-    """Pandera accessor for pandas Series."""
-
-    @staticmethod
-    def check_schema_type(schema):
-        if not isinstance(schema, SeriesSchema):
-            raise TypeError(
-                f"schema arg must be a SeriesSchema, found {type(schema)}"
-            )
+# @register_series_accessor("pandera")
+# class PanderaSeriesAccessor(PanderaAccessor):
+#     """Pandera accessor for pandas Series."""
+#
+#     @staticmethod
+#     def check_schema_type(schema):
+#         if not isinstance(schema, SeriesSchema):
+#             raise TypeError(
+#                 f"schema arg must be a SeriesSchema, found {type(schema)}"
+#             )
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
-register_series_accessor("pandera")(PanderaSeriesAccessor)
+#register_series_accessor("pandera")(PanderaSeriesAccessor)

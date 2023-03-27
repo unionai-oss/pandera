@@ -42,7 +42,7 @@ try:
     from typing import Literal  # type: ignore
 except ImportError:
     from typing_extensions import Literal  # type: ignore
-
+from pandera.engines.type_aliases import PysparkObject
 
 @immutable(init=True)
 class DataType(dtypes.DataType):
@@ -89,7 +89,34 @@ class DataType(dtypes.DataType):
 
     def __repr__(self) -> str:
         return f"DataType({self})"
+    def coerce(self, data_container: PysparkObject) -> PysparkObject:
+        """Pure coerce without catching exceptions."""
+        coerced = data_container.astype(self.type)
+        if type(data_container).__module__.startswith("modin.pandas"):
+            # NOTE: this is a hack to enable catching of errors in modin
+            coerced.__str__()
+        return coerced
 
+    def try_coerce(self, data_container: PysparkObject) -> PysparkObject:
+        try:
+            coerced = self.coerce(data_container)
+            if type(data_container).__module__.startswith("pyspark.pandas"):
+                # NOTE: this is a hack to enable catching of errors in modin
+                coerced.__str__()
+        except Exception as exc:  # pylint:disable=broad-except
+            if isinstance(exc, errors.ParserError):
+                raise
+            else:
+                type_alias = str(self)
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {type_alias}",
+                failure_cases=None #utils.numpy_pandas_coerce_failure_cases(
+                    #data_container, self
+                #),
+            ) from exc
+
+        return coerced
 
 class Engine(  # pylint:disable=too-few-public-methods
     metaclass=engine.Engine,
@@ -105,6 +132,7 @@ class Engine(  # pylint:disable=too-few-public-methods
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             raise
+
 
 
 ###############################################################################
