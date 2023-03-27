@@ -6,12 +6,16 @@ from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas import (
-    Column,
+# from pandera.api.pandas import (
+#     Column,
+#     DataFrameSchema,
+#     Index,
+#     MultiIndex,
+#     SeriesSchema,
+# )
+from pandera.api.pyspark import (
     DataFrameSchema,
-    Index,
-    MultiIndex,
-    SeriesSchema,
+    Column
 )
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
 from pandera.api.pandas.model_components import Field, check, dataframe_check
@@ -84,6 +88,13 @@ try:
     import pyspark.pandas
 
     from pandera.accessors import pyspark_accessor
+except ImportError:
+    pass
+
+try:
+    import pyspark.sql
+
+    from pandera.accessors import pyspark_sql_accessor
 except ImportError:
     pass
 
