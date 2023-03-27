@@ -24,7 +24,7 @@ from pandera.api.pyspark.types import (
     StrictType,
 )
 from pandera.dtypes import DataType, UniqueSettings
-
+from pyspark.sql import DataFrame
 from pandera.engines import pyspark_engine
 
 N_INDENT_SPACES = 4
@@ -211,7 +211,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
-    def get_dtypes(self, dataframe: pd.DataFrame) -> Dict[str, DataType]:
+    def get_dtypes(self, dataframe: DataFrame) -> Dict[str, DataType]:
         """
         Same as the ``dtype`` property, but expands columns where
         ``regex == True`` based on the supplied dataframe.
@@ -247,19 +247,19 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         """Set the pyspark dtype property."""
         self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
-    def coerce_dtype(self, check_obj: pd.DataFrame) -> pd.DataFrame:
+    def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
         return self.BACKEND.coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
-        check_obj: pd.DataFrame,
+        check_obj: DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame check_obj: the dataframe to be validated.
@@ -348,14 +348,14 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
     def _validate(
         self,
-        check_obj: pd.DataFrame,
+        check_obj: DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
 
         if self._is_inferred:
             warnings.warn(
@@ -379,7 +379,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
     def __call__(
         self,
-        dataframe: pd.DataFrame,
+        dataframe: DataFrame,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
@@ -1280,7 +1280,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
     def example(
         self, size: Optional[int] = None, n_regex_columns: int = 1
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated DataFrame.
