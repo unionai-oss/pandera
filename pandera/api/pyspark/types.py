@@ -8,16 +8,12 @@ try:
 except ImportError:
     from typing_extensions import Literal  # type: ignore [misc]
 
-import numpy as np
-import pandas as pd
-
 from pandera.api.checks import Check
-from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
 from pyspark.sql import DataFrame
 import pyspark.sql.types as pst
 
-CheckList = Union[Check, List[Union[Check, Hypothesis]]]
+CheckList = Union[Check, List[Check]]
 
 PySparkDtypeInputTypes = Union[
     str,
