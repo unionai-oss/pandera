@@ -15,6 +15,7 @@ from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
 from pyspark.sql import DataFrame
+import pyspark.sql.types as pst
 
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 
@@ -32,8 +33,6 @@ SupportedTypes = NamedTuple(
     (
         ("table_types", Tuple[type, ...]),
         ("field_types", Tuple[type, ...]),
-        ("index_types", Tuple[type, ...]),
-        ("multiindex_types", Tuple[type, ...]),
     ),
 )
 
@@ -65,7 +64,6 @@ def is_table(obj):
     return isinstance(obj, supported_types().table_types)
 
 
-
 def is_bool(x):
     """Verifies whether an object is a boolean type."""
-    return isinstance(x, (bool, np.bool_))
+    return isinstance(x, (bool, pst.BooleanType()))

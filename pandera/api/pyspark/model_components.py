@@ -20,13 +20,13 @@ from pandera.api.base.model_components import (
     to_checklist,
 )
 from pandera.api.checks import Check
-from pandera.api.pandas.array import ArraySchema
-from pandera.api.pandas.components import Column, Index
-from pandera.api.pandas.types import PandasDtypeInputTypes
+from pandera.api.pyspark.column_schema import ColumnSchema
+from pandera.api.pyspark.components import Column
+from pandera.api.pyspark.types import PySparkDtypeInputTypes
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]
-SchemaComponent = TypeVar("SchemaComponent", bound=ArraySchema)
+SchemaComponent = TypeVar("SchemaComponent", bound=ColumnSchema)
 
 CHECK_KEY = "__check_config__"
 DATAFRAME_CHECK_KEY = "__dataframe_check_config__"
@@ -40,7 +40,7 @@ class FieldInfo(BaseFieldInfo):
 
     def _to_schema_component(
         self,
-        dtype: PandasDtypeInputTypes,
+        dtype: PySparkDtypeInputTypes,
         component: Type[SchemaComponent],
         checks: CheckArg = None,
         **kwargs: Any,
@@ -52,7 +52,7 @@ class FieldInfo(BaseFieldInfo):
 
     def to_column(
         self,
-        dtype: PandasDtypeInputTypes,
+        dtype: PySparkDtypeInputTypes,
         checks: CheckArg = None,
         required: bool = True,
         name: str = None,
@@ -66,25 +66,6 @@ class FieldInfo(BaseFieldInfo):
             coerce=self.coerce,
             regex=self.regex,
             required=required,
-            name=name,
-            checks=checks,
-            title=self.title,
-            description=self.description,
-        )
-
-    def to_index(
-        self,
-        dtype: PandasDtypeInputTypes,
-        checks: CheckArg = None,
-        name: str = None,
-    ) -> Index:
-        """Create a schema_components.Index from a field."""
-        return self._to_schema_component(
-            dtype,
-            Index,
-            nullable=self.nullable,
-            unique=self.unique,
-            coerce=self.coerce,
             name=name,
             checks=checks,
             title=self.title,
@@ -248,12 +229,12 @@ ClassCheck = Callable[[Union[classmethod, AnyCallable]], classmethod]
 
 
 def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
-    """Decorator to make DataFrameModel method a column/index check function.
+    """Decorator to make DataFrameModel method a column check function.
 
     *new in 0.5.0*
 
     This indicates that the decorated method should be used to validate a field
-    (column or index). The method will be converted to a classmethod. Therefore
+    (column). The method will be converted to a classmethod. Therefore
     its signature must start with `cls` followed by regular check arguments.
     See the :ref:`User Guide <schema_model_custom_check>` for more.
 
