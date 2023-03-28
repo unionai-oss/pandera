@@ -5,8 +5,14 @@ from enum import Enum
 from typing import Any, Dict, List, NamedTuple
 
 
+class BackendNotFoundError(Exception):
+    """
+    Raised when a backend is not found for a particular schema of check backend.
+    """
+
+
 class ReducedPickleExceptionBase(Exception):
-    """Base class for Excption with non-conserved state under pickling.
+    """Base class for Exception with non-conserved state under pickling.
 
     Derived classes define attributes to be transformed to
     string via `TO_STRING_KEYS`.
@@ -168,9 +174,9 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self.schema_errors = schema_errors
         self.data = data
 
-        failure_cases_metadata = schema.BACKEND.failure_cases_metadata(
-            schema.name, schema_errors
-        )
+        failure_cases_metadata = schema.get_backend(
+            data
+        ).failure_cases_metadata(schema.name, schema_errors)
         self.error_counts = failure_cases_metadata.error_counts
         self.failure_cases = failure_cases_metadata.failure_cases
         super().__init__(failure_cases_metadata.message)

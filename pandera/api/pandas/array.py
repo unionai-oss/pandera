@@ -8,10 +8,6 @@ import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
-from pandera.backends.pandas.array import (
-    ArraySchemaBackend,
-    SeriesSchemaBackend,
-)
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -28,8 +24,6 @@ TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 
 class ArraySchema(BaseSchema):
     """Base array validator object."""
-
-    BACKEND = ArraySchemaBackend()
 
     def __init__(
         self,
@@ -144,7 +138,7 @@ class ArraySchema(BaseSchema):
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        return self.BACKEND.coerce_dtype(check_obj, schema=self)
+        return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
@@ -175,7 +169,7 @@ class ArraySchema(BaseSchema):
         :returns: validated DataFrame or Series.
 
         """
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,
             head=head,
@@ -290,8 +284,6 @@ class ArraySchema(BaseSchema):
 
 class SeriesSchema(ArraySchema):
     """Series validator."""
-
-    BACKEND = SeriesSchemaBackend()
 
     def __init__(
         self,

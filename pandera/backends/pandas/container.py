@@ -216,7 +216,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             if col_schema.regex:
                 try:
                     column_names.extend(
-                        col_schema.BACKEND.get_regex_columns(
+                        col_schema.get_backend(check_obj).get_regex_columns(
                             col_schema, check_obj.columns
                         )
                     )
@@ -420,9 +420,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         for colname, col_schema in schema.columns.items():
             if col_schema.regex:
                 try:
-                    matched_columns = col_schema.BACKEND.get_regex_columns(
-                        col_schema, obj.columns
-                    )
+                    matched_columns = col_schema.get_backend(
+                        obj
+                    ).get_regex_columns(col_schema, obj.columns)
                 except SchemaError:
                     matched_columns = pd.Index([])
 

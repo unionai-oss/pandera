@@ -7,11 +7,6 @@ import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
-from pandera.backends.pandas.components import (
-    ColumnBackend,
-    IndexBackend,
-    MultiIndexBackend,
-)
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
@@ -20,8 +15,6 @@ from pandera.dtypes import UniqueSettings
 
 class Column(ArraySchema):
     """Validate types and properties of DataFrame columns."""
-
-    BACKEND = ColumnBackend()
 
     def __init__(
         self,
@@ -161,7 +154,7 @@ class Column(ArraySchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame.
         """
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             self,
             head=head,
@@ -180,7 +173,9 @@ class Column(ArraySchema):
         :param columns: columns to regex pattern match
         :returns: matchin columns
         """
-        return self.BACKEND.get_regex_columns(self, columns)
+        return self.get_backend(pd.DataFrame()).get_regex_columns(
+            self, columns
+        )
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -243,8 +238,6 @@ class Column(ArraySchema):
 class Index(ArraySchema):
     """Validate types and properties of a DataFrame Index."""
 
-    BACKEND = IndexBackend()
-
     @property
     def names(self):
         """Get index names in the Index schema component."""
@@ -282,7 +275,7 @@ class Index(ArraySchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             self,
             head=head,
@@ -349,8 +342,6 @@ class MultiIndex(DataFrameSchema):
     This class inherits from :class:`~pandera.api.pandas.container.DataFrameSchema` to
     leverage its validation logic.
     """
-
-    BACKEND = MultiIndexBackend()
 
     def __init__(
         self,
@@ -480,7 +471,7 @@ class MultiIndex(DataFrameSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,
             head=head,
