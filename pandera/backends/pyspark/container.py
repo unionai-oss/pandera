@@ -22,7 +22,7 @@ from pandera.errors import (
     SchemaDefinitionError,
 )
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import cast,col
+from pyspark.sql.functions import cast, col
 
 
 class DataFrameSchemaBackend(PysparkSchemaBackend):
@@ -79,9 +79,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         # strictness check and filter
         try:
-            check_obj = self.strict_filter_columns(
-                check_obj, schema, column_info
-            )
+            check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
         print(check_obj)
@@ -137,9 +135,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(
-                    check_obj, lazy=lazy, inplace=True
-                )
+                result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
                 check_results.append(is_table(result))
             except SchemaError as err:
                 error_handler.collect_error("schema_component_check", err)
@@ -329,11 +325,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         _error_handler = error_handler or SchemaErrorHandler(lazy=True)
 
-        if not (
-            schema.coerce
-            or (schema.index is not None and schema.index.coerce)
-            or any(col.coerce for col in schema.columns.values())
-        ):
+        if not (schema.coerce or any(col.coerce for col in schema.columns.values())):
             return check_obj
 
         try:
@@ -431,13 +423,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 _col_schema.coerce = True
                 print(_col_schema)
                 print(type(str(col_schema)))
-                obj = _try_coercion(
-                    obj, colname, col_schema
-                )
+                obj = _try_coercion(obj, colname, col_schema)
 
         if schema.dtype is not None:
             obj = _try_coercion(_coerce_df_dtype, obj)
-
 
         if error_handler.collected_errors:
             raise SchemaErrors(
@@ -473,8 +462,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema=schema,
                 data=check_obj,
                 message=(
-                    "dataframe contains multiple columns with label(s): "
-                    f"{failed}"
+                    "dataframe contains multiple columns with label(s): " f"{failed}"
                 ),
                 # Todo change the scalar_failure_case
                 failure_cases=scalar_failure_case(failed),
@@ -519,7 +507,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # pylint: disable=not-an-iterable
 
         # Todo Not needed for spark discuss and remove convert_uniquesettings
-        #keep_setting = convert_uniquesettings(schema.report_duplicates)
+        # keep_setting = convert_uniquesettings(schema.report_duplicates)
         temp_unique: List[List] = (
             [schema.unique]
             if all(isinstance(x, str) for x in schema.unique)
@@ -537,9 +525,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 # series or dataframe because it comes from a different
                 # dataframe."
                 # Todo How to handle the error
-                #failure_cases = check_obj.loc[duplicates, subset]
+                # failure_cases = check_obj.loc[duplicates, subset]
 
-                #failure_cases = reshape_failure_cases(failure_cases)
+                # failure_cases = reshape_failure_cases(failure_cases)
                 failure_cases = None
                 raise SchemaError(
                     schema=schema,
