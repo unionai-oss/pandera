@@ -17,6 +17,9 @@ CheckList = Union[Check, List[Check]]
 
 PySparkDtypeInputTypes = Union[
     str,
+    int,
+    float,
+    bool,
     type,
     DataType,
     Type,

@@ -44,6 +44,7 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 from pandera.engines.type_aliases import PysparkObject
 
+
 @immutable(init=True)
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing PySpark data types."""
@@ -89,6 +90,7 @@ class DataType(dtypes.DataType):
 
     def __repr__(self) -> str:
         return f"DataType({self})"
+
     def coerce(self, data_container: PysparkObject) -> PysparkObject:
         """Pure coerce without catching exceptions."""
         coerced = data_container.astype(self.type)
@@ -111,12 +113,13 @@ class DataType(dtypes.DataType):
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {type_alias}",
-                failure_cases=None #utils.numpy_pandas_coerce_failure_cases(
-                    #data_container, self
-                #),
+                failure_cases=None  # utils.numpy_pandas_coerce_failure_cases(
+                # data_container, self
+                # ),
             ) from exc
 
         return coerced
+
 
 class Engine(  # pylint:disable=too-few-public-methods
     metaclass=engine.Engine,
@@ -132,7 +135,6 @@ class Engine(  # pylint:disable=too-few-public-methods
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             raise
-
 
 
 ###############################################################################
@@ -170,8 +172,10 @@ class String(DataType, dtypes.String):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.StringType`."""
 
     type = pst.StringType()  # type: ignore
+
     def __str__(self):
         return "str"
+
 
 ###############################################################################
 # integer
@@ -190,6 +194,7 @@ class Int(DataType, dtypes.Int):  # type: ignore
     def __str__(self):
         return "int"
 
+
 ###############################################################################
 # float
 ###############################################################################
@@ -206,6 +211,8 @@ class Float(DataType, dtypes.Float):  # type: ignore
 
     def __str__(self):
         return "float"
+
+
 @Engine.register_dtype(
     equivalents=["long", pst.LongType()],  # type: ignore
 )
@@ -213,7 +220,7 @@ class Float(DataType, dtypes.Float):  # type: ignore
 class BigInt(DataType, dtypes.Float):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.FloatType`."""
 
-    type = pst.LongType() # type: ignore
+    type = pst.LongType()  # type: ignore
 
     def __str__(self):
         return "long"

@@ -416,7 +416,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             f"strict={self.strict}, "
             f"name={self.name}, "
             f"ordered={self.ordered}, "
-            f"unique_column_names={self.unique_column_names}"
+            f"unique_column_names={self.unique_column_names}, "
+            f"title={self.title}, "
+            f"description='{self.description}', "
             ")>"
         )
 
