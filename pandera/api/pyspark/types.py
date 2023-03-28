@@ -8,15 +8,12 @@ try:
 except ImportError:
     from typing_extensions import Literal  # type: ignore [misc]
 
-import numpy as np
-import pandas as pd
-
 from pandera.api.checks import Check
-from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
 from pyspark.sql import DataFrame
+import pyspark.sql.types as pst
 
-CheckList = Union[Check, List[Union[Check, Hypothesis]]]
+CheckList = Union[Check, List[Check]]
 
 PySparkDtypeInputTypes = Union[
     str,
@@ -31,6 +28,7 @@ SupportedTypes = NamedTuple(
     "SupportedTypes",
     (
         ("table_types", Tuple[type, ...]),
+        ("field_types", Tuple[type, ...]),
     ),
 )
 
@@ -62,7 +60,6 @@ def is_table(obj):
     return isinstance(obj, supported_types().table_types)
 
 
-
 def is_bool(x):
     """Verifies whether an object is a boolean type."""
-    return isinstance(x, (bool, np.bool_))
+    return isinstance(x, (bool, pst.BooleanType()))
