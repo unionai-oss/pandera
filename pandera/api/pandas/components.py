@@ -1,7 +1,7 @@
 """Core pandas schema component specifications."""
 
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -173,9 +173,12 @@ class Column(ArraySchema):
         :param columns: columns to regex pattern match
         :returns: matchin columns
         """
-        return self.get_backend(pd.DataFrame()).get_regex_columns(
-            self, columns
-        )
+        # pylint: disable=import-outside-toplevel
+        from pandera.backends.pandas.components import ColumnBackend
+
+        return cast(
+            ColumnBackend, self.get_backend(pd.DataFrame())
+        ).get_regex_columns(self, columns)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

@@ -10,7 +10,7 @@ from abc import ABC
 from functools import wraps
 from typing import Any, Dict, Tuple, Type, Union
 
-# from pandera.backends.base import BaseSchemaBackend
+from pandera.backends.base import BaseSchemaBackend
 from pandera.errors import BackendNotFoundError
 from pandera.dtypes import DataType
 
@@ -20,8 +20,8 @@ DtypeInputTypes = Union[str, type, DataType, Type]
 class BaseSchema(ABC):
     """Core schema specification."""
 
-    BACKEND_REGISTRY: Dict[  # type: ignore
-        Tuple[Type, Type], Type["BaseSchemaBackend"]  # type: ignore
+    BACKEND_REGISTRY: Dict[
+        Tuple[Type, Type], Type[BaseSchemaBackend]
     ] = {}  # noqa
 
     def __init__(
@@ -64,12 +64,12 @@ class BaseSchema(ABC):
         raise NotImplementedError
 
     @classmethod
-    def register_backend(cls, type_: Type, backend: Type["BaseSchemaBackend"]):  # type: ignore
+    def register_backend(cls, type_: Type, backend: Type[BaseSchemaBackend]):
         """Register a schema backend for this class."""
         cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
-    def get_backend(cls, check_obj: Any) -> Type["BaseSchemaBackend"]:  # type: ignore
+    def get_backend(cls, check_obj: Any) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj`` ."""
         check_obj_cls = type(check_obj)
         classes = inspect.getmro(check_obj_cls)
