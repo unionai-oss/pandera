@@ -182,9 +182,6 @@ class BaseCheck(metaclass=MetaCheck):
         """Get the backend associated with the type of ``check_obj`` ."""
         check_obj_cls = type(check_obj)
         classes = inspect.getmro(check_obj_cls)
-        import pdb
-
-        pdb.set_trace()
         for _class in classes:
             try:
                 return cls.BACKEND_REGISTRY[(cls, _class)]
