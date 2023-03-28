@@ -53,7 +53,7 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     df = spark.createDataFrame(data=data, schema=["name", "age"])
 
-    # validate_df = schema.validate(df)
+    validate_df = schema.validate(df)
     import pdb
 
     pdb.set_trace()
