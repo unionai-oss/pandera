@@ -76,7 +76,7 @@ class ColumnBackend(ArraySchemaBackend):
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj[column_name] = self.coerce_dtype(
+                check_obj = self.coerce_dtype(
                     check_obj,
                     schema=schema,
                     error_handler=error_handler,
@@ -90,6 +90,7 @@ class ColumnBackend(ArraySchemaBackend):
             # else:
             #    validate_column(check_obj, column_name)
             validate_column(check_obj, column_name)
+            print(column_name)
 
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(
@@ -139,12 +140,8 @@ class ColumnBackend(ArraySchemaBackend):
         # pylint: disable=fixme
         # TODO: use singledispatchmethod here
         print(check_obj)
-
-        check_obj = check_obj.withColumn(check_obj.name, udf(super(ColumnBackend, self).coerce_dtype(
-                check_obj,
-                schema=schema,
-                error_handler=error_handler,
-            )))
+        for col_name in check_obj.columns:
+            check_obj = check_obj.withColumn(col_name, F.cast(schema.dtype))
         # return check_obj.apply(
         #     lambda x: super(ColumnBackend, self).coerce_dtype(
         #         x,

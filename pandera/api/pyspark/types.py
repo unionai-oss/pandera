@@ -31,9 +31,6 @@ SupportedTypes = NamedTuple(
     "SupportedTypes",
     (
         ("table_types", Tuple[type, ...]),
-        ("field_types", Tuple[type, ...]),
-        ("index_types", Tuple[type, ...]),
-        ("multiindex_types", Tuple[type, ...]),
     ),
 )
 

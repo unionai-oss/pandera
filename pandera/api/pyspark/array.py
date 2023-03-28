@@ -8,9 +8,9 @@ import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
-from pandera.backends.pandas.array import (
+from pandera.backends.pyspark.array import (
     ArraySchemaBackend,
-    SeriesSchemaBackend,
+    #SeriesSchemaBackend,
 )
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
@@ -21,7 +21,7 @@ from pandera.api.pyspark.types import (
 )
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
-
+from pyspark.sql import DataFrame
 TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 
 
@@ -135,8 +135,8 @@ class ArraySchema(BaseSchema):
 
     def coerce_dtype(
         self,
-        check_obj: Union[pd.Series, pd.Index],
-    ) -> Union[pd.Series, pd.Index]:
+        check_obj: Union[DataFrame],
+    ) -> Union[DataFrame]:
         """Coerce type of a pd.Series by type specified in dtype.
 
         :param pd.Series series: One-dimensional ndarray with axis labels

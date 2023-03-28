@@ -141,7 +141,7 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 @Engine.register_dtype(
-    equivalents=["bool", pst.BooleanType()],
+    equivalents=[bool, "bool", pst.BooleanType()],
 )
 @immutable
 class Bool(DataType, dtypes.Bool):
@@ -163,14 +163,15 @@ class Bool(DataType, dtypes.Bool):
 
 
 @Engine.register_dtype(
-    equivalents=["string", pst.StringType()],  # type: ignore
+    equivalents=[str, "str", "string", pst.StringType()],  # type: ignore
 )
 @immutable
 class String(DataType, dtypes.String):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.StringType`."""
 
     type = pst.StringType()  # type: ignore
-
+    def __str__(self):
+        return "str"
 
 ###############################################################################
 # integer
@@ -178,7 +179,7 @@ class String(DataType, dtypes.String):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["int", pst.IntegerType()],  # type: ignore
+    equivalents=[int, "int", pst.IntegerType()],  # type: ignore
 )
 @immutable
 class Int(DataType, dtypes.Int):  # type: ignore
@@ -186,6 +187,8 @@ class Int(DataType, dtypes.Int):  # type: ignore
 
     type = pst.IntegerType()  # type: ignore
 
+    def __str__(self):
+        return "int"
 
 ###############################################################################
 # float
@@ -193,10 +196,24 @@ class Int(DataType, dtypes.Int):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["float", pst.FloatType()],  # type: ignore
+    equivalents=[float, "float", pst.FloatType()],  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.FloatType`."""
 
     type = pst.FloatType()  # type: ignore
+
+    def __str__(self):
+        return "float"
+@Engine.register_dtype(
+    equivalents=["long", pst.LongType()],  # type: ignore
+)
+@immutable
+class BigInt(DataType, dtypes.Float):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.FloatType`."""
+
+    type = pst.LongType() # type: ignore
+
+    def __str__(self):
+        return "long"
