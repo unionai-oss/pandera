@@ -1,4 +1,4 @@
-"""Utility functions for pandas validation."""
+"""Utility functions for pyspark validation."""
 
 from functools import lru_cache
 from typing import List, NamedTuple, Tuple, Type, Union
@@ -17,6 +17,9 @@ CheckList = Union[Check, List[Check]]
 
 PySparkDtypeInputTypes = Union[
     str,
+    int,
+    float,
+    bool,
     type,
     DataType,
     Type,
@@ -26,10 +29,7 @@ StrictType = Union[bool, Literal["filter"]]
 
 SupportedTypes = NamedTuple(
     "SupportedTypes",
-    (
-        ("table_types", Tuple[type, ...]),
-        ("field_types", Tuple[type, ...]),
-    ),
+    (("table_types", Tuple[type, ...]),),
 )
 
 
