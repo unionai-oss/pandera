@@ -47,7 +47,7 @@ def test_pyspark_dataframeschema_with_alias_types():
     schema = DataFrameSchema(
         columns={
             "name": Column("str"),
-            "age": Column("int"),
+            "age": Column("int", pa.Check.gt(31)),
         },
         name="person_schema",
         description="schema for person info",
