@@ -44,21 +44,19 @@ class PanderaAccessor:
 
 
 
-
 class CachedAccessor:
     """
-    Custom property-like object (descriptor) for caching accessors.
+    Custom property-like object.
 
-    Parameters
-    ----------
-    name : str
-        The namespace this will be accessed under, e.g. ``df.foo``
-    accessor : cls
-        The class with the extension methods.
+    A descriptor for caching accessors:
 
-    NOTE
-    ----
-    Modified based on pandas.core.accessor.
+    :param name: Namespace that accessor's methods, properties, etc will be
+        accessed under, e.g. "foo" for a dataframe accessor yields the accessor
+        ``df.foo``
+    :param cls: Class with the extension methods.
+
+    For accessor, the class's __init__ method assumes that you are registering
+    an accessor for one of ``Series``, ``DataFrame``, or ``Index``.
     """
 
     def __init__(self, name, accessor):
@@ -66,16 +64,11 @@ class CachedAccessor:
         self._accessor = accessor
 
     def __get__(self, obj, cls):
-        if obj is None:
-            # we're accessing the attribute of the class, i.e., Dataset.geo
+        if obj is None:  # pragma: no cover
             return self._accessor
         accessor_obj = self._accessor(obj)
-        # Replace the property with the accessor object. Inspired by:
-        # http://www.pydanny.com/cached-property.html
-        setattr(obj, self._name, accessor_obj)
+        object.__setattr__(obj, self._name, accessor_obj)
         return accessor_obj
-
-
 
 
 def _register_accessor(name, cls):
@@ -134,30 +127,6 @@ def register_dataframe_accessor(name):
 #
 
 
-def register_dataframe_method(method):
-    """Register a function as a method attached to the Pyspark DataFrame.
-
-    NOTE
-    ----
-    Modified based on pandas_flavor.register.
-    """
-
-    def inner(*args, **kwargs):
-        class AccessorMethod:
-            def __init__(self, pyspark_obj):
-                self._obj = pyspark_obj
-
-            @wraps(method)
-            def __call__(self, *args, **kwargs):
-                return method(self._obj, *args, **kwargs)
-
-        register_dataframe_accessor(method.__name__)(AccessorMethod)
-
-        return method
-
-    return inner()
-
-@register_dataframe_accessor("pandera")
 class PanderaDataFrameAccessor(PanderaAccessor):
     """Pandera accessor for pandas DataFrame."""
 
