@@ -23,7 +23,6 @@ from pandera.api.pyspark.types import (
     StrictType,
 )
 from pandera.dtypes import DataType, UniqueSettings
-from pyspark.sql import DataFrame
 from pandera.engines import pyspark_engine
 
 N_INDENT_SPACES = 4
@@ -418,7 +417,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             f"ordered={self.ordered}, "
             f"unique_column_names={self.unique_column_names}, "
             f"title={self.title}, "
-            f"description='{self.description}', "
+            f"description='{self.description}, "
             ")>"
         )
 
