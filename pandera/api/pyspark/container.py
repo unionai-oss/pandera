@@ -446,7 +446,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         else:
             checks_str = f"{indent}checks=[]"
 
-
         return (
             f"<Schema {self.__class__.__name__}(\n"
             f"{columns_str},\n"
