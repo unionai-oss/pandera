@@ -29,6 +29,11 @@ def test_pyspark_dataframeschema():
     df = spark.createDataFrame(data=data, schema=["name", "age"])
     validate_df = schema.validate(df)
 
+    data = [("Neeraj", "35"), ("Jask", "a")]
+
+    df2 = spark.createDataFrame(data=data, schema=["name", "age"])
+    validate_df2 = schema.validate(df2)  # typecasted and no error thrown
+
     import pdb
 
     pdb.set_trace()
