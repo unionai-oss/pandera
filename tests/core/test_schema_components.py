@@ -874,7 +874,7 @@ def test_index_validation_pandas_string_dtype():
         ("Int64", 0),
     ],
 )
-def test_column_default_works_when_dtype_match(dtype: Any, default: any):
+def test_column_default_works_when_dtype_match(dtype: Any, default: Any):
     """Test ``default`` fills ``nan`` values as expected when the ``dtype`` matches that of the ``Column``"""
     column = Column(dtype, name="column1", default=default)
     df = pd.DataFrame({"column1": [None]})
@@ -893,7 +893,7 @@ def test_column_default_works_when_dtype_match(dtype: Any, default: any):
         ("Int64", "a default"),
     ],
 )
-def test_column_default_errors_on_dtype_mismatch(dtype: Any, default: any):
+def test_column_default_errors_on_dtype_mismatch(dtype: Any, default: Any):
     """Test that setting a ``default`` of different ``dtype`` to that of the ```Column`` raises an error"""
     column = Column(dtype, name="column1", default=default)
     df = pd.DataFrame({"column1": [None]})
