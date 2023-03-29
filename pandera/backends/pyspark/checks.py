@@ -264,16 +264,17 @@ class PySparkCheckBackend(BaseCheckBackend):
     #         None,
     #     )
 
-    # def __call__(
-    #     self,
-    #     check_obj: Union[pd.Series, pd.DataFrame],
-    #     key: Optional[str] = None,
-    # ) -> CheckResult:
-    #     check_obj = self.preprocess(check_obj, key)
-    #     try:
-    #         check_output = self.apply(check_obj)
-    #     except DispatchError as exc:
-    #         if exc.__cause__ is not None:
-    #             raise exc.__cause__
-    #         raise exc
-    #     return self.postprocess(check_obj, check_output)
+    def __call__(
+        self,
+        check_obj: DataFrame,
+        key: Optional[str] = None,
+    ) -> CheckResult:
+        breakpoint()
+        check_obj = self.preprocess(check_obj, key)
+        try:
+            check_output = self.apply(check_obj)
+        except DispatchError as exc:
+            if exc.__cause__ is not None:
+                raise exc.__cause__
+            raise exc
+        return self.postprocess(check_obj, check_output)

@@ -5,8 +5,6 @@ import itertools
 import traceback
 from typing import Any, List, Optional
 
-import pandas as pd
-
 from pandera.backends.pyspark.base import ColumnInfo, PysparkSchemaBackend
 from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.api.pyspark.types import is_table
@@ -49,7 +47,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         object.
         """
         # Todo To be done by Neeraj
-
         if not is_table(check_obj):
             raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
 
@@ -82,14 +79,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
-
+        breakpoint()
         # try to coerce datatypes
         check_obj = self.coerce_dtype(
             check_obj,
             schema=schema,
             error_handler=error_handler,
         )
-
+        breakpoint()
         # collect schema components and prepare check object to be validated
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
@@ -103,7 +100,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             )
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
-
+        breakpoint()
         try:
             self.run_checks(check_obj_subsample, schema, error_handler)
         except SchemaError as exc:
@@ -125,7 +122,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
     def run_schema_component_checks(
         self,
-        check_obj: pd.DataFrame,
+        check_obj: DataFrame,
         schema_components: List,
         lazy: bool,
         error_handler: SchemaErrorHandler,
@@ -146,7 +143,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     )
         assert all(check_results)
 
-    def run_checks(self, check_obj: pd.DataFrame, schema, error_handler):
+    def run_checks(self, check_obj: DataFrame, schema, error_handler):
         """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results = []
@@ -261,7 +258,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ###########
 
     def strict_filter_columns(
-        self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
+        self, check_obj: DataFrame, schema, column_info: ColumnInfo
     ):
         """Filters columns that aren't specified in the schema."""
         # dataframe strictness check makes sure all columns in the dataframe
@@ -413,8 +410,11 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
                 for matched_colname in matched_columns:
                     if col_schema.coerce or schema.coerce:
-                        obj = _try_coercion(obj, matched_colname, col_schema
-                            #col_schema.coerce_dtype, obj[matched_colname]
+                        obj = _try_coercion(
+                            obj,
+                            matched_colname,
+                            col_schema
+                            # col_schema.coerce_dtype, obj[matched_colname]
                         )
 
             elif (

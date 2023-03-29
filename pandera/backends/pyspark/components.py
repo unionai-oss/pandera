@@ -10,15 +10,16 @@ from pyspark.sql.functions import udf
 from pandera.backends.pyspark.array import ArraySchemaBackend
 from pandera.backends.pyspark.container import DataFrameSchemaBackend
 from pandera.api.pyspark.types import (
-    #is_field,
-    #is_index, # Don't need this
-    #is_multiindex, # Don't need this
+    # is_field,
+    # is_index, # Don't need this
+    # is_multiindex, # Don't need this
     is_table,
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
 import re
+
 
 class ColumnBackend(ArraySchemaBackend):
     """Backend implementation for pandas dataframe columns."""
@@ -90,7 +91,6 @@ class ColumnBackend(ArraySchemaBackend):
             # else:
             #    validate_column(check_obj, column_name)
 
-
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
@@ -100,9 +100,7 @@ class ColumnBackend(ArraySchemaBackend):
 
         return check_obj
 
-    def get_regex_columns(
-        self, schema, columns
-    ) -> Iterable:
+    def get_regex_columns(self, schema, columns) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
         :param schema: schema specification to use
@@ -110,7 +108,9 @@ class ColumnBackend(ArraySchemaBackend):
         :returns: matchin columns
         """
         pattern = re.compile(schema.name)
-        column_keys_to_check = [col_name for col_name in columns if pattern.match(col_name)]
+        column_keys_to_check = [
+            col_name for col_name in columns if pattern.match(col_name)
+        ]
         if len(column_keys_to_check) == 0:
             raise SchemaError(
                 schema=schema,
@@ -129,11 +129,11 @@ class ColumnBackend(ArraySchemaBackend):
 
     def coerce_dtype(
         self,
-        check_obj: Union[DataFrame],
+        check_obj: DataFrame,
         *,
         schema=None,
         error_handler: SchemaErrorHandler = None,
-    ) -> Union[DataFrame]:
+    ) -> DataFrame:
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
         # pylint: disable=fixme
@@ -157,9 +157,7 @@ class ColumnBackend(ArraySchemaBackend):
             check_args = [schema.name]
             try:
                 check_results.append(
-                    self.run_check(
-                        check_obj, schema, check, check_index, *check_args
-                    )
+                    self.run_check(check_obj, schema, check, check_index, *check_args)
                 )
             except SchemaError as err:
                 error_handler.collect_error(
@@ -186,4 +184,3 @@ class ColumnBackend(ArraySchemaBackend):
                     original_exc=err,
                 )
         return check_results
-
