@@ -90,12 +90,13 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj, schema, column_info
         )
         check_obj_subsample = self.subsample(check_obj, sample, random_state)
-        try:
-            self.run_schema_component_checks(
-                check_obj_subsample, schema_components, lazy, error_handler
-            )
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+        # try:
+        #     # TODO: need to create apply at column level
+        #     self.run_schema_component_checks(
+        #         check_obj_subsample, schema_components, lazy, error_handler
+        #     )
+        # except SchemaError as exc:
+        #     error_handler.collect_error(exc.reason_code, exc)
         breakpoint()
         try:
             self.run_checks(check_obj_subsample, schema, error_handler)
@@ -128,7 +129,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                breakpoint()
                 result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
                 check_results.append(is_table(result))
             except SchemaError as err:
