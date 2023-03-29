@@ -20,7 +20,7 @@ from pandera.errors import (
     SchemaErrors,
     SchemaErrorReason,
 )
-
+from pyspark.sql import DataFrame
 
 class CoreCheckResult(NamedTuple):
     """Namedtuple for holding results of core checks."""
@@ -70,16 +70,32 @@ class ArraySchemaBackend(PysparkSchemaBackend):
             random_state,
         )
 
+
         # run the core checks
         for core_check in (
             self.check_name,
-            self.check_nullable,
-            self.check_unique,
+            #self.check_nullable,
+            #self.check_unique,
             self.check_dtype,
         ):
-            check_results = self.run_checks(
-                check_obj_subsample, schema, error_handler, lazy
+            check_result = core_check(check_obj_subsample, schema)
+            print(check_result)
+            if not check_result.passed:
+                error_handler.collect_error(
+                    check_result.reason_code,
+                    SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=check_result.message,
+                        failure_cases=check_result.failure_cases,
+                        check=check_result.check,
+                        reason_code=check_result.reason_code,
+                    ),
+                )
+        check_results = self.run_checks(
+            check_obj_subsample, schema, error_handler, lazy
         )
+
         assert all(check_results)
 
         if lazy and error_handler.collected_errors:
@@ -122,19 +138,19 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                 check=f"coerce_dtype('{schema.dtype}')",
             ) from exc
 
-    def check_name(self, check_obj: pd.Series, schema):
+    def check_name(self, check_obj: DataFrame, schema):
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
             reason_code=SchemaErrorReason.WRONG_FIELD_NAME,
-            passed=schema.name is None or check_obj.name == schema.name,
+            passed=schema.name is None or schema.name in check_obj.columns,
             message=(
                 f"Expected {type(check_obj)} to have name '{schema.name}', "
-                f"found '{check_obj.name}'"
+                f"found columns '{check_obj.columns}'"
             ),
-            failure_cases=scalar_failure_case(check_obj.name),
+            failure_cases=scalar_failure_case(schema.name),
         )
 
-    def check_nullable(self, check_obj: pd.Series, schema):
+    def check_nullable(self, check_obj: DataFrame, schema):
         isna = check_obj.isna()
         passed = schema.nullable or not isna.any()
         return CoreCheckResult(
@@ -150,7 +166,7 @@ class ArraySchemaBackend(PysparkSchemaBackend):
             ),
         )
 
-    def check_unique(self, check_obj: pd.Series, schema):
+    def check_unique(self, check_obj: DataFrame, schema):
         passed = True
         failure_cases = None
         message = None
@@ -162,7 +178,7 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                 passed = False
                 failure_cases = None #reshape_failure_cases(failed)
                 message = (
-                    f"series '{check_obj.name}' contains duplicate "
+                    f"Column '{schema.name}' contains duplicate "
                     #f"values:\n{failed}"
                 )
 
@@ -174,22 +190,21 @@ class ArraySchemaBackend(PysparkSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    def check_dtype(self, check_obj: pd.Series, schema):
+    def check_dtype(self, check_obj: DataFrame, schema):
         passed = True
         failure_cases = None
         msg = None
 
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(
-                Engine.dtype(check_obj.dtype),
-                check_obj,
+                Engine.dtype(check_obj.schema[schema.name].dataType),
             )
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
-                failure_cases = scalar_failure_case(str(check_obj.dtype))
+                failure_cases = scalar_failure_case(str(Engine.dtype(check_obj.schema[schema.name].dataType)))
                 msg = (
-                    f"expected series '{check_obj.name}' to have type "
-                    f"{schema.dtype}, got {check_obj.dtype}"
+                    f"expected column '{schema.name}' to have type "
+                    f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"
                 )
             else:
                 passed = dtype_check_results.all()

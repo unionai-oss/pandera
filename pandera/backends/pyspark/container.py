@@ -82,7 +82,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
-        print(check_obj)
+
         # try to coerce datatypes
         check_obj = self.coerce_dtype(
             check_obj,
@@ -330,6 +330,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         try:
             check_obj = self._coerce_dtype(check_obj, schema)
+
         except SchemaErrors as err:
             for schema_error_dict in err.schema_errors:
                 if not _error_handler.lazy:
@@ -376,7 +377,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
 
             try:
-                print(schema)
                 return schema.dtype.try_coerce(obj)
             except ParserError as exc:
                 raise SchemaError(
@@ -392,8 +392,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         def _try_coercion(obj, colname, col_schema):
             try:
-                print(obj)
-                return obj.withColumn(colname, col(colname).cast(str(col_schema)))
+                schema = obj.pandera.schema
+                obj = obj.withColumn(colname, col(colname).cast(str(col_schema)))
+                obj.pandera.add_schema(schema)
+                return obj
 
             except SchemaError as exc:
                 error_handler.collect_error("dtype_coercion_error", exc)
@@ -411,9 +413,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
                 for matched_colname in matched_columns:
                     if col_schema.coerce or schema.coerce:
-                        obj[matched_colname] = _try_coercion(
-                            col_schema.coerce_dtype, obj[matched_colname]
+                        obj = _try_coercion(obj, matched_colname, col_schema
+                            #col_schema.coerce_dtype, obj[matched_colname]
                         )
+
             elif (
                 (col_schema.coerce or schema.coerce)
                 and schema.dtype is None
@@ -421,8 +424,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             ):
                 _col_schema = copy.deepcopy(col_schema)
                 _col_schema.coerce = True
-                print(_col_schema)
-                print(type(str(col_schema)))
                 obj = _try_coercion(obj, colname, col_schema)
 
         if schema.dtype is not None:

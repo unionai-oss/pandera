@@ -37,7 +37,6 @@ class ColumnBackend(ArraySchemaBackend):
     ) -> DataFrame:
         """Validation backend implementation for pandas dataframe columns.."""
         error_handler = SchemaErrorHandler(lazy=lazy)
-
         if schema.name is None:
             raise SchemaError(
                 schema,
@@ -81,6 +80,7 @@ class ColumnBackend(ArraySchemaBackend):
                     schema=schema,
                     error_handler=error_handler,
                 )
+            validate_column(check_obj, column_name)
 
             # if is_table(check_obj[column_name]):
             #     for i in range(check_obj[column_name].shape[1]):
@@ -89,8 +89,7 @@ class ColumnBackend(ArraySchemaBackend):
             #         )
             # else:
             #    validate_column(check_obj, column_name)
-            validate_column(check_obj, column_name)
-            print(column_name)
+
 
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(
@@ -139,7 +138,7 @@ class ColumnBackend(ArraySchemaBackend):
         # pylint: disable=super-with-arguments
         # pylint: disable=fixme
         # TODO: use singledispatchmethod here
-        print(check_obj)
+
         for col_name in check_obj.columns:
             check_obj = check_obj.withColumn(col_name, F.cast(schema.dtype))
         # return check_obj.apply(

@@ -72,6 +72,7 @@ class DataType(dtypes.DataType):
         pandera_dtype: dtypes.DataType,
     ) -> Union[bool, Iterable[bool]]:
         try:
+            print(Engine.dtype(pandera_dtype))
             pandera_dtype = Engine.dtype(pandera_dtype)
 
         except TypeError:
@@ -81,7 +82,9 @@ class DataType(dtypes.DataType):
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:
-            return self.type == pandera_dtype.type or super().check(pandera_dtype)
+            print(self.type)
+            print(super().check(pandera_dtype))
+            return self.type == pandera_dtype.type #or super().check(pandera_dtype)
         except TypeError:
             return super().check(pandera_dtype)
 
