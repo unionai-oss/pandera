@@ -43,7 +43,7 @@ def test_pyspark_dataframeschema_with_alias_types():
     schema = DataFrameSchema(
         columns={
             "first_name": Column("str"),
-            "age": Column("int", pa.Check.gt(31)),
+            "age": Column("int", checks=pa.Check.gt(31)),
         },
         name="person_schema",
         description="schema for person info",
@@ -58,7 +58,7 @@ def test_pyspark_dataframeschema_with_alias_types():
             T.StructField("age", T.IntegerType(), False),
         ],
     )
-
+    breakpoint()
     df = spark.createDataFrame(data=data, schema=spark_schema)
 
     validate_df = schema.validate(df)

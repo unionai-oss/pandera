@@ -145,6 +145,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results = []
+        breakpoint()
         for check_index, check in enumerate(schema.checks):
             try:
                 check_results.append(
