@@ -108,14 +108,14 @@ class PySparkCheckBackend(BaseCheckBackend):
     #         self._format_groupby_input(self.groupby(check_obj), self.check.groups),
     #     )
 
-    # @overload
-    # def apply(self, check_obj):
-    #     """Apply the check function to a check object."""
-    #     raise NotImplementedError
+    @overload
+    def apply(self, check_obj):
+        """Apply the check function to a check object."""
+        raise NotImplementedError
 
-    # @overload  # type: ignore [no-redef]
-    # def apply(self, check_obj: dict):
-    #     return self.check_fn(check_obj)
+    @overload  # type: ignore [no-redef]
+    def apply(self, check_obj: dict):
+        return self.check_fn(check_obj)
 
     # @overload  # type: ignore [no-redef]
     # def apply(self, check_obj: is_field):  # type: ignore [valid-type]
@@ -123,11 +123,9 @@ class PySparkCheckBackend(BaseCheckBackend):
     #         return check_obj.map(self.check_fn)
     #     return self.check_fn(check_obj)
 
-    # @overload  # type: ignore [no-redef]
-    # def apply(self, check_obj: is_table):  # type: ignore [valid-type]
-    #     if self.check.element_wise:
-    #         return check_obj.apply(self.check_fn, axis=1)
-    #     return self.check_fn(check_obj)
+    @overload  # type: ignore [no-redef]
+    def apply(self, check_obj: is_table):  # type: ignore [valid-type]
+        return self.check_fn(check_obj)
 
     # @overload
     # def postprocess(self, check_obj, check_output):
