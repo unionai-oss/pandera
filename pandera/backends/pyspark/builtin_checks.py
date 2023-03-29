@@ -4,37 +4,13 @@ import operator
 import re
 from typing import cast, Any, Iterable, TypeVar, Union
 
-import pandas as pd
-
 import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 
 from pandera.typing.modin import MODIN_INSTALLED
 from pandera.typing.pyspark import PYSPARK_INSTALLED
 
-
-if MODIN_INSTALLED and not PYSPARK_INSTALLED:  # pragma: no cover
-    import modin.pandas as mpd
-
-    PandasData = Union[pd.Series, pd.DataFrame, mpd.Series, mpd.DataFrame]
-elif not MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
-    import pyspark.pandas as ppd
-
-    PandasData = Union[pd.Series, pd.DataFrame, ppd.Series, ppd.DataFrame]  # type: ignore[misc]
-elif MODIN_INSTALLED and PYSPARK_INSTALLED:  # pragma: no cover
-    import modin.pandas as mpd
-    import pyspark.pandas as ppd
-
-    PandasData = Union[  # type: ignore[misc]
-        pd.Series,
-        pd.DataFrame,
-        mpd.Series,
-        mpd.DataFrame,
-        ppd.Series,
-        ppd.DataFrame,
-    ]
-else:  # pragma: no cover
-    PandasData = Union[pd.Series, pd.DataFrame]  # type: ignore[misc]
+from pyspark.sql import DataFrame
 
 
 T = TypeVar("T")
@@ -45,10 +21,10 @@ T = TypeVar("T")
     strategy=st.eq_strategy,
     error="equal_to({value})",
 )
-def equal_to(data: PandasData, value: Any) -> PandasData:
+def equal_to(data: DataFrame, value: Any) -> DataFrame:
     """Ensure all elements of a data container equal a certain value.
 
-    :param value: values in this pandas data structure must be
+    :param value: values in this DataFrame data structure must be
         equal to this value.
     """
     return data == value
@@ -59,7 +35,7 @@ def equal_to(data: PandasData, value: Any) -> PandasData:
     strategy=st.ne_strategy,
     error="not_equal_to({value})",
 )
-def not_equal_to(data: PandasData, value: Any) -> PandasData:
+def not_equal_to(data: DataFrame, value: Any) -> DataFrame:
     """Ensure no elements of a data container equals a certain value.
 
     :param value: This value must not occur in the checked
@@ -73,7 +49,7 @@ def not_equal_to(data: PandasData, value: Any) -> PandasData:
     strategy=st.gt_strategy,
     error="greater_than({min_value})",
 )
-def greater_than(data: PandasData, min_value: Any) -> PandasData:
+def greater_than(data: DataFrame, min_value: Any) -> DataFrame:
     """
     Ensure values of a data container are strictly greater than a minimum
     value.
@@ -90,7 +66,7 @@ def greater_than(data: PandasData, min_value: Any) -> PandasData:
     strategy=st.ge_strategy,
     error="greater_than_or_equal_to({min_value})",
 )
-def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
+def greater_than_or_equal_to(data: DataFrame, min_value: Any) -> DataFrame:
     """Ensure all values are greater or equal a certain value.
 
     :param min_value: Allowed minimum value for values of a series. Must be
@@ -105,7 +81,7 @@ def greater_than_or_equal_to(data: PandasData, min_value: Any) -> PandasData:
     strategy=st.lt_strategy,
     error="less_than({max_value})",
 )
-def less_than(data: PandasData, max_value: Any) -> PandasData:
+def less_than(data: DataFrame, max_value: Any) -> DataFrame:
     """Ensure values of a series are strictly below a maximum value.
 
     :param max_value: All elements of a series must be strictly smaller
@@ -122,7 +98,7 @@ def less_than(data: PandasData, max_value: Any) -> PandasData:
     strategy=st.le_strategy,
     error="less_than_or_equal_to({max_value})",
 )
-def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
+def less_than_or_equal_to(data: DataFrame, max_value: Any) -> DataFrame:
     """Ensure values of a series are strictly below a maximum value.
 
     :param max_value: Upper bound not to be exceeded. Must be a type
@@ -140,7 +116,7 @@ def less_than_or_equal_to(data: PandasData, max_value: Any) -> PandasData:
     error="in_range({min_value}, {max_value})",
 )
 def in_range(
-    data: PandasData,
+    data: DataFrame,
     min_value: T,
     max_value: T,
     include_min: bool = True,
@@ -172,7 +148,7 @@ def in_range(
     strategy=st.isin_strategy,
     error="isin({allowed_values})",
 )
-def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
+def isin(data: DataFrame, allowed_values: Iterable) -> DataFrame:
     """Ensure only allowed values occur within a series.
 
     This checks whether all elements of a :class:`pandas.Series`
@@ -192,7 +168,7 @@ def isin(data: PandasData, allowed_values: Iterable) -> PandasData:
     strategy=st.notin_strategy,
     error="notin({forbidden_values})",
 )
-def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
+def notin(data: DataFrame, forbidden_values: Iterable) -> DataFrame:
     """Ensure some defined values don't occur within a series.
 
     Like :meth:`Check.isin` this check operates on single characters if
@@ -213,9 +189,9 @@ def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
     error="str_matches('{pattern}')",
 )
 def str_matches(
-    data: PandasData,
+    data: DataFrame,
     pattern: Union[str, re.Pattern],
-) -> PandasData:
+) -> DataFrame:
     """Ensure that string values match a regular expression.
 
     :param pattern: Regular expression pattern to use for matching
@@ -229,9 +205,9 @@ def str_matches(
     error="str_contains('{pattern}')",
 )
 def str_contains(
-    data: PandasData,
+    data: DataFrame,
     pattern: Union[str, re.Pattern],
-) -> PandasData:
+) -> DataFrame:
     """Ensure that a pattern can be found within each row.
 
     :param pattern: Regular expression pattern to use for searching
@@ -244,7 +220,7 @@ def str_contains(
     strategy=st.str_startswith_strategy,
     error="str_startswith('{string}')",
 )
-def str_startswith(data: PandasData, string: str) -> PandasData:
+def str_startswith(data: DataFrame, string: str) -> DataFrame:
     """Ensure that all values start with a certain string.
 
     :param string: String all values should start with
@@ -256,7 +232,7 @@ def str_startswith(data: PandasData, string: str) -> PandasData:
 @register_builtin_check(
     strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
-def str_endswith(data: PandasData, string: str) -> PandasData:
+def str_endswith(data: DataFrame, string: str) -> DataFrame:
     """Ensure that all values end with a certain string.
 
     :param string: String all values should end with
@@ -270,10 +246,10 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
     error="str_length({min_value}, {max_value})",
 )
 def str_length(
-    data: PandasData,
+    data: DataFrame,
     min_value: int = None,
     max_value: int = None,
-) -> PandasData:
+) -> DataFrame:
     """Ensure that the length of strings is within a specified range.
 
     :param min_value: Minimum length of strings (default: no minimum)
@@ -282,8 +258,7 @@ def str_length(
     str_len = data.str.len()
     if min_value is None and max_value is None:
         raise ValueError(
-            "At least a minimum or a maximum need to be specified. Got "
-            "None."
+            "At least a minimum or a maximum need to be specified. Got " "None."
         )
     if max_value is None:
         return str_len >= min_value  # type: ignore[operator]
@@ -295,7 +270,7 @@ def str_length(
 @register_builtin_check(
     error="unique_values_eq({values})",
 )
-def unique_values_eq(data: PandasData, values: Iterable):
+def unique_values_eq(data: DataFrame, values: Iterable):
     """Ensure that unique values in the data object contain all values.
 
     .. note::
