@@ -79,21 +79,18 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
-        breakpoint()
         # try to coerce datatypes
         check_obj = self.coerce_dtype(
             check_obj,
             schema=schema,
             error_handler=error_handler,
         )
-        breakpoint()
         # collect schema components and prepare check object to be validated
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
-        check_obj_subsample = self.subsample(
-            check_obj, head, tail, sample, random_state
-        )
+        check_obj_subsample = self.subsample(check_obj, sample, random_state)
+        breakpoint()
         try:
             self.run_schema_component_checks(
                 check_obj_subsample, schema_components, lazy, error_handler
@@ -105,19 +102,19 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             self.run_checks(check_obj_subsample, schema, error_handler)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
-
+        breakpoint()
         try:
             self.check_column_values_are_unique(check_obj_subsample, schema)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
-
+        breakpoint()
         if error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=error_handler.collected_errors,
                 data=check_obj,
             )
-
+        breakpoint()
         return check_obj
 
     def run_schema_component_checks(

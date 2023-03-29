@@ -28,6 +28,7 @@ from pandera.backends.pyspark.error_formatters import (
 from pandera.errors import SchemaError, FailureCaseMetadata
 from functools import reduce
 
+
 class ColumnInfo(NamedTuple):
     """Column metadata used during validation."""
 
@@ -54,26 +55,13 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
     def subsample(
         self,
-        check_obj,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
+        check_obj: DataFrame,
+        sample: Optional[float] = None,
         seed: Optional[int] = None,
     ):
-        pandas_obj_subsample = []
-        if head is not None:
-            pandas_obj_subsample.append(check_obj.head(head))
-        if tail is not None:
-            pandas_obj_subsample.append(check_obj.tail(tail))
         if sample is not None:
-            pandas_obj_subsample.append(
-                check_obj.sample(sample, seed=seed)
-            )
-        return (
-            check_obj
-            if not pandas_obj_subsample
-            else reduce(DataFrame.union, pandas_obj_subsample).distinct()
-            )
+            return check_obj.sample(withReplacement=False, fraction=sample, seed=seed)
+        return check_obj
 
     def run_check(
         self,
@@ -98,9 +86,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
                 # Todo
                 failure_cases = scalar_failure_case(check_result.check_passed)
                 # Todo
-                error_msg = format_generic_error_message(
-                    schema, check, check_index
-                )
+                error_msg = format_generic_error_message(schema, check, check_index)
             else:
                 # Todo
                 failure_cases = reshape_failure_cases(
