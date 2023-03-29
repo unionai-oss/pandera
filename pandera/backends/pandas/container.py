@@ -7,6 +7,8 @@ from typing import Any, List, Optional
 
 import pandas as pd
 
+
+from pandera.backends.base import SchemaFunctionResult
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
 from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.api.pandas.types import is_table
@@ -61,18 +63,38 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         column_info = self.collect_column_info(check_obj, schema, lazy)
 
         # check the container metadata, e.g. field names
-        try:
-            self.check_column_names_are_unique(check_obj, schema)
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+        metadata_checks = [
+            (
+                self.check_column_names_are_unique,
+                "dataframe_column_labels_unique",
+                (schema,),
+            ),
+            (
+                self.check_column_presence,
+                "column_in_dataframe",
+                (schema, column_info),
+            ),
+        ]
+        parsers = []
+        checks = []
 
-        try:
-            self.check_column_presence(check_obj, schema, column_info)
-        except SchemaErrors as exc:
-            for schema_error in exc.schema_errors:
+        for check, check_name, args in metadata_checks:
+            # TODO: loop over the checks
+            results: List[SchemaFunctionResult] = check(check_obj, *args)
+            for result in results:
+                if result.passed:
+                    continue
+
                 error_handler.collect_error(
-                    schema_error["reason_code"],
-                    schema_error["error"],
+                    result.reason_code,
+                    SchemaError(
+                        schema,
+                        data=check_obj,
+                        message=result.message,
+                        failure_cases=result.failure_cases,
+                        check=check_name,
+                        reason_code=result.reason_code,
+                    ),
                 )
 
         # strictness check and filter
@@ -467,51 +489,48 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     # Checks #
     ##########
 
-    def check_column_names_are_unique(self, check_obj: pd.DataFrame, schema):
+    def check_column_names_are_unique(
+        self,
+        check_obj: pd.DataFrame,
+        schema,
+    ) -> List[SchemaFunctionResult]:
         """Check for column name uniquness."""
         if not schema.unique_column_names:
-            return
+            return []
+
         failed = check_obj.columns[check_obj.columns.duplicated()]
+        result = SchemaFunctionResult(True)
         if failed.any():
-            raise SchemaError(
-                schema=schema,
-                data=check_obj,
+            result = SchemaFunctionResult(
+                passed=False,
+                reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
                 message=(
                     "dataframe contains multiple columns with label(s): "
                     f"{failed.tolist()}"
                 ),
                 failure_cases=scalar_failure_case(failed),
-                check="dataframe_column_labels_unique",
-                reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
             )
+        return [result]
 
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
-    ):
+    ) -> List[SchemaFunctionResult]:
         """Check for presence of specified columns in the data object."""
+        results = []
         if column_info.absent_column_names:
-            reason_code = SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=[
-                    {
-                        "reason_code": reason_code,
-                        "error": SchemaError(
-                            schema=schema,
-                            data=check_obj,
-                            message=(
-                                f"column '{colname}' not in dataframe"
-                                f"\n{check_obj.head()}"
-                            ),
-                            failure_cases=scalar_failure_case(colname),
-                            check="column_in_dataframe",
-                            reason_code=reason_code,
+            for colname in column_info.absent_column_names:
+                results.append(
+                    SchemaFunctionResult(
+                        passed=False,
+                        reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                        message=(
+                            f"column '{colname}' not in dataframe"
+                            f"\n{check_obj.head()}"
                         ),
-                    }
-                    for colname in column_info.absent_column_names
-                ],
-                data=check_obj,
-            )
+                        failure_cases=scalar_failure_case(colname),
+                    )
+                )
+        return results
 
     def check_column_values_are_unique(self, check_obj: pd.DataFrame, schema):
         """Check that column values are unique."""

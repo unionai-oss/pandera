@@ -6,7 +6,16 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
+
+from pandera.errors import SchemaErrorReason
+
+
+class SchemaFunctionResult(NamedTuple):
+    passed: bool
+    reason_code: Optional[SchemaErrorReason] = None
+    message: Optional[str] = None
+    failure_cases: Optional[Any] = None
 
 
 class BaseSchemaBackend(ABC):
