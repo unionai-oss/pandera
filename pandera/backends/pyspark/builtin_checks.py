@@ -18,7 +18,6 @@ T = TypeVar("T")
 
 @register_builtin_check(
     aliases=["eq"],
-    strategy=st.eq_strategy,
     error="equal_to({value})",
 )
 def equal_to(data: DataFrame, value: Any) -> DataFrame:
@@ -46,7 +45,6 @@ def not_equal_to(data: DataFrame, value: Any) -> DataFrame:
 
 @register_builtin_check(
     aliases=["gt"],
-    strategy=st.gt_strategy,
     error="greater_than({min_value})",
 )
 def greater_than(data: DataFrame, min_value: Any) -> DataFrame:
@@ -54,10 +52,9 @@ def greater_than(data: DataFrame, min_value: Any) -> DataFrame:
     Ensure values of a data container are strictly greater than a minimum
     value.
 
-    :param min_value: Lower bound to be exceeded. Must be a type comparable
-        to the dtype of the :class:`pandas.Series` to be validated (e.g. a
-        numerical type for float or int and a datetime for datetime).
+    :param min_value: Lower bound to be exceeded.
     """
+    breakpoint()
     return data > min_value
 
 
