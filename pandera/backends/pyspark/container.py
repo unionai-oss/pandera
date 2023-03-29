@@ -90,7 +90,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj, schema, column_info
         )
         check_obj_subsample = self.subsample(check_obj, sample, random_state)
-        breakpoint()
         try:
             self.run_schema_component_checks(
                 check_obj_subsample, schema_components, lazy, error_handler
@@ -129,6 +128,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
+                breakpoint()
                 result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
                 check_results.append(is_table(result))
             except SchemaError as err:
@@ -138,6 +138,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     error_handler.collect_error(
                         "schema_component_check", schema_error_dict["error"]
                     )
+        breakpoint()
         assert all(check_results)
 
     def run_checks(self, check_obj: DataFrame, schema, error_handler):

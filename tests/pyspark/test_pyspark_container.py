@@ -42,7 +42,7 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     schema = DataFrameSchema(
         columns={
-            "name": Column("str"),
+            "first_name": Column("str"),
             "age": Column("int", pa.Check.gt(31)),
         },
         name="person_schema",
@@ -54,7 +54,7 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     spark_schema = T.StructType(
         [
-            T.StructField("name", T.StringType(), False),
+            T.StructField("first_name", T.StringType(), False),
             T.StructField("age", T.IntegerType(), False),
         ],
     )

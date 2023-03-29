@@ -66,14 +66,16 @@ class ColumnBackend(ArraySchemaBackend):
                         err_dict["reason_code"], err_dict["error"]
                     )
             except SchemaError as err:
+                breakpoint()
                 error_handler.collect_error(err.reason_code, err)
 
+        breakpoint()
         column_keys_to_check = (
             self.get_regex_columns(schema, check_obj.columns, check_obj)
             if schema.regex
             else [schema.name]
         )
-
+        breakpoint()
         for column_name in column_keys_to_check:
             if schema.coerce:
                 check_obj = self.coerce_dtype(
