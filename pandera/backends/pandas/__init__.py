@@ -38,6 +38,3 @@ if pandera.typing.geopandas.GEOPANDAS_INSTALLED:
 for t in data_types:
     Check.register_backend(t, PandasCheckBackend)
     Hypothesis.register_backend(t, PandasHypothesisBackend)
-
-for t in [pst.DataFrame]:
-    Check.register_backend(t, PySparkCheckBackend)

@@ -90,21 +90,16 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj, schema, column_info
         )
         check_obj_subsample = self.subsample(check_obj, sample, random_state)
-        # try:
-        #     # TODO: need to create apply at column level
-        #     self.run_schema_component_checks(
-        #         check_obj_subsample, schema_components, lazy, error_handler
-        #     )
-        # except SchemaError as exc:
-        #     error_handler.collect_error(exc.reason_code, exc)
-        breakpoint()
         try:
-            self.run_checks(check_obj_subsample, schema, error_handler)
+            # TODO: need to create apply at column level
+            self.run_schema_component_checks(
+                check_obj_subsample, schema_components, lazy, error_handler
+            )
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
         breakpoint()
         try:
-            self.check_column_values_are_unique(check_obj_subsample, schema)
+            self.run_checks(check_obj_subsample, schema, error_handler)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
         breakpoint()
@@ -129,6 +124,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
+                breakpoint()
                 result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
                 check_results.append(is_table(result))
             except SchemaError as err:
@@ -146,9 +142,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # dataframe-level checks
         check_results = []
         breakpoint()
-        for check_index, check in enumerate(schema.checks):
+        for check_index, check in enumerate(schema.checks):  # schama.checks is null
             try:
-                check_results.append(
+                check_results.append(  # TODO: looping over cols
                     self.run_check(check_obj, schema, check, check_index)
                 )
             except SchemaError as err:
@@ -389,6 +385,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         def _try_coercion(obj, colname, col_schema):
             try:
                 schema = obj.pandera.schema
+                breakpoint()
                 obj = obj.withColumn(colname, col(colname).cast(str(col_schema)))
                 obj.pandera.add_schema(schema)
                 return obj

@@ -21,9 +21,7 @@ class ReducedPickleExceptionBase(Exception):
         representation.
         """
         state = {
-            key: str(val)
-            if key in self.TO_STRING_KEYS and val is not None
-            else val
+            key: str(val) if key in self.TO_STRING_KEYS and val is not None else val
             for key, val in self.__dict__.items()
         }
         state["args"] = self.args  # message may not be in __dict__
@@ -147,6 +145,7 @@ class SchemaErrorReason(Enum):
     SERIES_CHECK = "series_check"
     WRONG_DATATYPE = "wrong_dtype"
     INDEX_CHECK = "index_check"
+    NONE = "no_errors"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):

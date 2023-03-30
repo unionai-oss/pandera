@@ -37,6 +37,7 @@ class ColumnBackend(ArraySchemaBackend):
         inplace: bool = False,
     ) -> DataFrame:
         """Validation backend implementation for pandas dataframe columns.."""
+        breakpoint()
         error_handler = SchemaErrorHandler(lazy=lazy)
         if schema.name is None:
             raise SchemaError(

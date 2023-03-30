@@ -43,6 +43,7 @@ def not_equal_to(data: DataFrame, value: Any) -> DataFrame:
     return data != value
 
 
+# TODO: how to perform col level check here
 @register_builtin_check(
     aliases=["gt"],
     error="greater_than({min_value})",
