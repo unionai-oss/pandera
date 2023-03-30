@@ -9,8 +9,6 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
 from pandera.backends.pandas import builtin_checks, builtin_hypotheses
-from pandera.backends.pyspark.checks import PySparkCheckBackend
-import pyspark.sql as pst
 
 
 data_types = [pd.DataFrame, pd.Series]
