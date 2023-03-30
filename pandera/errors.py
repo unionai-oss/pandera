@@ -145,7 +145,7 @@ class SchemaErrorReason(Enum):
     SERIES_CHECK = "series_check"
     WRONG_DATATYPE = "wrong_dtype"
     INDEX_CHECK = "index_check"
-    NONE = "no_errors"
+    NO_ERROR = "no_errors"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):

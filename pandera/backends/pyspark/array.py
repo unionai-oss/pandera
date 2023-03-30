@@ -53,7 +53,6 @@ class ArraySchemaBackend(PysparkSchemaBackend):
     ):
         # pylint: disable=too-many-locals
         error_handler = SchemaErrorHandler(lazy)
-        breakpoint()
         check_obj = self.preprocess(check_obj, inplace)
 
         if schema.coerce:
@@ -140,17 +139,23 @@ class ArraySchemaBackend(PysparkSchemaBackend):
             ) from exc
 
     def check_name(self, check_obj: DataFrame, schema):
-
+        column_found = not (schema.name is None or schema.name not in check_obj.columns)
         breakpoint()
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
-            reason_code=SchemaErrorReason.WRONG_FIELD_NAME,  # TODO: hardcoded error
-            passed=schema.name is None or schema.name not in check_obj.columns,
+            reason_code=SchemaErrorReason.WRONG_FIELD_NAME
+            if not column_found
+            else SchemaErrorReason.NO_ERROR,
+            passed=column_found,
             message=(
-                f"Expected {type(check_obj)} to have name '{schema.name}', "
-                f"found columns '{check_obj.columns}'"
+                f"Expected {type(check_obj)} to have column named: '{schema.name}', "
+                f"but found columns '{check_obj.columns}'"
+                if not column_found
+                else f"column check_name validation passed."
             ),
-            failure_cases=scalar_failure_case(schema.name),
+            failure_cases=scalar_failure_case(schema.name)
+            if not column_found
+            else None,
         )
 
     def check_nullable(self, check_obj: DataFrame, schema):
