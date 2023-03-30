@@ -428,6 +428,11 @@ def test_try_coerce(examples, type_, failure_indices):
             True,
         ),
         (
+            ["2022-04-30T00:00:00Z", "2022-04-30T00:00:01Z"],
+            DatetimeTZDtype(tz="CET"),
+            True,
+        ),
+        (
             ["2022-04-30T00:00:00", "2022-04-30T00:00:01"],
             DatetimeTZDtype(tz="UTC"),
             True,
