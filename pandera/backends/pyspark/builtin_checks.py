@@ -1,4 +1,4 @@
-"""Pandas implementation of built-in checks"""
+"""PySpark implementation of built-in checks"""
 
 import operator
 import re
@@ -224,6 +224,7 @@ def str_startswith(data: DataFrame, string: str) -> DataFrame:
     :param string: String all values should start with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
+    breakpoint()  # TODO: change to accept column and perform check on it
     return data.str.startswith(string, na=False)
 
 

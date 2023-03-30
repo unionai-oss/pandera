@@ -122,6 +122,7 @@ class PySparkCheckBackend(BaseCheckBackend):
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: is_table):  # type: ignore [valid-type]
+        breakpoint()
         return self.check_fn(check_obj)
 
     # @overload
