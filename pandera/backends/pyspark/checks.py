@@ -88,13 +88,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         check_obj: DataFrame,  # type: ignore [valid-type]
         key,
     ) -> DataFrame:
-        breakpoint()
-        if self.check.groupby is None:
-            return check_obj[key]
-        return cast(
-            Dict[str, DataFrame],
-            self._format_groupby_input(self.groupby(check_obj)[key], self.check.groups),
-        )
+        return check_obj
 
     # @overload  # type: ignore [no-redef]
     # def preprocess(
@@ -112,15 +106,16 @@ class PySparkCheckBackend(BaseCheckBackend):
     @overload
     def apply(self, check_obj):
         """Apply the check function to a check object."""
-        breakpoint()  # implement for pyspark.sql.dataframe
         raise NotImplementedError
 
     @overload  # type: ignore [no-redef]
-    def apply(self, check_obj: dict):
+    def apply(self, check_obj: DataFrame):
+        breakpoint()
         return self.check_fn(check_obj)
 
     # @overload  # type: ignore [no-redef]
     # def apply(self, check_obj: is_field):  # type: ignore [valid-type]
+    #     breakpoint()
     #     if self.check.element_wise:
     #         return check_obj.map(self.check_fn)
     #     return self.check_fn(check_obj)

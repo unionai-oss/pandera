@@ -228,10 +228,15 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                     f"expected series '{check_obj.name}' to have type "
                     f"{schema.dtype}:\nfailure cases:\n{failure_cases}"
                 )
+            reason_code = (
+                SchemaErrorReason.WRONG_DATATYPE
+                if dtype_check_results
+                else SchemaErrorReason.NO_ERROR
+            )
 
         return CoreCheckResult(
             check=f"dtype('{schema.dtype}')",
-            reason_code=SchemaErrorReason.WRONG_DATATYPE,
+            reason_code=reason_code,
             passed=passed,
             message=msg,
             failure_cases=failure_cases,
