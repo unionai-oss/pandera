@@ -22,6 +22,7 @@ from pandera.errors import (
 )
 from pyspark.sql import DataFrame
 
+
 class CoreCheckResult(NamedTuple):
     """Namedtuple for holding results of core checks."""
 
@@ -64,22 +65,20 @@ class ArraySchemaBackend(PysparkSchemaBackend):
 
         check_obj_subsample = self.subsample(
             check_obj,
-            head,
-            tail,
             sample,
             random_state,
         )
 
-
         # run the core checks
         for core_check in (
             self.check_name,
-            #self.check_nullable,
-            #self.check_unique,
+            # self.check_nullable,
+            # self.check_unique,
             self.check_dtype,
         ):
             check_result = core_check(check_obj_subsample, schema)
             print(check_result)
+            breakpoint()
             if not check_result.passed:
                 error_handler.collect_error(
                     check_result.reason_code,
@@ -92,10 +91,11 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                         reason_code=check_result.reason_code,
                     ),
                 )
+        breakpoint()
         check_results = self.run_checks(
             check_obj_subsample, schema, error_handler, lazy
         )
-
+        breakpoint()
         assert all(check_results)
 
         if lazy and error_handler.collected_errors:
@@ -139,15 +139,23 @@ class ArraySchemaBackend(PysparkSchemaBackend):
             ) from exc
 
     def check_name(self, check_obj: DataFrame, schema):
+        column_found = not (schema.name is None or schema.name not in check_obj.columns)
+        breakpoint()
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
-            reason_code=SchemaErrorReason.WRONG_FIELD_NAME,
-            passed=schema.name is None or schema.name in check_obj.columns,
+            reason_code=SchemaErrorReason.WRONG_FIELD_NAME
+            if not column_found
+            else SchemaErrorReason.NO_ERROR,
+            passed=column_found,
             message=(
-                f"Expected {type(check_obj)} to have name '{schema.name}', "
-                f"found columns '{check_obj.columns}'"
+                f"Expected {type(check_obj)} to have column named: '{schema.name}', "
+                f"but found columns '{check_obj.columns}'"
+                if not column_found
+                else f"column check_name validation passed."
             ),
-            failure_cases=scalar_failure_case(schema.name),
+            failure_cases=scalar_failure_case(schema.name)
+            if not column_found
+            else None,
         )
 
     def check_nullable(self, check_obj: DataFrame, schema):
@@ -161,9 +169,7 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                 f"non-nullable series '{check_obj.name}' contains "
                 f"null values:\n{check_obj[isna]}"
             ),
-            failure_cases=reshape_failure_cases(
-                check_obj[isna], ignore_na=False
-            ),
+            failure_cases=reshape_failure_cases(check_obj[isna], ignore_na=False),
         )
 
     def check_unique(self, check_obj: DataFrame, schema):
@@ -172,14 +178,14 @@ class ArraySchemaBackend(PysparkSchemaBackend):
         message = None
 
         if schema.unique:
-            #Todo  Add Failure Cases
+            # Todo  Add Failure Cases
 
             if check_obj.count() != check_obj.drop_duplicates().count:
                 passed = False
-                failure_cases = None #reshape_failure_cases(failed)
+                failure_cases = None  # reshape_failure_cases(failed)
                 message = (
                     f"Column '{schema.name}' contains duplicate "
-                    #f"values:\n{failed}"
+                    # f"values:\n{failed}"
                 )
 
         return CoreCheckResult(
@@ -196,15 +202,21 @@ class ArraySchemaBackend(PysparkSchemaBackend):
         msg = None
 
         if schema.dtype is not None:
+            breakpoint()
             dtype_check_results = schema.dtype.check(
                 Engine.dtype(check_obj.schema[schema.name].dataType),
             )
+
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
-                failure_cases = scalar_failure_case(str(Engine.dtype(check_obj.schema[schema.name].dataType)))
+                failure_cases = scalar_failure_case(
+                    str(Engine.dtype(check_obj.schema[schema.name].dataType))
+                )
                 msg = (
                     f"expected column '{schema.name}' to have type "
                     f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"
+                    if not passed
+                    else f"column type matched with expected '{schema.dtype}'"
                 )
             else:
                 passed = dtype_check_results.all()
@@ -216,10 +228,15 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                     f"expected series '{check_obj.name}' to have type "
                     f"{schema.dtype}:\nfailure cases:\n{failure_cases}"
                 )
+            reason_code = (
+                SchemaErrorReason.WRONG_DATATYPE
+                if dtype_check_results
+                else SchemaErrorReason.NO_ERROR
+            )
 
         return CoreCheckResult(
             check=f"dtype('{schema.dtype}')",
-            reason_code=SchemaErrorReason.WRONG_DATATYPE,
+            reason_code=reason_code,
             passed=passed,
             message=msg,
             failure_cases=failure_cases,
@@ -228,6 +245,7 @@ class ArraySchemaBackend(PysparkSchemaBackend):
     # pylint: disable=unused-argument
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
+        breakpoint()
         for check_index, check in enumerate(schema.checks):
             check_args = [schema.name]
             try:
@@ -241,6 +259,7 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                     )
                 )
             except SchemaError as err:
+                breakpoint()
                 error_handler.collect_error(
                     SchemaErrorReason.DATAFRAME_CHECK,
                     err,
@@ -269,4 +288,3 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                     original_exc=err,
                 )
         return check_results
-

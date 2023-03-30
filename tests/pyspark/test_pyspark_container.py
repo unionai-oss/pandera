@@ -42,16 +42,27 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     schema = DataFrameSchema(
         columns={
-            "name": Column("str"),
-            "age": Column("int", pa.Check.gt(31)),
+            "product": Column("str", checks=pa.Check.str_startswith("B")),
+            "price": Column("int", checks=pa.Check.gt(10)),
         },
-        name="person_schema",
-        description="schema for person info",
-        title="PersonSchema",
+        name="product_schema",
+        description="schema for product info",
+        title="ProductSchema",
     )
 
-    data = [("Neeraj", 35), ("Jask", 30)]
+    data = [("Bread", 9), ("Butter", 15)]
 
-    df = spark.createDataFrame(data=data, schema=["name", "age"])
+    spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
+        ],
+    )
+
+    df = spark.createDataFrame(data=data, schema=spark_schema)
 
     validate_df = schema.validate(df)
+
+    validate_df.show()
+
+    breakpoint()

@@ -75,7 +75,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     #         if group_key in groups
     #     }
 
-    @overload
+    # @overload
     # def preprocess(self, check_obj, key) -> pd.Series:
     #     """Preprocesses a check object before applying the check function."""
     #     # This handles the case of Series validation, which has no other context except
@@ -85,15 +85,10 @@ class PySparkCheckBackend(BaseCheckBackend):
     @overload  # type: ignore [no-redef]
     def preprocess(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
+        check_obj: DataFrame,  # type: ignore [valid-type]
         key,
-    ) -> Union[DataFrame, Dict[str, DataFrame]]:
-        if self.check.groupby is None:
-            return check_obj[key]
-        return cast(
-            Dict[str, DataFrame],
-            self._format_groupby_input(self.groupby(check_obj)[key], self.check.groups),
-        )
+    ) -> DataFrame:
+        return check_obj
 
     # @overload  # type: ignore [no-redef]
     # def preprocess(
@@ -108,26 +103,27 @@ class PySparkCheckBackend(BaseCheckBackend):
     #         self._format_groupby_input(self.groupby(check_obj), self.check.groups),
     #     )
 
-    # @overload
-    # def apply(self, check_obj):
-    #     """Apply the check function to a check object."""
-    #     raise NotImplementedError
+    @overload
+    def apply(self, check_obj):
+        """Apply the check function to a check object."""
+        raise NotImplementedError
 
-    # @overload  # type: ignore [no-redef]
-    # def apply(self, check_obj: dict):
-    #     return self.check_fn(check_obj)
+    @overload  # type: ignore [no-redef]
+    def apply(self, check_obj: DataFrame):
+        breakpoint()
+        return self.check_fn(check_obj)
 
     # @overload  # type: ignore [no-redef]
     # def apply(self, check_obj: is_field):  # type: ignore [valid-type]
+    #     breakpoint()
     #     if self.check.element_wise:
     #         return check_obj.map(self.check_fn)
     #     return self.check_fn(check_obj)
 
-    # @overload  # type: ignore [no-redef]
-    # def apply(self, check_obj: is_table):  # type: ignore [valid-type]
-    #     if self.check.element_wise:
-    #         return check_obj.apply(self.check_fn, axis=1)
-    #     return self.check_fn(check_obj)
+    @overload  # type: ignore [no-redef]
+    def apply(self, check_obj: is_table):  # type: ignore [valid-type]
+        breakpoint()
+        return self.check_fn(check_obj)
 
     # @overload
     # def postprocess(self, check_obj, check_output):
@@ -264,16 +260,17 @@ class PySparkCheckBackend(BaseCheckBackend):
     #         None,
     #     )
 
-    # def __call__(
-    #     self,
-    #     check_obj: Union[pd.Series, pd.DataFrame],
-    #     key: Optional[str] = None,
-    # ) -> CheckResult:
-    #     check_obj = self.preprocess(check_obj, key)
-    #     try:
-    #         check_output = self.apply(check_obj)
-    #     except DispatchError as exc:
-    #         if exc.__cause__ is not None:
-    #             raise exc.__cause__
-    #         raise exc
-    #     return self.postprocess(check_obj, check_output)
+    def __call__(
+        self,
+        check_obj: DataFrame,
+        key: Optional[str] = None,
+    ) -> CheckResult:
+        breakpoint()
+        check_obj = self.preprocess(check_obj, key)
+        try:
+            check_output = self.apply(check_obj)
+        except DispatchError as exc:
+            if exc.__cause__ is not None:
+                raise exc.__cause__
+            raise exc
+        return self.postprocess(check_obj, check_output)

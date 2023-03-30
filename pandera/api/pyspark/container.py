@@ -24,6 +24,7 @@ from pandera.api.pyspark.types import (
 )
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
+from pyspark.sql import DataFrame
 
 N_INDENT_SPACES = 4
 

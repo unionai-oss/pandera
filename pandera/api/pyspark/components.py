@@ -7,7 +7,6 @@ import pandera.strategies as st
 from pandera import errors
 from pandera.backends.pyspark.components import (
     ColumnBackend,
-
 )
 from pandera.api.pyspark.column_schema import ColumnSchema
 from pandera.api.pyspark.container import DataFrameSchema
@@ -79,11 +78,7 @@ class Column(ColumnSchema):
             title=title,
             description=description,
         )
-        if (
-            name is not None
-            and not isinstance(name, str)
-            and regex
-        ):
+        if name is not None and not isinstance(name, str) and regex:
             raise ValueError(
                 "You cannot specify a non-string name when setting regex=True"
             )

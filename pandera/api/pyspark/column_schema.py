@@ -8,14 +8,14 @@ from pandera import errors
 from pandera import strategies as st
 from pandera.backends.pyspark.array import (
     ArraySchemaBackend,
-    #SeriesSchemaBackend,
+    # SeriesSchemaBackend,
 )
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.pyspark.types import (
     CheckList,
     PySparkDtypeInputTypes,
-    #is_field,
+    # is_field,
 )
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
@@ -28,7 +28,7 @@ class ColumnSchema(BaseSchema):
     """Base column validator object."""
 
     BACKEND = ArraySchemaBackend()
-
+    # TODO: checks is empty
     def __init__(
         self,
         dtype: Optional[PySparkDtypeInputTypes] = None,
@@ -71,7 +71,7 @@ class ColumnSchema(BaseSchema):
             checks = []
         if isinstance(checks, Check):
             checks = [checks]
-
+        breakpoint()
         self.checks = checks
         self.nullable = nullable
         self.title = title
@@ -189,7 +189,6 @@ class ColumnSchema(BaseSchema):
             f"<Schema {self.__class__.__name__}"
             f"(name={self.name}, type={self.dtype!r})>"
         )
+
     def __str__(self):
-        return (
-            f"{self.dtype}"
-        )
+        return f"{self.dtype}"
