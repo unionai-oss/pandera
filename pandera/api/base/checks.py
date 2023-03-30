@@ -1,6 +1,5 @@
 """Data validation base check."""
 
-from collections import namedtuple
 import inspect
 from itertools import chain
 from typing import (
@@ -8,6 +7,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    NamedTuple,
     Optional,
     Tuple,
     Type,
@@ -20,10 +20,14 @@ from multimethod import multidispatch as _multidispatch
 
 from pandera.backends.base import BaseCheckBackend
 
-CheckResult = namedtuple(
-    "CheckResult",
-    ["check_output", "check_passed", "checked_object", "failure_cases"],
-)
+
+class CheckResult(NamedTuple):
+    """Check result for user-defined checks."""
+
+    check_output: Any
+    check_passed: bool
+    checked_object: Any
+    failure_cases: Any
 
 
 GroupbyObject = Union[

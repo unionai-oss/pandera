@@ -1,6 +1,6 @@
 """Handle schema errors."""
 
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from pandera.errors import SchemaError, SchemaErrorReason
 
@@ -24,7 +24,7 @@ class SchemaErrorHandler:
 
     def collect_error(
         self,
-        reason_code: SchemaErrorReason,
+        reason_code: Optional[SchemaErrorReason],
         schema_error: SchemaError,
         original_exc: BaseException = None,
     ):

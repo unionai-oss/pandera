@@ -15,7 +15,8 @@ from typing import (
 
 import pandas as pd
 
-from pandera.backends.base import BaseSchemaBackend
+from pandera.api.base.checks import CheckResult
+from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pandas.error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -24,7 +25,7 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.errors import SchemaError, FailureCaseMetadata
+from pandera.errors import FailureCaseMetadata, SchemaErrorReason
 
 
 class ColumnInfo(NamedTuple):
@@ -83,45 +84,57 @@ class PandasSchemaBackend(BaseSchemaBackend):
         check,
         check_index: int,
         *args,
-    ) -> bool:
+    ) -> CoreCheckResult:
         """Handle check results, raising SchemaError on check failure.
 
-        :param check_index: index of check in the schema component check list.
+        :param check_obj: data object to be validated.
+        :param schema: pandera schema object
         :param check: Check object used to validate pandas object.
-        :param check_args: arguments to pass into check object.
+        :param check_index: index of check in the schema component check list.
+        :param args: arguments to pass into check object.
         :returns: True if check results pass or check.raise_warning=True, otherwise
             False.
         """
-        check_result = check(check_obj, *args)
-        if not check_result.check_passed:
+        check_result: CheckResult = check(check_obj, *args)
+
+        passed = check_result.check_passed
+        failure_cases = None
+        message = None
+
+        if not passed:
             if check_result.failure_cases is None:
                 # encode scalar False values explicitly
                 failure_cases = scalar_failure_case(check_result.check_passed)
-                error_msg = format_generic_error_message(
+                message = format_generic_error_message(
                     schema, check, check_index
                 )
             else:
                 failure_cases = reshape_failure_cases(
                     check_result.failure_cases, check.ignore_na
                 )
-                error_msg = format_vectorized_error_message(
+                message = format_vectorized_error_message(
                     schema, check, check_index, failure_cases
                 )
 
             # raise a warning without exiting if the check is specified to do so
+            # but make sure the check passes
             if check.raise_warning:
-                warnings.warn(error_msg, UserWarning)
-                return True
-            raise SchemaError(
-                schema,
-                check_obj,
-                error_msg,
-                failure_cases=failure_cases,
-                check=check,
-                check_index=check_index,
-                check_output=check_result.check_output,
-            )
-        return check_result.check_passed
+                warnings.warn(message, UserWarning)
+                return CoreCheckResult(
+                    passed=True,
+                    check=check,
+                    reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                )
+
+        return CoreCheckResult(
+            passed=passed,
+            check=check,
+            check_index=check_index,
+            check_output=check_result.check_output,
+            reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+            message=message,
+            failure_cases=failure_cases,
+        )
 
     def failure_cases_metadata(
         self,

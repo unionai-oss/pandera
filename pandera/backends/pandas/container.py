@@ -8,7 +8,7 @@ from typing import Any, List, Optional
 import pandas as pd
 
 
-from pandera.backends.base import SchemaFunctionResult
+from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
 from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.api.pandas.types import is_table
@@ -51,6 +51,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
+        # pylint: disable=too-many-locals
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
@@ -61,41 +62,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             check_obj = check_obj.pandera.add_schema(schema)
 
         column_info = self.collect_column_info(check_obj, schema, lazy)
-
-        # check the container metadata, e.g. field names
-        metadata_checks = [
-            (
-                self.check_column_names_are_unique,
-                "dataframe_column_labels_unique",
-                (schema,),
-            ),
-            (
-                self.check_column_presence,
-                "column_in_dataframe",
-                (schema, column_info),
-            ),
-        ]
-        parsers = []
-        checks = []
-
-        for check, check_name, args in metadata_checks:
-            # TODO: loop over the checks
-            results: List[SchemaFunctionResult] = check(check_obj, *args)
-            for result in results:
-                if result.passed:
-                    continue
-
-                error_handler.collect_error(
-                    result.reason_code,
-                    SchemaError(
-                        schema,
-                        data=check_obj,
-                        message=result.message,
-                        failure_cases=result.failure_cases,
-                        check=check_name,
-                        reason_code=result.reason_code,
-                    ),
-                )
 
         # strictness check and filter
         try:
@@ -112,29 +78,66 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             error_handler=error_handler,
         )
 
-        # collect schema components and prepare check object to be validated
+        # collect schema components
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
+        # subsample the check object if head, tail, or sample are specified
         check_obj_subsample = self.subsample(
             check_obj, head, tail, sample, random_state
         )
-        try:
-            self.run_schema_component_checks(
-                check_obj_subsample, schema_components, lazy, error_handler
-            )
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
 
-        try:
-            self.run_checks(check_obj_subsample, schema, error_handler)
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+        # check the container metadata, e.g. field names
+        core_checks = [
+            (
+                self.check_column_names_are_unique,
+                (
+                    check_obj,
+                    schema,
+                ),
+            ),
+            (self.check_column_presence, (check_obj, schema, column_info)),
+            (
+                self.check_column_values_are_unique,
+                (
+                    check_obj_subsample,
+                    schema,
+                ),
+            ),
+            (
+                self.run_schema_component_checks,
+                (check_obj_subsample, schema_components, lazy),
+            ),
+            (self.run_checks, (check_obj_subsample, schema, error_handler)),
+        ]
 
-        try:
-            self.check_column_values_are_unique(check_obj_subsample, schema)
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+        for check, args in core_checks:
+            results = check(*args)  # type: ignore [operator]
+            if isinstance(results, CoreCheckResult):
+                results = [results]
+
+            for result in results:
+                if result.passed:
+                    continue
+
+                if result.schema_error is not None:
+                    error = result.schema_error
+                else:
+                    error = SchemaError(
+                        schema,
+                        data=check_obj,
+                        message=result.message,
+                        failure_cases=result.failure_cases,
+                        check=result.check,
+                        check_index=result.check_index,
+                        check_output=result.check_output,
+                        reason_code=result.reason_code,
+                    )
+                error_handler.collect_error(
+                    result.reason_code,
+                    error,
+                    original_exc=result.original_exc,
+                )
 
         if error_handler.collected_errors:
             raise SchemaErrors(
@@ -150,43 +153,53 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         check_obj: pd.DataFrame,
         schema_components: List,
         lazy: bool,
-        error_handler: SchemaErrorHandler,
-    ):
+    ) -> List[CoreCheckResult]:
         """Run checks for all schema components."""
         check_results = []
+        check_passed = []
         # schema-component-level checks
         for schema_component in schema_components:
             try:
                 result = schema_component.validate(
                     check_obj, lazy=lazy, inplace=True
                 )
-                check_results.append(is_table(result))
+                check_passed.append(is_table(result))
             except SchemaError as err:
-                error_handler.collect_error(
-                    SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
-                    err,
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="schema_component_checks",
+                        reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                        schema_error=err,
+                    )
                 )
             except SchemaErrors as err:
-                for schema_error_dict in err.schema_errors:
-                    error_handler.collect_error(
-                        SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
-                        schema_error_dict["error"],
-                    )
-        assert all(check_results)
+                check_results.extend(
+                    [
+                        CoreCheckResult(
+                            passed=False,
+                            check="schema_component_checks",
+                            reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                            schema_error=schema_error_dict["error"],
+                        )
+                        for schema_error_dict in err.schema_errors
+                    ]
+                )
+        assert all(check_passed)
+        return check_results
 
-    def run_checks(self, check_obj: pd.DataFrame, schema, error_handler):
+    def run_checks(
+        self,
+        check_obj: pd.DataFrame,
+        schema,
+    ) -> List[CoreCheckResult]:
         """Run a list of checks on the check object."""
         # dataframe-level checks
-        check_results = []
+        check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             try:
                 check_results.append(
                     self.run_check(check_obj, schema, check, check_index)
-                )
-            except SchemaError as err:
-                error_handler.collect_error(
-                    SchemaErrorReason.DATAFRAME_CHECK,
-                    err,
                 )
             except SchemaDefinitionError:
                 raise
@@ -198,18 +211,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
                 )
-                error_handler.collect_error(
-                    SchemaErrorReason.CHECK_ERROR,
-                    SchemaError(
-                        self,
-                        check_obj,
-                        msg,
-                        failure_cases=scalar_failure_case(err_str),
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
                         check=check,
                         check_index=check_index,
-                    ),
-                    original_exc=err,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                        message=msg,
+                        failure_cases=scalar_failure_case(err_str),
+                        original_exc=err,
+                    )
                 )
+        return check_results
 
     def collect_column_info(
         self,
@@ -348,7 +361,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     def coerce_dtype(
         self,
         check_obj: pd.DataFrame,
-        *,
         schema=None,
         error_handler: Optional[SchemaErrorHandler] = None,
     ):
@@ -365,7 +377,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             return check_obj
 
         try:
-            check_obj = self._coerce_dtype(check_obj, schema)
+            check_obj = self._coerce_dtype_helper(check_obj, schema)
         except SchemaErrors as err:
             for schema_error_dict in err.schema_errors:
                 if not _error_handler.lazy:
@@ -395,7 +407,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         return check_obj
 
-    def _coerce_dtype(
+    def _coerce_dtype_helper(
         self,
         obj: pd.DataFrame,
         schema,
@@ -493,35 +505,48 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         self,
         check_obj: pd.DataFrame,
         schema,
-    ) -> List[SchemaFunctionResult]:
+    ) -> CoreCheckResult:
         """Check for column name uniquness."""
+
+        passed = True
+        failure_cases = None
+        message = None
+
         if not schema.unique_column_names:
-            return []
+            return CoreCheckResult(
+                passed=passed,
+                check="dataframe_column_labels_unique",
+            )
 
         failed = check_obj.columns[check_obj.columns.duplicated()]
-        result = SchemaFunctionResult(True)
         if failed.any():
-            result = SchemaFunctionResult(
-                passed=False,
-                reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
-                message=(
-                    "dataframe contains multiple columns with label(s): "
-                    f"{failed.tolist()}"
-                ),
-                failure_cases=scalar_failure_case(failed),
+            passed = False
+            message = (
+                "dataframe contains multiple columns with label(s): "
+                f"{failed.tolist()}"
             )
-        return [result]
+            failure_cases = scalar_failure_case(failed)
 
+        return CoreCheckResult(
+            passed=passed,
+            check="dataframe_column_labels_unique",
+            reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
+            message=message,
+            failure_cases=failure_cases,
+        )
+
+    # pylint: disable=unused-argument
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
-    ) -> List[SchemaFunctionResult]:
+    ) -> List[CoreCheckResult]:
         """Check for presence of specified columns in the data object."""
         results = []
         if column_info.absent_column_names:
             for colname in column_info.absent_column_names:
                 results.append(
-                    SchemaFunctionResult(
+                    CoreCheckResult(
                         passed=False,
+                        check="column_in_dataframe",
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
                             f"column '{colname}' not in dataframe"
@@ -532,10 +557,20 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
         return results
 
-    def check_column_values_are_unique(self, check_obj: pd.DataFrame, schema):
+    def check_column_values_are_unique(
+        self, check_obj: pd.DataFrame, schema
+    ) -> CoreCheckResult:
         """Check that column values are unique."""
+
+        passed = True
+        message = None
+        failure_cases = None
+
         if not schema.unique:
-            return
+            return CoreCheckResult(
+                passed=passed,
+                check="dataframe_column_labels_unique",
+            )
 
         # NOTE: fix this pylint error
         # pylint: disable=not-an-iterable
@@ -564,12 +599,14 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 else:
                     failure_cases = check_obj.loc[duplicates, subset]
 
+                passed = False
+                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
                 failure_cases = reshape_failure_cases(failure_cases)
-                raise SchemaError(
-                    schema=schema,
-                    data=check_obj,
-                    message=f"columns '{*subset,}' not unique:\n{failure_cases}",
-                    failure_cases=failure_cases,
-                    check="multiple_fields_uniqueness",
-                    reason_code=SchemaErrorReason.DUPLICATES,
-                )
+                break
+        return CoreCheckResult(
+            passed=passed,
+            check="multiple_fields_uniqueness",
+            reason_code=SchemaErrorReason.DUPLICATES,
+            message=message,
+            failure_cases=failure_cases,
+        )

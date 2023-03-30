@@ -159,7 +159,6 @@ class ColumnBackend(ArraySchemaBackend):
     def coerce_dtype(
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
-        *,
         schema=None,
         error_handler: SchemaErrorHandler = None,
     ) -> Union[pd.DataFrame, pd.Series]:
@@ -182,7 +181,7 @@ class ColumnBackend(ArraySchemaBackend):
             axis="columns",
         )
 
-    def run_checks(self, check_obj, schema, error_handler, lazy):
+    def run_checks(self, check_obj, schema, error_handler):
         check_results = []
         for check_index, check in enumerate(schema.checks):
             check_args = [None] if is_field(check_obj) else [schema.name]
@@ -272,7 +271,6 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         # pylint: disable=fixme
         # TODO: make MultiIndex not inherit from DataFrameSchemaBackend
         check_obj: pd.MultiIndex,
-        *,
         schema=None,
         error_handler: SchemaErrorHandler = None,
     ) -> pd.MultiIndex:
