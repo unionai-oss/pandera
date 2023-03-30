@@ -216,7 +216,7 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                     f"expected column '{schema.name}' to have type "
                     f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"
                     if not passed
-                    else f"matching column type with expected '{schema.dtype}'"
+                    else f"column type matched with expected '{schema.dtype}'"
                 )
             else:
                 passed = dtype_check_results.all()

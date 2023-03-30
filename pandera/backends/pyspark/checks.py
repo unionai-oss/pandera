@@ -85,9 +85,9 @@ class PySparkCheckBackend(BaseCheckBackend):
     @overload  # type: ignore [no-redef]
     def preprocess(
         self,
-        check_obj: is_table,  # type: ignore [valid-type]
+        check_obj: DataFrame,  # type: ignore [valid-type]
         key,
-    ) -> Union[DataFrame, Dict[str, DataFrame]]:
+    ) -> DataFrame:
         breakpoint()
         if self.check.groupby is None:
             return check_obj[key]
