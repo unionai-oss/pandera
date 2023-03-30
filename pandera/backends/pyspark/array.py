@@ -202,9 +202,11 @@ class ArraySchemaBackend(PysparkSchemaBackend):
         msg = None
 
         if schema.dtype is not None:
+            breakpoint()
             dtype_check_results = schema.dtype.check(
                 Engine.dtype(check_obj.schema[schema.name].dataType),
             )
+
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
                 failure_cases = scalar_failure_case(
@@ -213,6 +215,8 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                 msg = (
                     f"expected column '{schema.name}' to have type "
                     f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"
+                    if not passed
+                    else f"matching column type with expected '{schema.dtype}'"
                 )
             else:
                 passed = dtype_check_results.all()

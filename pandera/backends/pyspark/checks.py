@@ -88,6 +88,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         check_obj: is_table,  # type: ignore [valid-type]
         key,
     ) -> Union[DataFrame, Dict[str, DataFrame]]:
+        breakpoint()
         if self.check.groupby is None:
             return check_obj[key]
         return cast(
@@ -111,6 +112,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     @overload
     def apply(self, check_obj):
         """Apply the check function to a check object."""
+        breakpoint()  # implement for pyspark.sql.dataframe
         raise NotImplementedError
 
     @overload  # type: ignore [no-redef]
