@@ -1,7 +1,7 @@
 """Check backend for pyspark."""
 
 from functools import partial
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast, Any
 
 from pyspark.sql import DataFrame
 from multimethod import overload, DispatchError
@@ -9,6 +9,7 @@ from multimethod import overload, DispatchError
 from pandera.backends.base import BaseCheckBackend
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
+from pandera.backends.pyspark import builtin_checks
 from pandera.api.pyspark.types import (
     is_table,
     is_bool,
@@ -87,8 +88,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     def preprocess(
         self,
         check_obj: DataFrame,  # type: ignore [valid-type]
-        key,
-        col_name,
+        key: str,
     ) -> DataFrame:
         return check_obj
 
@@ -125,10 +125,11 @@ class PySparkCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: is_table):  # type: ignore [valid-type]
         breakpoint()
         return self.check_fn(check_obj)
+
     @overload  # type: ignore [no-redef]
-    def apply(self, check_obj: is_table, key, column_name):  # type: ignore [valid-type]
+    def apply(self, check_obj: DataFrame, key: str, kwargs: dict):  # type: ignore [valid-type]
         breakpoint()
-        return self.check._check_fn(check_obj, key, column_name)
+        return self.check._check_fn(check_obj, key, kwargs)
 
     # @overload
     # def postprocess(self, check_obj, check_output):
@@ -269,12 +270,13 @@ class PySparkCheckBackend(BaseCheckBackend):
         self,
         check_obj: DataFrame,
         key: Optional[str] = None,
-        column_name: Optional[str] = None
     ) -> CheckResult:
-        breakpoint()
-        check_obj = self.preprocess(check_obj, key, column_name)
+        check_obj = self.preprocess(check_obj, key)
         try:
-            check_output = self.apply(check_obj, key, column_name)
+            breakpoint()
+            d = self.check._check_kwargs
+            a = "hello"
+            check_output = self.apply(check_obj, key, d)
         except DispatchError as exc:
             if exc.__cause__ is not None:
                 raise exc.__cause__

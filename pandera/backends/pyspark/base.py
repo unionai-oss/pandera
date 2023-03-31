@@ -80,7 +80,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
             False.
         """
         breakpoint()
-        check_result = check(check_obj, *args, schema.name)
+        check_result = check(check_obj, *args)
         if not check_result.check_passed:
             if check_result.failure_cases is None:
                 # encode scalar False values explicitly

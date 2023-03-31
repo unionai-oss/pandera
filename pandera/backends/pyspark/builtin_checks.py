@@ -217,14 +217,15 @@ def str_contains(
 @register_builtin_check(
     error="str_startswith('{string}')",
 )
-def str_startswith(data: DataFrame, string: str, column_name) -> DataFrame:
+def str_startswith(data: DataFrame, string: str, kwargs: dict) -> bool:
     """Ensure that all values start with a certain string.
 
     :param string: String all values should start with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
     breakpoint()  # TODO: change to accept column and perform check on it
-    return data.withColumn(column_name, data[column_name].startswith(string))
+
+    return True  # data.withColumn(column_name, data[column_name].startswith(string))
 
 
 @register_builtin_check(
