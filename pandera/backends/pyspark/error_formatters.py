@@ -24,6 +24,7 @@ def format_generic_error_message(
     )
 
 
+# Todo - Discuss dont need case by case failure message.
 def format_vectorized_error_message(
     parent_schema,
     check,
@@ -44,7 +45,7 @@ def format_vectorized_error_message(
         f"{check}\nfailure cases:\n{reshaped_failure_cases}"
     )
 
-# Todo
+# Todo -
 def scalar_failure_case(x) -> DataFrame:
     """Construct failure case from a scalar value.
 
@@ -74,9 +75,9 @@ def reshape_failure_cases(
 
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
-    from pandera.api.pandas.types import is_field, is_multiindex, is_table
+    from pandera.api.pandas.types import is_table
 
-    if not (is_table(failure_cases) or is_field(failure_cases)):
+    if not (is_table(failure_cases)):
         raise TypeError(
             "Expected failure_cases to be a DataFrame or Series, found "
             f"{type(failure_cases)}"
@@ -88,37 +89,11 @@ def reshape_failure_cases(
         and "failure_case" in failure_cases.columns
     ):
         reshaped_failure_cases = failure_cases
-    elif is_table(failure_cases) and is_multiindex(failure_cases.index):
-        reshaped_failure_cases = (
-            failure_cases.rename_axis("column", axis=1)  # type: ignore[call-overload]
-            .assign(
-                index=lambda df: (
-                    df.index.to_frame().apply(tuple, axis=1).astype(str)
-                )
-            )
-            .set_index("index", drop=True)
-            .unstack()
-            .rename("failure_case")
-            .reset_index()
-        )
-    elif is_field(failure_cases) and is_multiindex(failure_cases.index):
-        reshaped_failure_cases = (
-            failure_cases.rename("failure_case")  # type: ignore[call-overload]
-            .to_frame()
-            .assign(
-                index=lambda df: (
-                    _multiindex_to_frame(df).apply(tuple, axis=1).astype(str)
-                )
-            )[["failure_case", "index"]]
-            .reset_index(drop=True)
-        )
+
     elif is_table(failure_cases):
         reshaped_failure_cases = failure_cases.unstack().reset_index()
         reshaped_failure_cases.columns = ["column", "index", "failure_case"]  # type: ignore[call-overload,assignment]  # noqa
-    elif is_field(failure_cases):
-        reshaped_failure_cases = failure_cases.rename("failure_case")  # type: ignore[call-overload]
-        reshaped_failure_cases.index.name = "index"
-        reshaped_failure_cases = reshaped_failure_cases.reset_index()
+
     else:
         raise TypeError(
             "type of failure_cases argument not understood: "
@@ -131,14 +106,6 @@ def reshape_failure_cases(
         else reshaped_failure_cases
     )
 
-
-def _multiindex_to_frame(df):
-    # pylint: disable=import-outside-toplevel,cyclic-import
-    from pandera.engines.utils import pandas_version
-
-    if pandas_version().release >= (1, 5, 0):
-        return df.index.to_frame(allow_duplicates=True)
-    return df.index.to_frame().drop_duplicates()
 
 
 def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):

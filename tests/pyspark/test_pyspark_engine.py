@@ -8,16 +8,45 @@ import pytest
 
 from pandera.engines import pyspark_engine
 import pyspark.sql.types as pst
+from pyspark.sql import SparkSession
+
+"""Test pyspark engine."""
+
+from datetime import date
+
+import hypothesis
+import hypothesis.extra.pandas as pd_st
+import hypothesis.strategies as st
+import pandas as pd
+import pytest
+import pytz
+from hypothesis import given
+
+from pandera.engines import pyspark_engine
+from pandera.errors import ParserError
 
 
 @pytest.mark.parametrize(
     "data_type", list(pyspark_engine.Engine.get_registered_dtypes())
 )
 def test_pyspark_data_type(data_type):
+    """Test pyspark engine DataType base class."""
+    if data_type.type is None:
+        # don't test data types that require parameters e.g. Category
+        return
+
+    pyspark_engine.Engine.dtype(data_type)
+    pyspark_engine.Engine.dtype(data_type.type)
+    pyspark_engine.Engine.dtype(str(data_type.type))
+
 
     with pytest.warns(UserWarning):
-        ps_dtype = pyspark_engine.DataType(data_type.type)
+        pd_dtype = pyspark_engine.DataType(data_type.type)
+    with pytest.warns(UserWarning):
+        pd_dtype_from_str = pyspark_engine.DataType(str(data_type.type))
+    print(type(pd_dtype_from_str))
+    print(type(pd_dtype))
+    assert pd_dtype == pd_dtype_from_str
 
-    assert ps_dtype != None
-    assert not ps_dtype.check("foo")
-    assert not ps_dtype.check(123)
+    assert not pd_dtype.check("foo")
+

@@ -23,6 +23,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         super().__init__(check)
         assert check._check_fn is not None, "Check._check_fn must be set."
         self.check = check
+        breakpoint()
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
     def groupby(self, check_obj: DataFrame):
@@ -87,6 +88,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         self,
         check_obj: DataFrame,  # type: ignore [valid-type]
         key,
+        col_name,
     ) -> DataFrame:
         return check_obj
 
@@ -119,11 +121,14 @@ class PySparkCheckBackend(BaseCheckBackend):
     #     if self.check.element_wise:
     #         return check_obj.map(self.check_fn)
     #     return self.check_fn(check_obj)
-
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: is_table):  # type: ignore [valid-type]
         breakpoint()
         return self.check_fn(check_obj)
+    @overload  # type: ignore [no-redef]
+    def apply(self, check_obj: is_table, key, column_name):  # type: ignore [valid-type]
+        breakpoint()
+        return self.check._check_fn(check_obj, key, column_name)
 
     # @overload
     # def postprocess(self, check_obj, check_output):
@@ -264,11 +269,12 @@ class PySparkCheckBackend(BaseCheckBackend):
         self,
         check_obj: DataFrame,
         key: Optional[str] = None,
+        column_name: Optional[str] = None
     ) -> CheckResult:
         breakpoint()
-        check_obj = self.preprocess(check_obj, key)
+        check_obj = self.preprocess(check_obj, key, column_name)
         try:
-            check_output = self.apply(check_obj)
+            check_output = self.apply(check_obj, key, column_name)
         except DispatchError as exc:
             if exc.__cause__ is not None:
                 raise exc.__cause__

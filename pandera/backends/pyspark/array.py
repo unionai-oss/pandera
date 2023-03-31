@@ -34,7 +34,7 @@ class CoreCheckResult(NamedTuple):
 
 
 class ArraySchemaBackend(PysparkSchemaBackend):
-    """Backend for pandas arrays."""
+    """Backend for pyspark arrays."""
 
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj
