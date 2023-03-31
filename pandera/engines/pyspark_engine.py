@@ -31,6 +31,7 @@ from pandera.dtypes import immutable
 from pandera.engines import engine
 import pyspark.sql.types as pst
 
+
 try:
     import pyarrow  # pylint:disable=unused-import
 
@@ -54,6 +55,14 @@ class DataType(dtypes.DataType):
 
     def __init__(self, dtype: Any):
         super().__init__()
+        # Pyspark str(<DataType>) doesnot return equivalent string using the below code to convert the datatype to class
+        try:
+            dtype = eval("pst."+dtype)
+        except AttributeError:
+            pass
+        except TypeError:
+            pass
+
         object.__setattr__(self, "type", dtype)
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
         warnings.warn(
@@ -72,7 +81,7 @@ class DataType(dtypes.DataType):
         pandera_dtype: dtypes.DataType,
     ) -> Union[bool, Iterable[bool]]:
         try:
-            print(Engine.dtype(pandera_dtype))
+
             pandera_dtype = Engine.dtype(pandera_dtype)
 
         except TypeError:
@@ -146,7 +155,7 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 @Engine.register_dtype(
-    equivalents=[bool, "bool", pst.BooleanType()],
+    equivalents=["bool", "BooleanType()", pst.BooleanType()],
 )
 @immutable
 class Bool(DataType, dtypes.Bool):
@@ -168,16 +177,13 @@ class Bool(DataType, dtypes.Bool):
 
 
 @Engine.register_dtype(
-    equivalents=[str, "str", "string", pst.StringType()],  # type: ignore
+    equivalents=["str", "string", "StringType()", pst.StringType()],  # type: ignore
 )
 @immutable
 class String(DataType, dtypes.String):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.StringType`."""
 
     type = pst.StringType()  # type: ignore
-
-    def __str__(self):
-        return "str"
 
 
 ###############################################################################
@@ -186,16 +192,13 @@ class String(DataType, dtypes.String):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=[int, "int", pst.IntegerType()],  # type: ignore
+    equivalents=["int", "IntegerType()", pst.IntegerType()],  # type: ignore
 )
 @immutable
 class Int(DataType, dtypes.Int):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.IntegerType`."""
 
     type = pst.IntegerType()  # type: ignore
-
-    def __str__(self):
-        return "int"
 
 
 ###############################################################################
@@ -204,7 +207,7 @@ class Int(DataType, dtypes.Int):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=[float, "float", pst.FloatType()],  # type: ignore
+    equivalents=["float", "FloatType()", pst.FloatType()],  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
@@ -212,12 +215,10 @@ class Float(DataType, dtypes.Float):  # type: ignore
 
     type = pst.FloatType()  # type: ignore
 
-    def __str__(self):
-        return "float"
 
 
 @Engine.register_dtype(
-    equivalents=["long", pst.LongType()],  # type: ignore
+    equivalents=["long", "LongType()", pst.LongType()],  # type: ignore
 )
 @immutable
 class BigInt(DataType, dtypes.Float):  # type: ignore
@@ -225,5 +226,3 @@ class BigInt(DataType, dtypes.Float):  # type: ignore
 
     type = pst.LongType()  # type: ignore
 
-    def __str__(self):
-        return "long"

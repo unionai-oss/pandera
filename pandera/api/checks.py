@@ -202,6 +202,7 @@ class Check(BaseCheck):
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
         column: Optional[str] = None,
+        column_name: Optional[str] = None,
     ) -> CheckResult:
         # pylint: disable=too-many-branches
         """Validate pandas DataFrame or Series.
@@ -225,8 +226,9 @@ class Check(BaseCheck):
 
             ``failure_cases``: subset of the check_object that failed.
         """
+        breakpoint()
         backend = self.get_backend(check_obj)(self)
-        return backend(check_obj, column)
+        return backend(check_obj, column, column_name)
 
     @classmethod
     def equal_to(cls, value: Any, **kwargs) -> "Check":
@@ -476,6 +478,7 @@ class Check(BaseCheck):
         :param string: String all values should start with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+
         return cls.from_builtin_check_name(
             "str_startswith",
             kwargs,

@@ -114,7 +114,7 @@ class BaseCheckBackend(ABC):
         """Initializes a check backend object."""
         ...
 
-    def __call__(self, check_obj, key=None):
+    def __call__(self, check_obj, key=None, column_name=None):
         raise NotImplementedError
 
     def query(self, check_obj):

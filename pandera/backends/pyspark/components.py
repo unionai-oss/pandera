@@ -1,11 +1,11 @@
-"""Backend implementation for pandas schema components."""
+"""Backend implementation for pyspark schema components."""
 
 import traceback
 from copy import copy, deepcopy
 from typing import Iterable, Optional, Union
 
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import udf
+from pyspark.sql.functions import cast
 
 from pandera.backends.pyspark.array import ArraySchemaBackend
 from pandera.backends.pyspark.container import DataFrameSchemaBackend
@@ -22,7 +22,7 @@ import re
 
 
 class ColumnBackend(ArraySchemaBackend):
-    """Backend implementation for pandas dataframe columns."""
+    """Backend implementation for pyspark dataframe columns."""
 
     def validate(
         self,
@@ -36,7 +36,7 @@ class ColumnBackend(ArraySchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> DataFrame:
-        """Validation backend implementation for pandas dataframe columns.."""
+        """Validation backend implementation for pyspark dataframe columns.."""
         breakpoint()
         error_handler = SchemaErrorHandler(lazy=lazy)
         if schema.name is None:
@@ -141,8 +141,7 @@ class ColumnBackend(ArraySchemaBackend):
         # pylint: disable=fixme
         # TODO: use singledispatchmethod here
 
-        for col_name in check_obj.columns:
-            check_obj = check_obj.withColumn(col_name, F.cast(schema.dtype))
+        check_obj = check_obj.withColumn(schema.name, cast(schema.dtype))
         # return check_obj.apply(
         #     lambda x: super(ColumnBackend, self).coerce_dtype(
         #         x,
@@ -162,11 +161,13 @@ class ColumnBackend(ArraySchemaBackend):
                     self.run_check(check_obj, schema, check, check_index, *check_args)
                 )
             except SchemaError as err:
+                breakpoint()
                 error_handler.collect_error(
                     SchemaErrorReason.DATAFRAME_CHECK,
                     err,
                 )
             except Exception as err:  # pylint: disable=broad-except
+                breakpoint()
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"

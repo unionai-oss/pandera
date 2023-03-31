@@ -1,4 +1,4 @@
-"""Pandas Parsing, Validation, and Error Reporting Backends."""
+"""Pyspark Parsing, Validation, and Error Reporting Backends."""
 
 import copy
 import itertools
@@ -24,7 +24,7 @@ from pyspark.sql.functions import cast, col
 
 
 class DataFrameSchemaBackend(PysparkSchemaBackend):
-    """Backend for pandas DataFrameSchema."""
+    """Backend for pyspark DataFrameSchema."""
 
     def preprocess(self, check_obj: DataFrame, inplace: bool = False):
         """Preprocesses a check object before applying check functions."""
@@ -386,7 +386,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             try:
                 schema = obj.pandera.schema
                 breakpoint()
-                obj = obj.withColumn(colname, col(colname).cast(str(col_schema)))
+                obj = obj.withColumn(colname, col(colname).cast(col_schema.dtype.type))
                 obj.pandera.add_schema(schema)
                 return obj
 
