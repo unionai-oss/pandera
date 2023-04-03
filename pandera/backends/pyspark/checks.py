@@ -129,8 +129,8 @@ class PySparkCheckBackend(BaseCheckBackend):
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: DataFrame, column_name: str, kwargs: dict):  # type: ignore [valid-type]
         breakpoint()
-        #kwargs['column_name'] = column_name
-        #return self.check._check_fn(check_obj, *list(kwargs.values()))
+        # kwargs['column_name'] = column_name
+        # return self.check._check_fn(check_obj, *list(kwargs.values()))
         return self.check._check_fn([check_obj, column_name], **kwargs)
 
     @overload
@@ -276,9 +276,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         check_obj = self.preprocess(check_obj, key)
         try:
             breakpoint()
-            d = self.check._check_kwargs
-            a = "hello"
-            check_output = self.apply(check_obj, key, d)
+            check_output = self.apply(check_obj, key, self.check._check_kwargs)
         except DispatchError as exc:
             if exc.__cause__ is not None:
                 raise exc.__cause__

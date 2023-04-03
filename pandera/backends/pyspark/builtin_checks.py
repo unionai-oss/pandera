@@ -26,8 +26,9 @@ def equal_to(data: list, value: Any) -> bool:
     :param value: values in this DataFrame data structure must be
         equal to this value.
     """
+    breakpoint()
     cond = col(data[1]) == value
-    return data[0].filter(cond).limit(1).count() > 0
+    return data[0].filter(~cond).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -41,9 +42,9 @@ def not_equal_to(data: list, value: Any) -> bool:
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
     """
+    breakpoint()
     cond = col(data[1]) != value
-    return data[0].filter(cond).limit(1).count() > 0
-
+    return data[0].filter(~cond).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -96,7 +97,6 @@ def less_than(data: list, max_value: Any) -> bool:
     return data[0].filter(~cond).limit(1).count() == 0
 
 
-
 @register_builtin_check(
     aliases=["le"],
     strategy=st.le_strategy,
@@ -116,38 +116,38 @@ def less_than_or_equal_to(data: list, max_value: Any) -> bool:
 
 
 # Todo - Need to be discussed
-@register_builtin_check(
-    aliases=["between"],
-    strategy=st.in_range_strategy,
-    error="in_range({min_value}, {max_value})",
-)
-def in_range(
-    data: list,
-    min_value: T,
-    max_value: T,
-    include_min: bool = True,
-    include_max: bool = True,
-):
-    """Ensure all values of a series are within an interval.
+# @register_builtin_check(
+#     aliases=["between"],
+#     strategy=st.in_range_strategy,
+#     error="in_range({min_value}, {max_value})",
+# )
+# def in_range(
+#     data: list,
+#     min_value: T,
+#     max_value: T,
+#     include_min: bool = True,
+#     include_max: bool = True,
+# ):
+#     """Ensure all values of a series are within an interval.
 
-    Both endpoints must be a type comparable to the dtype of the
-    :class:`pandas.Series` to be validated.
+#     Both endpoints must be a type comparable to the dtype of the
+#     :class:`pandas.Series` to be validated.
 
-    :param min_value: Left / lower endpoint of the interval.
-    :param max_value: Right / upper endpoint of the interval. Must not be
-        smaller than min_value.
-    :param include_min: Defines whether min_value is also an allowed value
-        (the default) or whether all values must be strictly greater than
-        min_value.
-    :param include_max: Defines whether min_value is also an allowed value
-        (the default) or whether all values must be strictly smaller than
-        max_value.
-    """
-    # Using functions from operator module to keep conditions out of the
-    # closure
-    left_op = operator.le if include_min else operator.lt
-    right_op = operator.ge if include_max else operator.gt
-    return left_op(min_value, data) & right_op(max_value, data)  # type: ignore
+#     :param min_value: Left / lower endpoint of the interval.
+#     :param max_value: Right / upper endpoint of the interval. Must not be
+#         smaller than min_value.
+#     :param include_min: Defines whether min_value is also an allowed value
+#         (the default) or whether all values must be strictly greater than
+#         min_value.
+#     :param include_max: Defines whether min_value is also an allowed value
+#         (the default) or whether all values must be strictly smaller than
+#         max_value.
+#     """
+#     # Using functions from operator module to keep conditions out of the
+#     # closure
+#     left_op = operator.le if include_min else operator.lt
+#     right_op = operator.ge if include_max else operator.gt
+#     return left_op(min_value, data) & right_op(max_value, data)  # type: ignore
 
 
 @register_builtin_check(
@@ -190,6 +190,7 @@ def notin(data: list, forbidden_values: Iterable) -> bool:
     return data[0].filter(col(data[1]).isin(forbidden_values)).limit(1).count() == 0
 
 
+# TODO: expensive check
 @register_builtin_check(
     strategy=st.str_matches_strategy,
     error="str_matches('{pattern}')",
@@ -206,14 +207,12 @@ def str_matches(
     return data[0].filter(~col(data[1]).rlike(pattern)).limit(1).count() == 0
 
 
+# TODO: expensive check
 @register_builtin_check(
     strategy=st.str_contains_strategy,
     error="str_contains('{pattern}')",
 )
-def str_contains(
-    data: list,
-    pattern: Union[str, re.Pattern]
-) -> bool:
+def str_contains(data: list, pattern: Union[str, re.Pattern]) -> bool:
     """Ensure that a pattern can be found within each row.
 
     :param pattern: Regular expression pattern to use for searching
@@ -231,7 +230,6 @@ def str_startswith(data: list, string: str) -> bool:
     :param string: String all values should start with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    breakpoint()  # TODO: change to accept column and perform check on it
     cond = col(data[1]).startswith(string)
     return data[0].filter(~cond).limit(1).count() == 0
 
@@ -247,29 +245,3 @@ def str_endswith(data: list, string: str) -> bool:
     """
     cond = col(data[1]).endswith(string)
     return data[0].filter(~cond).limit(1).count() == 0
-
-
-@register_builtin_check(
-    strategy=st.str_length_strategy,
-    error="str_length({min_value}, {max_value})",
-)
-def str_length(
-    data: list,
-    min_value: int = None,
-    max_value: int = None,
-) -> DataFrame:
-    """Ensure that the length of strings is within a specified range.
-
-    :param min_value: Minimum length of strings (default: no minimum)
-    :param max_value: Maximum length of strings (default: no maximum)
-    """
-    str_len = data.str.len()
-    if min_value is None and max_value is None:
-        raise ValueError(
-            "At least a minimum or a maximum need to be specified. Got " "None."
-        )
-    if max_value is None:
-        return str_len >= min_value  # type: ignore[operator]
-    elif min_value is None:
-        return str_len <= max_value
-    return (str_len <= max_value) & (str_len >= min_value)
