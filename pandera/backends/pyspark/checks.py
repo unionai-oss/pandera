@@ -127,28 +127,30 @@ class PySparkCheckBackend(BaseCheckBackend):
         return self.check_fn(check_obj)
 
     @overload  # type: ignore [no-redef]
-    def apply(self, check_obj: DataFrame, key: str, kwargs: dict):  # type: ignore [valid-type]
+    def apply(self, check_obj: DataFrame, column_name: str, kwargs: dict):  # type: ignore [valid-type]
         breakpoint()
-        return self.check._check_fn(check_obj, key, kwargs)
+        #kwargs['column_name'] = column_name
+        #return self.check._check_fn(check_obj, *list(kwargs.values()))
+        return self.check._check_fn([check_obj, column_name], **kwargs)
 
-    # @overload
-    # def postprocess(self, check_obj, check_output):
-    #     """Postprocesses the result of applying the check function."""
-    #     raise TypeError(f"output type of check_fn not recognized: {type(check_output)}")
+    @overload
+    def postprocess(self, check_obj, check_output):
+        """Postprocesses the result of applying the check function."""
+        raise TypeError(f"output type of check_fn not recognized: {type(check_output)}")
 
-    # @overload  # type: ignore [no-redef]
-    # def postprocess(
-    #     self,
-    #     check_obj,
-    #     check_output: is_bool,  # type: ignore [valid-type]
-    # ) -> CheckResult:
-    #     """Postprocesses the result of applying the check function."""
-    #     return CheckResult(
-    #         check_output=check_output,
-    #         check_passed=check_output,
-    #         checked_object=check_obj,
-    #         failure_cases=None,
-    #     )
+    @overload  # type: ignore [no-redef]
+    def postprocess(
+        self,
+        check_obj,
+        check_output: is_bool,  # type: ignore [valid-type]
+    ) -> CheckResult:
+        """Postprocesses the result of applying the check function."""
+        return CheckResult(
+            check_output=check_output,
+            check_passed=check_output,
+            checked_object=check_obj,
+            failure_cases=None,
+        )
 
     # def _get_series_failure_cases(
     #     self, check_obj, check_output: pd.Series

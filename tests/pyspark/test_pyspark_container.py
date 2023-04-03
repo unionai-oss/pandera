@@ -8,6 +8,7 @@ import pytest
 import pandera as pa
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
+from pandera.error_handlers import SchemaError
 
 spark = SparkSession.builder.getOrCreate()
 
@@ -43,7 +44,7 @@ def test_pyspark_dataframeschema_with_alias_types():
     schema = DataFrameSchema(
         columns={
             "product": Column("str", checks=pa.Check.str_startswith("B")),
-            "price": Column("int", checks=pa.Check.gt(10)),
+            "price": Column("int", checks=pa.Check.gt(5)),
         },
         name="product_schema",
         description="schema for product info",
@@ -63,6 +64,10 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     validate_df = schema.validate(df)
 
-    validate_df.show()
+    with pytest.raises(SchemaError):
+        data_fail = [("Bread", 3), ("Butter", 15)]
 
-    breakpoint()
+        df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
+
+        fail_df = schema.validate(df_fail)
+
