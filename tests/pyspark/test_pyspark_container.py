@@ -71,3 +71,64 @@ def test_pyspark_dataframeschema_with_alias_types():
 
         fail_df = schema.validate(df_fail)
 
+
+def test_pyspark_check_eq():
+    """
+    Test creating a pyspark DataFrameSchema object
+    """
+
+    schema = DataFrameSchema(
+        columns={
+            "product": Column("str"),
+            "price": Column("int", checks=pa.Check.eq(5)),
+        },
+        name="product_schema",
+        description="schema for product info",
+        title="ProductSchema",
+    )
+
+    data = [("Bread", 5), ("Butter", 15)]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
+        ],
+    )
+
+    df = spark.createDataFrame(data=data, schema=spark_schema)
+
+    validate_df = schema.validate(df)
+
+    breakpoint()
+
+
+def test_pyspark_check_ne():
+    """
+    Test creating a pyspark DataFrameSchema object
+    """
+
+    schema = DataFrameSchema(
+        columns={
+            "product": Column("str"),
+            "price": Column("int", checks=pa.Check.ne(5)),
+        },
+        name="product_schema",
+        description="schema for product info",
+        title="ProductSchema",
+    )
+
+    data = [("Bread", 5), ("Butter", 15)]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
+        ],
+    )
+
+    df = spark.createDataFrame(data=data, schema=spark_schema)
+
+    validate_df = schema.validate(df)
+
+    breakpoint()
