@@ -91,8 +91,6 @@ class DataType(dtypes.DataType):
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:
-            print(self.type)
-            print(super().check(pandera_dtype))
             return self.type == pandera_dtype.type #or super().check(pandera_dtype)
         except TypeError:
             return super().check(pandera_dtype)

@@ -77,7 +77,6 @@ class ArraySchemaBackend(PysparkSchemaBackend):
             self.check_dtype,
         ):
             check_result = core_check(check_obj_subsample, schema)
-            print(check_result)
             breakpoint()
             if not check_result.passed:
                 error_handler.collect_error(

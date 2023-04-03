@@ -75,7 +75,7 @@ def reshape_failure_cases(
 
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
-    from pandera.api.pandas.types import is_table
+    from pandera.api.pyspark.types import is_table
 
     if not (is_table(failure_cases)):
         raise TypeError(

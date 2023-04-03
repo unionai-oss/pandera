@@ -11,7 +11,7 @@ from pandera.typing.modin import MODIN_INSTALLED
 from pandera.typing.pyspark import PYSPARK_INSTALLED
 
 from pyspark.sql import DataFrame
-
+from pyspark.sql.functions import col
 
 T = TypeVar("T")
 
@@ -20,13 +20,14 @@ T = TypeVar("T")
     aliases=["eq"],
     error="equal_to({value})",
 )
-def equal_to(data: DataFrame, value: Any) -> DataFrame:
+def equal_to(data: list, value: Any) -> bool:
     """Ensure all elements of a data container equal a certain value.
 
     :param value: values in this DataFrame data structure must be
         equal to this value.
     """
-    return data == value
+    cond = col(data[1]) == value
+    return data[0].filter(cond).limit(1).count() > 0
 
 
 @register_builtin_check(
@@ -34,21 +35,22 @@ def equal_to(data: DataFrame, value: Any) -> DataFrame:
     strategy=st.ne_strategy,
     error="not_equal_to({value})",
 )
-def not_equal_to(data: DataFrame, value: Any) -> DataFrame:
+def not_equal_to(data: list, value: Any) -> bool:
     """Ensure no elements of a data container equals a certain value.
 
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
     """
-    return data != value
+    cond = col(data[1]) != value
+    return data[0].filter(cond).limit(1).count() > 0
 
 
-# TODO: how to perform col level check here
+
 @register_builtin_check(
     aliases=["gt"],
     error="greater_than({min_value})",
 )
-def greater_than(data: DataFrame, min_value: Any) -> DataFrame:
+def greater_than(data: list, min_value: Any) -> bool:
     """
     Ensure values of a data container are strictly greater than a minimum
     value.
@@ -56,7 +58,8 @@ def greater_than(data: DataFrame, min_value: Any) -> DataFrame:
     :param min_value: Lower bound to be exceeded.
     """
     breakpoint()
-    return data > min_value
+    cond = col(data[1]) > min_value
+    return data[0].filter(~cond).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -64,14 +67,15 @@ def greater_than(data: DataFrame, min_value: Any) -> DataFrame:
     strategy=st.ge_strategy,
     error="greater_than_or_equal_to({min_value})",
 )
-def greater_than_or_equal_to(data: DataFrame, min_value: Any) -> DataFrame:
+def greater_than_or_equal_to(data: list, min_value: Any) -> bool:
     """Ensure all values are greater or equal a certain value.
 
     :param min_value: Allowed minimum value for values of a series. Must be
         a type comparable to the dtype of the :class:`pandas.Series` to be
         validated.
     """
-    return data >= min_value
+    cond = col(data[1]) >= min_value
+    return data[0].filter(~cond).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -79,7 +83,7 @@ def greater_than_or_equal_to(data: DataFrame, min_value: Any) -> DataFrame:
     strategy=st.lt_strategy,
     error="less_than({max_value})",
 )
-def less_than(data: DataFrame, max_value: Any) -> DataFrame:
+def less_than(data: list, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
     :param max_value: All elements of a series must be strictly smaller
@@ -88,7 +92,9 @@ def less_than(data: DataFrame, max_value: Any) -> DataFrame:
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
-    return data < max_value
+    cond = col(max_value) < data[1]
+    return data[0].filter(~cond).limit(1).count() == 0
+
 
 
 @register_builtin_check(
@@ -96,7 +102,7 @@ def less_than(data: DataFrame, max_value: Any) -> DataFrame:
     strategy=st.le_strategy,
     error="less_than_or_equal_to({max_value})",
 )
-def less_than_or_equal_to(data: DataFrame, max_value: Any) -> DataFrame:
+def less_than_or_equal_to(data: list, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
     :param max_value: Upper bound not to be exceeded. Must be a type
@@ -105,16 +111,18 @@ def less_than_or_equal_to(data: DataFrame, max_value: Any) -> DataFrame:
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
-    return data <= max_value
+    cond = col(max_value) <= data[1]
+    return data[0].filter(~cond).limit(1).count() == 0
 
 
+# Todo - Need to be discussed
 @register_builtin_check(
     aliases=["between"],
     strategy=st.in_range_strategy,
     error="in_range({min_value}, {max_value})",
 )
 def in_range(
-    data: DataFrame,
+    data: list,
     min_value: T,
     max_value: T,
     include_min: bool = True,
@@ -146,7 +154,7 @@ def in_range(
     strategy=st.isin_strategy,
     error="isin({allowed_values})",
 )
-def isin(data: DataFrame, allowed_values: Iterable) -> DataFrame:
+def isin(data: list, allowed_values: Iterable) -> bool:
     """Ensure only allowed values occur within a series.
 
     This checks whether all elements of a :class:`pandas.Series`
@@ -159,14 +167,14 @@ def isin(data: DataFrame, allowed_values: Iterable) -> DataFrame:
     :param allowed_values: The set of allowed values. May be any iterable.
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data.isin(allowed_values)
+    return data[0].filter(~col(data[1]).isin(allowed_values)).limit(1).count() == 0
 
 
 @register_builtin_check(
     strategy=st.notin_strategy,
     error="notin({forbidden_values})",
 )
-def notin(data: DataFrame, forbidden_values: Iterable) -> DataFrame:
+def notin(data: list, forbidden_values: Iterable) -> bool:
     """Ensure some defined values don't occur within a series.
 
     Like :meth:`Check.isin` this check operates on single characters if
@@ -179,7 +187,7 @@ def notin(data: DataFrame, forbidden_values: Iterable) -> DataFrame:
     :param raise_warning: if True, check raises UserWarning instead of
         SchemaError on validation.
     """
-    return ~data.isin(forbidden_values)
+    return data[0].filter(col(data[1]).isin(forbidden_values)).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -187,15 +195,15 @@ def notin(data: DataFrame, forbidden_values: Iterable) -> DataFrame:
     error="str_matches('{pattern}')",
 )
 def str_matches(
-    data: DataFrame,
+    data: list,
     pattern: Union[str, re.Pattern],
-) -> DataFrame:
+) -> bool:
     """Ensure that string values match a regular expression.
 
     :param pattern: Regular expression pattern to use for matching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data.str.match(cast(str, pattern), na=False)
+    return data[0].filter(~col(data[1]).rlike(pattern)).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -203,41 +211,42 @@ def str_matches(
     error="str_contains('{pattern}')",
 )
 def str_contains(
-    data: DataFrame,
-    pattern: Union[str, re.Pattern],
-) -> DataFrame:
+    data: list,
+    pattern: Union[str, re.Pattern]
+) -> bool:
     """Ensure that a pattern can be found within each row.
 
     :param pattern: Regular expression pattern to use for searching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data.str.contains(cast(str, pattern), na=False)
+    return data[0].filter(~col(data[1]).rlike(pattern)).limit(1).count() == 0
 
 
 @register_builtin_check(
     error="str_startswith('{string}')",
 )
-def str_startswith(data: DataFrame, string: str, kwargs: dict) -> bool:
+def str_startswith(data: list, string: str) -> bool:
     """Ensure that all values start with a certain string.
 
     :param string: String all values should start with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
     breakpoint()  # TODO: change to accept column and perform check on it
-
-    return True  # data.withColumn(column_name, data[column_name].startswith(string))
+    cond = col(data[1]).startswith(string)
+    return data[0].filter(~cond).limit(1).count() == 0
 
 
 @register_builtin_check(
     strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
-def str_endswith(data: DataFrame, string: str) -> DataFrame:
+def str_endswith(data: list, string: str) -> bool:
     """Ensure that all values end with a certain string.
 
     :param string: String all values should end with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data.str.endswith(string, na=False)
+    cond = col(data[1]).endswith(string)
+    return data[0].filter(~cond).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -245,7 +254,7 @@ def str_endswith(data: DataFrame, string: str) -> DataFrame:
     error="str_length({min_value}, {max_value})",
 )
 def str_length(
-    data: DataFrame,
+    data: list,
     min_value: int = None,
     max_value: int = None,
 ) -> DataFrame:
@@ -264,18 +273,3 @@ def str_length(
     elif min_value is None:
         return str_len <= max_value
     return (str_len <= max_value) & (str_len >= min_value)
-
-
-@register_builtin_check(
-    error="unique_values_eq({values})",
-)
-def unique_values_eq(data: DataFrame, values: Iterable):
-    """Ensure that unique values in the data object contain all values.
-
-    .. note::
-        In constrast with :func:`isin`, this check makes sure that all the items
-        in the ``values`` iterable are contained within the series.
-
-    :param values: The set of values that must be present. Maybe any iterable.
-    """
-    return set(data.unique()) == values  # type: ignore[return-value,operator]
