@@ -93,7 +93,7 @@ def less_than(data: list, max_value: Any) -> bool:
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
-    cond = col(max_value) < data[1]
+    cond = col(data[1]) < max_value
     return data[0].filter(~cond).limit(1).count() == 0
 
 
@@ -111,7 +111,7 @@ def less_than_or_equal_to(data: list, max_value: Any) -> bool:
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
-    cond = col(max_value) <= data[1]
+    cond = col(data[1]) <= max_value
     return data[0].filter(~cond).limit(1).count() == 0
 
 
@@ -167,7 +167,7 @@ def isin(data: list, allowed_values: Iterable) -> bool:
     :param allowed_values: The set of allowed values. May be any iterable.
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data[0].filter(~col(data[1]).isin(allowed_values)).limit(1).count() == 0
+    return data[0].filter(~col(data[1]).isin(list(allowed_values))).limit(1).count() == 0
 
 
 @register_builtin_check(
@@ -187,25 +187,7 @@ def notin(data: list, forbidden_values: Iterable) -> bool:
     :param raise_warning: if True, check raises UserWarning instead of
         SchemaError on validation.
     """
-    return data[0].filter(col(data[1]).isin(forbidden_values)).limit(1).count() == 0
-
-
-# TODO: expensive check
-@register_builtin_check(
-    strategy=st.str_matches_strategy,
-    error="str_matches('{pattern}')",
-)
-def str_matches(
-    data: list,
-    pattern: Union[str, re.Pattern],
-) -> bool:
-    """Ensure that string values match a regular expression.
-
-    :param pattern: Regular expression pattern to use for matching
-    :param kwargs: key-word arguments passed into the `Check` initializer.
-    """
-    return data[0].filter(~col(data[1]).rlike(pattern)).limit(1).count() == 0
-
+    return data[0].filter(col(data[1]).isin(list(forbidden_values))).limit(1).count() == 0
 
 # TODO: expensive check
 @register_builtin_check(
@@ -218,7 +200,8 @@ def str_contains(data: list, pattern: Union[str, re.Pattern]) -> bool:
     :param pattern: Regular expression pattern to use for searching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data[0].filter(~col(data[1]).rlike(pattern)).limit(1).count() == 0
+
+    return data[0].filter(~col(data[1]).rlike(pattern.pattern)).limit(1).count() == 0
 
 
 @register_builtin_check(
