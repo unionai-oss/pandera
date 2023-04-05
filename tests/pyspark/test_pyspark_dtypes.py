@@ -4,10 +4,7 @@ import pytest
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
 from pandera.error_handlers import SchemaError
-
-
-def spark_df(spark, data: list, spark_schema: T.StructType):
-    return spark.createDataFrame(data=data, schema=spark_schema, verifySchema=False)
+from tests.pyspark.conftest import spark_df
 
 
 def test_pyspark_dtype_int(spark, sample_data, sample_spark_schema):

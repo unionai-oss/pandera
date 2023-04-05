@@ -31,3 +31,7 @@ def sample_spark_schema():
             T.StructField("price", T.IntegerType(), False),
         ],
     )
+
+
+def spark_df(spark, data: list, spark_schema: T.StructType):
+    return spark.createDataFrame(data=data, schema=spark_schema, verifySchema=False)
