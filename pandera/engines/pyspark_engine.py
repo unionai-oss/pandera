@@ -57,7 +57,7 @@ class DataType(dtypes.DataType):
         super().__init__()
         # Pyspark str(<DataType>) doesnot return equivalent string using the below code to convert the datatype to class
         try:
-            dtype = eval("pst."+dtype)
+            dtype = eval("pst." + dtype)
         except AttributeError:
             pass
         except TypeError:
@@ -91,7 +91,7 @@ class DataType(dtypes.DataType):
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:
-            return self.type == pandera_dtype.type #or super().check(pandera_dtype)
+            return self.type == pandera_dtype.type  # or super().check(pandera_dtype)
         except TypeError:
             return super().check(pandera_dtype)
 
@@ -179,7 +179,7 @@ class Bool(DataType, dtypes.Bool):
 )
 @immutable
 class String(DataType, dtypes.String):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.StringType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.StringType`."""
 
     type = pst.StringType()  # type: ignore
 
@@ -194,7 +194,7 @@ class String(DataType, dtypes.String):  # type: ignore
 )
 @immutable
 class Int(DataType, dtypes.Int):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.IntegerType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.IntegerType`."""
 
     type = pst.IntegerType()  # type: ignore
 
@@ -209,18 +209,26 @@ class Int(DataType, dtypes.Int):  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.FloatType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
 
     type = pst.FloatType()  # type: ignore
-
 
 
 @Engine.register_dtype(
     equivalents=["long", "LongType()", pst.LongType()],  # type: ignore
 )
 @immutable
-class BigInt(DataType, dtypes.Float):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.FloatType`."""
+class BigInt(DataType, dtypes.Int64):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
 
     type = pst.LongType()  # type: ignore
 
+
+@Engine.register_dtype(
+    equivalents=["decimal", "DecimalType()", pst.DecimalType()],  # type: ignore
+)
+@immutable
+class Decimal(DataType, dtypes.Decimal):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+
+    type = pst.DecimalType()  # type: ignore
