@@ -255,7 +255,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = False,
+        lazy: bool = True,
         inplace: bool = False,
     ) -> DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
