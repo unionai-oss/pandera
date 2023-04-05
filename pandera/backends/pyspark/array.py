@@ -206,6 +206,7 @@ class ArraySchemaBackend(PysparkSchemaBackend):
                 Engine.dtype(check_obj.schema[schema.name].dataType),
             )
 
+            # TODO: add error summary
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
                 failure_cases = scalar_failure_case(
