@@ -1,4 +1,3 @@
-
 """Unit tests for pyspark container."""
 from typing import Union
 
@@ -11,10 +10,10 @@ import pandera as pa
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
 from pandera.error_handlers import SchemaError
+from tests.pyspark.conftest import spark_df
 
-spark = SparkSession.builder.getOrCreate()
 
-def test_equal_to_check() -> None:
+def test_equal_to_check(spark) -> None:
     """Test the Check to see if all the values are equal to defined value"""
 
     schema = DataFrameSchema(
@@ -34,14 +33,12 @@ def test_equal_to_check() -> None:
         validate_fail_df = schema.validate(df_fail)
 
 
-
-
-def test_pyspark_check_eq():
+def test_pyspark_check_eq(spark, sample_spark_schema):
     """
     Test creating a pyspark DataFrameSchema object
     """
 
-    schema = DataFrameSchema(
+    pandera_schema = DataFrameSchema(
         columns={
             "product": Column("str"),
             "price": Column("int", checks=pa.Check.eq(5)),
@@ -50,20 +47,11 @@ def test_pyspark_check_eq():
         description="schema for product info",
         title="ProductSchema",
     )
-
-
-    spark_schema = StructType(
-        [
-            StructField("product", StringType(), False),
-            StructField("price", IntegerType(), False),
-        ],
-    )
+    # negative test
     with pytest.raises(SchemaError):
-        data = [("Bread", 5), ("Butter", 15)]
-        df = spark.createDataFrame(data=data, schema=spark_schema)
-        validate_df = schema.validate(df)
-
-
+        data_fail = [("Bread", 5), ("Butter", 15)]
+        df_fail = spark_df(spark, data_fail, sample_spark_schema)
+        validate_df = pandera_schema.validate(df_fail)
 
 
 def test_not_equal_to_check() -> None:
@@ -159,7 +147,6 @@ def test_greater_than_check() -> None:
         data = [("Bread", 3), ("Butter", 15)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "price"])
         validate_fail_df = schema_gt.validate(df_fail)
-
 
 
 def test_greater_than_or_equal_to_check() -> None:
@@ -300,7 +287,6 @@ def test_less_than_equal_to_check() -> None:
         validate_fail_df = schema_lt.validate(df_fail)
 
 
-
 def test_isin_check() -> None:
     """Test the Check to see if any value is not in the specified value"""
 
@@ -346,7 +332,7 @@ def test_str_startswith_check() -> None:
 
     schema = DataFrameSchema(
         {
-            "product": Column(StringType(), pa.Check.str_startswith('B')),
+            "product": Column(StringType(), pa.Check.str_startswith("B")),
             "code": Column(LongType()),
         }
     )
@@ -366,7 +352,7 @@ def test_str_endswith_check() -> None:
 
     schema = DataFrameSchema(
         {
-            "product": Column(StringType(), pa.Check.str_endswith('t')),
+            "product": Column(StringType(), pa.Check.str_endswith("t")),
             "code": Column(LongType()),
         }
     )
@@ -381,13 +367,12 @@ def test_str_endswith_check() -> None:
         validate_fail_df = schema.validate(df_fail)
 
 
-
 def test_str_contains_check() -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema = DataFrameSchema(
         {
-            "product": Column(StringType(), pa.Check.str_contains('Ba')),
+            "product": Column(StringType(), pa.Check.str_contains("Ba")),
             "code": Column(LongType()),
         }
     )
