@@ -11,28 +11,44 @@ from pandera.error_handlers import SchemaError
 spark = SparkSession.builder.getOrCreate()
 
 
-def test_pyspark_dtype_string():
+def test_pyspark_dtype_int():
     """
-    Test string dtype column
+    Test int dtype column
     """
 
     pandera_schema = DataFrameSchema(
         columns={
             "product": Column("str"),
+            "price": Column("int"),
         },
         name="product_schema",
         description="schema for product info",
         title="ProductSchema",
     )
 
-    data = [("Bread"), ("Butter")]
-
     spark_schema = T.StructType(
         [
             T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
         ],
     )
 
-    df = spark.createDataFrame(data=data, schema=spark_schema)
+    data = [("Bread", 9), ("Butter", 15)]
 
-    validate_df = pandera_schema.validate(df)
+    df = spark.createDataFrame(data=data, schema=spark_schema, verifySchema=False)
+    pandera_schema.validate(df)
+
+    with pytest.raises(SchemaError):
+        spark_schema = T.StructType(
+            [
+                T.StructField("product", T.StringType(), False),
+                T.StructField("price", T.FloatType(), False),
+            ],
+        )
+        data = [("Bread", 9.0), ("Butter", 15)]
+
+        df_fail = spark.createDataFrame(
+            data=data, schema=spark_schema, verifySchema=False
+        )
+
+        pandera_schema.validate(df_fail)
