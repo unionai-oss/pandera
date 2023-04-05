@@ -8,6 +8,7 @@ from pyspark.sql.functions import col
 from pandera.errors import SchemaErrorReason
 import pandas as pd
 
+
 def format_generic_error_message(
     parent_schema,
     check,
@@ -18,10 +19,7 @@ def format_generic_error_message(
     :param check: check that generated error.
     :param check_index: The validator that failed.
     """
-    return (
-        f"{parent_schema} failed column or dataframe validator "
-        f"{check}"
-    )
+    return f"{parent_schema} failed column or dataframe validator " f"{check}"
 
 
 # Todo - Discuss dont need case by case failure message.
@@ -45,14 +43,15 @@ def format_vectorized_error_message(
         f"{check}\nfailure cases:\n{reshaped_failure_cases}"
     )
 
+
 # Todo -
-def scalar_failure_case(x) -> DataFrame:
+def scalar_failure_case(x) -> pd.DataFrame:
     """Construct failure case from a scalar value.
 
     :param x: a scalar value representing failure case.
     :returns: DataFrame used for error reporting with ``SchemaErrors``.
     """
-    return DataFrame(
+    return pd.DataFrame(
         {
             "index": [None],
             "failure_case": [x],
@@ -96,8 +95,7 @@ def reshape_failure_cases(
 
     else:
         raise TypeError(
-            "type of failure_cases argument not understood: "
-            f"{type(failure_cases)}"
+            "type of failure_cases argument not understood: " f"{type(failure_cases)}"
         )
 
     return (
@@ -105,7 +103,6 @@ def reshape_failure_cases(
         if ignore_na
         else reshaped_failure_cases
     )
-
 
 
 def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
@@ -173,8 +170,7 @@ def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
     # NOTE: this is a hack to support pyspark.pandas and modin
     concat_fn = pd.concat  # type: ignore
     if any(
-        type(x).__module__.startswith("pyspark.pandas")
-        for x in check_failure_cases
+        type(x).__module__.startswith("pyspark.pandas") for x in check_failure_cases
     ):
         # pylint: disable=import-outside-toplevel
         import pyspark.pandas as ps
@@ -185,8 +181,7 @@ def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
             for x in check_failure_cases
         ]
     elif any(
-        type(x).__module__.startswith("modin.pandas")
-        for x in check_failure_cases
+        type(x).__module__.startswith("modin.pandas") for x in check_failure_cases
     ):
         # pylint: disable=import-outside-toplevel
         import modin.pandas as mpd
@@ -254,9 +249,7 @@ def summarize_failure_cases(
                 .agg({"failure_case": "unique"})
                 .failure_case
             )
-        return df.groupby(
-            ["schema_context", "column", "check"]
-        ).failure_case.unique()
+        return df.groupby(["schema_context", "column", "check"]).failure_case.unique()
 
     summarized_failure_cases = (
         failure_cases.fillna({"column": "<NA>"})

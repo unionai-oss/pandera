@@ -87,7 +87,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
                 # Todo
                 failure_cases = scalar_failure_case(check_result.check_passed)
                 # Todo
-                error_msg = format_generic_error_message(schema, check, check_index)
+                error_msg = format_generic_error_message(schema, check)
             else:
                 # Todo
                 failure_cases = reshape_failure_cases(
