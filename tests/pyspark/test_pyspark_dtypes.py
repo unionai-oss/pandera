@@ -1,17 +1,16 @@
 """Unit tests for pyspark container."""
-from pyspark.sql import SparkSession
 import pyspark.sql.types as T
-import pyspark.sql.functions as F
 import pytest
-import pandera as pa
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
 from pandera.error_handlers import SchemaError
 
-spark = SparkSession.builder.getOrCreate()
+
+def spark_df(spark, data: list, spark_schema: T.StructType):
+    return spark.createDataFrame(data=data, schema=spark_schema, verifySchema=False)
 
 
-def test_pyspark_dtype_int():
+def test_pyspark_dtype_int(spark, sample_data, sample_spark_schema):
     """
     Test int dtype column
     """
@@ -26,29 +25,20 @@ def test_pyspark_dtype_int():
         title="ProductSchema",
     )
 
-    spark_schema = T.StructType(
-        [
-            T.StructField("product", T.StringType(), False),
-            T.StructField("price", T.IntegerType(), False),
-        ],
-    )
+    df = spark_df(spark, sample_data, sample_spark_schema)
 
-    data = [("Bread", 9), ("Butter", 15)]
-
-    df = spark.createDataFrame(data=data, schema=spark_schema, verifySchema=False)
     pandera_schema.validate(df)
 
+    # negative test
     with pytest.raises(SchemaError):
-        spark_schema = T.StructType(
+        spark_schema_fail = T.StructType(
             [
                 T.StructField("product", T.StringType(), False),
                 T.StructField("price", T.FloatType(), False),
             ],
         )
-        data = [("Bread", 9.0), ("Butter", 15)]
+        data_fail = [("Bread", 9.0), ("Butter", 15)]
 
-        df_fail = spark.createDataFrame(
-            data=data, schema=spark_schema, verifySchema=False
-        )
+        df_fail = spark_df(spark, data_fail, spark_schema_fail)
 
         pandera_schema.validate(df_fail)
