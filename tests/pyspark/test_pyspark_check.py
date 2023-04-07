@@ -54,7 +54,7 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
         validate_df = pandera_schema.validate(df_fail)
 
 
-def test_not_equal_to_check() -> None:
+def test_not_equal_to_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema_not_equal_to = DataFrameSchema(
@@ -103,7 +103,7 @@ def test_not_equal_to_check() -> None:
         validate_fail_df = schema_ne.validate(df_fail)
 
 
-def test_greater_than_check() -> None:
+def test_greater_than_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema_greater_than = DataFrameSchema(
@@ -149,7 +149,7 @@ def test_greater_than_check() -> None:
         validate_fail_df = schema_gt.validate(df_fail)
 
 
-def test_greater_than_or_equal_to_check() -> None:
+def test_greater_than_or_equal_to_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema_greater_than_or_equal_t = DataFrameSchema(
@@ -195,7 +195,7 @@ def test_greater_than_or_equal_to_check() -> None:
         validate_fail_df = schema_ge.validate(df_fail)
 
 
-def test_less_than_check() -> None:
+def test_less_than_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema_less_than = DataFrameSchema(
@@ -241,7 +241,7 @@ def test_less_than_check() -> None:
         validate_fail_df = schema_lt.validate(df_fail)
 
 
-def test_less_than_equal_to_check() -> None:
+def test_less_than_equal_to_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema_less_than = DataFrameSchema(
@@ -287,7 +287,7 @@ def test_less_than_equal_to_check() -> None:
         validate_fail_df = schema_lt.validate(df_fail)
 
 
-def test_isin_check() -> None:
+def test_isin_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema = DataFrameSchema(
@@ -307,7 +307,7 @@ def test_isin_check() -> None:
         validate_fail_df = schema.validate(df_fail)
 
 
-def test_notin_check() -> None:
+def test_notin_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema = DataFrameSchema(
@@ -327,7 +327,7 @@ def test_notin_check() -> None:
         validate_fail_df = schema.validate(df_fail)
 
 
-def test_str_startswith_check() -> None:
+def test_str_startswith_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema = DataFrameSchema(
@@ -347,7 +347,7 @@ def test_str_startswith_check() -> None:
         validate_fail_df = schema.validate(df_fail)
 
 
-def test_str_endswith_check() -> None:
+def test_str_endswith_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema = DataFrameSchema(
@@ -367,7 +367,7 @@ def test_str_endswith_check() -> None:
         validate_fail_df = schema.validate(df_fail)
 
 
-def test_str_contains_check() -> None:
+def test_str_contains_check(spark) -> None:
     """Test the Check to see if any value is not in the specified value"""
 
     schema = DataFrameSchema(

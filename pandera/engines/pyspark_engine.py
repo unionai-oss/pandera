@@ -223,6 +223,34 @@ class BigInt(DataType, dtypes.Int64):  # type: ignore
 
     type = pst.LongType()  # type: ignore
 
+@Engine.register_dtype(
+    equivalents=["int", "IntegerType()", pst.IntegerType()],  # type: ignore
+)
+@immutable
+class Int(DataType, dtypes.Int32):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
+
+    type = pst.IntegerType()  # type: ignore
+
+@Engine.register_dtype(
+    equivalents=["short", "ShortType()", pst.ShortType()],  # type: ignore
+)
+@immutable
+class ShortInt(DataType, dtypes.Int16):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
+
+    type = pst.ShortType()  # type: ignore
+
+
+@Engine.register_dtype(
+    equivalents=["byte", "ByteType()", pst.ByteType()],  # type: ignore
+)
+@immutable
+class ByteInt(DataType, dtypes.Int8):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
+
+    type = pst.ByteType()  # type: ignore
+
 
 @Engine.register_dtype(
     equivalents=["decimal", "DecimalType()", pst.DecimalType()],  # type: ignore
@@ -232,3 +260,45 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
 
     type = pst.DecimalType()  # type: ignore
+
+@Engine.register_dtype(
+    equivalents=["double", "DoubleType()", pst.DoubleType()],  # type: ignore
+)
+@immutable
+class Double(DataType, dtypes.Float):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+
+    type = pst.DoubleType()
+
+@Engine.register_dtype(
+    equivalents=["date", "DateType()", pst.DateType()],  # type: ignore
+)
+@immutable
+class Date(DataType, dtypes.Date):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+
+    type = pst.DateType()  # type: ignore
+
+@Engine.register_dtype(
+    equivalents=["datetime", "timestamp", "TimestampType()", pst.TimestampType()],  # type: ignore
+)
+@immutable
+class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+
+    type = pst.TimestampType()  # type: ignore
+
+@Engine.register_dtype(
+    equivalents=["binary", "BinaryType()", pst.BinaryType()],  # type: ignore
+)
+@immutable
+class Binary(DataType, dtypes.Binary):  # type: ignore
+    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+
+    type = pst.BinaryType()  # type: ignore
+
+@Engine.register_dtype(equivalents=["timedelta", "DayTimeIntervalType()", pst.DayTimeIntervalType()])
+@immutable()
+class TimeDelta(DataType, dtypes.Timedelta):
+    type = pst.DayTimeIntervalType()
+
