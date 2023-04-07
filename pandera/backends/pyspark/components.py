@@ -7,7 +7,7 @@ from typing import Iterable, Optional, Union
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import cast
 
-from pandera.backends.pyspark.array import ColumnSchemaBackend
+from pandera.backends.pyspark.column import ColumnSchemaBackend
 from pandera.backends.pyspark.container import DataFrameSchemaBackend
 from pandera.api.pyspark.types import (
     # is_field,
