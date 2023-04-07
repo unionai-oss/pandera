@@ -6,7 +6,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 
 from pandera import errors
 from pandera import strategies as st
-from pandera.backends.pyspark.array import (
+from pandera.backends.pyspark.column import (
     ColumnSchemaBackend,
     # SeriesSchemaBackend,
 )
