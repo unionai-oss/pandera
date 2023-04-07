@@ -45,13 +45,13 @@ def format_vectorized_error_message(
 
 
 # Todo -
-def scalar_failure_case(x) -> DataFrame:
+def scalar_failure_case(x) -> pd.DataFrame:
     """Construct failure case from a scalar value.
 
     :param x: a scalar value representing failure case.
     :returns: DataFrame used for error reporting with ``SchemaErrors``.
     """
-    return DataFrame(
+    return pd.DataFrame(
         {
             "index": [None],
             "failure_case": [x],
