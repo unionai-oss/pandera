@@ -7,7 +7,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 from pandera import errors
 from pandera import strategies as st
 from pandera.backends.pyspark.array import (
-    ArraySchemaBackend,
+    ColumnSchemaBackend,
     # SeriesSchemaBackend,
 )
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
@@ -21,13 +21,14 @@ from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
 import pyspark.sql as ps
 
-TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
+TColumnSchemaBase = TypeVar("TColumnSchemaBase", bound="ColumnSchema")
 
 
 class ColumnSchema(BaseSchema):
     """Base column validator object."""
 
-    BACKEND = ArraySchemaBackend()
+    BACKEND = ColumnSchemaBackend()
+
     # TODO: checks is empty
     def __init__(
         self,
@@ -149,13 +150,13 @@ class ColumnSchema(BaseSchema):
 
     @classmethod
     def _pydantic_validate(  # type: ignore
-        cls: TArraySchemaBase, schema: Any
-    ) -> TArraySchemaBase:
+        cls: TColumnSchemaBase, schema: Any
+    ) -> TColumnSchemaBase:
         """Verify that the input is a compatible Schema."""
         if not isinstance(schema, cls):  # type: ignore
             raise TypeError(f"{schema} is not a {cls}.")
 
-        return cast(TArraySchemaBase, schema)
+        return cast(TColumnSchemaBase, schema)
 
     #############################
     # Schema Transforms Methods #
