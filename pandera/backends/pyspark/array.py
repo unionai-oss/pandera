@@ -33,7 +33,7 @@ class CoreCheckResult(NamedTuple):
     failure_cases: Optional[Iterable] = None
 
 
-class ArraySchemaBackend(PysparkSchemaBackend):
+class ColumnSchemaBackend(PysparkSchemaBackend):
     """Backend for pyspark arrays."""
 
     def preprocess(self, check_obj, inplace: bool = False):
