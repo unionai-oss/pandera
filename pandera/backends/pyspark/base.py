@@ -123,6 +123,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         message, error_counts = summarize_failure_cases(
             schema_name, schema_errors, failure_cases
         )
+        breakpoint()
         return FailureCaseMetadata(
             failure_cases=failure_cases,
             message=message,

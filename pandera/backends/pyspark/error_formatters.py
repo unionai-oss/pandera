@@ -217,6 +217,7 @@ except SchemaErrors as err:
 """
 
 
+# TODO: runs a failure at a time
 def summarize_failure_cases(
     schema_name: str,
     schema_errors: List[Dict[str, Any]],
@@ -244,15 +245,6 @@ def summarize_failure_cases(
         # when requires https://github.com/unionai-oss/pandera/issues/260
         breakpoint()
         df.failure_case = df.failure_case.astype(str)
-        breakpoint()
-        # NOTE: this is a hack to add modin support
-        if type(df).__module__.startswith("modin.pandas"):
-            return (
-                df.groupby(["schema_context", "column", "check"])
-                .agg({"failure_case": "unique"})
-                .failure_case
-            )
-        breakpoint()
         return df.groupby(["schema_context", "column", "check"]).failure_case.unique()
 
     summarized_failure_cases = (

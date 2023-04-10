@@ -12,7 +12,7 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.backends.pyspark.error_handler import ErrorHandler
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -51,7 +51,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
 
         # Todo Error handling .. pending PS discussion
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
@@ -103,21 +103,23 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
         breakpoint()
-        if error_handler.collected_errors:
+        if error_handler.collected_errors:  # TODO: list of all errors
+            error_dicts = error_handler.summarize(schema=schema)
+
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=error_handler.collected_errors,
                 data=check_obj,
             )
         breakpoint()
-        return check_obj
+        return error_dicts
 
     def run_schema_component_checks(
         self,
         check_obj: DataFrame,
         schema_components: List,
         lazy: bool,
-        error_handler: SchemaErrorHandler,
+        error_handler: ErrorHandler,
     ):
         """Run checks for all schema components."""
         check_results = []
@@ -310,12 +312,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: Optional[SchemaErrorHandler] = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
 
-        _error_handler = error_handler or SchemaErrorHandler(lazy=True)
+        _error_handler = error_handler or ErrorHandler(lazy=True)
 
         if not (schema.coerce or any(col.coerce for col in schema.columns.values())):
             return check_obj
@@ -359,7 +361,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         :returns: dataframe with coerced dtypes
         """
         # NOTE: clean up the error handling!
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         def _coerce_df_dtype(obj: DataFrame) -> DataFrame:
             if schema.dtype is None:
@@ -395,7 +397,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 return obj
 
         for colname, col_schema in schema.columns.items():
-
             if col_schema.regex:
                 try:
                     matched_columns = col_schema.BACKEND.get_regex_columns(

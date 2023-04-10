@@ -55,15 +55,15 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
     pandera_schema = DataFrameSchema(
         columns={
-            "product": Column("str"),
-            "price": Column("int", checks=pa.Check.eq(5)),
+            "product": Column("str", checks=pa.Check.str_startswith("B")),
+            "price": Column("int", checks=pa.Check.gt(5)),
         },
         name="product_schema",
         description="schema for product info",
         title="ProductSchema",
     )
 
-    data_fail = [("Bread", 5), ("Butter", 15)]
+    data_fail = [("Bread", 5), ("Cutter", 15)]
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
     pandera_schema.validate(df_fail)
     breakpoint()
