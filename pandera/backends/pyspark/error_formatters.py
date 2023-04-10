@@ -223,12 +223,12 @@ def summarize_failure_cases(
     failure_cases: pd.DataFrame,
 ) -> Tuple[str, Dict[str, int]]:
     """Format error message."""
-
+    breakpoint()
     error_counts = defaultdict(int)  # type: ignore
     for schema_error_dict in schema_errors:
         reason_code = schema_error_dict["reason_code"]
         error_counts[reason_code] += 1
-
+    breakpoint()
     msg = (
         f"Schema {schema_name}: A total of "
         f"{sum(error_counts.values())} schema errors were found.\n"
@@ -242,7 +242,9 @@ def summarize_failure_cases(
     def agg_failure_cases(df):
         # Note: hack to support unhashable types, proper solution that only transforms
         # when requires https://github.com/unionai-oss/pandera/issues/260
+        breakpoint()
         df.failure_case = df.failure_case.astype(str)
+        breakpoint()
         # NOTE: this is a hack to add modin support
         if type(df).__module__.startswith("modin.pandas"):
             return (
@@ -250,6 +252,7 @@ def summarize_failure_cases(
                 .agg({"failure_case": "unique"})
                 .failure_case
             )
+        breakpoint()
         return df.groupby(["schema_context", "column", "check"]).failure_case.unique()
 
     summarized_failure_cases = (
@@ -259,14 +262,17 @@ def summarize_failure_cases(
         .to_frame()
         .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
     )
+    breakpoint()
     index_labels = [
         summarized_failure_cases.index.names.index(name)
         for name in ["schema_context", "column"]
     ]
+    breakpoint()
     summarized_failure_cases = summarized_failure_cases.sort_index(
         level=index_labels,
         ascending=[False, True],
     )
+    breakpoint()
     msg += "\nSchema Error Summary"
     msg += "\n--------------------\n"
     with pd.option_context("display.max_colwidth", 100):
