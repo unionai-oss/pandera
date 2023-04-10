@@ -9,7 +9,7 @@ import pytest
 import pandera as pa
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
-from pandera.error_handlers import SchemaError
+from pandera.errors import SchemaErrors
 from tests.pyspark.conftest import spark_df
 
 
@@ -27,7 +27,7 @@ def test_equal_to_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 31), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema.validate(df_fail)
@@ -48,7 +48,7 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
         title="ProductSchema",
     )
     # negative test
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("Bread", 5), ("Butter", 15)]
         df_fail = spark_df(spark, data_fail, sample_spark_schema)
         validate_df = pandera_schema.validate(df_fail)
@@ -68,7 +68,7 @@ def test_not_equal_to_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema_not_equal_to.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 31), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema_not_equal_to.validate(df_fail)
@@ -97,7 +97,7 @@ def test_not_equal_to_check(spark) -> None:
 
     validate_df = schema_ne.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 31), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "price"])
         validate_fail_df = schema_ne.validate(df_fail)
@@ -117,7 +117,7 @@ def test_greater_than_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema_greater_than.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 29), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema_greater_than.validate(df_fail)
@@ -143,7 +143,7 @@ def test_greater_than_check(spark) -> None:
 
     validate_df = schema_gt.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data = [("Bread", 3), ("Butter", 15)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "price"])
         validate_fail_df = schema_gt.validate(df_fail)
@@ -163,7 +163,7 @@ def test_greater_than_or_equal_to_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema_greater_than_or_equal_t.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 29), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema_greater_than_or_equal_t.validate(df_fail)
@@ -189,7 +189,7 @@ def test_greater_than_or_equal_to_check(spark) -> None:
 
     validate_df = schema_ge.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data = [("Bread", 3), ("Butter", 15)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "price"])
         validate_fail_df = schema_ge.validate(df_fail)
@@ -209,7 +209,7 @@ def test_less_than_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema_less_than.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 29), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema_less_than.validate(df_fail)
@@ -235,7 +235,7 @@ def test_less_than_check(spark) -> None:
 
     validate_df = schema_lt.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data = [("Bread", 3), ("Butter", 15)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "price"])
         validate_fail_df = schema_lt.validate(df_fail)
@@ -255,7 +255,7 @@ def test_less_than_equal_to_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema_less_than.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 31), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema_less_than.validate(df_fail)
@@ -281,7 +281,7 @@ def test_less_than_equal_to_check(spark) -> None:
 
     validate_df = schema_lt.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data = [("Bread", 3), ("Butter", 15)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "price"])
         validate_fail_df = schema_lt.validate(df_fail)
@@ -301,7 +301,7 @@ def test_isin_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 20), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema.validate(df_fail)
@@ -321,7 +321,7 @@ def test_notin_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("foo", 20), ("bar", 30)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema.validate(df_fail)
@@ -341,7 +341,7 @@ def test_str_startswith_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("Bread", 25), ("Jam", 35)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema.validate(df_fail)
@@ -361,7 +361,7 @@ def test_str_endswith_check(spark) -> None:
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("Bread", 25), ("Jam", 35)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema.validate(df_fail)
@@ -380,7 +380,7 @@ def test_str_contains_check(spark) -> None:
     data = [("Bat!", 25), ("Bat78", 35)]
     df = spark.createDataFrame(data=data, schema=["product", "code"])
     validate_df = schema.validate(df)
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("Cs", 25), ("Jam!", 35)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema.validate(df_fail)

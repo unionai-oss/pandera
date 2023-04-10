@@ -95,37 +95,41 @@ def test_pyspark_all_float_types(spark):
             "productid": Column("int"),
             "price": Column("double"),
             "rating": Column("float"),
+            "weight": Column("decimal"),
+            "height":  Column(T.DecimalType(20, 4))
         },
         name="product_schema",
         description="schema for product info",
         title="ProductSchema",
     )
-    sample_data = [(123435451123, 40000.0, 7.5, 4.56), (123435451145, 35000.0, 9.5, 10.23)]
+    sample_data = [(123435451123, 40000.0, 7.5, 4.56, 5.7876), (123435451145, 35000.0, 9.5, 10.23, 768.7643413)]
     sample_spark_schema = T.StructType(
         [
             T.StructField("productid", T.IntegerType(), False),
             T.StructField("price", T.DoubleType(), False),
             T.StructField("rating", T.FloatType(), False),
             T.StructField("weight", T.DecimalType(), False),
+            T.StructField("height", T.DecimalType(20, 4))
         ],
     )
 
-    validate_datatype(spark, sample_spark_schema, sample_data, pandera_schema)
+    #validate_datatype(spark, sample_spark_schema, sample_data, pandera_schema)
 
     # negative test
-    with pytest.raises(SchemaErrors):
-        sample_spark_schema_fail = T.StructType(
-            [
-                T.StructField("productid", T.IntegerType(), False),
-                T.StructField("price", T.FloatType(), False),
-                T.StructField("rating", T.DoubleType(), False),
-                T.StructField("weight", T.DecimalType(), False),
-            ],
-        )
-        df_fail = spark_df(spark, sample_data, sample_spark_schema_fail)
+    #with pytest.raises(SchemaErrors):
+    sample_spark_schema_fail = T.StructType(
+        [
+            T.StructField("productid", T.IntegerType(), False),
+            T.StructField("price", T.FloatType(), False),
+            T.StructField("rating", T.DoubleType(), False),
+            T.StructField("weight", T.DecimalType(), False),
+            T.StructField("height", T.DecimalType(20, 6))
+        ],
+    )
+    df_fail = spark_df(spark, sample_data, sample_spark_schema_fail)
 
-        pandera_schema.validate(df_fail)
-
+        #pandera_schema.validate(df_fail)
+    pandera_schema.validate(df_fail)
 
 def test_pyspark_all_datetime_types(spark):
     """

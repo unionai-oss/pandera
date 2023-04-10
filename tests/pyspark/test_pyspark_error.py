@@ -22,7 +22,7 @@ spark = SparkSession.builder.getOrCreate()
             "code": pa.Column(LongType(), pa.Check.not_equal_to(30)),
         }
     ),
-            spark.createDataFrame(data=[(23, 31), (34, 30)], schema=["product", "code"]),
+            spark.createDataFrame(data=[("23", 31), ("34", 35)], schema=["product", "code"]),
         ],
     ],
 )

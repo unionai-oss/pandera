@@ -8,7 +8,7 @@ import pytest
 import pandera as pa
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
-from pandera.error_handlers import SchemaError
+from pandera.errors import SchemaErrors
 
 spark = SparkSession.builder.getOrCreate()
 
@@ -21,7 +21,7 @@ def test_pyspark_dataframeschema():
     schema = DataFrameSchema(
         {
             "name": Column(T.StringType()),
-            "age": Column(T.IntegerType()),
+            "age": Column(T.IntegerType(), coerce=True),
         }
     )
 
@@ -33,7 +33,9 @@ def test_pyspark_dataframeschema():
     data = [("Neeraj", "35"), ("Jask", "a")]
 
     df2 = spark.createDataFrame(data=data, schema=["name", "age"])
+
     validate_df2 = schema.validate(df2)  # typecasted and no error thrown
+
 
 
 def test_pyspark_dataframeschema_with_alias_types():
@@ -64,7 +66,7 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     validate_df = schema.validate(df)
 
-    with pytest.raises(SchemaError):
+    with pytest.raises(SchemaErrors):
         data_fail = [("Bread", 3), ("Butter", 15)]
 
         df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)

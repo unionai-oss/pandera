@@ -23,14 +23,14 @@ from typing import (
     Union,
     cast,
 )
-
+import re
 from pydantic import BaseModel, ValidationError
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
 from pandera.engines import engine
 import pyspark.sql.types as pst
-
+from pandera.engines.engine import Engine
 
 try:
     import pyarrow  # pylint:disable=unused-import
@@ -44,6 +44,10 @@ try:
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 from pandera.engines.type_aliases import PysparkObject
+from pyspark.sql.types import DecimalType
+
+DEFAULT_PYSPARK_PREC = DecimalType().precision
+DEFAULT_PYSPARK_SCALE = DecimalType().scale
 
 
 @immutable(init=True)
@@ -142,6 +146,11 @@ class Engine(  # pylint:disable=too-few-public-methods
         """Convert input into a pyspark-compatible
         Pandera :class:`~pandera.dtypes.DataType` object."""
         try:
+            if isinstance(data_type, str):
+                regex = r"(\(.*\))"
+                subst = "()"
+                # You can manually specify the number of replacements by changing the 4th argument
+                data_type = re.sub(regex, subst, data_type, 0, re.MULTILINE)
             return engine.Engine.dtype(cls, data_type)
         except TypeError:
             raise
@@ -255,11 +264,63 @@ class ByteInt(DataType, dtypes.Int8):  # type: ignore
 @Engine.register_dtype(
     equivalents=["decimal", "DecimalType()", pst.DecimalType()],  # type: ignore
 )
-@immutable
+@immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
 
-    type = pst.DecimalType()  # type: ignore
+    type: pst.DecimalType = dataclasses.field(default=pst.DecimalType, init=False)  # type: ignore[assignment]  # noqa
+    precision: int = dataclasses.field(default=DEFAULT_PYSPARK_PREC, init=False)
+    scale: int = dataclasses.field(default=DEFAULT_PYSPARK_SCALE, init=False)
+    def __init__(  # pylint:disable=super-init-not-called
+        self, precision: int = DEFAULT_PYSPARK_PREC, scale: int = DEFAULT_PYSPARK_SCALE
+    ) -> None:
+        dtypes.Decimal.__init__(self, precision, scale, None)
+        object.__setattr__(
+            self,
+            "type",
+            pst.DecimalType(self.precision, self.scale),  # type: ignore
+        )
+
+    def __post_init__(self):
+        object.__setattr__(
+            self,
+            "type",
+            pst.DecimalType(precision=self.precision, scale=self.scale),
+        )
+
+    """
+    The `rounding mode <https://docs.python.org/3/library/decimal.html#rounding-modes>`__
+    supported by the Python :py:class:`decimal.Decimal` class.
+    """
+
+    @classmethod
+    def from_parametrized_dtype(cls, ps_dtype: pst.DecimalType):
+        """Convert a :class:`pyspark.sql.types.DecimalType` to
+        a Pandera :class:`pandera.engines.pyspark_engine.Decimal`."""
+        return cls(precision=ps_dtype.precision, scale=ps_dtype.scale)  # type: ignore
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            breakpoint()
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        # attempts to compare pandas native type if possible
+        # to let subclass inherit check
+        # (super will compare that DataType classes are exactly the same)
+        try:
+            breakpoint()
+            return (self.type == pandera_dtype.type) & \
+                   (self.scale == pandera_dtype.scale) &  \
+                   (self.precision == pandera_dtype.precision)  # or super().check(pandera_dtype)
+
+        except TypeError:
+            return super().check(pandera_dtype)
+
 
 @Engine.register_dtype(
     equivalents=["double", "DoubleType()", pst.DoubleType()],  # type: ignore
