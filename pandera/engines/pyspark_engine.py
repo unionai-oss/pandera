@@ -147,7 +147,7 @@ class Engine(  # pylint:disable=too-few-public-methods
         Pandera :class:`~pandera.dtypes.DataType` object."""
         try:
             if isinstance(data_type, str):
-                regex = r"(\(.*\))"
+                regex = r"(\(\d.*?\b\))"
                 subst = "()"
                 # You can manually specify the number of replacements by changing the 4th argument
                 data_type = re.sub(regex, subst, data_type, 0, re.MULTILINE)
@@ -224,7 +224,7 @@ class Float(DataType, dtypes.Float):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["long", "LongType()", pst.LongType()],  # type: ignore
+    equivalents=["bigint", "long", "LongType()", pst.LongType()],  # type: ignore
 )
 @immutable
 class BigInt(DataType, dtypes.Int64):  # type: ignore
@@ -242,7 +242,7 @@ class Int(DataType, dtypes.Int32):  # type: ignore
     type = pst.IntegerType()  # type: ignore
 
 @Engine.register_dtype(
-    equivalents=["short", "ShortType()", pst.ShortType()],  # type: ignore
+    equivalents=["smallint", "short", "ShortType()", pst.ShortType()],  # type: ignore
 )
 @immutable
 class ShortInt(DataType, dtypes.Int16):  # type: ignore
@@ -252,7 +252,7 @@ class ShortInt(DataType, dtypes.Int16):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["byte", "ByteType()", pst.ByteType()],  # type: ignore
+    equivalents=["tinyint", "byte", "ByteType()", pst.ByteType()],  # type: ignore
 )
 @immutable
 class ByteInt(DataType, dtypes.Int8):  # type: ignore
@@ -269,8 +269,8 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
 
     type: pst.DecimalType = dataclasses.field(default=pst.DecimalType, init=False)  # type: ignore[assignment]  # noqa
-    precision: int = dataclasses.field(default=DEFAULT_PYSPARK_PREC, init=False)
-    scale: int = dataclasses.field(default=DEFAULT_PYSPARK_SCALE, init=False)
+    # precision: int = dataclasses.field(default=DEFAULT_PYSPARK_PREC, init=False)
+    # scale: int = dataclasses.field(default=DEFAULT_PYSPARK_SCALE, init=False)
     def __init__(  # pylint:disable=super-init-not-called
         self, precision: int = DEFAULT_PYSPARK_PREC, scale: int = DEFAULT_PYSPARK_SCALE
     ) -> None:
@@ -359,7 +359,62 @@ class Binary(DataType, dtypes.Binary):  # type: ignore
     type = pst.BinaryType()  # type: ignore
 
 @Engine.register_dtype(equivalents=["timedelta", "DayTimeIntervalType()", pst.DayTimeIntervalType()])
-@immutable()
-class TimeDelta(DataType, dtypes.Timedelta):
-    type = pst.DayTimeIntervalType()
+@immutable(init=True)
+class TimeDelta(DataType):
+    type: pst.DayTimeIntervalType = dataclasses.field(default=pst.DayTimeIntervalType, init=False)
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, startField: int = 0, endField: int = 3,
+    ) -> None:
+        #super().__init__(self)
+        object.__setattr__(self, "startField", startField)
+        object.__setattr__(self, "endField", endField)
+
+        object.__setattr__(
+             self,
+             "type",
+             pst.DayTimeIntervalType(self.startField, self.endField),  # type: ignore
+         )
+
+    def __post_init__(self):
+        object.__setattr__(
+            self,
+            "type",
+            pst.DayTimeIntervalType(self.startField, self.endField),
+        )
+
+    """
+    The `rounding mode <https://docs.python.org/3/library/decimal.html#rounding-modes>`__
+    supported by the Python :py:class:`decimal.Decimal` class.
+    """
+
+    @classmethod
+    def from_parametrized_dtype(cls, ps_dtype: pst.DayTimeIntervalType):
+        """Convert a :class:`pyspark.sql.types.DecimalType` to
+        a Pandera :class:`pandera.engines.pyspark_engine.Decimal`."""
+        return cls(startField=ps_dtype.startField, endField=ps_dtype.endField)  # type: ignore
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            breakpoint()
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        # attempts to compare pandas native type if possible
+        # to let subclass inherit check
+        # (super will compare that DataType classes are exactly the same)
+        try:
+            breakpoint()
+            return (self.type == pandera_dtype.type) & \
+                   (self.type.DAY == pandera_dtype.type.DAY) &  \
+                   (self.type.HOUR == pandera_dtype.type.HOUR) &  \
+                   (self.type.MINUTE == pandera_dtype.type.MINUTE) &  \
+                   (self.type.SECOND == pandera_dtype.type.SECOND)# or super().check(pandera_dtype)
+
+        except TypeError:
+            return super().check(pandera_dtype)
 
