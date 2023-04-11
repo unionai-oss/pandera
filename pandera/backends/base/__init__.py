@@ -76,7 +76,6 @@ class BaseSchemaBackend(ABC):
         self,
         check_obj,
         schema=None,
-        error_handler=None,
     ):
         """Coerce the data type of the check object."""
         raise NotImplementedError
@@ -122,7 +121,7 @@ class BaseSchemaBackend(ABC):
         raise NotImplementedError
 
     def failure_cases_metadata(
-        self, schema_name: str, schema_errors: List[Dict[str, Any]]
+        self, schema_name: str, schema_errors: List[SchemaError]
     ):
         """Get failure cases metadata for lazy validation."""
         raise NotImplementedError

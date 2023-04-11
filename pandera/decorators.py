@@ -683,7 +683,7 @@ def check_types(
 
         if error_handler.collected_errors:
             if len(error_handler.collected_errors) == 1:
-                raise error_handler.collected_errors[0]["error"]  # type: ignore[misc]
+                raise error_handler.collected_errors[0]  # type: ignore[misc]
             raise errors.SchemaErrors(
                 schema=schema,
                 schema_errors=error_handler.collected_errors,

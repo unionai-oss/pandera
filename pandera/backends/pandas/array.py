@@ -47,9 +47,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         if schema.coerce:
             try:
-                check_obj = self.coerce_dtype(
-                    check_obj, schema=schema, error_handler=error_handler
-                )
+                check_obj = self.coerce_dtype(check_obj, schema=schema)
             except SchemaError as exc:
                 error_handler.collect_error(exc.reason_code, exc)
 
@@ -75,10 +73,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             (self.check_nullable, (field_obj_subsample, schema)),
             (self.check_unique, (field_obj_subsample, schema)),
             (self.check_dtype, (field_obj_subsample, schema)),
-            (
-                self.run_checks,
-                (check_obj_subsample, schema, error_handler, lazy),
-            ),
+            (self.run_checks, (check_obj_subsample, schema)),
         ):
             results = core_check(*args)
             if isinstance(results, CoreCheckResult):
@@ -120,7 +115,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
         check_obj,
         schema=None,
         # pylint: disable=unused-argument
-        error_handler: SchemaErrorHandler = None,
     ):
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -292,14 +286,11 @@ class SeriesSchemaBackend(ArraySchemaBackend):
         self,
         check_obj,
         schema=None,
-        error_handler: SchemaErrorHandler = None,
     ):
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)
 
-        check_obj = super().coerce_dtype(
-            check_obj, schema=schema, error_handler=error_handler
-        )
+        check_obj = super().coerce_dtype(check_obj, schema=schema)
 
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)

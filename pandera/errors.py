@@ -167,7 +167,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
     def __init__(
         self,
         schema,
-        schema_errors: List[Dict[str, Any]],
+        schema_errors: List[SchemaError],
         data: Any,
     ):
         self.schema = schema

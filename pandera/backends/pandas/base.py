@@ -2,8 +2,6 @@
 
 import warnings
 from typing import (
-    Any,
-    Dict,
     FrozenSet,
     Iterable,
     List,
@@ -25,7 +23,7 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.errors import FailureCaseMetadata, SchemaErrorReason
+from pandera.errors import FailureCaseMetadata, SchemaError, SchemaErrorReason
 
 
 class ColumnInfo(NamedTuple):
@@ -139,7 +137,7 @@ class PandasSchemaBackend(BaseSchemaBackend):
     def failure_cases_metadata(
         self,
         schema_name: str,
-        schema_errors: List[Dict[str, Any]],
+        schema_errors: List[SchemaError],
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
         failure_cases = consolidate_failure_cases(schema_errors)

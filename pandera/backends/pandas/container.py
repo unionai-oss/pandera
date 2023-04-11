@@ -3,7 +3,7 @@
 import copy
 import itertools
 import traceback
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional, Tuple
 
 import pandas as pd
 
@@ -63,52 +63,34 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         column_info = self.collect_column_info(check_obj, schema, lazy)
 
-        # strictness check and filter
-        try:
-            check_obj = self.strict_filter_columns(
-                check_obj, schema, column_info
-            )
-        except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
-
-        # try to coerce datatypes
-        check_obj = self.coerce_dtype(
-            check_obj,
-            schema=schema,
-            error_handler=error_handler,
-        )
-
         # collect schema components
-        schema_components = self.collect_schema_components(
+        components = self.collect_schema_components(
             check_obj, schema, column_info
         )
+
+        core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
+            (self.strict_filter_columns, (schema, column_info)),
+            (self.coerce_dtype, (schema,)),
+        ]
+
+        for parser, args in core_parsers:
+            try:
+                check_obj = parser(check_obj, *args)
+            except SchemaError as exc:
+                error_handler.collect_error(exc.reason_code, exc)
+            except SchemaErrors as exc:
+                error_handler.collect_errors(exc)
+
         # subsample the check object if head, tail, or sample are specified
-        check_obj_subsample = self.subsample(
-            check_obj, head, tail, sample, random_state
-        )
+        sample = self.subsample(check_obj, head, tail, sample, random_state)
 
         # check the container metadata, e.g. field names
         core_checks = [
-            (
-                self.check_column_names_are_unique,
-                (
-                    check_obj,
-                    schema,
-                ),
-            ),
+            (self.check_column_names_are_unique, (check_obj, schema)),
             (self.check_column_presence, (check_obj, schema, column_info)),
-            (
-                self.check_column_values_are_unique,
-                (
-                    check_obj_subsample,
-                    schema,
-                ),
-            ),
-            (
-                self.run_schema_component_checks,
-                (check_obj_subsample, schema_components, lazy),
-            ),
-            (self.run_checks, (check_obj_subsample, schema, error_handler)),
+            (self.check_column_values_are_unique, (sample, schema)),
+            (self.run_schema_component_checks, (sample, components, lazy)),
+            (self.run_checks, (sample, schema)),
         ]
 
         for check, args in core_checks:
@@ -180,9 +162,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                             passed=False,
                             check="schema_component_checks",
                             reason_code=SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
-                            schema_error=schema_error_dict["error"],
+                            schema_error=schema_error,
                         )
-                        for schema_error_dict in err.schema_errors
+                        for schema_error in err.schema_errors
                     ]
                 )
         assert all(check_passed)
@@ -362,12 +344,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         self,
         check_obj: pd.DataFrame,
         schema=None,
-        error_handler: Optional[SchemaErrorHandler] = None,
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
 
-        _error_handler = error_handler or SchemaErrorHandler(lazy=True)
+        error_handler = SchemaErrorHandler(lazy=True)
 
         if not (
             schema.coerce
@@ -379,29 +360,23 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         try:
             check_obj = self._coerce_dtype_helper(check_obj, schema)
         except SchemaErrors as err:
-            for schema_error_dict in err.schema_errors:
-                if not _error_handler.lazy:
-                    # raise the first error immediately if not doing lazy
-                    # validation
-                    raise schema_error_dict["error"]
-                _error_handler.collect_error(
+            for schema_error in err.schema_errors:
+                error_handler.collect_error(
                     SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
-                    schema_error_dict["error"],
+                    schema_error,
                 )
         except SchemaError as err:
-            if not _error_handler.lazy:
-                raise err
-            _error_handler.collect_error(
+            error_handler.collect_error(
                 SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                 err,
             )
 
-        if error_handler is None and _error_handler.collected_errors:
+        if error_handler.collected_errors:
             # raise SchemaErrors if this method is called without an
             # error_handler
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=_error_handler.collected_errors,
+                schema_errors=error_handler.collected_errors,
                 data=check_obj,
             )
 
