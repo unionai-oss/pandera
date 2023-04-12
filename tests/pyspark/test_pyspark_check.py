@@ -3,7 +3,7 @@ from typing import Union
 
 from pyspark.sql import SparkSession
 import copy
-from pyspark.sql.types import LongType, StringType, StructField, StructType, IntegerType
+from pyspark.sql.types import LongType, StringType, StructField, StructType, IntegerType, ByteType, ShortType
 import pyspark.sql.functions as F
 import pytest
 import pandera as pa
@@ -12,24 +12,30 @@ from pandera.api.pyspark.components import Column
 from pandera.errors import SchemaErrors
 from tests.pyspark.conftest import spark_df
 
-
-def test_equal_to_check(spark) -> None:
+@pytest.mark.parametrize("data_types", [LongType, IntegerType, ByteType, ShortType])
+def test_equal_to_check(spark, data_types) -> None:
     """Test the Check to see if all the values are equal to defined value"""
 
     schema = DataFrameSchema(
         {
             "product": Column(StringType()),
-            "code": Column(LongType(), pa.Check.equal_to(30)),
+            "code": Column(data_types(), pa.Check.equal_to(30)),
         }
+    )
+    spark_schema = StructType(
+        [
+            StructField("product", StringType(), False),
+            StructField("code", data_types(), False),
+        ],
     )
 
     data = [("foo", 30), ("bar", 30)]
-    df = spark.createDataFrame(data=data, schema=["product", "code"])
+    df = spark.createDataFrame(data=data, schema=spark_schema)
     validate_df = schema.validate(df)
 
     with pytest.raises(SchemaErrors):
         data_fail = [("foo", 31), ("bar", 30)]
-        df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
+        df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
         validate_fail_df = schema.validate(df_fail)
 
 
@@ -384,3 +390,22 @@ def test_str_contains_check(spark) -> None:
         data_fail = [("Cs", 25), ("Jam!", 35)]
         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
         validate_fail_df = schema.validate(df_fail)
+
+# @pytest.mark.parametrize()
+# def test_in_range_check(spark) -> None:
+#     """Test the Check to see if any value is not in the specified value"""
+#
+#     schema = DataFrameSchema(
+#         {
+#             "product": Column(StringType()),
+#             "code": Column(LongType(),pa.Check.in_range(25,30)),
+#         }
+#     )
+#
+#     data = [("Bread", 25), ("Butter", 35)]
+#     df = spark.createDataFrame(data=data, schema=["product", "code"])
+#     validate_df = schema.validate(df)
+#     with pytest.raises(SchemaErrors):
+#         data_fail = [("Cs", 25), ("Jam!", 35)]
+#         df_fail = spark.createDataFrame(data=data_fail, schema=["product", "code"])
+#         validate_fail_df = schema.validate(df_fail)
