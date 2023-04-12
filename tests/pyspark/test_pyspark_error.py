@@ -3,6 +3,7 @@ from typing import Union
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
+import pyspark.sql.types as T
 import pytest
 from pyspark.sql import SparkSession
 import pandera as pa
@@ -65,6 +66,38 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
     data_fail = [("Bread", 5), ("Cutter", 15)]
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
+    error_dict = pandera_schema.validate(df_fail)
+    print(error_dict)
+    breakpoint()
+
+
+def test_pyspark_schema_data_checks(spark):
+    """
+    Test schema and data level checks
+    """
+
+    pandera_schema = DataFrameSchema(
+        columns={
+            "product": Column("str", checks=pa.Check.str_startswith("B")),
+            "price": Column("int", checks=pa.Check.gt(5)),
+            "id": Column("int"),
+        },
+        name="product_schema",
+        description="schema for product info",
+        title="ProductSchema",
+    )
+
+    data_fail = [("Bread", 5, "Food"), ("Cutter", 15, 99)]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
+            T.StructField("id", T.StringType(), False),
+        ],
+    )
+
+    df_fail = spark_df(spark, data_fail, spark_schema)
     error_dict = pandera_schema.validate(df_fail)
     print(error_dict)
     breakpoint()

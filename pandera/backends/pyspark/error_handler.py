@@ -10,9 +10,9 @@ from pandera.errors import SchemaError, SchemaErrorReason
 class ErrorCategory(Enum):
     """Error category codes"""
 
-    DATA = "data"
-    SCHEMA = "schema"
-    DTYPE_COERCION = "dtype_coercion"
+    DATA = "data-failures"
+    SCHEMA = "schema-failures"
+    DTYPE_COERCION = "dtype-coercion-failures"
 
 
 class ErrorHandler:
