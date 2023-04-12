@@ -13,7 +13,7 @@ from pandera.backends.pandas.error_formatters import (
 )
 
 from pandera.engines.pyspark_engine import Engine
-from pandera.backends.pyspark.error_handler import ErrorHandler
+from pandera.backends.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -61,7 +61,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     check_obj, schema=schema, error_handler=error_handler
                 )
             except SchemaError as exc:
-                error_handler.collect_error("schema", exc.reason_code, exc)
+                error_handler.collect_error(ErrorCategory.SCHEMA, exc.reason_code, exc)
 
         check_obj_subsample = self.subsample(
             check_obj,
@@ -77,7 +77,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             check_result = core_check(check_obj_subsample, schema)
             if not check_result.passed:
                 error_handler.collect_error(
-                    "data",
+                    ErrorCategory.DATA,
                     check_result.reason_code,
                     SchemaError(
                         schema=schema,
@@ -257,7 +257,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             except SchemaError as err:
                 breakpoint()
                 error_handler.collect_error(
-                    "data",
+                    ErrorCategory.DATA,
                     SchemaErrorReason.DATAFRAME_CHECK,
                     err,
                 )
@@ -270,7 +270,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(
-                    "data",
+                    ErrorCategory.DATA,
                     SchemaErrorReason.CHECK_ERROR,
                     SchemaError(
                         schema=schema,

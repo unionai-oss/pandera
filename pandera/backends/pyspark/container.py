@@ -12,7 +12,7 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.backends.pyspark.error_handler import ErrorHandler
+from pandera.backends.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -65,7 +65,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             self.check_column_names_are_unique(check_obj, schema)
         except SchemaError as exc:
             error_handler.collect_error(
-                type="schema",
+                type=ErrorCategory.SCHEMA,
                 reason_code=exc.reason_code,
                 schema_error=exc,
             )
@@ -75,7 +75,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         except SchemaErrors as exc:
             for schema_error in exc.schema_errors:
                 error_handler.collect_error(
-                    type="schema",
+                    type=ErrorCategory.SCHEMA,
                     reason_code=schema_error["reason_code"],
                     schema_error=schema_error["error"],
                 )
@@ -85,7 +85,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
             error_handler.collect_error(
-                type="schema",
+                type=ErrorCategory.SCHEMA,
                 reason_code=exc.reason_code,
                 schema_error=exc,
             )
@@ -107,7 +107,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             )
         except SchemaError as exc:
             error_handler.collect_error(
-                type="schema",
+                type=ErrorCategory.SCHEMA,
                 reason_code=exc.reason_code,
                 schema_error=exc,
             )
@@ -116,7 +116,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             self.run_checks(check_obj_subsample, schema, error_handler)
         except SchemaError as exc:
             error_handler.collect_error(
-                type="data",
+                type=ErrorCategory.DATA,
                 reason_code=exc.reason_code,
                 schema_error=exc,
             )
@@ -124,7 +124,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         error_dicts = {}
         if error_handler.collected_errors:  # TODO: list of all errors
             error_dicts = error_handler.summarize(schema=schema)
-            breakpoint()
             # raise SchemaErrors(
             #     schema=schema,
             #     schema_errors=error_handler.collected_errors,
@@ -149,14 +148,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 check_results.append(is_table(result))
             except SchemaError as err:
                 error_handler.collect_error(
-                    "schema_component_check",
+                    ErrorCategory.SCHEMA,
                     err.reason_code,
                     err,  # TODO: pass SchemaError obj
                 )
             except SchemaErrors as err:
                 for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
-                        "schema_component_check",
+                        ErrorCategory.SCHEMA,
                         SchemaErrorReason.CHECK_ERROR,  # TODO: leverage schema_error_dict
                         schema_error_dict["error"],  # TODO: pass SchemaError.error obj
                     )
@@ -172,7 +171,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     self.run_check(check_obj, schema, check, check_index)
                 )
             except SchemaError as err:
-                error_handler.collect_error("dataframe_check", err.reason_code, err)
+                error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
             except SchemaDefinitionError:
                 raise
             except Exception as err:  # pylint: disable=broad-except
@@ -184,7 +183,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     + traceback.format_exc()
                 )
                 error_handler.collect_error(
-                    "check_error",
+                    ErrorCategory.DATA,
                     SchemaErrorReason.CHECK_ERROR,  # TODO: make it consistent
                     SchemaError(
                         self,
@@ -355,14 +354,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     # validation
                     raise schema_error_dict["error"]
                 _error_handler.collect_error(
-                    "schema_component_check",
+                    ErrorCategory.SCHEMA,
                     SchemaErrorReason.CHECK_ERROR,  # TODO: check this is correct
                     schema_error_dict["error"],
                 )
         except SchemaError as err:
             if not _error_handler.lazy:
                 raise err
-            _error_handler.collect_error("schema_component_check", err.reason_code, err)
+            _error_handler.collect_error(ErrorCategory.SCHEMA, err.reason_code, err)
 
         if error_handler is None and _error_handler.collected_errors:
             # raise SchemaErrors if this method is called without an
@@ -419,7 +418,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
             except SchemaError as exc:
                 error_handler.collect_error(
-                    "dtype_coercion_error", exc.reason_code, exc
+                    ErrorCategory.DTYPE_COERCION, exc.reason_code, exc
                 )
                 return obj
 

@@ -1,9 +1,18 @@
 """Handle schema errors."""
 
+from enum import Enum
 from typing import Dict, List, Union
 from collections import defaultdict
 
 from pandera.errors import SchemaError, SchemaErrorReason
+
+
+class ErrorCategory(Enum):
+    """Error category codes"""
+
+    DATA = "data"
+    SCHEMA = "schema"
+    DTYPE_COERCION = "dtype_coercion"
 
 
 class ErrorHandler:
@@ -25,7 +34,7 @@ class ErrorHandler:
 
     def collect_error(
         self,
-        type: str,
+        type: ErrorCategory,
         reason_code: SchemaErrorReason,
         schema_error: SchemaError,
         original_exc: BaseException = None,
@@ -47,7 +56,7 @@ class ErrorHandler:
 
         self._collected_errors.append(
             {
-                "type": type,
+                "type": type.value,
                 "column": schema_error.schema.name,
                 "check": schema_error.check,
                 "reason_code": reason_code,
@@ -69,7 +78,6 @@ class ErrorHandler:
 
         for error in self._collected_errors:
             cat = error["reason_code"].name
-            breakpoint()
             self._summarized_errors[error["type"]][cat].append(
                 {
                     "schema": schema.name,

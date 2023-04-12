@@ -16,7 +16,7 @@ from pandera.api.pyspark.types import (
     is_table,
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
-from pandera.backends.pyspark.error_handler import ErrorHandler
+from pandera.backends.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
 import re
 
@@ -63,11 +63,11 @@ class ColumnBackend(ColumnSchemaBackend):
             except SchemaErrors as err:
                 for err_dict in err.schema_errors:
                     error_handler.collect_error(
-                        "data", err_dict["reason_code"], err_dict["error"]
+                        ErrorCategory.DATA, err_dict["reason_code"], err_dict["error"]
                     )
             except SchemaError as err:
                 breakpoint()
-                error_handler.collect_error("data", err.reason_code, err)
+                error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
 
         column_keys_to_check = (
             self.get_regex_columns(schema, check_obj.columns, check_obj)
@@ -162,7 +162,7 @@ class ColumnBackend(ColumnSchemaBackend):
             except SchemaError as err:
                 breakpoint()
                 error_handler.collect_error(
-                    type="data",
+                    type=ErrorCategory.DATA,
                     reason_code=SchemaErrorReason.DATAFRAME_CHECK,
                     schema_error=err,
                 )
@@ -171,7 +171,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(
-                    type="data",
+                    type=ErrorCategory.DATA,
                     reason_code=SchemaErrorReason.CHECK_ERROR,
                     schema_error=SchemaError(
                         schema=schema,
