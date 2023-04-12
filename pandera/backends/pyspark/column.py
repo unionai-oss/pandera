@@ -92,7 +92,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_results = self.run_checks(
             check_obj_subsample, schema, error_handler, lazy
         )
-        breakpoint()
         assert all(check_results)
 
         if lazy and error_handler.collected_errors:

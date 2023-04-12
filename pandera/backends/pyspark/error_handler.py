@@ -61,7 +61,6 @@ class ErrorHandler:
                 "check": schema_error.check,
                 "reason_code": reason_code,
                 "error": schema_error,
-                "type": "data",  # schema or data,
             }
         )
 

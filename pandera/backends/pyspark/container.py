@@ -147,6 +147,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
                 check_results.append(is_table(result))
             except SchemaError as err:
+                breakpoint()
                 error_handler.collect_error(
                     ErrorCategory.SCHEMA,
                     err.reason_code,
@@ -156,9 +157,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 breakpoint()
                 for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
-                        ErrorCategory.SCHEMA,
-                        SchemaErrorReason.CHECK_ERROR,  # TODO: leverage schema_error_dict
-                        schema_error_dict["error"],  # TODO: pass SchemaError.error obj
+                        schema_error_dict["type"],
+                        schema_error_dict["reason_code"],
+                        schema_error_dict["error"],
                     )
         assert all(check_results)
 
