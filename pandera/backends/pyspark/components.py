@@ -16,7 +16,7 @@ from pandera.api.pyspark.types import (
     is_table,
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.backends.pyspark.error_handler import ErrorHandler
 from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
 import re
 
@@ -38,7 +38,7 @@ class ColumnBackend(ColumnSchemaBackend):
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
         breakpoint()
-        error_handler = SchemaErrorHandler(lazy=lazy)
+        error_handler = ErrorHandler(lazy=lazy)
         if schema.name is None:
             raise SchemaError(
                 schema,
@@ -64,11 +64,11 @@ class ColumnBackend(ColumnSchemaBackend):
             except SchemaErrors as err:
                 for err_dict in err.schema_errors:
                     error_handler.collect_error(
-                        err_dict["reason_code"], err_dict["error"]
+                        "data", err_dict["reason_code"], err_dict["error"]
                     )
             except SchemaError as err:
                 breakpoint()
-                error_handler.collect_error(err.reason_code, err)
+                error_handler.collect_error("data", err.reason_code, err)
 
         column_keys_to_check = (
             self.get_regex_columns(schema, check_obj.columns, check_obj)
@@ -134,7 +134,7 @@ class ColumnBackend(ColumnSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: SchemaErrorHandler = None,
+        error_handler: ErrorHandler = None,
     ) -> DataFrame:
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
@@ -163,8 +163,9 @@ class ColumnBackend(ColumnSchemaBackend):
             except SchemaError as err:
                 breakpoint()
                 error_handler.collect_error(
-                    SchemaErrorReason.DATAFRAME_CHECK,
-                    err,
+                    type="data",
+                    reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                    schema_error=err,
                 )
             except Exception as err:  # pylint: disable=broad-except
                 breakpoint()
@@ -172,8 +173,9 @@ class ColumnBackend(ColumnSchemaBackend):
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(
-                    SchemaErrorReason.CHECK_ERROR,
-                    SchemaError(
+                    type="data",
+                    reason_code=SchemaErrorReason.CHECK_ERROR,
+                    schema_error=SchemaError(
                         schema=schema,
                         data=check_obj,
                         message=(

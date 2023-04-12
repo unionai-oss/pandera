@@ -167,7 +167,9 @@ def isin(data: list, allowed_values: Iterable) -> bool:
     :param allowed_values: The set of allowed values. May be any iterable.
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
-    return data[0].filter(~col(data[1]).isin(list(allowed_values))).limit(1).count() == 0
+    return (
+        data[0].filter(~col(data[1]).isin(list(allowed_values))).limit(1).count() == 0
+    )
 
 
 @register_builtin_check(
@@ -187,7 +189,10 @@ def notin(data: list, forbidden_values: Iterable) -> bool:
     :param raise_warning: if True, check raises UserWarning instead of
         SchemaError on validation.
     """
-    return data[0].filter(col(data[1]).isin(list(forbidden_values))).limit(1).count() == 0
+    return (
+        data[0].filter(col(data[1]).isin(list(forbidden_values))).limit(1).count() == 0
+    )
+
 
 # TODO: expensive check
 @register_builtin_check(

@@ -137,7 +137,7 @@ class ColumnSchema(BaseSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> ps.DataFrame:
+    ):
         """Alias for ``validate`` method."""
         return self.validate(check_obj, head, tail, sample, random_state, lazy, inplace)
 

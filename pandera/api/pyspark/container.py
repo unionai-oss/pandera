@@ -312,28 +312,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         4         0.80      dog
         5         0.76      dog
         """
-        # NOTE: Move this into its own schema-backend variant. This is where
-        # the benefits of separating the schema spec from the backend
-        # implementation comes in.
-        if hasattr(check_obj, "dask"):
-            # special case for dask dataframes
-            if inplace:
-                check_obj = check_obj.pandera.add_schema(self)
-            else:
-                check_obj = check_obj.copy()
-
-            check_obj = check_obj.map_partitions(  # type: ignore [operator]
-                self._validate,
-                head=head,
-                tail=tail,
-                sample=sample,
-                random_state=random_state,
-                lazy=lazy,
-                inplace=inplace,
-                meta=check_obj,
-            )
-            return check_obj.pandera.add_schema(self)
-
         return self._validate(
             check_obj=check_obj,
             head=head,
@@ -353,8 +331,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> DataFrame:
-
+    ):
         if self._is_inferred:
             warnings.warn(
                 f"This {type(self)} is an inferred schema that hasn't been "

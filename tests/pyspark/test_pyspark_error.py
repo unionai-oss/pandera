@@ -65,5 +65,6 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
     data_fail = [("Bread", 5), ("Cutter", 15)]
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
-    pandera_schema.validate(df_fail)
+    error_dict = pandera_schema.validate(df_fail)
+    print(error_dict)
     breakpoint()
