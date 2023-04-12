@@ -164,9 +164,7 @@ class Check(BaseCheck):
         See :ref:`here<checks>` for more usage details.
 
         """
-        breakpoint()
         super().__init__(name=name, error=error)
-
         if element_wise and groupby is not None:
             raise errors.SchemaInitError("Cannot use groupby when element_wise=True.")
         self._check_fn = check_fn

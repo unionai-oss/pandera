@@ -121,15 +121,15 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema_error=exc,
             )
         breakpoint()
+        error_dicts = {}
         if error_handler.collected_errors:  # TODO: list of all errors
-            breakpoint()
             error_dicts = error_handler.summarize(schema=schema)
-
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+            breakpoint()
+            # raise SchemaErrors(
+            #     schema=schema,
+            #     schema_errors=error_handler.collected_errors,
+            #     data=check_obj,
+            # )
         breakpoint()
         return error_dicts
 
@@ -145,7 +145,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                breakpoint()
                 result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
                 check_results.append(is_table(result))
             except SchemaError as err:
@@ -161,14 +160,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                         SchemaErrorReason.CHECK_ERROR,  # TODO: leverage schema_error_dict
                         schema_error_dict["error"],  # TODO: pass SchemaError.error obj
                     )
-        breakpoint()
         assert all(check_results)
 
     def run_checks(self, check_obj: DataFrame, schema, error_handler):
         """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results = []
-        breakpoint()
         for check_index, check in enumerate(schema.checks):  # schama.checks is null
             try:
                 check_results.append(  # TODO: looping over cols

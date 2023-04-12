@@ -224,12 +224,10 @@ def summarize_failure_cases(
     failure_cases: pd.DataFrame,
 ) -> Tuple[str, Dict[str, int]]:
     """Format error message."""
-    breakpoint()
     error_counts = defaultdict(int)  # type: ignore
     for schema_error_dict in schema_errors:
         reason_code = schema_error_dict["reason_code"]
         error_counts[reason_code] += 1
-    breakpoint()
     msg = (
         f"Schema {schema_name}: A total of "
         f"{sum(error_counts.values())} schema errors were found.\n"
@@ -254,12 +252,12 @@ def summarize_failure_cases(
         .to_frame()
         .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
     )
-    breakpoint()
+
     index_labels = [
         summarized_failure_cases.index.names.index(name)
         for name in ["schema_context", "column"]
     ]
-    breakpoint()
+
     summarized_failure_cases = summarized_failure_cases.sort_index(
         level=index_labels,
         ascending=[False, True],

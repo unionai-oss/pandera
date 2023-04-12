@@ -72,7 +72,6 @@ class ColumnSchema(BaseSchema):
             checks = []
         if isinstance(checks, Check):
             checks = [checks]
-        breakpoint()
         self.checks = checks
         self.nullable = nullable
         self.title = title

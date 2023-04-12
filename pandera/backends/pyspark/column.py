@@ -72,12 +72,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         # run the core checks
         for core_check in (
             self.check_name,
-            # self.check_nullable,
-            # self.check_unique,
             self.check_dtype,
         ):
             check_result = core_check(check_obj_subsample, schema)
-            breakpoint()
             if not check_result.passed:
                 error_handler.collect_error(
                     "data",
@@ -140,7 +137,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     def check_name(self, check_obj: DataFrame, schema):
         column_found = not (schema.name is None or schema.name not in check_obj.columns)
-        breakpoint()
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
             reason_code=SchemaErrorReason.WRONG_FIELD_NAME
@@ -207,7 +203,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 Engine.dtype(check_obj.schema[schema.name].dataType),
             )
 
-            # TODO: add error summary
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
                 failure_cases = scalar_failure_case(

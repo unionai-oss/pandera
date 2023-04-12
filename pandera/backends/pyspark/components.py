@@ -37,7 +37,6 @@ class ColumnBackend(ColumnSchemaBackend):
         inplace: bool = False,
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
-        breakpoint()
         error_handler = ErrorHandler(lazy=lazy)
         if schema.name is None:
             raise SchemaError(
@@ -168,7 +167,6 @@ class ColumnBackend(ColumnSchemaBackend):
                     schema_error=err,
                 )
             except Exception as err:  # pylint: disable=broad-except
-                breakpoint()
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
