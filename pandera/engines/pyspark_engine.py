@@ -81,9 +81,7 @@ class DataType(dtypes.DataType):
         pandera_dtype: dtypes.DataType,
     ) -> Union[bool, Iterable[bool]]:
         try:
-
-            pandera_dtype = Engine.dtype(pandera_dtype)
-
+            return pandera_dtype == Engine.dtype(pandera_dtype)
         except TypeError:
             return False
 
@@ -223,6 +221,7 @@ class BigInt(DataType, dtypes.Int64):  # type: ignore
 
     type = pst.LongType()  # type: ignore
 
+
 @Engine.register_dtype(
     equivalents=["int", "IntegerType()", pst.IntegerType()],  # type: ignore
 )
@@ -231,6 +230,7 @@ class Int(DataType, dtypes.Int32):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
 
     type = pst.IntegerType()  # type: ignore
+
 
 @Engine.register_dtype(
     equivalents=["short", "ShortType()", pst.ShortType()],  # type: ignore
@@ -261,6 +261,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
 
     type = pst.DecimalType()  # type: ignore
 
+
 @Engine.register_dtype(
     equivalents=["double", "DoubleType()", pst.DoubleType()],  # type: ignore
 )
@@ -269,6 +270,7 @@ class Double(DataType, dtypes.Float):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
 
     type = pst.DoubleType()
+
 
 @Engine.register_dtype(
     equivalents=["date", "DateType()", pst.DateType()],  # type: ignore
@@ -279,6 +281,7 @@ class Date(DataType, dtypes.Date):  # type: ignore
 
     type = pst.DateType()  # type: ignore
 
+
 @Engine.register_dtype(
     equivalents=["datetime", "timestamp", "TimestampType()", pst.TimestampType()],  # type: ignore
 )
@@ -287,6 +290,7 @@ class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
 
     type = pst.TimestampType()  # type: ignore
+
 
 @Engine.register_dtype(
     equivalents=["binary", "BinaryType()", pst.BinaryType()],  # type: ignore
@@ -297,8 +301,10 @@ class Binary(DataType, dtypes.Binary):  # type: ignore
 
     type = pst.BinaryType()  # type: ignore
 
-@Engine.register_dtype(equivalents=["timedelta", "DayTimeIntervalType()", pst.DayTimeIntervalType()])
+
+@Engine.register_dtype(
+    equivalents=["timedelta", "DayTimeIntervalType()", pst.DayTimeIntervalType()]
+)
 @immutable()
 class TimeDelta(DataType, dtypes.Timedelta):
     type = pst.DayTimeIntervalType()
-

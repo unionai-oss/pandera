@@ -77,7 +77,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             check_result = core_check(check_obj_subsample, schema)
             if not check_result.passed:
                 error_handler.collect_error(
-                    ErrorCategory.DATA,
+                    ErrorCategory.SCHEMA,
                     check_result.reason_code,
                     SchemaError(
                         schema=schema,
@@ -269,6 +269,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     err = err.__cause__
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
+                breakpoint()
                 error_handler.collect_error(
                     ErrorCategory.DATA,
                     SchemaErrorReason.CHECK_ERROR,

@@ -170,6 +170,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
+                breakpoint()
                 error_handler.collect_error(
                     type=ErrorCategory.DATA,
                     reason_code=SchemaErrorReason.CHECK_ERROR,

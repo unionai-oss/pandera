@@ -153,6 +153,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     err,  # TODO: pass SchemaError obj
                 )
             except SchemaErrors as err:
+                breakpoint()
                 for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
                         ErrorCategory.SCHEMA,
@@ -182,6 +183,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
                 )
+                breakpoint()
                 error_handler.collect_error(
                     ErrorCategory.DATA,
                     SchemaErrorReason.CHECK_ERROR,  # TODO: make it consistent
@@ -348,13 +350,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj = self._coerce_dtype(check_obj, schema)
 
         except SchemaErrors as err:
+            breakpoint()
             for schema_error_dict in err.schema_errors:
                 if not _error_handler.lazy:
                     # raise the first error immediately if not doing lazy
                     # validation
                     raise schema_error_dict["error"]
                 _error_handler.collect_error(
-                    ErrorCategory.SCHEMA,
+                    ErrorCategory.DTYPE_COERCION,
                     SchemaErrorReason.CHECK_ERROR,  # TODO: check this is correct
                     schema_error_dict["error"],
                 )

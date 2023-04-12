@@ -241,7 +241,6 @@ def summarize_failure_cases(
     def agg_failure_cases(df):
         # Note: hack to support unhashable types, proper solution that only transforms
         # when requires https://github.com/unionai-oss/pandera/issues/260
-        breakpoint()
         df.failure_case = df.failure_case.astype(str)
         return df.groupby(["schema_context", "column", "check"]).failure_case.unique()
 
@@ -262,7 +261,6 @@ def summarize_failure_cases(
         level=index_labels,
         ascending=[False, True],
     )
-    breakpoint()
     msg += "\nSchema Error Summary"
     msg += "\n--------------------\n"
     with pd.option_context("display.max_colwidth", 100):
