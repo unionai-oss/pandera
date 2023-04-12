@@ -6,7 +6,30 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Union
+
+# from pandera.api.base.checks import BaseCheck
+from pandera.errors import SchemaError, SchemaErrorReason
+
+
+class CoreCheckResult(NamedTuple):
+    """Namedtuple for holding results of core checks."""
+
+    passed: bool
+    check: Union[str, "BaseCheck"]  # type: ignore
+    check_index: Optional[int] = None
+    check_output: Optional[Any] = None
+    reason_code: Optional[SchemaErrorReason] = None
+    message: Optional[str] = None
+    failure_cases: Optional[Any] = None
+    schema_error: Optional[SchemaError] = None
+    original_exc: Optional[Exception] = None
+
+
+class CoreParserResult(NamedTuple):
+    """Namedtuple for holding core parser results."""
+
+    ...
 
 
 class BaseSchemaBackend(ABC):
@@ -52,9 +75,7 @@ class BaseSchemaBackend(ABC):
     def coerce_dtype(
         self,
         check_obj,
-        *,
         schema=None,
-        error_handler=None,
     ):
         """Coerce the data type of the check object."""
         raise NotImplementedError
@@ -70,7 +91,7 @@ class BaseSchemaBackend(ABC):
         """Run a single check on the check object."""
         raise NotImplementedError
 
-    def run_checks(self, check_obj, schema, error_handler):
+    def run_checks(self, check_obj, schema):
         """Run a list of checks on the check object."""
         raise NotImplementedError
 
@@ -79,7 +100,6 @@ class BaseSchemaBackend(ABC):
         check_obj,
         schema_components,
         lazy,
-        error_handler,
     ):
         """Run checks for all schema components."""
         raise NotImplementedError
@@ -101,7 +121,7 @@ class BaseSchemaBackend(ABC):
         raise NotImplementedError
 
     def failure_cases_metadata(
-        self, schema_name: str, schema_errors: List[Dict[str, Any]]
+        self, schema_name: str, schema_errors: List[SchemaError]
     ):
         """Get failure cases metadata for lazy validation."""
         raise NotImplementedError

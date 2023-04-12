@@ -7,6 +7,7 @@ import pytest
 
 import pandera as pa
 import pandera.api.pandas.container
+from pandera.errors import BackendNotFoundError
 
 
 @pytest.mark.parametrize(
@@ -51,10 +52,10 @@ def test_dataframe_series_add_schema(
         assert validated_data_1.pandera.schema == schema1
     assert validated_data_2.pandera.schema == schema2
 
-    with pytest.raises(TypeError, match=f"expected pd.{type(data).__name__}"):
+    with pytest.raises((BackendNotFoundError, TypeError)):
         schema1(invalid_data)  # type: ignore
 
-    with pytest.raises(TypeError, match=f"expected pd.{type(data).__name__}"):
+    with pytest.raises((BackendNotFoundError, TypeError)):
         schema2(invalid_data)  # type: ignore
 
     with patch.object(
@@ -67,8 +68,8 @@ def test_dataframe_series_add_schema(
             "is_field",
             return_value=True,
         ):
-            with pytest.raises(TypeError, match="schema arg"):
+            with pytest.raises(BackendNotFoundError):
                 schema1(invalid_data)  # type: ignore
 
-            with pytest.raises(TypeError, match="schema arg"):
+            with pytest.raises(BackendNotFoundError):
                 schema2(invalid_data)  # type: ignore

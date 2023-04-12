@@ -1944,11 +1944,11 @@ def test_schema_level_unique_missing_columns():
     except errors.SchemaErrors as err:
         assert len(err.failure_cases) == 3
         assert (
-            err.schema_errors[0]["reason_code"]
+            err.schema_errors[0].reason_code
             == errors.SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
         )
         assert (
-            err.schema_errors[1]["reason_code"]
+            err.schema_errors[1].reason_code
             == errors.SchemaErrorReason.DUPLICATES
         )
 
