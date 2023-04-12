@@ -257,7 +257,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = True,
         inplace: bool = False,
-    ) -> DataFrame:
+    ):
         """Check if all columns in a dataframe have a column in the Schema.
 
         :param pd.DataFrame check_obj: the dataframe to be validated.
