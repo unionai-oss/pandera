@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import List, NamedTuple, Tuple, Type, Union
 
 try:
-    from typing import Literal
+    from typing import Literal, NamedTuple
 except ImportError:
     from typing_extensions import Literal  # type: ignore [misc]
 
@@ -32,6 +32,10 @@ SupportedTypes = NamedTuple(
     (("table_types", Tuple[type, ...]),),
 )
 
+
+class DataframeColumnNameTuple(NamedTuple):
+    dataframe: DataFrame
+    column_name: str
 
 @lru_cache(maxsize=None)
 def supported_types() -> SupportedTypes:
