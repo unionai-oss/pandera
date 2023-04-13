@@ -13,7 +13,7 @@ from pandera.backends.pandas.error_formatters import (
 )
 
 from pandera.engines.pyspark_engine import Engine
-from pandera.backends.pyspark.error_handler import ErrorHandler, ErrorCategory
+from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -50,9 +50,10 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler,
     ):
         # pylint: disable=too-many-locals
-        error_handler = ErrorHandler(lazy)
+        # error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
         if schema.coerce:
@@ -108,7 +109,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         *,
         schema=None,
         # pylint: disable=unused-argument
-        error_handler: ErrorHandler = None,
     ):
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -225,7 +225,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 )
             reason_code = (
                 SchemaErrorReason.WRONG_DATATYPE
-                if dtype_check_results
+                if not dtype_check_results
                 else SchemaErrorReason.NO_ERROR
             )
 
@@ -285,4 +285,5 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     ),
                     original_exc=err,
                 )
+        breakpoint()
         return check_results

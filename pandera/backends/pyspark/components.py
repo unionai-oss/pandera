@@ -16,7 +16,7 @@ from pandera.api.pyspark.types import (
     is_table,
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
-from pandera.backends.pyspark.error_handler import ErrorHandler, ErrorCategory
+from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
 import re
 
@@ -35,9 +35,10 @@ class ColumnBackend(ColumnSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler,
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
-        error_handler = ErrorHandler(lazy=lazy)
+        # error_handler = ErrorHandler(lazy)
         if schema.name is None:
             raise SchemaError(
                 schema,
@@ -59,6 +60,7 @@ class ColumnBackend(ColumnSchemaBackend):
                     random_state=random_state,
                     lazy=lazy,
                     inplace=inplace,
+                    error_handler=error_handler,
                 )
             except SchemaErrors as err:
                 for err_dict in err.schema_errors:
@@ -133,7 +135,6 @@ class ColumnBackend(ColumnSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: ErrorHandler = None,
     ) -> DataFrame:
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments

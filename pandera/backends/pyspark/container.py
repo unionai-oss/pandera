@@ -12,7 +12,7 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.backends.pyspark.error_handler import ErrorHandler, ErrorCategory
+from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -42,17 +42,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler = None,
     ):
         """
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        # Todo To be done by Neeraj
         if not is_table(check_obj):
             raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
-
-        # Todo Error handling .. pending PS discussion
-        error_handler = ErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
@@ -144,20 +141,25 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
+                result = schema_component.validate(
+                    check_obj=check_obj,
+                    lazy=lazy,
+                    inplace=True,
+                    error_handler=error_handler,
+                )
                 check_results.append(is_table(result))
             except SchemaError as err:
                 breakpoint()
                 error_handler.collect_error(
                     ErrorCategory.SCHEMA,
                     err.reason_code,
-                    err,  # TODO: pass SchemaError obj
+                    err,
                 )
             except SchemaErrors as err:
                 breakpoint()
                 for schema_error_dict in err.schema_errors:
                     error_handler.collect_error(
-                        schema_error_dict["type"],
+                        schema_error_dict["type"].value,
                         schema_error_dict["reason_code"],
                         schema_error_dict["error"],
                     )

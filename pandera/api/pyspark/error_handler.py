@@ -56,7 +56,7 @@ class ErrorHandler:
 
         self._collected_errors.append(
             {
-                "type": type.value,
+                "type": type,
                 "column": schema_error.schema.name,
                 "check": schema_error.check,
                 "reason_code": reason_code,

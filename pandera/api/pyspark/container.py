@@ -16,6 +16,7 @@ from pandera import strategies as st
 from pandera.backends.pyspark.container import DataFrameSchemaBackend
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
+from pandera.api.pyspark.error_handler import ErrorHandler
 
 from pandera.api.pyspark.types import (
     CheckList,
@@ -312,6 +313,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         4         0.80      dog
         5         0.76      dog
         """
+        error_handler = ErrorHandler(lazy)
+
         return self._validate(
             check_obj=check_obj,
             head=head,
@@ -320,6 +323,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            error_handler=error_handler,
         )
 
     def _validate(
@@ -331,6 +335,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler = None,
     ):
         if self._is_inferred:
             warnings.warn(
@@ -342,7 +347,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             )
 
         return self.BACKEND.validate(
-            check_obj,
+            check_obj=check_obj,
             schema=self,
             head=head,
             tail=tail,
@@ -350,6 +355,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            error_handler=error_handler,
         )
 
     def __call__(

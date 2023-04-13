@@ -13,6 +13,7 @@ from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 import pyspark.sql as ps
+from pandera.api.pyspark.error_handler import ErrorHandler
 
 
 class Column(ColumnSchema):
@@ -124,8 +125,9 @@ class Column(ColumnSchema):
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = False,
+        lazy: bool = True,
         inplace: bool = False,
+        error_handler: ErrorHandler = None,
     ) -> ps.DataFrame:
         """Validate a Column in a DataFrame object.
 
@@ -145,14 +147,15 @@ class Column(ColumnSchema):
         :returns: validated DataFrame.
         """
         return self.BACKEND.validate(
-            check_obj,
-            self,
+            check_obj=check_obj,
+            schema=self,
             head=head,
             tail=tail,
             sample=sample,
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            error_handler=error_handler,
         )
 
     def get_regex_columns(self, columns: Any) -> Iterable:
