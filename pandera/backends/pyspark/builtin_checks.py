@@ -2,7 +2,7 @@
 
 import re
 from typing import cast, Any, Iterable, TypeVar, Union
-from pandera.api.pyspark.types import DataframeColumnNameTuple
+from pandera.api.pyspark.types import PysparkDataframeColumnObject
 import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.typing.pyspark import PYSPARK_INSTALLED
@@ -17,7 +17,7 @@ T = TypeVar("T")
     aliases=["eq"],
     error="equal_to({value})",
 )
-def equal_to(data: DataframeColumnNameTuple, value: Any) -> bool:
+def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure all elements of a data container equal a certain value.
 
     :param value: values in this DataFrame data structure must be
@@ -33,7 +33,7 @@ def equal_to(data: DataframeColumnNameTuple, value: Any) -> bool:
     strategy=st.ne_strategy,
     error="not_equal_to({value})",
 )
-def not_equal_to(data: DataframeColumnNameTuple, value: Any) -> bool:
+def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure no elements of a data container equals a certain value.
 
     :param value: This value must not occur in the checked
@@ -48,7 +48,7 @@ def not_equal_to(data: DataframeColumnNameTuple, value: Any) -> bool:
     aliases=["gt"],
     error="greater_than({min_value})",
 )
-def greater_than(data: DataframeColumnNameTuple, min_value: Any) -> bool:
+def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
     """
     Ensure values of a data container are strictly greater than a minimum
     value.
@@ -65,7 +65,7 @@ def greater_than(data: DataframeColumnNameTuple, min_value: Any) -> bool:
     strategy=st.ge_strategy,
     error="greater_than_or_equal_to({min_value})",
 )
-def greater_than_or_equal_to(data: DataframeColumnNameTuple, min_value: Any) -> bool:
+def greater_than_or_equal_to(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
     """Ensure all values are greater or equal a certain value.
 
     :param min_value: Allowed minimum value for values of a series. Must be
@@ -81,7 +81,7 @@ def greater_than_or_equal_to(data: DataframeColumnNameTuple, min_value: Any) -> 
     strategy=st.lt_strategy,
     error="less_than({max_value})",
 )
-def less_than(data: DataframeColumnNameTuple, max_value: Any) -> bool:
+def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
     :param max_value: All elements of a series must be strictly smaller
@@ -99,7 +99,7 @@ def less_than(data: DataframeColumnNameTuple, max_value: Any) -> bool:
     strategy=st.le_strategy,
     error="less_than_or_equal_to({max_value})",
 )
-def less_than_or_equal_to(data: DataframeColumnNameTuple, max_value: Any) -> bool:
+def less_than_or_equal_to(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
     :param max_value: Upper bound not to be exceeded. Must be a type
@@ -119,7 +119,7 @@ def less_than_or_equal_to(data: DataframeColumnNameTuple, max_value: Any) -> boo
     error="in_range({min_value}, {max_value})",
 )
 def in_range(
-    data: DataframeColumnNameTuple,
+    data: PysparkDataframeColumnObject,
     min_value: T,
     max_value: T,
     include_min: bool = True,
@@ -142,8 +142,8 @@ def in_range(
     """
     # Using functions from operator module to keep conditions out of the
     # closure
-    cond_right = col(data.column_name) <= min_value if include_min else col(data.column_name) < min_value
-    cond_left = col(data.column_name) >= max_value if include_max else col(data.column_name) > min_value
+    cond_right = col(data.column_name) >= min_value if include_min else col(data.column_name) > min_value
+    cond_left = col(data.column_name) <= max_value if include_max else col(data.column_name) < max_value
     return data.dataframe.filter(~(cond_right & cond_left)).limit(1).count() == 0  # type: ignore
 
 
@@ -151,7 +151,7 @@ def in_range(
     strategy=st.isin_strategy,
     error="isin({allowed_values})",
 )
-def isin(data: DataframeColumnNameTuple, allowed_values: Iterable) -> bool:
+def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
     """Ensure only allowed values occur within a series.
 
     This checks whether all elements of a :class:`pandas.Series`
@@ -171,7 +171,7 @@ def isin(data: DataframeColumnNameTuple, allowed_values: Iterable) -> bool:
     strategy=st.notin_strategy,
     error="notin({forbidden_values})",
 )
-def notin(data: DataframeColumnNameTuple, forbidden_values: Iterable) -> bool:
+def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> bool:
     """Ensure some defined values don't occur within a series.
 
     Like :meth:`Check.isin` this check operates on single characters if
@@ -191,7 +191,7 @@ def notin(data: DataframeColumnNameTuple, forbidden_values: Iterable) -> bool:
     strategy=st.str_contains_strategy,
     error="str_contains('{pattern}')",
 )
-def str_contains(data: DataframeColumnNameTuple, pattern: Union[str, re.Pattern]) -> bool:
+def str_contains(data: PysparkDataframeColumnObject, pattern: Union[str, re.Pattern]) -> bool:
     """Ensure that a pattern can be found within each row.
 
     :param pattern: Regular expression pattern to use for searching
@@ -204,7 +204,7 @@ def str_contains(data: DataframeColumnNameTuple, pattern: Union[str, re.Pattern]
 @register_builtin_check(
     error="str_startswith('{string}')",
 )
-def str_startswith(data: DataframeColumnNameTuple, string: str) -> bool:
+def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values start with a certain string.
 
     :param string: String all values should start with
@@ -217,7 +217,7 @@ def str_startswith(data: DataframeColumnNameTuple, string: str) -> bool:
 @register_builtin_check(
     strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
-def str_endswith(data: DataframeColumnNameTuple, string: str) -> bool:
+def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values end with a certain string.
 
     :param string: String all values should end with
