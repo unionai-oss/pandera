@@ -33,7 +33,7 @@ SupportedTypes = NamedTuple(
 )
 
 
-class DataframeColumnNameTuple(NamedTuple):
+class PysparkDataframeColumnObject(NamedTuple):
     dataframe: DataFrame
     column_name: str
 

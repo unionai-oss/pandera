@@ -12,7 +12,7 @@ from pandera.api.checks import Check
 from pandera.api.pyspark.types import (
     is_table,
     is_bool,
-    DataframeColumnNameTuple,
+    PysparkDataframeColumnObject,
 )
 from collections import namedtuple
 
@@ -131,7 +131,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         breakpoint()
         # kwargs['column_name'] = column_name
         # return self.check._check_fn(check_obj, *list(kwargs.values()))
-        check_obj_and_col_name = DataframeColumnNameTuple(check_obj, column_name)
+        check_obj_and_col_name = PysparkDataframeColumnObject(check_obj, column_name)
         return self.check._check_fn(check_obj_and_col_name, **kwargs)
 
     @overload
