@@ -155,14 +155,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     err.reason_code,
                     err,
                 )
-            except SchemaErrors as err:
-                breakpoint()
-                for schema_error_dict in err.schema_errors:
-                    error_handler.collect_error(
-                        schema_error_dict["type"].value,
-                        schema_error_dict["reason_code"],
-                        schema_error_dict["error"],
-                    )
+            # except SchemaErrors as err:
+            #     breakpoint()
+            #     for schema_error_dict in err.schema_errors:
+            #         error_handler.collect_error(
+            #             schema_error_dict["type"].value,
+            #             schema_error_dict["reason_code"],
+            #             schema_error_dict["error"],
+            #         )
         assert all(check_results)
 
     def run_checks(self, check_obj: DataFrame, schema, error_handler):

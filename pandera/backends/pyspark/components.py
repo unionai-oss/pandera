@@ -62,11 +62,12 @@ class ColumnBackend(ColumnSchemaBackend):
                     inplace=inplace,
                     error_handler=error_handler,
                 )
-            except SchemaErrors as err:
-                for err_dict in err.schema_errors:
-                    error_handler.collect_error(
-                        ErrorCategory.DATA, err_dict["reason_code"], err_dict["error"]
-                    )
+            # except SchemaErrors as err:
+            #     for err_dict in err.schema_errors:
+            #         breakpoint()
+            #         error_handler.collect_error(
+            #             ErrorCategory.DATA, err_dict["reason_code"], err_dict["error"]
+            #         )
             except SchemaError as err:
                 breakpoint()
                 error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
@@ -76,7 +77,7 @@ class ColumnBackend(ColumnSchemaBackend):
             if schema.regex
             else [schema.name]
         )
-
+        breakpoint()
         for column_name in column_keys_to_check:
             if schema.coerce:
                 check_obj = self.coerce_dtype(
@@ -94,12 +95,12 @@ class ColumnBackend(ColumnSchemaBackend):
             # else:
             #    validate_column(check_obj, column_name)
 
-        if lazy and error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+        # if lazy and error_handler.collected_errors:
+        #     raise SchemaErrors(
+        #         schema=schema,
+        #         schema_errors=error_handler.collected_errors,
+        #         data=check_obj,
+        #     )
 
         return check_obj
 

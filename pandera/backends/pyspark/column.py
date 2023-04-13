@@ -95,12 +95,12 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         )
         assert all(check_results)
 
-        if lazy and error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+        # if lazy and error_handler.collected_errors:
+        #     raise SchemaErrors(
+        #         schema=schema,
+        #         schema_errors=error_handler.collected_errors,
+        #         data=check_obj,
+        #     )
         return check_obj
 
     def coerce_dtype(
