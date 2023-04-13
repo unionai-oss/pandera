@@ -76,8 +76,9 @@ class ErrorHandler:
         """
 
         for error in self._collected_errors:
-            cat = error["reason_code"].name
-            self._summarized_errors[error["type"]][cat].append(
+            err_cat = error["reason_code"].name
+            err_type = error["type"].name
+            self._summarized_errors[err_type][err_cat].append(
                 {
                     "schema": schema.name,
                     "column": error["column"],
