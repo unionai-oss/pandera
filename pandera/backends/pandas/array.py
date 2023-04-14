@@ -1,6 +1,6 @@
 """Pandera array backends."""
 
-from typing import cast, Any, List, Optional
+from typing import cast, List, Optional
 
 import pandas as pd
 from multimethod import DispatchError
@@ -40,21 +40,20 @@ class ArraySchemaBackend(PandasSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        default: Optional[Any] = None,
     ):
         # pylint: disable=too-many-locals
         error_handler = SchemaErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
+
+        # fill nans with `default` if it's present
+        if pd.notna(schema.default):
+            check_obj.fillna(schema.default, inplace=True)
 
         if schema.coerce:
             try:
                 check_obj = self.coerce_dtype(check_obj, schema=schema)
             except SchemaError as exc:
                 error_handler.collect_error(exc.reason_code, exc)
-
-        # fill nans with `default` if it's present
-        if not pd.isnull(default):
-            check_obj.fillna(default, inplace=True)
 
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],

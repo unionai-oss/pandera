@@ -98,7 +98,6 @@ class Column(ArraySchema):
         self.required = required
         self.name = name
         self.regex = regex
-        self.default = default
 
     @property
     def _allow_groupby(self) -> bool:
@@ -292,7 +291,6 @@ class Index(ArraySchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            default=self.default,
         )
 
     def __eq__(self, other):

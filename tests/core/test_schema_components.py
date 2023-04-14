@@ -878,7 +878,6 @@ def test_column_default_works_when_dtype_match(dtype: Any, default: Any):
     """Test ``default`` fills ``nan`` values as expected when the ``dtype`` matches that of the ``Column``"""
     column = Column(dtype, name="column1", default=default)
     df = pd.DataFrame({"column1": [None]})
-
     column.validate(df, inplace=True)
 
     assert df.iloc[0]["column1"] == default
@@ -900,12 +899,3 @@ def test_column_default_errors_on_dtype_mismatch(dtype: Any, default: Any):
 
     with pytest.raises(errors.SchemaError):
         column.validate(df, inplace=True)
-
-
-def test_error_is_raised_when_default_is_set_and_inplace_is_false():
-    """Test that setting a ``default`` raises an error is ``inplace = False``"""
-    column = Column(str, name="column1", default="a default")
-    df = pd.DataFrame({"column1": [None]})
-
-    with pytest.raises(errors.SchemaError):
-        column.validate(df, inplace=False)
