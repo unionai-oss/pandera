@@ -13,7 +13,7 @@ from pandera.backends.pandas.error_formatters import (
 )
 
 from pandera.engines.pyspark_engine import Engine
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -50,9 +50,10 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler,
     ):
         # pylint: disable=too-many-locals
-        error_handler = SchemaErrorHandler(lazy)
+        # error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
         if schema.coerce:
@@ -61,7 +62,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     check_obj, schema=schema, error_handler=error_handler
                 )
             except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
+                error_handler.collect_error(ErrorCategory.SCHEMA, exc.reason_code, exc)
 
         check_obj_subsample = self.subsample(
             check_obj,
@@ -72,14 +73,12 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         # run the core checks
         for core_check in (
             self.check_name,
-            # self.check_nullable,
-            # self.check_unique,
             self.check_dtype,
         ):
             check_result = core_check(check_obj_subsample, schema)
-            breakpoint()
             if not check_result.passed:
                 error_handler.collect_error(
+                    ErrorCategory.SCHEMA,
                     check_result.reason_code,
                     SchemaError(
                         schema=schema,
@@ -94,15 +93,14 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_results = self.run_checks(
             check_obj_subsample, schema, error_handler, lazy
         )
-        breakpoint()
         assert all(check_results)
 
-        if lazy and error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+        # if lazy and error_handler.collected_errors:
+        #     raise SchemaErrors(
+        #         schema=schema,
+        #         schema_errors=error_handler.collected_errors,
+        #         data=check_obj,
+        #     )
         return check_obj
 
     def coerce_dtype(
@@ -111,7 +109,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         *,
         schema=None,
         # pylint: disable=unused-argument
-        error_handler: SchemaErrorHandler = None,
     ):
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -139,7 +136,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     def check_name(self, check_obj: DataFrame, schema):
         column_found = not (schema.name is None or schema.name not in check_obj.columns)
-        breakpoint()
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
             reason_code=SchemaErrorReason.WRONG_FIELD_NAME
@@ -229,7 +225,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 )
             reason_code = (
                 SchemaErrorReason.WRONG_DATATYPE
-                if dtype_check_results
+                if not dtype_check_results
                 else SchemaErrorReason.NO_ERROR
             )
 
@@ -260,6 +256,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             except SchemaError as err:
                 breakpoint()
                 error_handler.collect_error(
+                    ErrorCategory.DATA,
                     SchemaErrorReason.DATAFRAME_CHECK,
                     err,
                 )
@@ -271,7 +268,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     err = err.__cause__
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
+                breakpoint()
                 error_handler.collect_error(
+                    ErrorCategory.DATA,
                     SchemaErrorReason.CHECK_ERROR,
                     SchemaError(
                         schema=schema,
@@ -286,4 +285,5 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     ),
                     original_exc=err,
                 )
+        breakpoint()
         return check_results

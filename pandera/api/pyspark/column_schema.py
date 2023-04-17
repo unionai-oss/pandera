@@ -6,6 +6,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 
 from pandera import errors
 from pandera import strategies as st
+from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.backends.pyspark.column import (
     ColumnSchemaBackend,
     # SeriesSchemaBackend,
@@ -72,7 +73,6 @@ class ColumnSchema(BaseSchema):
             checks = []
         if isinstance(checks, Check):
             checks = [checks]
-        breakpoint()
         self.checks = checks
         self.nullable = nullable
         self.title = title
@@ -97,6 +97,7 @@ class ColumnSchema(BaseSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler = None,
     ):
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a series or specific column in dataframe.
@@ -126,6 +127,7 @@ class ColumnSchema(BaseSchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            error_handler=error_handler,
         )
 
     def __call__(
@@ -137,7 +139,7 @@ class ColumnSchema(BaseSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> ps.DataFrame:
+    ):
         """Alias for ``validate`` method."""
         return self.validate(check_obj, head, tail, sample, random_state, lazy, inplace)
 

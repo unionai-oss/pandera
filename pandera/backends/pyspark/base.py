@@ -102,6 +102,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
             if check.raise_warning:
                 warnings.warn(error_msg, UserWarning)
                 return True
+            breakpoint()
             raise SchemaError(
                 schema,
                 check_obj,

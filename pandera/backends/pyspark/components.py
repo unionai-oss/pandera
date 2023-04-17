@@ -16,7 +16,7 @@ from pandera.api.pyspark.types import (
     is_table,
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
 import re
 
@@ -35,10 +35,10 @@ class ColumnBackend(ColumnSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler,
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
-        breakpoint()
-        error_handler = SchemaErrorHandler(lazy=lazy)
+        # error_handler = ErrorHandler(lazy)
         if schema.name is None:
             raise SchemaError(
                 schema,
@@ -60,22 +60,24 @@ class ColumnBackend(ColumnSchemaBackend):
                     random_state=random_state,
                     lazy=lazy,
                     inplace=inplace,
+                    error_handler=error_handler,
                 )
-            except SchemaErrors as err:
-                for err_dict in err.schema_errors:
-                    error_handler.collect_error(
-                        err_dict["reason_code"], err_dict["error"]
-                    )
+            # except SchemaErrors as err:
+            #     for err_dict in err.schema_errors:
+            #         breakpoint()
+            #         error_handler.collect_error(
+            #             ErrorCategory.DATA, err_dict["reason_code"], err_dict["error"]
+            #         )
             except SchemaError as err:
                 breakpoint()
-                error_handler.collect_error(err.reason_code, err)
+                error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
 
         column_keys_to_check = (
             self.get_regex_columns(schema, check_obj.columns, check_obj)
             if schema.regex
             else [schema.name]
         )
-
+        breakpoint()
         for column_name in column_keys_to_check:
             if schema.coerce:
                 check_obj = self.coerce_dtype(
@@ -93,12 +95,12 @@ class ColumnBackend(ColumnSchemaBackend):
             # else:
             #    validate_column(check_obj, column_name)
 
-        if lazy and error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+        # if lazy and error_handler.collected_errors:
+        #     raise SchemaErrors(
+        #         schema=schema,
+        #         schema_errors=error_handler.collected_errors,
+        #         data=check_obj,
+        #     )
 
         return check_obj
 
@@ -134,7 +136,6 @@ class ColumnBackend(ColumnSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: SchemaErrorHandler = None,
     ) -> DataFrame:
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
@@ -163,17 +164,19 @@ class ColumnBackend(ColumnSchemaBackend):
             except SchemaError as err:
                 breakpoint()
                 error_handler.collect_error(
-                    SchemaErrorReason.DATAFRAME_CHECK,
-                    err,
+                    type=ErrorCategory.DATA,
+                    reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                    schema_error=err,
                 )
             except Exception as err:  # pylint: disable=broad-except
-                breakpoint()
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
+                breakpoint()
                 error_handler.collect_error(
-                    SchemaErrorReason.CHECK_ERROR,
-                    SchemaError(
+                    type=ErrorCategory.DATA,
+                    reason_code=SchemaErrorReason.CHECK_ERROR,
+                    schema_error=SchemaError(
                         schema=schema,
                         data=check_obj,
                         message=(

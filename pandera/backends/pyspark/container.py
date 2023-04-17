@@ -12,12 +12,13 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import (
     ParserError,
     SchemaError,
     SchemaErrors,
     SchemaDefinitionError,
+    SchemaErrorReason,
 )
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import cast, col
@@ -41,17 +42,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        error_handler: ErrorHandler = None,
     ):
         """
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        # Todo To be done by Neeraj
         if not is_table(check_obj):
             raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
-
-        # Todo Error handling .. pending PS discussion
-        error_handler = SchemaErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
@@ -63,22 +61,31 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         try:
             self.check_column_names_are_unique(check_obj, schema)
         except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+            error_handler.collect_error(
+                type=ErrorCategory.SCHEMA,
+                reason_code=exc.reason_code,
+                schema_error=exc,
+            )
 
         try:
             self.check_column_presence(check_obj, schema, column_info)
         except SchemaErrors as exc:
             for schema_error in exc.schema_errors:
                 error_handler.collect_error(
-                    schema_error["reason_code"],
-                    schema_error["error"],
+                    type=ErrorCategory.SCHEMA,
+                    reason_code=schema_error["reason_code"],
+                    schema_error=schema_error["error"],
                 )
 
         # strictness check and filter
         try:
             check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+            error_handler.collect_error(
+                type=ErrorCategory.SCHEMA,
+                reason_code=exc.reason_code,
+                schema_error=exc,
+            )
         # try to coerce datatypes
         check_obj = self.coerce_dtype(
             check_obj,
@@ -96,59 +103,79 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 check_obj_subsample, schema_components, lazy, error_handler
             )
         except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
+            error_handler.collect_error(
+                type=ErrorCategory.SCHEMA,
+                reason_code=exc.reason_code,
+                schema_error=exc,
+            )
         breakpoint()
         try:
             self.run_checks(check_obj_subsample, schema, error_handler)
         except SchemaError as exc:
-            error_handler.collect_error(exc.reason_code, exc)
-        breakpoint()
-        if error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
+            error_handler.collect_error(
+                type=ErrorCategory.DATA,
+                reason_code=exc.reason_code,
+                schema_error=exc,
             )
         breakpoint()
-        return check_obj
+        error_dicts = {}
+        if error_handler.collected_errors:  # TODO: list of all errors
+            error_dicts = error_handler.summarize(schema=schema)
+            # raise SchemaErrors(
+            #     schema=schema,
+            #     schema_errors=error_handler.collected_errors,
+            #     data=check_obj,
+            # )
+        breakpoint()
+        return error_dicts
 
     def run_schema_component_checks(
         self,
         check_obj: DataFrame,
         schema_components: List,
         lazy: bool,
-        error_handler: SchemaErrorHandler,
+        error_handler: ErrorHandler,
     ):
         """Run checks for all schema components."""
         check_results = []
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                breakpoint()
-                result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
+                result = schema_component.validate(
+                    check_obj=check_obj,
+                    lazy=lazy,
+                    inplace=True,
+                    error_handler=error_handler,
+                )
                 check_results.append(is_table(result))
             except SchemaError as err:
-                error_handler.collect_error("schema_component_check", err)
-            except SchemaErrors as err:
-                for schema_error_dict in err.schema_errors:
-                    error_handler.collect_error(
-                        "schema_component_check", schema_error_dict["error"]
-                    )
-        breakpoint()
+                breakpoint()
+                error_handler.collect_error(
+                    ErrorCategory.SCHEMA,
+                    err.reason_code,
+                    err,
+                )
+            # except SchemaErrors as err:
+            #     breakpoint()
+            #     for schema_error_dict in err.schema_errors:
+            #         error_handler.collect_error(
+            #             schema_error_dict["type"].value,
+            #             schema_error_dict["reason_code"],
+            #             schema_error_dict["error"],
+            #         )
         assert all(check_results)
 
     def run_checks(self, check_obj: DataFrame, schema, error_handler):
         """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results = []
-        breakpoint()
         for check_index, check in enumerate(schema.checks):  # schama.checks is null
             try:
                 check_results.append(  # TODO: looping over cols
                     self.run_check(check_obj, schema, check, check_index)
                 )
             except SchemaError as err:
-                error_handler.collect_error("dataframe_check", err)
+                error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
             except SchemaDefinitionError:
                 raise
             except Exception as err:  # pylint: disable=broad-except
@@ -159,8 +186,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     f"Error while executing check function: {err_str}\n"
                     + traceback.format_exc()
                 )
+                breakpoint()
                 error_handler.collect_error(
-                    "check_error",
+                    ErrorCategory.DATA,
+                    SchemaErrorReason.CHECK_ERROR,  # TODO: make it consistent
                     SchemaError(
                         self,
                         check_obj,
@@ -310,12 +339,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: Optional[SchemaErrorHandler] = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
 
-        _error_handler = error_handler or SchemaErrorHandler(lazy=True)
+        _error_handler = error_handler or ErrorHandler(lazy=True)
 
         if not (schema.coerce or any(col.coerce for col in schema.columns.values())):
             return check_obj
@@ -324,18 +353,21 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             check_obj = self._coerce_dtype(check_obj, schema)
 
         except SchemaErrors as err:
+            breakpoint()
             for schema_error_dict in err.schema_errors:
                 if not _error_handler.lazy:
                     # raise the first error immediately if not doing lazy
                     # validation
                     raise schema_error_dict["error"]
                 _error_handler.collect_error(
-                    "schema_component_check", schema_error_dict["error"]
+                    ErrorCategory.DTYPE_COERCION,
+                    SchemaErrorReason.CHECK_ERROR,  # TODO: check this is correct
+                    schema_error_dict["error"],
                 )
         except SchemaError as err:
             if not _error_handler.lazy:
                 raise err
-            _error_handler.collect_error("schema_component_check", err)
+            _error_handler.collect_error(ErrorCategory.SCHEMA, err.reason_code, err)
 
         if error_handler is None and _error_handler.collected_errors:
             # raise SchemaErrors if this method is called without an
@@ -359,7 +391,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         :returns: dataframe with coerced dtypes
         """
         # NOTE: clean up the error handling!
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         def _coerce_df_dtype(obj: DataFrame) -> DataFrame:
             if schema.dtype is None:
@@ -391,11 +423,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 return obj
 
             except SchemaError as exc:
-                error_handler.collect_error("dtype_coercion_error", exc)
+                error_handler.collect_error(
+                    ErrorCategory.DTYPE_COERCION, exc.reason_code, exc
+                )
                 return obj
 
         for colname, col_schema in schema.columns.items():
-
             if col_schema.regex:
                 try:
                     matched_columns = col_schema.BACKEND.get_regex_columns(

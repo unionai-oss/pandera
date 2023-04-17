@@ -165,7 +165,6 @@ class BaseCheck(metaclass=MetaCheck):
         # by the check object
         if statistics is None:
             statistics = check_kwargs
-        breakpoint()
         return cls(
             cls.get_builtin_check_fn(name),
             statistics=statistics,
