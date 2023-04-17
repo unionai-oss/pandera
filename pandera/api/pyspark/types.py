@@ -15,6 +15,22 @@ import pyspark.sql.types as pst
 
 CheckList = Union[Check, List[Check]]
 
+PysparkDefaultTypes = Union[
+    pst.BooleanType,
+    pst.StringType,
+    pst.IntegerType,
+    pst.DecimalType,
+    pst.FloatType,
+    pst.DateType,
+    pst.TimestampType,
+    pst.DoubleType,
+    pst.ShortType,
+    pst.ByteType,
+    pst.LongType,
+    pst.DayTimeIntervalType,
+    pst.BinaryType
+]
+
 PySparkDtypeInputTypes = Union[
     str,
     int,
