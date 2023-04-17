@@ -9,12 +9,12 @@ from multimethod import overload, DispatchError
 from pandera.backends.base import BaseCheckBackend
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
-from pandera.backends.pyspark import builtin_checks
 from pandera.api.pyspark.types import (
     is_table,
     is_bool,
+    PysparkDataframeColumnObject,
 )
-
+from collections import namedtuple
 
 class PySparkCheckBackend(BaseCheckBackend):
     """Check backend for PySpark."""
@@ -128,7 +128,8 @@ class PySparkCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: DataFrame, column_name: str, kwargs: dict):  # type: ignore [valid-type]
         # kwargs['column_name'] = column_name
         # return self.check._check_fn(check_obj, *list(kwargs.values()))
-        return self.check._check_fn([check_obj, column_name], **kwargs)
+        check_obj_and_col_name = PysparkDataframeColumnObject(check_obj, column_name)
+        return self.check._check_fn(check_obj_and_col_name, **kwargs)
 
     @overload
     def postprocess(self, check_obj, check_output):

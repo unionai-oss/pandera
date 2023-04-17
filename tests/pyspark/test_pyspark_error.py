@@ -29,7 +29,7 @@ spark = SparkSession.builder.getOrCreate()
                 }
             ),
             spark.createDataFrame(
-                data=[(23, 31), (34, 30)], schema=["product", "code"]
+                data=[("23", 31), ("34", 35)], schema=["product", "code"]
             ),
         ],
     ],

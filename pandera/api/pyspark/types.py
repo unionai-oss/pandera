@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import List, NamedTuple, Tuple, Type, Union
 
 try:
-    from typing import Literal
+    from typing import Literal, NamedTuple
 except ImportError:
     from typing_extensions import Literal  # type: ignore [misc]
 
@@ -14,6 +14,22 @@ from pyspark.sql import DataFrame
 import pyspark.sql.types as pst
 
 CheckList = Union[Check, List[Check]]
+
+PysparkDefaultTypes = Union[
+    pst.BooleanType,
+    pst.StringType,
+    pst.IntegerType,
+    pst.DecimalType,
+    pst.FloatType,
+    pst.DateType,
+    pst.TimestampType,
+    pst.DoubleType,
+    pst.ShortType,
+    pst.ByteType,
+    pst.LongType,
+    pst.DayTimeIntervalType,
+    pst.BinaryType
+]
 
 PySparkDtypeInputTypes = Union[
     str,
@@ -32,6 +48,10 @@ SupportedTypes = NamedTuple(
     (("table_types", Tuple[type, ...]),),
 )
 
+
+class PysparkDataframeColumnObject(NamedTuple):
+    dataframe: DataFrame
+    column_name: str
 
 @lru_cache(maxsize=None)
 def supported_types() -> SupportedTypes:
