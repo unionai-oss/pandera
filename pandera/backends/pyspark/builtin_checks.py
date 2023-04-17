@@ -1,22 +1,53 @@
 """PySpark implementation of built-in checks"""
 
 import re
-from typing import cast, Any, Iterable, TypeVar, Union
-from pandera.api.pyspark.types import PysparkDataframeColumnObject
+import functools
+from typing import cast, Any, Iterable, TypeVar, Union, List, Type
+from pandera.api.pyspark.types import PysparkDataframeColumnObject, PysparkDefaultTypes
 import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.typing.pyspark import PYSPARK_INSTALLED
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
+import pyspark.sql.types as pst
 
 T = TypeVar("T")
+
+#Todo Move to decorator.py
+def register_input_datatypes(acceptable_datatypes: List[Type[PysparkDefaultTypes]] = None):
+    """
+    This decorator is used to register the input datatype for the check.
+    The function would raise error if value other than the acceptable one is sent
+
+    """
+    def wrapper(func):
+        @functools.wraps(func)
+        def _wrapper(*args, **kwargs):
+            breakpoint()
+            pyspark_object = [a for a in args][0]
+            validation_df = pyspark_object.dataframe
+            validation_column = pyspark_object.column_name
+            datatypes = [i.typeName for i in acceptable_datatypes]
+            current_datatype = validation_df.select(validation_column).schema[0].dataType.typeName
+            if current_datatype in datatypes:
+                return func(*args, **kwargs)
+            else:
+                raise TypeError(f'The function only accepts the following datatypes {acceptable_datatypes}'
+                                f' but got {current_datatype}')
+
+        return _wrapper
+
+    return wrapper
+
+
 
 
 @register_builtin_check(
     aliases=["eq"],
     error="equal_to({value})",
 )
+@register_input_datatypes(acceptable_datatypes=[pst.LongType, pst.IntegerType])
 def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure all elements of a data container equal a certain value.
 
@@ -24,6 +55,7 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
         equal to this value.
     """
     breakpoint()
+    #validate_datatypes(data, [pst.LongType, pst.IntegerType])
     cond = col(data.column_name) == value
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
