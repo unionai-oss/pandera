@@ -36,6 +36,7 @@ class ArraySchema(BaseSchema):
         name: Any = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
     ) -> None:
         """Initialize array schema.
 
@@ -61,7 +62,7 @@ class ArraySchema(BaseSchema):
         :param name: column name in dataframe to validate.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
-        :type nullable: bool
+        :param default: The default value for missing values in the series.
         """
 
         super().__init__(
@@ -84,6 +85,7 @@ class ArraySchema(BaseSchema):
         self.report_duplicates = report_duplicates
         self.title = title
         self.description = description
+        self.default = default
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
@@ -297,6 +299,7 @@ class SeriesSchema(ArraySchema):
         name: str = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -323,6 +326,7 @@ class SeriesSchema(ArraySchema):
         :param name: series name.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
+        :param default: The default value for missing values in the series.
 
         """
         super().__init__(
@@ -335,6 +339,7 @@ class SeriesSchema(ArraySchema):
             name,
             title,
             description,
+            default,
         )
         self.index = index
 

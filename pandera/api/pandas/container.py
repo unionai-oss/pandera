@@ -317,6 +317,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
         # implementation comes in.
+
         if hasattr(check_obj, "dask"):
             # special case for dask dataframes
             if inplace:

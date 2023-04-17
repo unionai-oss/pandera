@@ -26,7 +26,6 @@ shapely
 fastapi
 black >= 22.1.0
 isort >= 5.7.0
-codecov
 mypy <= 0.982
 pylint == 2.12.2
 pytest

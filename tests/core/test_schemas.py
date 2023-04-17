@@ -1994,6 +1994,48 @@ def test_missing_columns():
         ]
 
 
+@pytest.mark.parametrize(
+    "series_schema,series,expected_values",
+    [
+        (
+            SeriesSchema(str, default="the second"),
+            pd.Series(["the first", None], dtype=str),
+            ["the first", "the second"],
+        ),
+        (
+            SeriesSchema(float, default=0.0),
+            pd.Series([1.0, None], dtype=float),
+            [1.0, 0.0],
+        ),
+        (
+            SeriesSchema(bool, default=False),
+            pd.Series([True, None], dtype=bool),
+            [True, False],
+        ),
+        (
+            SeriesSchema("Int64", default=0),
+            pd.Series([1, None], dtype="Int64"),
+            [1, 0],
+        ),
+    ],
+)
+def test_default_with_correct_dtype(
+    series_schema: SeriesSchema, series: pd.Series, expected_values: list
+):
+    """Test that missing rows are backfilled with the default if missing"""
+    validated_series = series_schema.validate(series)
+    assert set(validated_series.values) == set(expected_values)
+
+
+def test_default_with_incorrect_dtype_raises_error():
+    """Test that if a default with the incorrect dtype is passed, a SchemaError is raised"""
+    series_schema = SeriesSchema(str, default=1)
+
+    series = pd.Series(["the first", None])
+    with pytest.raises(errors.SchemaError):
+        series_schema.validate(series)
+
+
 def test_pandas_dataframe_subclass_validation():
     """Test that DataFrame subclasses can be validated by pandera."""
 

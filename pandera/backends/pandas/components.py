@@ -46,7 +46,7 @@ class ColumnBackend(ArraySchemaBackend):
             raise SchemaError(
                 schema,
                 check_obj,
-                "column name is set to None. Pass the ``name` argument when "
+                "column name is set to None. Pass the ``name`` argument when "
                 "initializing a Column object, or use the ``set_name`` "
                 "method.",
             )

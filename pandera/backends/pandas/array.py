@@ -45,6 +45,10 @@ class ArraySchemaBackend(PandasSchemaBackend):
         error_handler = SchemaErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
+        # fill nans with `default` if it's present
+        if pd.notna(schema.default):
+            check_obj.fillna(schema.default, inplace=True)
+
         if schema.coerce:
             try:
                 check_obj = self.coerce_dtype(check_obj, schema=schema)

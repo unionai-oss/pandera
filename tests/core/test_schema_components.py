@@ -863,3 +863,39 @@ def test_index_validation_pandas_string_dtype():
     )
 
     assert isinstance(schema.validate(df), pd.DataFrame)
+
+
+@pytest.mark.parametrize(
+    "dtype,default",
+    [
+        (str, "a default"),
+        (bool, True),
+        (float, 42.0),
+        ("Int64", 0),
+    ],
+)
+def test_column_default_works_when_dtype_match(dtype: Any, default: Any):
+    """Test ``default`` fills ``nan`` values as expected when the ``dtype`` matches that of the ``Column``"""
+    column = Column(dtype, name="column1", default=default)
+    df = pd.DataFrame({"column1": [None]})
+    column.validate(df, inplace=True)
+
+    assert df.iloc[0]["column1"] == default
+
+
+@pytest.mark.parametrize(
+    "dtype,default",
+    [
+        (str, 1),
+        (bool, 42.0),
+        (float, True),
+        ("Int64", "a default"),
+    ],
+)
+def test_column_default_errors_on_dtype_mismatch(dtype: Any, default: Any):
+    """Test that setting a ``default`` of different ``dtype`` to that of the ```Column`` raises an error"""
+    column = Column(dtype, name="column1", default=default)
+    df = pd.DataFrame({"column1": [None]})
+
+    with pytest.raises(errors.SchemaError):
+        column.validate(df, inplace=True)
