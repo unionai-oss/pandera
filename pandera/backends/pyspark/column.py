@@ -39,7 +39,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj
 
-    def validate(
+    def report_errors(
         self,
         check_obj,
         schema,

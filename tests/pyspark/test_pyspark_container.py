@@ -28,14 +28,13 @@ def test_pyspark_dataframeschema():
     data = [("Neeraj", 35), ("Jask", 30)]
 
     df = spark.createDataFrame(data=data, schema=["name", "age"])
-    validate_df = schema.validate(df)
+    schema.report_errors(df)
 
     data = [("Neeraj", "35"), ("Jask", "a")]
 
     df2 = spark.createDataFrame(data=data, schema=["name", "age"])
 
-    validate_df2 = schema.validate(df2)  # typecasted and no error thrown
-
+    schema.report_errors(df2)  # typecasted and no error thrown
 
 
 def test_pyspark_dataframeschema_with_alias_types():
@@ -64,11 +63,11 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     df = spark.createDataFrame(data=data, schema=spark_schema)
 
-    validate_df = schema.validate(df)
+    validate_df = schema.report_errors(df)
 
     with pytest.raises(SchemaErrors):
         data_fail = [("Bread", 3), ("Butter", 15)]
 
         df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
 
-        fail_df = schema.validate(df_fail)
+        fail_df = schema.report_errors(df_fail)

@@ -24,7 +24,7 @@ import re
 class ColumnBackend(ColumnSchemaBackend):
     """Backend implementation for pyspark dataframe columns."""
 
-    def validate(
+    def report_errors(
         self,
         check_obj: DataFrame,
         schema,
@@ -51,7 +51,7 @@ class ColumnBackend(ColumnSchemaBackend):
         def validate_column(check_obj, column_name):
             try:
                 # pylint: disable=super-with-arguments
-                super(ColumnBackend, self).validate(
+                super(ColumnBackend, self).report_errors(
                     check_obj,
                     copy(schema).set_name(column_name),
                     head=head,

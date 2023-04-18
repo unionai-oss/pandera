@@ -63,7 +63,7 @@ class Column(ColumnSchema):
         ...     "column": pa.Column(str)
         ... })
         >>>
-        >>> schema.validate(pd.DataFrame({"column": ["foo", "bar"]}))
+        >>> schema.report_errors(pd.DataFrame({"column": ["foo", "bar"]}))
           column
         0    foo
         1    bar
@@ -118,7 +118,7 @@ class Column(ColumnSchema):
         self.name = name
         return self
 
-    def validate(
+    def report_errors(
         self,
         check_obj: ps.DataFrame,
         head: Optional[int] = None,
@@ -146,7 +146,7 @@ class Column(ColumnSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame.
         """
-        return self.BACKEND.validate(
+        return self.BACKEND.report_errors(
             check_obj=check_obj,
             schema=self,
             head=head,
