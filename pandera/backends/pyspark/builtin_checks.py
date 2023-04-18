@@ -28,7 +28,6 @@ def register_input_datatypes(
     def wrapper(func):
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
-            breakpoint()
             pyspark_object = [a for a in args][0]
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
@@ -62,7 +61,6 @@ def register_input_datatypes(
     def wrapper(func):
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
-            breakpoint()
             pyspark_object = [a for a in args][0]
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
@@ -94,7 +92,7 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     :param value: values in this DataFrame data structure must be
         equal to this value.
     """
-    breakpoint()
+
     # validate_datatypes(data, [pst.LongType, pst.IntegerType])
     cond = col(data.column_name) == value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -111,7 +109,7 @@ def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
     """
-    breakpoint()
+
     cond = col(data.column_name) != value
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
@@ -127,7 +125,7 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
 
     :param min_value: Lower bound to be exceeded.
     """
-    breakpoint()
+
     cond = col(data.column_name) > min_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
 

@@ -68,7 +68,6 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
     print(errors)
-    breakpoint()
 
 
 def test_pyspark_schema_data_checks(spark):
@@ -100,4 +99,3 @@ def test_pyspark_schema_data_checks(spark):
     df_fail = spark_df(spark, data_fail, spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
     print(errors)
-    breakpoint()

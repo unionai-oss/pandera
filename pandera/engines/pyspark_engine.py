@@ -305,7 +305,6 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
         pandera_dtype: dtypes.DataType,
     ) -> Union[bool, Iterable[bool]]:
         try:
-            breakpoint()
             pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
             return False
@@ -314,7 +313,6 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:
-            breakpoint()
             return (
                 (self.type == pandera_dtype.type)
                 & (self.scale == pandera_dtype.scale)
@@ -412,7 +410,6 @@ class TimeDelta(DataType):
         pandera_dtype: dtypes.DataType,
     ) -> Union[bool, Iterable[bool]]:
         try:
-            breakpoint()
             pandera_dtype = Engine.dtype(pandera_dtype)
         except TypeError:
             return False
@@ -421,7 +418,6 @@ class TimeDelta(DataType):
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:
-            breakpoint()
             return (
                 (self.type == pandera_dtype.type)
                 & (self.type.DAY == pandera_dtype.type.DAY)

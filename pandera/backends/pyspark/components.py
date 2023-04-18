@@ -64,12 +64,11 @@ class ColumnBackend(ColumnSchemaBackend):
                 )
             # except SchemaErrors as err:
             #     for err_dict in err.schema_errors:
-            #         breakpoint()
+            #
             #         error_handler.collect_error(
             #             ErrorCategory.DATA, err_dict["reason_code"], err_dict["error"]
             #         )
             except SchemaError as err:
-                breakpoint()
                 error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
 
         column_keys_to_check = (
@@ -77,7 +76,7 @@ class ColumnBackend(ColumnSchemaBackend):
             if schema.regex
             else [schema.name]
         )
-        breakpoint()
+
         for column_name in column_keys_to_check:
             if schema.coerce:
                 check_obj = self.coerce_dtype(
@@ -162,7 +161,6 @@ class ColumnBackend(ColumnSchemaBackend):
                     self.run_check(check_obj, schema, check, check_index, *check_args)
                 )
             except SchemaError as err:
-                breakpoint()
                 error_handler.collect_error(
                     type=ErrorCategory.DATA,
                     reason_code=SchemaErrorReason.DATAFRAME_CHECK,
@@ -172,7 +170,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
-                breakpoint()
+
                 error_handler.collect_error(
                     type=ErrorCategory.DATA,
                     reason_code=SchemaErrorReason.CHECK_ERROR,
