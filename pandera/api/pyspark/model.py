@@ -137,7 +137,7 @@ class DataFrameModel(BaseModel):
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
-        return cast(DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs))
+        return cast(DataFrameBase[TDataFrameModel], cls.report_errors(*args, **kwargs))
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.api.pyspark.model_components.FieldInfo` instances."""
@@ -257,7 +257,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
-    def validate(
+    def report_errors(
         cls: Type[TDataFrameModel],
         check_obj: ps.DataFrame,
         head: Optional[int] = None,
@@ -270,7 +270,7 @@ class DataFrameModel(BaseModel):
         """%(validate_doc)s"""
         return cast(
             DataFrameBase[TDataFrameModel],
-            cls.to_schema().validate(
+            cls.to_schema().report_errors(  # TODO: test
                 check_obj, head, tail, sample, random_state, lazy, inplace
             ),
         )

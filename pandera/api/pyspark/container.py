@@ -249,7 +249,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
         return self.BACKEND.coerce_dtype(check_obj, schema=self)
 
-    def validate(
+    def report_errors(
         self,
         check_obj: DataFrame,
         head: Optional[int] = None,
@@ -304,7 +304,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         ...         ]),
         ... })
         >>>
-        >>> schema_withchecks.validate(df)[["probability", "category"]]
+        >>> schema_withchecks.report_errors(df)[["probability", "category"]]
            probability category
         0         0.10      dog
         1         0.40      dog
@@ -315,7 +315,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         """
         error_handler = ErrorHandler(lazy)
 
-        return self._validate(
+        return self._report_errors(
             check_obj=check_obj,
             head=head,
             tail=tail,
@@ -326,7 +326,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             error_handler=error_handler,
         )
 
-    def _validate(
+    def _report_errors(
         self,
         check_obj: DataFrame,
         head: Optional[int] = None,
@@ -346,7 +346,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 UserWarning,
             )
 
-        return self.BACKEND.validate(
+        return self.BACKEND.report_errors(
             check_obj=check_obj,
             schema=self,
             head=head,
@@ -386,7 +386,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
         """
-        return self.validate(dataframe, head, tail, sample, random_state, lazy, inplace)
+        return self.report_errors(
+            dataframe, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __repr__(self) -> str:
         """Represent string for logging."""

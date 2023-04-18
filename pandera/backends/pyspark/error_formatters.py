@@ -209,7 +209,7 @@ Directly inspect all errors by catching the exception:
 
 ```
 try:
-    schema.validate(dataframe, lazy=True)
+    schema.report_errors(dataframe, lazy=True)
 except SchemaErrors as err:
     err.failure_cases  # dataframe of schema errors
     err.data  # invalid dataframe

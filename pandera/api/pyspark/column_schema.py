@@ -88,7 +88,7 @@ class ColumnSchema(BaseSchema):
         """Set the pandas dtype"""
         self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
-    def validate(
+    def report_errors(
         self,
         check_obj,
         head: Optional[int] = None,
@@ -118,7 +118,7 @@ class ColumnSchema(BaseSchema):
         :returns: validated DataFrame or Series.
 
         """
-        return self.BACKEND.validate(
+        return self.BACKEND.report_errors(
             check_obj,
             schema=self,
             head=head,
@@ -141,7 +141,9 @@ class ColumnSchema(BaseSchema):
         inplace: bool = False,
     ):
         """Alias for ``validate`` method."""
-        return self.validate(check_obj, head, tail, sample, random_state, lazy, inplace)
+        return self.report_errors(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

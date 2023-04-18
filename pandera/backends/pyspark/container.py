@@ -31,7 +31,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Preprocesses a check object before applying check functions."""
         return check_obj
 
-    def validate(
+    def report_errors(
         self,
         check_obj: DataFrame,
         schema,
@@ -141,7 +141,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(
+                result = schema_component.report_errors(
                     check_obj=check_obj,
                     lazy=lazy,
                     inplace=True,
