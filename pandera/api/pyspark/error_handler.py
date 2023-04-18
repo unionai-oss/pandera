@@ -87,5 +87,4 @@ class ErrorHandler:
                 }
             )
 
-        breakpoint()
         return self._summarized_errors

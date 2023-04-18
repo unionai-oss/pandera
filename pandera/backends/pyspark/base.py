@@ -79,7 +79,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         :returns: True if check results pass or check.raise_warning=True, otherwise
             False.
         """
-        breakpoint()
+
         check_result = check(check_obj, *args)
         if not check_result.check_passed:
             if check_result.failure_cases is None:
@@ -102,7 +102,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
             if check.raise_warning:
                 warnings.warn(error_msg, UserWarning)
                 return True
-            breakpoint()
+
             raise SchemaError(
                 schema,
                 check_obj,

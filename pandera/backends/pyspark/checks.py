@@ -16,6 +16,7 @@ from pandera.api.pyspark.types import (
 )
 from collections import namedtuple
 
+
 class PySparkCheckBackend(BaseCheckBackend):
     """Check backend for PySpark."""
 
@@ -111,12 +112,11 @@ class PySparkCheckBackend(BaseCheckBackend):
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: DataFrame):
-        breakpoint()
         return self.check_fn(check_obj)
 
     # @overload  # type: ignore [no-redef]
     # def apply(self, check_obj: is_field):  # type: ignore [valid-type]
-    #     breakpoint()
+    #
     #     if self.check.element_wise:
     #         return check_obj.map(self.check_fn)
     #     return self.check_fn(check_obj)
