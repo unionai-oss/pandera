@@ -7,12 +7,14 @@ import pyspark.sql.types as T
 import pytest
 from pyspark.sql import SparkSession
 import pandera as pa
-from pandera import pyspark_sql_accessor
+from pandera import pyspark_sql_accessor, SchemaModel
 from pandera.error_handlers import SchemaError
 
 from pyspark.sql.types import StringType, LongType
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
+from pandera.api.pyspark.model import DataFrameModel
+from pandera.api.pyspark.model_components import Field
 from tests.pyspark.conftest import spark_df
 
 spark = SparkSession.builder.getOrCreate()

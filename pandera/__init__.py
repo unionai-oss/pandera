@@ -6,6 +6,7 @@ from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
+
 # from pandera.api.pandas import (
 #     Column,
 #     DataFrameSchema,
@@ -14,10 +15,7 @@ from pandera.api.hypotheses import Hypothesis
 #     SeriesSchema,
 # )
 # Todo  Discuss on the packaging
-from pandera.api.pyspark import (
-    DataFrameSchema,
-    Column
-)
+from pandera.api.pyspark import DataFrameSchema, Column
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
 from pandera.api.pandas.model_components import Field, check, dataframe_check
 from pandera.dtypes import (
@@ -96,6 +94,8 @@ try:
     import pyspark.sql
 
     from pandera.accessors import pyspark_sql_accessor
+
+    # from pandera.api.pyspark.model_components import Field
 except ImportError:
     pass
 
@@ -179,5 +179,3 @@ __all__ = [
     # version
     "__version__",
 ]
-
-

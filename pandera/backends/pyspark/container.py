@@ -87,18 +87,21 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema_error=exc,
             )
         # try to coerce datatypes
+
         check_obj = self.coerce_dtype(
             check_obj,
             schema=schema,
             error_handler=error_handler,
         )
         # collect schema components and prepare check object to be validated
+
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
         check_obj_subsample = self.subsample(check_obj, sample, random_state)
         try:
             # TODO: need to create apply at column level
+
             self.run_schema_component_checks(
                 check_obj_subsample, schema_components, lazy, error_handler
             )
@@ -415,7 +418,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         def _try_coercion(obj, colname, col_schema):
             try:
                 schema = obj.pandera.schema
-                
+
                 obj = obj.withColumn(colname, col(colname).cast(col_schema.dtype.type))
                 obj.pandera.add_schema(schema)
                 return obj

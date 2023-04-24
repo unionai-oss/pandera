@@ -1,4 +1,4 @@
-"""Class-based api for pandas models."""
+"""Class-based api for pyspark models."""
 
 import copy
 import inspect
@@ -38,6 +38,7 @@ from pandera.errors import SchemaInitError
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
 import pyspark.sql as ps
+from pandera.api.pyspark.types import PySparkDtypeInputTypes
 
 try:
     from typing_extensions import get_type_hints
@@ -61,6 +62,15 @@ GENERIC_SCHEMA_CACHE: Dict[
 
 F = TypeVar("F", bound=Callable)
 TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
+
+
+# def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
+#     """Typed wrapper around pd.util.Substitution."""
+
+#     def decorator(func: F) -> F:
+#         return cast(F, pd.util.Substitution(*args, **kwargs)(func))
+
+#     return decorator
 
 
 def _is_field(name: str) -> bool:
@@ -134,7 +144,7 @@ class DataFrameModel(BaseModel):
     __checks__: Dict[str, List[Check]] = {}
     __root_checks__: List[Check] = []
 
-    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    # @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
         return cast(DataFrameBase[TDataFrameModel], cls.report_errors(*args, **kwargs))
@@ -147,7 +157,6 @@ class DataFrameModel(BaseModel):
             )
         else:
             cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
-
         super().__init_subclass__(**kwargs)
         # pylint:disable=no-member
         subclass_annotations = cls.__dict__.get("__annotations__", {})
@@ -202,10 +211,12 @@ class DataFrameModel(BaseModel):
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
         """Create :class:`~pandera.DataFrameSchema` from the :class:`.DataFrameModel`."""
+
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
 
         cls.__fields__ = cls._collect_fields()
+
         for field, (annot_info, _) in cls.__fields__.items():
             if isinstance(annot_info.arg, TypeVar):
                 raise SchemaInitError(f"Field {field} has a generic data type")
@@ -226,6 +237,7 @@ class DataFrameModel(BaseModel):
         cls.__root_checks__ = df_custom_checks + df_registered_checks
 
         columns = cls._build_columns_index(cls.__fields__, cls.__checks__)
+
         kwargs = {}
         if cls.__config__ is not None:
             kwargs = {
@@ -244,6 +256,7 @@ class DataFrameModel(BaseModel):
             checks=cls.__root_checks__,  # type: ignore
             **kwargs,  # type: ignore
         )
+
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore
         return cls.__schema__  # type: ignore
@@ -256,7 +269,7 @@ class DataFrameModel(BaseModel):
         return cls.to_schema().to_yaml(stream)
 
     @classmethod
-    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    # @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def report_errors(
         cls: Type[TDataFrameModel],
         check_obj: ps.DataFrame,
@@ -264,7 +277,7 @@ class DataFrameModel(BaseModel):
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = False,
+        lazy: bool = True,
         inplace: bool = False,
     ) -> DataFrameBase[TDataFrameModel]:
         """%(validate_doc)s"""
@@ -281,12 +294,11 @@ class DataFrameModel(BaseModel):
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
     ) -> Dict[str, Column]:
-        index_count = sum(
-            annotation.origin in INDEX_TYPES for annotation, _ in fields.values()
-        )
+        # index_count = sum(
+        #     annotation.origin in INDEX_TYPES for annotation, _ in fields.values()
+        # )
 
         columns: Dict[str, Column] = {}
-
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
             field_name = field.name
@@ -308,28 +320,29 @@ class DataFrameModel(BaseModel):
 
             dtype = None if dtype is Any else dtype
 
-            if (
-                annotation.origin in SERIES_TYPES
-                or annotation.raw_annotation in SERIES_TYPES
-            ):
-                col_constructor = field.to_column if field else Column
+            # TODO: fix type checks
+            # if (
+            #     annotation.origin in SERIES_TYPES
+            #     or annotation.raw_annotation in SERIES_TYPES
+            # ):
+            col_constructor = field.to_column if field else Column
 
-                if check_name is False:
-                    raise SchemaInitError(
-                        f"'check_name' is not supported for {field_name}."
-                    )
-
-                columns[field_name] = col_constructor(  # type: ignore
-                    dtype,
-                    required=not annotation.optional,
-                    checks=field_checks,
-                    name=field_name,
-                )
-            else:
+            if check_name is False:
                 raise SchemaInitError(
-                    f"Invalid annotation '{field_name}: "
-                    f"{annotation.raw_annotation}'"
+                    f"'check_name' is not supported for {field_name}."
                 )
+
+            columns[field_name] = col_constructor(  # type: ignore
+                dtype,
+                required=not annotation.optional,
+                checks=field_checks,
+                name=field_name,
+            )
+            # else:
+            #     raise SchemaInitError(
+            #         f"Invalid annotation '{field_name}: "
+            #         f"{annotation.raw_annotation}'"
+            #     )
 
         return columns
 
@@ -348,6 +361,7 @@ class DataFrameModel(BaseModel):
     @classmethod
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
+
         annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
             cls, include_extras=True  # type: ignore [call-arg]
         )
@@ -374,6 +388,7 @@ class DataFrameModel(BaseModel):
                     + f"not a '{type(field)}.'"
                 )
             fields[field.name] = (AnnotationInfo(annotation), field)
+
         return fields
 
     @classmethod
