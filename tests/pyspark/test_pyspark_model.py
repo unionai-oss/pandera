@@ -1,5 +1,4 @@
 """Unit tests for DataFrameModel module."""
-from pprint import pprint
 from pyspark.sql.functions import col
 import pyspark.sql.types as T
 import pytest
