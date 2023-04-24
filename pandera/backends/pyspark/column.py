@@ -89,7 +89,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                         reason_code=check_result.reason_code,
                     ),
                 )
-
         check_results = self.run_checks(
             check_obj_subsample, schema, error_handler, lazy
         )
@@ -197,6 +196,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         msg = None
 
         if schema.dtype is not None:
+            breakpoint()
             dtype_check_results = schema.dtype.check(
                 Engine.dtype(check_obj.schema[schema.name].dataType),
             )
@@ -239,7 +239,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     # pylint: disable=unused-argument
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
-
         for check_index, check in enumerate(schema.checks):
             check_args = [schema.name]
             try:
@@ -266,7 +265,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     err = err.__cause__
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
-
                 error_handler.collect_error(
                     ErrorCategory.DATA,
                     SchemaErrorReason.CHECK_ERROR,

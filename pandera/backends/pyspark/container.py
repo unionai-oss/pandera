@@ -108,7 +108,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 reason_code=exc.reason_code,
                 schema_error=exc,
             )
-
         try:
             self.run_checks(check_obj_subsample, schema, error_handler)
         except SchemaError as exc:
@@ -415,7 +414,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         def _try_coercion(obj, colname, col_schema):
             try:
                 schema = obj.pandera.schema
-                
+
                 obj = obj.withColumn(colname, col(colname).cast(col_schema.dtype.type))
                 obj.pandera.add_schema(schema)
                 return obj

@@ -3,50 +3,26 @@
 import re
 import functools
 from typing import cast, Any, Iterable, TypeVar, Union, List, Type
+
+import pandera.errors
 from pandera.api.pyspark.types import PysparkDataframeColumnObject, PysparkDefaultTypes
 import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.typing.pyspark import PYSPARK_INSTALLED
+from pandera.backends.pyspark.utils import convert_to_list
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 import pyspark.sql.types as pst
 
 T = TypeVar("T")
-
-
-# Todo Move to decorator.py
-def register_input_datatypes(
-    acceptable_datatypes: List[Type[PysparkDefaultTypes]] = None,
-):
-    """
-    This decorator is used to register the input datatype for the check.
-    The function would raise error if value other than the acceptable one is sent
-
-    """
-
-    def wrapper(func):
-        @functools.wraps(func)
-        def _wrapper(*args, **kwargs):
-            pyspark_object = [a for a in args][0]
-            validation_df = pyspark_object.dataframe
-            validation_column = pyspark_object.column_name
-            datatypes = [i.typeName for i in acceptable_datatypes]
-            current_datatype = (
-                validation_df.select(validation_column).schema[0].dataType.typeName
-            )
-            if current_datatype in datatypes:
-                return func(*args, **kwargs)
-            else:
-                raise TypeError(
-                    f"The function only accepts the following datatypes {acceptable_datatypes}"
-                    f" but got {current_datatype}"
-                )
-
-        return _wrapper
-
-    return wrapper
-
+ALL_NUMERIC_TYPE = [pst.LongType, pst.IntegerType, pst.ByteType, pst.ShortType,
+                    pst.DoubleType, pst.DecimalType, pst.FloatType]
+ALL_DATE_TYPE = [pst.DateType, pst.TimestampType]
+BOLEAN_TYPE = pst.BooleanType
+BINARY_TYPE = pst.BinaryType
+STRING_TYPE = pst.StringType
+DAYTIMEINTERVAL_TYPE = pst.DayTimeIntervalType
 
 # Todo Move to decorator.py
 def register_input_datatypes(
@@ -54,27 +30,39 @@ def register_input_datatypes(
 ):
     """
     This decorator is used to register the input datatype for the check.
-    The function would raise error if value other than the acceptable one is sent
+    An Error would br raised in case the type is not in the list of acceptable types.
 
+    :param acceptable_datatypes: List of pyspark datatypes for which the function is applicable
     """
 
     def wrapper(func):
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
+            # Get the pyspark object from arguments
             pyspark_object = [a for a in args][0]
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
-            datatypes = [i.typeName for i in acceptable_datatypes]
+            pandera_schema_datatype = validation_df.pandera.schema.get_dtypes(validation_df)[validation_column].type.typeName
+            # Type Name of the valid datatypes needed for comparision to remove paramets
+            valid_datatypes = [i.typeName for i in acceptable_datatypes]
             current_datatype = (
                 validation_df.select(validation_column).schema[0].dataType.typeName
             )
-            if current_datatype in datatypes:
+            if pandera_schema_datatype != current_datatype:
+                raise Exception(
+                    f"The check with name \"{func.__name__}\" only accepts the following datatypes \n"
+                    f"{[i.typeName() for i in acceptable_datatypes]} but got {current_datatype()} from the input. \n"
+                    f" This error is usually caused by schema mismatch of value is different from schema defined in"
+                    f" pandera schema"
+                )
+            if current_datatype in valid_datatypes:
                 return func(*args, **kwargs)
             else:
                 raise TypeError(
-                    f"The function only accepts the following datatypes {acceptable_datatypes}"
-                    f" but got {current_datatype}"
-                )
+                        f"The check with name \"{func.__name__}\" only supports the following datatypes "
+                        f"{[i.typeName() for i in acceptable_datatypes]} and not the given {current_datatype()} "
+                        f"datatype"
+                    )
 
         return _wrapper
 
@@ -85,14 +73,14 @@ def register_input_datatypes(
     aliases=["eq"],
     error="equal_to({value})",
 )
-@register_input_datatypes(acceptable_datatypes=[pst.LongType, pst.IntegerType])
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE,
+                                                               BINARY_TYPE, BOLEAN_TYPE))
 def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure all elements of a data container equal a certain value.
 
     :param value: values in this DataFrame data structure must be
         equal to this value.
     """
-
     # validate_datatypes(data, [pst.LongType, pst.IntegerType])
     cond = col(data.column_name) == value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -103,13 +91,15 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     strategy=st.ne_strategy,
     error="not_equal_to({value})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE,
+                                                               BINARY_TYPE, BOLEAN_TYPE))
+
 def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure no elements of a data container equals a certain value.
 
     :param value: This value must not occur in the checked
         :class:`pandas.Series`.
     """
-
     cond = col(data.column_name) != value
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
@@ -118,6 +108,7 @@ def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     aliases=["gt"],
     error="greater_than({min_value})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE))
 def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
     """
     Ensure values of a data container are strictly greater than a minimum
@@ -125,7 +116,6 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
 
     :param min_value: Lower bound to be exceeded.
     """
-
     cond = col(data.column_name) > min_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
@@ -135,6 +125,7 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
     strategy=st.ge_strategy,
     error="greater_than_or_equal_to({min_value})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE))
 def greater_than_or_equal_to(
     data: PysparkDataframeColumnObject, min_value: Any
 ) -> bool:
@@ -153,6 +144,7 @@ def greater_than_or_equal_to(
     strategy=st.lt_strategy,
     error="less_than({max_value})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE))
 def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
@@ -171,6 +163,7 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     strategy=st.le_strategy,
     error="less_than_or_equal_to({max_value})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE))
 def less_than_or_equal_to(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
@@ -190,6 +183,7 @@ def less_than_or_equal_to(data: PysparkDataframeColumnObject, max_value: Any) ->
     strategy=st.in_range_strategy,
     error="in_range({min_value}, {max_value})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE))
 def in_range(
     data: PysparkDataframeColumnObject,
     min_value: T,
@@ -231,6 +225,8 @@ def in_range(
     strategy=st.isin_strategy,
     error="isin({allowed_values})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE,
+                                                               BINARY_TYPE, BOLEAN_TYPE))
 def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
     """Ensure only allowed values occur within a series.
 
@@ -256,6 +252,8 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
     strategy=st.notin_strategy,
     error="notin({forbidden_values})",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE,
+                                                               BINARY_TYPE, BOLEAN_TYPE))
 def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> bool:
     """Ensure some defined values don't occur within a series.
 
@@ -282,6 +280,7 @@ def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> boo
     strategy=st.str_contains_strategy,
     error="str_contains('{pattern}')",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
 def str_contains(
     data: PysparkDataframeColumnObject, pattern: Union[str, re.Pattern]
 ) -> bool:
@@ -302,6 +301,7 @@ def str_contains(
 @register_builtin_check(
     error="str_startswith('{string}')",
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
 def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values start with a certain string.
 
@@ -315,6 +315,7 @@ def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
 @register_builtin_check(
     strategy=st.str_endswith_strategy, error="str_endswith('{string}')"
 )
+@register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
 def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values end with a certain string.
 
