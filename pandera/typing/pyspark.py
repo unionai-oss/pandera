@@ -2,8 +2,10 @@
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
-from pandera.typing.pandas import GenericDtype, DataFrameModel, _GenericAlias
+import pyspark.sql
+
+from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase, ColumnBase, GenericDtype
+from pandera.typing.pandas import DataFrameModel, _GenericAlias
 
 try:
     import pyspark.pandas as ps
@@ -51,4 +53,9 @@ if PYSPARK_INSTALLED:
         """Representation of pandas.Index, only used for type annotation.
 
         *new in 0.8.0*
+        """
+    #Todo move to a separate file
+    class Column(ColumnBase, pyspark.sql.Column, Generic[GenericDtype]):  # type: ignore [misc]  # noqa
+        """Representation of pyspark.sql.Column, only used for type annotation.
+
         """

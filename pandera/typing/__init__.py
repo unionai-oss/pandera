@@ -40,12 +40,23 @@ from pandera.typing.common import (
     UInt16,
     UInt32,
     UInt64,
+    PYSPARK_STRING,
+    PYSPARK_INT,
+    PYSPARK_LONGINT,
+    PYSPARK_SHORTINT,
+    PYSPARK_BYTEINT,
+    PYSPARK_FLOAT,
+    PYSPARK_DECIMAL,
+    PYSPARK_DATE,
+    PYSPARK_TIMESTAMP,
+    PYSPARK_BINARY
 )
 from pandera.typing.pandas import DataFrame, Index, Series
-
+from pandera.typing.pyspark import Column
 DATAFRAME_TYPES: Set[Type] = {DataFrame}
 SERIES_TYPES: Set[Type] = {Series}
 INDEX_TYPES: Set[Type] = {Index}
+COLUMN_TYPES: Set[Type] = {Column}
 
 if dask.DASK_INSTALLED:
     DATAFRAME_TYPES.update({dask.DataFrame})
@@ -61,6 +72,7 @@ if pyspark.PYSPARK_INSTALLED:
     DATAFRAME_TYPES.update({pyspark.DataFrame})
     SERIES_TYPES.update({pyspark.Series})
     INDEX_TYPES.update({pyspark.Index})  # type: ignore [arg-type]
+    COLUMN_TYPES.update({pyspark.Column})
 
 
 if geopandas.GEOPANDAS_INSTALLED:
@@ -72,4 +84,5 @@ __all__ = [
     "DataFrame",
     "Series",
     "Index",
+    "Column"
 ]

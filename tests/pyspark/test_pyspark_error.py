@@ -109,17 +109,19 @@ def test_pyspark_fields(spark):
     """
 
     class pandera_schema(DataFrameModel):
-        product: T.StringType() = Field(str_startswith="B")
-        price: T.IntegerType() = Field(gt=5)
-        id: T.IntegerType() = Field()
+        product: pa.typing.Column[T.StringType] = Field(str_startswith="B")
+        price: pa.typing.Column[T.IntegerType] = Field(gt=5)
+        id: pa.typing.Column[T.IntegerType] = Field()
+        id2: pa.typing.Column[str] = Field()
 
-    data_fail = [("Bread", 5, "Food"), ("Cutter", 15, 99)]
+    data_fail = [("Bread", 5, "Food", "val"), ("Butter", 15, 99, "val2")]
 
     spark_schema = T.StructType(
         [
             T.StructField("product", T.StringType(), False),
             T.StructField("price", T.IntegerType(), False),
             T.StructField("id", T.StringType(), False),
+            T.StructField("id2", T.IntegerType(), False),
         ],
     )
 

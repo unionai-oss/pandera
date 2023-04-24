@@ -182,7 +182,7 @@ class Bool(DataType, dtypes.Bool):
 
 
 @Engine.register_dtype(
-    equivalents=["str", "string", "StringType()", pst.StringType()],  # type: ignore
+    equivalents=[str, "str", "string", "StringType()", pst.StringType(), pst.StringType],  # type: ignore
 )
 @immutable
 class String(DataType, dtypes.String):  # type: ignore
@@ -197,7 +197,7 @@ class String(DataType, dtypes.String):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["int", "IntegerType()", pst.IntegerType()],  # type: ignore
+    equivalents=[int, "int", "IntegerType()", pst.IntegerType(), pst.IntegerType],  # type: ignore
 )
 @immutable
 class Int(DataType, dtypes.Int):  # type: ignore
@@ -230,15 +230,6 @@ class BigInt(DataType, dtypes.Int64):  # type: ignore
 
     type = pst.LongType()  # type: ignore
 
-
-@Engine.register_dtype(
-    equivalents=["int", "IntegerType()", pst.IntegerType()],  # type: ignore
-)
-@immutable
-class Int(DataType, dtypes.Int32):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
-
-    type = pst.IntegerType()  # type: ignore
 
 
 @Engine.register_dtype(

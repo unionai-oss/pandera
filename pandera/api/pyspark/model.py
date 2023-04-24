@@ -277,7 +277,7 @@ class DataFrameModel(BaseModel):
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = False,
+        lazy: bool = True,
         inplace: bool = False,
     ) -> DataFrameBase[TDataFrameModel]:
         """%(validate_doc)s"""
@@ -319,7 +319,7 @@ class DataFrameModel(BaseModel):
                 dtype = annotation.arg
 
             dtype = None if dtype is Any else dtype
-            breakpoint()
+
             # TODO: fix type checks
             # if (
             #     annotation.origin in SERIES_TYPES
