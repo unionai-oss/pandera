@@ -237,7 +237,7 @@ class DataFrameModel(BaseModel):
         cls.__root_checks__ = df_custom_checks + df_registered_checks
 
         columns = cls._build_columns_index(cls.__fields__, cls.__checks__)
-        breakpoint()
+
         kwargs = {}
         if cls.__config__ is not None:
             kwargs = {
@@ -256,7 +256,7 @@ class DataFrameModel(BaseModel):
             checks=cls.__root_checks__,  # type: ignore
             **kwargs,  # type: ignore
         )
-        breakpoint()
+
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore
         return cls.__schema__  # type: ignore
@@ -343,7 +343,7 @@ class DataFrameModel(BaseModel):
             #         f"Invalid annotation '{field_name}: "
             #         f"{annotation.raw_annotation}'"
             #     )
-        breakpoint()
+
         return columns
 
     @classmethod
@@ -378,7 +378,7 @@ class DataFrameModel(BaseModel):
 
         if missing:
             raise SchemaInitError(f"Found missing annotations: {missing}")
-        breakpoint()
+
         fields = {}
         for field_name, annotation in annotations.items():
             field = attrs[field_name]  # __init_subclass__ guarantees existence
@@ -388,7 +388,7 @@ class DataFrameModel(BaseModel):
                     + f"not a '{type(field)}.'"
                 )
             fields[field.name] = (AnnotationInfo(annotation), field)
-        breakpoint()
+
         return fields
 
     @classmethod
