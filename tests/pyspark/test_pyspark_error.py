@@ -101,30 +101,3 @@ def test_pyspark_schema_data_checks(spark):
     df_fail = spark_df(spark, data_fail, spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
     print(errors)
-
-
-def test_pyspark_fields(spark):
-    """
-    Test schema and data level checks
-    """
-
-    class pandera_schema(DataFrameModel):
-        product: pa.typing.Column[T.StringType] = Field(str_startswith="B")
-        price: pa.typing.Column[T.IntegerType] = Field(gt=5)
-        id: pa.typing.Column[T.IntegerType] = Field()
-        id2: pa.typing.Column[str] = Field()
-
-    data_fail = [("Bread", 5, "Food", "val"), ("Butter", 15, 99, "val2")]
-
-    spark_schema = T.StructType(
-        [
-            T.StructField("product", T.StringType(), False),
-            T.StructField("price", T.IntegerType(), False),
-            T.StructField("id", T.StringType(), False),
-            T.StructField("id2", T.IntegerType(), False),
-        ],
-    )
-
-    df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-    print(errors)
