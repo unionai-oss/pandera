@@ -195,7 +195,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         passed = True
         failure_cases = None
         msg = None
-
+        breakpoint()
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(
                 Engine.dtype(check_obj.schema[schema.name].dataType),

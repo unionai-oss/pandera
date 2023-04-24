@@ -62,7 +62,7 @@ class FieldInfo(BaseFieldInfo):
             dtype,
             Column,
             nullable=self.nullable,
-            unique=self.unique,
+            # unique=self.unique,
             coerce=self.coerce,
             regex=self.regex,
             required=required,

@@ -50,15 +50,16 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """
         if not is_table(check_obj):
             raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
-
+        breakpoint()
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)
-
+        breakpoint()
         column_info = self.collect_column_info(check_obj, schema, lazy)
 
         # check the container metadata, e.g. field names
         try:
+            breakpoint()
             self.check_column_names_are_unique(check_obj, schema)
         except SchemaError as exc:
             error_handler.collect_error(
@@ -68,6 +69,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             )
 
         try:
+            breakpoint()
             self.check_column_presence(check_obj, schema, column_info)
         except SchemaErrors as exc:
             for schema_error in exc.schema_errors:
@@ -79,6 +81,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         # strictness check and filter
         try:
+            breakpoint()
             check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
             error_handler.collect_error(
@@ -87,18 +90,21 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema_error=exc,
             )
         # try to coerce datatypes
+        breakpoint()
         check_obj = self.coerce_dtype(
             check_obj,
             schema=schema,
             error_handler=error_handler,
         )
         # collect schema components and prepare check object to be validated
+        breakpoint()
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
         check_obj_subsample = self.subsample(check_obj, sample, random_state)
         try:
             # TODO: need to create apply at column level
+            breakpoint()
             self.run_schema_component_checks(
                 check_obj_subsample, schema_components, lazy, error_handler
             )
@@ -141,6 +147,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
+                breakpoint()
                 result = schema_component.report_errors(
                     check_obj=check_obj,
                     lazy=lazy,
@@ -261,6 +268,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Collects all schema components to use for validation."""
         schema_components = []
         for col_name, col in schema.columns.items():
+            breakpoint()
             if (
                 col.required or col_name in check_obj
             ) and col_name not in column_info.lazy_exclude_column_names:
@@ -415,7 +423,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         def _try_coercion(obj, colname, col_schema):
             try:
                 schema = obj.pandera.schema
-                
+
                 obj = obj.withColumn(colname, col(colname).cast(col_schema.dtype.type))
                 obj.pandera.add_schema(schema)
                 return obj

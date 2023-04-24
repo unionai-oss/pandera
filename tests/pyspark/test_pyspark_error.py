@@ -7,12 +7,14 @@ import pyspark.sql.types as T
 import pytest
 from pyspark.sql import SparkSession
 import pandera as pa
-from pandera import pyspark_sql_accessor
+from pandera import pyspark_sql_accessor, SchemaModel
 from pandera.error_handlers import SchemaError
 
 from pyspark.sql.types import StringType, LongType
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
+from pandera.api.pyspark.model import DataFrameModel
+from pandera.api.pyspark.model_components import Field
 from tests.pyspark.conftest import spark_df
 
 spark = SparkSession.builder.getOrCreate()
@@ -85,6 +87,31 @@ def test_pyspark_schema_data_checks(spark):
         description="schema for product info",
         title="ProductSchema",
     )
+
+    data_fail = [("Bread", 5, "Food"), ("Cutter", 15, 99)]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
+            T.StructField("id", T.StringType(), False),
+        ],
+    )
+
+    df_fail = spark_df(spark, data_fail, spark_schema)
+    errors = pandera_schema.report_errors(check_obj=df_fail)
+    print(errors)
+
+
+def test_pyspark_fields(spark):
+    """
+    Test schema and data level checks
+    """
+
+    class pandera_schema(DataFrameModel):
+        product: T.StringType() = Field(str_startswith="B")
+        price: T.IntegerType() = Field(gt=5)
+        id: T.IntegerType() = Field()
 
     data_fail = [("Bread", 5, "Food"), ("Cutter", 15, 99)]
 
