@@ -166,6 +166,8 @@ class ColumnBackend(ColumnSchemaBackend):
                     reason_code=SchemaErrorReason.DATAFRAME_CHECK,
                     schema_error=err,
                 )
+            except TypeError as err:
+                raise err
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
