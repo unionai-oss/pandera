@@ -10,10 +10,12 @@ import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.typing.pyspark import PYSPARK_INSTALLED
 from pandera.backends.pyspark.utils import convert_to_list
+from pandera.errors import SchemaError
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 import pyspark.sql.types as pst
+
 
 T = TypeVar("T")
 ALL_NUMERIC_TYPE = [pst.LongType, pst.IntegerType, pst.ByteType, pst.ShortType,
@@ -43,14 +45,15 @@ def register_input_datatypes(
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
             pandera_schema_datatype = validation_df.pandera.schema.get_dtypes(validation_df)[validation_column].type.typeName
-            # Type Name of the valid datatypes needed for comparision to remove paramets
+            # Type Name of the valid datatypes needed for comparison  to remove the parameterized values since
+            # only checking type not the parameters
             valid_datatypes = [i.typeName for i in acceptable_datatypes]
             current_datatype = (
                 validation_df.select(validation_column).schema[0].dataType.typeName
             )
             if pandera_schema_datatype != current_datatype:
-                raise Exception(
-                    f"The check with name \"{func.__name__}\" only accepts the following datatypes \n"
+                raise SchemaError(schema=validation_df.pandera.schema, data=validation_df,
+                    message=f"The check with name \"{func.__name__}\" only accepts the following datatypes \n"
                     f"{[i.typeName() for i in acceptable_datatypes]} but got {current_datatype()} from the input. \n"
                     f" This error is usually caused by schema mismatch of value is different from schema defined in"
                     f" pandera schema"
@@ -60,7 +63,7 @@ def register_input_datatypes(
             else:
                 raise TypeError(
                         f"The check with name \"{func.__name__}\" only supports the following datatypes "
-                        f"{[i.typeName() for i in acceptable_datatypes]} and not the given {current_datatype()} "
+                        f"{[i.typeName() for i in acceptable_datatypes]} and not the given \"{current_datatype()}\" "
                         f"datatype"
                     )
 

@@ -168,6 +168,7 @@ class Engine(ABCMeta):
                 )
 
             if equivalents:
+                # Todo - Need changes to this function to support uninitialised object
                 cls._register_equivalents(pandera_dtype_cls, *equivalents)
 
             if "from_parametrized_dtype" in pandera_dtype_cls.__dict__:
@@ -190,6 +191,7 @@ class Engine(ABCMeta):
             data_type, cls._base_pandera_dtypes
         ):
             try:
+                # Todo  - check if we can move to validate without initialization
                 return data_type()
             except (TypeError, AttributeError) as err:
                 raise TypeError(

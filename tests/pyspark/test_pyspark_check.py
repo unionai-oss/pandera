@@ -53,7 +53,7 @@ def check_function(spark, check_fn, pass_case_data,
             raise PysparkSchemaError
 
 
-# Todo Change the verbage of error
+
 def test_datatype_check_decorator(spark):
     schema = DataFrameSchema(
         {
@@ -71,8 +71,16 @@ def test_datatype_check_decorator(spark):
     )
     pass_case_data = [("foo", 'B1'), ("bar", 'B2')],
     df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-    validate_fail_error = schema.validate(df)
+    validate_fail_error = schema.report_errors(df)
+    print(validate_fail_error)
     #with pytest.raises(TypeError):
+    fail_schema = DataFrameSchema(
+        {
+            "product": Column(StringType()),
+            "code": Column(IntegerType(), pa.Check.str_startswith('B')),
+        }
+    )
+
     spark_schema = StructType(
         [
             StructField("product", StringType(), False),
@@ -81,8 +89,10 @@ def test_datatype_check_decorator(spark):
     )
     fail_case_data = [["foo", 1], ["bar", 2]]
     df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-    validate_fail_error = schema.validate(df)
-    breakpoint()
+    validate_fail_error = schema.report_errors(df)
+    print(validate_fail_error)
+    df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
+    validate_fail_error = fail_schema.report_errors(df)
 
 
 @pytest.mark.parametrize("data_dictionary",  [{"Datatype": LongType,
