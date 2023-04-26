@@ -14,7 +14,6 @@ from typing import (
     Any,
     Iterable,
     Union,
-
 )
 import re
 
@@ -205,7 +204,7 @@ class Int(DataType, dtypes.Int):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["float", "FloatType()", pst.FloatType(), pst.FloatType],  # type: ignore
+    equivalents=[float, "float", "FloatType()", pst.FloatType(), pst.FloatType],  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
@@ -220,7 +219,7 @@ class Float(DataType, dtypes.Float):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["bigint", "long", "LongType()", pst.LongType(),  pst.LongType],  # type: ignore
+    equivalents=["bigint", "long", "LongType()", pst.LongType(), pst.LongType],  # type: ignore
 )
 @immutable
 class BigInt(DataType, dtypes.Int64):  # type: ignore
@@ -242,6 +241,7 @@ class ShortInt(DataType, dtypes.Int16):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.ShortType`."""
 
     type = pst.ShortType()  # type: ignore
+
 
 ###############################################################################
 # tinyint
@@ -290,7 +290,6 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
             "type",
             pst.DecimalType(precision=self.precision, scale=self.scale),
         )
-
 
     @classmethod
     def from_parametrized_dtype(cls, ps_dtype: pst.DecimalType):
@@ -357,7 +356,7 @@ class Date(DataType, dtypes.Date):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["datetime", "timestamp", "TimestampType()", pst.TimestampType(),  pst.TimestampType],  # type: ignore
+    equivalents=["datetime", "timestamp", "TimestampType()", pst.TimestampType(), pst.TimestampType],  # type: ignore
 )
 @immutable
 class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
@@ -387,7 +386,12 @@ class Binary(DataType, dtypes.Binary):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["timedelta", "DayTimeIntervalType()", pst.DayTimeIntervalType(), pst.DayTimeIntervalType]
+    equivalents=[
+        "timedelta",
+        "DayTimeIntervalType()",
+        pst.DayTimeIntervalType(),
+        pst.DayTimeIntervalType,
+    ]
 )
 @immutable(init=True)
 class TimeDelta(DataType):
@@ -411,7 +415,6 @@ class TimeDelta(DataType):
             "type",
             pst.DayTimeIntervalType(self.startField, self.endField),  # type: ignore
         )
-
 
     @classmethod
     def from_parametrized_dtype(cls, ps_dtype: pst.DayTimeIntervalType):
@@ -454,9 +457,7 @@ class TimeDelta(DataType):
 class ArrayType(DataType):
     """Semantic representation of a :class:`pyspark.sql.types.ArrayType`."""
 
-    type: pst.ArrayType = dataclasses.field(
-        default=pst.ArrayType, init=False
-    )
+    type: pst.ArrayType = dataclasses.field(default=pst.ArrayType, init=False)
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
@@ -473,7 +474,6 @@ class ArrayType(DataType):
             pst.ArrayType(self.elementType, self.containsNull),  # type: ignore
         )
 
-
     @classmethod
     def from_parametrized_dtype(cls, ps_dtype: pst.ArrayType):
         """Convert a :class:`pyspark.sql.types.ArrayType` to
@@ -481,8 +481,8 @@ class ArrayType(DataType):
         return cls(elementType=ps_dtype.elementType, containsNull=ps_dtype.containsNull)  # type: ignore
 
     def check(
-            self,
-            pandera_dtype: dtypes.DataType,
+        self,
+        pandera_dtype: dtypes.DataType,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -493,9 +493,9 @@ class ArrayType(DataType):
         # (super will compare that DataType classes are exactly the same)
         try:
             return (
-                    (self.type == pandera_dtype.type)
-                    & (self.type.elementType == pandera_dtype.type.elementType)
-                    & (self.type.containsNull == pandera_dtype.type.containsNull)
+                (self.type == pandera_dtype.type)
+                & (self.type.elementType == pandera_dtype.type.elementType)
+                & (self.type.containsNull == pandera_dtype.type.containsNull)
             )
 
         except TypeError:
@@ -512,15 +512,13 @@ class ArrayType(DataType):
 class MapType(DataType):
     """Semantic representation of a :class:`pyspark.sql.types.MapType`."""
 
-    type: pst.MapType = dataclasses.field(
-        default=pst.MapType, init=False
-    )
+    type: pst.MapType = dataclasses.field(default=pst.MapType, init=False)
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
         keyType: Any = pst.StringType(),
         valueType: Any = pst.StringType(),
-        valueContainsNull: bool = True
+        valueContainsNull: bool = True,
     ) -> None:
         # super().__init__(self)
         object.__setattr__(self, "keyType", keyType)
@@ -537,12 +535,15 @@ class MapType(DataType):
     def from_parametrized_dtype(cls, ps_dtype: pst.MapType):
         """Convert a :class:`pyspark.sql.types.MapType` to
         a Pandera :class:`pandera.engines.pyspark_engine.MapType`."""
-        return cls(keyType=ps_dtype.keyType, valueType=ps_dtype.valueType,
-                   valueContainsNull=ps_dtype.valueContainsNull)  # type: ignore
+        return cls(
+            keyType=ps_dtype.keyType,
+            valueType=ps_dtype.valueType,
+            valueContainsNull=ps_dtype.valueContainsNull,
+        )  # type: ignore
 
     def check(
-            self,
-            pandera_dtype: dtypes.DataType,
+        self,
+        pandera_dtype: dtypes.DataType,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -553,10 +554,10 @@ class MapType(DataType):
         # (super will compare that DataType classes are exactly the same)
         try:
             return (
-                    (self.type == pandera_dtype.type)
-                    & (self.type.valueType == pandera_dtype.type.valueType)
-                    & (self.type.keyType == pandera_dtype.type.keyType)
-                    & (self.type.valueContainsNull == pandera_dtype.type.valueContainsNull)
+                (self.type == pandera_dtype.type)
+                & (self.type.valueType == pandera_dtype.type.valueType)
+                & (self.type.keyType == pandera_dtype.type.keyType)
+                & (self.type.valueContainsNull == pandera_dtype.type.valueContainsNull)
             )
 
         except TypeError:
