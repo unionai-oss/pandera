@@ -274,7 +274,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         check_obj = self.preprocess(check_obj, key)
         try:
             check_output = self.apply(check_obj, key, self.check._check_kwargs)
-            breakpoint()
+
         except DispatchError as exc:
             if exc.__cause__ is not None:
                 raise exc.__cause__

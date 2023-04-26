@@ -196,7 +196,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         msg = None
 
         if schema.dtype is not None:
-            breakpoint()
             dtype_check_results = schema.dtype.check(
                 Engine.dtype(check_obj.schema[schema.name].dataType),
             )
