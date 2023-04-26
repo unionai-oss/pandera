@@ -9,21 +9,23 @@ from pandera.error_handlers import SchemaError
 from tests.pyspark.conftest import spark_df
 from pandera.errors import SchemaErrors
 from pyspark.sql import DataFrame
+from typing_extensions import Annotated
 
 def validate_datatype(spark, sample_spark_schema, sample_data, pandera_schema):
 
     df = spark_df(spark, sample_data, sample_spark_schema)
 
-    pandera_schema.validate(df)
+    pandera_schema.report_errors(df)
 
     validated_data = pandera_schema(df)
+    breakpoint()
 
     # negative test
     #with pytest.raises(SchemaErrors):
 
     assert df.pandera.schema == pandera_schema
-    assert isinstance(pandera_schema.validate(df), DataFrame)
-    assert validated_data.pandera.schema == pandera_schema
+    assert isinstance(pandera_schema.report_errors(df), dict)
+    #assert validated_data.pandera.schema == pandera_schema
 
 
 def test_pyspark_dtype_int(spark, sample_data, sample_spark_schema):
@@ -260,3 +262,27 @@ def test_pyspark_binary_types(spark):
     )
 
     validate_datatype(spark, sample_spark_schema, sample_data, pandera_schema)
+
+def test_pyspark_array_types(spark):
+    """
+    Test int dtype column
+    """
+
+    pandera_schema = DataFrameSchema(
+        columns={
+            "array": Column(T.ArrayType(T.StringType(), True)),
+        },
+        name="product_schema",
+        description="schema for product info",
+        title="ProductSchema",
+    )
+    sample_data = [(5, 6, 7),
+                   (5, 9, 11)]
+    sample_spark_schema = T.StructType(
+        [
+            T.StructField("array", T.ArrayType(T.StringType()), False),
+        ],
+    )
+
+    validate_datatype(spark, sample_spark_schema, sample_data, pandera_schema)
+

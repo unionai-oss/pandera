@@ -111,7 +111,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 reason_code=exc.reason_code,
                 schema_error=exc,
             )
-
         try:
             self.run_checks(check_obj_subsample, schema, error_handler)
         except SchemaError as exc:

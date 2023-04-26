@@ -21,9 +21,10 @@ import decimal
 import pyspark.sql.functions as F
 import pytest
 import pandera as pa
+import pandera.errors
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
-from pandera.errors import SchemaErrors
+from pandera.errors import SchemaErrors, PysparkSchemaError
 from tests.pyspark.conftest import spark_df
 
 def check_function(spark, check_fn, pass_case_data,
@@ -31,7 +32,7 @@ def check_function(spark, check_fn, pass_case_data,
     schema = DataFrameSchema(
         {
             "product": Column(StringType()),
-            "code": Column(data_types(), check_fn(*function_args)) if isinstance(function_args, list) else
+            "code": Column(data_types(), check_fn(*function_args)) if isinstance(function_args, tuple) else
             Column(data_types(), check_fn(function_args)),
         }
     )
@@ -42,11 +43,56 @@ def check_function(spark, check_fn, pass_case_data,
         ],
     )
     df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-    validate_df = schema.validate(df)
-
-    with pytest.raises(SchemaErrors):
+    validate_fail_error = schema.validate(df)
+    if validate_fail_error:
+        raise PysparkSchemaError
+    with pytest.raises(PysparkSchemaError):
         df_fail = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-        validate_fail_df = schema.validate(df_fail)
+        validate_fail_error = schema.validate(df_fail)
+        if validate_fail_error:
+            raise PysparkSchemaError
+
+
+
+def test_datatype_check_decorator(spark):
+    schema = DataFrameSchema(
+        {
+            "product": Column(StringType()),
+            "code": Column(StringType(), pa.Check.str_startswith('B')),
+        }
+    )
+
+
+    spark_schema = StructType(
+        [
+            StructField("product", StringType(), False),
+            StructField("code", StringType(), False),
+        ],
+    )
+    pass_case_data = [("foo", 'B1'), ("bar", 'B2')],
+    df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
+    validate_fail_error = schema.report_errors(df)
+    print(validate_fail_error)
+    #with pytest.raises(TypeError):
+    fail_schema = DataFrameSchema(
+        {
+            "product": Column(StringType()),
+            "code": Column(IntegerType(), pa.Check.str_startswith('B')),
+        }
+    )
+
+    spark_schema = StructType(
+        [
+            StructField("product", StringType(), False),
+            StructField("code", IntegerType(), False),
+        ],
+    )
+    fail_case_data = [["foo", 1], ["bar", 2]]
+    df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
+    validate_fail_error = schema.report_errors(df)
+    print(validate_fail_error)
+    df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
+    validate_fail_error = fail_schema.report_errors(df)
 
 
 @pytest.mark.parametrize("data_dictionary",  [{"Datatype": LongType,
@@ -627,14 +673,14 @@ def test_in_range_check(spark, data_dictionary) -> None:
         add_value = 1
     # dont include of min and max
     check_function(spark, pa.Check.in_range, data_dictionary['test_pass_data'], data_dictionary['test_fail_data'],
-                   data_dictionary['Datatype'], [min_val-add_value, max_val+add_value, False, False])
+                   data_dictionary['Datatype'], (min_val-add_value, max_val+add_value, False, False))
     # include only min value
     check_function(spark, pa.Check.in_range, data_dictionary['test_pass_data'], data_dictionary['test_fail_data'],
-                   data_dictionary['Datatype'], [min_val, max_val+add_value, True, False])
+                   data_dictionary['Datatype'], (min_val, max_val+add_value, True, False))
     # include only max value
     check_function(spark, pa.Check.in_range, data_dictionary['test_pass_data'], data_dictionary['test_fail_data'],
-                   data_dictionary['Datatype'], [min_val-add_value, max_val, False, True])
+                   data_dictionary['Datatype'], (min_val-add_value, max_val, False, True))
     # include both min and max
     check_function(spark, pa.Check.in_range, data_dictionary['test_pass_data'], data_dictionary['test_fail_data'],
-                   data_dictionary['Datatype'], [min_val, max_val, True, True])
+                   data_dictionary['Datatype'], (min_val, max_val, True, True))
 
