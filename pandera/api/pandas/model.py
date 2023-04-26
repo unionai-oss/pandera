@@ -361,7 +361,8 @@ class DataFrameModel(BaseModel):
             dtype = None if dtype is Any else dtype
 
             if (
-                annotation.origin in SERIES_TYPES
+                annotation.origin is None
+                or annotation.origin in SERIES_TYPES
                 or annotation.raw_annotation in SERIES_TYPES
             ):
                 col_constructor = field.to_column if field else Column
