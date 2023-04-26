@@ -30,7 +30,6 @@ class ColumnSchema(BaseSchema):
 
     BACKEND = ColumnSchemaBackend()
 
-    # TODO: checks is empty
     def __init__(
         self,
         dtype: Optional[PySparkDtypeInputTypes] = None,

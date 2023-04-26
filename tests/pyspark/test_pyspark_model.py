@@ -61,7 +61,7 @@ def test_schema_with_bare_types():
             "c": pa.Column(float),
         },
     )
-    breakpoint()
+
     assert expected == Model.to_schema()
 
 
@@ -83,7 +83,7 @@ def test_schema_with_bare_types_and_field():
             "c": pa.Column(float),
         },
     )
-    breakpoint()
+
     assert expected == Model.to_schema()
 
 

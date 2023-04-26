@@ -172,7 +172,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_results = []
         for check_index, check in enumerate(schema.checks):  # schama.checks is null
             try:
-                check_results.append(  # TODO: looping over cols
+                check_results.append(
                     self.run_check(check_obj, schema, check, check_index)
                 )
             except SchemaError as err:
@@ -190,7 +190,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
                 error_handler.collect_error(
                     ErrorCategory.DATA,
-                    SchemaErrorReason.CHECK_ERROR,  # TODO: make it consistent
+                    SchemaErrorReason.CHECK_ERROR,
                     SchemaError(
                         self,
                         check_obj,
@@ -361,7 +361,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     raise schema_error_dict["error"]
                 _error_handler.collect_error(
                     ErrorCategory.DTYPE_COERCION,
-                    SchemaErrorReason.CHECK_ERROR,  # TODO: check this is correct
+                    SchemaErrorReason.CHECK_ERROR,
                     schema_error_dict["error"],
                 )
         except SchemaError as err:

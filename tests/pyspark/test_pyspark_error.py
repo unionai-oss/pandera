@@ -114,10 +114,14 @@ def test_pyspark_fields(spark):
         price: pa.typing.Column[T.IntegerType] = Field(gt=5)
         id: pa.typing.Column[Annotated[T.DecimalType, 20, 5]] = Field()
         id2: pa.typing.Column[Annotated[T.ArrayType, StringType(), False]] = Field()
-        product_info: pa.typing.Column[Annotated[T.MapType, StringType(), StringType(), False]]
+        product_info: pa.typing.Column[
+            Annotated[T.MapType, StringType(), StringType(), False]
+        ]
 
-    data_fail = [("Bread", 5, 44.4, ["val"], {'product_category': "dairy"}),
-                 ("Butter", 15, 99.0, ["val2"], {'product_category': "bakery"})]
+    data_fail = [
+        ("Bread", 5, 44.4, ["val"], {"product_category": "dairy"}),
+        ("Butter", 15, 99.0, ["val2"], {"product_category": "bakery"}),
+    ]
 
     spark_schema = T.StructType(
         [
@@ -125,10 +129,12 @@ def test_pyspark_fields(spark):
             T.StructField("price", T.IntegerType(), False),
             T.StructField("id", T.DecimalType(20, 5), False),
             T.StructField("id2", T.ArrayType(T.StringType()), False),
-            T.StructField("product_info", T.MapType(T.StringType(), T.StringType(), False), False),
+            T.StructField(
+                "product_info", T.MapType(T.StringType(), T.StringType(), False), False
+            ),
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
-    breakpoint()
+
     print(errors)

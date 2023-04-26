@@ -283,7 +283,7 @@ class DataFrameModel(BaseModel):
         """%(validate_doc)s"""
         return cast(
             DataFrameBase[TDataFrameModel],
-            cls.to_schema().report_errors(  # TODO: test
+            cls.to_schema().report_errors(
                 check_obj, head, tail, sample, random_state, lazy, inplace
             ),
         )
