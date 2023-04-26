@@ -10,37 +10,7 @@ from pandera.api.pyspark.model import DataFrameModel
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.model_components import Field
 from tests.pyspark.conftest import spark_df
-
-
-def test_pyspark_fields(spark):
-    """
-    Test schema and data level checks
-    """
-
-    class pandera_schema(DataFrameModel):
-        product: pa.typing.Column[str] = Field(str_startswith="B")
-        price: pa.typing.Column[int] = Field(gt=6)
-        id: pa.typing.Column[int] = Field()
-
-    data_fail = [("Bread", 5, "Food"), ("Cutter", 15, 99)]
-
-    spark_schema = T.StructType(
-        [
-            T.StructField("product", T.StringType(), False),  # should fail
-            T.StructField("price", T.IntegerType(), False),  # should fail
-            T.StructField("id", T.StringType(), False),  # should fail
-        ],
-    )
-
-    df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-
-    if errors:
-        raise SchemaError(
-            pandera_schema,
-            df_fail,
-            f"errors: {errors}",
-        )
+from typing_extensions import Annotated
 
 
 def test_schema_with_bare_types():
@@ -145,7 +115,7 @@ def test_schema_with_bare_types_field_type(spark):
         [
             T.StructField("a", T.StringType(), False),  # should fail
             T.StructField("b", T.IntegerType(), False),  # should fail
-            T.StructField("c", T.StringType(), False),
+            T.StructField("c", T.StringType(), False),  # should fail
         ],
     )
 
@@ -159,3 +129,38 @@ def test_schema_with_bare_types_field_type(spark):
             df_fail,
             f"errors: {errors}",
         )
+
+
+def test_pyspark_bare_fields(spark):
+    """
+    Test schema and data level checks
+    """
+
+    class pandera_schema(DataFrameModel):
+        product: str = Field(str_startswith="B")
+        price: int = Field(gt=5)
+        id: T.DecimalType(20, 5) = Field()
+        id2: T.ArrayType(T.StringType()) = Field()
+        product_info: T.MapType(T.StringType(), T.StringType()) = Field()
+
+    breakpoint()
+    data_fail = [
+        ("Bread", 5, 44.4, ["val"], {"product_category": "dairy"}),
+        ("Butter", 15, 99.0, ["val2"], {"product_category": "bakery"}),
+    ]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
+            T.StructField("id", T.DecimalType(20, 5), False),
+            T.StructField("id2", T.ArrayType(T.StringType()), False),
+            T.StructField(
+                "product_info", T.MapType(T.StringType(), T.StringType(), False), False
+            ),
+        ],
+    )
+    df_fail = spark_df(spark, data_fail, spark_schema)
+    errors = pandera_schema.report_errors(check_obj=df_fail)
+    breakpoint()
+    print(errors)
