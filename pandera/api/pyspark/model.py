@@ -320,29 +320,25 @@ class DataFrameModel(BaseModel):
 
             dtype = None if dtype is Any else dtype
 
-            # TODO: fix type checks
-            # if (
-            #     annotation.origin in SERIES_TYPES
-            #     or annotation.raw_annotation in SERIES_TYPES
-            # ):
-            col_constructor = field.to_column if field else Column
+            if annotation.origin is None:
+                col_constructor = field.to_column if field else Column
 
-            if check_name is False:
-                raise SchemaInitError(
-                    f"'check_name' is not supported for {field_name}."
+                if check_name is False:
+                    raise SchemaInitError(
+                        f"'check_name' is not supported for {field_name}."
+                    )
+
+                columns[field_name] = col_constructor(  # type: ignore
+                    dtype,
+                    required=not annotation.optional,
+                    checks=field_checks,
+                    name=field_name,
                 )
-
-            columns[field_name] = col_constructor(  # type: ignore
-                dtype,
-                required=not annotation.optional,
-                checks=field_checks,
-                name=field_name,
-            )
-            # else:
-            #     raise SchemaInitError(
-            #         f"Invalid annotation '{field_name}: "
-            #         f"{annotation.raw_annotation}'"
-            #     )
+            else:
+                raise SchemaInitError(
+                    f"Invalid annotation '{field_name}: "
+                    f"{annotation.raw_annotation}'"
+                )
 
         return columns
 

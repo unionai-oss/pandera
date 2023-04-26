@@ -110,7 +110,7 @@ if GEOPANDAS_INSTALLED:
             PYSPARK_DECIMAL,
             PYSPARK_DATE,
             PYSPARK_TIMESTAMP,
-            PYSPARK_BINARY
+            PYSPARK_BINARY,
         ],
     )
 else:
@@ -161,7 +161,7 @@ else:
             PYSPARK_DECIMAL,
             PYSPARK_DATE,
             PYSPARK_TIMESTAMP,
-            PYSPARK_BINARY
+            PYSPARK_BINARY,
         ],
     )
 
@@ -191,8 +191,7 @@ class DataFrameBase(Generic[T]):
             orig_class = getattr(self, "__orig_class__")
             class_args = getattr(orig_class, "__args__", None)
             if class_args is not None and any(
-                x.__name__ == "DataFrameModel"
-                for x in inspect.getmro(class_args[0])
+                x.__name__ == "DataFrameModel" for x in inspect.getmro(class_args[0])
             ):
                 schema_model = value.__args__[0]
             else:
@@ -215,9 +214,7 @@ class SeriesBase(Generic[GenericDtype]):
 
     default_dtype: Optional[Type] = None
 
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
+    def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
 
@@ -230,10 +227,9 @@ class IndexBase(Generic[GenericDtype]):
 
     default_dtype: Optional[Type] = None
 
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
+    def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
         raise AttributeError("Indexes should resolve to pa.Index-s")
+
 
 class ColumnBase(Generic[GenericDtype]):
     """Representation of pandas.Index, only used for type annotation.
@@ -243,9 +239,7 @@ class ColumnBase(Generic[GenericDtype]):
 
     default_dtype: Optional[Type] = None
 
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
+    def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
         raise AttributeError("column should resolve to pyspark.sql.Column-s")
 
 
@@ -298,11 +292,13 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.arg = args[0] if args else args
 
         self.metadata = getattr(self.arg, "__metadata__", None)
+        self.literal = typing_inspect.is_literal_type(self.arg)
+
         if self.metadata:
             self.arg = typing_inspect.get_args(self.arg)[0]
-
-        self.literal = typing_inspect.is_literal_type(self.arg)
-        if self.literal:
+        elif self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
+        elif self.origin is None:
+            self.arg = raw_annotation
 
         self.default_dtype = getattr(raw_annotation, "default_dtype", None)

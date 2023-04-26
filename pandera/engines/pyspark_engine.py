@@ -212,7 +212,7 @@ class Int(DataType, dtypes.Int):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["float", "FloatType()", pst.FloatType()],  # type: ignore
+    equivalents=[float, "float", "FloatType()", pst.FloatType()],  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
@@ -229,7 +229,6 @@ class BigInt(DataType, dtypes.Int64):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
 
     type = pst.LongType()  # type: ignore
-
 
 
 @Engine.register_dtype(
