@@ -6,25 +6,16 @@
 
 # pylint doesn't know about __init__ generated with dataclass
 # pylint:disable=unexpected-keyword-arg,no-value-for-parameter
-import builtins
+
 import dataclasses
-import datetime
-import decimal
 import inspect
 import warnings
 from typing import (
     Any,
-    Callable,
-    Dict,
     Iterable,
-    List,
-    Optional,
-    Type,
     Union,
-    cast,
 )
 import re
-from pydantic import BaseModel, ValidationError
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
@@ -61,7 +52,8 @@ class DataType(dtypes.DataType):
         super().__init__()
         # Pyspark str(<DataType>) doesnot return equivalent string using the below code to convert the datatype to class
         try:
-            dtype = eval("pst." + dtype)
+            if isinstance(dtype, str):
+                dtype = eval("pst." + dtype)
         except AttributeError:
             pass
         except TypeError:
@@ -160,7 +152,7 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 @Engine.register_dtype(
-    equivalents=["bool", "BooleanType()", pst.BooleanType()],
+    equivalents=[bool, "bool", "BooleanType()", pst.BooleanType(), pst.BooleanType],
 )
 @immutable
 class Bool(DataType, dtypes.Bool):
@@ -212,7 +204,7 @@ class Int(DataType, dtypes.Int):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=[float, "float", "FloatType()", pst.FloatType()],  # type: ignore
+    equivalents=[float, "float", "FloatType()", pst.FloatType(), pst.FloatType],  # type: ignore
 )
 @immutable
 class Float(DataType, dtypes.Float):  # type: ignore
@@ -221,38 +213,58 @@ class Float(DataType, dtypes.Float):  # type: ignore
     type = pst.FloatType()  # type: ignore
 
 
+###############################################################################
+# bigint or long
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["bigint", "long", "LongType()", pst.LongType()],  # type: ignore
+    equivalents=["bigint", "long", "LongType()", pst.LongType(), pst.LongType],  # type: ignore
 )
 @immutable
 class BigInt(DataType, dtypes.Int64):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.LongType`."""
 
     type = pst.LongType()  # type: ignore
 
 
+###############################################################################
+# smallint
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["smallint", "short", "ShortType()", pst.ShortType()],  # type: ignore
+    equivalents=["smallint", "short", "ShortType()", pst.ShortType(), pst.ShortType],  # type: ignore
 )
 @immutable
 class ShortInt(DataType, dtypes.Int16):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.ShortType`."""
 
     type = pst.ShortType()  # type: ignore
 
 
+###############################################################################
+# tinyint
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["tinyint", "byte", "ByteType()", pst.ByteType()],  # type: ignore
+    equivalents=["tinyint", "byte", "ByteType()", pst.ByteType(), pst.ByteType],  # type: ignore
 )
 @immutable
 class ByteInt(DataType, dtypes.Int8):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.FloatType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.ByteType`."""
 
     type = pst.ByteType()  # type: ignore
 
 
+###############################################################################
+# decimal
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["decimal", "DecimalType()", pst.DecimalType()],  # type: ignore
+    equivalents=["decimal", "DecimalType()", pst.DecimalType(), pst.DecimalType],  # type: ignore
 )
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):  # type: ignore
@@ -278,11 +290,6 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
             "type",
             pst.DecimalType(precision=self.precision, scale=self.scale),
         )
-
-    """
-    The `rounding mode <https://docs.python.org/3/library/decimal.html#rounding-modes>`__
-    supported by the Python :py:class:`decimal.Decimal` class.
-    """
 
     @classmethod
     def from_parametrized_dtype(cls, ps_dtype: pst.DecimalType):
@@ -313,34 +320,54 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
             return super().check(pandera_dtype)
 
 
+###############################################################################
+# double
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["double", "DoubleType()", pst.DoubleType()],  # type: ignore
+    equivalents=["double", "DoubleType()", pst.DoubleType(), pst.DoubleType],  # type: ignore
 )
 @immutable
 class Double(DataType, dtypes.Float):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.DoubleType`."""
 
     type = pst.DoubleType()
 
 
+###############################################################################
+# date
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["date", "DateType()", pst.DateType()],  # type: ignore
+    equivalents=["date", "DateType()", pst.DateType(), pst.DateType],  # type: ignore
 )
 @immutable
 class Date(DataType, dtypes.Date):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.DateType`."""
 
     type = pst.DateType()  # type: ignore
 
 
+###############################################################################
+# timestamp
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["datetime", "timestamp", "TimestampType()", pst.TimestampType()],  # type: ignore
+    equivalents=["datetime", "timestamp", "TimestampType()", pst.TimestampType(), pst.TimestampType],  # type: ignore
 )
 @immutable
 class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.TimestampType`."""
 
     type = pst.TimestampType()  # type: ignore
+
+
+###############################################################################
+# binary
+###############################################################################
 
 
 @Engine.register_dtype(
@@ -348,16 +375,28 @@ class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
 )
 @immutable
 class Binary(DataType, dtypes.Binary):  # type: ignore
-    """Semantic representation of a :class:`pyspark.sql.types.DecimalType`."""
+    """Semantic representation of a :class:`pyspark.sql.types.BinaryType`."""
 
     type = pst.BinaryType()  # type: ignore
 
 
+###############################################################################
+# timedelta
+###############################################################################
+
+
 @Engine.register_dtype(
-    equivalents=["timedelta", "DayTimeIntervalType()", pst.DayTimeIntervalType()]
+    equivalents=[
+        "timedelta",
+        "DayTimeIntervalType()",
+        pst.DayTimeIntervalType(),
+        pst.DayTimeIntervalType,
+    ]
 )
 @immutable(init=True)
 class TimeDelta(DataType):
+    """Semantic representation of a :class:`pyspark.sql.types.DayTimeIntervalType`."""
+
     type: pst.DayTimeIntervalType = dataclasses.field(
         default=pst.DayTimeIntervalType, init=False
     )
@@ -377,22 +416,10 @@ class TimeDelta(DataType):
             pst.DayTimeIntervalType(self.startField, self.endField),  # type: ignore
         )
 
-    def __post_init__(self):
-        object.__setattr__(
-            self,
-            "type",
-            pst.DayTimeIntervalType(self.startField, self.endField),
-        )
-
-    """
-    The `rounding mode <https://docs.python.org/3/library/decimal.html#rounding-modes>`__
-    supported by the Python :py:class:`decimal.Decimal` class.
-    """
-
     @classmethod
     def from_parametrized_dtype(cls, ps_dtype: pst.DayTimeIntervalType):
-        """Convert a :class:`pyspark.sql.types.DecimalType` to
-        a Pandera :class:`pandera.engines.pyspark_engine.Decimal`."""
+        """Convert a :class:`pyspark.sql.types.DayTimeIntervalType` to
+        a Pandera :class:`pandera.engines.pyspark_engine.TimeDelta`."""
         return cls(startField=ps_dtype.startField, endField=ps_dtype.endField)  # type: ignore
 
     def check(
@@ -404,7 +431,7 @@ class TimeDelta(DataType):
         except TypeError:
             return False
 
-        # attempts to compare pandas native type if possible
+        # attempts to compare pyspark native type if possible
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:
@@ -414,7 +441,124 @@ class TimeDelta(DataType):
                 & (self.type.HOUR == pandera_dtype.type.HOUR)
                 & (self.type.MINUTE == pandera_dtype.type.MINUTE)
                 & (self.type.SECOND == pandera_dtype.type.SECOND)
-            )  # or super().check(pandera_dtype)
+            )
+
+        except TypeError:
+            return super().check(pandera_dtype)
+
+
+###############################################################################
+# array
+###############################################################################
+
+
+@Engine.register_dtype(equivalents=[pst.ArrayType])
+@immutable(init=True)
+class ArrayType(DataType):
+    """Semantic representation of a :class:`pyspark.sql.types.ArrayType`."""
+
+    type: pst.ArrayType = dataclasses.field(default=pst.ArrayType, init=False)
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        elementType: Any = pst.StringType(),
+        containsNull: bool = True,
+    ) -> None:
+        # super().__init__(self)
+        object.__setattr__(self, "elementType", elementType)
+        object.__setattr__(self, "containsNull", containsNull)
+
+        object.__setattr__(
+            self,
+            "type",
+            pst.ArrayType(self.elementType, self.containsNull),  # type: ignore
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, ps_dtype: pst.ArrayType):
+        """Convert a :class:`pyspark.sql.types.ArrayType` to
+        a Pandera :class:`pandera.engines.pyspark_engine.ArrayType`."""
+        return cls(elementType=ps_dtype.elementType, containsNull=ps_dtype.containsNull)  # type: ignore
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+        # attempts to compare pyspark native type if possible
+        # to let subclass inherit check
+        # (super will compare that DataType classes are exactly the same)
+        try:
+            return (
+                (self.type == pandera_dtype.type)
+                & (self.type.elementType == pandera_dtype.type.elementType)
+                & (self.type.containsNull == pandera_dtype.type.containsNull)
+            )
+
+        except TypeError:
+            return super().check(pandera_dtype)
+
+
+###############################################################################
+# map
+###############################################################################
+
+
+@Engine.register_dtype(equivalents=[pst.MapType])
+@immutable(init=True)
+class MapType(DataType):
+    """Semantic representation of a :class:`pyspark.sql.types.MapType`."""
+
+    type: pst.MapType = dataclasses.field(default=pst.MapType, init=False)
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        keyType: Any = pst.StringType(),
+        valueType: Any = pst.StringType(),
+        valueContainsNull: bool = True,
+    ) -> None:
+        # super().__init__(self)
+        object.__setattr__(self, "keyType", keyType)
+        object.__setattr__(self, "valueType", valueType)
+        object.__setattr__(self, "valueContainsNull", valueContainsNull)
+
+        object.__setattr__(
+            self,
+            "type",
+            pst.MapType(self.keyType, self.valueType, self.valueContainsNull),  # type: ignore
+        )
+
+    @classmethod
+    def from_parametrized_dtype(cls, ps_dtype: pst.MapType):
+        """Convert a :class:`pyspark.sql.types.MapType` to
+        a Pandera :class:`pandera.engines.pyspark_engine.MapType`."""
+        return cls(
+            keyType=ps_dtype.keyType,
+            valueType=ps_dtype.valueType,
+            valueContainsNull=ps_dtype.valueContainsNull,
+        )  # type: ignore
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+        # attempts to compare pyspark native type if possible
+        # to let subclass inherit check
+        # (super will compare that DataType classes are exactly the same)
+        try:
+            return (
+                (self.type == pandera_dtype.type)
+                & (self.type.valueType == pandera_dtype.type.valueType)
+                & (self.type.keyType == pandera_dtype.type.keyType)
+                & (self.type.valueContainsNull == pandera_dtype.type.valueContainsNull)
+            )
 
         except TypeError:
             return super().check(pandera_dtype)
