@@ -505,7 +505,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ):
         """Check for presence of specified columns in the data object."""
         if column_info.absent_column_names:
-            reason_code = "column_not_in_dataframe"
+            reason_code = SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME.name
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=[
