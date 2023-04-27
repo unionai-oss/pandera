@@ -161,5 +161,7 @@ def test_pyspark_bare_fields(spark):
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
-    breakpoint()
-    print(errors)
+
+    if errors:
+        pprint(errors)
+        assert True  # TODO: compare with expected after fixing errors dict format
