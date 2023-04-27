@@ -53,7 +53,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         error_handler: ErrorHandler,
     ):
         # pylint: disable=too-many-locals
-        # error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
         if schema.coerce:
@@ -92,14 +91,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_results = self.run_checks(
             check_obj_subsample, schema, error_handler, lazy
         )
-        assert all(check_results)
 
-        # if lazy and error_handler.collected_errors:
-        #     raise SchemaErrors(
-        #         schema=schema,
-        #         schema_errors=error_handler.collected_errors,
-        #         data=check_obj,
-        #     )
         return check_obj
 
     def coerce_dtype(
@@ -150,44 +142,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             failure_cases=scalar_failure_case(schema.name)
             if not column_found
             else None,
-        )
-
-    def check_nullable(self, check_obj: DataFrame, schema):
-        isna = check_obj.isna()
-        passed = schema.nullable or not isna.any()
-        return CoreCheckResult(
-            check="not_nullable",
-            reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
-            passed=cast(bool, passed),
-            message=(
-                f"non-nullable series '{check_obj.name}' contains "
-                f"null values:\n{check_obj[isna]}"
-            ),
-            failure_cases=reshape_failure_cases(check_obj[isna], ignore_na=False),
-        )
-
-    def check_unique(self, check_obj: DataFrame, schema):
-        passed = True
-        failure_cases = None
-        message = None
-
-        if schema.unique:
-            # Todo  Add Failure Cases
-
-            if check_obj.count() != check_obj.drop_duplicates().count:
-                passed = False
-                failure_cases = None  # reshape_failure_cases(failed)
-                message = (
-                    f"Column '{schema.name}' contains duplicate "
-                    # f"values:\n{failed}"
-                )
-
-        return CoreCheckResult(
-            check="field_uniqueness",
-            reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
-            passed=passed,
-            message=message,
-            failure_cases=failure_cases,
         )
 
     def check_dtype(self, check_obj: DataFrame, schema):

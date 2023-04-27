@@ -1,17 +1,12 @@
 """Pyspark Parsing, Validation, and Error Reporting Backends."""
 
 import copy
-import itertools
 import traceback
 from typing import Any, List, Optional
 
 from pandera.backends.pyspark.base import ColumnInfo, PysparkSchemaBackend
-from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.api.pyspark.types import is_table
-from pandera.backends.pandas.error_formatters import (
-    reshape_failure_cases,
-    scalar_failure_case,
-)
+from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import (
     ParserError,
@@ -21,7 +16,7 @@ from pandera.errors import (
     SchemaErrorReason,
 )
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import cast, col
+from pyspark.sql.functions import col
 
 
 class DataFrameSchemaBackend(PysparkSchemaBackend):
@@ -306,7 +301,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     ),
                     failure_cases=scalar_failure_case(column),
                     check="column_in_schema",
-                    reason_code="column_not_in_schema",
+                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
                 )
             if schema.strict == "filter" and not is_schema_col:
                 filter_out_columns.append(column)
@@ -322,7 +317,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                         message=f"column '{column}' out-of-order",
                         failure_cases=scalar_failure_case(column),
                         check="column_ordered",
-                        reason_code="column_not_ordered",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
                     )
 
         if schema.strict == "filter":
@@ -486,7 +481,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 # Todo change the scalar_failure_case
                 failure_cases=scalar_failure_case(failed),
                 check="dataframe_column_labels_unique",
-                reason_code="duplicate_dataframe_column_labels",
+                reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
             )
 
     def check_column_presence(
@@ -516,43 +511,3 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 ],
                 data=check_obj,
             )
-
-    def check_column_values_are_unique(self, check_obj: DataFrame, schema):
-        """Check that column values are unique."""
-        if not schema.unique:
-            return
-
-        # NOTE: fix this pylint error
-        # pylint: disable=not-an-iterable
-
-        # Todo Not needed for spark discuss and remove convert_uniquesettings
-        # keep_setting = convert_uniquesettings(schema.report_duplicates)
-        temp_unique: List[List] = (
-            [schema.unique]
-            if all(isinstance(x, str) for x in schema.unique)
-            else schema.unique
-        )
-        for lst in temp_unique:
-            subset = [x for x in lst if x in check_obj]
-            original_count = check_obj.count()
-            drop_count = check_obj.drop_duplicates(  # type: ignore
-                subset=subset  # type: ignore
-            ).count()
-            if drop_count != original_count:
-                # NOTE: this is a hack to support pyspark.pandas, need to
-                # figure out a workaround to error: "Cannot combine the
-                # series or dataframe because it comes from a different
-                # dataframe."
-                # Todo How to handle the error
-                # failure_cases = check_obj.loc[duplicates, subset]
-
-                # failure_cases = reshape_failure_cases(failure_cases)
-                failure_cases = None
-                raise SchemaError(
-                    schema=schema,
-                    data=check_obj,
-                    message=f"columns '{*subset,}' not unique:\n{failure_cases}",
-                    failure_cases=failure_cases,
-                    check="multiple_fields_uniqueness",
-                    reason_code="duplicates",
-                )
