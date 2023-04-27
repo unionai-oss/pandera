@@ -340,12 +340,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: Optional[ErrorHandler] = None,
+        error_handler: ErrorHandler,
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
-
-        _error_handler = error_handler or ErrorHandler(lazy=True)
 
         if not (schema.coerce or any(col.coerce for col in schema.columns.values())):
             return check_obj
@@ -355,28 +353,19 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         except SchemaErrors as err:
             for schema_error_dict in err.schema_errors:
-                if not _error_handler.lazy:
+                if not error_handler.lazy:
                     # raise the first error immediately if not doing lazy
                     # validation
                     raise schema_error_dict["error"]
-                _error_handler.collect_error(
+                error_handler.collect_error(
                     ErrorCategory.DTYPE_COERCION,
                     SchemaErrorReason.CHECK_ERROR,
                     schema_error_dict["error"],
                 )
         except SchemaError as err:
-            if not _error_handler.lazy:
+            if not error_handler.lazy:
                 raise err
-            _error_handler.collect_error(ErrorCategory.SCHEMA, err.reason_code, err)
-
-        if error_handler is None and _error_handler.collected_errors:
-            # raise SchemaErrors if this method is called without an
-            # error_handler
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=_error_handler.collected_errors,
-                data=check_obj,
-            )
+            error_handler.collect_error(ErrorCategory.SCHEMA, err.reason_code, err)
 
         return check_obj
 
@@ -505,7 +494,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ):
         """Check for presence of specified columns in the data object."""
         if column_info.absent_column_names:
-            reason_code = SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME.name
+            reason_code = SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME
             raise SchemaErrors(
                 schema=schema,
                 schema_errors=[
