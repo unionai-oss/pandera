@@ -26,7 +26,8 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ValidationError
+import typeguard
+from pydantic import BaseModel, ValidationError, create_model
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
@@ -1111,3 +1112,174 @@ class PydanticModel(DataType):
                 ),
             )
         return coerced_df.drop(["failure_cases"], axis="columns")
+
+
+###############################################################################
+# Generic Python types
+###############################################################################
+
+
+@dtypes.immutable(init=True)
+class PythonGenericType(DataType):
+    """A datatype to support python generics."""
+
+    type: Type = dataclasses.field(default=None, init=False)
+    generic_type: Any = dataclasses.field(default=None, init=False)
+    coercion_model: Type[BaseModel] = dataclasses.field(
+        default=None, init=False
+    )
+    _pandas_type = object
+
+    def _check_type(self, element: Any) -> bool:
+        try:
+            typeguard.check_type(element, self.generic_type)
+            return True
+        except typeguard.TypeCheckError:
+            return False
+
+    def _coerce_element(self, element: Any) -> Any:
+        try:
+            coerced_element = self.CoercionModel(__root__=element).__root__
+        except:
+            coerced_element = pd.NA
+        return coerced_element
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PandasObject] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        """Check that data container has the expected type."""
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        # the underlying pandas dtype must be an object
+        if pandera_dtype != Engine.dtype(self._pandas_type):
+            return False
+
+        if self.generic_type is None:
+            return data_container.map(type) == self.type
+        else:
+            return data_container.map(self._check_type)
+
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        """Coerce data container to the specified data type."""
+        # pylint: disable=import-outside-toplevel
+        from pandera.backends.pandas import error_formatters
+
+        orig_isna = data_container.isna()
+        coerced_data = data_container.map(self._coerce_element)
+        failed_selector = coerced_data.isna() & ~orig_isna
+        failure_cases = coerced_data[failed_selector]
+
+        if len(failure_cases) > 0:
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {self.generic_type or self.type}",
+                failure_cases=error_formatters.reshape_failure_cases(
+                    failure_cases, ignore_na=False
+                ),
+            )
+
+        return coerced_data
+
+    def __str__(self) -> str:
+        return str(self.generic_type or self.type)
+
+
+@Engine.register_dtype(equivalents=[dict])
+@dtypes.immutable(init=True)
+class PythonDict(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type: Type[dict] = dict
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, args: Optional[Iterable[Any]] = None
+    ) -> None:
+        if args is not None:
+            object.__setattr__(self, "generic_type", Dict.__getitem__(args))
+
+        # Use pydantic to coerce data
+        object.__setattr__(
+            self,
+            "CoercionModel",
+            create_model(
+                "CoercionModel", __root__=(self.generic_type or self.type, ...)
+            ),
+        )
+
+
+@Engine.register_dtype(equivalents=[list])
+@dtypes.immutable(init=True)
+class PythonList(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type: Type[list] = list
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, args: Optional[Iterable[Any]] = None
+    ) -> None:
+        if args is not None:
+            object.__setattr__(self, "generic_type", List.__getitem__(args))
+
+        # Use pydantic to coerce data
+        object.__setattr__(
+            self,
+            "CoercionModel",
+            create_model(
+                "CoercionModel", __root__=(self.generic_type or self.type, ...)
+            ),
+        )
+
+
+from pyspark.sql.types import MapType
+
+
+@Engine.register_dtype(equivalents=[MapType])
+@dtypes.immutable(init=True)
+class PysparkType(DataType):
+    """A datatype to support python generics."""
+
+    type = MapType
+    pyspark_type: Any = dataclasses.field(default=None, init=False)
+    _pandas_type = object
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, args: Optional[Iterable[Any]] = None
+    ) -> None:
+        if args is not None:
+            object.__setattr__(self, "pyspark_type", self.type(*args))
+
+    @classmethod
+    def from_parametrized_dtype(cls, ps_dtype: MapType):
+        """Convert a :class:`pyspark.sql.types.MapType` to
+        a Pandera :class:`pandera.engines.pandas_engine.PysparkType`."""
+        return cls(
+            (ps_dtype.keyType, ps_dtype.valueType, ps_dtype.valueContainsNull)  # type: ignore
+        )
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PandasObject] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        """Check that data container has the expected type."""
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        # the underlying pandas dtype must be an object
+        if pandera_dtype != Engine.dtype(self._pandas_type):
+            return False
+
+        # TODO:
+        # for the actual pyspark example, get the datatype metadata and compare
+        # that with self.pyspark_type
+        return True
+
+    def __str__(self) -> str:
+        return str(self.pyspark_type or self.type)

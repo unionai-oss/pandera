@@ -200,6 +200,13 @@ class Engine(ABCMeta):
 
         registry = cls._registry[cls]
 
+        # handle python generic types, e.g. typing.Dict[str, str]
+        datatype_origin = typing_inspect.get_origin(data_type)
+        if datatype_origin is not None:
+            equivalent_data_type = registry.equivalents.get(datatype_origin)
+            datatype_args = typing_inspect.get_args(data_type)
+            return type(equivalent_data_type)(datatype_args)
+
         equivalent_data_type = registry.equivalents.get(data_type)
         if equivalent_data_type is not None:
             return equivalent_data_type
