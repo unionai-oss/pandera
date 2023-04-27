@@ -249,7 +249,7 @@ class ShortInt(DataType, dtypes.Int16):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=[bytes, "tinyInt", "byte", "ByteType()", pst.ByteType(), pst.ByteType],  # type: ignore
+    equivalents=[bytes, "tinyInt", "bytes", "ByteType()", pst.ByteType(), pst.ByteType],  # type: ignore
 )
 @immutable
 class ByteInt(DataType, dtypes.Int8):  # type: ignore

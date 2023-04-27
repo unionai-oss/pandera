@@ -137,26 +137,25 @@ def test_pyspark_bare_fields(spark):
     """
 
     class pandera_schema(DataFrameModel):
-        product: str = Field(str_startswith="B")
-        price: int = Field(gt=5)
-        id: T.DecimalType(20, 5) = Field()
-        id2: T.ArrayType(T.StringType()) = Field()
-        product_info: T.MapType(T.StringType(), T.StringType()) = Field()
+        id: T.IntegerType() = Field(gt=5)
+        product_name: T.StringType() = Field(str_startswith="B")
+        price: T.DecimalType(20, 5) = Field()
+        description: T.ArrayType(T.StringType()) = Field()
+        meta: T.MapType(T.StringType(), T.StringType()) = Field()
 
-    breakpoint()
     data_fail = [
-        ("Bread", 5, 44.4, ["val"], {"product_category": "dairy"}),
-        ("Butter", 15, 99.0, ["val2"], {"product_category": "bakery"}),
+        (5, "Bread", 44.4, ["description of product"], {"product_category": "dairy"}),
+        (15, "Butter", 99.0, ["more details here"], {"product_category": "bakery"}),
     ]
 
     spark_schema = T.StructType(
         [
+            T.StructField("id", T.IntegerType(), False),
             T.StructField("product", T.StringType(), False),
-            T.StructField("price", T.IntegerType(), False),
-            T.StructField("id", T.DecimalType(20, 5), False),
-            T.StructField("id2", T.ArrayType(T.StringType()), False),
+            T.StructField("price", T.DecimalType(20, 5), False),
+            T.StructField("description", T.ArrayType(T.StringType()), False),
             T.StructField(
-                "product_info", T.MapType(T.StringType(), T.StringType(), False), False
+                "meta", T.MapType(T.StringType(), T.StringType(), False), False
             ),
         ],
     )
