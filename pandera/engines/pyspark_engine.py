@@ -219,7 +219,7 @@ class Float(DataType, dtypes.Float):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["bigint", "long", "LongType()", pst.LongType(), pst.LongType],  # type: ignore
+    equivalents=["bigInt", "long", "LongType()", pst.LongType(), pst.LongType],  # type: ignore
 )
 @immutable
 class BigInt(DataType, dtypes.Int64):  # type: ignore
@@ -234,7 +234,7 @@ class BigInt(DataType, dtypes.Int64):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["smallint", "short", "ShortType()", pst.ShortType(), pst.ShortType],  # type: ignore
+    equivalents=["smallInt", "short", "ShortType()", pst.ShortType(), pst.ShortType],  # type: ignore
 )
 @immutable
 class ShortInt(DataType, dtypes.Int16):  # type: ignore
@@ -249,7 +249,7 @@ class ShortInt(DataType, dtypes.Int16):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["tinyint", "byte", "ByteType()", pst.ByteType(), pst.ByteType],  # type: ignore
+    equivalents=[bytes, "tinyInt", "bytes", "ByteType()", pst.ByteType(), pst.ByteType],  # type: ignore
 )
 @immutable
 class ByteInt(DataType, dtypes.Int8):  # type: ignore
