@@ -122,7 +122,7 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
 
 
 class DataFrameModel(BaseModel):
-    """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
+    """Definition of a :class:`~pandera.api.pyspark.container.DataFrameSchema`.
 
     *new in 0.5.0*
 
@@ -495,7 +495,7 @@ Alias for DataFrameModel.
 
    This subclass is necessary for backwards compatibility, and will be
    deprecated in pandera version ``0.20.0`` in favor of
-   :py:class:`~pandera.api.pandas.model.DataFrameModel`
+   :py:class:`~pandera.api.pyspark.model.DataFrameModel`
 """
 
 
