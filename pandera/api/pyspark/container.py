@@ -362,7 +362,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
-        lazy: bool = False,
+        lazy: bool = True,
         inplace: bool = False,
     ):
         """Alias for :func:`DataFrameSchema.validate` method.

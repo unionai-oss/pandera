@@ -83,7 +83,7 @@ class ErrorHandler:
                     "schema": schema.name,
                     "column": error["column"],
                     "check": error["error"].check,
-                    "error": error["error"],
+                    "error": error["error"].__str__(),
                 }
             )
 
