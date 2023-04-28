@@ -300,6 +300,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     def check(
         self,
         pandera_dtype: dtypes.DataType,
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -371,7 +372,7 @@ class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
 
 
 @Engine.register_dtype(
-    equivalents=["binary", "BinaryType()", pst.BinaryType()],  # type: ignore
+    equivalents=["binary", "BinaryType()", pst.BinaryType(), pst.BinaryType],  # type: ignore
 )
 @immutable
 class Binary(DataType, dtypes.Binary):  # type: ignore
@@ -425,6 +426,7 @@ class TimeDelta(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -483,6 +485,7 @@ class ArrayType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -544,6 +547,7 @@ class MapType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
+        data_container: Any = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)

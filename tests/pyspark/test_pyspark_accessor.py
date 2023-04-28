@@ -32,16 +32,14 @@ def test_dataframe_series_add_schema(
     Test that pandas object contains schema metadata after pandera validation.
     """
     validated_data_1 = schema1(data)  # type: ignore[arg-type]
-    #print(schema2.validate(invalid_data))
-    #print(schema1.validate(invalid_data))
 
     assert data.pandera.schema == schema1
-    assert isinstance(schema1.validate(data), DataFrame)
-    assert validated_data_1.pandera.schema == schema1
+    assert isinstance(schema1.report_errors(data), dict)
+    assert isinstance(schema1(data), dict)
 
-
-    with pytest.raises(SchemaError):
-        schema2(invalid_data)  # type: ignore[arg-type]
+    assert dict(schema2(invalid_data)['SCHEMA']) == {'WRONG_DATATYPE': [
+        {'schema': None, 'column': 'col', 'check': "dtype('FloatType()')",
+         'error': "expected column 'col' to have type FloatType(), got LongType()"}]}  # type: ignore[arg-type]
 
 class CustomAccessor:
     """Mock accessor class"""
