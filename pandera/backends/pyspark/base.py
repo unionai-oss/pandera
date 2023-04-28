@@ -51,7 +51,7 @@ T = TypeVar(
 
 
 class PysparkSchemaBackend(BaseSchemaBackend):
-    """Base backend for pandas schemas."""
+    """Base backend for pyspark schemas."""
 
     def subsample(
         self,
@@ -74,7 +74,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         """Handle check results, raising SchemaError on check failure.
 
         :param check_index: index of check in the schema component check list.
-        :param check: Check object used to validate pandas object.
+        :param check: Check object used to validate pyspark object.
         :param check_args: arguments to pass into check object.
         :returns: True if check results pass or check.raise_warning=True, otherwise
             False.
