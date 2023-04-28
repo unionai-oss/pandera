@@ -1,23 +1,16 @@
 """Backend implementation for pyspark schema components."""
 
 import traceback
-from copy import copy, deepcopy
-from typing import Iterable, Optional, Union
+from copy import copy
+from typing import Iterable, Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import cast
 
 from pandera.backends.pyspark.column import ColumnSchemaBackend
-from pandera.backends.pyspark.container import DataFrameSchemaBackend
-from pandera.api.pyspark.types import (
-    # is_field,
-    # is_index, # Don't need this
-    # is_multiindex, # Don't need this
-    is_table,
-)
-from pandera.backends.pandas.error_formatters import scalar_failure_case
+from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
-from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
+from pandera.errors import SchemaError, SchemaErrorReason
 import re
 
 
@@ -85,14 +78,6 @@ class ColumnBackend(ColumnSchemaBackend):
                     error_handler=error_handler,
                 )
             validate_column(check_obj, column_name)
-
-            # if is_table(check_obj[column_name]):
-            #     for i in range(check_obj[column_name].shape[1]):
-            #         validate_column(
-            #             check_obj[column_name].iloc[:, [i]], column_name
-            #         )
-            # else:
-            #    validate_column(check_obj, column_name)
 
         # if lazy and error_handler.collected_errors:
         #     raise SchemaErrors(

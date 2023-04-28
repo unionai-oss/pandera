@@ -7,7 +7,7 @@ import pandas as pd
 from multimethod import DispatchError
 
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pandas.error_formatters import (
+from pandera.backends.pyspark.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )

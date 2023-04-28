@@ -7,15 +7,16 @@ from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 
-# from pandera.api.pandas import (
-#     Column,
-#     DataFrameSchema,
-#     Index,
-#     MultiIndex,
-#     SeriesSchema,
-# )
-# Todo  Discuss on the packaging
-from pandera.api.pyspark import DataFrameSchema, Column
+from pandera.api.pandas import (
+    Column,
+    DataFrameSchema,
+    Index,
+    MultiIndex,
+    SeriesSchema,
+)
+
+# instead of pa.DataFrameSchema import directly as it will conflict with pandas flows
+# from pandera.api.pyspark import DataFrameSchema, Column
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
 from pandera.api.pandas.model_components import Field, check, dataframe_check
 from pandera.dtypes import (
