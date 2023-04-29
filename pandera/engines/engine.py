@@ -200,13 +200,26 @@ class Engine(ABCMeta):
 
         registry = cls._registry[cls]
 
+
         # handle python generic types, e.g. typing.Dict[str, str]
         datatype_origin = typing_inspect.get_origin(data_type)
         if datatype_origin is not None:
             equivalent_data_type = registry.equivalents.get(datatype_origin)
-            datatype_args = typing_inspect.get_args(data_type)
-            return type(equivalent_data_type)(datatype_args)
-
+            return type(equivalent_data_type)(data_type)
+        
+        # handle python's special declared type constructs like NamedTuple and
+        # TypedDict
+        datatype_generic_bases = typing_inspect.get_generic_bases(data_type)
+        if datatype_generic_bases:
+            equivalent_data_type = None
+            for base in datatype_generic_bases:
+                equivalent_data_type = registry.equivalents.get(base)
+            if equivalent_data_type is None:
+                raise TypeError(
+                    f"Type '{data_type}' not understood by {cls.__name__}."
+                )
+            return type(equivalent_data_type)(data_type)
+        
         equivalent_data_type = registry.equivalents.get(data_type)
         if equivalent_data_type is not None:
             return equivalent_data_type
