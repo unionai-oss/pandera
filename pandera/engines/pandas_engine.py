@@ -12,7 +12,6 @@ import datetime
 import decimal
 import inspect
 import warnings
-import typing
 from typing import (
     Any,
     Callable,
@@ -1131,19 +1130,18 @@ class PydanticModel(DataType):
 class PythonGenericType(DataType):
     """A datatype to support python generics."""
 
-    type: Type = dataclasses.field(default=None, init=False)
+    type: Any = dataclasses.field(default=None, init=False)  # type: ignore
     generic_type: Any = dataclasses.field(default=None, init=False)
     special_type: Any = dataclasses.field(default=None, init=False)
-    coercion_model: Type[BaseModel] = dataclasses.field(
+    coercion_model: Type[BaseModel] = dataclasses.field(  # type: ignore
         default=None, init=False
     )
     _pandas_type = object
 
     def _check_type(self, element: Any) -> bool:
         try:
-            _type = (
-                getattr(self, "generic_type")
-                or getattr(self, "special_type")
+            _type = getattr(self, "generic_type") or getattr(
+                self, "special_type"
             )
             typeguard.check_type(element, _type)
             return True
@@ -1152,8 +1150,9 @@ class PythonGenericType(DataType):
 
     def _coerce_element(self, element: Any) -> Any:
         try:
+            # pylint: disable=not-callable
             coerced_element = self.coercion_model(__root__=element).__root__
-        except:
+        except ValidationError:
             coerced_element = pd.NA
         return coerced_element
 
@@ -1172,10 +1171,12 @@ class PythonGenericType(DataType):
         if pandera_dtype != Engine.dtype(self._pandas_type):
             return False
 
-        if self.generic_type is None and self.special_type is None:
-            return data_container.map(type) == self.type
+        if data_container is None:
+            return True
+        elif self.generic_type is None and self.special_type is None:
+            return data_container.map(type) == self.type  # type: ignore[operator]
         else:
-            return data_container.map(self._check_type)
+            return data_container.map(self._check_type)  # type: ignore[operator]
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         """Coerce data container to the specified data type."""
@@ -1183,7 +1184,7 @@ class PythonGenericType(DataType):
         from pandera.backends.pandas import error_formatters
 
         orig_isna = data_container.isna()
-        coerced_data = data_container.map(self._coerce_element)
+        coerced_data = data_container.map(self._coerce_element)  # type: ignore[operator]
         failed_selector = coerced_data.isna() & ~orig_isna
         failure_cases = coerced_data[failed_selector]
 
@@ -1219,9 +1220,7 @@ class PythonDict(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model(
-                    "coercion_model", __root__=(generic_type, ...)
-                ),
+                create_model("coercion_model", __root__=(generic_type, ...)),
             )
 
 
@@ -1242,9 +1241,7 @@ class PythonList(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model(
-                    "coercion_model", __root__=(generic_type, ...)
-                ),
+                create_model("coercion_model", __root__=(generic_type, ...)),
             )
 
 
@@ -1265,9 +1262,7 @@ class PythonTuple(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model(
-                    "coercion_model", __root__=(generic_type, ...)
-                ),
+                create_model("coercion_model", __root__=(generic_type, ...)),
             )
 
 
@@ -1276,10 +1271,11 @@ class PythonTuple(PythonGenericType):
 class PythonTypedDict(PythonGenericType):
     """A datatype to support python generics."""
 
-    type = TypedDict
+    type = TypedDict  # type: ignore[assignment]
 
     def __init__(  # pylint:disable=super-init-not-called
-        self, special_type: Optional[Type] = None,
+        self,
+        special_type: Optional[Type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1290,12 +1286,12 @@ class PythonTypedDict(PythonGenericType):
                 "coercion_model",
                 create_model(
                     "coercion_model",
-                    __root__=(self.special_type or self.type, ...)
+                    __root__=(self.special_type or self.type, ...),  # type: ignore[has-type]
                 ),
             )
 
     def __str__(self) -> str:
-        return str(TypedDict.__name__)
+        return str(TypedDict.__name__)  # type: ignore[attr-defined]
 
 
 @Engine.register_dtype(equivalents=[NamedTuple, "NamedTuple"])
@@ -1306,7 +1302,8 @@ class PythonNamedTuple(PythonGenericType):
     type = NamedTuple
 
     def __init__(  # pylint:disable=super-init-not-called
-        self, special_type: Optional[Type] = None,
+        self,
+        special_type: Optional[Type] = None,
     ) -> None:
         if special_type is not None:
             object.__setattr__(self, "special_type", special_type)
@@ -1317,7 +1314,7 @@ class PythonNamedTuple(PythonGenericType):
                 "coercion_model",
                 create_model(
                     "coercion_model",
-                    __root__=(self.special_type or self.type, ...)
+                    __root__=(self.special_type or self.type, ...),
                 ),
             )
 

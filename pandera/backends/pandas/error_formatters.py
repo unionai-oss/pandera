@@ -229,6 +229,7 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
             x if isinstance(x, mpd.DataFrame) else mpd.DataFrame(x)
             for x in check_failure_cases
         ]
+        return concat_fn(check_failure_cases).reset_index(drop=True)
 
     return (
         concat_fn(check_failure_cases)

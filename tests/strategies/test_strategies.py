@@ -37,6 +37,11 @@ UNSUPPORTED_DTYPE_CLS: Set[Any] = set(
         pandas_engine.PydanticModel,
         pandas_engine.Decimal,
         pandas_engine.Date,
+        pandas_engine.PythonDict,
+        pandas_engine.PythonList,
+        pandas_engine.PythonTuple,
+        pandas_engine.PythonTypedDict,
+        pandas_engine.PythonNamedTuple,
     ]
 )
 SUPPORTED_DTYPES = set()
