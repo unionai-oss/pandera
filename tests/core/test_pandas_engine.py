@@ -22,7 +22,7 @@ def test_pandas_data_type(data_type):
     if data_type.type is None:
         # don't test data types that require parameters e.g. Category
         return
-    
+
     pandas_engine.Engine.dtype(data_type)
     pandas_engine.Engine.dtype(data_type.type)
     pandas_engine.Engine.dtype(

@@ -183,6 +183,7 @@ class Engine(ABCMeta):
 
     def dtype(cls: _EngineType, data_type: Any) -> DataType:
         """Convert input into a Pandera :class:`DataType` object."""
+        # pylint: disable=too-many-return-statements
         if isinstance(data_type, cls._base_pandera_dtypes):
             return data_type
 
@@ -200,13 +201,12 @@ class Engine(ABCMeta):
 
         registry = cls._registry[cls]
 
-
         # handle python generic types, e.g. typing.Dict[str, str]
         datatype_origin = typing_inspect.get_origin(data_type)
         if datatype_origin is not None:
             equivalent_data_type = registry.equivalents.get(datatype_origin)
             return type(equivalent_data_type)(data_type)
-        
+
         # handle python's special declared type constructs like NamedTuple and
         # TypedDict
         datatype_generic_bases = typing_inspect.get_generic_bases(data_type)
@@ -219,7 +219,7 @@ class Engine(ABCMeta):
                     f"Type '{data_type}' not understood by {cls.__name__}."
                 )
             return type(equivalent_data_type)(data_type)
-        
+
         equivalent_data_type = registry.equivalents.get(data_type)
         if equivalent_data_type is not None:
             return equivalent_data_type
