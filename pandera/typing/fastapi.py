@@ -44,7 +44,7 @@ if FASTAPI_INSTALLED:
             :param data: pandera-validated data
             :filename:
             """
-            super().__init__(filename, file, *args, **kwargs)
+            super().__init__(file=file, filename=filename, *args, **kwargs)
             self.data = data
 
         @classmethod

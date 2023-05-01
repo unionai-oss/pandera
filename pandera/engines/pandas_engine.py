@@ -26,7 +26,8 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ValidationError
+import typeguard
+from pydantic import BaseModel, ValidationError, create_model
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
@@ -51,9 +52,9 @@ PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 
 try:
-    from typing import Literal  # type: ignore
+    from typing import Literal, TypedDict, NamedTuple  # type: ignore
 except ImportError:
-    from typing_extensions import Literal  # type: ignore
+    from typing_extensions import Literal, TypedDict, NamedTuple  # type: ignore
 
 
 def is_extension_dtype(
@@ -75,7 +76,12 @@ class DataType(dtypes.DataType):
 
     def __init__(self, dtype: Any):
         super().__init__()
-        object.__setattr__(self, "type", pd.api.types.pandas_dtype(dtype))
+        try:
+            type_ = pd.api.types.pandas_dtype(dtype)
+        except TypeError:
+            type_ = pd.api.types.pandas_dtype(object)
+
+        object.__setattr__(self, "type", type_)
         dtype_cls = dtype if inspect.isclass(dtype) else dtype.__class__
         warnings.warn(
             f"'{dtype_cls}' support is not guaranteed.\n"
@@ -1111,3 +1117,204 @@ class PydanticModel(DataType):
                 ),
             )
         return coerced_df.drop(["failure_cases"], axis="columns")
+
+
+###############################################################################
+# Generic Python types
+###############################################################################
+
+
+@dtypes.immutable(init=True)
+class PythonGenericType(DataType):
+    """A datatype to support python generics."""
+
+    type: Any = dataclasses.field(default=None, init=False)  # type: ignore
+    generic_type: Any = dataclasses.field(default=None, init=False)
+    special_type: Any = dataclasses.field(default=None, init=False)
+    coercion_model: Type[BaseModel] = dataclasses.field(  # type: ignore
+        default=None, init=False
+    )
+    _pandas_type = object
+
+    def _check_type(self, element: Any) -> bool:
+        try:
+            _type = getattr(self, "generic_type") or getattr(
+                self, "special_type"
+            )
+            typeguard.check_type(element, _type)
+            return True
+        except typeguard.TypeCheckError:
+            return False
+
+    def _coerce_element(self, element: Any) -> Any:
+        try:
+            # pylint: disable=not-callable
+            coerced_element = self.coercion_model(__root__=element).__root__
+        except ValidationError:
+            coerced_element = pd.NA
+        return coerced_element
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PandasObject] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        """Check that data container has the expected type."""
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        # the underlying pandas dtype must be an object
+        if pandera_dtype != Engine.dtype(self._pandas_type):
+            return False
+
+        if data_container is None:
+            return True
+        elif self.generic_type is None and self.special_type is None:
+            return data_container.map(type) == self.type  # type: ignore[operator]
+        else:
+            return data_container.map(self._check_type)  # type: ignore[operator]
+
+    def coerce(self, data_container: PandasObject) -> PandasObject:
+        """Coerce data container to the specified data type."""
+        # pylint: disable=import-outside-toplevel
+        from pandera.backends.pandas import error_formatters
+
+        orig_isna = data_container.isna()
+        coerced_data = data_container.map(self._coerce_element)  # type: ignore[operator]
+        failed_selector = coerced_data.isna() & ~orig_isna
+        failure_cases = coerced_data[failed_selector]
+
+        if len(failure_cases) > 0:
+            raise errors.ParserError(
+                f"Could not coerce {type(data_container)} data_container "
+                f"into type {self.generic_type or self.type}",
+                failure_cases=error_formatters.reshape_failure_cases(
+                    failure_cases, ignore_na=False
+                ),
+            )
+
+        return coerced_data
+
+    def __str__(self) -> str:
+        return str(self.generic_type or self.type)
+
+
+@Engine.register_dtype(equivalents=[dict, "dict"])
+@dtypes.immutable(init=True)
+class PythonDict(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type: Type[dict] = dict
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, generic_type: Optional[Type] = None
+    ) -> None:
+        if generic_type is not None:
+            object.__setattr__(self, "generic_type", generic_type)
+
+            # Use pydantic to coerce data
+            object.__setattr__(
+                self,
+                "coercion_model",
+                create_model("coercion_model", __root__=(generic_type, ...)),
+            )
+
+
+@Engine.register_dtype(equivalents=[list, "list"])
+@dtypes.immutable(init=True)
+class PythonList(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type: Type[list] = list
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, generic_type: Optional[Type] = None
+    ) -> None:
+        if generic_type is not None:
+            object.__setattr__(self, "generic_type", generic_type)
+
+            # Use pydantic to coerce data
+            object.__setattr__(
+                self,
+                "coercion_model",
+                create_model("coercion_model", __root__=(generic_type, ...)),
+            )
+
+
+@Engine.register_dtype(equivalents=[tuple, "tuple"])
+@dtypes.immutable(init=True)
+class PythonTuple(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type: Type[list] = list
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, generic_type: Optional[Type] = None
+    ) -> None:
+        if generic_type is not None:
+            object.__setattr__(self, "generic_type", generic_type)
+
+            # Use pydantic to coerce data
+            object.__setattr__(
+                self,
+                "coercion_model",
+                create_model("coercion_model", __root__=(generic_type, ...)),
+            )
+
+
+@Engine.register_dtype(equivalents=[TypedDict, "TypedDict"])
+@dtypes.immutable(init=True)
+class PythonTypedDict(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type = TypedDict  # type: ignore[assignment]
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        special_type: Optional[Type] = None,
+    ) -> None:
+        if special_type is not None:
+            object.__setattr__(self, "special_type", special_type)
+
+            # Use pydantic to coerce data
+            object.__setattr__(
+                self,
+                "coercion_model",
+                create_model(
+                    "coercion_model",
+                    __root__=(self.special_type or self.type, ...),  # type: ignore[has-type]
+                ),
+            )
+
+    def __str__(self) -> str:
+        return str(TypedDict.__name__)  # type: ignore[attr-defined]
+
+
+@Engine.register_dtype(equivalents=[NamedTuple, "NamedTuple"])
+@dtypes.immutable(init=True)
+class PythonNamedTuple(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type = NamedTuple
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self,
+        special_type: Optional[Type] = None,
+    ) -> None:
+        if special_type is not None:
+            object.__setattr__(self, "special_type", special_type)
+
+            # Use pydantic to coerce data
+            object.__setattr__(
+                self,
+                "coercion_model",
+                create_model(
+                    "coercion_model",
+                    __root__=(self.special_type or self.type, ...),
+                ),
+            )
+
+    def __str__(self) -> str:
+        return str(NamedTuple.__name__)

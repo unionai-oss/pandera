@@ -25,7 +25,11 @@ def test_pandas_data_type(data_type):
 
     pandas_engine.Engine.dtype(data_type)
     pandas_engine.Engine.dtype(data_type.type)
-    pandas_engine.Engine.dtype(str(data_type.type))
+    pandas_engine.Engine.dtype(
+        getattr(data_type.type, "__name__", None)
+        or getattr(data_type.type, "name", None)
+        or data_type.type
+    )
 
     with pytest.warns(UserWarning):
         pd_dtype = pandas_engine.DataType(data_type.type)
