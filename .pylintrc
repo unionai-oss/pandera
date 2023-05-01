@@ -21,7 +21,8 @@ good-names=
     ge,
     lt,
     le,
-    dt
+    dt,
+    tz
 
 [MESSAGES CONTROL]
 disable=
