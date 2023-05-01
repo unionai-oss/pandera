@@ -15,6 +15,7 @@ frictionless <= 4.40.8
 pyarrow
 pydantic
 multimethod
+typeguard
 pandas-stubs <= 1.5.2.221213
 pyspark >= 3.2.0
 modin

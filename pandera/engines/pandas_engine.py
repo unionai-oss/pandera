@@ -18,10 +18,8 @@ from typing import (
     Dict,
     Iterable,
     List,
-    NamedTuple,
     Optional,
     Type,
-    TypedDict,
     Union,
     cast,
 )
@@ -54,9 +52,9 @@ PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 
 try:
-    from typing import Literal  # type: ignore
+    from typing import Literal, TypedDict, NamedTuple  # type: ignore
 except ImportError:
-    from typing_extensions import Literal  # type: ignore
+    from typing_extensions import Literal, TypedDict, NamedTuple  # type: ignore
 
 
 def is_extension_dtype(
