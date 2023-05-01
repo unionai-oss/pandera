@@ -221,6 +221,6 @@ class Engine(ABCMeta):
     def get_registered_dtypes(  # pylint:disable=W1401
         cls,
     ) -> List[Type[DataType]]:
-        """Return the :class:`pandera.dtypes.DataType`\s registered
+        r"""Return the :class:`pandera.dtypes.DataType`\s registered
         with this engine."""
         return list(cls._registered_dtypes)
