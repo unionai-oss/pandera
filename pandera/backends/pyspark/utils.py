@@ -18,13 +18,11 @@ def convert_uniquesettings(unique: UniqueSettings) -> Union[bool, str]:
     elif unique == "all":
         keep_argument = False
     else:
-        raise ValueError(
-            str(unique) + " is not a recognized report_duplicates value"
-        )
+        raise ValueError(str(unique) + " is not a recognized report_duplicates value")
     return keep_argument
 
-def convert_to_list(*args):
 
+def convert_to_list(*args):
     converted_list = []
     for arg in args:
         if isinstance(arg, list):
@@ -33,4 +31,3 @@ def convert_to_list(*args):
             converted_list.append(arg)
 
     return converted_list
-

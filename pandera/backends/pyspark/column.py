@@ -1,25 +1,18 @@
 """Pandera array backends."""
 
 import traceback
-from typing import cast, Iterable, NamedTuple, Optional
+from typing import Iterable, NamedTuple, Optional, cast
 
 from multimethod import DispatchError
+from pyspark.sql import DataFrame
 
+from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pyspark.error_formatters import (
-    #reshape_failure_cases,
+from pandera.backends.pyspark.error_formatters import (  # reshape_failure_cases,
     scalar_failure_case,
 )
-
 from pandera.engines.pyspark_engine import Engine
-from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
-from pandera.errors import (
-    ParserError,
-    SchemaError,
-    SchemaErrors,
-    SchemaErrorReason,
-)
-from pyspark.sql import DataFrame
+from pandera.errors import ParserError, SchemaError, SchemaErrorReason, SchemaErrors
 
 
 class CoreCheckResult(NamedTuple):

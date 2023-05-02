@@ -6,7 +6,6 @@ from pandera import errors
 from pandera.api.checks import Check
 from pandera.strategies import SearchStrategy
 
-
 DEFAULT_ALPHA = 0.01
 
 
@@ -140,10 +139,7 @@ class Hypothesis(Check):
         See :ref:`here<hypothesis>` for more usage details.
 
         """
-        if (
-            not callable(relationship)
-            and relationship not in self.RELATIONSHIPS
-        ):
+        if not callable(relationship) and relationship not in self.RELATIONSHIPS:
             raise errors.SchemaInitError(
                 f"The relationship {relationship} isn't a built in method"
             )
@@ -281,9 +277,7 @@ class Hypothesis(Check):
         return cls.from_builtin_check_name(
             "two_sample_ttest",
             init_kwargs,
-            error=(
-                f"failed two sample ttest between '{sample1}' and '{sample2}'"
-            ),
+            error=(f"failed two sample ttest between '{sample1}' and '{sample2}'"),
             equal_var=equal_var,
             nan_policy=nan_policy,
         )

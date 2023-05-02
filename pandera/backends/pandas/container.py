@@ -7,20 +7,20 @@ from typing import Any, List, Optional
 
 import pandas as pd
 
-from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
-from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.api.pandas.types import is_table
+from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
+from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     ParserError,
-    SchemaError,
-    SchemaErrors,
     SchemaDefinitionError,
+    SchemaError,
     SchemaErrorReason,
+    SchemaErrors,
 )
 
 
@@ -77,9 +77,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         # strictness check and filter
         try:
-            check_obj = self.strict_filter_columns(
-                check_obj, schema, column_info
-            )
+            check_obj = self.strict_filter_columns(check_obj, schema, column_info)
         except SchemaError as exc:
             error_handler.collect_error(exc.reason_code, exc)
 
@@ -135,9 +133,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(
-                    check_obj, lazy=lazy, inplace=True
-                )
+                result = schema_component.validate(check_obj, lazy=lazy, inplace=True)
                 check_results.append(is_table(result))
             except SchemaError as err:
                 error_handler.collect_error(
@@ -438,9 +434,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             ):
                 _col_schema = copy.deepcopy(col_schema)
                 _col_schema.coerce = True
-                obj[colname] = _try_coercion(
-                    _col_schema.coerce_dtype, obj[colname]
-                )
+                obj[colname] = _try_coercion(_col_schema.coerce_dtype, obj[colname])
 
         if schema.dtype is not None:
             obj = _try_coercion(_coerce_df_dtype, obj)

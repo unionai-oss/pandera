@@ -5,8 +5,10 @@ from typing import Any, Dict, List, Tuple, Union
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
+
 from pandera.errors import SchemaErrorReason
-#import pandas as pd
+
+# import pandas as pd
 
 
 def format_generic_error_message(
@@ -20,6 +22,7 @@ def format_generic_error_message(
     :param check_index: The validator that failed.
     """
     return f"{parent_schema} failed validation " f"{check}"
+
 
 #
 # def format_vectorized_error_message(
@@ -50,9 +53,10 @@ def scalar_failure_case(x) -> dict:
     :returns: DataFrame used for error reporting with ``SchemaErrors``.
     """
     return {
-           "index": [None],
-            "failure_case": [x],
+        "index": [None],
+        "failure_case": [x],
     }
+
 
 #
 #

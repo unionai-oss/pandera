@@ -7,17 +7,12 @@ from typing import Iterable, Optional, Union
 import numpy as np
 import pandas as pd
 
+from pandera.api.pandas.types import is_field, is_index, is_multiindex, is_table
 from pandera.backends.pandas.array import ArraySchemaBackend
 from pandera.backends.pandas.container import DataFrameSchemaBackend
-from pandera.api.pandas.types import (
-    is_field,
-    is_index,
-    is_multiindex,
-    is_table,
-)
 from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
+from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
 
 
 class ColumnBackend(ArraySchemaBackend):
@@ -87,9 +82,7 @@ class ColumnBackend(ArraySchemaBackend):
 
             if is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):
-                    validate_column(
-                        check_obj[column_name].iloc[:, [i]], column_name
-                    )
+                    validate_column(check_obj[column_name].iloc[:, [i]], column_name)
             else:
                 validate_column(check_obj, column_name)
 
@@ -188,9 +181,7 @@ class ColumnBackend(ArraySchemaBackend):
             check_args = [None] if is_field(check_obj) else [schema.name]
             try:
                 check_results.append(
-                    self.run_check(
-                        check_obj, schema, check, check_index, *check_args
-                    )
+                    self.run_check(check_obj, schema, check, check_index, *check_args)
                 )
             except SchemaError as err:
                 error_handler.collect_error(
@@ -245,9 +236,7 @@ class IndexBackend(ArraySchemaBackend):
                 check_obj.index.to_series().reset_index(drop=True)
             )
         else:
-            obj_to_validate = check_obj.index.to_series().reset_index(
-                drop=True
-            )
+            obj_to_validate = check_obj.index.to_series().reset_index(drop=True)
 
         assert is_field(
             super().validate(
@@ -295,9 +284,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 index_levels = [i]
             else:
                 index_levels = [
-                    i
-                    for i, name in enumerate(check_obj.names)
-                    if name == index.name
+                    i for i, name in enumerate(check_obj.names) if name == index.name
                 ]
             for index_level in index_levels:
                 index_array = check_obj.get_level_values(index_level)
@@ -340,9 +327,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 v.to_numpy()
                 if type(v).__module__.startswith("pyspark.pandas")
                 else v.array
-                for _, v in sorted(
-                    coerced_multi_index.items(), key=lambda x: x[0]
-                )
+                for _, v in sorted(coerced_multi_index.items(), key=lambda x: x[0])
             ],
             names=check_obj.names,
         )
@@ -409,9 +394,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                     index_names.append(name)
 
             columns = {}
-            for name, (_, column) in zip(
-                index_names, schema_copy.columns.items()
-            ):
+            for name, (_, column) in zip(index_names, schema_copy.columns.items()):
                 columns[name] = column.set_name(name)
             schema_copy.columns = columns
 

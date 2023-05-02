@@ -3,10 +3,9 @@
 
 from typing import Tuple
 
+from pandera.api.extensions import register_builtin_hypothesis
 from pandera.backends.pandas.builtin_checks import PandasData
 from pandera.backends.pandas.hypotheses import HAS_SCIPY
-from pandera.api.extensions import register_builtin_hypothesis
-
 
 if HAS_SCIPY:
     from scipy import stats
@@ -44,6 +43,4 @@ def one_sample_ttest(
     assert (
         len(samples) == 1
     ), "Expected one sample ttest data to contain only one sample"
-    return stats.ttest_1samp(
-        samples[0], popmean=popmean, nan_policy=nan_policy
-    )
+    return stats.ttest_1samp(samples[0], popmean=popmean, nan_policy=nan_policy)

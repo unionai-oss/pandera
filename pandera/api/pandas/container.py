@@ -12,15 +12,11 @@ import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
-from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import (
-    CheckList,
-    PandasDtypeInputTypes,
-    StrictType,
-)
+from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, StrictType
+from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 
@@ -143,8 +139,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             "filter",
         ):
             raise errors.SchemaInitError(
-                "strict parameter must equal either `True`, `False`, "
-                "or `'filter'`."
+                "strict parameter must equal either `True`, `False`, " "or `'filter'`."
             )
 
         self.index = index
@@ -200,9 +195,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         :returns: dictionary of columns and their associated dtypes.
         """
-        regex_columns = [
-            name for name, col in self.columns.items() if col.regex
-        ]
+        regex_columns = [name for name, col in self.columns.items() if col.regex]
         if regex_columns:
             warnings.warn(
                 "Schema has columns specified as regex column names: "
@@ -357,7 +350,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-
         if self._is_inferred:
             warnings.warn(
                 f"This {type(self)} is an inferred schema that hasn't been "
@@ -406,9 +398,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
         """
-        return self.validate(
-            dataframe, head, tail, sample, random_state, lazy, inplace
-        )
+        return self.validate(dataframe, head, tail, sample, random_state, lazy, inplace)
 
     def __repr__(self) -> str:
         """Represent string for logging."""
@@ -480,9 +470,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             return NotImplemented
 
         def _compare_dict(obj):
-            return {
-                k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
-            }
+            return {k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"}
 
         return _compare_dict(self) == _compare_dict(other)
 
@@ -503,9 +491,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     #################################
 
     @inferred_schema_guard
-    def add_columns(
-        self, extra_schema_cols: Dict[str, Any]
-    ) -> "DataFrameSchema":
+    def add_columns(self, extra_schema_cols: Dict[str, Any]) -> "DataFrameSchema":
         """Create a copy of the :class:`DataFrameSchema` with extra columns.
 
         :param extra_schema_cols: Additional columns of the format
@@ -670,9 +656,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             raise ValueError(f"column '{column_name}' not in {schema}")
         schema_copy = copy.deepcopy(schema)
         column_copy = copy.deepcopy(schema.columns[column_name])
-        new_column = column_copy.__class__(
-            **{**column_copy.properties, **kwargs}
-        )
+        new_column = column_copy.__class__(**{**column_copy.properties, **kwargs})
         schema_copy.columns.update({column_name: new_column})
         return cast(DataFrameSchema, schema_copy)
 
@@ -749,9 +733,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             if update_dict.get(col):
                 new_properties = copy.deepcopy(original_properties)
                 new_properties.update(update_dict[col])
-                new_columns[col] = new_schema.columns[col].__class__(
-                    **new_properties
-                )
+                new_columns[col] = new_schema.columns[col].__class__(**new_properties)
             else:
                 new_columns[col] = new_schema.columns[col].__class__(
                     **original_properties
@@ -991,9 +973,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         new_schema = copy.deepcopy(self)
 
-        keys_temp: List = (
-            list(set(keys)) if not isinstance(keys, list) else keys
-        )
+        keys_temp: List = list(set(keys)) if not isinstance(keys, list) else keys
 
         # ensure all specified keys are present in the columns
         not_in_cols: List[str] = [
@@ -1026,9 +1006,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 )
             )
 
-        new_schema.index = (
-            ind_list[0] if len(ind_list) == 1 else MultiIndex(ind_list)
-        )
+        new_schema.index = ind_list[0] if len(ind_list) == 1 else MultiIndex(ind_list)
 
         # if drop is True as defaulted, drop the columns moved into the index
         if drop:
@@ -1157,9 +1135,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             else Index(
                 dtype=new_index.columns[list(new_index.columns)[0]].dtype,
                 checks=new_index.columns[list(new_index.columns)[0]].checks,
-                nullable=new_index.columns[
-                    list(new_index.columns)[0]
-                ].nullable,
+                nullable=new_index.columns[list(new_index.columns)[0]].nullable,
                 unique=new_index.columns[list(new_index.columns)[0]].unique,
                 coerce=new_index.columns[list(new_index.columns)[0]].coerce,
                 name=new_index.columns[list(new_index.columns)[0]].name,
@@ -1255,20 +1231,14 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         return pandera.io.from_json(source)
 
     @overload
-    def to_json(
-        self, target: None = None, **kwargs
-    ) -> str:  # pragma: no cover
+    def to_json(self, target: None = None, **kwargs) -> str:  # pragma: no cover
         ...
 
     @overload
-    def to_json(
-        self, target: os.PathLike, **kwargs
-    ) -> None:  # pragma: no cover
+    def to_json(self, target: os.PathLike, **kwargs) -> None:  # pragma: no cover
         ...
 
-    def to_json(
-        self, target: Optional[os.PathLike] = None, **kwargs
-    ) -> Optional[str]:
+    def to_json(self, target: Optional[os.PathLike] = None, **kwargs) -> Optional[str]:
         """Write DataFrameSchema to json file.
 
         :param target: file target to write to. If None, dumps to string.
@@ -1284,9 +1254,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     ###########################
 
     @st.strategy_import_error
-    def strategy(
-        self, *, size: Optional[int] = None, n_regex_columns: int = 1
-    ):
+    def strategy(self, *, size: Optional[int] = None, n_regex_columns: int = 1):
         """Create a ``hypothesis`` strategy for generating a DataFrame.
 
         :param size: number of elements to generate
@@ -1319,9 +1287,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return self.strategy(
-                size=size, n_regex_columns=n_regex_columns
-            ).example()
+            return self.strategy(size=size, n_regex_columns=n_regex_columns).example()
 
 
 def _validate_columns(
