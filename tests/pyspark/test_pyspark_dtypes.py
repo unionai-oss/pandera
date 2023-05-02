@@ -12,17 +12,18 @@ from pyspark.sql import DataFrame
 from typing_extensions import Annotated
 
 
-def validate_datatype(df, pandera_schema):
 
-    error = pandera_schema(df)
-
-    assert df.pandera.schema == pandera_schema
-    assert isinstance(pandera_schema.report_errors(df), dict)
-    assert isinstance(pandera_schema(df), dict)
-    return error
 
 
 class BaseClass:
+    def validate_datatype(self, df, pandera_schema):
+
+        error = pandera_schema(df)
+
+        assert df.pandera.schema == pandera_schema
+        assert isinstance(pandera_schema.report_errors(df), dict)
+        assert isinstance(pandera_schema(df), dict)
+        return error
 
     def pytest_generate_tests(self, metafunc):
         # called once per each test function
@@ -40,7 +41,7 @@ class BaseClass:
                 column_name: Column(pandera_equivalent),
             },
         )
-        errors = validate_datatype(df, pandera_schema)
+        errors = self.validate_datatype(df, pandera_schema)
         if errors:
             if return_error == True:
                 return errors
