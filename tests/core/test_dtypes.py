@@ -20,6 +20,7 @@ from pandas import DatetimeTZDtype, to_datetime
 
 import pandera as pa
 from pandera.engines import pandas_engine
+from pandera.engines.utils import pandas_version
 from pandera.system import FLOAT_128_AVAILABLE
 
 # List dtype classes and associated pandas alias,
@@ -321,9 +322,12 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
         # handle dtype case
         tz_match = re.match(r"datetime64\[ns, (.+)\]", pd_dtype)
         tz = None if not tz_match else tz_match.group(1)
-        series = pd.Series(data, dtype=pd_dtype).dt.tz_localize(tz)
+        if pandas_version().release >= (2, 0, 0):
+            series = pd.Series(data, dtype=pd_dtype).dt.tz_localize(tz)
+        else:
+            series = pd.Series(data, dtype=pd_dtype)  # type: ignore[assignment]
     else:
-        series = pd.Series(data, dtype=pd_dtype)
+        series = pd.Series(data, dtype=pd_dtype)  # type: ignore[assignment]
 
     coerced_series = expected_dtype.coerce(series)
 
