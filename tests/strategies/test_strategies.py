@@ -838,7 +838,6 @@ def test_schema_model_strategy_df_check(data) -> None:
     class SchemaWithDFCheck(Schema):
         """Schema with a custom dataframe-level check with no strategy."""
 
-        # pylint:disable=no-self-use
         @pa.dataframe_check
         @classmethod
         def non_empty(cls, df: pd.DataFrame) -> bool:

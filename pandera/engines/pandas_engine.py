@@ -101,7 +101,7 @@ class DataType(dtypes.DataType):
         coerced = data_container.astype(self.type)
         if type(data_container).__module__.startswith("modin.pandas"):
             # NOTE: this is a hack to enable catching of errors in modin
-            coerced.__str__()
+            str(coerced)
         return coerced
 
     def coerce_value(self, value: Any) -> Any:
@@ -115,7 +115,7 @@ class DataType(dtypes.DataType):
             coerced = self.coerce(data_container)
             if type(data_container).__module__.startswith("modin.pandas"):
                 # NOTE: this is a hack to enable catching of errors in modin
-                coerced.__str__()
+                str(coerced)
         except Exception as exc:  # pylint:disable=broad-except
             if isinstance(exc, errors.ParserError):
                 raise

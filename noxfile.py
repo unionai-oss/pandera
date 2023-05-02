@@ -7,8 +7,10 @@ import sys
 from typing import Dict, List
 
 # setuptools must be imported before distutils !
-import setuptools  # pylint:disable=unused-import  # noqa: F401
-from distutils.core import run_setup  # pylint:disable=wrong-import-order
+import setuptools
+from distutils.core import (
+    run_setup,
+)
 
 import nox
 from nox import Session

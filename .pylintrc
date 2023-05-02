@@ -1,5 +1,5 @@
 [BASIC]
-ignore=mypy.py
+ignore=mypy.py,noxfile.py
 good-names=
     T,
     F,
@@ -22,12 +22,15 @@ good-names=
     lt,
     le,
     dt,
-    tz
+    tz,
+    TBaseModel,
+    TArraySchemaBase,
+    TDataFrameModel,
+    _DataType
 
 [MESSAGES CONTROL]
 disable=
     # C0330 conflicts with black: https://github.com/psf/black/issues/48
-    C0330,
     R0913,
     duplicate-code,
     too-many-instance-attributes,
@@ -41,4 +44,5 @@ disable=
     ungrouped-imports,
     function-redefined,
     arguments-differ,
-    no-self-use
+    unnecessary-dunder-call,
+    use-dict-literal
