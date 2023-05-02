@@ -3,15 +3,17 @@
 from functools import lru_cache
 from typing import List, NamedTuple, Tuple, Type, Union
 
+import pyspark.sql.types as pst
+from pyspark.sql import DataFrame
+
+from pandera.api.checks import Check
+from pandera.dtypes import DataType
+
 try:
     from typing import Literal, NamedTuple
 except ImportError:
     from typing_extensions import Literal  # type: ignore [misc]
 
-from pandera.api.checks import Check
-from pandera.dtypes import DataType
-from pyspark.sql import DataFrame
-import pyspark.sql.types as pst
 
 CheckList = Union[Check, List[Check]]
 
@@ -28,7 +30,7 @@ PysparkDefaultTypes = Union[
     pst.ByteType,
     pst.LongType,
     pst.DayTimeIntervalType,
-    pst.BinaryType
+    pst.BinaryType,
 ]
 
 PySparkDtypeInputTypes = Union[
@@ -53,6 +55,7 @@ class PysparkDataframeColumnObject(NamedTuple):
     dataframe: DataFrame
     column_name: str
 
+
 @lru_cache(maxsize=None)
 def supported_types() -> SupportedTypes:
     """Get the types supported by pandera schemas."""
@@ -60,7 +63,6 @@ def supported_types() -> SupportedTypes:
     table_types = [DataFrame]
 
     try:
-
         table_types.append(DataFrame)
 
     except ImportError:

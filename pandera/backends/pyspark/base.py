@@ -1,6 +1,7 @@
 """Pandas Parsing, Validation, and Error Reporting Backends."""
 
 import warnings
+from functools import reduce
 from typing import (
     Any,
     Dict,
@@ -18,15 +19,14 @@ from pyspark.sql.functions import col
 
 from pandera.backends.base import BaseSchemaBackend
 from pandera.backends.pyspark.error_formatters import (
+    consolidate_failure_cases,
     format_generic_error_message,
     format_vectorized_error_message,
-    consolidate_failure_cases,
-    summarize_failure_cases,
     reshape_failure_cases,
     scalar_failure_case,
+    summarize_failure_cases,
 )
-from pandera.errors import SchemaError, FailureCaseMetadata
-from functools import reduce
+from pandera.errors import FailureCaseMetadata, SchemaError
 
 
 class ColumnInfo(NamedTuple):

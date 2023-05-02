@@ -12,9 +12,9 @@ import numpy as np
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
-from pandera.system import FLOAT_128_AVAILABLE
 from pandera.engines import engine, utils
 from pandera.engines.type_aliases import PandasObject
+from pandera.system import FLOAT_128_AVAILABLE
 
 
 @immutable(init=True)
@@ -39,9 +39,7 @@ class DataType(dtypes.DataType):
 
     def __post_init__(self):
         # this method isn't called if __init__ is defined
-        object.__setattr__(
-            self, "type", np.dtype(self.type)
-        )  # pragma: no cover
+        object.__setattr__(self, "type", np.dtype(self.type))  # pragma: no cover
 
     def coerce(
         self, data_container: Union[PandasObject, np.ndarray]
@@ -94,8 +92,7 @@ class Engine(  # pylint:disable=too-few-public-methods
                 np_dtype = np.dtype(data_type).type
             except TypeError:
                 raise TypeError(
-                    f"data type '{data_type}' not understood by "
-                    f"{cls.__name__}."
+                    f"data type '{data_type}' not understood by " f"{cls.__name__}."
                 ) from None
 
             try:
@@ -109,9 +106,7 @@ class Engine(  # pylint:disable=too-few-public-methods
 ###############################################################################
 
 
-@Engine.register_dtype(
-    equivalents=["bool", bool, np.bool_, dtypes.Bool, dtypes.Bool()]
-)
+@Engine.register_dtype(equivalents=["bool", bool, np.bool_, dtypes.Bool, dtypes.Bool()])
 @immutable
 class Bool(DataType, dtypes.Bool):
     type = np.dtype("bool")
@@ -166,7 +161,6 @@ _int_equivalents = _build_number_equivalents(
 @Engine.register_dtype(equivalents=_int_equivalents[64])
 @immutable
 class Int64(DataType, dtypes.Int64):
-
     type = np.dtype("int64")
     bit_width: int = 64
 

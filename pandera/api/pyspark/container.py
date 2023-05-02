@@ -8,21 +8,16 @@ import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast, overload
 
-from pandera import errors
+from pyspark.sql import DataFrame
 
-from pandera.backends.pyspark.container import DataFrameSchemaBackend
+from pandera import errors
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
-
-from pandera.api.pyspark.types import (
-    CheckList,
-    PySparkDtypeInputTypes,
-    StrictType,
-)
+from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes, StrictType
+from pandera.backends.pyspark.container import DataFrameSchemaBackend
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
-from pyspark.sql import DataFrame
 
 N_INDENT_SPACES = 4
 

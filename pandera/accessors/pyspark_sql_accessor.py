@@ -6,16 +6,19 @@ https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/api/pysp
 
 import warnings
 from functools import wraps
-
-"""Register pandas accessor for pandera schema metadata."""
-
 from typing import Optional, Union
 
 import pandas as pd
 
 from pandera.api.pyspark.container import DataFrameSchema
 
+"""Register pandas accessor for pandera schema metadata."""
+
+
+
+
 Schemas = Union[DataFrameSchema]
+
 
 # Todo Refactor to create a seperate module for panderaAccessor
 class PanderaAccessor:
@@ -41,7 +44,6 @@ class PanderaAccessor:
     def schema(self) -> Optional[Schemas]:
         """Access schema metadata."""
         return self._schema
-
 
 
 class CachedAccessor:
@@ -151,4 +153,4 @@ class PanderaDataFrameAccessor(PanderaAccessor):
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
-#register_series_accessor("pandera")(PanderaSeriesAccessor)
+# register_series_accessor("pandera")(PanderaSeriesAccessor)

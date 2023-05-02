@@ -9,19 +9,18 @@
 
 import dataclasses
 import inspect
-import warnings
-from typing import (
-    Any,
-    Iterable,
-    Union,
-)
 import re
+import warnings
+from typing import Any, Iterable, Union
+
+import pyspark.sql.types as pst
+from pyspark.sql.types import DecimalType
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
 from pandera.engines import engine
-import pyspark.sql.types as pst
 from pandera.engines.engine import Engine
+from pandera.engines.type_aliases import PysparkObject
 
 try:
     import pyarrow  # pylint:disable=unused-import
@@ -34,8 +33,6 @@ try:
     from typing import Literal  # type: ignore
 except ImportError:
     from typing_extensions import Literal  # type: ignore
-from pandera.engines.type_aliases import PysparkObject
-from pyspark.sql.types import DecimalType
 
 DEFAULT_PYSPARK_PREC = DecimalType().precision
 DEFAULT_PYSPARK_SCALE = DecimalType().scale

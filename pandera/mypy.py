@@ -2,17 +2,8 @@
 
 from typing import Callable, Optional, Union, cast
 
-from mypy.nodes import (
-    FuncBase,
-    SymbolNode,
-    TypeInfo,
-)
-from mypy.plugin import (
-    ClassDefContext,
-    FunctionSigContext,
-    MethodSigContext,
-    Plugin,
-)
+from mypy.nodes import FuncBase, SymbolNode, TypeInfo
+from mypy.plugin import ClassDefContext, FunctionSigContext, MethodSigContext, Plugin
 from mypy.types import CallableType, Instance, UnionType
 
 DATAFRAMEMODEL_FULLNAME = "pandera.api.pandas.model.DataFrameModel"
@@ -80,15 +71,12 @@ class PanderaPlugin(Plugin):
         sym = self.lookup_fully_qualified(fullname)
         if sym and isinstance(sym.node, TypeInfo):  # pragma: no branch
             if any(
-                get_fullname(base) == DATAFRAMEMODEL_FULLNAME
-                for base in sym.node.mro
+                get_fullname(base) == DATAFRAMEMODEL_FULLNAME for base in sym.node.mro
             ):
                 return self._pandera_model_class_maker_callback
         return None
 
-    def _pandera_model_class_maker_callback(
-        self, ctx: ClassDefContext
-    ) -> None:
+    def _pandera_model_class_maker_callback(self, ctx: ClassDefContext) -> None:
         transformer = DataFrameModelTransformer(ctx, self.plugin_config)
         transformer.transform()
 

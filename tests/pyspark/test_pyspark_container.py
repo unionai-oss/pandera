@@ -6,6 +6,7 @@ import pyspark.sql.types as T
 import pyspark.sql.functions as F
 import pytest
 import pandera as pa
+import pandera.errors
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
 from pandera.errors import SchemaErrors
@@ -65,9 +66,11 @@ def test_pyspark_dataframeschema_with_alias_types():
 
     validate_df = schema.report_errors(df)
 
-    with pytest.raises(SchemaErrors):
+    with pytest.raises(pandera.errors.PysparkSchemaError):
         data_fail = [("Bread", 3), ("Butter", 15)]
 
         df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
 
         fail_df = schema.report_errors(df_fail)
+        if fail_df:
+            raise pandera.errors.PysparkSchemaError

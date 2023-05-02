@@ -174,5 +174,6 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self.failure_cases = failure_cases_metadata.failure_cases
         super().__init__(failure_cases_metadata.message)
 
+
 class PysparkSchemaError(ReducedPickleExceptionBase):
     """Raised when pyspark schema are collected into one error."""

@@ -1,23 +1,13 @@
 """Data validation check definition."""
 
 import re
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar, Union
 
 import pandas as pd
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
 from pandera.strategies import SearchStrategy
-
 
 T = TypeVar("T")
 

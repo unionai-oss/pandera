@@ -17,14 +17,14 @@ import pandas as pd
 
 from pandera.backends.base import BaseSchemaBackend
 from pandera.backends.pandas.error_formatters import (
+    consolidate_failure_cases,
     format_generic_error_message,
     format_vectorized_error_message,
-    consolidate_failure_cases,
-    summarize_failure_cases,
     reshape_failure_cases,
     scalar_failure_case,
+    summarize_failure_cases,
 )
-from pandera.errors import SchemaError, FailureCaseMetadata
+from pandera.errors import FailureCaseMetadata, SchemaError
 
 
 class ColumnInfo(NamedTuple):
@@ -97,9 +97,7 @@ class PandasSchemaBackend(BaseSchemaBackend):
             if check_result.failure_cases is None:
                 # encode scalar False values explicitly
                 failure_cases = scalar_failure_case(check_result.check_passed)
-                error_msg = format_generic_error_message(
-                    schema, check, check_index
-                )
+                error_msg = format_generic_error_message(schema, check, check_index)
             else:
                 failure_cases = reshape_failure_cases(
                     check_result.failure_cases, check.ignore_na

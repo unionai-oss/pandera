@@ -23,7 +23,6 @@ from typing import (
 
 import pandas as pd
 
-from pandera.strategies import pandas_strategies as st
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
 from pandera.api.pandas.components import Column, Index, MultiIndex
@@ -38,6 +37,7 @@ from pandera.api.pandas.model_components import (
 )
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.errors import SchemaInitError
+from pandera.strategies import pandas_strategies as st
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
 
@@ -151,17 +151,13 @@ class DataFrameModel(BaseModel):
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
-        return cast(
-            DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs)
-        )
+        return cast(DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs))
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.api.pandas.model_components.FieldInfo` instances."""
         if "Config" in cls.__dict__:
             cls.Config.name = (
-                cls.Config.name
-                if hasattr(cls.Config, "name")
-                else cls.__name__
+                cls.Config.name if hasattr(cls.Config, "name") else cls.__name__
             )
         else:
             cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
@@ -201,9 +197,7 @@ class DataFrameModel(BaseModel):
                 Type[TDataFrameModel], GENERIC_SCHEMA_CACHE[(cls, params)]
             )
 
-        param_dict: Dict[TypeVar, Type[Any]] = dict(
-            zip(__parameters__, params)
-        )
+        param_dict: Dict[TypeVar, Type[Any]] = dict(zip(__parameters__, params))
         extra: Dict[str, Any] = {"__annotations__": {}}
         for field, (annot_info, field_info) in cls._collect_fields().items():
             if isinstance(annot_info.arg, TypeVar):
@@ -214,9 +208,7 @@ class DataFrameModel(BaseModel):
                     extra["__annotations__"][field] = raw_annot
                     extra[field] = copy.deepcopy(field_info)
 
-        parameterized_name = (
-            f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
-        )
+        parameterized_name = f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
         parameterized_cls = type(parameterized_name, (cls,), extra)
         GENERIC_SCHEMA_CACHE[(cls, params)] = parameterized_cls
         return parameterized_cls
@@ -321,9 +313,7 @@ class DataFrameModel(BaseModel):
         **kwargs,
     ) -> DataFrameBase[TDataFrameModel]:
         """%(example_doc)s"""
-        return cast(
-            DataFrameBase[TDataFrameModel], cls.to_schema().example(**kwargs)
-        )
+        return cast(DataFrameBase[TDataFrameModel], cls.to_schema().example(**kwargs))
 
     @classmethod
     def _build_columns_index(  # pylint:disable=too-many-locals
@@ -333,8 +323,7 @@ class DataFrameModel(BaseModel):
         **multiindex_kwargs: Any,
     ) -> Tuple[Dict[str, Column], Optional[Union[Index, MultiIndex]],]:
         index_count = sum(
-            annotation.origin in INDEX_TYPES
-            for annotation, _ in fields.values()
+            annotation.origin in INDEX_TYPES for annotation, _ in fields.values()
         )
 
         columns: Dict[str, Column] = {}
@@ -382,9 +371,7 @@ class DataFrameModel(BaseModel):
                 or annotation.raw_annotation in INDEX_TYPES
             ):
                 if annotation.optional:
-                    raise SchemaInitError(
-                        f"Index '{field_name}' cannot be Optional."
-                    )
+                    raise SchemaInitError(f"Index '{field_name}' cannot be Optional.")
 
                 if check_name is False or (
                     # default single index
@@ -455,18 +442,14 @@ class DataFrameModel(BaseModel):
     ) -> Tuple[Type[BaseConfig], Dict[str, Any]]:
         """Collect config options from bases, splitting off unknown options."""
         bases = inspect.getmro(cls)[:-1]
-        bases = tuple(
-            base for base in bases if issubclass(base, DataFrameModel)
-        )
+        bases = tuple(base for base in bases if issubclass(base, DataFrameModel))
         root_model, *models = reversed(bases)
 
         options, extras = _extract_config_options_and_extras(root_model.Config)
 
         for model in models:
             config = getattr(model, _CONFIG_KEY, {})
-            base_options, base_extras = _extract_config_options_and_extras(
-                config
-            )
+            base_options, base_extras = _extract_config_options_and_extras(config)
             options.update(base_options)
             extras.update(base_extras)
 
@@ -479,9 +462,7 @@ class DataFrameModel(BaseModel):
         walk the inheritance tree.
         """
         bases = inspect.getmro(cls)[:-2]  # bases -> DataFrameModel -> object
-        bases = tuple(
-            base for base in bases if issubclass(base, DataFrameModel)
-        )
+        bases = tuple(base for base in bases if issubclass(base, DataFrameModel))
 
         method_names = set()
         check_infos = []
@@ -630,7 +611,6 @@ def _to_json_schema(dataframe_schema):
         "title": dataframe_schema.name or "pandera.DataFrameSchema",
         "type": "object",
         "properties": {
-            field["name"]: _field_json_schema(field)
-            for field in table_schema["fields"]
+            field["name"]: _field_json_schema(field) for field in table_schema["fields"]
         },
     }

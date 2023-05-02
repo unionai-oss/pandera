@@ -4,11 +4,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pyspark.sql
 
-from pandera.typing.common import (
-    DataFrameBase,
-    ColumnBase,
-    GenericDtype,
-)
+from pandera.typing.common import ColumnBase, DataFrameBase, GenericDtype
 from pandera.typing.pandas import DataFrameModel, _GenericAlias
 
 try:

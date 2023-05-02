@@ -1,7 +1,7 @@
 """Data validation base check."""
 
-from collections import namedtuple
 import inspect
+from collections import namedtuple
 from itertools import chain
 from typing import (
     Any,
@@ -15,6 +15,7 @@ from typing import (
     Union,
     no_type_check,
 )
+
 import pandas as pd
 from multimethod import multidispatch as _multidispatch
 

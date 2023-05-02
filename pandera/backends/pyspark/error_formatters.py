@@ -3,10 +3,11 @@
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Union
 
+import pandas as pd
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
+
 from pandera.errors import SchemaErrorReason
-import pandas as pd
 
 
 def format_generic_error_message(
