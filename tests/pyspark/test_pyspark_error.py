@@ -110,13 +110,11 @@ def test_pyspark_fields(spark):
     """
 
     class pandera_schema(DataFrameModel):
-        product: pa.typing.Column[T.StringType] = Field(str_startswith="B")
-        price: pa.typing.Column[T.IntegerType] = Field(gt=5)
-        id: pa.typing.Column[Annotated[T.DecimalType, 20, 5]] = Field()
-        id2: pa.typing.Column[Annotated[T.ArrayType, StringType(), False]] = Field()
-        product_info: pa.typing.Column[
-            Annotated[T.MapType, StringType(), StringType(), False]
-        ]
+        product: T.StringType = Field(str_startswith="B")
+        price: T.IntegerType = Field(gt=5)
+        id: T.DecimalType(20, 5) = Field()
+        id2:T.ArrayType(StringType()) = Field()
+        product_info: T.MapType(StringType(), StringType())
 
     data_fail = [
         ("Bread", 5, 44.4, ["val"], {"product_category": "dairy"}),
