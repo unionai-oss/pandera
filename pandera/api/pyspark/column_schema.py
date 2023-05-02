@@ -166,7 +166,7 @@ class ColumnSchema(BaseSchema):
         :param checks: checks to set on the new schema
         :returns: a new SeriesSchema with a new set of checks
         """
-        schema_copy = cast(ArraySchema, copy.deepcopy(self))
+        schema_copy = cast(ColumnSchema, copy.deepcopy(self))
         schema_copy.checks = checks
         return schema_copy
 
@@ -189,4 +189,4 @@ class ColumnSchema(BaseSchema):
         )
 
     def __str__(self):
-        return f"{self.dtype}"
+        return f"column '{self.name}' with type {self.dtype}"

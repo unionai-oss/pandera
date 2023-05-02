@@ -114,3 +114,10 @@ def sample_complex_data(spark):
         ],
     )
     return spark_df(spark, sample_data, sample_spark_schema)
+
+@pytest.fixture(scope='session')
+def sample_check_data(spark):
+
+    return {"test_pass_data": [("foo", 30), ("bar", 30)],
+     "test_fail_data": [("foo", 30), ("bar", 31)],
+     "test_expression": 30}

@@ -12,9 +12,7 @@ import pandas as pd
 
 from pandera.api.pyspark.container import DataFrameSchema
 
-"""Register pandas accessor for pandera schema metadata."""
-
-
+"""Register pyspark accessor for pandera schema metadata."""
 
 
 Schemas = Union[DataFrameSchema]
