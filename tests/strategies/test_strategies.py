@@ -892,10 +892,10 @@ def test_datetime_example(check_arg, data) -> None:
 @pytest.mark.parametrize(
     "dtype, check_arg",
     [
-        # [
-        #     pd.DatetimeTZDtype(tz="UTC"),
-        #     pd.Timestamp("2006-01-01", tz="UTC"),
-        # ],
+        [
+            pd.DatetimeTZDtype(tz="UTC"),
+            pd.Timestamp("2006-01-01", tz="UTC"),
+        ],
         [
             pd.DatetimeTZDtype(tz="CET"),
             pd.Timestamp("2006-01-01", tz="CET"),
@@ -907,10 +907,10 @@ def test_datetime_tz_example(dtype, check_arg, data) -> None:
     """Test Column schema example method generate examples of
     timezone-aware datetimes that pass."""
     for checks in [
-        # pa.Check.le(check_arg),
-        # pa.Check.ge(check_arg),
+        pa.Check.le(check_arg),
+        pa.Check.ge(check_arg),
         pa.Check.eq(check_arg),
-        # pa.Check.isin([check_arg]),
+        pa.Check.isin([check_arg]),
     ]:
         column_schema = pa.Column(
             dtype,
