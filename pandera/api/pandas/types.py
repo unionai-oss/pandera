@@ -3,17 +3,19 @@
 from functools import lru_cache
 from typing import List, NamedTuple, Tuple, Type, Union
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore [misc]
-
 import numpy as np
 import pandas as pd
 
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore [misc]
+
+
 
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 

@@ -1,8 +1,8 @@
 """Handle schema errors."""
 
+from collections import defaultdict
 from enum import Enum
 from typing import Dict, List, Union
-from collections import defaultdict
 
 from pandera.errors import SchemaError, SchemaErrorReason
 

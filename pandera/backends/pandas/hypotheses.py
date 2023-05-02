@@ -1,16 +1,15 @@
 """Hypothesis backend for pandas."""
 
 from functools import partial
-from typing import cast, Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Union, cast
 
 import pandas as pd
 from multimethod import overload
 
 from pandera import errors
-from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import is_field, is_table
-
+from pandera.backends.pandas.checks import PandasCheckBackend
 
 try:
     from scipy import stats  # pylint: disable=unused-import
@@ -121,9 +120,7 @@ class PandasHypothesisBackend(PandasCheckBackend):
             return check_obj[key]
         return cast(
             Dict[str, pd.DataFrame],
-            self._format_groupby_input(
-                self.groupby(check_obj)[key], self.check.groups
-            ),
+            self._format_groupby_input(self.groupby(check_obj)[key], self.check.groups),
         )
 
     @overload  # type: ignore [no-redef]
@@ -143,9 +140,7 @@ class PandasHypothesisBackend(PandasCheckBackend):
         if self.is_one_sample_test:
             return check_obj[self.check.samples[0]]  # type: ignore
 
-        check_obj = [
-            (sample, check_obj[sample]) for sample in self.check.samples
-        ]
+        check_obj = [(sample, check_obj[sample]) for sample in self.check.samples]
         return cast(
             Dict[str, pd.DataFrame],
             self._format_groupby_input(check_obj, self.check.groups),

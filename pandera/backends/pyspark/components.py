@@ -1,5 +1,6 @@
 """Backend implementation for pyspark schema components."""
 
+import re
 import traceback
 from copy import copy
 from typing import Iterable, Optional
@@ -7,11 +8,10 @@ from typing import Iterable, Optional
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import cast
 
+from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.column import ColumnSchemaBackend
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
-from pandera.api.pyspark.error_handler import ErrorHandler, ErrorCategory
 from pandera.errors import SchemaError, SchemaErrorReason
-import re
 
 
 class ColumnBackend(ColumnSchemaBackend):

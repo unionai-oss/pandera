@@ -21,6 +21,8 @@ from typing import (
     cast,
 )
 
+import pyspark.sql as ps
+
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
 from pandera.api.pyspark.components import Column
@@ -34,11 +36,10 @@ from pandera.api.pyspark.model_components import (
     FieldInfo,
 )
 from pandera.api.pyspark.model_config import BaseConfig
+from pandera.api.pyspark.types import PySparkDtypeInputTypes
 from pandera.errors import SchemaInitError
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
-import pyspark.sql as ps
-from pandera.api.pyspark.types import PySparkDtypeInputTypes
 
 try:
     from typing_extensions import get_type_hints

@@ -7,14 +7,14 @@ import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
+from pandera.api.pandas.array import ArraySchema
+from pandera.api.pandas.container import DataFrameSchema
+from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.backends.pandas.components import (
     ColumnBackend,
     IndexBackend,
     MultiIndexBackend,
 )
-from pandera.api.pandas.array import ArraySchema
-from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 
 
@@ -172,9 +172,7 @@ class Column(ArraySchema):
             inplace=inplace,
         )
 
-    def get_regex_columns(
-        self, columns: Union[pd.Index, pd.MultiIndex]
-    ) -> Iterable:
+    def get_regex_columns(self, columns: Union[pd.Index, pd.MultiIndex]) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
         :param columns: columns to regex pattern match
@@ -187,10 +185,7 @@ class Column(ArraySchema):
             return NotImplemented
 
         def _compare_dict(obj):
-            return {
-                k: v if k != "_checks" else set(v)
-                for k, v in obj.__dict__.items()
-            }
+            return {k: v if k != "_checks" else set(v) for k, v in obj.__dict__.items()}
 
         return _compare_dict(self) == _compare_dict(other)
 
@@ -231,13 +226,7 @@ class Column(ArraySchema):
                 "ignore",
                 category=hypothesis.errors.NonInteractiveExampleWarning,
             )
-            return (
-                super()
-                .strategy(size=size)
-                .example()
-                .rename(self.name)
-                .to_frame()
-            )
+            return super().strategy(size=size).example().rename(self.name).to_frame()
 
 
 class Index(ArraySchema):

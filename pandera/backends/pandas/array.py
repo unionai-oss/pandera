@@ -1,26 +1,21 @@
 """Pandera array backends."""
 
 import traceback
-from typing import cast, Iterable, NamedTuple, Optional
+from typing import Iterable, NamedTuple, Optional, cast
 
 import pandas as pd
 from multimethod import DispatchError
 
+from pandera.api.pandas.types import is_field
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
 from pandera.backends.pandas.utils import convert_uniquesettings
-from pandera.api.pandas.types import is_field
 from pandera.engines.pandas_engine import Engine
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import (
-    ParserError,
-    SchemaError,
-    SchemaErrors,
-    SchemaErrorReason,
-)
+from pandera.errors import ParserError, SchemaError, SchemaErrorReason, SchemaErrors
 
 
 class CoreCheckResult(NamedTuple):
@@ -168,9 +163,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 f"non-nullable series '{check_obj.name}' contains "
                 f"null values:\n{check_obj[isna]}"
             ),
-            failure_cases=reshape_failure_cases(
-                check_obj[isna], ignore_na=False
-            ),
+            failure_cases=reshape_failure_cases(check_obj[isna], ignore_na=False),
         )
 
     def check_unique(self, check_obj: pd.Series, schema):

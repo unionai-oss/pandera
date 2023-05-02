@@ -1,20 +1,16 @@
 """Check backend for pyspark."""
 
+from collections import namedtuple
 from functools import partial
-from typing import Dict, List, Optional, Union, cast, Any
+from typing import Any, Dict, List, Optional, Union, cast
 
+from multimethod import DispatchError, overload
 from pyspark.sql import DataFrame
-from multimethod import overload, DispatchError
 
-from pandera.backends.base import BaseCheckBackend
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
-from pandera.api.pyspark.types import (
-    is_table,
-    is_bool,
-    PysparkDataframeColumnObject,
-)
-from collections import namedtuple
+from pandera.api.pyspark.types import PysparkDataframeColumnObject, is_bool, is_table
+from pandera.backends.base import BaseCheckBackend
 
 
 class PySparkCheckBackend(BaseCheckBackend):

@@ -52,8 +52,7 @@ def infer_index_statistics(index: Union[pd.Index, pd.MultiIndex]):
 
     if isinstance(index, pd.MultiIndex):
         index_statistics = [
-            _index_stats(index.get_level_values(i))
-            for i in range(index.nlevels)
+            _index_stats(index.get_level_values(i)) for i in range(index.nlevels)
         ]
     elif isinstance(index, pd.Index):
         index_statistics = [_index_stats(index)]
@@ -161,12 +160,12 @@ def parse_checks(checks) -> Union[Dict[str, Any], None]:
         "greater_than_or_equal_to" in check_statistics
         and "less_than_or_equal_to" in check_statistics
     ):
-        min_value = check_statistics.get(
-            "greater_than_or_equal_to", float("-inf")
-        )["min_value"]
-        max_value = check_statistics.get(
-            "less_than_or_equal_to", float("inf")
-        )["max_value"]
+        min_value = check_statistics.get("greater_than_or_equal_to", float("-inf"))[
+            "min_value"
+        ]
+        max_value = check_statistics.get("less_than_or_equal_to", float("inf"))[
+            "max_value"
+        ]
         if min_value > max_value:
             raise ValueError(
                 f"checks {_check_memo['greater_than_or_equal_to']} "

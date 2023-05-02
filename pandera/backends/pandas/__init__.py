@@ -5,11 +5,9 @@ import pandas as pd
 import pandera.typing
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-
+from pandera.backends.pandas import builtin_checks, builtin_hypotheses
 from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
-from pandera.backends.pandas import builtin_checks, builtin_hypotheses
-
 
 data_types = [pd.DataFrame, pd.Series]
 
