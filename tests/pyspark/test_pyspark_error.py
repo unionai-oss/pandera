@@ -7,8 +7,6 @@ import pyspark.sql.types as T
 import pytest
 from pyspark.sql import SparkSession
 import pandera as pa
-from pandera import pyspark_sql_accessor, SchemaModel
-from pandera.error_handlers import SchemaError
 
 from pyspark.sql.types import StringType
 from pandera.api.pyspark.container import DataFrameSchema
@@ -101,6 +99,7 @@ def test_pyspark_schema_data_checks(spark):
 
     df_fail = spark_df(spark, data_fail, spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
+    breakpoint()
     print(errors)
 
 
