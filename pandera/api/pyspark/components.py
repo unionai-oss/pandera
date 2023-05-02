@@ -31,6 +31,7 @@ class Column(ColumnSchema):
         regex: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        metadata: Optional[dict] = None,
     ) -> None:
         """Create column validator object.
 
@@ -49,6 +50,7 @@ class Column(ColumnSchema):
             regex pattern to apply to multiple columns in a dataframe.
         :param title: A human-readable label for the column.
         :param description: An arbitrary textual description of the column.
+        :param metadata: An optional key value data.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -77,6 +79,7 @@ class Column(ColumnSchema):
             name=name,
             title=title,
             description=description,
+            metadata=metadata,
         )
         if name is not None and not isinstance(name, str) and regex:
             raise ValueError(
@@ -85,6 +88,7 @@ class Column(ColumnSchema):
         self.required = required
         self.name = name
         self.regex = regex
+        self.metadata = metadata
 
     @property
     def _allow_groupby(self) -> bool:
@@ -98,14 +102,13 @@ class Column(ColumnSchema):
             "dtype": self.dtype,
             "checks": self.checks,
             "nullable": self.nullable,
-            "unique": self.unique,
-            "report_duplicates": self.report_duplicates,
             "coerce": self.coerce,
             "required": self.required,
             "name": self.name,
             "regex": self.regex,
             "title": self.title,
             "description": self.description,
+            "metadata": self.metadata,
         }
 
     def set_name(self, name: str):

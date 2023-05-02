@@ -25,6 +25,7 @@ class BaseSchema(ABC):
         name=None,
         title=None,
         description=None,
+        metadata=None,
     ):
         """Abstract base schema initializer."""
         self.dtype = dtype
@@ -33,6 +34,7 @@ class BaseSchema(ABC):
         self.name = name
         self.title = title
         self.description = description
+        self.metadata = metadata
 
     def validate(
         self,

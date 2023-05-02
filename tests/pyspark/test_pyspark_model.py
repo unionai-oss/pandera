@@ -10,7 +10,6 @@ from pandera.api.pyspark.model import DataFrameModel
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.model_components import Field
 from tests.pyspark.conftest import spark_df
-from typing_extensions import Annotated
 
 
 def test_schema_with_bare_types():
@@ -166,6 +165,40 @@ def test_pyspark_bare_fields(spark):
     df_fail = spark_df(spark, data_fail, spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
 
+    if errors:
+        print(errors)
+        assert True  # TODO: compare with expected after fixing errors dict format
+
+
+def test_pyspark_fields_metadata(spark):
+    """
+    Test schema and metadata on field
+    """
+
+    class pandera_schema(DataFrameModel):
+        id: T.IntegerType() = Field(
+            gt=5,
+            metadata={"usecase": ["telco", "retail"], "category": "product_pricing"},
+        )
+        product_name: T.StringType() = Field(str_startswith="B")
+        price: T.DecimalType(20, 5) = Field()
+
+    breakpoint()
+    data_fail = [
+        (5, "Bread", 44.4),
+        (15, "Butter", 99.0),
+    ]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("id", T.IntegerType(), False),
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.DecimalType(20, 5), False),
+        ],
+    )
+    df_fail = spark_df(spark, data_fail, spark_schema)
+    errors = pandera_schema.report_errors(check_obj=df_fail)
+    breakpoint()
     if errors:
         print(errors)
         assert True  # TODO: compare with expected after fixing errors dict format
