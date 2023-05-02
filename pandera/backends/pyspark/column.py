@@ -8,8 +8,7 @@ from pyspark.sql import DataFrame
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pyspark.error_formatters import (
-    #reshape_failure_cases,
+from pandera.backends.pyspark.error_formatters import (  # reshape_failure_cases,
     scalar_failure_case,
 )
 from pandera.engines.pyspark_engine import Engine

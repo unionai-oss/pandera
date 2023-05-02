@@ -5,7 +5,10 @@ from typing import Any, Dict, List, Tuple, Union
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
+
 from pandera.errors import SchemaErrorReason
+
+# import pandas as pd
 
 
 def format_generic_error_message(
@@ -29,24 +32,7 @@ def scalar_failure_case(x) -> dict:
     :returns: DataFrame used for error reporting with ``SchemaErrors``.
     """
     return {
-           "index": [None],
-            "failure_case": [x],
+        "index": [None],
+        "failure_case": [x],
     }
 
-
-
-SCHEMA_ERRORS_SUFFIX = """
-
-Usage Tip
----------
-
-Directly inspect all errors by catching the exception:
-
-```
-try:
-    schema.report_errors(dataframe, lazy=True)
-except SchemaErrors as err:
-    err.failure_cases  # dataframe of schema errors
-    err.data  # invalid dataframe
-```
-"""

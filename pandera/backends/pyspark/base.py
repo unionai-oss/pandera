@@ -18,12 +18,8 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from pandera.backends.base import BaseSchemaBackend
-from pandera.backends.pyspark.error_formatters import (
+from pandera.backends.pyspark.error_formatters import (  # format_vectorized_error_message,; consolidate_failure_cases,; summarize_failure_cases,; reshape_failure_cases,
     format_generic_error_message,
-    #format_vectorized_error_message,
-    #consolidate_failure_cases,
-    #summarize_failure_cases,
-    #reshape_failure_cases,
     scalar_failure_case,
 )
 from pandera.errors import FailureCaseMetadata, SchemaError
@@ -82,7 +78,6 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         check_result = check(check_obj, *args)
         if not check_result.check_passed:
-
             if check_result.failure_cases is None:
                 # encode scalar False values explicitly
                 failure_cases = scalar_failure_case(check_result.check_passed)

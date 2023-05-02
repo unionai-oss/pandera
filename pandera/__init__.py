@@ -15,7 +15,7 @@ from pandera.api.hypotheses import Hypothesis
 #     MultiIndex,
 #     SeriesSchema,
 # )
-#Todo Check the packaging with pandera latest code
+# Todo Check the packaging with pandera latest code
 # instead of pa.DataFrameSchema import directly as it will conflict with pandas flows
 from pandera.api.pyspark import Column, DataFrameSchema
 from pandera.api.pyspark.model import DataFrameModel, SchemaModel
