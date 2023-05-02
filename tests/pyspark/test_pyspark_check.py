@@ -43,12 +43,12 @@ def check_function(spark, check_fn, pass_case_data,
         ],
     )
     df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-    validate_fail_error = schema.validate(df)
+    validate_fail_error = schema.report_errors(df)
     if validate_fail_error:
         raise PysparkSchemaError
     with pytest.raises(PysparkSchemaError):
         df_fail = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-        validate_fail_error = schema.validate(df_fail)
+        validate_fail_error = schema.report_errors(df_fail)
         if validate_fail_error:
             raise PysparkSchemaError
 
@@ -73,26 +73,26 @@ def test_datatype_check_decorator(spark):
     df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
     validate_fail_error = schema.report_errors(df)
     print(validate_fail_error)
-    #with pytest.raises(TypeError):
-    fail_schema = DataFrameSchema(
-        {
-            "product": Column(StringType()),
-            "code": Column(IntegerType(), pa.Check.str_startswith('B')),
-        }
-    )
+    with pytest.raises(TypeError):
+        fail_schema = DataFrameSchema(
+            {
+                "product": Column(StringType()),
+                "code": Column(IntegerType(), pa.Check.str_startswith('B')),
+            }
+        )
 
-    spark_schema = StructType(
-        [
-            StructField("product", StringType(), False),
-            StructField("code", IntegerType(), False),
-        ],
-    )
-    fail_case_data = [["foo", 1], ["bar", 2]]
-    df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-    validate_fail_error = schema.report_errors(df)
-    print(validate_fail_error)
-    df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-    validate_fail_error = fail_schema.report_errors(df)
+        spark_schema = StructType(
+            [
+                StructField("product", StringType(), False),
+                StructField("code", IntegerType(), False),
+            ],
+        )
+        fail_case_data = [["foo", 1], ["bar", 2]]
+        df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
+        validate_fail_error = schema.report_errors(df)
+        print(validate_fail_error)
+        df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
+        validate_fail_error = fail_schema.report_errors(df)
 
 
 @pytest.mark.parametrize("data_dictionary",  [{"Datatype": LongType,

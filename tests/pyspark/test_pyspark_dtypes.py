@@ -92,7 +92,7 @@ class TestAllNumericTypes(BaseClass):
               "test_pyspark_all_bytetint_types": [{"pandera_equivalent": "ByteType()"},
                                                   {"pandera_equivalent": T.ByteType},
                                                   {"pandera_equivalent": T.ByteType()},
-                                                  {"pandera_equivalent": "byte"},
+                                                  {"pandera_equivalent": "bytes"},
                                                   {"pandera_equivalent": "tinyint"}
                                                   ]
               }
