@@ -3,14 +3,13 @@
 import traceback
 from typing import Iterable, NamedTuple, Optional, cast
 
-import pandas as pd
 from multimethod import DispatchError
 from pyspark.sql import DataFrame
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.base import PysparkSchemaBackend
 from pandera.backends.pyspark.error_formatters import (
-    reshape_failure_cases,
+    #reshape_failure_cases,
     scalar_failure_case,
 )
 from pandera.engines.pyspark_engine import Engine
@@ -95,11 +94,10 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         schema=None,
         # pylint: disable=unused-argument
     ):
-        """Coerce type of a pd.Series by type specified in dtype.
+        """Coerce type of a pyspark.sql.function.col by type specified in dtype.
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
-            (including time series).
-        :returns: ``Series`` with coerced data type
+        :param Dataframe: Pyspark DataFrame
+        :returns: ``DataFrame`` with coerced data type
         """
         assert schema is not None, "The `schema` argument must be provided."
         if schema.dtype is None or not schema.coerce:

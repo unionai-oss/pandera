@@ -19,12 +19,12 @@ from pyspark.sql.functions import col
 
 from pandera.backends.base import BaseSchemaBackend
 from pandera.backends.pyspark.error_formatters import (
-    consolidate_failure_cases,
     format_generic_error_message,
-    format_vectorized_error_message,
-    reshape_failure_cases,
+    #format_vectorized_error_message,
+    #consolidate_failure_cases,
+    #summarize_failure_cases,
+    #reshape_failure_cases,
     scalar_failure_case,
-    summarize_failure_cases,
 )
 from pandera.errors import FailureCaseMetadata, SchemaError
 
@@ -82,21 +82,20 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         check_result = check(check_obj, *args)
         if not check_result.check_passed:
+
             if check_result.failure_cases is None:
                 # encode scalar False values explicitly
-                # Todo
                 failure_cases = scalar_failure_case(check_result.check_passed)
-                # Todo
                 error_msg = format_generic_error_message(schema, check)
-            else:
-                # Todo
-                failure_cases = reshape_failure_cases(
-                    check_result.failure_cases, check.ignore_na
-                )
-                # Todo
-                error_msg = format_vectorized_error_message(
-                    schema, check, check_index, failure_cases
-                )
+            # else:
+            #     # Todo
+            #     failure_cases = reshape_failure_cases(
+            #         check_result.failure_cases, check.ignore_na
+            #     )
+            #     # Todo
+            #     error_msg = format_vectorized_error_message(
+            #         schema, check, check_index, failure_cases
+            #     )
 
             # raise a warning without exiting if the check is specified to do so
             if check.raise_warning:
@@ -120,12 +119,8 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         schema_errors: List[Dict[str, Any]],
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
-        failure_cases = consolidate_failure_cases(schema_errors)
-        message, error_counts = summarize_failure_cases(
-            schema_name, schema_errors, failure_cases
-        )
         return FailureCaseMetadata(
-            failure_cases=failure_cases,
-            message=message,
-            error_counts=error_counts,
+            failure_cases=None,
+            message=schema_errors,
+            error_counts=None,
         )

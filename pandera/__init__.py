@@ -8,6 +8,14 @@ from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 
+# from pandera.api.pandas import (
+#     Column,
+#     DataFrameSchema,
+#     Index,
+#     MultiIndex,
+#     SeriesSchema,
+# )
+#Todo Check the packaging with pandera latest code
 # instead of pa.DataFrameSchema import directly as it will conflict with pandas flows
 from pandera.api.pyspark import Column, DataFrameSchema
 from pandera.api.pyspark.model import DataFrameModel, SchemaModel

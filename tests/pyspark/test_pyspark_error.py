@@ -10,13 +10,13 @@ import pandera as pa
 from pandera import pyspark_sql_accessor, SchemaModel
 from pandera.error_handlers import SchemaError
 
-from pyspark.sql.types import StringType, LongType
+from pyspark.sql.types import StringType
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.components import Column
 from pandera.api.pyspark.model import DataFrameModel
 from pandera.api.pyspark.model_components import Field
 from tests.pyspark.conftest import spark_df
-from typing_extensions import Annotated
+
 
 spark = SparkSession.builder.getOrCreate()
 
@@ -89,7 +89,7 @@ def test_pyspark_schema_data_checks(spark):
         title="ProductSchema",
     )
 
-    data_fail = [("Bread", 5, ["Food"]), ("Cutter", 15, ["99"])]
+    data_fail = [("Bread", 5, ["Food"]), ('Cutter', 15, ["99"])]
 
     spark_schema = T.StructType(
         [
@@ -113,7 +113,7 @@ def test_pyspark_fields(spark):
         product: T.StringType = Field(str_startswith="B")
         price: T.IntegerType = Field(gt=5)
         id: T.DecimalType(20, 5) = Field()
-        id2:T.ArrayType(StringType()) = Field()
+        id2: T.ArrayType(StringType()) = Field()
         product_info: T.MapType(StringType(), StringType())
 
     data_fail = [
