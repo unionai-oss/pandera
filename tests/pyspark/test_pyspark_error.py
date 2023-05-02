@@ -99,7 +99,6 @@ def test_pyspark_schema_data_checks(spark):
 
     df_fail = spark_df(spark, data_fail, spark_schema)
     errors = pandera_schema.report_errors(check_obj=df_fail)
-    breakpoint()
     print(errors)
 
 
