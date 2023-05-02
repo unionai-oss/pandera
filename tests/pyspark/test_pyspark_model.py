@@ -148,12 +148,13 @@ def test_pyspark_bare_fields(spark):
         (15, "Butter", 99.0, ["more details here"], {"product_category": "bakery"}),
     ]
 
+
     spark_schema = T.StructType(
         [
             T.StructField("id", T.IntegerType(), False),
             T.StructField("product", T.StringType(), False),
             T.StructField("price", T.DecimalType(20, 5), False),
-            T.StructField("description", T.ArrayType(T.StringType()), False),
+            T.StructField("description", T.ArrayType(T.StringType(), False), False),
             T.StructField(
                 "meta", T.MapType(T.StringType(), T.StringType(), False), False
             ),
@@ -163,5 +164,5 @@ def test_pyspark_bare_fields(spark):
     errors = pandera_schema.report_errors(check_obj=df_fail)
 
     if errors:
-        pprint(errors)
+        print(errors)
         assert True  # TODO: compare with expected after fixing errors dict format

@@ -114,6 +114,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         schema_errors: List[Dict[str, Any]],
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
+
         return FailureCaseMetadata(
             failure_cases=None,
             message=schema_errors,

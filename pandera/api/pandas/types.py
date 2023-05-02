@@ -16,7 +16,6 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore [misc]
 
 
-
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 
 PandasDtypeInputTypes = Union[

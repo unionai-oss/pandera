@@ -24,7 +24,6 @@ def format_generic_error_message(
     return f"{parent_schema} failed validation " f"{check}"
 
 
-
 def scalar_failure_case(x) -> dict:
     """Construct failure case from a scalar value.
 

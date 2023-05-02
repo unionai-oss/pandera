@@ -256,7 +256,7 @@ def in_range(
 )
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(
-        ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE, BOLEAN_TYPE
+        ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
     )
 )
 def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
@@ -286,7 +286,7 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
 )
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(
-        ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE, BOLEAN_TYPE
+        ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
     )
 )
 def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> bool:

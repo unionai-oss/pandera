@@ -41,6 +41,19 @@ PySparkDtypeInputTypes = Union[
     type,
     DataType,
     Type,
+    pst.BooleanType,
+    pst.StringType,
+    pst.IntegerType,
+    pst.DecimalType,
+    pst.FloatType,
+    pst.DateType,
+    pst.TimestampType,
+    pst.DoubleType,
+    pst.ShortType,
+    pst.ByteType,
+    pst.LongType,
+    pst.DayTimeIntervalType,
+    pst.BinaryType,
 ]
 
 StrictType = Union[bool, Literal["filter"]]

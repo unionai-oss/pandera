@@ -8,9 +8,7 @@ from pyspark.sql import DataFrame
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pyspark.error_formatters import (  # reshape_failure_cases,
-    scalar_failure_case,
-)
+from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
 from pandera.errors import ParserError, SchemaError, SchemaErrorReason, SchemaErrors
 
@@ -155,16 +153,6 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"
                     if not passed
                     else f"column type matched with expected '{schema.dtype}'"
-                )
-            else:
-                passed = dtype_check_results.all()
-                failure_cases = reshape_failure_cases(
-                    check_obj[~dtype_check_results.astype(bool)],
-                    ignore_na=False,
-                )
-                msg = (
-                    f"expected series '{check_obj.name}' to have type "
-                    f"{schema.dtype}:\nfailure cases:\n{failure_cases}"
                 )
             reason_code = (
                 SchemaErrorReason.WRONG_DATATYPE
