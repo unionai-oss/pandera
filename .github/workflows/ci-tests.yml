@@ -100,16 +100,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
-        pandas-version: ["1.3.0", "1.5.2", "2.0.1"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        pandas-version: ["1.3.0", "2.0.0", "latest"]
         exclude:
-        - python-version: "3.7"
-          pandas-version: "1.5.2"
-        - python-version: "3.7"
-          pandas-version: "2.0.1"
         - python-version: "3.10"
-          pandas-version: "1.3.0"
-        - python-version: "3.11"
           pandas-version: "1.3.0"
         include:
         - os: ubuntu-latest
@@ -154,22 +148,24 @@ jobs:
           channel-priority: true
           use-only-tar-bz2: true
 
+      - name: Install Conda Deps [Latest]
+        if: ${{ matrix.pandas-version == 'latest' }}
+        run: |
+          mamba install -c conda-forge asv pandas geopandas bokeh
+          mamba env update -n pandera-dev -f environment.yml
+
+      - name: Install Conda Deps
+        if: ${{ matrix.pandas-version != 'latest' }}
+        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas
+
       # ray currently cannot be installed on python 3.10, windows
       - name: Remove Ray from Deps
         if: ${{ matrix.os == 'windows-latest' && matrix.python-version == '3.10' }}
         run: sed -i 's/^ray//g' requirements-dev.txt
 
-      - name: Install Conda Deps [Latest]
-        if: ${{ matrix.pandas-version == '2.0.1' }}
+      - name: Install Pip Deps
         run: |
-          mamba install -c conda-forge asv pandas geopandas bokeh
-          mamba env update -n pandera-dev -f environment.yml
-          pip install pandas==${{ matrix.pandas-version }}
-
-      - name: Install Conda Deps
-        if: ${{ matrix.pandas-version != 'latest' }}
-        run: |
-          mamba install -c conda-forge asv pandas=${{ matrix.pandas-version }} geopandas bokeh
+          mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
 
       - run: |
