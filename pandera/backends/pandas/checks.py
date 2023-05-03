@@ -57,7 +57,8 @@ class PandasCheckBackend(BaseCheckBackend):
         # pandas groupby objects instead of dicts.
         if groups is None:
             return {
-                (k[0] if len(k) == 1 else k): v for k, v in groupby_obj  # type: ignore [union-attr]
+                (k if isinstance(k, bool) else k[0] if len(k) == 1 else k): v
+                for k, v in groupby_obj  # type: ignore [union-attr]
             }
         group_keys = set(
             k[0] if len(k) == 1 else k for k, _ in groupby_obj  # type: ignore [union-attr]
