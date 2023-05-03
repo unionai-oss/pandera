@@ -87,7 +87,7 @@ def test_pyspark_schema_data_checks(spark):
         title="ProductSchema",
     )
 
-    data_fail = [("Bread", 5, ["Food"]), ('Cutter', 15, ["99"])]
+    data_fail = [("Bread", 5, ["Food"]), ("Cutter", 15, ["99"])]
 
     spark_schema = T.StructType(
         [
@@ -134,3 +134,25 @@ def test_pyspark_fields(spark):
     errors = pandera_schema.report_errors(check_obj=df_fail)
 
     print(errors)
+
+
+def test_pyspark_error_handler(spark, sample_spark_schema):
+    """
+    Test getting error dict from a pyspark DataFrameSchema object
+    """
+
+    pandera_schema = DataFrameSchema(
+        columns={
+            "product": Column("str", checks=pa.Check.str_startswith("B")),
+            "price": Column("int", checks=pa.Check.gt(5)),
+        },
+        name="product_schema",
+        description="schema for product info",
+        title="ProductSchema",
+    )
+
+    data_fail = [("Bread", 5), ("Cutter", 15)]
+    df_fail = spark_df(spark, data_fail, sample_spark_schema)
+
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None

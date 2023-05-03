@@ -119,13 +119,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         error_dicts = {}
         if error_handler.collected_errors:  # TODO: list of all errors
             error_dicts = error_handler.summarize(schema=schema)
-            # raise SchemaErrors(
-            #     schema=schema,
-            #     schema_errors=error_handler.collected_errors,
-            #     data=check_obj,
-            # )
 
-        return error_dicts
+        check_obj.pandera.errors = error_dicts
+        return check_obj
 
     def run_schema_component_checks(
         self,
