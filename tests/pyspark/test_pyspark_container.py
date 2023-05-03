@@ -37,8 +37,9 @@ def test_pyspark_dataframeschema():
 
     df2 = spark.createDataFrame(data=data, schema=["name", "age"])
 
-    df_out = schema.report_errors(df2)  # typecasted and no error thrown
-    assert df_out.pandera.errors == None
+    df_out = schema.report_errors(df2)
+
+    assert not df_out.pandera.errors
 
 
 def test_pyspark_dataframeschema_with_alias_types():
@@ -68,7 +69,8 @@ def test_pyspark_dataframeschema_with_alias_types():
     df = spark.createDataFrame(data=data, schema=spark_schema)
 
     df_out = schema.report_errors(df)
-    assert df_out.pandera.errors == None
+
+    assert not df_out.pandera.errors
 
     with pytest.raises(pandera.errors.PysparkSchemaError):
         data_fail = [("Bread", 3), ("Butter", 15)]

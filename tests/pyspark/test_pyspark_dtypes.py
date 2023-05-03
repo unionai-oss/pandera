@@ -14,12 +14,12 @@ from typing_extensions import Annotated
 
 class BaseClass:
     def validate_datatype(self, df, pandera_schema):
-        error = pandera_schema(df)
+        df_out = pandera_schema(df)
 
         assert df.pandera.schema == pandera_schema
         assert isinstance(pandera_schema.report_errors(df), DataFrame)
-        assert isinstance(pandera_schema(df), dict)
-        return error
+        assert isinstance(pandera_schema(df), DataFrame)
+        return df_out
 
     def pytest_generate_tests(self, metafunc):
         # called once per each test function
@@ -36,12 +36,12 @@ class BaseClass:
                 column_name: Column(pandera_equivalent),
             },
         )
-        errors = self.validate_datatype(df, pandera_schema)
-        if errors:
+        df_out = self.validate_datatype(df, pandera_schema)
+        if df_out.pandera.errors:
             if return_error == True:
-                return errors
+                return df_out.pandera.errors
             else:
-                print(errors)
+                print(df_out.pandera.errors)
                 raise Exception
 
 
