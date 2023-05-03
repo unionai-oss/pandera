@@ -149,10 +149,11 @@ jobs:
           use-only-tar-bz2: true
 
       - name: Install Conda Deps [Latest]
-        if: ${{ matrix.pandas-version == 'latest' }}
+        if: ${{ matrix.pandas-version == '2.0.1' }}
         run: |
           mamba install -c conda-forge asv pandas geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
+          pip install pandas==${{ matrix.pandas-version }}
 
       # ray currently cannot be installed on python 3.10, windows
       - name: Remove Ray from Deps
@@ -161,9 +162,8 @@ jobs:
 
       - name: Install Pip Deps
         run: |
-          mamba install -c conda-forge asv pandas geopandas bokeh
+          mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
-          pip install pandas==${{ matrix.pandas-version }}
 
       - run: |
           conda info
