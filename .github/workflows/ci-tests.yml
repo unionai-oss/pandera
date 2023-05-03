@@ -103,6 +103,8 @@ jobs:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
         pandas-version: ["1.3.0", "2.0.1"]
         exclude:
+        - python-version: "3.7"
+          pandas-version: "2.0.1"
         - python-version: "3.10"
           pandas-version: "1.3.0"
         include:
