@@ -67,8 +67,8 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
     data_fail = [("Bread", 5), ("Cutter", 15)]
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-    print(errors)
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_pyspark_schema_data_checks(spark):
@@ -98,8 +98,8 @@ def test_pyspark_schema_data_checks(spark):
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-    print(errors)
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_pyspark_fields(spark):
@@ -131,9 +131,8 @@ def test_pyspark_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-
-    print(errors)
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_pyspark_error_handler(spark, sample_spark_schema):
