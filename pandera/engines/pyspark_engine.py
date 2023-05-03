@@ -78,13 +78,6 @@ class DataType(dtypes.DataType):
         except TypeError:
             return False
 
-        # attempts to compare pandas native type if possible
-        # to let subclass inherit check
-        # (super will compare that DataType classes are exactly the same)
-        # try:
-        #     return self.type == pandera_dtype.type  # or super().check(pandera_dtype)
-        # except TypeError:
-        #     return super().check(pandera_dtype)
 
     def __str__(self) -> str:
         return str(self.type)
@@ -114,9 +107,7 @@ class DataType(dtypes.DataType):
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {type_alias}",
-                failure_cases=None  # utils.numpy_pandas_coerce_failure_cases(
-                # data_container, self
-                # ),
+                failure_cases=None
             ) from exc
 
         return coerced
@@ -304,7 +295,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
         except TypeError:
             return False
 
-        # attempts to compare pandas native type if possible
+        # attempts to compare pyspark native type if possible
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:

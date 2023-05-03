@@ -37,7 +37,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: data format before validation. This option only applies to
     #: schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, assumes a data structure
-    #: compatible with the ``pandas.DataFrame`` constructor.
+    #: compatible with the ``pyspark.sql.DataFrame`` constructor.
     from_format: Optional[Union[Format, Callable]] = None
 
     #: a dictionary keyword arguments to pass into the reader function that
