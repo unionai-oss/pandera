@@ -1,7 +1,4 @@
-"""Custom accessor functionality for modin.
-
-Source code adapted from pyspark.pandas implementation:
-https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/api/pyspark.pandas.extensions.register_dataframe_accessor.html?highlight=register_dataframe_accessor#pyspark.pandas.extensions.register_dataframe_accessor
+"""Custom accessor functionality for PySpark.Sql.
 """
 
 import warnings
@@ -10,11 +7,13 @@ from typing import Optional, Union
 
 
 from pandera.api.pyspark.container import DataFrameSchema
+from pandera.api.pyspark.error_handler import ErrorHandler
 
 """Register pyspark accessor for pandera schema metadata."""
 
 
 Schemas = Union[DataFrameSchema]
+Errors = Union[ErrorHandler]
 
 
 # Todo Refactor to create a seperate module for panderaAccessor
@@ -25,6 +24,7 @@ class PanderaAccessor:
         """Initialize the pandera accessor."""
         self._pyspark_obj = pyspark_obj
         self._schema: Optional[Schemas] = None
+        self._errors: Optional[Errors] = None
 
     @staticmethod
     def check_schema_type(schema: Schemas):
@@ -41,6 +41,11 @@ class PanderaAccessor:
     def schema(self) -> Optional[Schemas]:
         """Access schema metadata."""
         return self._schema
+
+    @property
+    def error(self) -> Optional[Errors]:
+        """Access errors metadata"""
+        return self._errors
 
 
 class CachedAccessor:
@@ -111,7 +116,6 @@ def register_dataframe_accessor(name):
     return _register_accessor(name, DataFrame)
 
 
-
 class PanderaDataFrameAccessor(PanderaAccessor):
     """Pandera accessor for pyspark DataFrame."""
 
@@ -121,8 +125,6 @@ class PanderaDataFrameAccessor(PanderaAccessor):
             raise TypeError(
                 f"schema arg must be a DataFrameSchema, found {type(schema)}"
             )
-
-
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
