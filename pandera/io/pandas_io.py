@@ -455,7 +455,9 @@ def _format_checks(checks_dict):
                 "This check will be ignored"
             )
         else:
-            args = ", ".join(f"{k}={v}" for k, v in check_kwargs.items())
+            args = ", ".join(
+                f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
+            )
             checks.append(f"Check.{check_name}({args})")
     return f"[{', '.join(checks)}]"
 
@@ -539,7 +541,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         dtype=dataframe_schema.dtype,
         coerce=dataframe_schema.coerce,
         strict=dataframe_schema.strict,
-        name=dataframe_schema.name,
+        name=dataframe_schema.name.__repr__(),
         ordered=dataframe_schema.ordered,
         unique=dataframe_schema.unique,
         report_duplicates=f'"{dataframe_schema.report_duplicates}"',
