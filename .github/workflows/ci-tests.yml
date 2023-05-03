@@ -101,10 +101,12 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
-        pandas-version: ["1.3.0", "2.0.1"]
+        pandas-version: ["1.3.0", "1.5.2", "2.0.1"]
         exclude:
         - python-version: "3.7"
           pandas-version: "2.0.1"
+        - python-version: "3.7"
+          pandas-version: "1.5.2"
         - python-version: "3.10"
           pandas-version: "1.3.0"
         include:
@@ -141,7 +143,6 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          # mamba-version: "*"
           miniforge-version: latest
           miniforge-variant: Mambaforge
           use-mamba: true
@@ -163,11 +164,6 @@ jobs:
       - name: Install Dask [pandas 2]
         if: ${{ matrix.pandas-version == '2.0.1' }}
         run: pip install --user dask>=2023.3.2
-
-      # ray currently cannot be installed on python 3.10, windows
-      # - name: Remove Ray from Deps
-      #   if: ${{ matrix.os == 'windows-latest' && matrix.python-version == '3.10' }}
-      #   run: sed -i 's/^ray//g' requirements-dev.txt
 
       - name: Install Conda Deps
         if: ${{ matrix.pandas-version != '2.0.1' }}
