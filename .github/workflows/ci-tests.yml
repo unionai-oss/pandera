@@ -150,12 +150,13 @@ jobs:
           channel-priority: true
           use-only-tar-bz2: true
 
-      - name: Install Conda Deps [Latest]
+      # need to install via pip: conda installation is on the fritz
+      - name: Install Conda Deps [pandas 2]
         if: ${{ matrix.pandas-version == '2.0.1' }}
         run: |
           mamba install -c conda-forge asv pandas geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
-          pip install pandas==${{ matrix.pandas-version }}
+          pip install pandas==${{ matrix.pandas-version }} dask==2023.3.2
 
       # ray currently cannot be installed on python 3.10, windows
       - name: Remove Ray from Deps
