@@ -159,6 +159,10 @@ jobs:
           mamba install -c conda-forge dask>=2023.3.2
           pip install pandas==${{ matrix.pandas-version }}
 
+      - name: Install Dask [pandas 2]
+        if: ${{ matrix.pandas-version == '2.0.1' }}
+        run: mamba install -c conda-forge dask>=2023.3.2
+
       # ray currently cannot be installed on python 3.10, windows
       # - name: Remove Ray from Deps
       #   if: ${{ matrix.os == 'windows-latest' && matrix.python-version == '3.10' }}
