@@ -42,11 +42,6 @@ def test_dataframe_add_schema(
     """
     Test that pandas object contains schema metadata after pandera validation.
     """
-    # validated_data_1 = schema(data)  # type: ignore[arg-type]
-    # print(schema2.report_errors(invalid_data))
-    # print(schema1.report_errors(invalid_data))
-
-    # with pytest.raises(SchemaError):
     schema(invalid_data, lazy=True)  # type: ignore[arg-type]
 
 
