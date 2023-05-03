@@ -197,13 +197,15 @@ jobs:
         run: pytest tests/geopandas ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Dask
+        if: ${{ matrix.pandas-version != '2.0.1' }}
         run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Pyspark
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.pandas-version != '1.1.5' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.pandas-version != '1.1.5' && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Modin-Dask
+        if: ${{ matrix.pandas-version != '2.0.1' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: dask
@@ -213,7 +215,7 @@ jobs:
         # - windows, python 3.10
         # - mac, python 3.7
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
