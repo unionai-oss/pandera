@@ -54,8 +54,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param index: specify the datatypes and properties of the index.
         :param dtype: datatype of the dataframe. This overrides the data
             types specified in any of the columns. If a string is specified,
-            then assumes one of the valid pandas string values:
-            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes.
+            then assumes one of the valid pyspark string values:
+            https://spark.apache.org/docs/latest/sql-ref-datatypes.html.
         :param coerce: whether or not to coerce all of the columns on
             validation. This has no effect on columns where
             ``dtype=None``
@@ -88,9 +88,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         ...     "date_column": pa.Column(pa.DateTime),
         ... })
 
-        Use the pandas API to define checks, which takes a function with
-        the signature: ``pd.Series -> Union[bool, pd.Series]`` where the
-        output series contains boolean values.
+        Use the pyspark API to define checks, which takes a function with
+        the signature: ``ps.Dataframe -> Union[bool]`` where the
+        output contains boolean values.
 
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
@@ -275,13 +275,11 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         Calling ``schema.validate`` returns the dataframe.
 
-        >>> import pandas as pd
+
         >>> import pandera as pa
         >>>
-        >>> df = pd.DataFrame({
-        ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
-        ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
-        ... })
+        >>> df = spark.createDataFrame([(0.1, 'dog'), (0.4, 'dog'), (0.52, 'cat'), (0.23, 'duck'),
+        ... (0.8, 'dog'), (0.76, 'dog')],schema=['probability','category'])
         >>>
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
@@ -298,12 +296,12 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         >>>
         >>> schema_withchecks.report_errors(df)[["probability", "category"]]
            probability category
-        0         0.10      dog
-        1         0.40      dog
-        2         0.52      cat
-        3         0.23     duck
-        4         0.80      dog
-        5         0.76      dog
+                 0.10      dog
+                 0.40      dog
+                 0.52      cat
+                 0.23     duck
+                 0.80      dog
+                 0.76      dog
         """
         error_handler = ErrorHandler(lazy)
 

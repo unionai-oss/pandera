@@ -95,6 +95,7 @@ def register_input_datatypes(
 def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure all elements of a data container equal a certain value.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param value: values in this DataFrame data structure must be
         equal to this value.
     """
@@ -115,9 +116,8 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
 )
 def not_equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     """Ensure no elements of a data container equals a certain value.
-
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param value: This value must not occur in the checked
-        :class:`pandas.Series`.
     """
     cond = col(data.column_name) != value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -134,7 +134,7 @@ def greater_than(data: PysparkDataframeColumnObject, min_value: Any) -> bool:
     """
     Ensure values of a data container are strictly greater than a minimum
     value.
-
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param min_value: Lower bound to be exceeded.
     """
     cond = col(data.column_name) > min_value
@@ -153,10 +153,9 @@ def greater_than_or_equal_to(
     data: PysparkDataframeColumnObject, min_value: Any
 ) -> bool:
     """Ensure all values are greater or equal a certain value.
-
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param min_value: Allowed minimum value for values of a series. Must be
-        a type comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+        a type comparable to the dtype of the column datatype of pyspark
     """
     cond = col(data.column_name) >= min_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -173,9 +172,9 @@ def greater_than_or_equal_to(
 def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param max_value: All elements of a series must be strictly smaller
-        than this. Must be a type comparable to the dtype of the
-        :class:`pandas.Series` to be validated.
+        than this. Must be a type comparable to the dtype of the column datatype of pyspark
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
@@ -193,10 +192,9 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
 )
 def less_than_or_equal_to(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
-
-    :param max_value: Upper bound not to be exceeded. Must be a type
-        comparable to the dtype of the :class:`pandas.Series` to be
-        validated.
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
+    :param max_value: Upper bound not to be exceeded. Must be
+        a type comparable to the dtype of the column datatype of pyspark
     """
     if max_value is None:
         raise ValueError("max_value must not be None")
@@ -220,11 +218,12 @@ def in_range(
     include_min: bool = True,
     include_max: bool = True,
 ):
-    """Ensure all values of a series are within an interval.
+    """Ensure all values of a column are within an interval.
 
     Both endpoints must be a type comparable to the dtype of the
-    :class:`pandas.Series` to be validated.
+    :class:`pyspark.sql.function.col` to be validated.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param min_value: Left / lower endpoint of the interval.
     :param max_value: Right / upper endpoint of the interval. Must not be
         smaller than min_value.
@@ -262,13 +261,14 @@ def in_range(
 def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
     """Ensure only allowed values occur within a series.
 
-    This checks whether all elements of a :class:`pandas.Series`
+    This checks whether all elements of a :class:`pyspark.sql.function.col`
     are part of the set of elements of allowed values. If allowed
     values is a string, the set of elements consists of all distinct
     characters of the string. Thus only single characters which occur
     in allowed_values at least once can meet this condition. If you
     want to check for substrings use :meth:`Check.str_contains`.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param allowed_values: The set of allowed values. May be any iterable.
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
@@ -297,6 +297,7 @@ def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> boo
     as set of prohibited characters. Any string of length > 1 can't be in it by
     design.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
     :param raise_warning: if True, check raises UserWarning instead of
@@ -321,6 +322,7 @@ def str_contains(
 ) -> bool:
     """Ensure that a pattern can be found within each row.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param pattern: Regular expression pattern to use for searching
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
@@ -340,6 +342,7 @@ def str_contains(
 def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values start with a certain string.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param string: String all values should start with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
@@ -354,6 +357,7 @@ def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
 def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values end with a certain string.
 
+    :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param string: String all values should end with
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """

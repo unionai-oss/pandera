@@ -8,7 +8,6 @@ from pyspark.sql.functions import col
 
 from pandera.errors import SchemaErrorReason
 
-# import pandas as pd
 
 
 def format_generic_error_message(

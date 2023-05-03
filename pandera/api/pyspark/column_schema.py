@@ -42,7 +42,7 @@ class ColumnSchema(BaseSchema):
 
             ``Callable[Any, bool]`` where the ``Any`` input is a scalar element
             in the column. Otherwise, the input is assumed to be a
-            pandas.Series object.
+            dataframe object.
         :param nullable: Whether or not column can contain null values.
         :param coerce: If True, when schema.validate is called the column will
             be coerced into the specified dtype. This has no effect on columns
@@ -73,12 +73,12 @@ class ColumnSchema(BaseSchema):
 
     @property
     def dtype(self) -> DataType:
-        """Get the pandas dtype"""
+        """Get the pyspark dtype"""
         return self._dtype  # type: ignore
 
     @dtype.setter
     def dtype(self, value: Optional[PySparkDtypeInputTypes]) -> None:
-        """Set the pandas dtype"""
+        """Set the pyspark dtype"""
         self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
     def report_errors(
@@ -95,7 +95,7 @@ class ColumnSchema(BaseSchema):
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a series or specific column in dataframe.
 
-        :check_obj: pandas DataFrame or Series to validate.
+        :check_obj: pyspark DataFrame to validate.
         :param head: validate the first n rows. Rows overlapping with `tail` or
             `sample` are de-duplicated.
         :param tail: validate the last n rows. Rows overlapping with `head` or
