@@ -10,11 +10,12 @@ from typing import Optional, Union
 
 
 from pandera.api.pyspark.container import DataFrameSchema
-
+from pandera.api.pyspark.error_handler import ErrorHandler
 """Register pyspark accessor for pandera schema metadata."""
 
 
 Schemas = Union[DataFrameSchema]
+Errors = Union[ErrorHandler]
 
 
 # Todo Refactor to create a seperate module for panderaAccessor
@@ -25,6 +26,7 @@ class PanderaAccessor:
         """Initialize the pandera accessor."""
         self._pyspark_obj = pyspark_obj
         self._schema: Optional[Schemas] = None
+        self._errors: Optional[Errors] = None
 
     @staticmethod
     def check_schema_type(schema: Schemas):
@@ -42,6 +44,9 @@ class PanderaAccessor:
         """Access schema metadata."""
         return self._schema
 
+    def error(self) -> Optional[Errors]:
+        """Access schema metadata."""
+        return self._errors
 
 class CachedAccessor:
     """

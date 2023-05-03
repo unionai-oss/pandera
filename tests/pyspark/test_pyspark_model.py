@@ -169,3 +169,46 @@ def test_pyspark_bare_fields(spark):
     if errors:
         print(errors)
         assert True  # TODO: compare with expected after fixing errors dict format
+
+def test_dataframe_schema_strict(spark) -> None:
+    """
+    Checks if strict=True whether a schema error is raised because 'a' is
+    not present in the dataframe.
+    """
+    schema = DataFrameSchema(
+        {
+            "a": pa.Column('long', nullable=True),
+            "b": pa.Column('int', nullable=True),
+
+        },
+        strict=True,
+    )
+    df = spark.createDataFrame([[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3]], ['a', 'b', 'c', 'd'])
+
+    data = schema.report_errors(df.select(["a", "b"]))
+
+    assert isinstance(schema.report_errors(df.select(["a", "b"])), dict)
+    with pytest.raises(pa.errors.PysparkSchemaError):
+        errors = schema.report_errors(df)
+        print(errors)
+        if errors:
+            raise pa.errors.PysparkSchemaError
+
+    schema.strict = "filter"
+    assert isinstance(schema.report_errors(df), dict)
+
+    #assert list(schema.report_errors(df).columns) == ["a", "b"]
+    #
+    with pytest.raises(pa.errors.SchemaInitError):
+        DataFrameSchema(
+            {
+                "a": pa.Column(int, nullable=True),
+                "b": pa.Column(int, nullable=True),
+            },
+            strict="foobar",  # type: ignore[arg-type]
+        )
+    #
+    # with pytest.raises(errors.SchemaError):
+    #     schema.validate(df.loc[:, ["a"]])
+    # with pytest.raises(errors.SchemaError):
+    #     schema.validate(df.loc[:, ["a", "c"]])
