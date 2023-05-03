@@ -1,7 +1,4 @@
-"""Custom accessor functionality for modin.
-
-Source code adapted from pyspark.pandas implementation:
-https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/api/pyspark.pandas.extensions.register_dataframe_accessor.html?highlight=register_dataframe_accessor#pyspark.pandas.extensions.register_dataframe_accessor
+"""Custom accessor functionality for PySpark.Sql.
 """
 
 import warnings
@@ -11,6 +8,7 @@ from typing import Optional, Union
 
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.error_handler import ErrorHandler
+
 """Register pyspark accessor for pandera schema metadata."""
 
 
@@ -44,9 +42,11 @@ class PanderaAccessor:
         """Access schema metadata."""
         return self._schema
 
+    @property
     def error(self) -> Optional[Errors]:
-        """Access schema metadata."""
+        """Access errors metadata"""
         return self._errors
+
 
 class CachedAccessor:
     """
@@ -116,7 +116,6 @@ def register_dataframe_accessor(name):
     return _register_accessor(name, DataFrame)
 
 
-
 class PanderaDataFrameAccessor(PanderaAccessor):
     """Pandera accessor for pyspark DataFrame."""
 
@@ -126,8 +125,6 @@ class PanderaDataFrameAccessor(PanderaAccessor):
             raise TypeError(
                 f"schema arg must be a DataFrameSchema, found {type(schema)}"
             )
-
-
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
