@@ -42,11 +42,6 @@ def test_dataframe_add_schema(
     """
     Test that pandas object contains schema metadata after pandera validation.
     """
-    # validated_data_1 = schema(data)  # type: ignore[arg-type]
-    # print(schema2.report_errors(invalid_data))
-    # print(schema1.report_errors(invalid_data))
-
-    # with pytest.raises(SchemaError):
     schema(invalid_data, lazy=True)  # type: ignore[arg-type]
 
 
@@ -67,8 +62,8 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
     data_fail = [("Bread", 5), ("Cutter", 15)]
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-    print(errors)
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_pyspark_schema_data_checks(spark):
@@ -98,8 +93,8 @@ def test_pyspark_schema_data_checks(spark):
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-    print(errors)
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_pyspark_fields(spark):
@@ -131,9 +126,8 @@ def test_pyspark_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-
-    print(errors)
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_pyspark_error_handler(spark, sample_spark_schema):

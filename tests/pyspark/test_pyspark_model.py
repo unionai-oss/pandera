@@ -5,12 +5,10 @@ import pyspark.sql.types as T
 import pytest
 import pandera as pa
 from pandera import SchemaModel
-from pandera.error_handlers import SchemaError
 from pandera.api.pyspark.model import DataFrameModel
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.model_components import Field
 from tests.pyspark.conftest import spark_df
-from typing_extensions import Annotated
 
 
 def test_schema_with_bare_types():
@@ -89,16 +87,8 @@ def test_schema_with_bare_types_field_and_checks(spark):
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = Model.report_errors(check_obj=df_fail)
-    if errors:
-        pprint(errors)
-        assert True  # TODO: compare with expected after fixing errors dict format
-
-        # raise SchemaError(
-        #     Model,
-        #     df_fail,
-        #     f"errors: {errors}",
-        # )
+    df_out = Model.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_schema_with_bare_types_field_type(spark):
@@ -122,17 +112,8 @@ def test_schema_with_bare_types_field_type(spark):
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = Model.report_errors(check_obj=df_fail)
-
-    if errors:
-        pprint(errors)
-        assert True  # TODO: compare with expected after fixing errors dict format
-
-        # raise SchemaError(
-        #     Model,
-        #     df_fail,
-        #     f"errors: {errors}",
-        # )
+    df_out = Model.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
 
 
 def test_pyspark_bare_fields(spark):
@@ -164,8 +145,5 @@ def test_pyspark_bare_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.report_errors(check_obj=df_fail)
-
-    if errors:
-        print(errors)
-        assert True  # TODO: compare with expected after fixing errors dict format
+    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    assert df_out.pandera.errors != None
