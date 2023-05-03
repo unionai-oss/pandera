@@ -119,7 +119,11 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         error_dicts = {}
         if error_handler.collected_errors:  # TODO: list of all errors
             error_dicts = error_handler.summarize(schema=schema)
-
+            # raise SchemaErrors(
+            #     schema=schema,
+            #     schema_errors=error_handler.collected_errors,
+            #     data=check_obj,
+            # )
         check_obj.pandera.errors = error_dicts
         return check_obj
 
@@ -318,11 +322,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     )
 
         if schema.strict == "filter":
-            if type(check_obj).__module__.startswith("pyspark.pandas"):
-                # NOTE: remove this when we have a seperate backend for pyspark
-                check_obj = check_obj.drop(labels=filter_out_columns, axis=1)
-            else:
-                check_obj.drop(labels=filter_out_columns, inplace=True, axis=1)
+            check_obj = check_obj.drop(*filter_out_columns)
 
         return check_obj
 

@@ -1,6 +1,7 @@
 """Unit tests for DataFrameModel module."""
 from pprint import pprint
 from pyspark.sql.functions import col
+from pyspark.sql import DataFrame
 import pyspark.sql.types as T
 import pytest
 import pandera as pa
@@ -147,3 +148,48 @@ def test_pyspark_bare_fields(spark):
     df_fail = spark_df(spark, data_fail, spark_schema)
     df_out = pandera_schema.report_errors(check_obj=df_fail)
     assert df_out.pandera.errors != None
+
+
+def test_dataframe_schema_strict(spark) -> None:
+    """
+    Checks if strict=True whether a schema error is raised because 'a' is
+    not present in the dataframe.
+    """
+    schema = DataFrameSchema(
+        {
+            "a": pa.Column("long", nullable=True),
+            "b": pa.Column("int", nullable=True),
+        },
+        strict=True,
+    )
+    df = spark.createDataFrame(
+        [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3]], ["a", "b", "c", "d"]
+    )
+
+    df_out = schema.report_errors(df.select(["a", "b"]))
+
+    assert isinstance(df_out, DataFrame)
+    with pytest.raises(pa.errors.PysparkSchemaError):
+        df_out = schema.report_errors(df)
+        print(df_out.pandera.errors)
+        if df_out.pandera.errors:
+            raise pa.errors.PysparkSchemaError
+
+    schema.strict = "filter"
+    assert isinstance(schema.report_errors(df), DataFrame)
+
+    # assert list(schema.report_errors(df).columns) == ["a", "b"]
+    #
+    with pytest.raises(pa.errors.SchemaInitError):
+        DataFrameSchema(
+            {
+                "a": pa.Column(int, nullable=True),
+                "b": pa.Column(int, nullable=True),
+            },
+            strict="foobar",  # type: ignore[arg-type]
+        )
+    #
+    # with pytest.raises(errors.SchemaError):
+    #     schema.validate(df.loc[:, ["a"]])
+    # with pytest.raises(errors.SchemaError):
+    #     schema.validate(df.loc[:, ["a", "c"]])
