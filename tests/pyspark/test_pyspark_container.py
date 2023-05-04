@@ -98,27 +98,17 @@ def test_pyspark_column_metadata():
         name="product_schema",
         description="schema for product info",
         title="ProductSchema",
-    )
-    breakpoint()
-
-    data = [("Bread", 9), ("Butter", 15)]
-
-    spark_schema = T.StructType(
-        [
-            T.StructField("product", T.StringType(), False),
-            T.StructField("price", T.IntegerType(), False),
-        ],
+        metadata={"category": "product"},
     )
 
-    df = spark.createDataFrame(data=data, schema=spark_schema)
+    expected = {
+        "product_schema": {
+            "columns": {
+                "product": {"usecase": "product_pricing", "type": ["t1", "t2"]},
+                "price": None,
+            },
+            "dataframe": {"category": "product"},
+        }
+    }
 
-    validate_df = schema.report_errors(df)
-
-    with pytest.raises(pandera.errors.PysparkSchemaError):
-        data_fail = [("Bread", 3), ("Butter", 15)]
-
-        df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
-
-        fail_df = schema.report_errors(df_fail)
-        if fail_df:
-            raise pandera.errors.PysparkSchemaError
+    assert schema.get_metadata == expected
