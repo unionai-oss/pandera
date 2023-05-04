@@ -18,8 +18,8 @@ from pandera.api.pandas import (
 
 from pandera.decorators import check_input, check_io, check_output, check_types
 
-# from pandera.api.pandas.model import DataFrameModel, SchemaModel
-# from pandera.api.pandas.model_components import Field, check, dataframe_check
+from pandera.api.pandas.model import DataFrameModel, SchemaModel
+from pandera.api.pandas.model_components import Field, check, dataframe_check
 from pandera.dtypes import (
     Bool,
     Category,
