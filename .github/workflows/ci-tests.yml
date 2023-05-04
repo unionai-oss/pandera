@@ -163,7 +163,6 @@ jobs:
         run: |
           mamba install -c conda-forge asv pandas geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
-          mamba install -c conda-forge dask>=2023.3.2
           pip install pandas==${{ matrix.pandas-version }}
 
       # need to install pandas2-compatible version of dask
