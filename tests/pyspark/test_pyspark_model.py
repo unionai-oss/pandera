@@ -178,7 +178,7 @@ def test_dataframe_schema_strict(spark) -> None:
     schema.strict = "filter"
     assert isinstance(schema.report_errors(df), DataFrame)
 
-    # assert list(schema.report_errors(df).columns) == ["a", "b"]
+    assert list(schema.report_errors(df).columns) == ["a", "b"]
     #
     with pytest.raises(pa.errors.SchemaInitError):
         DataFrameSchema(
@@ -188,8 +188,12 @@ def test_dataframe_schema_strict(spark) -> None:
             },
             strict="foobar",  # type: ignore[arg-type]
         )
-    #
-    # with pytest.raises(errors.SchemaError):
-    #     schema.validate(df.loc[:, ["a"]])
-    # with pytest.raises(errors.SchemaError):
-    #     schema.validate(df.loc[:, ["a", "c"]])
+
+    with pytest.raises(pa.errors.PysparkSchemaError):
+        df_out = schema.report_errors(df.select("a"))
+        if df_out.pandera.errors:
+            raise pa.errors.PysparkSchemaError
+    with pytest.raises(pa.errors.PysparkSchemaError):
+        df_out = schema.report_errors(df.select(["a", "c"]))
+        if df_out.pandera.errors:
+            raise pa.errors.PysparkSchemaError
