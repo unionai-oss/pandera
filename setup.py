@@ -56,7 +56,7 @@ setup(
         "wrapt",
     ],
     extras_require=extras_require,
-    python_requires=">=3.7",
+    python_requires=">=3.7,<=3.11",
     platforms="any",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -69,6 +69,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
     ],
 )

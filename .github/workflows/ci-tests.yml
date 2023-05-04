@@ -119,7 +119,6 @@ jobs:
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
 
-
     steps:
       - uses: actions/checkout@v2
 
@@ -152,6 +151,13 @@ jobs:
           channels: conda-forge
           channel-priority: true
           use-only-tar-bz2: true
+
+      # ray currently cannot be installed on python 3.11
+      - name: Remove Ray from Deps
+        if: ${{ matrix.python-version == '3.11' }}
+        run: |
+          sed -i '/- ray/d' environment.yml
+          sed -i '/ray/d' requirements-dev.txt
 
       # need to install pandas via pip: conda installation is on the fritz
       - name: Install Conda Deps [pandas 2]
@@ -221,7 +227,7 @@ jobs:
         # - windows, python 3.10
         # - mac, python 3.7
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
@@ -230,9 +236,9 @@ jobs:
         uses: codecov/codecov-action@v3
 
       - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session docs
