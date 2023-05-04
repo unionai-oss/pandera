@@ -5,10 +5,9 @@ from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 import pyspark.sql.functions as F
 import pytest
-import pandera as pa
+import pandera.pyspark as pa
 import pandera.errors
-from pandera.api.pyspark.container import DataFrameSchema
-from pandera.api.pyspark.components import Column
+from pandera.pyspark import DataFrameSchema, Column
 from pandera.errors import SchemaErrors
 
 spark = SparkSession.builder.getOrCreate()
