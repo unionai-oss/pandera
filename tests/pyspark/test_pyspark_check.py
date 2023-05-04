@@ -21,10 +21,9 @@ from pyspark.sql.types import (
 import decimal
 
 import pytest
-import pandera as pa
+import pandera.pyspark as pa
 
-from pandera.api.pyspark.container import DataFrameSchema
-from pandera.api.pyspark.components import Column
+from pandera.pyspark import DataFrameSchema, Column
 from pandera.errors import PysparkSchemaError
 
 

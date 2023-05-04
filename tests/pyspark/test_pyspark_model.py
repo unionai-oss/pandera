@@ -4,11 +4,8 @@ from pyspark.sql.functions import col
 from pyspark.sql import DataFrame
 import pyspark.sql.types as T
 import pytest
-import pandera as pa
-from pandera import SchemaModel
-from pandera.api.pyspark.model import DataFrameModel
-from pandera.api.pyspark.container import DataFrameSchema
-from pandera.api.pyspark.model_components import Field
+import pandera.pyspark as pa
+from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
 
 
@@ -169,18 +166,18 @@ def test_dataframe_schema_strict(spark) -> None:
     df_out = schema.report_errors(df.select(["a", "b"]))
 
     assert isinstance(df_out, DataFrame)
-    with pytest.raises(pa.errors.PysparkSchemaError):
+    with pytest.raises(pa.PysparkSchemaError):
         df_out = schema.report_errors(df)
         print(df_out.pandera.errors)
         if df_out.pandera.errors:
-            raise pa.errors.PysparkSchemaError
+            raise pa.PysparkSchemaError
 
     schema.strict = "filter"
     assert isinstance(schema.report_errors(df), DataFrame)
 
     assert list(schema.report_errors(df).columns) == ["a", "b"]
     #
-    with pytest.raises(pa.errors.SchemaInitError):
+    with pytest.raises(pa.SchemaInitError):
         DataFrameSchema(
             {
                 "a": pa.Column(int, nullable=True),
@@ -189,11 +186,11 @@ def test_dataframe_schema_strict(spark) -> None:
             strict="foobar",  # type: ignore[arg-type]
         )
 
-    with pytest.raises(pa.errors.PysparkSchemaError):
+    with pytest.raises(pa.PysparkSchemaError):
         df_out = schema.report_errors(df.select("a"))
         if df_out.pandera.errors:
-            raise pa.errors.PysparkSchemaError
-    with pytest.raises(pa.errors.PysparkSchemaError):
+            raise pa.PysparkSchemaError
+    with pytest.raises(pa.PysparkSchemaError):
         df_out = schema.report_errors(df.select(["a", "c"]))
         if df_out.pandera.errors:
-            raise pa.errors.PysparkSchemaError
+            raise pa.PysparkSchemaError

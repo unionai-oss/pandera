@@ -1,12 +1,11 @@
 """Unit tests for dask_accessor module."""
 from typing import Union
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pytest
-from pyspark.sql import SparkSession
-import pandera as pa
-from pandera import pyspark_sql_accessor
+import pandera.pyspark as pa
+from pandera.pyspark import pyspark_sql_accessor
 from pandera.error_handlers import SchemaError
 
 

@@ -7,6 +7,7 @@ try:
     from pandera.api.pyspark.model_components import Field, check, dataframe_check
     from pandera.api.checks import Check
     from pandera.typing import pyspark_sql
+    from pandera.errors import PysparkSchemaError, SchemaInitError
 
 except ImportError:
     pass

@@ -3,8 +3,7 @@ import datetime
 
 import pyspark.sql.types as T
 import pytest
-from pandera.api.pyspark.container import DataFrameSchema
-from pandera.api.pyspark.components import Column
+from pandera.pyspark import DataFrameSchema, Column
 from pandera.error_handlers import SchemaError
 from tests.pyspark.conftest import spark_df
 from pandera.errors import SchemaErrors
