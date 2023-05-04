@@ -5,6 +5,7 @@ coercion examples."""
 import dataclasses
 import datetime
 import inspect
+import re
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
@@ -19,6 +20,7 @@ from pandas import DatetimeTZDtype, to_datetime
 
 import pandera as pa
 from pandera.engines import pandas_engine
+from pandera.engines.utils import pandas_version
 from pandera.system import FLOAT_128_AVAILABLE
 
 # List dtype classes and associated pandas alias,
@@ -315,7 +317,18 @@ def test_check_not_equivalent(dtype: Any):
 def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
     """Test that dtypes can be coerced without casting."""
     expected_dtype = pandas_engine.Engine.dtype(dtype)
-    series = pd.Series(data, dtype=pd_dtype)
+
+    if isinstance(pd_dtype, str) and "datetime64" in pd_dtype:
+        # handle dtype case
+        tz_match = re.match(r"datetime64\[ns, (.+)\]", pd_dtype)
+        tz = None if not tz_match else tz_match.group(1)
+        if pandas_version().release >= (2, 0, 0):
+            series = pd.Series(data, dtype=pd_dtype).dt.tz_localize(tz)
+        else:
+            series = pd.Series(data, dtype=pd_dtype)  # type: ignore[assignment]
+    else:
+        series = pd.Series(data, dtype=pd_dtype)  # type: ignore[assignment]
+
     coerced_series = expected_dtype.coerce(series)
 
     assert series.equals(coerced_series)
@@ -323,7 +336,7 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
         pandas_engine.Engine.dtype(coerced_series.dtype)
     )
 
-    df = pd.DataFrame({"col": data}, dtype=pd_dtype)
+    df = pd.DataFrame({"col": series})
     coerced_df = expected_dtype.coerce(df)
 
     assert df.equals(coerced_df)

@@ -495,8 +495,6 @@ def test_check_backend_not_found():
     class CustomDataObject:
         """Custom data object."""
 
-        ...
-
     dummy_check = Check(lambda _: True)
 
     with pytest.raises(KeyError, match="Backend not found for class"):

@@ -62,7 +62,7 @@ class Engine(ABCMeta):
     _registered_dtypes: Set[Type[DataType]]
     _base_pandera_dtypes: Tuple[Type[DataType]]
 
-    def __new__(cls, name, bases, namespace, **kwargs):
+    def __new__(mcs, name, bases, namespace, **kwargs):
         base_pandera_dtypes = kwargs.pop("base_pandera_dtypes")
         try:
             namespace["_base_pandera_dtypes"] = tuple(base_pandera_dtypes)
@@ -70,13 +70,13 @@ class Engine(ABCMeta):
             namespace["_base_pandera_dtypes"] = (base_pandera_dtypes,)
 
         namespace["_registered_dtypes"] = set()
-        engine = super().__new__(cls, name, bases, namespace, **kwargs)
+        engine = super().__new__(mcs, name, bases, namespace, **kwargs)
 
         @functools.singledispatch
         def dtype(data_type: Any) -> DataType:
             raise ValueError(f"Data type '{data_type}' not understood")
 
-        cls._registry[engine] = _DtypeRegistry(dispatch=dtype, equivalents={})
+        mcs._registry[engine] = _DtypeRegistry(dispatch=dtype, equivalents={})
         return engine
 
     def _check_source_dtype(cls, data_type: Any) -> None:

@@ -825,29 +825,31 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
 
         def _to_datetime(col: PandasObject) -> PandasObject:
             col = to_datetime_fn(col, **self.to_datetime_kwargs)
-            if hasattr(pandas_dtype, "tz") and pandas_dtype.tz is not None:
+            pdtype_tz = getattr(pandas_dtype, "tz", None)
+            coltype_tz = getattr(col.dtype, "tz", None)
+            if pdtype_tz is not None or coltype_tz is not None:
                 if hasattr(col, "dt"):
                     if col.dt.tz is None:
                         # localize datetime column so that it's timezone-aware
                         col = col.dt.tz_localize(
-                            pandas_dtype.tz,
+                            pdtype_tz,
                             **_tz_localize_kwargs,
                         )
                     else:
-                        col = col.dt.tz_convert(pandas_dtype.tz)
+                        col = col.dt.tz_convert(pdtype_tz)
                 elif (
                     hasattr(col, "tz")
-                    and col.tz != pandas_dtype.tz
+                    and col.tz != pdtype_tz
                     and hasattr(col, "tz_localize")
                 ):
                     if col.tz is None:
                         # localize datetime index so that it's timezone-aware
                         col = col.tz_localize(
-                            pandas_dtype.tz,
+                            pdtype_tz,
                             **_tz_localize_kwargs,
                         )
                     else:
-                        col = col.tz_convert(pandas_dtype.tz)
+                        col = col.tz_convert(pdtype_tz)
             return col.astype(pandas_dtype)
 
         if isinstance(data_container, pd.DataFrame):

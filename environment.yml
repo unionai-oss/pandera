@@ -49,7 +49,7 @@ dependencies:
   # testing
   - isort >= 5.7.0
   - mypy <= 0.982
-  - pylint = 2.12.2
+  - pylint <= 2.17.3
   - pytest
   - pytest-cov
   - pytest-xdist

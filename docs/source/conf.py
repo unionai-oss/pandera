@@ -70,7 +70,10 @@ else:
 
 SKIP = sys.version_info < (3, 6)
 PY36 = sys.version_info < (3, 7)
-SKIP_PANDAS_LT_V1 = version.parse(pd.__version__).release < (1, 0) or PY36
+PANDAS_LT_V2 = version.parse(pd.__version__).release < (1, 0)
+PANDAS_GT_V2 = version.parse(pd.__version__).release >= (2, 0)
+SKIP_PANDAS_LT_V1 = PANDAS_LT_V2 or PY36
+SKIP_PANDAS_LT_V1_OR_GT_V2 = PANDAS_LT_V2 or PANDAS_GT_V2 or PY36
 SKIP_SCALING = True
 SKIP_SCHEMA_MODEL = SKIP_PANDAS_LT_V1
 SKIP_MODIN = True

@@ -134,7 +134,7 @@ else:
         ],
     )
 
-DataFrameModel = TypeVar("Schema", bound="DataFrameModel")  # type: ignore
+DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
 
 # pylint:disable=invalid-name
