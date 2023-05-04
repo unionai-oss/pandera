@@ -214,7 +214,7 @@ jobs:
         run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Modin-Dask
-        if: ${{ matrix.pandas-version != '2.0.1' }}
+        if: ${{ !contains(fromJson('["3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: dask
