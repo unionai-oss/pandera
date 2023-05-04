@@ -155,7 +155,7 @@ jobs:
       # ray currently cannot be installed on python 3.11
       - name: Remove Ray from Deps
         run: |
-          if [ "{{ runner.os }}" == "macos-latest" ]; then
+          if [ "${{ runner.os }}" == "macos-latest" ]; then
             sed -i .bak '/ray/d' environment.yml
           else
             sed -i '/ray/d' environment.yml
