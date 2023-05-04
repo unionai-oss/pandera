@@ -154,8 +154,12 @@ jobs:
 
       # ray currently cannot be installed on python 3.11
       - name: Remove Ray from Deps
-        if: ${{ matrix.python-version == '3.11' }}
-        run: sed '/ray/d' environment.yml > environment.yml
+        if: ${{ matrix.python-version == '3.11' && runner.os != 'macos-latest' }}
+        run: sed -i '/ray/d' environment.yml
+
+      - name: Remove Ray from Deps
+        if: ${{ matrix.python-version == '3.11' && runner.os == 'macos-latest' }}
+        run: sed -i '' '/ray/d' environment.yml
 
       # need to install pandas via pip: conda installation is on the fritz
       - name: Install Conda Deps [pandas 2]
@@ -164,11 +168,7 @@ jobs:
           mamba install -c conda-forge asv pandas geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
           pip install pandas==${{ matrix.pandas-version }}
-
-      # need to install pandas2-compatible version of dask
-      - name: Install Dask [pandas 2]
-        if: ${{ matrix.pandas-version == '2.0.1' }}
-        run: pip install --user dask>=2023.3.2
+          pip install --user dask>=2023.3.2
 
       - name: Install Conda Deps
         if: ${{ matrix.pandas-version != '2.0.1' }}
