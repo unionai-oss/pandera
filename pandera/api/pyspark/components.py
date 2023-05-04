@@ -1,4 +1,4 @@
-"""Core pandas schema component specifications."""
+"""Core pyspark schema component specifications."""
 
 import warnings
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
@@ -37,8 +37,8 @@ class Column(ColumnSchema):
 
         :param dtype: datatype of the column. The datatype for type-checking
             a dataframe. If a string is specified, then assumes
-            one of the valid pandas string values:
-            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+            one of the valid pyspark string values:
+            https://spark.apache.org/docs/latest/sql-ref-datatypes.html
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param coerce: If True, when schema.validate is called the column will
@@ -56,7 +56,7 @@ class Column(ColumnSchema):
 
         :example:
 
-        >>> import pandas as pd
+        >>> import pyspark as ps
         >>> import pandera as pa
         >>>
         >>>
@@ -64,10 +64,10 @@ class Column(ColumnSchema):
         ...     "column": pa.Column(str)
         ... })
         >>>
-        >>> schema.report_errors(pd.DataFrame({"column": ["foo", "bar"]}))
+        >>> schema.report_errors(spark.createDataFrame([{"column": "foo"},{ "column":"bar"}]))
           column
-        0    foo
-        1    bar
+            foo
+            bar
 
         See :ref:`here<column>` for more usage details.
         """
@@ -133,7 +133,7 @@ class Column(ColumnSchema):
     ) -> ps.DataFrame:
         """Validate a Column in a DataFrame object.
 
-        :param check_obj: pandas DataFrame to validate.
+        :param check_obj: pyspark DataFrame to validate.
         :param head: validate the first n rows. Rows overlapping with `tail` or
             `sample` are de-duplicated.
         :param tail: validate the last n rows. Rows overlapping with `head` or

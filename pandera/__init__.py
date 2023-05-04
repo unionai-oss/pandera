@@ -8,22 +8,18 @@ from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 
-# from pandera.api.pandas import (
-#     Column,
-#     DataFrameSchema,
-#     Index,
-#     MultiIndex,
-#     SeriesSchema,
-# )
-# Todo Check the packaging with pandera latest code
-# instead of pa.DataFrameSchema import directly as it will conflict with pandas flows
-from pandera.api.pyspark import Column, DataFrameSchema
-from pandera.api.pyspark.model import DataFrameModel, SchemaModel
-from pandera.api.pyspark.model_components import Field, check, dataframe_check
+from pandera.api.pandas import (
+    Column,
+    DataFrameSchema,
+    Index,
+    MultiIndex,
+    SeriesSchema,
+)
+
 from pandera.decorators import check_input, check_io, check_output, check_types
 
-# from pandera.api.pandas.model import DataFrameModel, SchemaModel
-# from pandera.api.pandas.model_components import Field, check, dataframe_check
+from pandera.api.pandas.model import DataFrameModel, SchemaModel
+from pandera.api.pandas.model_components import Field, check, dataframe_check
 from pandera.dtypes import (
     Bool,
     Category,
@@ -80,10 +76,6 @@ from pandera.version import __version__
 # )
 
 
-
-
-
-
 if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports
     from pandera.dtypes import Complex256, Float128
@@ -103,16 +95,6 @@ try:
     from pandera.accessors import pyspark_accessor
 except ImportError:
     pass
-
-try:
-    import pyspark.sql
-
-    from pandera.accessors import pyspark_sql_accessor
-
-    # from pandera.api.pyspark.model_components import Field
-except ImportError:
-    pass
-
 
 try:
     import modin.pandas

@@ -1,18 +1,14 @@
 """Unit tests for dask_accessor module."""
 from typing import Union
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pyspark.sql.types as T
 import pytest
-from pyspark.sql import SparkSession
-import pandera as pa
+import pandera.pyspark as pa
 
 from pyspark.sql.types import StringType
-from pandera.api.pyspark.container import DataFrameSchema
-from pandera.api.pyspark.components import Column
-from pandera.api.pyspark.model import DataFrameModel
-from pandera.api.pyspark.model_components import Field
+from pandera.pyspark import DataFrameSchema, Column, DataFrameModel, Field
 from tests.pyspark.conftest import spark_df
 
 
@@ -87,7 +83,7 @@ def test_pyspark_schema_data_checks(spark):
         title="ProductSchema",
     )
 
-    data_fail = [("Bread", 5, ["Food"]), ('Cutter', 15, ["99"])]
+    data_fail = [("Bread", 5, ["Food"]), ("Cutter", 15, ["99"])]
 
     spark_schema = T.StructType(
         [

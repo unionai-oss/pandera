@@ -1,31 +1,30 @@
-"""Custom accessor functionality for modin.
-
-Source code adapted from pyspark.pandas implementation:
-https://spark.apache.org/docs/3.2.0/api/python/reference/pyspark.pandas/api/pyspark.pandas.extensions.register_dataframe_accessor.html?highlight=register_dataframe_accessor#pyspark.pandas.extensions.register_dataframe_accessor
+"""Custom accessor functionality for PySpark.Sql.
 """
 
 import warnings
 from functools import wraps
 from typing import Optional, Union
 
-import pandas as pd
 
 from pandera.api.pyspark.container import DataFrameSchema
+from pandera.api.pyspark.error_handler import ErrorHandler
 
 """Register pyspark accessor for pandera schema metadata."""
 
 
 Schemas = Union[DataFrameSchema]
+Errors = Union[ErrorHandler]
 
 
 # Todo Refactor to create a seperate module for panderaAccessor
 class PanderaAccessor:
-    """Pandera accessor for pandas object."""
+    """Pandera accessor for pyspark object."""
 
-    def __init__(self, pandas_obj):
+    def __init__(self, pyspark_obj):
         """Initialize the pandera accessor."""
-        self._pandas_obj = pandas_obj
+        self._pyspark_obj = pyspark_obj
         self._schema: Optional[Schemas] = None
+        self._errors: Optional[Errors] = None
 
     @staticmethod
     def check_schema_type(schema: Schemas):
@@ -33,15 +32,20 @@ class PanderaAccessor:
         raise NotImplementedError
 
     def add_schema(self, schema):
-        """Add a schema to the pandas object."""
+        """Add a schema to the pyspark object."""
         self.check_schema_type(schema)
         self._schema = schema
-        return self._pandas_obj
+        return self._pyspark_obj
 
     @property
     def schema(self) -> Optional[Schemas]:
         """Access schema metadata."""
         return self._schema
+
+    @property
+    def error(self) -> Optional[Errors]:
+        """Access errors metadata"""
+        return self._errors
 
 
 class CachedAccessor:
@@ -112,23 +116,8 @@ def register_dataframe_accessor(name):
     return _register_accessor(name, DataFrame)
 
 
-# def register_series_accessor(name):
-#     """
-#     Register a custom accessor with a Series object
-#
-#     :param name: name used when calling the accessor after its registered
-#     :returns: a callable class decorator
-#     """
-#     # pylint: disable=import-outside-toplevel
-#
-#     from pyspark.sql.functions import col
-#
-#     return _register_accessor(name, col)
-#
-
-
 class PanderaDataFrameAccessor(PanderaAccessor):
-    """Pandera accessor for pandas DataFrame."""
+    """Pandera accessor for pyspark DataFrame."""
 
     @staticmethod
     def check_schema_type(schema):
@@ -136,18 +125,6 @@ class PanderaDataFrameAccessor(PanderaAccessor):
             raise TypeError(
                 f"schema arg must be a DataFrameSchema, found {type(schema)}"
             )
-
-
-# @register_series_accessor("pandera")
-# class PanderaSeriesAccessor(PanderaAccessor):
-#     """Pandera accessor for pandas Series."""
-#
-#     @staticmethod
-#     def check_schema_type(schema):
-#         if not isinstance(schema, SeriesSchema):
-#             raise TypeError(
-#                 f"schema arg must be a SeriesSchema, found {type(schema)}"
-#             )
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)

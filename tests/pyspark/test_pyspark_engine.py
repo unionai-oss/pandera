@@ -1,30 +1,11 @@
 """Tests Engine subclassing and registring DataTypes."""
 # pylint:disable=redefined-outer-name,unused-argument
 # pylint:disable=missing-function-docstring,missing-class-docstring
-import re
-from typing import Any, Generator, List, Union
-
-import pytest
-
-from pandera.engines import pyspark_engine
-import pyspark.sql.types as pst
-from pyspark.sql import SparkSession
-
 """Test pyspark engine."""
 
-from datetime import date
-
-import hypothesis
-import hypothesis.extra.pandas as pd_st
-import hypothesis.strategies as st
-import pandas as pd
 import pytest
-import pytz
-from hypothesis import given
 
 from pandera.engines import pyspark_engine
-from pandera.errors import ParserError
-
 
 @pytest.mark.parametrize(
     "data_type", list(pyspark_engine.Engine.get_registered_dtypes())

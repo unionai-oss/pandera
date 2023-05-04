@@ -1,4 +1,4 @@
-"""Pandas Parsing, Validation, and Error Reporting Backends."""
+"""pyspark Parsing, Validation, and Error Reporting Backends."""
 
 import warnings
 from functools import reduce

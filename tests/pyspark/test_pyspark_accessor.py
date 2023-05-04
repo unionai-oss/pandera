@@ -1,24 +1,25 @@
 """Unit tests for dask_accessor module."""
 from typing import Union
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pytest
-from pyspark.sql import SparkSession
-import pandera as pa
-from pandera import pyspark_sql_accessor
+import pandera.pyspark as pa
+from pandera.pyspark import pyspark_sql_accessor
 from pandera.error_handlers import SchemaError
 
 
 spark = SparkSession.builder.getOrCreate()
+
+
 @pytest.mark.parametrize(
     "schema1, schema2, data, invalid_data",
     [
         [
-            pa.DataFrameSchema({"col": pa.Column('long')}, coerce=True),
-            pa.DataFrameSchema({"col": pa.Column('float')}, coerce=False),
-            spark.createDataFrame([{"col": 1}, {"col":2},{"col":3}]),
-            spark.createDataFrame([{"col": 1}, {"col":2},{"col":3}])
+            pa.DataFrameSchema({"col": pa.Column("long")}, coerce=True),
+            pa.DataFrameSchema({"col": pa.Column("float")}, coerce=False),
+            spark.createDataFrame([{"col": 1}, {"col": 2}, {"col": 3}]),
+            spark.createDataFrame([{"col": 1}, {"col": 2}, {"col": 3}]),
         ],
     ],
 )
@@ -34,12 +35,20 @@ def test_dataframe_series_add_schema(
     validated_data_1 = schema1(data)  # type: ignore[arg-type]
 
     assert data.pandera.schema == schema1
-    assert isinstance(schema1.report_errors(data), dict)
-    assert isinstance(schema1(data), dict)
+    assert isinstance(schema1.report_errors(data), DataFrame)
+    assert isinstance(schema1(data), DataFrame)
 
-    assert dict(schema2(invalid_data)['SCHEMA']) == {'WRONG_DATATYPE': [
-        {'schema': None, 'column': 'col', 'check': "dtype('FloatType()')",
-         'error': "expected column 'col' to have type FloatType(), got LongType()"}]}  # type: ignore[arg-type]
+    assert dict(schema2(invalid_data).pandera.errors["SCHEMA"]) == {
+        "WRONG_DATATYPE": [
+            {
+                "schema": None,
+                "column": "col",
+                "check": "dtype('FloatType()')",
+                "error": "expected column 'col' to have type FloatType(), got LongType()",
+            }
+        ]
+    }  # type: ignore[arg-type]
+
 
 class CustomAccessor:
     """Mock accessor class"""
