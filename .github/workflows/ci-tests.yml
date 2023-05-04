@@ -155,7 +155,7 @@ jobs:
       # ray currently cannot be installed on python 3.11
       - name: Remove Ray from Deps
         if: ${{ matrix.python-version == '3.11' }}
-        run: sed '/ray/d' environment.yml > environment.yml
+        run: sed '/ray/d' environment.yml | echo
 
       # need to install pandas via pip: conda installation is on the fritz
       - name: Install Conda Deps [pandas 2]
