@@ -156,8 +156,8 @@ jobs:
       - name: Remove Ray from Deps
         if: ${{ matrix.python-version == '3.11' }}
         run: |
-          sed -i '/- ray/d' environment.yml
-          sed -i '/ray/d' requirements-dev.txt
+          grep -v "\- ray" environment.yml > environment.yml
+          grep -v "ray" requirements-dev.txt > requirements-dev.txt
 
       # need to install pandas via pip: conda installation is on the fritz
       - name: Install Conda Deps [pandas 2]
