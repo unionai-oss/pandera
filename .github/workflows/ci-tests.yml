@@ -109,6 +109,8 @@ jobs:
           pandas-version: "1.5.2"
         - python-version: "3.10"
           pandas-version: "1.3.0"
+        - python-version: "3.11"
+          pandas-version: "1.3.0"
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
