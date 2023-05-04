@@ -210,7 +210,7 @@ jobs:
         run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Pyspark
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.pandas-version != '1.1.5' && matrix.pandas-version != '2.0.1' }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.10", "3.11"]'), matrix.python-version) && !contains(fromJson('["2.0.1""]'), matrix.pandas-version) }}
         run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Modin-Dask
@@ -224,7 +224,7 @@ jobs:
         # - windows, python 3.10
         # - mac, python 3.7
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
