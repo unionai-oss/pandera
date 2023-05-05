@@ -264,8 +264,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         column_info: ColumnInfo,
     ):
         """Collects all schema components to use for validation."""
+
+        columns = schema.columns
+        if not schema.columns and schema.dtype is not None:
+            # pylint: disable=import-outside-toplevel
+            from pandera.api.pandas.components import Column
+
+            columns = {}
+            for col in check_obj.columns:
+                columns[col] = Column(schema.dtype, name=col)
+
         schema_components = []
-        for col_name, col in schema.columns.items():
+        for col_name, col in columns.items():
             if (
                 col.required or col_name in check_obj
             ) and col_name not in column_info.lazy_exclude_column_names:

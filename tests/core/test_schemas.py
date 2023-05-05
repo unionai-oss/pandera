@@ -193,13 +193,18 @@ def test_dataframe_schema_regex_error() -> None:
         ]
 
 
-def test_dataframe_dtype_coerce():
+@pytest.mark.parametrize("with_columns", [True, False])
+def test_dataframe_dtype_coerce(with_columns):
     """
     Test that pandas dtype specified at the dataframe level overrides
     column data types.
     """
     schema = DataFrameSchema(
-        columns={f"column_{i}": Column(float) for i in range(5)},
+        columns=(
+            {f"column_{i}": Column(float) for i in range(5)}
+            if with_columns
+            else None
+        ),
         dtype=int,
         coerce=True,
     )

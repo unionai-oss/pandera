@@ -355,6 +355,7 @@ page or reach out to the maintainers and pandera community on
    dataframe_schemas
    dataframe_models
    series_schemas
+   dtype_validation
    checks
    hypothesis
    dtypes
