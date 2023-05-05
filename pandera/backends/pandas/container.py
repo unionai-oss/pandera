@@ -267,7 +267,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         columns = schema.columns
         if not schema.columns and schema.dtype is not None:
-            # pylint: disable=import-outside-toplevel
+            # NOTE: this is hack: the dataframe-level data type check should
+            # be its own check function.
+            # pylint: disable=import-outside-toplevel,cyclic-import
             from pandera.api.pandas.components import Column
 
             columns = {}
@@ -275,7 +277,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 columns[col] = Column(schema.dtype, name=col)
 
         schema_components = []
-        for col_name, col in columns.items():
+        for col_name, col in schema.columns.items():
             if (
                 col.required or col_name in check_obj
             ) and col_name not in column_info.lazy_exclude_column_names:
