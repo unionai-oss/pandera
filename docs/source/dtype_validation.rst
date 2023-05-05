@@ -114,7 +114,10 @@ express this same type with the class-based API, we need to use an
 
 .. testcode:: dtype_validation
 
-    from typing import Annotated
+    try:
+        from typing import Annotated  # python 3.9+
+    except ImportError:
+        from typing_extensions import Annotated
 
     class DateTimeModel(pa.DataFrameModel):
         dt: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
@@ -123,8 +126,6 @@ Or alternatively, you can pass in the ``dtype_kwargs`` into
 :py:func:`~pandera.api.pandas.model_components.Field`:
 
 .. testcode:: dtype_validation
-
-    from typing import Annotated
 
     class DateTimeModel(pa.DataFrameModel):
         dt: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "UTC"})
