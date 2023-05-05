@@ -102,6 +102,18 @@ jobs:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
         pandas-version: ["1.3.0", "1.5.2", "2.0.1"]
+        test-module:
+        - core
+        - hypotheses
+        - io
+        - mypy
+        - strategies
+        - fastapi
+        - geopandas
+        - dask
+        - pyspark
+        - modin-dask
+        - modin-ray
         exclude:
         - python-version: "3.7"
           pandas-version: "2.0.1"
@@ -111,6 +123,34 @@ jobs:
           pandas-version: "1.3.0"
         - python-version: "3.11"
           pandas-version: "1.3.0"
+        - test-module: mypy
+          python-version: "3.7"
+        - test-module: dask
+          pandas-version: "2.0.1"
+        - test-module: pyspark
+          os: windows-lateset
+        - test-module: pyspark
+          python-version: "3.7"
+        - test-module: pyspark
+          python-version: "3.10"
+        - test-module: pyspark
+          python-version: "3.11"
+        - test-module: pyspark
+          pandas-version: "2.0.1"
+        - test-module: modin-dask
+          python-version: "3.11"
+        - test-module: modin-dask
+          python-version: "2.0.1"
+        - test-module: modin-ray
+          os: "windows-latest"
+        - test-module: modin-ray
+          python-version: "3.7"
+        - test-module: modin-ray
+          python-version: "3.10"
+        - test-module: modin-ray
+          python-version: "3.11"
+        - test-module: modin-ray
+          pandas-version: "2.0.1"
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
@@ -118,6 +158,10 @@ jobs:
           pip-cache: ~/Library/Caches/pip
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
+        - test-module: modin-dask
+          ci-modin-engine: dask
+        - test-module: modin-ray
+          ci-modin-engine: ray
 
     steps:
       - uses: actions/checkout@v2
@@ -183,59 +227,27 @@ jobs:
           conda config --show
           printenv | sort
 
-      - name: Unit Tests - Core
-        run: pytest tests/core ${{ env.PYTEST_FLAGS }}
+      - name: Unit Tests - ${{ matrix.test-module }}
+        if: ${{ !contains('modin', matrix.test-module) }}
+        run: pytest tests/${{ matrix.test-module }} ${{ env.PYTEST_FLAGS }}
 
-      - name: Unit Tests - Hypotheses
-        run: pytest tests/hypotheses ${{ env.PYTEST_FLAGS }}
+      - name: Unit Tests - ${{ matrix.test-module }}
+        if: ${{ contains('strategies', matrix.test-module) }}
+        run: pytest tests/${{ matrix.test-module }} ${{ env.PYTEST_FLAGS }} ${{ env.HYPOTHESIS_FLAGS }}
 
-      - name: Unit Tests - IO
-        run: pytest tests/io ${{ env.PYTEST_FLAGS }}
-
-      - name: Unit Tests - Mypy
-        if: ${{ matrix.python-version != '3.7' }}
-        run: pytest -v tests/mypy ${{ env.PYTEST_FLAGS }}
-
-      - name: Unit Tests - Strategies
-        run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} ${{ env.HYPOTHESIS_FLAGS }}
-
-      - name: Unit Tests - FastAPI
-        run: pytest tests/fastapi ${{ env.PYTEST_FLAGS }}
-
-      - name: Unit Tests - GeoPandas
-        run: pytest tests/geopandas ${{ env.PYTEST_FLAGS }}
-
-      - name: Unit Tests - Dask
-        if: ${{ matrix.pandas-version != '2.0.1' }}
-        run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
-
-      - name: Unit Tests - Pyspark
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.1' }}
-        run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
-
-      - name: Unit Tests - Modin-Dask
-        if: ${{ !contains(fromJson('["3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.1' }}
+      - name: Unit Tests - ${{ matrix.test-module }}
+        if: ${{ contains('modin', matrix.test-module) }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
-          CI_MODIN_ENGINES: dask
-
-      - name: Unit Tests - Modin-Ray
-        # ray CI issues with the following:
-        # - windows, python 3.10
-        # - mac, python 3.7
-        # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
-        run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
-        env:
-          CI_MODIN_ENGINES: ray
+          CI_MODIN_ENGINES: ${{ matrix.ci-modin-engine }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
 
       - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.8", "3.10", "3.11"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.8", "3.10", "3.11"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session docs
