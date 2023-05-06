@@ -41,7 +41,7 @@ from pandera.engines.type_aliases import (
 from pandera.engines.utils import pandas_version
 
 try:
-    import pyarrow  # pylint:disable=unused-import
+    import pyarrow  # pylint: disable=unused-import
 
     PYARROW_INSTALLED = True
 except ImportError:
@@ -51,10 +51,11 @@ except ImportError:
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 
+# pylint: disable=unused-import
 try:
-    from typing import Literal, TypedDict, NamedTuple  # type: ignore
+    from typing import is_typeddict, Literal, TypedDict, NamedTuple  # type: ignore  # noqa
 except ImportError:
-    from typing_extensions import Literal, TypedDict, NamedTuple  # type: ignore
+    from typing_extensions import is_typeddict, Literal, TypedDict, NamedTuple  # type: ignore  # noqa
 
 
 def is_extension_dtype(

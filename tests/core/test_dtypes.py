@@ -9,6 +9,12 @@ import re
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
+try:
+    # pylint: disable=unused-import
+    from typing import is_typeddict, NamedTuple, TypedDict  # type: ignore  # noqa
+except ImportError:
+    from typing_extensions import is_typeddict, NamedTuple, TypedDict  # type: ignore  # noqa
+
 import hypothesis
 import numpy as np
 import pandas as pd
@@ -700,3 +706,41 @@ def test_is_numeric(numeric_dtype: Any, expected: bool):
     """Test is_timedelta."""
     pandera_dtype = pandas_engine.Engine.dtype(numeric_dtype)
     assert pa.dtypes.is_numeric(pandera_dtype) == expected
+
+
+def test_python_typing_dtypes():
+    """Test that supporting typing module dtypes work."""
+
+    class PointDict(TypedDict):
+        """Custom TypedDict type"""
+
+        x: float
+        y: float
+
+    class PointTuple(NamedTuple):
+        """Custom NamedTuple type"""
+
+        x: float
+        y: float
+
+    schema = pa.DataFrameSchema(
+        {
+            "dict_column": pa.Column(Dict[str, int]),
+            "list_column": pa.Column(List[float]),
+            "tuple_column": pa.Column(Tuple[int, str, float]),
+            "typeddict_column": pa.Column(PointDict),
+            "namedtuple_column": pa.Column(PointTuple),
+        },
+    )
+
+    data = pd.DataFrame(
+        {
+            "dict_column": [{"foo": 1, "bar": 2}],
+            "list_column": [[1.0]],
+            "tuple_column": [(1, "bar", 1.0)],
+            "typeddict_column": [PointDict(x=2.1, y=4.8)],
+            "namedtuple_column": [PointTuple(x=9.2, y=1.6)],
+        }
+    )
+
+    schema.validate(data)

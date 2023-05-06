@@ -226,3 +226,10 @@ Pandera uses `typeguard <https://typeguard.readthedocs.io/en/latest/>`__ for
 data type validation and `pydantic <https://docs.pydantic.dev/latest/>` for
 data value coercion, in the case that you've specified ``coerce=True`` at the
 column-, index-, or dataframe-level.
+
+.. note::
+
+    For certain types like ``List[T]``, ``typeguard`` will only check the type
+    of the first value, e.g. if you specify ``List[int]``, a data value of
+    ``[1, "foo", 1.0]`` will still pass. This will be configurable in future
+    versions of pandera when ``typeguard > 4.*.*`` will be supported.

@@ -21,6 +21,11 @@ from typing import (
 
 import typing_inspect
 
+try:
+    from typing import is_typeddict, TypedDict
+except ImportError:
+    from typing_extensions import is_typeddict, TypedDict
+
 from pandera.dtypes import DataType
 
 _DataType = TypeVar("_DataType", bound=DataType)
@@ -209,11 +214,17 @@ class Engine(ABCMeta):
 
         # handle python's special declared type constructs like NamedTuple and
         # TypedDict
-        datatype_generic_bases = typing_inspect.get_generic_bases(data_type)
+        datatype_generic_bases = (
+            typing_inspect.get_generic_bases(data_type)
+            # handle python < 3.9 cases, where TypedDict isn't part of the
+            # generic base classes returned by typing_inspect.get_generic_bases
+            or ((TypedDict,) if is_typeddict(data_type) else ())
+        )
         if datatype_generic_bases:
             equivalent_data_type = None
             for base in datatype_generic_bases:
                 equivalent_data_type = registry.equivalents.get(base)
+                break
             if equivalent_data_type is None:
                 raise TypeError(
                     f"Type '{data_type}' not understood by {cls.__name__}."
