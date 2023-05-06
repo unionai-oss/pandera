@@ -15,7 +15,6 @@ frictionless <= 4.40.8
 pyarrow
 pydantic
 multimethod
-typeguard >= 3.0.2
 pandas-stubs <= 1.5.2.221213
 pyspark >= 3.2.0
 modin
@@ -49,6 +48,7 @@ asv >= 0.5.1
 pre_commit
 furo
 ray
+typeguard >= 3.0.2
 types-click
 types-pyyaml
 types-pkg_resources
