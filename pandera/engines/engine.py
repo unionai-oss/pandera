@@ -22,9 +22,9 @@ from typing import (
 import typing_inspect
 
 try:
-    from typing import is_typeddict, TypedDict
+    from typing import is_typeddict, TypedDict  # type: ignore
 except ImportError:
-    from typing_extensions import is_typeddict, TypedDict
+    from typing_extensions import is_typeddict, TypedDict  # type: ignore
 
 from pandera.dtypes import DataType
 
