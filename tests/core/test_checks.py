@@ -25,12 +25,14 @@ def test_vectorized_checks() -> None:
     schema = SeriesSchema(
         Int, Check(lambda s: s.value_counts() == 2, element_wise=False)
     )
-    validated_series = schema.validate(pd.Series([1, 1, 2, 2, 3, 3]))
+    validated_series = schema.validate(
+        pd.Series([1, 1, 2, 2, 3, 3], dtype=int)
+    )
     assert isinstance(validated_series, pd.Series)
 
     # error case
     with pytest.raises(errors.SchemaError):
-        schema.validate(pd.Series([1, 2, 3]))
+        schema.validate(pd.Series([1, 2, 3], dtype=int))
 
 
 def test_check_groupby() -> None:

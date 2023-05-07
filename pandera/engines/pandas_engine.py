@@ -275,7 +275,11 @@ def _register_numpy_numbers(
 
     # use OS-specific type for integers. This will be int32 for Windows, int64
     # for other systems.
-    default_int_dtype = pd.Series([1], dtype=builtin_name).dtype
+    default_int_dtype = {
+        "int": np.dtype("int32"),
+        "uint": np.dtype("uint32"),
+    }.get(builtin_name, pd.Series([1], dtype=builtin_name).dtype)
+    # default_int_dtype = pd.Series([1], dtype=builtin_name).dtype
 
     for bit_width in sizes:
         # e.g.: numpy.int64
