@@ -6,8 +6,9 @@ import dataclasses
 import datetime
 import inspect
 import re
+import sys
 from decimal import Decimal
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, NamedTuple, Tuple
 
 import hypothesis
 import numpy as np
@@ -27,6 +28,14 @@ from pandera.system import FLOAT_128_AVAILABLE
 # except for parameterizable dtypes that should also list examples of
 # instances.
 from pandera.typing.geopandas import GEOPANDAS_INSTALLED
+
+
+# register different TypedDict type depending on python version
+if sys.version_info >= (3, 9):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict  # noqa
+
 
 int_dtypes = {
     int: "int64",
@@ -700,3 +709,41 @@ def test_is_numeric(numeric_dtype: Any, expected: bool):
     """Test is_timedelta."""
     pandera_dtype = pandas_engine.Engine.dtype(numeric_dtype)
     assert pa.dtypes.is_numeric(pandera_dtype) == expected
+
+
+def test_python_typing_dtypes():
+    """Test that supporting typing module dtypes work."""
+
+    class PointDict(TypedDict):
+        """Custom TypedDict type"""
+
+        x: float
+        y: float
+
+    class PointTuple(NamedTuple):
+        """Custom NamedTuple type"""
+
+        x: float
+        y: float
+
+    schema = pa.DataFrameSchema(
+        {
+            "dict_column": pa.Column(Dict[str, int]),
+            "list_column": pa.Column(List[float]),
+            "tuple_column": pa.Column(Tuple[int, str, float]),
+            "typeddict_column": pa.Column(PointDict),
+            "namedtuple_column": pa.Column(PointTuple),
+        },
+    )
+
+    data = pd.DataFrame(
+        {
+            "dict_column": [{"foo": 1, "bar": 2}],
+            "list_column": [[1.0]],
+            "tuple_column": [(1, "bar", 1.0)],
+            "typeddict_column": [PointDict(x=2.1, y=4.8)],
+            "namedtuple_column": [PointTuple(x=9.2, y=1.6)],
+        }
+    )
+
+    schema.validate(data)

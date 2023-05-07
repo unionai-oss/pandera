@@ -11,6 +11,7 @@ import dataclasses
 import datetime
 import decimal
 import inspect
+import sys
 import warnings
 from typing import (
     Any,
@@ -18,6 +19,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    NamedTuple,
     Optional,
     Type,
     Union,
@@ -41,7 +43,7 @@ from pandera.engines.type_aliases import (
 from pandera.engines.utils import pandas_version
 
 try:
-    import pyarrow  # pylint:disable=unused-import
+    import pyarrow  # pylint: disable=unused-import
 
     PYARROW_INSTALLED = True
 except ImportError:
@@ -51,10 +53,18 @@ except ImportError:
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 
+
+# register different TypedDict type depending on python version
+if sys.version_info >= (3, 9):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict  # noqa
+
+
 try:
-    from typing import Literal, TypedDict, NamedTuple  # type: ignore
+    from typing import Literal  # type: ignore
 except ImportError:
-    from typing_extensions import Literal, TypedDict, NamedTuple  # type: ignore
+    from typing_extensions import Literal  # type: ignore
 
 
 def is_extension_dtype(

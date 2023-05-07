@@ -355,6 +355,11 @@ Any dtypes supported by ``pandera`` can be used as type parameters for
 :class:`~pandera.typing.Series` and :class:`~pandera.typing.Index`. There are,
 however, a couple of gotchas.
 
+.. important::
+
+    You can learn more about how data type validation works
+    :ref:`dtype_validation`.
+
 Dtype aliases
 ^^^^^^^^^^^^^
 

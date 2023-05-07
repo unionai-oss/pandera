@@ -20,7 +20,6 @@ dependencies:
   - pyarrow
   - pydantic
   - multimethod
-  - typeguard
 
   # mypy extra
   - pandas-stubs <= 1.5.2.221213
@@ -82,6 +81,7 @@ dependencies:
   - pip:
       - furo
       - ray
+      - typeguard >= 3.0.2
       - types-click
       - types-pyyaml
       - types-pkg_resources

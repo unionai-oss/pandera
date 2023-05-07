@@ -3,6 +3,7 @@
 # pylint:disable=no-value-for-parameter
 import functools
 import inspect
+import sys
 from abc import ABCMeta
 from dataclasses import dataclass
 from typing import (
@@ -11,6 +12,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    NamedTuple,
     Optional,
     Set,
     Tuple,
@@ -22,6 +24,14 @@ from typing import (
 import typing_inspect
 
 from pandera.dtypes import DataType
+
+
+# register different TypedDict type depending on python version
+if sys.version_info >= (3, 9):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict  # noqa
+
 
 _DataType = TypeVar("_DataType", bound=DataType)
 _Engine = TypeVar("_Engine", bound="Engine")
@@ -44,6 +54,16 @@ if TYPE_CHECKING:  # pragma: no cover
 
 else:
     Dispatch = Callable[[Any], DataType]
+
+
+def _is_typeddict(x: Type) -> bool:
+    return x.__class__.__name__ == "_TypedDictMeta"
+
+
+def _is_namedtuple(x: Type) -> bool:
+    return tuple in getattr(x, "__bases__", ()) and hasattr(
+        x, "__annotations__"
+    )
 
 
 @dataclass
@@ -209,11 +229,19 @@ class Engine(ABCMeta):
 
         # handle python's special declared type constructs like NamedTuple and
         # TypedDict
-        datatype_generic_bases = typing_inspect.get_generic_bases(data_type)
+        datatype_generic_bases = (
+            # handle python < 3.9 cases, where TypedDict/NameDtuple isn't part
+            # of the generic base classes returned by
+            # typing_inspect.get_generic_bases
+            ((TypedDict,) if _is_typeddict(data_type) else ())
+            or ((NamedTuple,) if _is_namedtuple(data_type) else ())
+            or typing_inspect.get_generic_bases(data_type)
+        )
         if datatype_generic_bases:
             equivalent_data_type = None
             for base in datatype_generic_bases:
                 equivalent_data_type = registry.equivalents.get(base)
+                break
             if equivalent_data_type is None:
                 raise TypeError(
                     f"Type '{data_type}' not understood by {cls.__name__}."
