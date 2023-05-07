@@ -11,6 +11,7 @@ import dataclasses
 import datetime
 import decimal
 import inspect
+import sys
 import warnings
 from typing import (
     Any,
@@ -18,6 +19,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    NamedTuple,
     Optional,
     Type,
     Union,
@@ -51,11 +53,18 @@ except ImportError:
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
 PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 
-# pylint: disable=unused-import
+
+# register different TypedDict type depending on python version
+if sys.version_info >= (3, 9):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict  # noqa
+
+
 try:
-    from typing import is_typeddict, Literal, TypedDict, NamedTuple  # type: ignore  # noqa
+    from typing import Literal  # type: ignore
 except ImportError:
-    from typing_extensions import is_typeddict, Literal, TypedDict, NamedTuple  # type: ignore  # noqa
+    from typing_extensions import Literal  # type: ignore
 
 
 def is_extension_dtype(

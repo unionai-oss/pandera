@@ -192,21 +192,29 @@ For example:
 
 .. testcode:: dtype_validation
 
-    import typing
+    from typing import Dict, List, Tuple, NamedTuple
 
-    class PointDict(typing.TypedDict):
+    if sys.version_info >= (3, 9):
+        from typing import TypedDict
+        # use typing_extensions.TypedDict for python < 3.9 in order to support
+        # run-time availability of optional/required fields
+    else:
+        from typing_extensions import TypedDict
+
+
+    class PointDict(TypedDict):
         x: float
         y: float
 
-    class PointTuple(typing.NamedTuple):
+    class PointTuple(NamedTuple):
         x: float
         y: float
 
     schema = pa.DataFrameSchema(
         {
-            "dict_column": pa.Column(typing.Dict[str, int]),
-            "list_column": pa.Column(typing.List[float]),
-            "tuple_column": pa.Column(typing.Tuple[int, str, float]),
+            "dict_column": pa.Column(Dict[str, int]),
+            "list_column": pa.Column(List[float]),
+            "tuple_column": pa.Column(Tuple[int, str, float]),
             "typeddict_column": pa.Column(PointDict),
             "namedtuple_column": pa.Column(PointTuple),
         },
@@ -231,5 +239,6 @@ column-, index-, or dataframe-level.
 
     For certain types like ``List[T]``, ``typeguard`` will only check the type
     of the first value, e.g. if you specify ``List[int]``, a data value of
-    ``[1, "foo", 1.0]`` will still pass. This will be configurable in future
-    versions of pandera when ``typeguard > 4.*.*`` will be supported.
+    ``[1, "foo", 1.0]`` will still pass. Checking all values will be
+    configurable in future  versions of pandera when ``typeguard > 4.*.*`` is
+    supported.

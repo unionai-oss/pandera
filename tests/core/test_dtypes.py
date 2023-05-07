@@ -6,14 +6,9 @@ import dataclasses
 import datetime
 import inspect
 import re
+import sys
 from decimal import Decimal
-from typing import Any, Dict, List, Tuple
-
-try:
-    # pylint: disable=unused-import
-    from typing import is_typeddict, NamedTuple, TypedDict  # type: ignore  # noqa
-except ImportError:
-    from typing_extensions import is_typeddict, NamedTuple, TypedDict  # type: ignore  # noqa
+from typing import Any, Dict, List, NamedTuple, Tuple
 
 import hypothesis
 import numpy as np
@@ -33,6 +28,14 @@ from pandera.system import FLOAT_128_AVAILABLE
 # except for parameterizable dtypes that should also list examples of
 # instances.
 from pandera.typing.geopandas import GEOPANDAS_INSTALLED
+
+
+# register different TypedDict type depending on python version
+if sys.version_info >= (3, 9):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict  # noqa
+
 
 int_dtypes = {
     int: "int64",
