@@ -79,3 +79,36 @@ def test_pyspark_dataframeschema_with_alias_types():
         fail_df = schema.report_errors(df_fail)
         if fail_df.pandera.errors:
             raise pandera.errors.PysparkSchemaError
+
+
+def test_pyspark_column_metadata():
+    """
+    Test creating a pyspark Column object with metadata
+    """
+
+    schema = DataFrameSchema(
+        columns={
+            "product": Column(
+                "str",
+                checks=pa.Check.str_startswith("B"),
+                metadata={"usecase": "product_pricing", "type": ["t1", "t2"]},
+            ),
+            "price": Column("int", checks=pa.Check.gt(5)),
+        },
+        name="product_schema",
+        description="schema for product info",
+        title="ProductSchema",
+        metadata={"category": "product"},
+    )
+
+    expected = {
+        "product_schema": {
+            "columns": {
+                "product": {"usecase": "product_pricing", "type": ["t1", "t2"]},
+                "price": None,
+            },
+            "dataframe": {"category": "product"},
+        }
+    }
+
+    assert schema.get_metadata == expected

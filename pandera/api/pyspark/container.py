@@ -43,6 +43,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        metadata: Optional[dict] = None,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -74,6 +75,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
+        :param metadata: An optional key-value data.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -125,6 +127,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             name=name,
             title=title,
             description=description,
+            metadata=metadata,
         )
 
         self.columns: Dict[Any, "pandera.api.pyspark.components.Column"] = (  # type: ignore [name-defined]
@@ -150,6 +153,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
+        self.metadata = metadata
 
     @property
     def coerce(self) -> bool:
@@ -201,6 +205,19 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 UserWarning,
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
+
+    @property
+    def gett_metadata(self) -> Optional[dict]:
+        """Provide metadata for columns and schema level"""
+        res = {"columns": {}}
+        for k in self.columns.keys():
+            res["columns"][k] = self.columns[k].properties["metadata"]
+
+        res["dataframe"] = self.metadata
+
+        meta = {}
+        meta[self.name] = res
+        return meta
 
     def get_dtypes(self, dataframe: DataFrame) -> Dict[str, DataType]:
         """
@@ -394,6 +411,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             f"unique_column_names={self.unique_column_names}, "
             f"title={self.title}, "
             f"description='{self.description}, "
+            f"metadata='{self.metadata}, "
             ")>"
         )
 
@@ -432,7 +450,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             f"{indent}strict={self.strict}\n"
             f"{indent}name={self.name},\n"
             f"{indent}ordered={self.ordered},\n"
-            f"{indent}unique_column_names={self.unique_column_names}\n"
+            f"{indent}unique_column_names={self.unique_column_names},\n"
+            f"{indent}metadata={self.metadata}, \n"
             ")>"
         )
 

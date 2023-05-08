@@ -194,3 +194,84 @@ def test_dataframe_schema_strict(spark) -> None:
         df_out = schema.report_errors(df.select(["a", "c"]))
         if df_out.pandera.errors:
             raise pa.PysparkSchemaError
+
+
+def test_pyspark_fields_metadata(spark):
+    """
+    Test schema and metadata on field
+    """
+
+    class pandera_schema(DataFrameModel):
+        id: T.IntegerType() = Field(
+            gt=5,
+            metadata={"usecase": ["telco", "retail"], "category": "product_pricing"},
+        )
+        product_name: T.StringType() = Field(str_startswith="B")
+        price: T.DecimalType(20, 5) = Field()
+
+        class Config:
+            name = "product_info"
+            strict = True
+            coerce = True
+            metadata = {"category": "product-details"}
+
+    expected = {
+        "product_info": {
+            "columns": {
+                "id": {"usecase": ["telco", "retail"], "category": "product_pricing"},
+                "product_name": None,
+                "price": None,
+            },
+            "dataframe": {"category": "product-details"},
+        }
+    }
+    assert pandera_schema.get_metadata() == expected
+
+
+def test_dataframe_schema_strict(spark) -> None:
+    """
+    Checks if strict=True whether a schema error is raised because 'a' is
+    not present in the dataframe.
+    """
+    schema = DataFrameSchema(
+        {
+            "a": pa.Column("long", nullable=True),
+            "b": pa.Column("int", nullable=True),
+        },
+        strict=True,
+    )
+    df = spark.createDataFrame(
+        [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3]], ["a", "b", "c", "d"]
+    )
+
+    df_out = schema.report_errors(df.select(["a", "b"]))
+
+    assert isinstance(df_out, DataFrame)
+    with pytest.raises(pa.PysparkSchemaError):
+        df_out = schema.report_errors(df)
+        print(df_out.pandera.errors)
+        if df_out.pandera.errors:
+            raise pa.PysparkSchemaError
+
+    schema.strict = "filter"
+    assert isinstance(schema.report_errors(df), DataFrame)
+
+    assert list(schema.report_errors(df).columns) == ["a", "b"]
+    #
+    with pytest.raises(pa.SchemaInitError):
+        DataFrameSchema(
+            {
+                "a": pa.Column(int, nullable=True),
+                "b": pa.Column(int, nullable=True),
+            },
+            strict="foobar",  # type: ignore[arg-type]
+        )
+
+    with pytest.raises(pa.PysparkSchemaError):
+        df_out = schema.report_errors(df.select("a"))
+        if df_out.pandera.errors:
+            raise pa.PysparkSchemaError
+    with pytest.raises(pa.PysparkSchemaError):
+        df_out = schema.report_errors(df.select(["a", "c"]))
+        if df_out.pandera.errors:
+            raise pa.PysparkSchemaError

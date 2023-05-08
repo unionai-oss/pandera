@@ -33,6 +33,7 @@ class ColumnSchema(BaseSchema):
         name: Any = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        metadata: Optional[dict] = None,
     ) -> None:
         """Initialize array schema.
 
@@ -50,6 +51,7 @@ class ColumnSchema(BaseSchema):
         :param name: column name in dataframe to validate.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
+        :param metadata: An optional key-value data.
         :type nullable: bool
         """
 
@@ -60,6 +62,7 @@ class ColumnSchema(BaseSchema):
             name=name,
             title=title,
             description=description,
+            metadata=metadata,
         )
 
         if checks is None:
@@ -70,6 +73,7 @@ class ColumnSchema(BaseSchema):
         self.nullable = nullable
         self.title = title
         self.description = description
+        self.metadata = metadata
 
     @property
     def dtype(self) -> DataType:
