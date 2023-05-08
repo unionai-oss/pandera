@@ -487,6 +487,21 @@ class DataFrameModel(BaseModel):
 
         return cast("DataFrameModel", schema_model)
 
+    @classmethod
+    def get_metadata(self) -> Optional[dict]:
+        """Provide metadata for columns and schema level"""
+        res = {"columns": {}}
+        columns = self._collect_fields()
+
+        for k, (_, v) in columns.items():
+            res["columns"][k] = v.properties["metadata"]
+
+        res["dataframe"] = self.Config.metadata
+
+        meta = {}
+        meta[self.Config.name] = res
+        return meta
+
 
 SchemaModel = DataFrameModel
 """

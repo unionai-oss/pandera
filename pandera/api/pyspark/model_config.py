@@ -60,3 +60,6 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: The writer function is implemented in the pandera.typing
     #: generic types via the ``from_format`` and ``to_format`` methods.
     to_format_kwargs: Optional[Dict[str, Any]] = None
+
+    #: a dictionary object to store key-value data at schema level
+    metadata: Optional[dict] = None

@@ -209,22 +209,23 @@ def test_pyspark_fields_metadata(spark):
         product_name: T.StringType() = Field(str_startswith="B")
         price: T.DecimalType(20, 5) = Field()
 
-    breakpoint()
-    data_fail = [
-        (5, "Bread", 44.4),
-        (15, "Butter", 99.0),
-    ]
+        class Config:
+            name = "product_info"
+            strict = True
+            coerce = True
+            metadata = {"category": "product-details"}
 
-    spark_schema = T.StructType(
-        [
-            T.StructField("id", T.IntegerType(), False),
-            T.StructField("product", T.StringType(), False),
-            T.StructField("price", T.DecimalType(20, 5), False),
-        ],
-    )
-    df_fail = spark_df(spark, data_fail, spark_schema)
-    df_out = pandera_schema.report_errors(check_obj=df_fail)
-    assert df_out.pandera.errors != None
+    expected = {
+        "product_info": {
+            "columns": {
+                "id": {"usecase": ["telco", "retail"], "category": "product_pricing"},
+                "product_name": None,
+                "price": None,
+            },
+            "dataframe": {"category": "product-details"},
+        }
+    }
+    assert pandera_schema.get_metadata() == expected
 
 
 def test_dataframe_schema_strict(spark) -> None:

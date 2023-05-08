@@ -207,7 +207,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
     @property
-    def get_metadata(self) -> Optional[dict]:
+    def gett_metadata(self) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
         res = {"columns": {}}
         for k in self.columns.keys():
