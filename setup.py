@@ -56,7 +56,7 @@ setup(
         "wrapt",
     ],
     extras_require=extras_require,
-    python_requires=">=3.7,<=3.11",
+    python_requires=">=3.7,<3.12",
     platforms="any",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
