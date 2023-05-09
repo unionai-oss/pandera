@@ -29,7 +29,7 @@ def test_dataframe_series_add_schema(
     schema2: pa.DataFrameSchema,
     data: Union[DataFrame, col],
     invalid_data: Union[DataFrame, col],
-    config_params: pa.ConfigParams
+    config_params: pa.ConfigParams,
 ) -> None:
     """
     Test that pandas object contains schema metadata after pandera validation.
@@ -37,9 +37,9 @@ def test_dataframe_series_add_schema(
     validated_data_1 = schema1(data)  # type: ignore[arg-type]
 
     assert data.pandera.schema == schema1
-    assert isinstance(schema1.report_errors(data), DataFrame)
+    assert isinstance(schema1.validate(data), DataFrame)
     assert isinstance(schema1(data), DataFrame)
-    if config_params['DEPTH']!='DATA_ONLY':
+    if config_params["DEPTH"] != "DATA_ONLY":
         assert dict(schema2(invalid_data).pandera.errors["SCHEMA"]) == {
             "WRONG_DATATYPE": [
                 {

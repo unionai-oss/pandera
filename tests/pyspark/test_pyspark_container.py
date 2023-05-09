@@ -29,7 +29,7 @@ def test_pyspark_dataframeschema():
     data = [("Neeraj", 35), ("Jask", 30)]
 
     df = spark.createDataFrame(data=data, schema=["name", "age"])
-    df_out = schema.report_errors(df)
+    df_out = schema.validate(df)
 
     assert df_out.pandera.errors != None
 
@@ -37,7 +37,7 @@ def test_pyspark_dataframeschema():
 
     df2 = spark.createDataFrame(data=data, schema=["name", "age"])
 
-    df_out = schema.report_errors(df2)
+    df_out = schema.validate(df2)
 
     assert not df_out.pandera.errors
 
@@ -68,16 +68,16 @@ def test_pyspark_dataframeschema_with_alias_types(config_params):
 
     df = spark.createDataFrame(data=data, schema=spark_schema)
 
-    df_out = schema.report_errors(df)
+    df_out = schema.validate(df)
 
     assert not df_out.pandera.errors
-    if config_params['DEPTH'] in ['SCHEMA_AND_DATA', 'DATA_ONLY']:
+    if config_params["DEPTH"] in ["SCHEMA_AND_DATA", "DATA_ONLY"]:
         with pytest.raises(pandera.errors.PysparkSchemaError):
             data_fail = [("Bread", 3), ("Butter", 15)]
 
             df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
 
-            fail_df = schema.report_errors(df_fail)
+            fail_df = schema.validate(df_fail)
             if fail_df.pandera.errors:
                 raise pandera.errors.PysparkSchemaError
 
@@ -111,5 +111,5 @@ def test_pyspark_column_metadata():
             "dataframe": {"category": "product"},
         }
     }
-    breakpoint()
+
     assert schema.get_metadata == expected
