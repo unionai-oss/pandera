@@ -64,7 +64,7 @@ class Column(ColumnSchema):
         ...     "column": pa.Column(str)
         ... })
         >>>
-        >>> schema.report_errors(spark.createDataFrame([{"column": "foo"},{ "column":"bar"}]))
+        >>> schema.validate(spark.createDataFrame([{"column": "foo"},{ "column":"bar"}]))
           column
             foo
             bar
@@ -120,7 +120,7 @@ class Column(ColumnSchema):
         self.name = name
         return self
 
-    def report_errors(
+    def validate(
         self,
         check_obj: ps.DataFrame,
         head: Optional[int] = None,
@@ -148,7 +148,7 @@ class Column(ColumnSchema):
             otherwise creates a copy of the data.
         :returns: validated DataFrame.
         """
-        return self.BACKEND.report_errors(
+        return self.BACKEND.validate(
             check_obj=check_obj,
             schema=self,
             head=head,

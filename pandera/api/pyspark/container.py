@@ -258,7 +258,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
         return self.BACKEND.coerce_dtype(check_obj, schema=self)
 
-    def report_errors(
+    def validate(
         self,
         check_obj: DataFrame,
         head: Optional[int] = None,
@@ -311,7 +311,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         ...         ]),
         ... })
         >>>
-        >>> schema_withchecks.report_errors(df)[["probability", "category"]]
+        >>> schema_withchecks.validate(df)[["probability", "category"]]
            probability category
                  0.10      dog
                  0.40      dog
@@ -353,7 +353,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 UserWarning,
             )
 
-        return self.BACKEND.report_errors(
+        return self.BACKEND.validate(
             check_obj=check_obj,
             schema=self,
             head=head,
@@ -393,9 +393,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
         """
-        return self.report_errors(
-            dataframe, head, tail, sample, random_state, lazy, inplace
-        )
+        return self.validate(dataframe, head, tail, sample, random_state, lazy, inplace)
 
     def __repr__(self) -> str:
         """Represent string for logging."""

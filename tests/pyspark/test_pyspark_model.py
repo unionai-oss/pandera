@@ -85,7 +85,7 @@ def test_schema_with_bare_types_field_and_checks(spark):
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    df_out = Model.report_errors(check_obj=df_fail)
+    df_out = Model.validate(check_obj=df_fail)
     assert df_out.pandera.errors != None
 
 
@@ -110,7 +110,7 @@ def test_schema_with_bare_types_field_type(spark):
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    df_out = Model.report_errors(check_obj=df_fail)
+    df_out = Model.validate(check_obj=df_fail)
     assert df_out.pandera.errors != None
 
 
@@ -143,7 +143,7 @@ def test_pyspark_bare_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    df_out = pandera_schema.report_errors(check_obj=df_fail)
+    df_out = pandera_schema.validate(check_obj=df_fail)
     assert df_out.pandera.errors != None
 
 
@@ -163,19 +163,19 @@ def test_dataframe_schema_strict(spark) -> None:
         [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3]], ["a", "b", "c", "d"]
     )
 
-    df_out = schema.report_errors(df.select(["a", "b"]))
+    df_out = schema.validate(df.select(["a", "b"]))
 
     assert isinstance(df_out, DataFrame)
     with pytest.raises(pa.PysparkSchemaError):
-        df_out = schema.report_errors(df)
+        df_out = schema.validate(df)
         print(df_out.pandera.errors)
         if df_out.pandera.errors:
             raise pa.PysparkSchemaError
 
     schema.strict = "filter"
-    assert isinstance(schema.report_errors(df), DataFrame)
+    assert isinstance(schema.validate(df), DataFrame)
 
-    assert list(schema.report_errors(df).columns) == ["a", "b"]
+    assert list(schema.validate(df).columns) == ["a", "b"]
     #
     with pytest.raises(pa.SchemaInitError):
         DataFrameSchema(
@@ -187,11 +187,11 @@ def test_dataframe_schema_strict(spark) -> None:
         )
 
     with pytest.raises(pa.PysparkSchemaError):
-        df_out = schema.report_errors(df.select("a"))
+        df_out = schema.validate(df.select("a"))
         if df_out.pandera.errors:
             raise pa.PysparkSchemaError
     with pytest.raises(pa.PysparkSchemaError):
-        df_out = schema.report_errors(df.select(["a", "c"]))
+        df_out = schema.validate(df.select(["a", "c"]))
         if df_out.pandera.errors:
             raise pa.PysparkSchemaError
 
@@ -233,7 +233,7 @@ def test_dataframe_schema_strict(spark, config_params) -> None:
     Checks if strict=True whether a schema error is raised because 'a' is
     not present in the dataframe.
     """
-    if config_params['DEPTH'] != 'DATA_ONLY':
+    if config_params["DEPTH"] != "DATA_ONLY":
         schema = DataFrameSchema(
             {
                 "a": pa.Column("long", nullable=True),
@@ -245,20 +245,20 @@ def test_dataframe_schema_strict(spark, config_params) -> None:
             [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3]], ["a", "b", "c", "d"]
         )
 
-        df_out = schema.report_errors(df.select(["a", "b"]))
+        df_out = schema.validate(df.select(["a", "b"]))
 
         assert isinstance(df_out, DataFrame)
 
         with pytest.raises(pa.PysparkSchemaError):
-            df_out = schema.report_errors(df)
+            df_out = schema.validate(df)
             print(df_out.pandera.errors)
             if df_out.pandera.errors:
                 raise pa.PysparkSchemaError
 
         schema.strict = "filter"
-        assert isinstance(schema.report_errors(df), DataFrame)
+        assert isinstance(schema.validate(df), DataFrame)
 
-        assert list(schema.report_errors(df).columns) == ["a", "b"]
+        assert list(schema.validate(df).columns) == ["a", "b"]
         #
         with pytest.raises(pa.SchemaInitError):
             DataFrameSchema(
@@ -270,10 +270,10 @@ def test_dataframe_schema_strict(spark, config_params) -> None:
             )
 
         with pytest.raises(pa.PysparkSchemaError):
-            df_out = schema.report_errors(df.select("a"))
+            df_out = schema.validate(df.select("a"))
             if df_out.pandera.errors:
                 raise pa.PysparkSchemaError
         with pytest.raises(pa.PysparkSchemaError):
-            df_out = schema.report_errors(df.select(["a", "c"]))
+            df_out = schema.validate(df.select(["a", "c"]))
             if df_out.pandera.errors:
                 raise pa.PysparkSchemaError

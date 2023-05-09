@@ -18,7 +18,7 @@ from pandera.errors import SchemaError, SchemaErrorReason
 class ColumnBackend(ColumnSchemaBackend):
     """Backend implementation for pyspark dataframe columns."""
 
-    def report_errors(
+    def validate(
         self,
         check_obj: DataFrame,
         schema,
@@ -45,7 +45,7 @@ class ColumnBackend(ColumnSchemaBackend):
         def validate_column(check_obj, column_name):
             try:
                 # pylint: disable=super-with-arguments
-                super(ColumnBackend, self).report_errors(
+                super(ColumnBackend, self).validate(
                     check_obj,
                     copy(schema).set_name(column_name),
                     head=head,
@@ -116,7 +116,7 @@ class ColumnBackend(ColumnSchemaBackend):
         # dataframe.
         return column_keys_to_check
 
-    @validate_params(params=ColumnSchemaBackend.params, scope='SCHEMA')
+    @validate_params(params=ColumnSchemaBackend.params, scope="SCHEMA")
     def coerce_dtype(
         self,
         check_obj: DataFrame,
@@ -139,7 +139,7 @@ class ColumnBackend(ColumnSchemaBackend):
         # )
         return check_obj
 
-    @validate_params(params=ColumnSchemaBackend.params, scope='DATA')
+    @validate_params(params=ColumnSchemaBackend.params, scope="DATA")
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
         for check_index, check in enumerate(schema.checks):

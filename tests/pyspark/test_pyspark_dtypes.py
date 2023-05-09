@@ -14,12 +14,13 @@ from pyspark.sql import DataFrame
 
 
 class BaseClass:
-    params = ConfigParams('pyspark', 'parameters.yaml')
+    params = ConfigParams("pyspark", "parameters.yaml")
+
     def validate_datatype(self, df, pandera_schema):
         df_out = pandera_schema(df)
 
         assert df.pandera.schema == pandera_schema
-        assert isinstance(pandera_schema.report_errors(df), DataFrame)
+        assert isinstance(pandera_schema.validate(df), DataFrame)
         assert isinstance(pandera_schema(df), DataFrame)
         return df_out
 
@@ -144,7 +145,7 @@ class TestAllNumericTypes(BaseClass):
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    @validate_params(params=BaseClass.params, scope='SCHEMA')
+    @validate_params(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_decimal_parameterized_types(
         self, spark, sample_data, pandera_equivalent
     ):
@@ -251,7 +252,7 @@ class TestAllDatetimeTestClass(BaseClass):
         df = sample_date_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    @validate_params(params=BaseClass.params, scope='SCHEMA')
+    @validate_params(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_daytimeinterval_param_mismatch(
         self, pandera_equivalent, sample_date_object
     ):
@@ -324,7 +325,7 @@ class TestComplexType(BaseClass):
         ],
     }
 
-    @validate_params(params=BaseClass.params, scope='SCHEMA')
+    @validate_params(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_array_type(self, sample_complex_data, pandera_equivalent):
         column_name = "customer_details"
         df = sample_complex_data.select(column_name)
@@ -343,7 +344,7 @@ class TestComplexType(BaseClass):
             ]
         }
 
-    @validate_params(params=BaseClass.params, scope='SCHEMA')
+    @validate_params(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_map_type(self, sample_complex_data, pandera_equivalent):
         column_name = "product_details"
         df = sample_complex_data.select(column_name)

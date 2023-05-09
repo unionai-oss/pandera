@@ -31,15 +31,11 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj
 
-    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
+    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def _core_checks(self, check_obj, schema, error_handler):
         """This function runs the core checks"""
         # run the core checks
-        for core_check in (
-            self.check_name,
-            self.check_dtype,
-            self.check_nullable
-        ):
+        for core_check in (self.check_name, self.check_dtype, self.check_nullable):
             check_result = core_check(check_obj, schema)
             if not check_result.passed:
                 error_handler.collect_error(
@@ -55,7 +51,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     ),
                 )
 
-    def report_errors(
+    def validate(
         self,
         check_obj,
         schema,
@@ -81,13 +77,11 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         self._core_checks(check_obj, schema, error_handler)
 
-        self.run_checks(
-            check_obj, schema, error_handler, lazy
-        )
+        self.run_checks(check_obj, schema, error_handler, lazy)
 
         return check_obj
 
-    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
+    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def coerce_dtype(
         self,
         check_obj,
@@ -118,7 +112,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 check=f"coerce_dtype('{schema.dtype}')",
             ) from exc
 
-    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
+    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_nullable(self, check_obj: DataFrame, schema):
         isna = check_obj.filter(col(schema.name).isNull()).limit(1).count() == 0
         passed = schema.nullable or isna
@@ -126,13 +120,11 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             check="not_nullable",
             reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
             passed=cast(bool, passed),
-            message=(
-                f"non-nullable column '{schema.name}' contains null"
-            ),
+            message=(f"non-nullable column '{schema.name}' contains null"),
             failure_cases=scalar_failure_case(schema.name),
         )
 
-    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
+    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_name(self, check_obj: DataFrame, schema):
         column_found = not (schema.name is None or schema.name not in check_obj.columns)
         return CoreCheckResult(
@@ -152,7 +144,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             else None,
         )
 
-    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
+    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_dtype(self, check_obj: DataFrame, schema):
         passed = True
         failure_cases = None
@@ -188,7 +180,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    @validate_params(params=PysparkSchemaBackend.params, scope='DATA')
+    @validate_params(params=PysparkSchemaBackend.params, scope="DATA")
     # pylint: disable=unused-argument
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
