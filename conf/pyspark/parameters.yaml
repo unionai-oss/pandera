@@ -1,0 +1,4 @@
+# Params are case sensitive use only upper case
+VALIDATION: ENABLE # Supported Value [ENABLE/DISABLE]
+DEPTH: DATA_ONLY #[Supported values: SCHEMA_ONLY, DATA_ONLY, SCHEMA_AND_DATA]
+LIMIT_THRESHOLD: 1
