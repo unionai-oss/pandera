@@ -3,6 +3,7 @@ import pytest
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 import datetime
+from pandera.backends.pyspark.utils import ConfigParams
 
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
@@ -27,8 +28,8 @@ def sample_spark_schema():
     """
     return T.StructType(
         [
-            T.StructField("product", T.StringType(), False),
-            T.StructField("price", T.IntegerType(), False),
+            T.StructField("product", T.StringType(), True),
+            T.StructField("price", T.IntegerType(), True),
         ],
     )
 
@@ -121,3 +122,7 @@ def sample_check_data(spark):
     return {"test_pass_data": [("foo", 30), ("bar", 30)],
      "test_fail_data": [("foo", 30), ("bar", 31)],
      "test_expression": 30}
+
+@pytest.fixture(scope='session')
+def config_params():
+    return ConfigParams('pyspark', 'parameters.yaml')

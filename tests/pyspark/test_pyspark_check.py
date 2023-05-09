@@ -21,63 +21,71 @@ from pyspark.sql.types import (
 import decimal
 
 import pytest
-import pandera.pyspark as pa
 
+import pandera.decorators
+import pandera.pyspark as pa
+from pandera.backends.pyspark.utils import ConfigParams
+from pandera.backends.pyspark.decorators import validate_params
 from pandera.pyspark import DataFrameSchema, Column
 from pandera.errors import PysparkSchemaError
 
 
-def test_datatype_check_decorator(spark):
-    schema = DataFrameSchema(
-        {
-            "product": Column(StringType()),
-            "code": Column(StringType(), pa.Check.str_startswith("B")),
-        }
-    )
+class TestDecorator:
+    params = ConfigParams('pyspark', 'parameters.yaml')
 
-    spark_schema = StructType(
-        [
-            StructField("product", StringType(), False),
-            StructField("code", StringType(), False),
-        ],
-    )
-    pass_case_data = [["foo", "B1"], ["bar", "B2"]]
-    df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
-    df_out = schema.report_errors(df)
-    if df_out.pandera.errors:
-        print(df_out.pandera.errors)
-        raise PysparkSchemaError
-
-    fail_schema = DataFrameSchema(
-        {
-            "product": Column(StringType()),
-            "code": Column(IntegerType(), pa.Check.str_startswith("B")),
-        }
-    )
-
-    spark_schema = StructType(
-        [
-            StructField("product", StringType(), False),
-            StructField("code", IntegerType(), False),
-        ],
-    )
-    fail_case_data = [["foo", 1], ["bar", 2]]
-    df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-    df_out = schema.report_errors(df)
-    if not df_out.pandera.errors:
-        print(df_out.pandera.errors)
-        raise PysparkSchemaError
-    df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
-    try:
-        df_out = fail_schema.report_errors(df)
-    except TypeError as err:
-        assert (
-            err.__str__()
-            == 'The check with name "str_startswith" only supports the following datatypes [\'string\'] and not the given "integer" datatype'
+    @validate_params(params=params, scope='DATA')
+    def test_datatype_check_decorator(self, spark):
+        schema = DataFrameSchema(
+            {
+                "product": Column(StringType()),
+                "code": Column(StringType(), pa.Check.str_startswith("B")),
+            }
         )
+
+        spark_schema = StructType(
+            [
+                StructField("product", StringType(), False),
+                StructField("code", StringType(), False),
+            ],
+        )
+        pass_case_data = [["foo", "B1"], ["bar", "B2"]]
+        df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
+        df_out = schema.report_errors(df)
+        if df_out.pandera.errors:
+            print(df_out.pandera.errors)
+            raise PysparkSchemaError
+
+        fail_schema = DataFrameSchema(
+            {
+                "product": Column(StringType()),
+                "code": Column(IntegerType(), pa.Check.str_startswith("B")),
+            }
+        )
+
+        spark_schema = StructType(
+            [
+                StructField("product", StringType(), False),
+                StructField("code", IntegerType(), False),
+            ],
+        )
+        fail_case_data = [["foo", 1], ["bar", 2]]
+        df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
+        df_out = schema.report_errors(df)
+        if not df_out.pandera.errors:
+            print(df_out.pandera.errors)
+            raise PysparkSchemaError
+        df = spark.createDataFrame(data=fail_case_data, schema=spark_schema)
+        try:
+            df_out = fail_schema.report_errors(df)
+        except TypeError as err:
+            assert (
+                err.__str__()
+                == 'The check with name "str_startswith" only supports the following datatypes [\'string\'] and not the given "integer" datatype'
+            )
 
 
 class BaseClass:
+    params = ConfigParams('pyspark', 'parameters.yaml')
     def __int__(self, params=None):
         pass
 
@@ -162,13 +170,13 @@ class BaseClass:
 
     @staticmethod
     def check_function(
-        spark,
-        check_fn,
-        pass_case_data,
-        fail_case_data,
-        data_types,
-        function_args,
-        skip_fail_case=False,
+            spark,
+            check_fn,
+            pass_case_data,
+            fail_case_data,
+            data_types,
+            function_args,
+            skip_fail_case=False,
     ):
         schema = DataFrameSchema(
             {
@@ -281,6 +289,7 @@ class TestEqualToCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
     def test_equal_to_check(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -293,6 +302,7 @@ class TestEqualToCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
     def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -389,6 +399,7 @@ class TestNotEqualToCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
     def test_not_equal_to_check(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -401,6 +412,7 @@ class TestNotEqualToCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
     def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -493,6 +505,7 @@ class TestGreaterThanCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
     def test_greater_than_check(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -505,6 +518,7 @@ class TestGreaterThanCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
     def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -597,6 +611,7 @@ class TestGreaterThanEqualToCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize(
         "check_fn", [pa.Check.greater_than_or_equal_to, pa.Check.ge]
     )
@@ -613,6 +628,7 @@ class TestGreaterThanEqualToCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize(
         "check_fn", [pa.Check.greater_than_or_equal_to, pa.Check.ge]
     )
@@ -707,6 +723,7 @@ class TestLessThanCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
     def test_less_than_check(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -719,6 +736,7 @@ class TestLessThanCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
     def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -811,6 +829,7 @@ class TestLessThanOrEqualToCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le])
     def test_less_than_or_equal_to_check(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -823,6 +842,7 @@ class TestLessThanOrEqualToCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le])
     def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
@@ -928,6 +948,7 @@ class TestIsInCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_isin_check(self, spark, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         self.check_function(
@@ -939,6 +960,7 @@ class TestIsInCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_failed_unaccepted_datatypes(self, spark, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
@@ -1036,6 +1058,7 @@ class TestNotInCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_notin_check(self, spark, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
 
@@ -1048,6 +1071,7 @@ class TestNotInCheck(BaseClass):
             data["test_expression"],
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_failed_unaccepted_datatypes(self, spark, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
@@ -1061,40 +1085,44 @@ class TestNotInCheck(BaseClass):
             )
 
 
-def test_str_startswith_check(spark) -> None:
-    """Test the Check to see if any value is not in the specified value"""
-    check_func = pa.Check.str_startswith
-    check_value = "B"
+class TestStringType(BaseClass):
+    @validate_params(params=BaseClass.params, scope='DATA')
+    def test_str_startswith_check(self, spark) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_startswith
+        check_value = "B"
 
-    pass_data = [("Bal", "Bread"), ("Bal", "Butter")]
-    fail_data = [("Bal", "Test"), ("Bal", "Butter")]
-    BaseClass.check_function(
-        spark, check_func, pass_data, fail_data, StringType(), check_value
-    )
-
-
-def test_str_endswith_check(spark) -> None:
-    """Test the Check to see if any value is not in the specified value"""
-    check_func = pa.Check.str_endswith
-    check_value = "d"
-
-    pass_data = [("Bal", "Bread"), ("Bal", "Bad")]
-    fail_data = [("Bal", "Test"), ("Bal", "Bad")]
-    BaseClass.check_function(
-        spark, check_func, pass_data, fail_data, StringType(), check_value
-    )
+        pass_data = [("Bal", "Bread"), ("Bal", "Butter")]
+        fail_data = [("Bal", "Test"), ("Bal", "Butter")]
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
 
 
-def test_str_contains_check(spark) -> None:
-    """Test the Check to see if any value is not in the specified value"""
-    check_func = pa.Check.str_contains
-    check_value = "Ba"
+    @validate_params(params=BaseClass.params, scope='DATA')
+    def test_str_endswith_check(self, spark) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_endswith
+        check_value = "d"
 
-    pass_data = [("Bal", "Bat!"), ("Bal", "Bat78")]
-    fail_data = [("Bal", "Cs"), ("Bal", "Jam!")]
-    BaseClass.check_function(
-        spark, check_func, pass_data, fail_data, StringType(), check_value
-    )
+        pass_data = [("Bal", "Bread"), ("Bal", "Bad")]
+        fail_data = [("Bal", "Test"), ("Bal", "Bad")]
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
+
+
+    @validate_params(params=BaseClass.params, scope='DATA')
+    def test_str_contains_check(self, spark) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_contains
+        check_value = "Ba"
+
+        pass_data = [("Bal", "Bat!"), ("Bal", "Bat78")]
+        fail_data = [("Bal", "Cs"), ("Bal", "Jam!")]
+        BaseClass.check_function(
+            spark, check_func, pass_data, fail_data, StringType(), check_value
+        )
 
 
 class TestInRangeCheck(BaseClass):
@@ -1181,6 +1209,7 @@ class TestInRangeCheck(BaseClass):
             ],
         }
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_inrange_exclude_min_max_check(self, spark, datatype, data) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
@@ -1193,6 +1222,7 @@ class TestInRangeCheck(BaseClass):
             (min_val - add_value, max_val + add_value, False, False),
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_inrange_exclude_min_only_check(self, spark, datatype, data) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
@@ -1205,6 +1235,7 @@ class TestInRangeCheck(BaseClass):
             (min_val, max_val + add_value, True, False),
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_inrange_exclude_max_only_check(self, spark, datatype, data) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
@@ -1217,6 +1248,7 @@ class TestInRangeCheck(BaseClass):
             (min_val - add_value, max_val, False, True),
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_inrange_include_min_max_check(self, spark, datatype, data) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
@@ -1229,6 +1261,7 @@ class TestInRangeCheck(BaseClass):
             (min_val, max_val, True, True),
         )
 
+    @validate_params(params=BaseClass.params, scope='DATA')
     def test_failed_unaccepted_datatypes(self, spark, datatype, data) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):

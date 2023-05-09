@@ -11,6 +11,8 @@ from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.api.pyspark.types import is_table
 from pandera.backends.pyspark.base import ColumnInfo, PysparkSchemaBackend
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
+from pandera.backends.pyspark.decorators import validate_params
+
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -18,7 +20,7 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaErrors,
 )
-
+import warnings
 
 class DataFrameSchemaBackend(PysparkSchemaBackend):
     """Backend for pyspark DataFrameSchema."""
@@ -27,31 +29,13 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Preprocesses a check object before applying check functions."""
         return check_obj
 
-    def report_errors(
-        self,
-        check_obj: DataFrame,
-        schema,
-        *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-        error_handler: ErrorHandler = None,
-    ):
-        """
-        Parse and validate a check object, returning type-coerced and validated
-        object.
-        """
-        if not is_table(check_obj):
-            raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
-
-        check_obj = self.preprocess(check_obj, inplace=inplace)
-        if hasattr(check_obj, "pandera"):
-            check_obj = check_obj.pandera.add_schema(schema)
-
-        column_info = self.collect_column_info(check_obj, schema, lazy)
+    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
+    def _column_checks(self,
+                       check_obj: DataFrame,
+                       schema,
+                       column_info: ColumnInfo,
+                       error_handler: ErrorHandler):
+        """run the checks related to columns presence, uniqueness and filter column if neccesary"""
 
         # check the container metadata, e.g. field names
         try:
@@ -75,7 +59,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         # strictness check and filter
         try:
-            check_obj = self.strict_filter_columns(check_obj, schema, column_info)
+            check_obj = self.strict_filter_columns(check_obj, schema, column_info, error_handler)
         except SchemaError as exc:
             error_handler.collect_error(
                 type=ErrorCategory.SCHEMA,
@@ -83,21 +67,52 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema_error=exc,
             )
         # try to coerce datatypes
-
         check_obj = self.coerce_dtype(
             check_obj,
             schema=schema,
             error_handler=error_handler,
         )
-        # collect schema components and prepare check object to be validated
 
+        return check_obj
+
+    def report_errors(
+        self,
+        check_obj: DataFrame,
+        schema,
+        *,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+        error_handler: ErrorHandler = None,
+    ):
+        """
+        Parse and validate a check object, returning type-coerced and validated
+        object.
+        """
+        if self.params['VALIDATION'] == 'DISABLE':
+            warnings.warn("Skipping the validation checks as validation is disabled")
+            return check_obj
+        if not is_table(check_obj):
+            raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
+
+        check_obj = self.preprocess(check_obj, inplace=inplace)
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(schema)
+        column_info = self.collect_column_info(check_obj, schema, lazy)
+
+        # validate the columns of the dataframe
+        check_obj = self._column_checks(check_obj, schema, column_info, error_handler)
+
+        # collect schema components and prepare check object to be validated
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
         check_obj_subsample = self.subsample(check_obj, sample, random_state)
         try:
             # TODO: need to create apply at column level
-
             self.run_schema_component_checks(
                 check_obj_subsample, schema_components, lazy, error_handler
             )
@@ -152,16 +167,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     err.reason_code,
                     err,
                 )
-            # except SchemaErrors as err:
-            #
-            #     for schema_error_dict in err.schema_errors:
-            #         error_handler.collect_error(
-            #             schema_error_dict["type"].value,
-            #             schema_error_dict["reason_code"],
-            #             schema_error_dict["error"],
-            #         )
         assert all(check_results)
 
+    @validate_params(params=PysparkSchemaBackend.params, scope='DATA')
     def run_checks(self, check_obj: DataFrame, schema, error_handler):
         """Run a list of checks on the check object."""
         # dataframe-level checks
@@ -277,9 +285,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ###########
     # Parsers #
     ###########
-
+    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
     def strict_filter_columns(
-        self, check_obj: DataFrame, schema, column_info: ColumnInfo
+        self, check_obj: DataFrame, schema, column_info: ColumnInfo, error_handler: ErrorHandler
     ):
         """Filters columns that aren't specified in the schema."""
         # dataframe strictness check makes sure all columns in the dataframe
@@ -293,17 +301,20 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         for column in column_info.destuttered_column_names:
             is_schema_col = column in column_info.expanded_column_names
             if schema.strict is True and not is_schema_col:
-                raise SchemaError(
-                    schema=schema,
-                    data=check_obj,
-                    message=(
-                        f"column '{column}' not in {schema.__class__.__name__}"
-                        f" {schema.columns}"
-                    ),
-                    failure_cases=scalar_failure_case(column),
-                    check="column_in_schema",
-                    reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
-                )
+                 error_handler.collect_error(ErrorCategory.SCHEMA,
+                                             SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                                             SchemaError(
+                                                 schema=schema,
+                                                 data=check_obj,
+                                                 message=(
+                                                     f"column '{column}' not in {schema.__class__.__name__}"
+                                                     f" {schema.columns}"
+                                                 ),
+                                                 failure_cases=scalar_failure_case(column),
+                                                 check="column_in_schema",
+                                                 reason_code=SchemaErrorReason.COLUMN_NOT_IN_SCHEMA,
+                                             )
+                                             )
             if schema.strict == "filter" and not is_schema_col:
                 filter_out_columns.append(column)
             if schema.ordered and is_schema_col:
@@ -312,26 +323,30 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 except StopIteration:
                     pass
                 if next_ordered_col != column:
-                    raise SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=f"column '{column}' out-of-order",
-                        failure_cases=scalar_failure_case(column),
-                        check="column_ordered",
-                        reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED,
-                    )
+                    error_handler.collect_error(ErrorCategory.SCHEMA,
+                                                SchemaErrorReason.COLUMN_NOT_ORDERED,
+                                                SchemaError(
+                                                    schema=schema,
+                                                    data=check_obj,
+                                                    message=f"column '{column}' out-of-order",
+                                                    failure_cases=scalar_failure_case(column),
+                                                    check="column_ordered",
+                                                    reason_code=SchemaErrorReason.COLUMN_NOT_ORDERED
+                                                )
+                                                )
 
         if schema.strict == "filter":
             check_obj = check_obj.drop(*filter_out_columns)
 
         return check_obj
 
+    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
     def coerce_dtype(
         self,
         check_obj: DataFrame,
         *,
         schema=None,
-        error_handler: ErrorHandler,
+        error_handler: ErrorHandler = None,
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
@@ -451,6 +466,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     # Checks #
     ##########
 
+    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
     def check_column_names_are_unique(self, check_obj: DataFrame, schema):
         """Check for column name uniquness."""
         if not schema.unique_column_names:
@@ -474,12 +490,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 message=(
                     "dataframe contains multiple columns with label(s): " f"{failed}"
                 ),
-                # Todo change the scalar_failure_case
                 failure_cases=scalar_failure_case(failed),
                 check="dataframe_column_labels_unique",
                 reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
             )
 
+    @validate_params(params=PysparkSchemaBackend.params, scope='SCHEMA')
     def check_column_presence(
         self, check_obj: DataFrame, schema, column_info: ColumnInfo
     ):

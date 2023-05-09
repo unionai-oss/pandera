@@ -8,6 +8,40 @@ try:
     from pandera.api.checks import Check
     from pandera.typing import pyspark_sql
     from pandera.errors import PysparkSchemaError, SchemaInitError
+    from pandera.decorators import check_input, check_io, check_output, check_types
+    from pandera.backends.pyspark.utils import ConfigParams
+    from pandera.dtypes import (
+        Bool,
+        Category,
+        Complex,
+        Complex64,
+        Complex128,
+        Complex256,
+        DataType,
+        Date,
+        DateTime,
+        Decimal,
+        Float,
+        Float16,
+        Float32,
+        Float64,
+        Float128,
+        Int,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        String,
+        Timedelta,
+        Timestamp,
+        UInt,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+    )
+    from pandera.schema_inference.pandas import infer_schema
+    from pandera.version import __version__
 
 except ImportError:
     pass
@@ -40,22 +74,6 @@ __all__ = [
     "UInt16",
     "UInt32",
     "UInt64",
-    # numpy_engine
-    "Object",
-    # pandas_engine
-    "BOOL",
-    "INT8",
-    "INT16",
-    "INT32",
-    "INT64",
-    "PANDAS_1_3_0_PLUS",
-    "STRING",
-    "UINT8",
-    "UINT16",
-    "UINT32",
-    "UINT64",
-    # pandera.engines.pandas_engine
-    "pandas_version",
     # checks
     "Check",
     # decorators
@@ -63,8 +81,6 @@ __all__ = [
     "check_io",
     "check_output",
     "check_types",
-    # hypotheses
-    "Hypothesis",
     # model
     "DataFrameModel",
     "SchemaModel",
@@ -74,13 +90,10 @@ __all__ = [
     "dataframe_check",
     # schema_components
     "Column",
-    "Index",
-    "MultiIndex",
     # schema_inference
     "infer_schema",
     # schemas
     "DataFrameSchema",
-    "SeriesSchema",
     # version
     "__version__",
 ]

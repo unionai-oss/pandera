@@ -4,9 +4,10 @@ from typing import Union
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pytest
+
+import pandera.backends.pyspark.utils
 import pandera.pyspark as pa
 from pandera.pyspark import pyspark_sql_accessor
-from pandera.error_handlers import SchemaError
 
 
 spark = SparkSession.builder.getOrCreate()
@@ -28,6 +29,7 @@ def test_dataframe_series_add_schema(
     schema2: pa.DataFrameSchema,
     data: Union[DataFrame, col],
     invalid_data: Union[DataFrame, col],
+    config_params: pa.ConfigParams
 ) -> None:
     """
     Test that pandas object contains schema metadata after pandera validation.
@@ -37,17 +39,17 @@ def test_dataframe_series_add_schema(
     assert data.pandera.schema == schema1
     assert isinstance(schema1.report_errors(data), DataFrame)
     assert isinstance(schema1(data), DataFrame)
-
-    assert dict(schema2(invalid_data).pandera.errors["SCHEMA"]) == {
-        "WRONG_DATATYPE": [
-            {
-                "schema": None,
-                "column": "col",
-                "check": "dtype('FloatType()')",
-                "error": "expected column 'col' to have type FloatType(), got LongType()",
-            }
-        ]
-    }  # type: ignore[arg-type]
+    if config_params['DEPTH']!='DATA_ONLY':
+        assert dict(schema2(invalid_data).pandera.errors["SCHEMA"]) == {
+            "WRONG_DATATYPE": [
+                {
+                    "schema": None,
+                    "column": "col",
+                    "check": "dtype('FloatType()')",
+                    "error": "expected column 'col' to have type FloatType(), got LongType()",
+                }
+            ]
+        }  # type: ignore[arg-type]
 
 
 class CustomAccessor:

@@ -67,6 +67,30 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
     print(errors)
 
 
+def test_pyspark_check_nullable(spark, sample_spark_schema):
+    """
+    Test creating a pyspark DataFrameSchema object
+    """
+
+    pandera_schema = DataFrameSchema(
+        columns={
+            "product": Column("str", checks=pa.Check.str_startswith("B")),
+            "price": Column("int", nullable=False),
+        }
+    )
+
+    data_fail = [("Bread", None), ("Cutter", 15)]
+    sample_spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), True),
+        ],
+    )
+    df_fail = spark_df(spark, data_fail, sample_spark_schema)
+    errors = pandera_schema.report_errors(check_obj=df_fail)
+    print(errors.pandera.errors)
+
+
 def test_pyspark_schema_data_checks(spark):
     """
     Test schema and data level checks
@@ -112,7 +136,7 @@ def test_pyspark_fields(spark):
 
     data_fail = [
         ("Bread", 5, 44.4, ["val"], {"product_category": "dairy"}),
-        ("Butter", 15, 99.0, ["val2"], {"product_category": "bakery"}),
+        ("Cutter", 15, 99.0, ["val2"], {"product_category": "bakery"}),
     ]
 
     spark_schema = T.StructType(

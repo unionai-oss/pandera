@@ -8,6 +8,7 @@ import pytest
 import pandera.pyspark as pa
 import pandera.errors
 from pandera.pyspark import DataFrameSchema, Column
+from pandera.backends.pyspark.utils import ConfigParams
 from pandera.errors import SchemaErrors
 
 spark = SparkSession.builder.getOrCreate()
@@ -21,7 +22,7 @@ def test_pyspark_dataframeschema():
     schema = DataFrameSchema(
         {
             "name": Column(T.StringType()),
-            "age": Column(T.IntegerType(), coerce=True),
+            "age": Column(T.IntegerType(), coerce=True, nullable=True),
         }
     )
 
@@ -41,7 +42,7 @@ def test_pyspark_dataframeschema():
     assert not df_out.pandera.errors
 
 
-def test_pyspark_dataframeschema_with_alias_types():
+def test_pyspark_dataframeschema_with_alias_types(config_params):
     """
     Test creating a pyspark DataFrameSchema object
     """
@@ -70,15 +71,15 @@ def test_pyspark_dataframeschema_with_alias_types():
     df_out = schema.report_errors(df)
 
     assert not df_out.pandera.errors
+    if config_params['DEPTH'] in ['SCHEMA_AND_DATA', 'DATA_ONLY']:
+        with pytest.raises(pandera.errors.PysparkSchemaError):
+            data_fail = [("Bread", 3), ("Butter", 15)]
 
-    with pytest.raises(pandera.errors.PysparkSchemaError):
-        data_fail = [("Bread", 3), ("Butter", 15)]
+            df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
 
-        df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
-
-        fail_df = schema.report_errors(df_fail)
-        if fail_df.pandera.errors:
-            raise pandera.errors.PysparkSchemaError
+            fail_df = schema.report_errors(df_fail)
+            if fail_df.pandera.errors:
+                raise pandera.errors.PysparkSchemaError
 
 
 def test_pyspark_column_metadata():
@@ -110,5 +111,5 @@ def test_pyspark_column_metadata():
             "dataframe": {"category": "product"},
         }
     }
-
+    breakpoint()
     assert schema.get_metadata == expected
