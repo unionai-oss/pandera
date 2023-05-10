@@ -36,7 +36,6 @@ from pandera.api.pyspark.model_components import (
     FieldInfo,
 )
 from pandera.api.pyspark.model_config import BaseConfig
-from pandera.api.pyspark.types import PySparkDtypeInputTypes
 from pandera.errors import SchemaInitError
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
@@ -295,10 +294,6 @@ class DataFrameModel(BaseModel):
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
     ) -> Dict[str, Column]:
-        # index_count = sum(
-        #     annotation.origin in INDEX_TYPES for annotation, _ in fields.values()
-        # )
-
         columns: Dict[str, Column] = {}
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
