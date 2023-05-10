@@ -22,7 +22,7 @@ import decimal
 
 import pytest
 
-import pandera.decorators
+
 import pandera.pyspark as pa
 from pandera.backends.pyspark.utils import ConfigParams
 from pandera.backends.pyspark.decorators import validate_params
@@ -31,7 +31,7 @@ from pandera.errors import PysparkSchemaError
 
 
 class TestDecorator:
-    params = ConfigParams("pyspark", "parameters.yaml")
+    params = ConfigParams()
 
     @validate_params(params=params, scope="DATA")
     def test_datatype_check_decorator(self, spark):
@@ -85,7 +85,7 @@ class TestDecorator:
 
 
 class BaseClass:
-    params = ConfigParams("pyspark", "parameters.yaml")
+    params = ConfigParams()
 
     def __int__(self, params=None):
         pass

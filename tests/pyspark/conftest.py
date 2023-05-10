@@ -1,4 +1,5 @@
 """ conftest """
+import os
 import pytest
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
@@ -125,4 +126,19 @@ def sample_check_data(spark):
 
 @pytest.fixture(scope='session')
 def config_params():
-    return ConfigParams('pyspark', 'parameters.yaml')
+    return ConfigParams()
+
+def test_config_params():
+
+    os.environ['VALIDATION'] = 'DISABLE'
+    os.environ['DEPTH'] = 'SCHEMA_AND_DATA'
+    params = ConfigParams()
+    expected = {'VALIDATION': 'DISABLE', 'DEPTH': 'SCHEMA_AND_DATA'}
+    assert dict(params) == expected
+
+    os.environ['VALIDATION'] = 'ENABLE'
+    os.environ['DEPTH'] = 'SCHEMA_AND_DATA'
+    params = ConfigParams()
+    expected = {'VALIDATION': 'ENABLE', 'DEPTH': 'SCHEMA_AND_DATA'}
+    assert dict(params) == expected
+

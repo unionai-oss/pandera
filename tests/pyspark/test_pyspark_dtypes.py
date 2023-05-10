@@ -1,20 +1,17 @@
 """Unit tests for pyspark container."""
-import datetime
 
 import pyspark.sql.types as T
-import pytest
+
 
 from pandera.pyspark import DataFrameSchema, Column
-from pandera.error_handlers import SchemaError
 from tests.pyspark.conftest import spark_df
-from pandera.errors import SchemaErrors
 from pandera.backends.pyspark.utils import ConfigParams
 from pandera.backends.pyspark.decorators import validate_params
 from pyspark.sql import DataFrame
 
 
 class BaseClass:
-    params = ConfigParams("pyspark", "parameters.yaml")
+    params = ConfigParams()
 
     def validate_datatype(self, df, pandera_schema):
         df_out = pandera_schema(df)

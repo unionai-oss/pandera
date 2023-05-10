@@ -9,7 +9,6 @@ try:
     from pandera.typing import pyspark_sql
     from pandera.errors import PysparkSchemaError, SchemaInitError
     from pandera.decorators import check_input, check_io, check_output, check_types
-    from pandera.backends.pyspark.utils import ConfigParams
     from pandera.dtypes import (
         Bool,
         Category,
