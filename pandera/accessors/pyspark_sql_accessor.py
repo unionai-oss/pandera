@@ -43,9 +43,14 @@ class PanderaAccessor:
         return self._schema
 
     @property
-    def error(self) -> Optional[Errors]:
-        """Access errors metadata"""
+    def errors(self) -> Optional[Errors]:
+        """Access errors data."""
         return self._errors
+
+    @errors.setter
+    def errors(self, value: dict):
+        """Set errors data."""
+        self._errors = value
 
 
 class CachedAccessor:

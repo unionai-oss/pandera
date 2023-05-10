@@ -146,6 +146,5 @@ def test_pyspark_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.validate(check_obj=df_fail)
-
-    print(errors)
+    df_out = pandera_schema.validate(check_obj=df_fail)
+    print(df_out)
