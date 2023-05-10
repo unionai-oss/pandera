@@ -1,15 +1,11 @@
 """Unit tests for pyspark container."""
-from typing import Union
 
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
-import pyspark.sql.functions as F
 import pytest
 import pandera.pyspark as pa
 import pandera.errors
 from pandera.pyspark import DataFrameSchema, Column
-from pandera.backends.pyspark.utils import ConfigParams
-from pandera.errors import SchemaErrors
 
 spark = SparkSession.builder.getOrCreate()
 

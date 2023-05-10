@@ -1,19 +1,16 @@
 """Core pyspark array specification."""
 
 import copy
-import warnings
-from typing import Any, List, Optional, TypeVar, Union, cast
+from typing import Any, List, Optional, TypeVar, cast
 
 import pyspark.sql as ps
 
-from pandera import errors
-from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
-from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes  # is_field,
-from pandera.backends.pyspark.column import ColumnSchemaBackend  # SeriesSchemaBackend,
-from pandera.dtypes import DataType, UniqueSettings
+from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
+from pandera.backends.pyspark.column import ColumnSchemaBackend
+from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
 
 TColumnSchemaBase = TypeVar("TColumnSchemaBase", bound="ColumnSchema")

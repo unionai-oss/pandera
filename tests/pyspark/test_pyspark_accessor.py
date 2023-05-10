@@ -5,7 +5,6 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pytest
 
-import pandera.backends.pyspark.utils
 import pandera.pyspark as pa
 from pandera.pyspark import pyspark_sql_accessor
 

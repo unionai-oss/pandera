@@ -137,13 +137,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             )
 
         error_dicts = {}
-        if error_handler.collected_errors:  # TODO: list of all errors
+        if error_handler.collected_errors:
             error_dicts = error_handler.summarize(schema=schema)
-            # raise SchemaErrors(
-            #     schema=schema,
-            #     schema_errors=error_handler.collected_errors,
-            #     data=check_obj,
-            # )
+
         check_obj.pandera.errors = error_dicts
         return check_obj
 
@@ -250,10 +246,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         # drop adjacent duplicated column names
 
         destuttered_column_names = list(set(check_obj.columns))
-        # if check_obj.columns != destuttered_column_names:
-        #     destuttered_column_names = [
-        #         k for k, _ in itertools.groupby(check_obj.columns)
-        #     ]
 
         return ColumnInfo(
             sorted_column_names=dict.fromkeys(column_names),

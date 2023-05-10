@@ -1,7 +1,6 @@
 """pyspark Parsing, Validation, and Error Reporting Backends."""
 
 import warnings
-from functools import reduce
 from typing import (
     Any,
     Dict,
@@ -49,8 +48,9 @@ T = TypeVar(
 
 class PysparkSchemaBackend(BaseSchemaBackend):
     """Base backend for pyspark schemas."""
+
     try:
-        params = ConfigParams('pyspark', 'parameters.yaml')
+        params = ConfigParams("pyspark", "parameters.yaml")
     except Exception as err:
         raise err
 
@@ -87,15 +87,6 @@ class PysparkSchemaBackend(BaseSchemaBackend):
                 # encode scalar False values explicitly
                 failure_cases = scalar_failure_case(check_result.check_passed)
                 error_msg = format_generic_error_message(schema, check)
-            # else:
-            #     # Todo
-            #     failure_cases = reshape_failure_cases(
-            #         check_result.failure_cases, check.ignore_na
-            #     )
-            #     # Todo
-            #     error_msg = format_vectorized_error_message(
-            #         schema, check, check_index, failure_cases
-            #     )
 
             # raise a warning without exiting if the check is specified to do so
             if check.raise_warning:

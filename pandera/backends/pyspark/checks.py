@@ -1,8 +1,7 @@
 """Check backend for pyspark."""
 
-from collections import namedtuple
 from functools import partial
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional
 
 from multimethod import DispatchError, overload
 from pyspark.sql import DataFrame

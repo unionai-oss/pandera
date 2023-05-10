@@ -21,8 +21,6 @@ from pyspark.sql.types import (
 import decimal
 
 import pytest
-
-import pandera.decorators
 import pandera.pyspark as pa
 from pandera.backends.pyspark.utils import ConfigParams
 from pandera.backends.pyspark.decorators import validate_params

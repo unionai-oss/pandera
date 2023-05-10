@@ -1,18 +1,12 @@
 """Core pyspark schema component specifications."""
 
-import warnings
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import pyspark.sql as ps
-
-import pandera.strategies as st
-from pandera import errors
 from pandera.api.pyspark.column_schema import ColumnSchema
-from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 from pandera.backends.pyspark.components import ColumnBackend
-from pandera.dtypes import UniqueSettings
 
 
 class Column(ColumnSchema):

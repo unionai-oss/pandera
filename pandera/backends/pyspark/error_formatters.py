@@ -1,14 +1,5 @@
 """Make schema error messages human-friendly."""
 
-from collections import defaultdict
-from typing import Any, Dict, List, Tuple, Union
-
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import col
-
-from pandera.errors import SchemaErrorReason
-
-
 
 def format_generic_error_message(
     parent_schema,
@@ -33,4 +24,3 @@ def scalar_failure_case(x) -> dict:
         "index": [None],
         "failure_case": [x],
     }
-
