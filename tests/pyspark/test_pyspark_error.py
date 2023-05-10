@@ -82,8 +82,8 @@ def test_pyspark_check_nullable(spark, sample_spark_schema):
         ],
     )
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
-    errors = pandera_schema.validate(check_obj=df_fail)
-    print(errors.pandera.errors)
+    dataframe_output = pandera_schema.validate(check_obj=df_fail)
+    print(dataframe_output.pandera.errors)
 
 
 def test_pyspark_schema_data_checks(spark):

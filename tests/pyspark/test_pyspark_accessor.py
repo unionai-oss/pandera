@@ -5,6 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pytest
 
+from pandera.backends.pyspark.utils import ConfigParams
 import pandera.pyspark as pa
 from pandera.pyspark import pyspark_sql_accessor
 
@@ -28,7 +29,7 @@ def test_dataframe_series_add_schema(
     schema2: pa.DataFrameSchema,
     data: Union[DataFrame, col],
     invalid_data: Union[DataFrame, col],
-    config_params: pa.ConfigParams,
+    config_params: ConfigParams,
 ) -> None:
     """
     Test that pandas object contains schema metadata after pandera validation.

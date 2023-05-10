@@ -50,7 +50,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     """Base backend for pyspark schemas."""
 
     try:
-        params = ConfigParams("pyspark", "parameters.yaml")
+        params = ConfigParams()
     except Exception as err:
         raise err
 

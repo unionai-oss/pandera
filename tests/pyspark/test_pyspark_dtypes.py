@@ -1,7 +1,7 @@
 """Unit tests for pyspark container."""
 
 import pyspark.sql.types as T
-import pytest
+
 
 from pandera.pyspark import DataFrameSchema, Column
 from tests.pyspark.conftest import spark_df
@@ -11,7 +11,7 @@ from pyspark.sql import DataFrame
 
 
 class BaseClass:
-    params = ConfigParams("pyspark", "parameters.yaml")
+    params = ConfigParams()
 
     def validate_datatype(self, df, pandera_schema):
         df_out = pandera_schema(df)

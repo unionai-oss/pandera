@@ -37,10 +37,10 @@ def register_input_datatypes(
                 raise SchemaError(
                     schema=validation_df.pandera.schema,
                     data=validation_df,
-                    message=f'The check with name "{func.__name__}" only accepts the following datatypes \n'
-                    f"{[i.typeName() for i in acceptable_datatypes]} but got {current_datatype()} from the input. \n"
-                    f" This error is usually caused by schema mismatch of value is different from schema defined in"
-                    f" pandera schema",
+                    message=f'The check with name "{func.__name__}" was expected to be run for \n'
+                    f"{pandera_schema_datatype()} but got {current_datatype()} instead from the input. \n"
+                    f" This error is usually caused by schema mismatch the value is different from schema defined in"
+                    f" pandera schema and one in the dataframe",
                 )
             if current_datatype in valid_datatypes:
                 return func(*args, **kwargs)
@@ -62,7 +62,7 @@ def validate_params(params, scope):
                 if (params['DEPTH'] == 'SCHEMA_AND_DATA') or (params['DEPTH'] == 'SCHEMA_ONLY'):
                     return func(self, *args, **kwargs)
                 else:
-                    warnings.warn("Skipping Execution of function as parameters set to DATA_ONLY ")
+                    warnings.warn("Skipping Execution of function as parameters set to DATA_ONLY ", stacklevel=2)
                     if not kwargs:
                         for key, value in kwargs.items():
                             if isinstance(value, pyspark.sql.DataFrame):
@@ -76,6 +76,6 @@ def validate_params(params, scope):
                 if (params['DEPTH'] == 'SCHEMA_AND_DATA') or (params['DEPTH'] == 'DATA_ONLY'):
                     return func(self, *args, **kwargs)
                 else:
-                    warnings.warn("Skipping Execution of function as parameters set to SCHEMA_ONLY ")
+                    warnings.warn("Skipping Execution of function as parameters set to SCHEMA_ONLY ", stacklevel=2)
         return wrapper
     return _wrapper
