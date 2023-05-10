@@ -12,7 +12,7 @@ from pandera.backends.pyspark.base import PysparkSchemaBackend
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.backends.pyspark.decorators import validate_params
 from pandera.engines.pyspark_engine import Engine
-from pandera.errors import ParserError, SchemaError, SchemaErrorReason, SchemaErrors
+from pandera.errors import ParserError, SchemaError, SchemaErrorReason
 
 
 class CoreCheckResult(NamedTuple):
@@ -208,6 +208,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     # if the error was raised by a check registered via
                     # multimethod, get the underlying __cause__
                     err = err.__cause__
+
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
                 error_handler.collect_error(

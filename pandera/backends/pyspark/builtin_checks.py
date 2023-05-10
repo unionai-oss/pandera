@@ -1,19 +1,15 @@
 """PySpark implementation of built-in checks"""
 
-import functools
 import re
-from typing import Any, Iterable, List, Type, TypeVar, Union, cast
+from typing import Any, Iterable, TypeVar, Union
 
 import pyspark.sql.types as pst
-from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-import pandera.errors
 import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.api.pyspark.types import PysparkDataframeColumnObject
 from pandera.backends.pyspark.utils import convert_to_list
-from pandera.typing.pyspark import PYSPARK_INSTALLED
 from pandera.backends.pyspark.decorators import register_input_datatypes
 
 T = TypeVar("T")
@@ -49,7 +45,6 @@ def equal_to(data: PysparkDataframeColumnObject, value: Any) -> bool:
     :param value: values in this DataFrame data structure must be
         equal to this value.
     """
-    # validate_datatypes(data, [pst.LongType, pst.IntegerType])
     cond = col(data.column_name) == value
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
@@ -152,7 +147,6 @@ def less_than_or_equal_to(data: PysparkDataframeColumnObject, max_value: Any) ->
     return data.dataframe.filter(~cond).limit(1).count() == 0
 
 
-# Todo - Need to be discussed
 @register_builtin_check(
     aliases=["between"],
     strategy=st.in_range_strategy,
@@ -211,6 +205,8 @@ def in_range(
 def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
     """Ensure only allowed values occur within a series.
 
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
     This checks whether all elements of a :class:`pyspark.sql.function.col`
     are part of the set of elements of allowed values. If allowed
     values is a string, the set of elements consists of all distinct
@@ -242,6 +238,8 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
 def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> bool:
     """Ensure some defined values don't occur within a series.
 
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
     Like :meth:`Check.isin` this check operates on single characters if
     it is applied on strings. If forbidden_values is a string, it is understood
     as set of prohibited characters. Any string of length > 1 can't be in it by
@@ -261,7 +259,6 @@ def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> boo
     )
 
 
-# TODO: expensive check
 @register_builtin_check(
     strategy=st.str_contains_strategy,
     error="str_contains('{pattern}')",
@@ -271,6 +268,8 @@ def str_contains(
     data: PysparkDataframeColumnObject, pattern: Union[str, re.Pattern]
 ) -> bool:
     """Ensure that a pattern can be found within each row.
+
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
     :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param pattern: Regular expression pattern to use for searching
@@ -292,6 +291,8 @@ def str_contains(
 def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values start with a certain string.
 
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
+
     :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param string: String all values should start with
     :param kwargs: key-word arguments passed into the `Check` initializer.
@@ -306,6 +307,8 @@ def str_startswith(data: PysparkDataframeColumnObject, string: str) -> bool:
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
 def str_endswith(data: PysparkDataframeColumnObject, string: str) -> bool:
     """Ensure that all values end with a certain string.
+
+    Remember it can be a compute intensive check on large dataset. So, use it with caution.
 
     :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param string: String all values should end with

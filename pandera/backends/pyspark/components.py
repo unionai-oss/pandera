@@ -32,7 +32,7 @@ class ColumnBackend(ColumnSchemaBackend):
         error_handler: ErrorHandler,
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
-        # error_handler = ErrorHandler(lazy)
+
         if schema.name is None:
             raise SchemaError(
                 schema,
@@ -56,12 +56,7 @@ class ColumnBackend(ColumnSchemaBackend):
                     inplace=inplace,
                     error_handler=error_handler,
                 )
-            # except SchemaErrors as err:
-            #     for err_dict in err.schema_errors:
-            #
-            #         error_handler.collect_error(
-            #             ErrorCategory.DATA, err_dict["reason_code"], err_dict["error"]
-            #         )
+
             except SchemaError as err:
                 error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
 
@@ -79,13 +74,6 @@ class ColumnBackend(ColumnSchemaBackend):
                     error_handler=error_handler,
                 )
             validate_column(check_obj, column_name)
-
-        # if lazy and error_handler.collected_errors:
-        #     raise SchemaErrors(
-        #         schema=schema,
-        #         schema_errors=error_handler.collected_errors,
-        #         data=check_obj,
-        #     )
 
         return check_obj
 
@@ -112,8 +100,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 failure_cases=scalar_failure_case(str(columns)),
                 check=f"no_regex_column_match('{schema.name}')",
             )
-        # drop duplicates to account for potential duplicated columns in the
-        # dataframe.
+
         return column_keys_to_check
 
     @validate_params(params=ColumnSchemaBackend.params, scope="SCHEMA")
@@ -126,17 +113,9 @@ class ColumnBackend(ColumnSchemaBackend):
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
         # pylint: disable=fixme
-        # TODO: use singledispatchmethod here
 
         check_obj = check_obj.withColumn(schema.name, cast(schema.dtype))
-        # return check_obj.apply(
-        #     lambda x: super(ColumnBackend, self).coerce_dtype(
-        #         x,
-        #         schema=schema,
-        #         error_handler=error_handler,
-        #     ),
-        #     axis="columns",
-        # )
+
         return check_obj
 
     @validate_params(params=ColumnSchemaBackend.params, scope="DATA")
