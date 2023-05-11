@@ -58,8 +58,20 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
     data_fail = [("Bread", 5), ("Cutter", 15)]
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
-    errors = pandera_schema.validate(check_obj=df_fail)
-    print(errors)
+    df_out = pandera_schema.validate(check_obj=df_fail)
+    expected = {'DATAFRAME_CHECK': [{'check': "<Check str_startswith: str_startswith('B')>",
+                      'column': 'product',
+                      'error': "column 'product' with type StringType() failed "
+                               'validation <Check str_startswith: '
+                               "str_startswith('B')>",
+                      'schema': 'product_schema'},
+                     {'check': '<Check greater_than: greater_than(5)>',
+                      'column': 'price',
+                      'error': "column 'price' with type IntegerType() failed "
+                               'validation <Check greater_than: '
+                               'greater_than(5)>',
+                      'schema': 'product_schema'}]}
+    assert dict(df_out.pandera.errors['DATA']) == expected
 
 
 def test_pyspark_check_nullable(spark, sample_spark_schema):
@@ -83,7 +95,15 @@ def test_pyspark_check_nullable(spark, sample_spark_schema):
     )
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
     dataframe_output = pandera_schema.validate(check_obj=df_fail)
-    print(dataframe_output.pandera.errors)
+    expected = {'SERIES_CONTAINS_NULLS':
+                    [{'schema': None,
+                      'column': 'price',
+                      'check': 'not_nullable',
+                      'error': "non-nullable column 'price' contains null"}
+                     ]
+                }
+
+    assert dict(dataframe_output.pandera.errors['SCHEMA']) == expected
 
 
 def test_pyspark_schema_data_checks(spark):
@@ -113,8 +133,37 @@ def test_pyspark_schema_data_checks(spark):
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.validate(check_obj=df_fail)
-    print(errors)
+    output_data = pandera_schema.validate(check_obj=df_fail)
+    expected = {'DATA':
+                    {'DATAFRAME_CHECK': [{'check': '<Check '
+                                                                'str_startswith: '
+                                                                "str_startswith('B')>",
+                                                       'column': 'product',
+                                                       'error': 'column '
+                                                                "'product' "
+                                                                'with type '
+                                                                'StringType() '
+                                                                'failed '
+                                                                'validation '
+                                                                '<Check '
+                                                                'str_startswith: '
+                                                                "str_startswith('B')>",
+                                                       'schema': 'product_schema'},
+                                                      {'check': '<Check '
+                                                                'greater_than: '
+                                                                'greater_than(5)>',
+                                                       'column': 'price',
+                                                       'error': 'column '
+                                                                "'price' with "
+                                                                'type '
+                                                                'IntegerType() '
+                                                                'failed '
+                                                                'validation '
+                                                                '<Check '
+                                                                'greater_than: '
+                                                                'greater_than(5)>',
+                                                       'schema': 'product_schema'}]}}
+    assert dict(output_data.pandera.errors['DATA']) == expected['DATA']
 
 
 def test_pyspark_fields(spark):
@@ -147,5 +196,38 @@ def test_pyspark_fields(spark):
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
     df_out = pandera_schema.validate(check_obj=df_fail)
+    data_errors = dict(df_out.pandera.errors['DATA'])
+    schema_errors = dict(df_out.pandera.errors['SCHEMA'])
+    expected = \
+        {'DATA': {'DATAFRAME_CHECK': [{'check': '<Check str_startswith: '
+                                                "str_startswith('B')>",
+                                       'column': 'product',
+                                       'error': "column 'product' with "
+                                                'type StringType() failed '
+                                                'validation <Check '
+                                                'str_startswith: '
+                                                "str_startswith('B')>",
+                                       'schema': 'pandera_schema'},
+                                      {'check': '<Check greater_than: '
+                                                'greater_than(5)>',
+                                       'column': 'price',
+                                       'error': "column 'price' with type "
+                                                'IntegerType() failed '
+                                                'validation <Check '
+                                                'greater_than: '
+                                                'greater_than(5)>',
+                                       'schema': 'pandera_schema'}]},
+         'SCHEMA': {'WRONG_DATATYPE': [{'check': "dtype('MapType(StringType(), "
+                                                 "StringType(), True)')",
+                                        'column': 'product_info',
+                                        'error': 'expected column '
+                                                 "'product_info' to have "
+                                                 'type '
+                                                 'MapType(StringType(), '
+                                                 'StringType(), True), got '
+                                                 'MapType(StringType(), '
+                                                 'StringType(), False)',
+                                        'schema': 'pandera_schema'}]}}
 
-    print(df_out)
+    assert data_errors == expected['DATA']
+    assert schema_errors == expected['SCHEMA']

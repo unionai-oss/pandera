@@ -16,9 +16,9 @@ from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes, StrictType
 from pandera.backends.pyspark.container import DataFrameSchemaBackend
+from pandera.backends.pyspark.utils import PANDERA_CONFIG
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
-from pandera.backends.pyspark.utils import ConfigParams
 
 N_INDENT_SPACES = 4
 
@@ -27,7 +27,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     """A light-weight PySpark DataFrame validator."""
 
     BACKEND = DataFrameSchemaBackend()
-    params = ConfigParams()
 
     def __init__(
         self,
@@ -322,7 +321,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                  0.80      dog
                  0.76      dog
         """
-        if self.params['VALIDATION'] == 'DISABLE':
+        if PANDERA_CONFIG['VALIDATION'] == 'DISABLE':
             return
         error_handler = ErrorHandler(lazy)
 

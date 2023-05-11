@@ -5,6 +5,8 @@ from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 import datetime
 from pandera.backends.pyspark.utils import ConfigParams
+from pandera.pyspark import DataFrameSchema, Column, DataFrameModel, Field
+import pandera
 
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
@@ -128,17 +130,44 @@ def sample_check_data(spark):
 def config_params():
     return ConfigParams()
 
-def test_config_params():
+def test_config_params(spark, sample_spark_schema, monkeypatch):
 
-    os.environ['VALIDATION'] = 'DISABLE'
-    os.environ['DEPTH'] = 'SCHEMA_AND_DATA'
+    monkeypatch.setenv('VALIDATION', 'DISABLE')
+    monkeypatch.setenv('DEPTH', 'SCHEMA_AND_DATA')
+    class TestDataFrameSchema(DataFrameSchema):
+        pass
+    sample_data = [("Bread", 9), ("Cutter", 15)]
+
+    pandra_schema = TestDataFrameSchema(
+            {
+                "product": Column(T.StringType(), pandera.Check.str_startswith("B")),
+                "price_val": Column(T.IntegerType()),
+            }
+        )
+
+
+    class TestSchema(DataFrameModel):
+        product: T.StringType() = Field(str_startswith='B')
+        price_val: T.StringType() = Field()
+
     params = ConfigParams()
     expected = {'VALIDATION': 'DISABLE', 'DEPTH': 'SCHEMA_AND_DATA'}
     assert dict(params) == expected
+    input_df = spark_df(spark, sample_data, sample_spark_schema)
 
-    os.environ['VALIDATION'] = 'ENABLE'
-    os.environ['DEPTH'] = 'SCHEMA_AND_DATA'
+    assert pandra_schema.validate(input_df) is None
+    assert TestSchema.validate(input_df) is None
+    monkeypatch.setenv('VALIDATION', 'ENABLE')
+    monkeypatch.setenv('DEPTH', 'SCHEMA_ONLY')
     params = ConfigParams()
-    expected = {'VALIDATION': 'ENABLE', 'DEPTH': 'SCHEMA_AND_DATA'}
+    pandra_schema = DataFrameSchema(
+            {
+                "product": Column(T.StringType(), pandera.Check.str_startswith("B")),
+                "price_val": Column(T.IntegerType()),
+            }
+        )
+
+    expected = {'VALIDATION': 'ENABLE', 'DEPTH': 'SCHEMA_ONLY'}
     assert dict(params) == expected
+    breakpoint()
 

@@ -1,7 +1,5 @@
 """pyspark backend utilities."""
-import yaml
 import os
-import pandera
 import warnings
 
 def convert_to_list(*args):
@@ -14,21 +12,14 @@ def convert_to_list(*args):
 
     return converted_list
 
-
 class ConfigParams(dict):
     def __init__(self):
         # Default config values will run everything
         default_values = {"VALIDATION": 'ENABLE', "DEPTH": 'SCHEMA_AND_DATA'}
         self.config = default_values
         self.set_config()
+        self.validate_params(self.config)
         super().__init__(self.config)
-
-    @staticmethod
-    def fetch_yaml(module_name, config_file):
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(pandera.__file__), ".."))
-        path = os.path.join(root_dir, 'conf', module_name, config_file)
-        with open(path) as file:
-            return yaml.safe_load(file)
 
     def set_config(self):
         if os.environ.get("VALIDATION"):
@@ -58,3 +49,5 @@ class ConfigParams(dict):
             if config.get('DEPTH') not in ['SCHEMA_ONLY', 'DATA_ONLY', 'SCHEMA_AND_DATA']:
                 raise ValueError("Parameter 'DEPTH' only supports 'SCHEMA_AND_DATA', 'SCHEMA_ONLY' or 'DATA_ONLY' "
                                  "as valid values. Ensure the value is in upper case only")
+
+PANDERA_CONFIG = ConfigParams()

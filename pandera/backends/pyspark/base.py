@@ -21,7 +21,7 @@ from pandera.backends.pyspark.error_formatters import (  # format_vectorized_err
     format_generic_error_message,
     scalar_failure_case,
 )
-from pandera.backends.pyspark.utils import ConfigParams
+from pandera.backends.pyspark.utils import PANDERA_CONFIG
 from pandera.errors import FailureCaseMetadata, SchemaError
 
 
@@ -49,10 +49,8 @@ T = TypeVar(
 class PysparkSchemaBackend(BaseSchemaBackend):
     """Base backend for pyspark schemas."""
 
-    try:
-        params = ConfigParams()
-    except Exception as err:
-        raise err
+
+    params = PANDERA_CONFIG
 
     def subsample(
         self,
