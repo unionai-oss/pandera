@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Dict, List, Union
 
 from pandera.errors import SchemaError, SchemaErrorReason
+from pandera.api.checks import Check
 
 
 class ErrorCategory(Enum):
@@ -75,15 +76,22 @@ class ErrorHandler:
         :param schema: schema object
         """
 
-        for error in self._collected_errors:
-            err_cat = error["reason_code"].name
-            err_type = error["type"].name
-            self._summarized_errors[err_type][err_cat].append(
+        for e in self._collected_errors:
+            category = e["type"].name
+            subcategory = e["reason_code"].name
+            error = e["error"]
+
+            if isinstance(error.check, Check):
+                check = error.check.error
+            else:
+                check = error.check
+
+            self._summarized_errors[category][subcategory].append(
                 {
                     "schema": schema.name,
-                    "column": error["column"],
-                    "check": error["error"].check,
-                    "error": error["error"].__str__(),
+                    "column": e["column"],
+                    "check": check,
+                    "error": error.__str__(),
                 }
             )
 

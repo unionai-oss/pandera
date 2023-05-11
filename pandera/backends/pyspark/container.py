@@ -137,6 +137,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             )
 
         error_dicts = {}
+
         if error_handler.collected_errors:
             error_dicts = error_handler.summarize(schema=schema)
 

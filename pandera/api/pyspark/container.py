@@ -322,7 +322,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         """
         error_handler = ErrorHandler(lazy)
 
-        return self._report_errors(
+        return self._validate(
             check_obj=check_obj,
             head=head,
             tail=tail,
@@ -333,7 +333,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             error_handler=error_handler,
         )
 
-    def _report_errors(
+    def _validate(
         self,
         check_obj: DataFrame,
         head: Optional[int] = None,
