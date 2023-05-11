@@ -19,6 +19,7 @@ from pandera.backends.pyspark.container import DataFrameSchemaBackend
 from pandera.backends.pyspark.utils import PANDERA_CONFIG
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
+from pandera.backends.pyspark.utils import ConfigParams
 
 N_INDENT_SPACES = 4
 
@@ -27,6 +28,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     """A light-weight PySpark DataFrame validator."""
 
     BACKEND = DataFrameSchemaBackend()
+    params = ConfigParams()
 
     def __init__(
         self,
