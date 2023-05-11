@@ -11,7 +11,7 @@ def format_generic_error_message(
     :param check: check that generated error.
     :param check_index: The validator that failed.
     """
-    return f"{parent_schema} failed validation " f"{check}"
+    return f"{parent_schema} failed validation " f"{check.error}"
 
 
 def scalar_failure_case(x) -> dict:
