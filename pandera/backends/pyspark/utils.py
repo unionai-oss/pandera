@@ -65,5 +65,3 @@ class ConfigParams(dict):
                                  "as valid values. Ensure the value is in upper case only")
 
 PANDERA_CONFIG = ConfigParams()
-                raise ValueError("Parameter 'DEPTH' only supports 'SCHEMA_AND_DATA', 'SCHEMA_ONLY' or 'DATA_ONLY' "
-                                 "as valid values. Ensure the value is in upper case only")
