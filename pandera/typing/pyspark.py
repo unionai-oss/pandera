@@ -2,8 +2,8 @@
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
-from pandera.typing.pandas import GenericDtype, DataFrameModel, _GenericAlias
+from pandera.typing.common import DataFrameBase, GenericDtype, IndexBase, SeriesBase
+from pandera.typing.pandas import DataFrameModel, _GenericAlias
 
 try:
     import pyspark.pandas as ps
@@ -21,7 +21,6 @@ else:
 
 
 if PYSPARK_INSTALLED:
-
     # pylint: disable=too-few-public-methods,arguments-renamed
     class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
         """

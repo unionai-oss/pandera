@@ -6,13 +6,23 @@ the typing module.
 
 from typing import Set, Type
 
-from pandera.typing import dask, fastapi, geopandas, modin, pyspark
+from pandera.typing import dask, fastapi, geopandas, modin, pyspark, pyspark_sql
 from pandera.typing.common import (
     BOOL,
     INT8,
     INT16,
     INT32,
     INT64,
+    PYSPARK_BINARY,
+    PYSPARK_BYTEINT,
+    PYSPARK_DATE,
+    PYSPARK_DECIMAL,
+    PYSPARK_FLOAT,
+    PYSPARK_INT,
+    PYSPARK_LONGINT,
+    PYSPARK_SHORTINT,
+    PYSPARK_STRING,
+    PYSPARK_TIMESTAMP,
     STRING,
     UINT8,
     UINT16,
@@ -42,6 +52,7 @@ from pandera.typing.common import (
     UInt64,
 )
 from pandera.typing.pandas import DataFrame, Index, Series
+from pandera.typing.pyspark_sql import Column
 
 DATAFRAME_TYPES: Set[Type] = {DataFrame}
 SERIES_TYPES: Set[Type] = {Series}
@@ -62,14 +73,13 @@ if pyspark.PYSPARK_INSTALLED:
     SERIES_TYPES.update({pyspark.Series})
     INDEX_TYPES.update({pyspark.Index})  # type: ignore [arg-type]
 
+if pyspark_sql.PYSPARK_SQL_INSTALLED:
+    DATAFRAME_TYPES.update({pyspark_sql.DataFrame})
+    COLUMN_TYPES: Set[Type] = {Column}
 
 if geopandas.GEOPANDAS_INSTALLED:
     DATAFRAME_TYPES.update({geopandas.GeoDataFrame})
     SERIES_TYPES.update({geopandas.GeoSeries})
 
 
-__all__ = [
-    "DataFrame",
-    "Series",
-    "Index",
-]
+__all__ = ["DataFrame", "Series", "Index", "Column"]

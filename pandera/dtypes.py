@@ -6,16 +6,7 @@ import dataclasses
 import decimal
 import inspect
 from abc import ABC
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Iterable, Optional, Tuple, Type, TypeVar, Union
 
 try:
     from typing import Literal
@@ -34,9 +25,7 @@ class DataType(ABC):
 
     def __init__(self):
         if self.__class__ is DataType:
-            raise TypeError(
-                f"{self.__class__.__name__} may not be instantiated."
-            )
+            raise TypeError(f"{self.__class__.__name__} may not be instantiated.")
 
     def coerce(self, data_container: Any):
         """Coerce data container to the data type."""
@@ -147,9 +136,7 @@ class _Number(DataType):
 class _PhysicalNumber(_Number):
     bit_width: Optional[int] = None
     """Number of bits used by the machine representation."""
-    _base_name: Optional[str] = dataclasses.field(
-        default=None, init=False, repr=False
-    )
+    _base_name: Optional[str] = dataclasses.field(default=None, init=False, repr=False)
 
     def __eq__(self, obj: object) -> bool:
         if isinstance(obj, type(self)):
@@ -428,9 +415,7 @@ class Decimal(_Number):
     ):
         super().__init__()
         if precision <= 0:
-            raise ValueError(
-                f"Decimal precision {precision} must be positive."
-            )
+            raise ValueError(f"Decimal precision {precision} must be positive.")
         if scale is not None and scale > precision:
             raise ValueError(
                 f"Decimal scale {scale} must be between 0 and {precision}."
@@ -530,6 +515,14 @@ class Timedelta(DataType):
         return "timedelta"
 
 
+@immutable
+class Binary(DataType):
+    """Semantic representation of a delta time data type."""
+
+    def __str__(self) -> str:
+        return "binary"
+
+
 ###############################################################################
 # Utilities
 ###############################################################################
@@ -594,6 +587,11 @@ def is_datetime(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
 def is_timedelta(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a timedelta."""
     return is_subdtype(pandera_dtype, Timedelta)
+
+
+def is_binary(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a timedelta."""
+    return is_subdtype(pandera_dtype, Binary)
 
 
 UniqueSettings = Union[

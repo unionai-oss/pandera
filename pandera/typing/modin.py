@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 from packaging import version
 
 from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
-from pandera.typing.pandas import GenericDtype, DataFrameModel
+from pandera.typing.pandas import DataFrameModel, GenericDtype
 
 try:
     import modin
@@ -29,7 +29,6 @@ else:
 
 
 if MODIN_INSTALLED:
-
     # pylint: disable=too-few-public-methods
     class DataFrame(DataFrameBase, mpd.DataFrame, Generic[T]):
         """

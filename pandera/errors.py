@@ -153,6 +153,7 @@ class SchemaErrorReason(Enum):
     SERIES_CHECK = "series_check"
     WRONG_DATATYPE = "wrong_dtype"
     INDEX_CHECK = "index_check"
+    NO_ERROR = "no_errors"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):
@@ -180,3 +181,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self.error_counts = failure_cases_metadata.error_counts
         self.failure_cases = failure_cases_metadata.failure_cases
         super().__init__(failure_cases_metadata.message)
+
+
+class PysparkSchemaError(ReducedPickleExceptionBase):
+    """Raised when pyspark schema are collected into one error."""

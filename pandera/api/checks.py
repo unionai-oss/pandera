@@ -1,23 +1,13 @@
 """Data validation check definition."""
 
 import re
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar, Union
 
 import pandas as pd
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
 from pandera.strategies import SearchStrategy
-
 
 T = TypeVar("T")
 
@@ -165,11 +155,8 @@ class Check(BaseCheck):
 
         """
         super().__init__(name=name, error=error)
-
         if element_wise and groupby is not None:
-            raise errors.SchemaInitError(
-                "Cannot use groupby when element_wise=True."
-            )
+            raise errors.SchemaInitError("Cannot use groupby when element_wise=True.")
         self._check_fn = check_fn
         self._check_kwargs = check_kwargs
         self.element_wise = element_wise
@@ -418,8 +405,7 @@ class Check(BaseCheck):
             forbidden_values_mod = frozenset(forbidden_values)
         except TypeError as exc:
             raise ValueError(
-                "Argument forbidden_values must be iterable. "
-                f"Got {forbidden_values}"
+                "Argument forbidden_values must be iterable. " f"Got {forbidden_values}"
             ) from exc
         return cls.from_builtin_check_name(
             "notin",
@@ -451,9 +437,7 @@ class Check(BaseCheck):
         )
 
     @classmethod
-    def str_contains(
-        cls, pattern: Union[str, re.Pattern], **kwargs
-    ) -> "Check":
+    def str_contains(cls, pattern: Union[str, re.Pattern], **kwargs) -> "Check":
         """Ensure that a pattern can be found within each row.
 
         :param pattern: Regular expression pattern to use for searching
@@ -480,6 +464,7 @@ class Check(BaseCheck):
         :param string: String all values should start with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+
         return cls.from_builtin_check_name(
             "str_startswith",
             kwargs,
@@ -515,8 +500,7 @@ class Check(BaseCheck):
         """
         if min_value is None and max_value is None:
             raise ValueError(
-                "At least a minimum or a maximum need to be specified. Got "
-                "None."
+                "At least a minimum or a maximum need to be specified. Got " "None."
             )
         return cls.from_builtin_check_name(
             "str_length",
@@ -539,9 +523,7 @@ class Check(BaseCheck):
         try:
             values_mod = frozenset(values)
         except TypeError as exc:
-            raise ValueError(
-                f"Argument values must be iterable. Got {values}"
-            ) from exc
+            raise ValueError(f"Argument values must be iterable. Got {values}") from exc
         return cls.from_builtin_check_name(
             "unique_values_eq",
             kwargs,

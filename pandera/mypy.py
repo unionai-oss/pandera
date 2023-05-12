@@ -2,11 +2,7 @@
 
 from typing import Callable, Optional, Union, cast
 
-from mypy.nodes import (
-    FuncBase,
-    SymbolNode,
-    TypeInfo,
-)
+from mypy.nodes import FuncBase, SymbolNode, TypeInfo
 from mypy.plugin import (
     ClassDefContext,
     FunctionSigContext,

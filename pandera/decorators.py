@@ -2,8 +2,8 @@
 import functools
 import inspect
 import sys
-import typing
 import types
+import typing
 from collections import OrderedDict
 from typing import (
     Any,
@@ -703,7 +703,6 @@ def check_types(
         args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-
         if instance is not None:
             # If the wrapped function is a method -> add "self" as the first positional arg
             args = (instance, *args)

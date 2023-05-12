@@ -23,7 +23,6 @@ from typing import (
 
 import pandas as pd
 
-from pandera.strategies import pandas_strategies as st
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
 from pandera.api.pandas.components import Column, Index, MultiIndex
@@ -38,6 +37,7 @@ from pandera.api.pandas.model_components import (
 )
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.errors import SchemaInitError
+from pandera.strategies import pandas_strategies as st
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
 

@@ -10,11 +10,10 @@ from typing import Dict, Optional, Union
 import pandas as pd
 
 import pandera.errors
-
 from pandera import dtypes
-from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.components import Column
 from pandera.api.checks import Check
+from pandera.api.pandas.components import Column
+from pandera.api.pandas.container import DataFrameSchema
 from pandera.engines import pandas_engine
 from pandera.schema_statistics import get_dataframe_schema_statistics
 

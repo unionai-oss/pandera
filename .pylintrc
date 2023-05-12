@@ -45,4 +45,5 @@ disable=
     function-redefined,
     arguments-differ,
     unnecessary-dunder-call,
-    use-dict-literal
+    use-dict-literal,
+    invalid-name
