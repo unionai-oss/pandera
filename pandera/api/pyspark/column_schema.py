@@ -9,7 +9,6 @@ from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
-from pandera.backends.pyspark.column import ColumnSchemaBackend
 from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
 
@@ -18,8 +17,6 @@ TColumnSchemaBase = TypeVar("TColumnSchemaBase", bound="ColumnSchema")
 
 class ColumnSchema(BaseSchema):
     """Base column validator object."""
-
-    BACKEND = ColumnSchemaBackend()
 
     def __init__(
         self,
@@ -71,6 +68,7 @@ class ColumnSchema(BaseSchema):
         self.title = title
         self.description = description
         self.metadata = metadata
+        self._dtype = None
 
     @property
     def dtype(self) -> DataType:
@@ -80,6 +78,8 @@ class ColumnSchema(BaseSchema):
     @dtype.setter
     def dtype(self, value: Optional[PySparkDtypeInputTypes]) -> None:
         """Set the pyspark dtype"""
+        # this is a pylint false positive
+        # pylint: disable=no-value-for-parameter
         self._dtype = pyspark_engine.Engine.dtype(value) if value else None
 
     def validate(
@@ -112,7 +112,7 @@ class ColumnSchema(BaseSchema):
         :returns: validated DataFrame or Series.
 
         """
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,
             head=head,

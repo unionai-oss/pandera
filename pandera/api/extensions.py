@@ -8,7 +8,6 @@ from inspect import signature
 from typing import Callable, List, Optional, Tuple, Type, Union
 
 import pandas as pd
-import pyspark.sql as ps
 import typing_inspect
 
 from pandera.api.checks import Check
@@ -140,7 +139,6 @@ def register_check_method(
     supported_types: Union[type, Tuple, List] = (
         pd.DataFrame,
         pd.Series,
-        ps.DataFrame,
     ),
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,

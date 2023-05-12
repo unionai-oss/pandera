@@ -181,7 +181,7 @@ class Column(ArraySchema):
         from pandera.backends.pandas.components import ColumnBackend
 
         return cast(
-            ColumnBackend, self.get_backend(pd.DataFrame())
+            ColumnBackend, self.get_backend(check_type=pd.DataFrame)
         ).get_regex_columns(self, columns)
 
     def __eq__(self, other):
