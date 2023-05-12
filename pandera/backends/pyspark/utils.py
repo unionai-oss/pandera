@@ -19,8 +19,6 @@ class ConfigParams(dict):
         self.config = DEFAULT_CONFIG
         self.set_config()
         super().__init__(self.config)
-        import sys
-        print(sys.argv)
 
     def set_config(self):
         if os.environ.get("VALIDATION"):
