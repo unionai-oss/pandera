@@ -1,7 +1,8 @@
 """pyspark backend utilities."""
 import os
 import warnings
-
+import sys
+DEFAULT_CONFIG = {"VALIDATION": 'ENABLE', "DEPTH": 'SCHEMA_AND_DATA'}
 def convert_to_list(*args):
     converted_list = []
     for arg in args:
@@ -15,11 +16,11 @@ def convert_to_list(*args):
 class ConfigParams(dict):
     def __init__(self):
         # Default config values will run everything
-        default_values = {"VALIDATION": 'ENABLE', "DEPTH": 'SCHEMA_AND_DATA'}
-        self.config = default_values
+        self.config = DEFAULT_CONFIG
         self.set_config()
-        self.validate_params(self.config)
         super().__init__(self.config)
+        import sys
+        print(sys.argv)
 
     def set_config(self):
         if os.environ.get("VALIDATION"):
@@ -35,19 +36,6 @@ class ConfigParams(dict):
                           ' since no environment variable found to overload', RuntimeWarning)
         self.validate_params(self.config)
 
-    def set_config(self):
-        if os.environ.get("VALIDATION"):
-            self.config['VALIDATION'] = os.environ.get("VALIDATION")
-            warnings.warn('Setting the VALIDATION config from environment variables', RuntimeWarning, stacklevel=2)
-
-        if os.environ.get("DEPTH"):
-            self.config['DEPTH'] = os.environ.get("DEPTH")
-            warnings.warn('Setting the DEPTH config from environment variables', RuntimeWarning, stacklevel=2)
-
-        if (not os.environ.get("VALIDATION")) and (not os.environ.get("DEPTH")):
-            warnings.warn('Setting the VALIDATION and DEPTH config from default values'
-                          ' since no environment variable found to overload', RuntimeWarning)
-        self.validate_params(self.config)
 
     @staticmethod
     def validate_params(config):
@@ -64,4 +52,12 @@ class ConfigParams(dict):
                 raise ValueError("Parameter 'DEPTH' only supports 'SCHEMA_AND_DATA', 'SCHEMA_ONLY' or 'DATA_ONLY' "
                                  "as valid values. Ensure the value is in upper case only")
 
-PANDERA_CONFIG = ConfigParams()
+if ("--validation" in sys.argv) or ("--depth" in sys.argv):
+    PANDERA_CONFIG = DEFAULT_CONFIG
+    for index, value in enumerate(sys.argv):
+        if '--validation' == value:
+            PANDERA_CONFIG['VALIDATION'] = sys.argv[index+1]
+        if '--depth' == value:
+            PANDERA_CONFIG['DEPTH'] = sys.argv[index + 1]
+else:
+    PANDERA_CONFIG = ConfigParams()
