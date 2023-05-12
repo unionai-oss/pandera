@@ -71,7 +71,9 @@ def test_pyspark_dataframeschema_with_alias_types(config_params):
         with pytest.raises(pandera.errors.PysparkSchemaError):
             data_fail = [("Bread", 3), ("Butter", 15)]
 
-            df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
+            df_fail = spark.createDataFrame(
+                data=data_fail, schema=spark_schema
+            )
 
             fail_df = schema.validate(df_fail)
             if fail_df.pandera.errors:
@@ -101,7 +103,10 @@ def test_pyspark_column_metadata():
     expected = {
         "product_schema": {
             "columns": {
-                "product": {"usecase": "product_pricing", "type": ["t1", "t2"]},
+                "product": {
+                    "usecase": "product_pricing",
+                    "type": ["t1", "t2"],
+                },
                 "price": None,
             },
             "dataframe": {"category": "product"},

@@ -122,7 +122,9 @@ def register_check_statistics(statistics_args):
                 arg_names = statistics_args
             args_dict = {**dict(zip(arg_names, args)), **kwargs}
             check = class_method(cls, *args, **kwargs)
-            check.statistics = {stat: args_dict.get(stat) for stat in statistics_args}
+            check.statistics = {
+                stat: args_dict.get(stat) for stat in statistics_args
+            }
             check.statistics_args = statistics_args
             return check
 
@@ -135,7 +137,11 @@ def register_check_method(
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
-    supported_types: Union[type, Tuple, List] = (pd.DataFrame, pd.Series, ps.DataFrame),
+    supported_types: Union[type, Tuple, List] = (
+        pd.DataFrame,
+        pd.Series,
+        ps.DataFrame,
+    ),
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
@@ -284,6 +290,8 @@ def register_check_method(
         if strategy is not None:
             check_method = register_check_strategy(strategy)(check_method)
 
-        Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(check_method, Check)
+        Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(
+            check_method, Check
+        )
 
     return register_check_wrapper(check_fn)

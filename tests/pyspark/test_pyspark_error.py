@@ -141,7 +141,9 @@ def test_pyspark_fields(spark):
             T.StructField("id", T.DecimalType(20, 5), False),
             T.StructField("id2", T.ArrayType(T.StringType()), False),
             T.StructField(
-                "product_info", T.MapType(T.StringType(), T.StringType(), False), False
+                "product_info",
+                T.MapType(T.StringType(), T.StringType(), False),
+                False,
             ),
         ],
     )

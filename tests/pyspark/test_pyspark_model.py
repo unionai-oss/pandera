@@ -126,8 +126,20 @@ def test_pyspark_bare_fields(spark):
         meta: T.MapType(T.StringType(), T.StringType()) = Field()
 
     data_fail = [
-        (5, "Bread", 44.4, ["description of product"], {"product_category": "dairy"}),
-        (15, "Butter", 99.0, ["more details here"], {"product_category": "bakery"}),
+        (
+            5,
+            "Bread",
+            44.4,
+            ["description of product"],
+            {"product_category": "dairy"},
+        ),
+        (
+            15,
+            "Butter",
+            99.0,
+            ["more details here"],
+            {"product_category": "bakery"},
+        ),
     ]
 
     spark_schema = T.StructType(
@@ -135,7 +147,9 @@ def test_pyspark_bare_fields(spark):
             T.StructField("id", T.IntegerType(), False),
             T.StructField("product", T.StringType(), False),
             T.StructField("price", T.DecimalType(20, 5), False),
-            T.StructField("description", T.ArrayType(T.StringType(), False), False),
+            T.StructField(
+                "description", T.ArrayType(T.StringType(), False), False
+            ),
             T.StructField(
                 "meta", T.MapType(T.StringType(), T.StringType(), False), False
             ),
@@ -203,7 +217,10 @@ def test_pyspark_fields_metadata(spark):
     class pandera_schema(DataFrameModel):
         id: T.IntegerType() = Field(
             gt=5,
-            metadata={"usecase": ["telco", "retail"], "category": "product_pricing"},
+            metadata={
+                "usecase": ["telco", "retail"],
+                "category": "product_pricing",
+            },
         )
         product_name: T.StringType() = Field(str_startswith="B")
         price: T.DecimalType(20, 5) = Field()
@@ -217,7 +234,10 @@ def test_pyspark_fields_metadata(spark):
     expected = {
         "product_info": {
             "columns": {
-                "id": {"usecase": ["telco", "retail"], "category": "product_pricing"},
+                "id": {
+                    "usecase": ["telco", "retail"],
+                    "category": "product_pricing",
+                },
                 "product_name": None,
                 "price": None,
             },

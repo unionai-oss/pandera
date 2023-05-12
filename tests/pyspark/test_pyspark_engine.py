@@ -7,6 +7,7 @@ import pytest
 
 from pandera.engines import pyspark_engine
 
+
 @pytest.mark.parametrize(
     "data_type", list(pyspark_engine.Engine.get_registered_dtypes())
 )

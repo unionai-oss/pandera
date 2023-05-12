@@ -25,23 +25,36 @@ class ConfigParams(dict):
 
     @staticmethod
     def fetch_yaml(module_name, config_file):
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(pandera.__file__), ".."))
-        path = os.path.join(root_dir, 'conf', module_name, config_file)
+        root_dir = os.path.abspath(
+            os.path.join(os.path.dirname(pandera.__file__), "..")
+        )
+        path = os.path.join(root_dir, "conf", module_name, config_file)
         with open(path) as file:
             return yaml.safe_load(file)
 
     @staticmethod
     def validate_params(config):
-        if not config.get('VALIDATION'):
-            raise ValueError('Parameter "VALIDATION" not found in config, ensure the parameter value is in upper case')
+        if not config.get("VALIDATION"):
+            raise ValueError(
+                'Parameter "VALIDATION" not found in config, ensure the parameter value is in upper case'
+            )
         else:
-            if config.get('VALIDATION') not in ['ENABLE', 'DISABLE']:
-                raise ValueError("Parameter 'VALIDATION' only supports 'ON' or 'OFF' as valid values."
-                                 "Ensure the value is in upper case only")
-        if not config.get('DEPTH'):
-            raise ValueError('Parameter "DEPTH" not found in config, ensure the parameter value is in upper case')
+            if config.get("VALIDATION") not in ["ENABLE", "DISABLE"]:
+                raise ValueError(
+                    "Parameter 'VALIDATION' only supports 'ON' or 'OFF' as valid values."
+                    "Ensure the value is in upper case only"
+                )
+        if not config.get("DEPTH"):
+            raise ValueError(
+                'Parameter "DEPTH" not found in config, ensure the parameter value is in upper case'
+            )
         else:
-            if config.get('DEPTH') not in ['SCHEMA_ONLY', 'DATA_ONLY', 'SCHEMA_AND_DATA']:
-                raise ValueError("Parameter 'VALIDATION' only supports 'ON' or 'OFF' as valid values."
-                                 "Ensure the value is in upper case only")
-
+            if config.get("DEPTH") not in [
+                "SCHEMA_ONLY",
+                "DATA_ONLY",
+                "SCHEMA_AND_DATA",
+            ]:
+                raise ValueError(
+                    "Parameter 'VALIDATION' only supports 'ON' or 'OFF' as valid values."
+                    "Ensure the value is in upper case only"
+                )

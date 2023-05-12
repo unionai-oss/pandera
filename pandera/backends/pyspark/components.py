@@ -58,7 +58,9 @@ class ColumnBackend(ColumnSchemaBackend):
                 )
 
             except SchemaError as err:
-                error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
+                error_handler.collect_error(
+                    ErrorCategory.DATA, err.reason_code, err
+                )
 
         column_keys_to_check = (
             self.get_regex_columns(schema, check_obj.columns, check_obj)
@@ -125,7 +127,9 @@ class ColumnBackend(ColumnSchemaBackend):
             check_args = [schema.name]
             try:
                 check_results.append(
-                    self.run_check(check_obj, schema, check, check_index, *check_args)
+                    self.run_check(
+                        check_obj, schema, check, check_index, *check_args
+                    )
                 )
             except SchemaError as err:
                 error_handler.collect_error(

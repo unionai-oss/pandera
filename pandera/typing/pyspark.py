@@ -2,7 +2,12 @@
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from pandera.typing.common import DataFrameBase, GenericDtype, IndexBase, SeriesBase
+from pandera.typing.common import (
+    DataFrameBase,
+    GenericDtype,
+    IndexBase,
+    SeriesBase,
+)
 from pandera.typing.pandas import DataFrameModel, _GenericAlias
 
 try:

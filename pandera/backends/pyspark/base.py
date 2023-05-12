@@ -61,7 +61,9 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         seed: Optional[int] = None,
     ):
         if sample is not None:
-            return check_obj.sample(withReplacement=False, fraction=sample, seed=seed)
+            return check_obj.sample(
+                withReplacement=False, fraction=sample, seed=seed
+            )
         return check_obj
 
     def run_check(

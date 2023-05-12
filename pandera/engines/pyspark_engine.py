@@ -78,7 +78,6 @@ class DataType(dtypes.DataType):
         except TypeError:
             return False
 
-
     def __str__(self) -> str:
         return str(self.type)
 
@@ -107,7 +106,7 @@ class DataType(dtypes.DataType):
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {type_alias}",
-                failure_cases=None
+                failure_cases=None,
             ) from exc
 
         return coerced
@@ -140,7 +139,13 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 @Engine.register_dtype(
-    equivalents=[bool, "bool", "BooleanType()", pst.BooleanType(), pst.BooleanType],
+    equivalents=[
+        bool,
+        "bool",
+        "BooleanType()",
+        pst.BooleanType(),
+        pst.BooleanType,
+    ],
 )
 @immutable
 class Bool(DataType, dtypes.Bool):
@@ -152,7 +157,9 @@ class Bool(DataType, dtypes.Bool):
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified boolean type."""
         if value not in self._bool_like:
-            raise TypeError(f"value {value} cannot be coerced to type {self.type}")
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
         return super().coerce_value(value)
 
 
@@ -263,7 +270,9 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     # precision: int = dataclasses.field(default=DEFAULT_PYSPARK_PREC, init=False)
     # scale: int = dataclasses.field(default=DEFAULT_PYSPARK_SCALE, init=False)
     def __init__(  # pylint:disable=super-init-not-called
-        self, precision: int = DEFAULT_PYSPARK_PREC, scale: int = DEFAULT_PYSPARK_SCALE
+        self,
+        precision: int = DEFAULT_PYSPARK_PREC,
+        scale: int = DEFAULT_PYSPARK_SCALE,
     ) -> None:
         dtypes.Decimal.__init__(self, precision, scale, None)
         object.__setattr__(
@@ -549,7 +558,10 @@ class MapType(DataType):
                 (self.type == pandera_dtype.type)
                 & (self.type.valueType == pandera_dtype.type.valueType)
                 & (self.type.keyType == pandera_dtype.type.keyType)
-                & (self.type.valueContainsNull == pandera_dtype.type.valueContainsNull)
+                & (
+                    self.type.valueContainsNull
+                    == pandera_dtype.type.valueContainsNull
+                )
             )
 
         except TypeError:

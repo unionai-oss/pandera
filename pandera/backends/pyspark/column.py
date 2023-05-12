@@ -35,7 +35,11 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def _core_checks(self, check_obj, schema, error_handler):
         """This function runs the core checks"""
         # run the core checks
-        for core_check in (self.check_name, self.check_dtype, self.check_nullable):
+        for core_check in (
+            self.check_name,
+            self.check_dtype,
+            self.check_nullable,
+        ):
             check_result = core_check(check_obj, schema)
             if not check_result.passed:
                 error_handler.collect_error(
@@ -73,7 +77,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                     check_obj, schema=schema, error_handler=error_handler
                 )
             except SchemaError as exc:
-                error_handler.collect_error(ErrorCategory.SCHEMA, exc.reason_code, exc)
+                error_handler.collect_error(
+                    ErrorCategory.SCHEMA, exc.reason_code, exc
+                )
 
         self._core_checks(check_obj, schema, error_handler)
 
@@ -114,7 +120,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_nullable(self, check_obj: DataFrame, schema):
-        isna = check_obj.filter(col(schema.name).isNull()).limit(1).count() == 0
+        isna = (
+            check_obj.filter(col(schema.name).isNull()).limit(1).count() == 0
+        )
         passed = schema.nullable or isna
         return CoreCheckResult(
             check="not_nullable",
@@ -126,7 +134,9 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_name(self, check_obj: DataFrame, schema):
-        column_found = not (schema.name is None or schema.name not in check_obj.columns)
+        column_found = not (
+            schema.name is None or schema.name not in check_obj.columns
+        )
         return CoreCheckResult(
             check=f"field_name('{schema.name}')",
             reason_code=SchemaErrorReason.WRONG_FIELD_NAME

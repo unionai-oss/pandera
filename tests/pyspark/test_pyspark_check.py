@@ -123,7 +123,9 @@ class BaseClass:
 
             else:
                 if not isinstance(value[0][1], list):
-                    data_dict[key] = [(i[0], conversion_datatype(i[1])) for i in value]
+                    data_dict[key] = [
+                        (i[0], conversion_datatype(i[1])) for i in value
+                    ]
                 else:
                     final_val = []
                     for row in value:
@@ -243,7 +245,10 @@ class TestEqualToCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -260,10 +265,15 @@ class TestEqualToCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {
                     "datatype": DateType(),
-                    "data": self.convert_timestamp_to_date(self.sample_timestamp_data),
+                    "data": self.convert_timestamp_to_date(
+                        self.sample_timestamp_data
+                    ),
                 },
                 {
                     "datatype": DecimalType(),
@@ -280,7 +290,10 @@ class TestEqualToCheck(BaseClass):
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
             ],
             "test_failed_unaccepted_datatypes": [
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -303,7 +316,9 @@ class TestEqualToCheck(BaseClass):
 
     @validate_params(params=BaseClass.params, scope="DATA")
     @pytest.mark.parametrize("check_fn", [pa.Check.equal_to, pa.Check.eq])
-    def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark, check_fn, datatype, data
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
             self.check_function(
@@ -353,7 +368,10 @@ class TestNotEqualToCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -370,10 +388,15 @@ class TestNotEqualToCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {
                     "datatype": DateType(),
-                    "data": self.convert_timestamp_to_date(self.sample_timestamp_data),
+                    "data": self.convert_timestamp_to_date(
+                        self.sample_timestamp_data
+                    ),
                 },
                 {
                     "datatype": DecimalType(),
@@ -390,7 +413,10 @@ class TestNotEqualToCheck(BaseClass):
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
             ],
             "test_failed_unaccepted_datatypes": [
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -413,7 +439,9 @@ class TestNotEqualToCheck(BaseClass):
 
     @validate_params(params=BaseClass.params, scope="DATA")
     @pytest.mark.parametrize("check_fn", [pa.Check.not_equal_to, pa.Check.ne])
-    def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark, check_fn, datatype, data
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
             self.check_function(
@@ -462,7 +490,10 @@ class TestGreaterThanCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -478,7 +509,10 @@ class TestGreaterThanCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {"datatype": DateType(), "data": self.sample_date_data},
                 {
                     "datatype": DecimalType(),
@@ -496,7 +530,10 @@ class TestGreaterThanCheck(BaseClass):
             "test_failed_unaccepted_datatypes": [
                 {"datatype": StringType(), "data": self.sample_string_data},
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -519,7 +556,9 @@ class TestGreaterThanCheck(BaseClass):
 
     @validate_params(params=BaseClass.params, scope="DATA")
     @pytest.mark.parametrize("check_fn", [pa.Check.greater_than, pa.Check.gt])
-    def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark, check_fn, datatype, data
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
             self.check_function(
@@ -568,7 +607,10 @@ class TestGreaterThanEqualToCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -584,7 +626,10 @@ class TestGreaterThanEqualToCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {"datatype": DateType(), "data": self.sample_date_data},
                 {
                     "datatype": DecimalType(),
@@ -602,7 +647,10 @@ class TestGreaterThanEqualToCheck(BaseClass):
             "test_failed_unaccepted_datatypes": [
                 {"datatype": StringType(), "data": self.sample_string_data},
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -631,7 +679,9 @@ class TestGreaterThanEqualToCheck(BaseClass):
     @pytest.mark.parametrize(
         "check_fn", [pa.Check.greater_than_or_equal_to, pa.Check.ge]
     )
-    def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark, check_fn, datatype, data
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
             self.check_function(
@@ -680,7 +730,10 @@ class TestLessThanCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -696,7 +749,10 @@ class TestLessThanCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {"datatype": DateType(), "data": self.sample_date_data},
                 {
                     "datatype": DecimalType(),
@@ -714,7 +770,10 @@ class TestLessThanCheck(BaseClass):
             "test_failed_unaccepted_datatypes": [
                 {"datatype": StringType(), "data": self.sample_string_data},
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -737,7 +796,9 @@ class TestLessThanCheck(BaseClass):
 
     @validate_params(params=BaseClass.params, scope="DATA")
     @pytest.mark.parametrize("check_fn", [pa.Check.less_than, pa.Check.lt])
-    def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
+    def test_failed_unaccepted_datatypes(
+        self, spark, check_fn, datatype, data
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
             self.check_function(
@@ -786,7 +847,10 @@ class TestLessThanOrEqualToCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -802,7 +866,10 @@ class TestLessThanOrEqualToCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {"datatype": DateType(), "data": self.sample_date_data},
                 {
                     "datatype": DecimalType(),
@@ -820,7 +887,10 @@ class TestLessThanOrEqualToCheck(BaseClass):
             "test_failed_unaccepted_datatypes": [
                 {"datatype": StringType(), "data": self.sample_string_data},
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -829,8 +899,12 @@ class TestLessThanOrEqualToCheck(BaseClass):
         }
 
     @validate_params(params=BaseClass.params, scope="DATA")
-    @pytest.mark.parametrize("check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le])
-    def test_less_than_or_equal_to_check(self, spark, check_fn, datatype, data) -> None:
+    @pytest.mark.parametrize(
+        "check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le]
+    )
+    def test_less_than_or_equal_to_check(
+        self, spark, check_fn, datatype, data
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         self.check_function(
             spark,
@@ -842,8 +916,12 @@ class TestLessThanOrEqualToCheck(BaseClass):
         )
 
     @validate_params(params=BaseClass.params, scope="DATA")
-    @pytest.mark.parametrize("check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le])
-    def test_failed_unaccepted_datatypes(self, spark, check_fn, datatype, data) -> None:
+    @pytest.mark.parametrize(
+        "check_fn", [pa.Check.less_than_or_equal_to, pa.Check.le]
+    )
+    def test_failed_unaccepted_datatypes(
+        self, spark, check_fn, datatype, data
+    ) -> None:
         """Test the Check to see if all the values are equal to defined value"""
         with pytest.raises(TypeError):
             self.check_function(
@@ -886,7 +964,10 @@ class TestIsInCheck(BaseClass):
             ("foo", datetime.date(2020, 10, 2)),
             ("bar", datetime.date(2020, 10, 3)),
         ],
-        "test_expression": [datetime.date(2020, 10, 1), datetime.date(2020, 10, 2)],
+        "test_expression": [
+            datetime.date(2020, 10, 1),
+            datetime.date(2020, 10, 2),
+        ],
     }
 
     sample_string_data = {
@@ -905,7 +986,10 @@ class TestIsInCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -921,7 +1005,10 @@ class TestIsInCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {"datatype": DateType(), "data": self.sample_date_data},
                 {
                     "datatype": DecimalType(),
@@ -939,7 +1026,10 @@ class TestIsInCheck(BaseClass):
             ],
             "test_failed_unaccepted_datatypes": [
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -1012,7 +1102,10 @@ class TestNotInCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def get_data_param(self):
@@ -1028,10 +1121,15 @@ class TestNotInCheck(BaseClass):
                         self.sample_numeric_data, "double"
                     ),
                 },
-                {"datatype": TimestampType(), "data": self.sample_timestamp_data},
+                {
+                    "datatype": TimestampType(),
+                    "data": self.sample_timestamp_data,
+                },
                 {
                     "datatype": DateType(),
-                    "data": self.convert_timestamp_to_date(self.sample_timestamp_data),
+                    "data": self.convert_timestamp_to_date(
+                        self.sample_timestamp_data
+                    ),
                 },
                 {
                     "datatype": DecimalType(),
@@ -1049,7 +1147,10 @@ class TestNotInCheck(BaseClass):
             ],
             "test_failed_unaccepted_datatypes": [
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -1150,7 +1251,10 @@ class TestInRangeCheck(BaseClass):
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
+            [
+                [funcargs[name] for name in argnames]
+                for funcargs in funcarglist
+            ],
         )
 
     def create_min_max(self, data_dictionary):
@@ -1173,20 +1277,28 @@ class TestInRangeCheck(BaseClass):
             {"datatype": ShortType(), "data": self.sample_numeric_data},
             {
                 "datatype": DoubleType(),
-                "data": self.convert_numeric_data(self.sample_numeric_data, "double"),
+                "data": self.convert_numeric_data(
+                    self.sample_numeric_data, "double"
+                ),
             },
             {"datatype": TimestampType(), "data": self.sample_timestamp_data},
             {
                 "datatype": DateType(),
-                "data": self.convert_timestamp_to_date(self.sample_timestamp_data),
+                "data": self.convert_timestamp_to_date(
+                    self.sample_timestamp_data
+                ),
             },
             {
                 "datatype": DecimalType(),
-                "data": self.convert_numeric_data(self.sample_numeric_data, "decimal"),
+                "data": self.convert_numeric_data(
+                    self.sample_numeric_data, "decimal"
+                ),
             },
             {
                 "datatype": FloatType(),
-                "data": self.convert_numeric_data(self.sample_numeric_data, "float"),
+                "data": self.convert_numeric_data(
+                    self.sample_numeric_data, "float"
+                ),
             },
         ]
 
@@ -1198,7 +1310,10 @@ class TestInRangeCheck(BaseClass):
             "test_failed_unaccepted_datatypes": [
                 {"datatype": StringType(), "data": self.sample_string_data},
                 {"datatype": BooleanType(), "data": self.sample_bolean_data},
-                {"datatype": ArrayType(StringType()), "data": self.sample_array_data},
+                {
+                    "datatype": ArrayType(StringType()),
+                    "data": self.sample_array_data,
+                },
                 {
                     "datatype": MapType(StringType(), StringType()),
                     "data": self.sample_map_data,
@@ -1207,7 +1322,9 @@ class TestInRangeCheck(BaseClass):
         }
 
     @validate_params(params=BaseClass.params, scope="DATA")
-    def test_inrange_exclude_min_max_check(self, spark, datatype, data) -> None:
+    def test_inrange_exclude_min_max_check(
+        self, spark, datatype, data
+    ) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
@@ -1220,7 +1337,9 @@ class TestInRangeCheck(BaseClass):
         )
 
     @validate_params(params=BaseClass.params, scope="DATA")
-    def test_inrange_exclude_min_only_check(self, spark, datatype, data) -> None:
+    def test_inrange_exclude_min_only_check(
+        self, spark, datatype, data
+    ) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
@@ -1233,7 +1352,9 @@ class TestInRangeCheck(BaseClass):
         )
 
     @validate_params(params=BaseClass.params, scope="DATA")
-    def test_inrange_exclude_max_only_check(self, spark, datatype, data) -> None:
+    def test_inrange_exclude_max_only_check(
+        self, spark, datatype, data
+    ) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(
@@ -1246,7 +1367,9 @@ class TestInRangeCheck(BaseClass):
         )
 
     @validate_params(params=BaseClass.params, scope="DATA")
-    def test_inrange_include_min_max_check(self, spark, datatype, data) -> None:
+    def test_inrange_include_min_max_check(
+        self, spark, datatype, data
+    ) -> None:
         """Test the Check to see if any value is not in the specified value"""
         min_val, max_val, add_value = self.create_min_max(data)
         self.check_function(

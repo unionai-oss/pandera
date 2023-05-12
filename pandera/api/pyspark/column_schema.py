@@ -135,7 +135,9 @@ class ColumnSchema(BaseSchema):
         inplace: bool = False,
     ):
         """Alias for ``validate`` method."""
-        return self.validate(check_obj, head, tail, sample, random_state, lazy, inplace)
+        return self.validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

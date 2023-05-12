@@ -8,7 +8,11 @@ from pyspark.sql import DataFrame
 
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
-from pandera.api.pyspark.types import PysparkDataframeColumnObject, is_bool, is_table
+from pandera.api.pyspark.types import (
+    PysparkDataframeColumnObject,
+    is_bool,
+    is_table,
+)
 from pandera.backends.base import BaseCheckBackend
 
 
@@ -69,13 +73,17 @@ class PySparkCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: DataFrame, column_name: str, kwargs: dict):  # type: ignore [valid-type]
         # kwargs['column_name'] = column_name
         # return self.check._check_fn(check_obj, *list(kwargs.values()))
-        check_obj_and_col_name = PysparkDataframeColumnObject(check_obj, column_name)
+        check_obj_and_col_name = PysparkDataframeColumnObject(
+            check_obj, column_name
+        )
         return self.check._check_fn(check_obj_and_col_name, **kwargs)
 
     @overload
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
-        raise TypeError(f"output type of check_fn not recognized: {type(check_output)}")
+        raise TypeError(
+            f"output type of check_fn not recognized: {type(check_output)}"
+        )
 
     @overload  # type: ignore [no-redef]
     def postprocess(
