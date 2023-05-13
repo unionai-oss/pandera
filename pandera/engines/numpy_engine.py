@@ -12,9 +12,9 @@ import numpy as np
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
-from pandera.system import FLOAT_128_AVAILABLE
 from pandera.engines import engine, utils
 from pandera.engines.type_aliases import PandasObject
+from pandera.system import FLOAT_128_AVAILABLE
 
 
 @immutable(init=True)
@@ -166,7 +166,6 @@ _int_equivalents = _build_number_equivalents(
 @Engine.register_dtype(equivalents=_int_equivalents[64])
 @immutable
 class Int64(DataType, dtypes.Int64):
-
     type = np.dtype("int64")
     bit_width: int = 64
 

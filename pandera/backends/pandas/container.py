@@ -20,10 +20,10 @@ from pandera.engines import pandas_engine
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     ParserError,
-    SchemaError,
-    SchemaErrors,
     SchemaDefinitionError,
+    SchemaError,
     SchemaErrorReason,
+    SchemaErrors,
 )
 
 

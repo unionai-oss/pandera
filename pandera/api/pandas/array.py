@@ -11,11 +11,7 @@ from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import (
-    CheckList,
-    PandasDtypeInputTypes,
-    is_field,
-)
+from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, is_field
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 

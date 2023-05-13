@@ -50,7 +50,6 @@ try:
     import hypothesis.strategies as st
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
-
     # pylint: disable=too-few-public-methods
     class SearchStrategy:  # type: ignore
         """placeholder type."""

@@ -1,6 +1,7 @@
 """A flexible and expressive pandas validation library."""
 import platform
 
+import pandera.backends
 from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
 from pandera.api import extensions
@@ -84,7 +85,6 @@ try:
     from pandera.accessors import pyspark_accessor
 except ImportError:
     pass
-
 
 try:
     import modin.pandas

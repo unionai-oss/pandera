@@ -3,10 +3,9 @@
 
 from typing import Tuple
 
+from pandera.api.extensions import register_builtin_hypothesis
 from pandera.backends.pandas.builtin_checks import PandasData
 from pandera.backends.pandas.hypotheses import HAS_SCIPY
-from pandera.api.extensions import register_builtin_hypothesis
-
 
 if HAS_SCIPY:
     from scipy import stats

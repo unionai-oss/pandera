@@ -18,7 +18,6 @@ from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
 from pandera.strategies import SearchStrategy
 
-
 T = TypeVar("T")
 
 
@@ -165,7 +164,6 @@ class Check(BaseCheck):
 
         """
         super().__init__(name=name, error=error)
-
         if element_wise and groupby is not None:
             raise errors.SchemaInitError(
                 "Cannot use groupby when element_wise=True."
@@ -480,6 +478,7 @@ class Check(BaseCheck):
         :param string: String all values should start with
         :param kwargs: key-word arguments passed into the `Check` initializer.
         """
+
         return cls.from_builtin_check_name(
             "str_startswith",
             kwargs,

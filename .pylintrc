@@ -1,5 +1,6 @@
 [BASIC]
-ignore=mypy.py,noxfile.py
+ignore=mypy.py,noxfile.py,pandera/accessors/pyspark_sql_accessor.py,pandera/engines/pyspark_engine.py,pandera/pyspark.py,pandera/typing/pyspark_sql.py,
+ignore-patterns=pandera/api/pyspark/*,tests/pyspark/*
 good-names=
     T,
     F,
@@ -45,4 +46,5 @@ disable=
     function-redefined,
     arguments-differ,
     unnecessary-dunder-call,
-    use-dict-literal
+    use-dict-literal,
+    invalid-name

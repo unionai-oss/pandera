@@ -20,9 +20,9 @@ import pandas as pd
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing.common import (
     DataFrameBase,
+    DataFrameModel,
     GenericDtype,
     IndexBase,
-    DataFrameModel,
     SeriesBase,
 )
 from pandera.typing.formats import Formats

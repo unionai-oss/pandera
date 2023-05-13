@@ -2,16 +2,14 @@
 
 import operator
 import re
-from typing import cast, Any, Iterable, TypeVar, Union
+from typing import Any, Iterable, TypeVar, Union, cast
 
 import pandas as pd
 
 import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
-
 from pandera.typing.modin import MODIN_INSTALLED
 from pandera.typing.pyspark import PYSPARK_INSTALLED
-
 
 if MODIN_INSTALLED and not PYSPARK_INSTALLED:  # pragma: no cover
     import modin.pandas as mpd

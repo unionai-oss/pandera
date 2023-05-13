@@ -15,6 +15,7 @@ from typing import (
     Union,
     no_type_check,
 )
+
 import pandas as pd
 from multimethod import multidispatch as _multidispatch
 
@@ -173,7 +174,6 @@ class BaseCheck(metaclass=MetaCheck):
         # by the check object
         if statistics is None:
             statistics = check_kwargs
-
         return cls(
             cls.get_builtin_check_fn(name),
             statistics=statistics,
@@ -188,6 +188,7 @@ class BaseCheck(metaclass=MetaCheck):
     @classmethod
     def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:
         """Get the backend associated with the type of ``check_obj`` ."""
+
         check_obj_cls = type(check_obj)
         classes = inspect.getmro(check_obj_cls)
         for _class in classes:

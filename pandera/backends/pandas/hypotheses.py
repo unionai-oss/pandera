@@ -1,16 +1,15 @@
 """Hypothesis backend for pandas."""
 
 from functools import partial
-from typing import cast, Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Union, cast
 
 import pandas as pd
 from multimethod import overload
 
 from pandera import errors
-from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import is_field, is_table
-
+from pandera.backends.pandas.checks import PandasCheckBackend
 
 try:
     from scipy import stats  # pylint: disable=unused-import

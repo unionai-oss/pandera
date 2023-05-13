@@ -358,7 +358,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-
         if self._is_inferred:
             warnings.warn(
                 f"This {type(self)} is an inferred schema that hasn't been "

@@ -136,7 +136,10 @@ def register_check_method(
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
-    supported_types: Union[type, Tuple, List] = (pd.DataFrame, pd.Series),
+    supported_types: Union[type, Tuple, List] = (
+        pd.DataFrame,
+        pd.Series,
+    ),
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
@@ -156,8 +159,8 @@ def register_check_method(
         which serve as the statistics needed to serialize/de-serialize the
         check and generate data if a ``strategy`` function is provided.
     :param supported_types: the pandas type(s) supported by the check function.
-        Valid values are ``pd.DataFrame``, ``pd.Series``, or a list/tuple of
-        ``(pa.DataFrame, pa.Series)`` if both types are supported.
+        Valid values are ``pd.DataFrame``, ``pd.Series``, ``ps.DataFrame``, or a list/tuple of
+        ``(pa.DataFrame, pa.Series, ps.DataFrame)`` if both types are supported.
     :param check_type: the expected input of the check function. Valid values
         are :class:`~pandera.extensions.CheckType` enums or
         ``{"vectorized", "element_wise", "groupby"}``. The input signature of

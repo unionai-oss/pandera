@@ -18,7 +18,6 @@ from pandera.api.base.model_config import BaseModelConfig
 from pandera.api.checks import Check
 from pandera.typing import AnnotationInfo
 
-
 TBaseModel = TypeVar("TBaseModel", bound="BaseModel")
 
 

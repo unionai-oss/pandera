@@ -18,7 +18,7 @@ from pandera.api.pandas.types import (
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
+from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
 
 
 class ColumnBackend(ArraySchemaBackend):

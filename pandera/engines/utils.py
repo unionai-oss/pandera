@@ -46,11 +46,11 @@ def numpy_pandas_coerce_failure_cases(
     into particular data type.
     """
     # pylint: disable=import-outside-toplevel,cyclic-import
-    from pandera.engines import pandas_engine
     from pandera.api.checks import Check
-    from pandera.api.pandas.types import is_index, is_field, is_table
+    from pandera.api.pandas.types import is_field, is_index, is_table
     from pandera.backends.pandas import error_formatters
     from pandera.backends.pandas.checks import PandasCheckBackend
+    from pandera.engines import pandas_engine
 
     data_type = pandas_engine.Engine.dtype(type_)
 

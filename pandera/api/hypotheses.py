@@ -6,7 +6,6 @@ from pandera import errors
 from pandera.api.checks import Check
 from pandera.strategies import SearchStrategy
 
-
 DEFAULT_ALPHA = 0.01
 
 
