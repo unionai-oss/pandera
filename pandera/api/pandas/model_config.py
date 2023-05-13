@@ -47,6 +47,9 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     #: make sure dataframe column names are unique
     unique_column_names: bool = False
 
+    #: add columns to dataframe if they are missing
+    add_missing_columns: bool = False
+
     #: data format before validation. This option only applies to
     #: schemas used in the context of the pandera type constructor
     #: ``pa.typing.DataFrame[Schema](data)``. If None, assumes a data structure

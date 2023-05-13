@@ -208,7 +208,8 @@ You can easily convert a :class:`~pandera.api.pandas.model.DataFrameModel` class
         strict=False
         name=InputSchema,
         ordered=False,
-        unique_column_names=False
+        unique_column_names=False,
+        add_missing_columns=False
     )>
 
 You can also use the :meth:`~pandera.api.pandas.model.DataFrameModel.validate` method to

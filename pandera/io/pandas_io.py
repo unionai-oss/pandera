@@ -173,6 +173,7 @@ def serialize_schema(dataframe_schema):
         "unique": dataframe_schema.unique,
         "report_duplicates": dataframe_schema.report_duplicates,
         "unique_column_names": dataframe_schema.unique_column_names,
+        "add_missing_columns": dataframe_schema.add_missing_columns,
         "title": dataframe_schema.title,
         "description": dataframe_schema.description,
     }
@@ -301,6 +302,9 @@ def deserialize_schema(serialized_schema):
         unique_column_names=serialized_schema.get(
             "unique_column_names", False
         ),
+        add_missing_columns=serialized_schema.get(
+            "add_missing_columns", False
+        ),
         title=serialized_schema.get("title", None),
         description=serialized_schema.get("description", None),
     )
@@ -407,6 +411,7 @@ schema = DataFrameSchema(
     unique={unique},
     report_duplicates={report_duplicates},
     unique_column_names={unique_column_names},
+    add_missing_columns={add_missing_columns},
     title={title},
     description={description},
 )
@@ -546,6 +551,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         unique=dataframe_schema.unique,
         report_duplicates=f'"{dataframe_schema.report_duplicates}"',
         unique_column_names=dataframe_schema.unique_column_names,
+        add_missing_columns=dataframe_schema.add_missing_columns,
         title=dataframe_schema.title,
         description=dataframe_schema.description,
     ).strip()

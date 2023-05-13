@@ -736,6 +736,7 @@ def test_config() -> None:
             multiindex_strict = True
             multiindex_name: Optional[str] = "mi"
             unique_column_names = True
+            add_missing_columns = True
 
     class Child(Base):
         b: Series[int]
@@ -760,6 +761,7 @@ def test_config() -> None:
         strict=True,
         ordered=True,
         unique_column_names=True,
+        add_missing_columns=True,
         description="foo",
         title="bar",
     )
@@ -782,6 +784,7 @@ def test_multiindex_unique() -> None:
             multiindex_unique = ["idx_1", "idx_2"]
             multiindex_name: Optional[str] = "mi"
             unique_column_names = True
+            add_missing_columns = True
 
     expected = pa.DataFrameSchema(
         columns={"a": pa.Column(int)},
@@ -796,6 +799,7 @@ def test_multiindex_unique() -> None:
         coerce=True,
         ordered=True,
         unique_column_names=True,
+        add_missing_columns=True,
     )
 
     assert expected == Base.to_schema()

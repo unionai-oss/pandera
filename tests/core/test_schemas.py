@@ -362,6 +362,76 @@ def test_duplicate_columns_dataframe():
     assert not schema.unique_column_names
 
 
+def test_add_missing_columns():
+    """Test that missing columns are added."""
+    col_labels = ["a", "b", "c"]
+
+    # Missing column is first in schema
+    frame_missing_first = pd.DataFrame(data=[[2, 3]], columns=["b", "c"])
+
+    schema = DataFrameSchema(
+        columns={i: Column(int, default=9) for i in col_labels},
+        strict=True,
+        add_missing_columns=False,
+    )
+
+    assert not schema.add_missing_columns
+
+    with pytest.raises(
+        errors.SchemaError,
+        match="column 'a' not in dataframe",
+    ):
+        schema.validate(frame_missing_first)
+
+    schema.add_missing_columns = True
+    assert schema.add_missing_columns
+
+    validated_frame_first = schema.validate(frame_missing_first)
+    assert validated_frame_first.columns.tolist() == col_labels
+    assert validated_frame_first["a"].eq(9).all()
+
+    # Missing column is in middle of schema
+    frame_missing_middle = pd.DataFrame(data=[[1, 3]], columns=["a", "c"])
+    validated_frame_middle = schema.validate(frame_missing_middle)
+    assert validated_frame_middle.columns.tolist() == col_labels
+    assert validated_frame_middle["b"].eq(9).all()
+
+    # Missing column is last in schema
+    frame_missing_last = pd.DataFrame(data=[[1, 2]], columns=["a", "b"])
+    validated_frame_last = schema.validate(frame_missing_last)
+    assert validated_frame_last.columns.tolist() == col_labels
+    assert validated_frame_last["c"].eq(9).all()
+
+    # Front and last schema columns are missing
+    frame_missing_multiple = pd.DataFrame(data=[[2]], columns=["b"])
+    validated_frame_multiple = schema.validate(frame_missing_multiple)
+    assert validated_frame_multiple.columns.tolist() == col_labels
+    assert validated_frame_multiple[["a", "c"]].eq(9).all(axis=None)
+
+    # Add missing column according to schema order but
+    # ensure unknown column position is left intact
+    frame_unknown_col = pd.DataFrame(
+        data=[[1, 2, 3]], columns=["a", "missing", "c"]
+    )
+    with pytest.raises(
+        errors.SchemaError,
+        match="column 'missing' not in DataFrameSchema",
+    ):
+        schema.validate(frame_unknown_col)
+
+    schema.strict = False
+    assert not schema.strict
+
+    validated_frame_unknown = schema.validate(frame_unknown_col)
+    assert validated_frame_unknown.columns.tolist() == [
+        "a",
+        "b",
+        "missing",
+        "c",
+    ]
+    assert validated_frame_unknown["b"].eq(9).all()
+
+
 def test_series_schema() -> None:
     """Tests that a SeriesSchema Check behaves as expected for integers and
     strings. Tests error cases for types, duplicates, name errors, and issues

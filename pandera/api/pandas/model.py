@@ -268,6 +268,7 @@ class DataFrameModel(BaseModel):
                 "title": cls.__config__.title,
                 "description": cls.__config__.description or cls.__doc__,
                 "unique_column_names": cls.__config__.unique_column_names,
+                "add_missing_columns": cls.__config__.add_missing_columns,
             }
         cls.__schema__ = DataFrameSchema(
             columns,
