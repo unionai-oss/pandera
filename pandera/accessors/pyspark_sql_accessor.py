@@ -44,12 +44,12 @@ class PanderaAccessor:
 
     @property
     def errors(self) -> Optional[Errors]:
-        """Access errors data."""
+        """Access errors details."""
         return self._errors
 
     @errors.setter
     def errors(self, value: dict):
-        """Set errors data."""
+        """Set errors details."""
         self._errors = value
 
 
