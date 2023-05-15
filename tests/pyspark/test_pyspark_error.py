@@ -168,7 +168,7 @@ def test_pyspark_schema_data_checks(spark):
                                                         'schema': 'product_schema'}]}}
 
     assert dict(output_data.pandera.errors['DATA']) == expected['DATA']
-    assert dict(output_data.pandera.errors['SCHEMA']) == expected['DATA']
+    assert dict(output_data.pandera.errors['SCHEMA']) == expected['SCHEMA']
 
 
 def test_pyspark_fields(spark):
