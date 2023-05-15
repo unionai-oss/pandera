@@ -20,7 +20,6 @@ def test_pyspark_data_type(data_type):
     pyspark_engine.Engine.dtype(data_type)
     pyspark_engine.Engine.dtype(data_type.type)
     if data_type.type.typeName() not in parameterized_datatypes:
-        print(data_type.type.typeName())
         pyspark_engine.Engine.dtype(str(data_type.type))
 
     with pytest.warns(UserWarning):

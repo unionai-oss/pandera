@@ -50,12 +50,5 @@ class ConfigParams(dict):
                 raise ValueError("Parameter 'DEPTH' only supports 'SCHEMA_AND_DATA', 'SCHEMA_ONLY' or 'DATA_ONLY' "
                                  "as valid values. Ensure the value is in upper case only")
 
-if ("--validation" in sys.argv) or ("--depth" in sys.argv):
-    PANDERA_CONFIG = DEFAULT_CONFIG
-    for index, value in enumerate(sys.argv):
-        if '--validation' == value:
-            PANDERA_CONFIG['VALIDATION'] = sys.argv[index+1]
-        if '--depth' == value:
-            PANDERA_CONFIG['DEPTH'] = sys.argv[index + 1]
-else:
-    PANDERA_CONFIG = ConfigParams()
+
+PANDERA_CONFIG = ConfigParams()

@@ -36,7 +36,7 @@ def test_dataframe_add_schema(
     invalid_data: Union[DataFrame, col],
 ) -> None:
     """
-    Test that pandas object contains schema metadata after pandera validation.
+    Test that pyspark object contains schema metadata after pandera validation.
     """
     schema(invalid_data, lazy=True)  # type: ignore[arg-type]
 
@@ -84,7 +84,7 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
 def test_pyspark_check_nullable(spark, sample_spark_schema):
     """
-    Test creating a pyspark DataFrameSchema object
+    Test creating a pyspark DataFrameSchema object to validate the nullability functionality
     """
 
     pandera_schema = DataFrameSchema(
@@ -116,7 +116,7 @@ def test_pyspark_check_nullable(spark, sample_spark_schema):
 
 def test_pyspark_schema_data_checks(spark):
     """
-    Test schema and data level checks
+    Test schema and data level checks to check the Complex type data match
     """
 
     pandera_schema = DataFrameSchema(
@@ -136,7 +136,7 @@ def test_pyspark_schema_data_checks(spark):
         [
             T.StructField("product", T.StringType(), False),
             T.StructField("price", T.IntegerType(), False),
-            T.StructField("id", T.ArrayType(StringType()), False),
+            T.StructField("id", T.ArrayType(StringType(), False), False),
         ],
     )
 
@@ -155,13 +155,25 @@ def test_pyspark_schema_data_checks(spark):
                                                     'IntegerType() failed '
                                                     'validation '
                                                     'greater_than(5)',
-                                           'schema': 'product_schema'}]}}
+                                           'schema': 'product_schema'}]},
+                'SCHEMA': {'WRONG_DATATYPE': [{'check': "dtype('ArrayType(StringType(), True)')",
+                                                        'column': 'id',
+                                                        'error': 'expected '
+                                                                 "column 'id' "
+                                                                 'to have type '
+                                                                 'ArrayType(StringType(), '
+                                                                 'True), got '
+                                                                 'ArrayType(StringType(), '
+                                                                 'False)',
+                                                        'schema': 'product_schema'}]}}
+
     assert dict(output_data.pandera.errors['DATA']) == expected['DATA']
+    assert dict(output_data.pandera.errors['SCHEMA']) == expected['DATA']
 
 
 def test_pyspark_fields(spark):
     """
-    Test schema and data level checks
+    Test schema and data level checks for pydantic validation
     """
 
     class pandera_schema(DataFrameModel):

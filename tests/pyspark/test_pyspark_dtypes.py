@@ -14,6 +14,9 @@ class BaseClass:
     params = ConfigParams()
 
     def validate_datatype(self, df, pandera_schema):
+        """
+        This function validates the dataframe schema and pandera defined schema to ensure both work
+        """
         df_out = pandera_schema(df)
 
         assert df.pandera.schema == pandera_schema
@@ -22,6 +25,7 @@ class BaseClass:
         return df_out
 
     def pytest_generate_tests(self, metafunc):
+        """This function runs for each test class and maps the input parameters for each test function in a class"""
         # called once per each test function
         funcarglist = metafunc.cls.params[metafunc.function.__name__]
         argnames = sorted(funcarglist[0])
@@ -31,6 +35,9 @@ class BaseClass:
         )
 
     def validate_data(self, df, pandera_equivalent, column_name, return_error=False):
+        """
+        This function runs the actual validation of object on the dataframe
+        """
         pandera_schema = DataFrameSchema(
             columns={
                 column_name: Column(pandera_equivalent),
@@ -115,7 +122,7 @@ class TestAllNumericTypes(BaseClass):
 
     def test_pyspark_all_float_types(self, spark, sample_data, pandera_equivalent):
         """
-        Test int dtype column
+        Test float dtype column
         """
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.FloatType())
@@ -124,7 +131,7 @@ class TestAllNumericTypes(BaseClass):
 
     def test_pyspark_all_double_types(self, spark, sample_data, pandera_equivalent):
         """
-        Test int dtype column
+        Test double dtype column
         """
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.DoubleType())
@@ -135,7 +142,7 @@ class TestAllNumericTypes(BaseClass):
         self, spark, sample_data, pandera_equivalent
     ):
         """
-        Test int dtype column
+        Test decimal dtype column with default values
         """
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.DecimalType())
@@ -147,7 +154,7 @@ class TestAllNumericTypes(BaseClass):
         self, spark, sample_data, pandera_equivalent
     ):
         """
-        Test int dtype column
+        Test decimal dtype column with parameterized inputs
         """
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.DecimalType(20, 5))
@@ -179,7 +186,7 @@ class TestAllNumericTypes(BaseClass):
 
     def test_pyspark_all_longint_types(self, spark, sample_data, pandera_equivalent):
         """
-        Test int dtype column
+        Test long dtype column
         """
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.LongType())
@@ -188,7 +195,7 @@ class TestAllNumericTypes(BaseClass):
 
     def test_pyspark_all_shortint_types(self, spark, sample_data, pandera_equivalent):
         """
-        Test int dtype column
+        Test short int dtype column
         """
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.ShortType())
@@ -197,7 +204,7 @@ class TestAllNumericTypes(BaseClass):
 
     def test_pyspark_all_bytetint_types(self, spark, sample_data, pandera_equivalent):
         """
-        Test int dtype column
+        Test byte int dtype column
         """
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.ByteType())
@@ -233,11 +240,17 @@ class TestAllDatetimeTestClass(BaseClass):
     }
 
     def test_pyspark_all_date_types(self, pandera_equivalent, sample_date_object):
+        """
+        Test date dtype column
+        """
         column_name = "purchase_date"
         df = sample_date_object.select(column_name)
         error = self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_datetime_types(self, pandera_equivalent, sample_date_object):
+        """
+        Test datetime dtype column
+        """
         column_name = "purchase_datetime"
         df = sample_date_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
@@ -245,6 +258,9 @@ class TestAllDatetimeTestClass(BaseClass):
     def test_pyspark_all_daytimeinterval_types(
         self, pandera_equivalent, sample_date_object
     ):
+        """
+        Test daytimeinterval dtype column
+        """
         column_name = "expiry_time"
         df = sample_date_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
@@ -253,6 +269,9 @@ class TestAllDatetimeTestClass(BaseClass):
     def test_pyspark_daytimeinterval_param_mismatch(
         self, pandera_equivalent, sample_date_object
     ):
+        """
+        Test daytimeinterval parameter mismatch
+        """
         column_name = "expected_time"
         df = sample_date_object.select(column_name)
         errors = self.validate_data(df, pandera_equivalent, column_name, True)
@@ -290,6 +309,9 @@ class TestBinaryStringTypes(BaseClass):
     def test_pyspark_all_binary_types(
         self, pandera_equivalent, sample_string_binary_object
     ):
+        """
+        Test binary dytpe column
+        """
         column_name = "purchase_info"
         df = sample_string_binary_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
@@ -297,6 +319,9 @@ class TestBinaryStringTypes(BaseClass):
     def test_pyspark_all_string_types(
         self, pandera_equivalent, sample_string_binary_object
     ):
+        """
+        Test string dtype column
+        """
         column_name = "product"
         df = sample_string_binary_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
@@ -324,6 +349,9 @@ class TestComplexType(BaseClass):
 
     @validate_params(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_array_type(self, sample_complex_data, pandera_equivalent):
+        """
+        Test array dtype column
+        """
         column_name = "customer_details"
         df = sample_complex_data.select(column_name)
         self.validate_data(df, pandera_equivalent["schema_match"], column_name)
@@ -343,6 +371,9 @@ class TestComplexType(BaseClass):
 
     @validate_params(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_map_type(self, sample_complex_data, pandera_equivalent):
+        """
+        Test map dtype column
+        """
         column_name = "product_details"
         df = sample_complex_data.select(column_name)
         self.validate_data(df, pandera_equivalent["schema_match"], column_name)

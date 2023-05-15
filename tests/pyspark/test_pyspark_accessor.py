@@ -24,7 +24,7 @@ spark = SparkSession.builder.getOrCreate()
         ],
     ],
 )
-def test_dataframe_series_add_schema(
+def test_dataframe_add_schema(
     schema1: pa.DataFrameSchema,
     schema2: pa.DataFrameSchema,
     data: Union[DataFrame, col],
@@ -32,7 +32,7 @@ def test_dataframe_series_add_schema(
     config_params: ConfigParams,
 ) -> None:
     """
-    Test that pandas object contains schema metadata after pandera validation.
+    Test that pyspark object contains schema metadata after pandera validation.
     """
     validated_data_1 = schema1(data)  # type: ignore[arg-type]
 
