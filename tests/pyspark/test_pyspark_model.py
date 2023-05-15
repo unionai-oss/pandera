@@ -229,8 +229,8 @@ def test_pyspark_fields_metadata(spark):
 
 def test_dataframe_schema_strict(spark, config_params) -> None:
     """
-    Checks if strict=True whether a schema error is raised because 'a' is
-    not present in the dataframe.
+    Checks if strict=True whether a schema error is raised because either extra columns are present in the dataframe
+    or missing columns in dataframe
     """
     if config_params["DEPTH"] != "DATA_ONLY":
         schema = DataFrameSchema(

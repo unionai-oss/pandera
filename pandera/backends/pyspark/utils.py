@@ -1,9 +1,8 @@
 """pyspark backend utilities."""
-import yaml
 import os
-import pandera
-
-
+import warnings
+import sys
+DEFAULT_CONFIG = {"VALIDATION": 'ENABLE', "DEPTH": 'SCHEMA_AND_DATA'}
 def convert_to_list(*args):
     converted_list = []
     for arg in args:
@@ -14,21 +13,27 @@ def convert_to_list(*args):
 
     return converted_list
 
-
 class ConfigParams(dict):
-    def __init__(self, module_name, config_name):
-        self.module_name = module_name
-        self.config_name = config_name
-        self.config = self.fetch_yaml(self.module_name, self.config_name)
-        self.validate_params(self.config)
+    def __init__(self):
+        # Default config values will run everything
+        self.config = DEFAULT_CONFIG
+        self.set_config()
         super().__init__(self.config)
 
-    @staticmethod
-    def fetch_yaml(module_name, config_file):
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(pandera.__file__), ".."))
-        path = os.path.join(root_dir, 'conf', module_name, config_file)
-        with open(path) as file:
-            return yaml.safe_load(file)
+    def set_config(self):
+        if os.environ.get("VALIDATION"):
+            self.config['VALIDATION'] = os.environ.get("VALIDATION")
+            warnings.warn('Setting the VALIDATION config from environment variables', RuntimeWarning, stacklevel=2)
+
+        if os.environ.get("DEPTH"):
+            self.config['DEPTH'] = os.environ.get("DEPTH")
+            warnings.warn('Setting the DEPTH config from environment variables', RuntimeWarning, stacklevel=2)
+
+        if (not os.environ.get("VALIDATION")) and (not os.environ.get("DEPTH")):
+            warnings.warn('Setting the VALIDATION and DEPTH config from default values'
+                          ' since no environment variable found to overload', RuntimeWarning)
+        self.validate_params(self.config)
+
 
     @staticmethod
     def validate_params(config):
@@ -36,12 +41,14 @@ class ConfigParams(dict):
             raise ValueError('Parameter "VALIDATION" not found in config, ensure the parameter value is in upper case')
         else:
             if config.get('VALIDATION') not in ['ENABLE', 'DISABLE']:
-                raise ValueError("Parameter 'VALIDATION' only supports 'ON' or 'OFF' as valid values."
+                raise ValueError("Parameter 'VALIDATION' only supports 'ENABLE' or 'DISABLE' as valid values."
                                  "Ensure the value is in upper case only")
         if not config.get('DEPTH'):
             raise ValueError('Parameter "DEPTH" not found in config, ensure the parameter value is in upper case')
         else:
             if config.get('DEPTH') not in ['SCHEMA_ONLY', 'DATA_ONLY', 'SCHEMA_AND_DATA']:
-                raise ValueError("Parameter 'VALIDATION' only supports 'ON' or 'OFF' as valid values."
-                                 "Ensure the value is in upper case only")
+                raise ValueError("Parameter 'DEPTH' only supports 'SCHEMA_AND_DATA', 'SCHEMA_ONLY' or 'DATA_ONLY' "
+                                 "as valid values. Ensure the value is in upper case only")
 
+
+PANDERA_CONFIG = ConfigParams()

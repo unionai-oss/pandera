@@ -3,7 +3,7 @@ import pytest
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 import datetime
-from pandera.backends.pyspark.utils import ConfigParams
+
 
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
@@ -125,4 +125,5 @@ def sample_check_data(spark):
 
 @pytest.fixture(scope='session')
 def config_params():
-    return ConfigParams('pyspark', 'parameters.yaml')
+    from pandera.backends.pyspark.utils import ConfigParams
+    return ConfigParams()
