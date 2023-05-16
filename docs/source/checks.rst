@@ -7,6 +7,17 @@
 Checks
 ======
 
+Checks are one of the fundamental constructs of pandera. They allow you to
+specify properties about dataframes, columns, indexes, and series objects, which
+are applied after data type validation/coercion and the core pandera checks
+are applied to the data to be validated.
+
+.. important::
+
+    You can learn more about how data type validation works
+    :ref:`dtype_validation`.
+
+
 Checking column properties
 --------------------------
 

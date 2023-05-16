@@ -6,7 +6,7 @@ import traceback
 from typing import Any, Callable, List, Optional, Tuple
 
 import pandas as pd
-
+from pydantic import BaseModel
 
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
@@ -16,6 +16,7 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
+from pandera.engines import pandas_engine
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     ParserError,
@@ -264,8 +265,33 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         column_info: ColumnInfo,
     ):
         """Collects all schema components to use for validation."""
+
+        columns = schema.columns
+        try:
+            is_pydantic = issubclass(
+                pandas_engine.Engine.dtype(schema.dtype).type, BaseModel
+            )
+        except TypeError:
+            is_pydantic = False
+
+        if (
+            not schema.columns
+            and schema.dtype is not None
+            # remove this hack when this backend has its own check dtype
+            # function
+            and not is_pydantic
+        ):
+            # NOTE: this is hack: the dataframe-level data type check should
+            # be its own check function.
+            # pylint: disable=import-outside-toplevel,cyclic-import
+            from pandera.api.pandas.components import Column
+
+            columns = {}
+            for col in check_obj.columns:
+                columns[col] = Column(schema.dtype, name=col)
+
         schema_components = []
-        for col_name, col in schema.columns.items():
+        for col_name, col in columns.items():
             if (
                 col.required or col_name in check_obj
             ) and col_name not in column_info.lazy_exclude_column_names:

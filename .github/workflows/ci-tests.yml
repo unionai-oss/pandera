@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     defaults:
       run:
         shell: bash -l {0}
@@ -100,10 +100,16 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
-        pandas-version: ["1.3.0", "latest"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        pandas-version: ["1.3.0", "1.5.2", "2.0.1"]
         exclude:
+        - python-version: "3.7"
+          pandas-version: "2.0.1"
+        - python-version: "3.7"
+          pandas-version: "1.5.2"
         - python-version: "3.10"
+          pandas-version: "1.3.0"
+        - python-version: "3.11"
           pandas-version: "1.3.0"
         include:
         - os: ubuntu-latest
@@ -112,7 +118,6 @@ jobs:
           pip-cache: ~/Library/Caches/pip
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
-
 
     steps:
       - uses: actions/checkout@v2
@@ -139,7 +144,6 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          # mamba-version: "*"
           miniforge-version: latest
           miniforge-variant: Mambaforge
           use-mamba: true
@@ -148,22 +152,26 @@ jobs:
           channel-priority: true
           use-only-tar-bz2: true
 
-      - name: Install Conda Deps [Latest]
-        if: ${{ matrix.pandas-version == 'latest' }}
+      # ray currently cannot be installed on python 3.11
+      - name: Remove Ray from Deps
+        if: ${{ matrix.python-version == '3.11' && matrix.os != 'macos-latest' }}
+        run: sed -i '/ray/d' environment.yml
+
+      - name: Remove Ray from Deps
+        if: ${{ matrix.python-version == '3.11' && matrix.os == 'macos-latest' }}
+        run: sed -i .bak '/ray/d' environment.yml
+
+      # need to install pandas via pip: conda installation is on the fritz
+      - name: Install Conda Deps [pandas 2]
+        if: ${{ matrix.pandas-version == '2.0.1' }}
         run: |
           mamba install -c conda-forge asv pandas geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
+          pip install pandas==${{ matrix.pandas-version }}
+          pip install --user dask>=2023.3.2
 
       - name: Install Conda Deps
-        if: ${{ matrix.pandas-version != 'latest' }}
-        run: mamba install -c conda-forge pandas==${{ matrix.pandas-version }} geopandas
-
-      # ray currently cannot be installed on python 3.10, windows
-      - name: Remove Ray from Deps
-        if: ${{ matrix.os == 'windows-latest' && matrix.python-version == '3.10' }}
-        run: sed -i 's/^ray//g' requirements-dev.txt
-
-      - name: Install Pip Deps
+        if: ${{ matrix.pandas-version != '2.0.1' }}
         run: |
           mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
@@ -198,13 +206,15 @@ jobs:
         run: pytest tests/geopandas ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Dask
+        if: ${{ matrix.pandas-version != '2.0.1' }}
         run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Pyspark
-        if: ${{ matrix.os != 'windows-latest' && matrix.python-version != '3.10' && matrix.pandas-version != '1.1.5' }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Modin-Dask
+        if: ${{ !contains(fromJson('["3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: dask
@@ -214,7 +224,7 @@ jobs:
         # - windows, python 3.10
         # - mac, python 3.7
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
@@ -223,9 +233,9 @@ jobs:
         uses: codecov/codecov-action@v3
 
       - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10"]'), matrix.python-version) }}
+        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) }}
         run: nox ${{ env.NOX_FLAGS }} --session docs

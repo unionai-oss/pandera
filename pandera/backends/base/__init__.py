@@ -29,8 +29,6 @@ class CoreCheckResult(NamedTuple):
 class CoreParserResult(NamedTuple):
     """Namedtuple for holding core parser results."""
 
-    ...
-
 
 class BaseSchemaBackend(ABC):
     """Abstract base class for a schema backend implementation."""
@@ -132,7 +130,6 @@ class BaseCheckBackend(ABC):
 
     def __init__(self, check):  # pylint: disable=unused-argument
         """Initializes a check backend object."""
-        ...
 
     def __call__(self, check_obj, key=None):
         raise NotImplementedError

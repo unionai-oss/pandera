@@ -245,6 +245,34 @@ def _datetime_strategy(
         return st.builds(dtype.type, strategy, res)
 
 
+def convert_dtype(array: Union[pd.Series, pd.Index], col_dtype: Any):
+    """Convert datatypes of an array (series or index)."""
+    if str(col_dtype).startswith("datetime64"):
+        try:
+            return array.astype(col_dtype)
+        except TypeError:
+            tz = getattr(col_dtype, "tz", None)
+            if tz is None:
+                tz_match = re.match(r"datetime64\[ns, (.+)\]", str(col_dtype))
+                tz = None if not tz_match else tz_match.group(1)
+
+            if isinstance(array, pd.Index):
+                return array.tz_localize(tz)  # type: ignore [attr-defined]
+            return array.dt.tz_localize(tz)  # type: ignore [union-attr]
+    return array.astype(col_dtype)
+
+
+def convert_dtypes(df: pd.DataFrame, col_dtypes: Dict[str, Any]):
+    """Convert datatypes of a dataframe."""
+    if df.empty:
+        return df
+
+    for col_name, col_dtype in col_dtypes.items():
+        df[col_name] = convert_dtype(df[col_name], col_dtype)
+
+    return df
+
+
 def numpy_time_dtypes(
     dtype: Union[np.dtype, pd.DatetimeTZDtype], min_value=None, max_value=None
 ):
@@ -788,12 +816,6 @@ def field_element_strategy(
     if elements is None:
         elements = pandas_dtype_strategy(pandera_dtype)
 
-    # Hypothesis only supports pure numpy datetime64 (i.e. timezone naive).
-    # We cast to datetime64 after applying the check strategy so that checks
-    # can see timezone-aware values.
-    if _is_datetime_tz(pandera_dtype):
-        elements = _timestamp_to_datetime64_strategy(elements)
-
     return elements
 
 
@@ -821,10 +843,19 @@ def series_strategy(
     :returns: ``hypothesis`` strategy.
     """
     elements = field_element_strategy(pandera_dtype, strategy, checks=checks)
+
+    dtype = (
+        None
+        # let hypothesis use the elements strategy to build datatime-aware
+        # series
+        if _is_datetime_tz(pandera_dtype)
+        else to_numpy_dtype(pandera_dtype)
+    )
+
     strategy = (
         pdst.series(
             elements=elements,
-            dtype=to_numpy_dtype(pandera_dtype),
+            dtype=dtype,
             index=pdst.range_indexes(
                 min_size=0 if size is None else size, max_size=size
             ),
@@ -832,7 +863,7 @@ def series_strategy(
         )
         .filter(lambda x: x.shape[0] > 0)
         .map(lambda x: x.rename(name))
-        .map(lambda x: x.astype(pandera_dtype.type))
+        .map(partial(convert_dtype, col_dtype=pandera_dtype.type))
     )
     if nullable:
         strategy = null_field_masks(strategy)
@@ -920,7 +951,7 @@ def index_strategy(
         min_size=0 if size is None else size,
         max_size=size,
         unique=bool(unique),
-    ).map(lambda x: x.astype(pandera_dtype.type))
+    ).map(partial(convert_dtype, col_dtype=pandera_dtype.type))
 
     # this is a hack to convert np.str_ data values into native python str.
     col_dtype = str(pandera_dtype)
@@ -1135,9 +1166,7 @@ def dataframe_strategy(
                 )
             )
 
-        strategy = strategy.map(
-            lambda df: df if df.empty else df.astype(col_dtypes)
-        )
+        strategy = strategy.map(partial(convert_dtypes, col_dtypes=col_dtypes))
 
         if size is not None and size > 0 and any(nullable_columns.values()):
             strategy = null_dataframe_masks(strategy, nullable_columns)

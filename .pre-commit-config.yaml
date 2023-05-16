@@ -8,8 +8,6 @@ repos:
         description: Simply check whether files parse as valid python
       - id: check-case-conflict
         description: Check for files that would conflict in case-insensitive filesystems
-      - id: check-docstring-first
-        description: Checks for a common error of placing code before the docstring.
       - id: check-merge-conflict
         description: Check for files that contain merge conflict strings
       - id: check-yaml
@@ -41,7 +39,7 @@ repos:
         args: ["--line-length=79"]
 
   - repo: https://github.com/pycqa/pylint
-    rev: v2.12.2
+    rev: v2.17.3
     hooks:
       - id: pylint
         args: ["--disable=import-error"]

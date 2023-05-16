@@ -67,6 +67,12 @@ Similarly to pandas, the data type can be specified as:
 * a pandera :class:`~pandera.dtypes.DataType`: it can also be an instance or a
   class.
 
+.. important::
+
+    You can learn more about how data type validation works
+    :ref:`dtype_validation`.
+
+
 :ref:`Column checks<checks>` allow for the DataFrame's values to be
 checked against a user-provided function. ``Check`` objects also support
 :ref:`grouping<grouping>` by a different column so that the user can make
@@ -123,6 +129,9 @@ nullable. In order to accept null values, you need to explicitly specify
     0      5.0
     1      1.0
     2      NaN
+
+To learn more about how the nullable check interacts with data type checks,
+see :ref:`here <how_nullable_works>`.
 
 .. _coerced:
 

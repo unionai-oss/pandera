@@ -118,7 +118,7 @@ catch these errors and inspect the failure cases in a more granular form:
 
 
 .. testcode:: lazy_validation
-    :skipif: SKIP_PANDAS_LT_V1
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
     try:
         schema.validate(df, lazy=True)
@@ -129,7 +129,7 @@ catch these errors and inspect the failure cases in a more granular form:
         print(err.data)
 
 .. testoutput:: lazy_validation
-    :skipif: SKIP_PANDAS_LT_V1
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
     Schema errors and failure cases:
         schema_context        column                check check_number  \

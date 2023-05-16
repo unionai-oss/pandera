@@ -114,6 +114,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         if columns is None:
             columns = {}
+
         _validate_columns(columns)
         columns = _columns_renamed(columns)
 

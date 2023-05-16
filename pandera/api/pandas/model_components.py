@@ -221,8 +221,6 @@ def _check_dispatch():
 class CheckInfo(BaseCheckInfo):  # pylint:disable=too-few-public-methods
     """Captures extra information about a Check."""
 
-    ...
-
 
 class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
     """Captures extra information about a Check assigned to a field."""

@@ -18,6 +18,15 @@ Pandera defines its own interface for data types in order to abstract the
 specifics of dataframe-like data structures in the python ecosystem, such
 as Apache Spark, Apache Arrow and xarray.
 
+The pandera type system servers twow function:
+
+1. To provide a standardized API for data types that work well within pandera
+   so users can define data types with it if they so desire.
+2. Add a logical data types interface on top of the physical data type
+   representation. For example, on top of the ``str`` data type, I can define
+   an ``IPAddress`` or ``name`` data type, which needs to actually check the
+   underlying data values for correctness.
+
 .. note:: In the following section ``Pandera Data Type`` refers to a
     :class:`pandera.dtypes.DataType` object whereas ``native data type`` refers
     to data types used by third-party libraries that Pandera supports (e.g. pandas).
@@ -29,6 +38,16 @@ interface by:
 * modifying the **data type check** performed during schema validation.
 * modifying the behavior of the **coerce** argument for :class:`~pandea.schemas.DataFrameSchema`.
 * adding your **own custom data types**.
+
+The classes that define this data type hierarchy are in the following modules:
+
+- :py:mod:`~pandera.dtypes`: these define senantic types, which are not
+  user-facing, and are meant to be inheritied by framework-specific engines.
+- :py:mod:`~pandera.engines.numpy_engine`: this module implements numpy datatypes,
+  which pandas relies on.
+- :py:mod:`~pandera.engines.pandas_engine`: this module uses the ``numpy_engine``
+  where appropriate, and adds support for additional pandas-specific data types,
+  e.g. ``pd.DatetimeTZDtype``.
 
 DataType basics
 ~~~~~~~~~~~~~~~

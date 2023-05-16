@@ -134,7 +134,7 @@ else:
         ],
     )
 
-DataFrameModel = TypeVar("Schema", bound="DataFrameModel")  # type: ignore
+DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
 
 # pylint:disable=invalid-name
@@ -254,11 +254,19 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.arg = args[0] if args else args
 
         self.metadata = getattr(self.arg, "__metadata__", None)
+        self.literal = typing_inspect.is_literal_type(self.arg)
         if self.metadata:
             self.arg = typing_inspect.get_args(self.arg)[0]
-
-        self.literal = typing_inspect.is_literal_type(self.arg)
-        if self.literal:
+        elif self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
+        elif self.origin is None:
+            if isinstance(raw_annotation, type) and issubclass(
+                raw_annotation, SeriesBase
+            ):
+                # handle case where the provided annotation is just a pandera Series generic.
+                self.arg = Any
+            else:
+                # otherwise assume that the annotation is the data type itself.
+                self.arg = raw_annotation
 
         self.default_dtype = getattr(raw_annotation, "default_dtype", None)
