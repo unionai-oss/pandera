@@ -149,7 +149,7 @@ class DataFrameModel(BaseModel):
     __checks__: Dict[str, List[Check]] = {}
     __root_checks__: List[Check] = []
 
-    # @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
         return cast(DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs))
