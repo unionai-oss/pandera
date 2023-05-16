@@ -12,11 +12,10 @@ from pandera.api.pyspark.error_handler import ErrorHandler
 """Register pyspark accessor for pandera schema metadata."""
 
 
-Schemas = Union[DataFrameSchema]
-Errors = Union[ErrorHandler]
+Schemas = DataFrameSchema
+Errors = ErrorHandler
 
 
-# Todo Refactor to create a seperate module for panderaAccessor
 class PanderaAccessor:
     """Pandera accessor for pyspark object."""
 
@@ -133,4 +132,3 @@ class PanderaDataFrameAccessor(PanderaAccessor):
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
-# register_series_accessor("pandera")(PanderaSeriesAccessor)

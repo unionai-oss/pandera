@@ -117,7 +117,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         )
         check_obj_subsample = self.subsample(check_obj, sample, random_state)
         try:
-            # TODO: need to create apply at column level
             self.run_schema_component_checks(
                 check_obj_subsample, schema_components, lazy, error_handler
             )
