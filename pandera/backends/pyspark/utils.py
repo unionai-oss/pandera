@@ -1,7 +1,7 @@
 """pyspark backend utilities."""
 import os
 import warnings
-import sys
+
 DEFAULT_CONFIG = {"VALIDATION": 'ENABLE', "DEPTH": 'SCHEMA_AND_DATA'}
 def convert_to_list(*args):
     converted_list = []
