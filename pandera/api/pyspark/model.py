@@ -69,7 +69,7 @@ def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
     """Typed wrapper to substitute the doc strings."""
     if args and kwargs:
         raise AssertionError("Either positional args or keyword args are accepted")
-        params = args or kwargs
+    params = args or kwargs
 
     def decorator(func: F) -> F:
         func.__doc__ = func.__doc__ and func.__doc__ % params
