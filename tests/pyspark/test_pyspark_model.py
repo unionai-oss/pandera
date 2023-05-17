@@ -6,6 +6,7 @@ import pytest
 import pandera.pyspark as pa
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
+from pandera.api.pyspark.model import docstring_substitution
 
 
 def test_schema_with_bare_types():
@@ -276,3 +277,15 @@ def test_dataframe_schema_strict(spark, config_params) -> None:
             df_out = schema.validate(df.select(["a", "c"]))
             if df_out.pandera.errors:
                 raise pa.PysparkSchemaError
+
+
+
+def test_docstring_substitution() -> None:
+    """Test the docstring substitution decorator"""
+    @docstring_substitution(test_substitution=test_docstring_substitution.__doc__)
+    def function_expected():
+        """%(test_substitution)s"""
+        pass
+
+    expected = test_docstring_substitution.__doc__
+    assert function_expected.__doc__ == expected

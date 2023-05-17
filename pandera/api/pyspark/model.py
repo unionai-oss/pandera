@@ -65,13 +65,17 @@ F = TypeVar("F", bound=Callable)
 TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 
 
-# def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-#     """Typed wrapper around pd.util.Substitution."""
+def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
+    """Typed wrapper to substitute the doc strings."""
+    if args and kwargs:
+        raise AssertionError("Either positional args or keyword args are accepted")
+    params = args or kwargs
 
-#     def decorator(func: F) -> F:
-#         return cast(F, pd.util.Substitution(*args, **kwargs)(func))
+    def decorator(func: F) -> F:
+        func.__doc__ = func.__doc__ and func.__doc__ % params
+        return cast(F, func)
 
-#     return decorator
+    return decorator
 
 
 def _is_field(name: str) -> bool:
@@ -145,7 +149,7 @@ class DataFrameModel(BaseModel):
     __checks__: Dict[str, List[Check]] = {}
     __root_checks__: List[Check] = []
 
-    # @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
         return cast(DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs))
@@ -270,7 +274,7 @@ class DataFrameModel(BaseModel):
         return cls.to_schema().to_yaml(stream)
 
     @classmethod
-    # @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def validate(
         cls: Type[TDataFrameModel],
         check_obj: ps.DataFrame,
