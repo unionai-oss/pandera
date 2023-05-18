@@ -44,18 +44,6 @@ from pandera.typing.common import (
 from pandera.typing.pandas import DataFrame, Index, Series
 
 if pyspark_sql.PYSPARK_SQL_INSTALLED:
-    from pandera.typing.common import (
-        PYSPARK_BINARY,
-        PYSPARK_BYTEINT,
-        PYSPARK_DATE,
-        PYSPARK_DECIMAL,
-        PYSPARK_FLOAT,
-        PYSPARK_INT,
-        PYSPARK_LONGINT,
-        PYSPARK_SHORTINT,
-        PYSPARK_STRING,
-        PYSPARK_TIMESTAMP,
-    )
     from pandera.typing.pyspark_sql import Column
 
 
