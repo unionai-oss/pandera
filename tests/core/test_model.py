@@ -1358,7 +1358,7 @@ def test_repeated_generic() -> None:
         )
 
 
-def test_pyspark_fields_metadata():
+def test_pandas_fields_metadata():
     """
     Test schema and metadata on field
     """
