@@ -8,7 +8,11 @@ import pandas as pd
 import typing_inspect
 
 from pandera import dtypes
-from pandera.engines import numpy_engine, pandas_engine, pyspark_engine
+from pandera.engines import numpy_engine, pandas_engine
+from pandera.typing import pyspark_sql
+
+if pyspark_sql.PYSPARK_SQL_INSTALLED:
+    from pandera.engines import pyspark_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 Date = dtypes.Date  #: ``datetime.date`` object dtype
@@ -43,17 +47,18 @@ String = dtypes.String  #: ``"str"`` numpy dtype
 #: fall back on the str-as-object-array representation.
 STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
-PYSPARK_STRING = pyspark_engine.String
-PYSPARK_INT = pyspark_engine.Int
-PYSPARK_LONGINT = pyspark_engine.BigInt
-PYSPARK_SHORTINT = pyspark_engine.ShortInt
-PYSPARK_BYTEINT = pyspark_engine.ByteInt
-PYSPARK_DOUBLE = pyspark_engine.Double
-PYSPARK_FLOAT = pyspark_engine.Float
-PYSPARK_DECIMAL = pyspark_engine.Decimal
-PYSPARK_DATE = pyspark_engine.Date
-PYSPARK_TIMESTAMP = pyspark_engine.Timestamp
-PYSPARK_BINARY = pyspark_engine.Binary
+if pyspark_sql.PYSPARK_SQL_INSTALLED:
+    PYSPARK_STRING = pyspark_engine.String
+    PYSPARK_INT = pyspark_engine.Int
+    PYSPARK_LONGINT = pyspark_engine.BigInt
+    PYSPARK_SHORTINT = pyspark_engine.ShortInt
+    PYSPARK_BYTEINT = pyspark_engine.ByteInt
+    PYSPARK_DOUBLE = pyspark_engine.Double
+    PYSPARK_FLOAT = pyspark_engine.Float
+    PYSPARK_DECIMAL = pyspark_engine.Decimal
+    PYSPARK_DATE = pyspark_engine.Date
+    PYSPARK_TIMESTAMP = pyspark_engine.Timestamp
+    PYSPARK_BINARY = pyspark_engine.Binary
 
 try:
     Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
@@ -101,16 +106,6 @@ if GEOPANDAS_INSTALLED:
             String,
             STRING,
             Geometry,
-            PYSPARK_STRING,
-            PYSPARK_INT,
-            PYSPARK_LONGINT,
-            PYSPARK_SHORTINT,
-            PYSPARK_BYTEINT,
-            PYSPARK_FLOAT,
-            PYSPARK_DECIMAL,
-            PYSPARK_DATE,
-            PYSPARK_TIMESTAMP,
-            PYSPARK_BINARY,
         ],
     )
 else:
@@ -152,6 +147,13 @@ else:
             Object,
             String,
             STRING,
+        ],
+    )
+
+if pyspark_sql.PYSPARK_SQL_INSTALLED:
+    PysparkDType = TypeVar(  # type: ignore
+        "GenericDtype",
+        bound=Union[
             PYSPARK_STRING,
             PYSPARK_INT,
             PYSPARK_LONGINT,
@@ -231,16 +233,18 @@ class IndexBase(Generic[GenericDtype]):
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
-class ColumnBase(Generic[GenericDtype]):
-    """Representation of pandas.Index, only used for type annotation.
+if pyspark_sql.PYSPARK_SQL_INSTALLED:
 
-    *new in 0.5.0*
-    """
+    class ColumnBase(Generic[PysparkDType]):
+        """Representation of pandas.Index, only used for type annotation.
 
-    default_dtype: Optional[Type] = None
+        *new in 0.5.0*
+        """
 
-    def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
-        raise AttributeError("column should resolve to pyspark.sql.Column-s")
+        default_dtype: Optional[Type] = None
+
+        def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
+            raise AttributeError("column should resolve to pyspark.sql.Column-s")
 
 
 class AnnotationInfo:  # pylint:disable=too-few-public-methods

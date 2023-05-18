@@ -8,7 +8,11 @@ from inspect import signature
 from typing import Callable, List, Optional, Tuple, Type, Union
 
 import pandas as pd
-import pyspark.sql as ps
+try:
+    import pyspark.sql as ps
+    PYSPARK_INSTALLED = True
+except ImportError:
+    PYSPARK_INSTALLED = False
 import typing_inspect
 
 from pandera.api.checks import Check
@@ -135,7 +139,7 @@ def register_check_method(
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
-    supported_types: Union[type, Tuple, List] = (pd.DataFrame, pd.Series, ps.DataFrame),
+    supported_types: Union[type, Tuple, List] = (pd.DataFrame, pd.Series, ps.DataFrame) if PYSPARK_INSTALLED else (pd.DataFrame, pd.Series),
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
