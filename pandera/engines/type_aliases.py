@@ -4,6 +4,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+
 try:
     from pyspark.sql import DataFrame
     PYSPARK_INSTALLED = True

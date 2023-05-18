@@ -5,7 +5,6 @@ import warnings
 from functools import wraps
 from typing import Optional, Union
 
-
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.error_handler import ErrorHandler
 

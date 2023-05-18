@@ -9,8 +9,8 @@ from pyspark.sql.functions import col
 import pandera.strategies as st
 from pandera.api.extensions import register_builtin_check
 from pandera.api.pyspark.types import PysparkDataframeColumnObject
-from pandera.backends.pyspark.utils import convert_to_list
 from pandera.backends.pyspark.decorators import register_input_datatypes
+from pandera.backends.pyspark.utils import convert_to_list
 
 T = TypeVar("T")
 ALL_NUMERIC_TYPE = [

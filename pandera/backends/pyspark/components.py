@@ -10,8 +10,8 @@ from pyspark.sql.functions import cast
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.column import ColumnSchemaBackend
-from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.backends.pyspark.decorators import validate_params
+from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.errors import SchemaError, SchemaErrorReason
 
 

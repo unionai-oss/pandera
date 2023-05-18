@@ -49,7 +49,6 @@ T = TypeVar(
 class PysparkSchemaBackend(BaseSchemaBackend):
     """Base backend for pyspark schemas."""
 
-
     params = PANDERA_CONFIG
 
     def subsample(
