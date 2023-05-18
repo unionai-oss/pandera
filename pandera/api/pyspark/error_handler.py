@@ -4,8 +4,8 @@ from collections import defaultdict
 from enum import Enum
 from typing import Dict, List, Union
 
-from pandera.errors import SchemaError, SchemaErrorReason
 from pandera.api.checks import Check
+from pandera.errors import SchemaError, SchemaErrorReason
 
 
 class ErrorCategory(Enum):
