@@ -35,6 +35,7 @@ class ArraySchema(BaseSchema):
         name: Any = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        metadata: Optional[dict] = None
     ) -> None:
         """Initialize array schema.
 
@@ -60,6 +61,7 @@ class ArraySchema(BaseSchema):
         :param name: column name in dataframe to validate.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
+        :param metadata: An optional key-value data.
         :type nullable: bool
         """
 
@@ -70,6 +72,7 @@ class ArraySchema(BaseSchema):
             name=name,
             title=title,
             description=description,
+            metadata=metadata
         )
 
         if checks is None:
@@ -83,6 +86,7 @@ class ArraySchema(BaseSchema):
         self.report_duplicates = report_duplicates
         self.title = title
         self.description = description
+        self.metadata = metadata
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
