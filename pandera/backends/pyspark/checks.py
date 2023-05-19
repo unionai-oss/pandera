@@ -1,7 +1,7 @@
 """Check backend for pyspark."""
 
 from functools import partial
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from multimethod import DispatchError, overload
 from pyspark.sql import DataFrame
@@ -98,7 +98,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         try:
-            check_output = self.apply(check_obj, key, self.check._check_kwargs)
+            check_output = self.apply(check_obj, key, self.check._check_kwargs)  # pylint:disable=too-many-function-args
 
         except DispatchError as exc:
             if exc.__cause__ is not None:

@@ -34,7 +34,7 @@ def test_dataframe_add_schema(
     """
     Test that pyspark object contains schema metadata after pandera validation.
     """
-    validated_data_1 = schema1(data)  # type: ignore[arg-type]
+    schema1(data)  # type: ignore[arg-type]
 
     assert data.pandera.schema == schema1
     assert isinstance(schema1.validate(data), DataFrame)

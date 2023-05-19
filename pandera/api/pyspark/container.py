@@ -255,7 +255,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     @dtype.setter
     def dtype(self, value: PySparkDtypeInputTypes) -> None:
         """Set the pyspark dtype property."""
-        self._dtype = pyspark_engine.Engine.dtype(value) if value else None
+        self._dtype = pyspark_engine.Engine.dtype(value) if value else None  # pylint:disable=no-value-for-parameter
 
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
         return self.BACKEND.coerce_dtype(check_obj, schema=self)

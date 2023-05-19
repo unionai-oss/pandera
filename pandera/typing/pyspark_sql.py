@@ -1,7 +1,7 @@
-"""Pandera type annotations for Dask."""
+"""Pandera type annotations for Pyspark."""
+from typing import Union, Optional, Type, TypeVar
 from pandera.typing.common import DataFrameBase, GenericDtype
 from pandera.typing.pandas import DataFrameModel, _GenericAlias
-from typing import Union, Optional, Type, TypeVar
 
 try:
     import pyspark.sql as ps
@@ -13,35 +13,36 @@ except ImportError:  # pragma: no cover
 if PYSPARK_SQL_INSTALLED:
     from pandera.engines import pyspark_engine
 
-    PYSPARK_STRING = pyspark_engine.String
-    PYSPARK_INT = pyspark_engine.Int
-    PYSPARK_LONGINT = pyspark_engine.BigInt
-    PYSPARK_SHORTINT = pyspark_engine.ShortInt
-    PYSPARK_BYTEINT = pyspark_engine.ByteInt
-    PYSPARK_DOUBLE = pyspark_engine.Double
-    PYSPARK_FLOAT = pyspark_engine.Float
-    PYSPARK_DECIMAL = pyspark_engine.Decimal
-    PYSPARK_DATE = pyspark_engine.Date
-    PYSPARK_TIMESTAMP = pyspark_engine.Timestamp
-    PYSPARK_BINARY = pyspark_engine.Binary
+    PysparkString = pyspark_engine.String
+    PysparkInt = pyspark_engine.Int
+    PysparkLongInt = pyspark_engine.BigInt
+    PysparkShortInt = pyspark_engine.ShortInt
+    PysparkByteInt = pyspark_engine.ByteInt
+    PysparkDouble = pyspark_engine.Double
+    PysparkFloat = pyspark_engine.Float
+    PysparkDecimal = pyspark_engine.Decimal
+    PysparkDate = pyspark_engine.Date
+    PysparkTimestamp = pyspark_engine.Timestamp
+    PysparkBinary = pyspark_engine.Binary
 
 
     PysparkDType = TypeVar(  # type: ignore
         "PysparkDType",
         bound=Union[
-                    PYSPARK_STRING,
-                    PYSPARK_INT,
-                    PYSPARK_LONGINT,
-                    PYSPARK_SHORTINT,
-                    PYSPARK_BYTEINT,
-                    PYSPARK_FLOAT,
-                    PYSPARK_DECIMAL,
-                    PYSPARK_DATE,
-                    PYSPARK_TIMESTAMP,
-                    PYSPARK_BINARY,
+                    PysparkString,
+                    PysparkInt,
+                    PysparkLongInt,
+                    PysparkShortInt,
+                    PysparkByteInt,
+                    PysparkDouble,
+                    PysparkFloat,
+                    PysparkDecimal,
+                    PysparkDate,
+                    PysparkTimestamp,
+                    PysparkBinary,
         ],
     )
-    from typing import TYPE_CHECKING, Generic, TypeVar
+    from typing import TYPE_CHECKING, Generic
 
     # pylint:disable=invalid-name
     if TYPE_CHECKING:

@@ -35,7 +35,7 @@ class ErrorHandler:
 
     def collect_error(
         self,
-        type: ErrorCategory,
+        type: ErrorCategory,  # pylint:disable=redefined-builtin
         reason_code: SchemaErrorReason,
         schema_error: SchemaError,
         original_exc: BaseException = None,

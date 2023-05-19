@@ -1,15 +1,11 @@
-"""Custom accessor functionality for PySpark.Sql.
+"""Custom accessor functionality for PySpark.Sql. Register pyspark accessor for pandera schema metadata.
 """
 
 import warnings
-from functools import wraps
-from typing import Optional, Union
+from typing import Optional
 
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.error_handler import ErrorHandler
-
-"""Register pyspark accessor for pandera schema metadata."""
-
 
 Schemas = DataFrameSchema
 Errors = ErrorHandler

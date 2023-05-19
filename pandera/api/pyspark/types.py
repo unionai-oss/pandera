@@ -10,7 +10,7 @@ from pandera.api.checks import Check
 from pandera.dtypes import DataType
 
 try:
-    from typing import Literal, NamedTuple
+    from typing import Literal
 except ImportError:
     from typing_extensions import Literal  # type: ignore [misc]
 
@@ -65,6 +65,7 @@ SupportedTypes = NamedTuple(
 
 
 class PysparkDataframeColumnObject(NamedTuple):
+    """Pyspark Object which holds dataframe and column value in a named tuble"""
     dataframe: DataFrame
     column_name: str
 

@@ -1363,7 +1363,7 @@ def test_pandas_fields_metadata():
     Test schema and metadata on field
     """
 
-    class pandera_schema(pa.DataFrameModel):
+    class PanderaSchema(pa.DataFrameModel):
         id: Series[int] = pa.Field(
             gt=5,
             metadata={"usecase": ["telco", "retail"], "category": "product_pricing"},
@@ -1387,4 +1387,4 @@ def test_pandas_fields_metadata():
             "dataframe": {"category": "product-details"},
         }
     }
-    assert pandera_schema.get_metadata() == expected
+    assert PanderaSchema.get_metadata() == expected

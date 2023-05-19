@@ -9,7 +9,7 @@ from pyspark.sql.functions import col
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pyspark.decorators import validate_params
+from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
 from pandera.errors import ParserError, SchemaError, SchemaErrorReason
@@ -31,7 +31,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def _core_checks(self, check_obj, schema, error_handler):
         """This function runs the core checks"""
         # run the core checks
@@ -56,10 +56,10 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         check_obj,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
+        head: Optional[int] = None,  # pylint: disable=unused-argument
+        tail: Optional[int] = None,  # pylint: disable=unused-argument
+        sample: Optional[int] = None,  # pylint: disable=unused-argument
+        random_state: Optional[int] = None,  # pylint: disable=unused-argument
         lazy: bool = False,
         inplace: bool = False,
         error_handler: ErrorHandler,
@@ -69,7 +69,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         if schema.coerce:
             try:
-                check_obj = self.coerce_dtype(
+                check_obj = self.coerce_dtype(# pylint:disable=unexpected-keyword-arg
                     check_obj, schema=schema, error_handler=error_handler
                 )
             except SchemaError as exc:
@@ -81,7 +81,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         return check_obj
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def coerce_dtype(
         self,
         check_obj,
@@ -112,7 +112,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 check=f"coerce_dtype('{schema.dtype}')",
             ) from exc
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_nullable(self, check_obj: DataFrame, schema):
         isna = check_obj.filter(col(schema.name).isNull()).limit(1).count() == 0
         passed = schema.nullable or isna
@@ -124,7 +124,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             failure_cases=scalar_failure_case(schema.name),
         )
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_name(self, check_obj: DataFrame, schema):
         column_found = not (schema.name is None or schema.name not in check_obj.columns)
         return CoreCheckResult(
@@ -137,14 +137,14 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 f"Expected {type(check_obj)} to have column named: '{schema.name}', "
                 f"but found columns '{check_obj.columns}'"
                 if not column_found
-                else f"column check_name validation passed."
+                else "column check_name validation passed."
             ),
             failure_cases=scalar_failure_case(schema.name)
             if not column_found
             else None,
         )
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
     def check_dtype(self, check_obj: DataFrame, schema):
         passed = True
         failure_cases = None
@@ -152,17 +152,17 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(
-                Engine.dtype(check_obj.schema[schema.name].dataType),
+                Engine.dtype(check_obj.schema[schema.name].dataType),  # pylint: disable=no-value-for-parameter
             )
 
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
                 failure_cases = scalar_failure_case(
-                    str(Engine.dtype(check_obj.schema[schema.name].dataType))
+                    str(Engine.dtype(check_obj.schema[schema.name].dataType))  # pylint:disable=no-value-for-parameter
                 )
                 msg = (
-                    f"expected column '{schema.name}' to have type "
-                    f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"
+                    f"expected column '{schema.name}' to have type "   # pylint:disable=no-value-for-parameter
+                    f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"  # pylint:disable=no-value-for-parameter
                     if not passed
                     else f"column type matched with expected '{schema.dtype}'"
                 )
@@ -180,7 +180,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="DATA")
+    @validate_scope(params=PysparkSchemaBackend.params, scope="DATA")
     # pylint: disable=unused-argument
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []

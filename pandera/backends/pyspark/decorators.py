@@ -1,3 +1,4 @@
+"""This module holds the decorators only valid for pyspark"""
 import functools
 import warnings
 from typing import List, Type
@@ -22,7 +23,7 @@ def register_input_datatypes(
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
             # Get the pyspark object from arguments
-            pyspark_object = [a for a in args][0]
+            pyspark_object = list(args)[0] #[a for a in args][0]
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
             pandera_schema_datatype = validation_df.pandera.schema.get_dtypes(
@@ -57,7 +58,8 @@ def register_input_datatypes(
     return wrapper
 
 
-def validate_params(params, scope):
+def validate_scope(params, scope):
+    """This decorator decides if a function needs to be run or skipped based on params"""
     def _wrapper(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -72,7 +74,7 @@ def validate_params(params, scope):
                         stacklevel=2,
                     )
                     if not kwargs:
-                        for key, value in kwargs.items():
+                        for value in kwargs.values():
                             if isinstance(value, pyspark.sql.DataFrame):
                                 return value
                     if args:

@@ -1,13 +1,15 @@
 """Unit tests for dask_accessor module."""
+#pylint:disable=redefined-outer-name,abstract-method
+
 from typing import Union
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pyspark.sql.types as T
-import pytest
-import pandera.pyspark as pa
-
 from pyspark.sql.types import StringType
+import pytest
+
+import pandera.pyspark as pa
 from pandera.pyspark import DataFrameSchema, Column, DataFrameModel, Field
 from tests.pyspark.conftest import spark_df
 
@@ -42,9 +44,7 @@ def test_dataframe_add_schema(
 
 
 def test_pyspark_check_eq(spark, sample_spark_schema):
-    """
-    Test creating a pyspark DataFrameSchema object
-    """
+    """Test creating a pyspark DataFrameSchema object"""
 
     pandera_schema = DataFrameSchema(
         columns={
@@ -176,7 +176,8 @@ def test_pyspark_fields(spark):
     Test schema and data level checks for pydantic validation
     """
 
-    class pandera_schema(DataFrameModel):
+    class PanderaSchema(DataFrameModel):
+        """Test case schema class"""
         product: T.StringType = Field(str_startswith="B")
         price: T.IntegerType = Field(gt=5)
         id: T.DecimalType(20, 5) = Field()
@@ -200,7 +201,7 @@ def test_pyspark_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    df_out = pandera_schema.validate(check_obj=df_fail)
+    df_out = PanderaSchema.validate(check_obj=df_fail)
     data_errors = dict(df_out.pandera.errors['DATA'])
     schema_errors = dict(df_out.pandera.errors['SCHEMA'])
     expected = \
@@ -214,7 +215,7 @@ def test_pyspark_fields(spark):
                                             'failed '
                                             'validation '
                                             "str_startswith('B')",
-                                   'schema': 'pandera_schema'},
+                                   'schema': 'PanderaSchema'},
                                   {'check': 'greater_than(5)',
                                    'column': 'price',
                                    'error': 'column '
@@ -224,7 +225,7 @@ def test_pyspark_fields(spark):
                                             'failed '
                                             'validation '
                                             'greater_than(5)',
-                                   'schema': 'pandera_schema'}]},
+                                   'schema': 'PanderaSchema'}]},
          'SCHEMA':
              {'WRONG_DATATYPE': [{'check': "dtype('MapType(StringType(), "
                                            'StringType(), '
@@ -240,7 +241,7 @@ def test_pyspark_fields(spark):
                                            'MapType(StringType(), '
                                            'StringType(), '
                                            'False)',
-                                  'schema': 'pandera_schema'}]}}
+                                  'schema': 'PanderaSchema'}]}}
 
     assert data_errors == expected['DATA']
     assert schema_errors == expected['SCHEMA']

@@ -1,5 +1,5 @@
 """PySpark engine and data types."""
-# pylint:disable=too-many-ancestors
+# pylint:disable=too-many-ancestors,no-member
 
 # docstrings are inherited
 # pylint:disable=missing-class-docstring
@@ -12,6 +12,7 @@ import inspect
 import re
 import warnings
 from typing import Any, Iterable, Union
+import sys
 
 import pyspark.sql.types as pst
 from pyspark.sql.types import DecimalType
@@ -29,10 +30,6 @@ try:
 except ImportError:
     PYARROW_INSTALLED = False
 
-try:
-    from typing import Literal  # type: ignore
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
 
 DEFAULT_PYSPARK_PREC = DecimalType().precision
 DEFAULT_PYSPARK_SCALE = DecimalType().scale
@@ -50,7 +47,12 @@ class DataType(dtypes.DataType):
         # Pyspark str(<DataType>) doesnot return equivalent string using the below code to convert the datatype to class
         try:
             if isinstance(dtype, str):
-                dtype = eval("pst." + dtype)
+                # To get the name of class from string with () at the end need to replace it
+                regex = r"(\(\))"
+                subst = ""
+                # You can manually specify the number of replacements by changing the 4th argument
+                dtype = re.sub(regex, subst, dtype, 0, re.MULTILINE)
+                dtype = getattr(sys.modules['pyspark.sql.types'], dtype)()
         except AttributeError:
             pass
         except TypeError:
@@ -102,8 +104,7 @@ class DataType(dtypes.DataType):
         except Exception as exc:  # pylint:disable=broad-except
             if isinstance(exc, errors.ParserError):
                 raise
-            else:
-                type_alias = str(self)
+            type_alias = str(self)
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {type_alias}",
@@ -126,11 +127,11 @@ class Engine(  # pylint:disable=too-few-public-methods
         try:
             if isinstance(data_type, str):
                 regex = r"(\(\d.*?\b\))"
-                subst = "()"
+                subst = ""
                 # You can manually specify the number of replacements by changing the 4th argument
                 data_type = re.sub(regex, subst, data_type, 0, re.MULTILINE)
             return engine.Engine.dtype(cls, data_type)
-        except TypeError:
+        except TypeError: # pylint:disable=try-except-raise
             raise
 
 
@@ -288,7 +289,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,
+        data_container: Any = None,  # pylint: disable=unused-argument)
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -402,19 +403,19 @@ class TimeDelta(DataType):
         object.__setattr__(
             self,
             "type",
-            pst.DayTimeIntervalType(self.startField, self.endField),  # type: ignore
+            pst.DayTimeIntervalType(self.startField, self.endField),
         )
 
     @classmethod
     def from_parametrized_dtype(cls, ps_dtype: pst.DayTimeIntervalType):
         """Convert a :class:`pyspark.sql.types.DayTimeIntervalType` to
         a Pandera :class:`pandera.engines.pyspark_engine.TimeDelta`."""
-        return cls(startField=ps_dtype.startField, endField=ps_dtype.endField)  # type: ignore
+        return cls(startField=ps_dtype.startField, endField=ps_dtype.endField)
 
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,
+        data_container: Any = None,  # pylint: disable=unused-argument
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -473,7 +474,7 @@ class ArrayType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,
+        data_container: Any = None,  # pylint:disable=unused-argument
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
@@ -535,7 +536,7 @@ class MapType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None,
+        data_container: Any = None, # pylint:disable=unused-argument
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)

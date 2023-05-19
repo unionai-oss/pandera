@@ -1,5 +1,6 @@
+"""A flexible and expressive pyspark validation library."""
+# pylint: disable=unused-import
 try:
-    import pyspark.sql
 
     from pandera.accessors import pyspark_sql_accessor
     from pandera.api.checks import Check
