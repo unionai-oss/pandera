@@ -1,7 +1,11 @@
+"""This module is to test the behaviour change based on defined config in pandera"""
+# pylint:disable=import-outside-toplevel,abstract-method
+
 import pyspark.sql.types as T
-from conftest import spark_df
+from tests.pyspark.conftest import spark_df
 
 class TestConfigParams:
+    """Class to test all the different configs types"""
     sample_data = [("Bread", 9), ("Cutter", 15)]
 
     @staticmethod
@@ -14,7 +18,7 @@ class TestConfigParams:
         import sys
         values_to_del = []
         # Pyspark module cache loads the modules need to rerun the find all instances of case
-        for key in sys.modules.keys():
+        for key in sys.modules:
             if key.startswith('pandera'):
                 values_to_del.append(key)
         # Separate loop for delete since removing the module from cache is
@@ -42,6 +46,7 @@ class TestConfigParams:
 
 
         class TestSchema(DataFrameModel):
+            """Test Schema class"""
             product: T.StringType() = Field(str_startswith='B')
             price_val: T.StringType() = Field()
 
@@ -53,7 +58,7 @@ class TestConfigParams:
         assert pandra_schema.validate(input_df) is None
         assert TestSchema.validate(input_df) is None
 
-    def test_schema_only(self, spark, sample_spark_schema, monkeypatch):
+    def test_schema_only(self, spark, sample_spark_schema, monkeypatch):  # pylint:disable=too-many-locals
         """This function validates that only schema related checks are run not data level"""
         self.remove_python_module_cache()
         monkeypatch.setenv('VALIDATION', 'ENABLE')
@@ -90,6 +95,7 @@ class TestConfigParams:
         assert dict(output_dataframeschema_df.pandera.errors['SCHEMA']) == expected_dataframeschema['SCHEMA']
 
         class TestSchema(DataFrameModel):
+            """Test Schema"""
             product: T.StringType() = Field(str_startswith='B')
             price_val: T.StringType() = Field()
 
@@ -107,7 +113,7 @@ class TestConfigParams:
         assert 'DATA' not in dict(output_dataframemodel_df.pandera.errors).keys()
         assert dict(output_dataframemodel_df.pandera.errors['SCHEMA']) == expected_dataframemodel['SCHEMA']
 
-    def test_data_only(self, spark, sample_spark_schema, monkeypatch):
+    def test_data_only(self, spark, sample_spark_schema, monkeypatch):  # pylint:disable=too-many-locals
         """This function validates that only data related checks are run not schema level"""
         self.remove_python_module_cache()
         monkeypatch.setenv('VALIDATION', 'ENABLE')
@@ -144,6 +150,7 @@ class TestConfigParams:
         assert dict(output_dataframeschema_df.pandera.errors['DATA']) == expected_dataframeschema['DATA']
 
         class TestSchema(DataFrameModel):
+            """Test Schema"""
             product: T.StringType() = Field(str_startswith='B')
             price_val: T.StringType() = Field()
 
@@ -163,7 +170,7 @@ class TestConfigParams:
         assert 'SCHEMA' not in dict(output_dataframemodel_df.pandera.errors).keys()
         assert dict(output_dataframemodel_df.pandera.errors['DATA']) == expected_dataframemodel['DATA']
 
-    def test_schema_and_data(self, spark, sample_spark_schema, monkeypatch):
+    def test_schema_and_data(self, spark, sample_spark_schema, monkeypatch):  # pylint:disable=too-many-locals
         """This function validates that both data and schema level checks are validated"""
         self.remove_python_module_cache()
         monkeypatch.setenv('VALIDATION', 'ENABLE')
@@ -219,6 +226,7 @@ class TestConfigParams:
         assert dict(output_dataframeschema_df.pandera.errors['SCHEMA']) == expected_dataframeschema['SCHEMA']
 
         class TestSchema(DataFrameModel):
+            """Test Schema"""
             product: T.StringType() = Field(str_startswith='B')
             price_val: T.StringType() = Field()
 

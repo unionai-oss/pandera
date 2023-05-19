@@ -1,11 +1,13 @@
-import warnings
+"""This module holds the decorators only valid for pyspark"""
 import functools
+import warnings
+from typing import List, Type
 
 import pyspark.sql
 
-from pandera.errors import SchemaError
-from typing import List, Type
 from pandera.api.pyspark.types import PysparkDefaultTypes
+from pandera.errors import SchemaError
+
 
 def register_input_datatypes(
     acceptable_datatypes: List[Type[PysparkDefaultTypes]] = None,
@@ -21,7 +23,7 @@ def register_input_datatypes(
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
             # Get the pyspark object from arguments
-            pyspark_object = [a for a in args][0]
+            pyspark_object = list(args)[0] #[a for a in args][0]
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
             pandera_schema_datatype = validation_df.pandera.schema.get_dtypes(
@@ -54,17 +56,25 @@ def register_input_datatypes(
         return _wrapper
 
     return wrapper
-def validate_params(params, scope):
+
+
+def validate_scope(params, scope):
+    """This decorator decides if a function needs to be run or skipped based on params"""
     def _wrapper(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            if scope == 'SCHEMA':
-                if (params['DEPTH'] == 'SCHEMA_AND_DATA') or (params['DEPTH'] == 'SCHEMA_ONLY'):
+            if scope == "SCHEMA":
+                if (params["DEPTH"] == "SCHEMA_AND_DATA") or (
+                    params["DEPTH"] == "SCHEMA_ONLY"
+                ):
                     return func(self, *args, **kwargs)
                 else:
-                    warnings.warn("Skipping Execution of function as parameters set to DATA_ONLY ", stacklevel=2)
+                    warnings.warn(
+                        "Skipping Execution of function as parameters set to DATA_ONLY ",
+                        stacklevel=2,
+                    )
                     if not kwargs:
-                        for key, value in kwargs.items():
+                        for value in kwargs.values():
                             if isinstance(value, pyspark.sql.DataFrame):
                                 return value
                     if args:
@@ -72,10 +82,17 @@ def validate_params(params, scope):
                             if isinstance(value, pyspark.sql.DataFrame):
                                 return value
 
-            elif scope == 'DATA':
-                if (params['DEPTH'] == 'SCHEMA_AND_DATA') or (params['DEPTH'] == 'DATA_ONLY'):
+            elif scope == "DATA":
+                if (params["DEPTH"] == "SCHEMA_AND_DATA") or (
+                    params["DEPTH"] == "DATA_ONLY"
+                ):
                     return func(self, *args, **kwargs)
                 else:
-                    warnings.warn("Skipping Execution of function as parameters set to SCHEMA_ONLY ", stacklevel=2)
+                    warnings.warn(
+                        "Skipping Execution of function as parameters set to SCHEMA_ONLY ",
+                        stacklevel=2,
+                    )
+
         return wrapper
+
     return _wrapper

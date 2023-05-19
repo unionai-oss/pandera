@@ -16,10 +16,9 @@ from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes, StrictType
 from pandera.backends.pyspark.container import DataFrameSchemaBackend
-from pandera.backends.pyspark.utils import PANDERA_CONFIG
+from pandera.backends.pyspark.utils import PANDERA_CONFIG, ConfigParams
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
-from pandera.backends.pyspark.utils import ConfigParams
 
 N_INDENT_SPACES = 4
 
@@ -256,7 +255,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     @dtype.setter
     def dtype(self, value: PySparkDtypeInputTypes) -> None:
         """Set the pyspark dtype property."""
-        self._dtype = pyspark_engine.Engine.dtype(value) if value else None
+        self._dtype = pyspark_engine.Engine.dtype(value) if value else None  # pylint:disable=no-value-for-parameter
 
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
         return self.BACKEND.coerce_dtype(check_obj, schema=self)
@@ -323,7 +322,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                  0.80      dog
                  0.76      dog
         """
-        if PANDERA_CONFIG['VALIDATION'] == 'DISABLE':
+        if PANDERA_CONFIG["VALIDATION"] == "DISABLE":
             return
         error_handler = ErrorHandler(lazy)
 

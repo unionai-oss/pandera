@@ -1,4 +1,5 @@
 """Unit tests for DataFrameModel module."""
+# pylint:disable=abstract-method
 
 from pyspark.sql import DataFrame
 import pyspark.sql.types as T
@@ -15,6 +16,7 @@ def test_schema_with_bare_types():
     """
 
     class Model(DataFrameModel):
+        """Test class"""
         a: int
         b: str
         c: float
@@ -26,6 +28,8 @@ def test_schema_with_bare_types():
             "b": pa.Column(str),
             "c": pa.Column(float),
         },
+        # The Dataframe Model uses class doc as description if not explicitly defined in config class
+        description="Test class"
     )
 
     assert expected == Model.to_schema()
@@ -37,6 +41,7 @@ def test_schema_with_bare_types_and_field():
     """
 
     class Model(DataFrameModel):
+        """Model Schema"""
         a: int = Field()
         b: str = Field()
         c: float = Field()
@@ -48,6 +53,7 @@ def test_schema_with_bare_types_and_field():
             "b": pa.Column(str),
             "c": pa.Column(float),
         },
+        description="Model Schema"
     )
 
     assert expected == Model.to_schema()
@@ -59,6 +65,7 @@ def test_schema_with_bare_types_field_and_checks(spark):
     """
 
     class Model(DataFrameModel):
+        """Model Schema"""
         a: str = Field(str_startswith="B")
         b: int = Field(gt=6)
         c: float = Field()
@@ -70,6 +77,7 @@ def test_schema_with_bare_types_field_and_checks(spark):
             "b": pa.Column(int, checks=pa.Check.gt(6)),
             "c": pa.Column(float),
         },
+        description="Model Schema"
     )
 
     assert expected == Model.to_schema()
@@ -86,7 +94,7 @@ def test_schema_with_bare_types_field_and_checks(spark):
 
     df_fail = spark_df(spark, data_fail, spark_schema)
     df_out = Model.validate(check_obj=df_fail)
-    assert df_out.pandera.errors != None
+    assert df_out.pandera.errors is not None
 
 
 def test_schema_with_bare_types_field_type(spark):
@@ -95,6 +103,7 @@ def test_schema_with_bare_types_field_type(spark):
     """
 
     class Model(DataFrameModel):
+        """Model Schema"""
         a: str = Field(str_startswith="B")
         b: int = Field(gt=6)
         c: float = Field()
@@ -111,7 +120,7 @@ def test_schema_with_bare_types_field_type(spark):
 
     df_fail = spark_df(spark, data_fail, spark_schema)
     df_out = Model.validate(check_obj=df_fail)
-    assert df_out.pandera.errors != None
+    assert df_out.pandera.errors is not None
 
 
 def test_pyspark_bare_fields(spark):
@@ -119,7 +128,8 @@ def test_pyspark_bare_fields(spark):
     Test schema and data level checks
     """
 
-    class pandera_schema(DataFrameModel):
+    class PanderaSchema(DataFrameModel):
+        """Test schema"""
         id: T.IntegerType() = Field(gt=5)
         product_name: T.StringType() = Field(str_startswith="B")
         price: T.DecimalType(20, 5) = Field()
@@ -143,8 +153,8 @@ def test_pyspark_bare_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    df_out = pandera_schema.validate(check_obj=df_fail)
-    assert df_out.pandera.errors != None
+    df_out = PanderaSchema.validate(check_obj=df_fail)
+    assert df_out.pandera.errors is not None
 
 
 def test_dataframe_schema_strict(spark) -> None:
@@ -196,12 +206,13 @@ def test_dataframe_schema_strict(spark) -> None:
             raise pa.PysparkSchemaError
 
 
-def test_pyspark_fields_metadata(spark):
+def test_pyspark_fields_metadata():
     """
     Test schema and metadata on field
     """
 
-    class pandera_schema(DataFrameModel):
+    class PanderaSchema(DataFrameModel):
+        """Pandera Schema Class"""
         id: T.IntegerType() = Field(
             gt=5,
             metadata={"usecase": ["telco", "retail"], "category": "product_pricing"},
@@ -210,6 +221,7 @@ def test_pyspark_fields_metadata(spark):
         price: T.DecimalType(20, 5) = Field()
 
         class Config:
+            """Config of pandera class"""
             name = "product_info"
             strict = True
             coerce = True
@@ -225,7 +237,7 @@ def test_pyspark_fields_metadata(spark):
             "dataframe": {"category": "product-details"},
         }
     }
-    assert pandera_schema.get_metadata() == expected
+    assert PanderaSchema.get_metadata() == expected
 
 
 def test_dataframe_schema_strict(spark, config_params) -> None:
@@ -285,7 +297,6 @@ def test_docstring_substitution() -> None:
     @docstring_substitution(test_substitution=test_docstring_substitution.__doc__)
     def function_expected():
         """%(test_substitution)s"""
-        pass
 
     expected = test_docstring_substitution.__doc__
     assert function_expected.__doc__ == expected

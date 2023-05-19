@@ -1,16 +1,16 @@
 """Unit tests for pyspark container."""
 
 import pyspark.sql.types as T
-
+from pyspark.sql import DataFrame
 
 from pandera.pyspark import DataFrameSchema, Column
 from tests.pyspark.conftest import spark_df
 from pandera.backends.pyspark.utils import ConfigParams
-from pandera.backends.pyspark.decorators import validate_params
-from pyspark.sql import DataFrame
+from pandera.backends.pyspark.decorators import validate_scope
 
 
 class BaseClass:
+    """Base class for all the dtypes"""
     params = ConfigParams()
 
     def validate_datatype(self, df, pandera_schema):
@@ -45,7 +45,7 @@ class BaseClass:
         )
         df_out = self.validate_datatype(df, pandera_schema)
         if df_out.pandera.errors:
-            if return_error == True:
+            if return_error:
                 return df_out.pandera.errors
             else:
                 print(df_out.pandera.errors)
@@ -53,6 +53,7 @@ class BaseClass:
 
 
 class TestAllNumericTypes(BaseClass):
+    """This class is to test all the numeric types"""
     # a map specifying multiple argument sets for a test method
     params = {
         "test_pyspark_all_float_types": [
@@ -113,6 +114,7 @@ class TestAllNumericTypes(BaseClass):
     }
 
     def create_schema(self, column_name, datatype):
+        """Create schmea for a column and datatype"""
         spark_schema = T.StructType(
             [
                 T.StructField(column_name, datatype, False),
@@ -149,7 +151,7 @@ class TestAllNumericTypes(BaseClass):
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    @validate_params(params=BaseClass.params, scope="SCHEMA")
+    @validate_scope(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_decimal_parameterized_types(
         self, spark, sample_data, pandera_equivalent
     ):
@@ -213,6 +215,7 @@ class TestAllNumericTypes(BaseClass):
 
 
 class TestAllDatetimeTestClass(BaseClass):
+    """This class is to test all the datetime types"""
     # a map specifying multiple argument sets for a test method
     params = {
         "test_pyspark_all_date_types": [
@@ -245,7 +248,7 @@ class TestAllDatetimeTestClass(BaseClass):
         """
         column_name = "purchase_date"
         df = sample_date_object.select(column_name)
-        error = self.validate_data(df, pandera_equivalent, column_name)
+        self.validate_data(df, pandera_equivalent, column_name)
 
     def test_pyspark_all_datetime_types(self, pandera_equivalent, sample_date_object):
         """
@@ -265,7 +268,7 @@ class TestAllDatetimeTestClass(BaseClass):
         df = sample_date_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    @validate_params(params=BaseClass.params, scope="SCHEMA")
+    @validate_scope(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_daytimeinterval_param_mismatch(
         self, pandera_equivalent, sample_date_object
     ):
@@ -289,6 +292,7 @@ class TestAllDatetimeTestClass(BaseClass):
 
 
 class TestBinaryStringTypes(BaseClass):
+    """Test the binary type data types"""
     # a map specifying multiple argument sets for a test method
     params = {
         "test_pyspark_all_binary_types": [
@@ -328,6 +332,7 @@ class TestBinaryStringTypes(BaseClass):
 
 
 class TestComplexType(BaseClass):
+    """This class is to test all the complex types"""
     params = {
         "test_pyspark_array_type": [
             {
@@ -347,7 +352,7 @@ class TestComplexType(BaseClass):
         ],
     }
 
-    @validate_params(params=BaseClass.params, scope="SCHEMA")
+    @validate_scope(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_array_type(self, sample_complex_data, pandera_equivalent):
         """
         Test array dtype column
@@ -369,7 +374,7 @@ class TestComplexType(BaseClass):
             ]
         }
 
-    @validate_params(params=BaseClass.params, scope="SCHEMA")
+    @validate_scope(params=BaseClass.params, scope="SCHEMA")
     def test_pyspark_map_type(self, sample_complex_data, pandera_equivalent):
         """
         Test map dtype column

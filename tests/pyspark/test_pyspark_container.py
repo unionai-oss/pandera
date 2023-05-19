@@ -27,7 +27,7 @@ def test_pyspark_dataframeschema():
     df = spark.createDataFrame(data=data, schema=["name", "age"])
     df_out = schema.validate(df)
 
-    assert df_out.pandera.errors != None
+    assert df_out.pandera.errors is not None
 
     data = [("Neeraj", "35"), ("Jask", "a")]
 

@@ -10,8 +10,8 @@ from pyspark.sql.functions import cast
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.column import ColumnSchemaBackend
+from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
-from pandera.backends.pyspark.decorators import validate_params
 from pandera.errors import SchemaError, SchemaErrorReason
 
 
@@ -61,14 +61,14 @@ class ColumnBackend(ColumnSchemaBackend):
                 error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
 
         column_keys_to_check = (
-            self.get_regex_columns(schema, check_obj.columns, check_obj)
+            self.get_regex_columns(schema, check_obj.columns)
             if schema.regex
             else [schema.name]
         )
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj = self.coerce_dtype(
+                check_obj = self.coerce_dtype(#pylint:disable=unexpected-keyword-arg
                     check_obj,
                     schema=schema,
                     error_handler=error_handler,
@@ -103,7 +103,7 @@ class ColumnBackend(ColumnSchemaBackend):
 
         return column_keys_to_check
 
-    @validate_params(params=ColumnSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(params=ColumnSchemaBackend.params, scope="SCHEMA")
     def coerce_dtype(
         self,
         check_obj: DataFrame,
@@ -118,7 +118,7 @@ class ColumnBackend(ColumnSchemaBackend):
 
         return check_obj
 
-    @validate_params(params=ColumnSchemaBackend.params, scope="DATA")
+    @validate_scope(params=ColumnSchemaBackend.params, scope="DATA")
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []
         for check_index, check in enumerate(schema.checks):
