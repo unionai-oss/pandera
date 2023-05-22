@@ -47,87 +47,94 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False
     ):
         """
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
         # pylint: disable=too-many-locals
-        if not is_table(check_obj):
-            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
+        try:
+            if not is_table(check_obj):
+                raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
-        error_handler = SchemaErrorHandler(lazy)
+            error_handler = SchemaErrorHandler(lazy)
 
-        check_obj = self.preprocess(check_obj, inplace=inplace)
-        if hasattr(check_obj, "pandera"):
-            check_obj = check_obj.pandera.add_schema(schema)
+            check_obj = self.preprocess(check_obj, inplace=inplace)
+            if hasattr(check_obj, "pandera"):
+                check_obj = check_obj.pandera.add_schema(schema)
 
-        column_info = self.collect_column_info(check_obj, schema, lazy)
+            column_info = self.collect_column_info(check_obj, schema, lazy)
 
-        # collect schema components
-        components = self.collect_schema_components(
-            check_obj, schema, column_info
-        )
+            # collect schema components
+            components = self.collect_schema_components(
+                check_obj, schema, column_info
+            )
 
-        core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
-            (self.strict_filter_columns, (schema, column_info)),
-            (self.coerce_dtype, (schema,)),
-        ]
+            core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
+                (self.strict_filter_columns, (schema, column_info)),
+                (self.coerce_dtype, (schema,)),
+            ]
 
-        for parser, args in core_parsers:
-            try:
-                check_obj = parser(check_obj, *args)
-            except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
-            except SchemaErrors as exc:
-                error_handler.collect_errors(exc)
+            for parser, args in core_parsers:
+                try:
+                    check_obj = parser(check_obj, *args)
+                except SchemaError as exc:
+                    error_handler.collect_error(exc.reason_code, exc)
+                except SchemaErrors as exc:
+                    error_handler.collect_errors(exc)
 
-        # subsample the check object if head, tail, or sample are specified
-        sample = self.subsample(check_obj, head, tail, sample, random_state)
+            # subsample the check object if head, tail, or sample are specified
+            sample = self.subsample(check_obj, head, tail, sample, random_state)
 
-        # check the container metadata, e.g. field names
-        core_checks = [
-            (self.check_column_names_are_unique, (check_obj, schema)),
-            (self.check_column_presence, (check_obj, schema, column_info)),
-            (self.check_column_values_are_unique, (sample, schema)),
-            (self.run_schema_component_checks, (sample, components, lazy)),
-            (self.run_checks, (sample, schema)),
-        ]
+            # check the container metadata, e.g. field names
+            core_checks = [
+                (self.check_column_names_are_unique, (check_obj, schema)),
+                (self.check_column_presence, (check_obj, schema, column_info)),
+                (self.check_column_values_are_unique, (sample, schema)),
+                (self.run_schema_component_checks, (sample, components, lazy)),
+                (self.run_checks, (sample, schema)),
+            ]
 
-        for check, args in core_checks:
-            results = check(*args)  # type: ignore [operator]
-            if isinstance(results, CoreCheckResult):
-                results = [results]
+            for check, args in core_checks:
+                results = check(*args)  # type: ignore [operator]
+                if isinstance(results, CoreCheckResult):
+                    results = [results]
 
-            for result in results:
-                if result.passed:
-                    continue
+                for result in results:
+                    if result.passed:
+                        continue
 
-                if result.schema_error is not None:
-                    error = result.schema_error
-                else:
-                    error = SchemaError(
-                        schema,
-                        data=check_obj,
-                        message=result.message,
-                        failure_cases=result.failure_cases,
-                        check=result.check,
-                        check_index=result.check_index,
-                        check_output=result.check_output,
-                        reason_code=result.reason_code,
+                    if result.schema_error is not None:
+                        error = result.schema_error
+                    else:
+                        error = SchemaError(
+                            schema,
+                            data=check_obj,
+                            message=result.message,
+                            failure_cases=result.failure_cases,
+                            check=result.check,
+                            check_index=result.check_index,
+                            check_output=result.check_output,
+                            reason_code=result.reason_code,
+                        )
+                    error_handler.collect_error(
+                        result.reason_code,
+                        error,
+                        original_exc=result.original_exc,
                     )
-                error_handler.collect_error(
-                    result.reason_code,
-                    error,
-                    original_exc=result.original_exc,
+
+            if error_handler.collected_errors:
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.collected_errors,
+                    data=check_obj,
                 )
 
-        if error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+        except (SchemaError, SchemaErrors) as err:
+            if drop_invalid:
+                check_obj = err.data.loc[~err.data.index.isin(err.failure_cases["index"])]
+                return check_obj
 
         return check_obj
 

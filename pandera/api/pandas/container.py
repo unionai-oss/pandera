@@ -44,6 +44,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         unique: Optional[Union[str, List[str]]] = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
+        drop_invalid: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -260,6 +261,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False,
     ) -> pd.DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
 
@@ -346,6 +348,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            drop_invalid=drop_invalid
         )
 
     def _validate(
@@ -357,6 +360,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False,
     ) -> pd.DataFrame:
 
         if self._is_inferred:
@@ -377,7 +381,10 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            drop_invalid=drop_invalid
+
         )
+
 
     def __call__(
         self,
