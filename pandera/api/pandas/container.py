@@ -212,7 +212,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     @property
     def get_metadata(self) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
-        res = {"columns": {}}
+        res: Dict[Any, Any] = {"columns": {}}
         for k in self.columns.keys():
             res["columns"][k] = self.columns[k].properties["metadata"]
 

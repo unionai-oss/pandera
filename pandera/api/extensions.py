@@ -16,10 +16,10 @@ from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
 try:
     import pyspark.sql as ps
+
     PYSPARK_INSTALLED = True
 except ImportError:
     PYSPARK_INSTALLED = False
-
 
 
 class BuiltinCheckRegistrationError(Exception):
@@ -141,7 +141,9 @@ def register_check_method(
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
-    supported_types: Union[type, Tuple, List] = (pd.DataFrame, pd.Series, ps.DataFrame) if PYSPARK_INSTALLED else (pd.DataFrame, pd.Series),
+    supported_types: Union[type, Tuple, List] = (pd.DataFrame, pd.Series, ps.DataFrame)
+    if PYSPARK_INSTALLED
+    else (pd.DataFrame, pd.Series),
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):

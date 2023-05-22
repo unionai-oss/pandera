@@ -80,7 +80,9 @@ class ColumnSchema(BaseSchema):
     @dtype.setter
     def dtype(self, value: Optional[PySparkDtypeInputTypes]) -> None:
         """Set the pyspark dtype"""
-        self._dtype = pyspark_engine.Engine.dtype(value) if value else None  # pylint:disable=no-value-for-parameter
+        self._dtype = (
+            pyspark_engine.Engine.dtype(value) if value else None
+        )  # pylint:disable=no-value-for-parameter
 
     def validate(
         self,

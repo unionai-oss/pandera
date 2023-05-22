@@ -25,21 +25,20 @@ if PYSPARK_SQL_INSTALLED:
     PysparkTimestamp = pyspark_engine.Timestamp
     PysparkBinary = pyspark_engine.Binary
 
-
     PysparkDType = TypeVar(  # type: ignore
         "PysparkDType",
         bound=Union[
-                    PysparkString,
-                    PysparkInt,
-                    PysparkLongInt,
-                    PysparkShortInt,
-                    PysparkByteInt,
-                    PysparkDouble,
-                    PysparkFloat,
-                    PysparkDecimal,
-                    PysparkDate,
-                    PysparkTimestamp,
-                    PysparkBinary,
+            PysparkString,
+            PysparkInt,
+            PysparkLongInt,
+            PysparkShortInt,
+            PysparkByteInt,
+            PysparkDouble,
+            PysparkFloat,
+            PysparkDecimal,
+            PysparkDate,
+            PysparkTimestamp,
+            PysparkBinary,
         ],
     )
     from typing import TYPE_CHECKING, Generic
@@ -62,7 +61,6 @@ if PYSPARK_SQL_INSTALLED:
 
             def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
                 raise AttributeError("column should resolve to pyspark.sql.Column-s")
-
 
         class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
             """

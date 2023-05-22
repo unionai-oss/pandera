@@ -1,5 +1,5 @@
 """Class-based api for pyspark models."""
-#pylint:disable=abstract-method
+# pylint:disable=abstract-method
 import copy
 import inspect
 import os
@@ -284,10 +284,10 @@ class DataFrameModel(BaseModel):
         random_state: Optional[int] = None,
         lazy: bool = True,
         inplace: bool = False,
-    ) -> DataFrameBase[TDataFrameModel]:
+    ) -> Optional[DataFrameBase[TDataFrameModel]]:
         """%(validate_doc)s"""
         if PANDERA_CONFIG["VALIDATION"] == "DISABLE":
-            return
+            return None
         return cast(
             DataFrameBase[TDataFrameModel],
             cls.to_schema().validate(
@@ -492,7 +492,7 @@ class DataFrameModel(BaseModel):
     @classmethod
     def get_metadata(cls) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
-        res = {"columns": {}}
+        res: Dict[Any, Any] = {"columns": {}}
         columns = cls._collect_fields()
 
         for k, (_, v) in columns.items():

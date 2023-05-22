@@ -29,7 +29,7 @@ class ColumnBackend(ColumnSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler,
+        error_handler: ErrorHandler = None,
     ) -> DataFrame:
         """Validation backend implementation for pyspark dataframe columns.."""
 
@@ -68,7 +68,7 @@ class ColumnBackend(ColumnSchemaBackend):
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj = self.coerce_dtype(#pylint:disable=unexpected-keyword-arg
+                check_obj = self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
                     check_obj,
                     schema=schema,
                     error_handler=error_handler,

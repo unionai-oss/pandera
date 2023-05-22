@@ -3,7 +3,7 @@
 import copy
 import traceback
 import warnings
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -96,6 +96,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
+        assert (
+            error_handler is not None
+        ), "The `error_handler` argument must be provided."
         if self.params["VALIDATION"] == "DISABLE":
             warnings.warn("Skipping the validation checks as validation is disabled")
             return check_obj
@@ -147,9 +150,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema_components: List,
         lazy: bool,
-        error_handler: ErrorHandler,
+        error_handler: Optional[ErrorHandler],
     ):
         """Run checks for all schema components."""
+        assert (
+            error_handler is not None
+        ), "The `error_handler` argument must be provided."
         check_results = []
         # schema-component-level checks
         for schema_component in schema_components:
@@ -352,6 +358,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
+        assert (
+            error_handler is not None
+        ), "The `error_handler` argument must be provided."
 
         if not (schema.coerce or any(col.coerce for col in schema.columns.values())):
             return check_obj
@@ -470,7 +479,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Check for column name uniquness."""
         if not schema.unique_column_names:
             return
-        column_count_dict = {}
+        column_count_dict: Dict[Any, Any] = {}
         failed = []
         for column_name in check_obj.columns:
             if column_count_dict.get(column_name):
