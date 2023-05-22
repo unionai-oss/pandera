@@ -44,7 +44,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         unique: Optional[Union[str, List[str]]] = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
-        drop_invalid: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -278,6 +277,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
+        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated ``DataFrame``
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -348,7 +348,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            drop_invalid=drop_invalid
+            drop_invalid=drop_invalid,
         )
 
     def _validate(
@@ -381,10 +381,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            drop_invalid=drop_invalid
-
+            drop_invalid=drop_invalid,
         )
-
 
     def __call__(
         self,

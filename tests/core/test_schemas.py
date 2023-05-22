@@ -2058,21 +2058,20 @@ def test_pandas_dataframe_subclass_validation():
     print(schema.validate(dataframe))
 
 
-
-
 @pytest.mark.parametrize(
     "schema, obj, expected_obj",
     [
         (
-            DataFrameSchema({"col": Column(int, checks=[Check(lambda x: x >=3)])}),
+            DataFrameSchema(
+                {"col": Column(int, checks=[Check(lambda x: x >= 3)])}
+            ),
             pd.DataFrame({"col": [1, 2, 3, 4, 5]}),
             pd.DataFrame({"col": [3, 4, 5]}),
         ),
     ],
 )
 def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
-    """Test drop_invalid works as expected on DataFrameSchema"""
+    """Test drop_invalid works as expected on DataFrameSchema.validate"""
     trimmed_obj = schema.validate(obj, drop_invalid=True)
     trimmed_obj.index = expected_obj.index
     pd.testing.assert_frame_equal(trimmed_obj, expected_obj)
-

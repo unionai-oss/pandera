@@ -47,7 +47,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False
+        drop_invalid: bool = False,
     ):
         """
         Parse and validate a check object, returning type-coerced and validated
@@ -56,7 +56,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # pylint: disable=too-many-locals
         try:
             if not is_table(check_obj):
-                raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
+                raise TypeError(
+                    f"expected pd.DataFrame, got {type(check_obj)}"
+                )
 
             error_handler = SchemaErrorHandler(lazy)
 
@@ -85,7 +87,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     error_handler.collect_errors(exc)
 
             # subsample the check object if head, tail, or sample are specified
-            sample = self.subsample(check_obj, head, tail, sample, random_state)
+            sample = self.subsample(
+                check_obj, head, tail, sample, random_state
+            )
 
             # check the container metadata, e.g. field names
             core_checks = [
@@ -133,7 +137,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         except (SchemaError, SchemaErrors) as err:
             if drop_invalid:
-                check_obj = err.data.loc[~err.data.index.isin(err.failure_cases["index"])]
+                check_obj = err.data.loc[
+                    ~err.data.index.isin(err.failure_cases["index"])
+                ]
                 return check_obj
 
         return check_obj
