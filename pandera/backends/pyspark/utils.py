@@ -6,7 +6,7 @@ DEFAULT_CONFIG = {"VALIDATION": "ENABLE", "DEPTH": "SCHEMA_AND_DATA"}
 
 
 def convert_to_list(*args):
-    """ Converts arguments to a list"""
+    """Converts arguments to a list"""
     converted_list = []
     for arg in args:
         if isinstance(arg, list):
@@ -19,6 +19,7 @@ def convert_to_list(*args):
 
 class ConfigParams(dict):
     """This class inherits froma  dictionary object and holds parameters for config variable"""
+
     def __init__(self):
         # Default config values will run everything
         self.config = DEFAULT_CONFIG
@@ -53,7 +54,7 @@ class ConfigParams(dict):
 
     @staticmethod
     def validate_params(config):
-        """ This function validates the input of the config"""
+        """This function validates the input of the config"""
         if not config.get("VALIDATION"):
             raise ValueError(
                 'Parameter "VALIDATION" not found in config, ensure the parameter value is in upper case'

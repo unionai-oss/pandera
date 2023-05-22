@@ -11,16 +11,14 @@ import dataclasses
 import inspect
 import re
 import warnings
-from typing import Any, Iterable, Union
+from typing import Any, Iterable, Union, Optional
 import sys
 
 import pyspark.sql.types as pst
-from pyspark.sql.types import DecimalType
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
 from pandera.engines import engine
-from pandera.engines.engine import Engine
 from pandera.engines.type_aliases import PysparkObject
 
 try:
@@ -31,8 +29,10 @@ except ImportError:
     PYARROW_INSTALLED = False
 
 
-DEFAULT_PYSPARK_PREC = DecimalType().precision
-DEFAULT_PYSPARK_SCALE = DecimalType().scale
+DEFAULT_PYSPARK_PREC = pst.DecimalType().precision
+DEFAULT_PYSPARK_SCALE = pst.DecimalType().scale
+DEFAULT_PYPSPARK_START_FIELD = pst.DayTimeIntervalType().startField
+DEFAULT_PYPSPARK_END_FIELD = pst.DayTimeIntervalType().endField
 
 
 @immutable(init=True)
@@ -52,7 +52,7 @@ class DataType(dtypes.DataType):
                 subst = ""
                 # You can manually specify the number of replacements by changing the 4th argument
                 dtype = re.sub(regex, subst, dtype, 0, re.MULTILINE)
-                dtype = getattr(sys.modules['pyspark.sql.types'], dtype)()
+                dtype = getattr(sys.modules["pyspark.sql.types"], dtype)()
         except AttributeError:
             pass
         except TypeError:
@@ -74,12 +74,12 @@ class DataType(dtypes.DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
+        data_container: Optional[Any] = None,  # pylint:disable=unused-argument
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
         except TypeError:
             return False
-
 
     def __str__(self) -> str:
         return str(self.type)
@@ -108,7 +108,7 @@ class DataType(dtypes.DataType):
             raise errors.ParserError(
                 f"Could not coerce {type(data_container)} data_container "
                 f"into type {type_alias}",
-                failure_cases=None
+                failure_cases=None,
             ) from exc
 
         return coerced
@@ -131,7 +131,7 @@ class Engine(  # pylint:disable=too-few-public-methods
                 # You can manually specify the number of replacements by changing the 4th argument
                 data_type = re.sub(regex, subst, data_type, 0, re.MULTILINE)
             return engine.Engine.dtype(cls, data_type)
-        except TypeError: # pylint:disable=try-except-raise
+        except TypeError:  # pylint:disable=try-except-raise
             raise
 
 
@@ -293,6 +293,9 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
+            assert isinstance(
+                pandera_dtype, Decimal
+            ), "The return is expected to be of Decimal class"
         except TypeError:
             return False
 
@@ -304,7 +307,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
                 (self.type == pandera_dtype.type)
                 & (self.scale == pandera_dtype.scale)
                 & (self.precision == pandera_dtype.precision)
-            )  # or super().check(pandera_dtype)
+            )
 
         except TypeError:
             return super().check(pandera_dtype)
@@ -390,16 +393,17 @@ class TimeDelta(DataType):
     type: pst.DayTimeIntervalType = dataclasses.field(
         default=pst.DayTimeIntervalType, init=False
     )
+    startField: int = DEFAULT_PYPSPARK_START_FIELD
+    endField: int = DEFAULT_PYPSPARK_END_FIELD
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        startField: int = 0,
-        endField: int = 3,
+        start_field: int = DEFAULT_PYPSPARK_START_FIELD,
+        end_field: int = DEFAULT_PYPSPARK_END_FIELD,
     ) -> None:
         # super().__init__(self)
-        object.__setattr__(self, "startField", startField)
-        object.__setattr__(self, "endField", endField)
-
+        object.__setattr__(self, "startField", start_field)
+        object.__setattr__(self, "endField", end_field)
         object.__setattr__(
             self,
             "type",
@@ -410,7 +414,7 @@ class TimeDelta(DataType):
     def from_parametrized_dtype(cls, ps_dtype: pst.DayTimeIntervalType):
         """Convert a :class:`pyspark.sql.types.DayTimeIntervalType` to
         a Pandera :class:`pandera.engines.pyspark_engine.TimeDelta`."""
-        return cls(startField=ps_dtype.startField, endField=ps_dtype.endField)
+        return cls(start_field=ps_dtype.startField, end_field=ps_dtype.endField)
 
     def check(
         self,
@@ -536,7 +540,7 @@ class MapType(DataType):
     def check(
         self,
         pandera_dtype: dtypes.DataType,
-        data_container: Any = None, # pylint:disable=unused-argument
+        data_container: Any = None,  # pylint:disable=unused-argument
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)

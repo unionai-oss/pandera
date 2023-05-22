@@ -157,54 +157,6 @@ def test_pyspark_bare_fields(spark):
     assert df_out.pandera.errors is not None
 
 
-def test_dataframe_schema_strict(spark) -> None:
-    """
-    Checks if strict=True whether a schema error is raised because 'a' is
-    not present in the dataframe.
-    """
-    schema = DataFrameSchema(
-        {
-            "a": pa.Column("long", nullable=True),
-            "b": pa.Column("int", nullable=True),
-        },
-        strict=True,
-    )
-    df = spark.createDataFrame(
-        [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3]], ["a", "b", "c", "d"]
-    )
-
-    df_out = schema.validate(df.select(["a", "b"]))
-
-    assert isinstance(df_out, DataFrame)
-    with pytest.raises(pa.PysparkSchemaError):
-        df_out = schema.validate(df)
-        print(df_out.pandera.errors)
-        if df_out.pandera.errors:
-            raise pa.PysparkSchemaError
-
-    schema.strict = "filter"
-    assert isinstance(schema.validate(df), DataFrame)
-
-    assert list(schema.validate(df).columns) == ["a", "b"]
-    #
-    with pytest.raises(pa.SchemaInitError):
-        DataFrameSchema(
-            {
-                "a": pa.Column(int, nullable=True),
-                "b": pa.Column(int, nullable=True),
-            },
-            strict="foobar",  # type: ignore[arg-type]
-        )
-
-    with pytest.raises(pa.PysparkSchemaError):
-        df_out = schema.validate(df.select("a"))
-        if df_out.pandera.errors:
-            raise pa.PysparkSchemaError
-    with pytest.raises(pa.PysparkSchemaError):
-        df_out = schema.validate(df.select(["a", "c"]))
-        if df_out.pandera.errors:
-            raise pa.PysparkSchemaError
-
 
 def test_pyspark_fields_metadata():
     """

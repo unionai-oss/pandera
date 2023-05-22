@@ -66,6 +66,7 @@ SupportedTypes = NamedTuple(
 
 class PysparkDataframeColumnObject(NamedTuple):
     """Pyspark Object which holds dataframe and column value in a named tuble"""
+
     dataframe: DataFrame
     column_name: str
 

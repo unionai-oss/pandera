@@ -42,7 +42,7 @@ class PanderaAccessor:
         return self._errors
 
     @errors.setter
-    def errors(self, value: dict):
+    def errors(self, value: Optional[Errors]):
         """Set errors details."""
         self._errors = value
 

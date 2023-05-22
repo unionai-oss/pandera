@@ -35,7 +35,7 @@ class ArraySchema(BaseSchema):
         name: Any = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        metadata: Optional[dict] = None
+        metadata: Optional[dict] = None,
     ) -> None:
         """Initialize array schema.
 
@@ -72,7 +72,7 @@ class ArraySchema(BaseSchema):
             name=name,
             title=title,
             description=description,
-            metadata=metadata
+            metadata=metadata,
         )
 
         if checks is None:

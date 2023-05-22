@@ -62,17 +62,20 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
         random_state: Optional[int] = None,  # pylint: disable=unused-argument
         lazy: bool = False,
         inplace: bool = False,
-        error_handler: ErrorHandler,
+        error_handler: ErrorHandler = None,
     ):
         # pylint: disable=too-many-locals
         check_obj = self.preprocess(check_obj, inplace)
 
         if schema.coerce:
             try:
-                check_obj = self.coerce_dtype(# pylint:disable=unexpected-keyword-arg
+                check_obj = self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
                     check_obj, schema=schema, error_handler=error_handler
                 )
             except SchemaError as exc:
+                assert (
+                    error_handler is not None
+                ), "The `error_handler` argument must be provided."
                 error_handler.collect_error(ErrorCategory.SCHEMA, exc.reason_code, exc)
 
         self._core_checks(check_obj, schema, error_handler)
@@ -152,16 +155,20 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(
-                Engine.dtype(check_obj.schema[schema.name].dataType),  # pylint: disable=no-value-for-parameter
+                Engine.dtype(
+                    check_obj.schema[schema.name].dataType
+                ),  # pylint: disable=no-value-for-parameter
             )
 
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
                 failure_cases = scalar_failure_case(
-                    str(Engine.dtype(check_obj.schema[schema.name].dataType))  # pylint:disable=no-value-for-parameter
+                    str(
+                        Engine.dtype(check_obj.schema[schema.name].dataType)
+                    )  # pylint:disable=no-value-for-parameter
                 )
                 msg = (
-                    f"expected column '{schema.name}' to have type "   # pylint:disable=no-value-for-parameter
+                    f"expected column '{schema.name}' to have type "  # pylint:disable=no-value-for-parameter
                     f"{schema.dtype}, got {Engine.dtype(check_obj.schema[schema.name].dataType)}"  # pylint:disable=no-value-for-parameter
                     if not passed
                     else f"column type matched with expected '{schema.dtype}'"

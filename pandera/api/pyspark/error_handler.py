@@ -26,7 +26,7 @@ class ErrorHandler:
         """
         self._lazy = lazy
         self._collected_errors = []  # type: ignore
-        self._summarized_errors = defaultdict(lambda: defaultdict(list))
+        self._summarized_errors = defaultdict(lambda: defaultdict(list))  # type: ignore
 
     @property
     def lazy(self) -> bool:

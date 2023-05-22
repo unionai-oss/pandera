@@ -211,7 +211,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     @property
     def get_metadata(self) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
-        res = {"columns": {}}
+        res: Dict[Any, Any] = {"columns": {}}
         for k in self.columns.keys():
             res["columns"][k] = self.columns[k].properties["metadata"]
 
@@ -255,7 +255,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     @dtype.setter
     def dtype(self, value: PySparkDtypeInputTypes) -> None:
         """Set the pyspark dtype property."""
-        self._dtype = pyspark_engine.Engine.dtype(value) if value else None  # pylint:disable=no-value-for-parameter
+        self._dtype = (
+            pyspark_engine.Engine.dtype(value) if value else None
+        )  # pylint:disable=no-value-for-parameter
 
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
         return self.BACKEND.coerce_dtype(check_obj, schema=self)

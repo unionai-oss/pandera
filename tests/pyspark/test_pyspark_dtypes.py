@@ -1,5 +1,6 @@
 """Unit tests for pyspark container."""
 
+from typing import Any
 import pyspark.sql.types as T
 from pyspark.sql import DataFrame
 
@@ -11,7 +12,7 @@ from pandera.backends.pyspark.decorators import validate_scope
 
 class BaseClass:
     """Base class for all the dtypes"""
-    params = ConfigParams()
+    params: Any = ConfigParams()
 
     def validate_datatype(self, df, pandera_schema):
         """

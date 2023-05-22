@@ -54,11 +54,15 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     def subsample(
         self,
         check_obj: DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
         sample: Optional[float] = None,
-        seed: Optional[int] = None,
+        random_state: Optional[int] = None,
     ):
         if sample is not None:
-            return check_obj.sample(withReplacement=False, fraction=sample, seed=seed)
+            return check_obj.sample(
+                withReplacement=False, fraction=sample, seed=random_state
+            )
         return check_obj
 
     def run_check(
@@ -110,6 +114,6 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         return FailureCaseMetadata(
             failure_cases=None,
-            message=schema_errors,
-            error_counts=None,
+            message=schema_errors,  # type: ignore
+            error_counts={},
         )

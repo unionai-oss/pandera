@@ -538,7 +538,7 @@ class DataFrameModel(BaseModel):
     @classmethod
     def get_metadata(cls) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
-        res = {"columns": {}}
+        res: Dict[Any, Any] = {"columns": {}}
         columns = cls._collect_fields()
 
         for k, (_, v) in columns.items():
@@ -549,7 +549,6 @@ class DataFrameModel(BaseModel):
         meta = {}
         meta[cls.Config.name] = res
         return meta
-
 
     @classmethod
     def __modify_schema__(cls, field_schema):

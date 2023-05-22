@@ -98,7 +98,9 @@ class PySparkCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         try:
-            check_output = self.apply(check_obj, key, self.check._check_kwargs)  # pylint:disable=too-many-function-args
+            check_output = self.apply(# pylint:disable=too-many-function-args
+                check_obj, key, self.check._check_kwargs
+            )
 
         except DispatchError as exc:
             if exc.__cause__ is not None:

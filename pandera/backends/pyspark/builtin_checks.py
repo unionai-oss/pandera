@@ -1,7 +1,7 @@
 """PySpark implementation of built-in checks"""
 
 import re
-from typing import Any, Iterable, TypeVar, Union
+from typing import Any, Iterable, TypeVar
 
 import pyspark.sql.types as pst
 from pyspark.sql.functions import col
@@ -264,9 +264,7 @@ def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> boo
     error="str_contains('{pattern}')",
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
-def str_contains(
-    data: PysparkDataframeColumnObject, pattern: Union[str, re.Pattern]
-) -> bool:
+def str_contains(data: PysparkDataframeColumnObject, pattern: re.Pattern) -> bool:
     """Ensure that a pattern can be found within each row.
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
