@@ -46,7 +46,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         check_obj = self.preprocess(check_obj, inplace)
 
         # fill nans with `default` if it's present
-        if pd.notna(schema.default):
+        if hasattr(schema, "default") and pd.notna(schema.default):
             check_obj.fillna(schema.default, inplace=True)
 
         if schema.coerce:
