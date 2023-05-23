@@ -2068,10 +2068,29 @@ def test_pandas_dataframe_subclass_validation():
             pd.DataFrame({"col": [1, 2, 3, 4, 5]}),
             pd.DataFrame({"col": [3, 4, 5]}),
         ),
+        (
+            DataFrameSchema({"col": Column(str)}),
+            pd.DataFrame({"col": [1, 2, 3, 4, 5]}),
+            pd.DataFrame({"col": []}),
+        ),
+        (
+            DataFrameSchema(
+                {
+                    "str_col": Column(str),
+                    "col": Column(int, checks=[Check(lambda x: x >= 3)]),
+                },
+            ),
+            pd.DataFrame(
+                {"str_col": ["a", "b", "c", "d", "e"], "col": [1, 2, 3, 4, 5]}
+            ),
+            pd.DataFrame({"str_col": ["c", "d", "e"], "col": [3, 4, 5]}),
+        ),
     ],
 )
 def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
     """Test drop_invalid works as expected on DataFrameSchema.validate"""
     trimmed_obj = schema.validate(obj, drop_invalid=True)
     trimmed_obj.index = expected_obj.index
+    trimmed_obj.col = trimmed_obj.col.astype(expected_obj.col.dtype)
+
     pd.testing.assert_frame_equal(trimmed_obj, expected_obj)
