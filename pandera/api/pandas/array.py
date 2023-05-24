@@ -12,7 +12,10 @@ from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, is_field
-from pandera.backends.pandas.array import ArraySchemaBackend, SeriesSchemaBackend
+from pandera.backends.pandas.array import (
+    ArraySchemaBackend,
+    SeriesSchemaBackend,
+)
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 
@@ -194,7 +197,9 @@ class ArraySchema(BaseSchema):
         inplace: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Alias for ``validate`` method."""
-        return self.validate(check_obj, head, tail, sample, random_state, lazy, inplace)
+        return self.validate(
+            check_obj, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

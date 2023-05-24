@@ -12,7 +12,17 @@ import datetime
 import decimal
 import inspect
 import warnings
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -51,7 +61,8 @@ def is_extension_dtype(
 ) -> Union[bool, Iterable[bool]]:
     """Check if a value is a pandas extension type or instance of one."""
     return isinstance(pd_dtype, PandasExtensionType) or (
-        isinstance(pd_dtype, type) and issubclass(pd_dtype, PandasExtensionType)
+        isinstance(pd_dtype, type)
+        and issubclass(pd_dtype, PandasExtensionType)
     )
 
 
@@ -130,7 +141,9 @@ class DataType(dtypes.DataType):
         # to let subclass inherit check
         # (super will compare that DataType classes are exactly the same)
         try:
-            return self.type == pandera_dtype.type or super().check(pandera_dtype)
+            return self.type == pandera_dtype.type or super().check(
+                pandera_dtype
+            )
         except TypeError:
             return super().check(pandera_dtype)
 
@@ -183,7 +196,9 @@ class Engine(  # pylint:disable=too-few-public-methods
     def numpy_dtype(cls, pandera_dtype: dtypes.DataType) -> np.dtype:
         """Convert a Pandera :class:`~pandera.dtypes.DataType
         to a :class:`numpy.dtype`."""
-        pandera_dtype: dtypes.DataType = engine.Engine.dtype(cls, pandera_dtype)
+        pandera_dtype: dtypes.DataType = engine.Engine.dtype(
+            cls, pandera_dtype
+        )
 
         alias = str(pandera_dtype).lower()
         if alias == "boolean":
@@ -223,7 +238,9 @@ class BOOL(DataType, dtypes.Bool):
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
         if value not in self._bool_like:
-            raise TypeError(f"value {value} cannot be coerced to type {self.type}")
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
         return super().coerce_value(value)
 
 
@@ -428,9 +445,9 @@ def _check_decimal(
     if pandas_obj.isnull().all():
         return series_cls(np.full_like(pandas_obj, True), dtype=np.bool_)
 
-    is_decimal = pandas_obj.apply(lambda x: isinstance(x, decimal.Decimal)).astype(
-        "bool"
-    ) | pd.isnull(pandas_obj)
+    is_decimal = pandas_obj.apply(
+        lambda x: isinstance(x, decimal.Decimal)
+    ).astype("bool") | pd.isnull(pandas_obj)
     if not is_decimal.any():
         return is_decimal
 
@@ -461,7 +478,9 @@ def _check_decimal(
     return is_valid
 
 
-@Engine.register_dtype(equivalents=["decimal", decimal.Decimal, dtypes.Decimal])
+@Engine.register_dtype(
+    equivalents=["decimal", decimal.Decimal, dtypes.Decimal]
+)
 @immutable(init=True)
 class Decimal(DataType, dtypes.Decimal):
     # pylint:disable=line-too-long
@@ -512,7 +531,9 @@ class Decimal(DataType, dtypes.Decimal):
         data_container: Optional[pd.Series] = None,
     ) -> Union[bool, Iterable[bool]]:
         if type(data_container).__module__.startswith("pyspark.pandas"):
-            raise NotImplementedError("Decimal is not yet supported for pyspark.")
+            raise NotImplementedError(
+                "Decimal is not yet supported for pyspark."
+            )
         if not super().check(pandera_dtype, data_container):
             if data_container is None:
                 return False
@@ -561,17 +582,23 @@ class Category(DataType, dtypes.Category):
         """Pure coerce without catching exceptions."""
         coerced = data_container.astype(self.type)
         if (coerced.isna() & data_container.notna()).any(axis=None):  # type: ignore[arg-type]
-            raise TypeError(f"Data container cannot be coerced to type {self.type}")
+            raise TypeError(
+                f"Data container cannot be coerced to type {self.type}"
+            )
         return coerced
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to a particular type."""
         if value not in self.categories:  # type: ignore
-            raise TypeError(f"value {value} cannot be coerced to type {self.type}")
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
         return value
 
     @classmethod
-    def from_parametrized_dtype(cls, cat: Union[dtypes.Category, pd.CategoricalDtype]):
+    def from_parametrized_dtype(
+        cls, cat: Union[dtypes.Category, pd.CategoricalDtype]
+    ):
         """Convert a categorical to
         a Pandera :class:`pandera.dtypes.pandas_engine.Category`."""
         return cls(categories=cat.categories, ordered=cat.ordered)  # type: ignore
@@ -711,7 +738,9 @@ class _BaseDateTime(DataType):
         # thoroughly tested, right now pyspark.pandas returns NA when a
         # dtype value can't be coerced into the target dtype.
         to_datetime_fn = pd.to_datetime
-        if type(obj).__module__.startswith("pyspark.pandas"):  # pragma: no cover
+        if type(obj).__module__.startswith(
+            "pyspark.pandas"
+        ):  # pragma: no cover
             # pylint: disable=import-outside-toplevel
             import pyspark.pandas as ps
 
@@ -745,7 +774,9 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
     :class:`pandas.DatetimeTZDtype` for timezone-aware datetimes.
     """
 
-    type: Optional[_PandasDatetime] = dataclasses.field(default=None, init=False)
+    type: Optional[_PandasDatetime] = dataclasses.field(
+        default=None, init=False
+    )
     unit: str = "ns"
     """The precision of the datetime data. Currently limited to "ns"."""
 
@@ -776,7 +807,9 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
 
         object.__setattr__(self, "type", type_)
 
-    def _coerce(self, data_container: PandasObject, pandas_dtype: Any) -> PandasObject:
+    def _coerce(
+        self, data_container: PandasObject, pandas_dtype: Any
+    ) -> PandasObject:
         to_datetime_fn = self._get_to_datetime_fn(data_container)
         _tz_localize_kwargs = {
             **self._default_tz_localize_kwargs,
@@ -822,7 +855,9 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
-        return self._get_to_datetime_fn(value)(value, **self.to_datetime_kwargs)
+        return self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
 
     def __str__(self) -> str:
         if self.type == np.dtype("datetime64[ns]"):
@@ -854,9 +889,13 @@ class Date(_BaseDateTime, dtypes.Date):
         self,
         to_datetime_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
-        object.__setattr__(self, "to_datetime_kwargs", to_datetime_kwargs or {})
+        object.__setattr__(
+            self, "to_datetime_kwargs", to_datetime_kwargs or {}
+        )
 
-    def _coerce(self, data_container: PandasObject, pandas_dtype: Any) -> PandasObject:
+    def _coerce(
+        self, data_container: PandasObject, pandas_dtype: Any
+    ) -> PandasObject:
         to_datetime_fn = self._get_to_datetime_fn(data_container)
 
         def _to_datetime(col: PandasObject) -> PandasObject:
@@ -874,7 +913,9 @@ class Date(_BaseDateTime, dtypes.Date):
         return self._coerce(data_container, pandas_dtype="datetime64[ns]")
 
     def coerce_value(self, value: Any) -> Any:
-        coerced = self._get_to_datetime_fn(value)(value, **self.to_datetime_kwargs)
+        coerced = self._get_to_datetime_fn(value)(
+            value, **self.to_datetime_kwargs
+        )
         return coerced.date() if coerced is not None else pd.NaT
 
     def check(  # type: ignore
@@ -972,7 +1013,9 @@ class Interval(DataType):
     subtype: Union[str, np.dtype]
 
     def __post_init__(self):
-        object.__setattr__(self, "type", pd.IntervalDtype(subtype=self.subtype))
+        object.__setattr__(
+            self, "type", pd.IntervalDtype(subtype=self.subtype)
+        )
 
     @classmethod
     def from_parametrized_dtype(cls, pd_dtype: pd.IntervalDtype):

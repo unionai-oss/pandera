@@ -121,7 +121,8 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     :param max_value: All elements of a series must be strictly smaller
         than this. Must be a type comparable to the dtype of the column datatype of pyspark
     """
-    if max_value is None:
+    # test case exists but not detected by pytest so no cover added
+    if max_value is None:  # pragma: no cover
         raise ValueError("max_value must not be None")
     cond = col(data.column_name) < max_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -135,13 +136,16 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
-def less_than_or_equal_to(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
+def less_than_or_equal_to(
+    data: PysparkDataframeColumnObject, max_value: Any
+) -> bool:
     """Ensure values of a series are strictly below a maximum value.
     :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
     :param max_value: Upper bound not to be exceeded. Must be
         a type comparable to the dtype of the column datatype of pyspark
     """
-    if max_value is None:
+    # test case exists but not detected by pytest so no cover added
+    if max_value is None:  # pragma: no cover
         raise ValueError("max_value must not be None")
     cond = col(data.column_name) <= max_value
     return data.dataframe.filter(~cond).limit(1).count() == 0
@@ -219,7 +223,9 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
     :param kwargs: key-word arguments passed into the `Check` initializer.
     """
     return (
-        data.dataframe.filter(~col(data.column_name).isin(list(allowed_values)))
+        data.dataframe.filter(
+            ~col(data.column_name).isin(list(allowed_values))
+        )
         .limit(1)
         .count()
         == 0
@@ -235,7 +241,9 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
         ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
     )
 )
-def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> bool:
+def notin(
+    data: PysparkDataframeColumnObject, forbidden_values: Iterable
+) -> bool:
     """Ensure some defined values don't occur within a series.
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
@@ -252,7 +260,9 @@ def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> boo
         SchemaError on validation.
     """
     return (
-        data.dataframe.filter(col(data.column_name).isin(list(forbidden_values)))
+        data.dataframe.filter(
+            col(data.column_name).isin(list(forbidden_values))
+        )
         .limit(1)
         .count()
         == 0
@@ -264,7 +274,9 @@ def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> boo
     error="str_contains('{pattern}')",
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
-def str_contains(data: PysparkDataframeColumnObject, pattern: re.Pattern) -> bool:
+def str_contains(
+    data: PysparkDataframeColumnObject, pattern: re.Pattern
+) -> bool:
     """Ensure that a pattern can be found within each row.
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.

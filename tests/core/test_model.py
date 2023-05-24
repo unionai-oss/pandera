@@ -1366,7 +1366,10 @@ def test_pandas_fields_metadata():
     class PanderaSchema(pa.DataFrameModel):
         id: Series[int] = pa.Field(
             gt=5,
-            metadata={"usecase": ["telco", "retail"], "category": "product_pricing"},
+            metadata={
+                "usecase": ["telco", "retail"],
+                "category": "product_pricing",
+            },
         )
         product_name: Series[str] = pa.Field(str_startswith="B")
         price: Series[float] = pa.Field()
@@ -1380,7 +1383,10 @@ def test_pandas_fields_metadata():
     expected = {
         "product_info": {
             "columns": {
-                "id": {"usecase": ["telco", "retail"], "category": "product_pricing"},
+                "id": {
+                    "usecase": ["telco", "retail"],
+                    "category": "product_pricing",
+                },
                 "product_name": None,
                 "price": None,
             },

@@ -18,5 +18,7 @@ def convert_uniquesettings(unique: UniqueSettings) -> Union[bool, str]:
     elif unique == "all":
         keep_argument = False
     else:
-        raise ValueError(str(unique) + " is not a recognized report_duplicates value")
+        raise ValueError(
+            str(unique) + " is not a recognized report_duplicates value"
+        )
     return keep_argument

@@ -44,7 +44,9 @@ class ConfigParams(dict):
                 stacklevel=2,
             )
 
-        if (not os.environ.get("VALIDATION")) and (not os.environ.get("DEPTH")):
+        if (not os.environ.get("VALIDATION")) and (
+            not os.environ.get("DEPTH")
+        ):
             warnings.warn(
                 "Setting the VALIDATION and DEPTH config from default values"
                 " since no environment variable found to overload",

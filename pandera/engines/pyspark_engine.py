@@ -25,7 +25,7 @@ try:
     import pyarrow  # pylint:disable=unused-import
 
     PYARROW_INSTALLED = True
-except ImportError:
+except ImportError:  # pragma: no cover
     PYARROW_INSTALLED = False
 
 
@@ -53,9 +53,9 @@ class DataType(dtypes.DataType):
                 # You can manually specify the number of replacements by changing the 4th argument
                 dtype = re.sub(regex, subst, dtype, 0, re.MULTILINE)
                 dtype = getattr(sys.modules["pyspark.sql.types"], dtype)()
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             pass
-        except TypeError:
+        except TypeError:  # pragma: no cover
             pass
 
         object.__setattr__(self, "type", dtype)
@@ -78,7 +78,7 @@ class DataType(dtypes.DataType):
     ) -> Union[bool, Iterable[bool]]:
         try:
             return self.type == pandera_dtype.type
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return False
 
     def __str__(self) -> str:
@@ -90,17 +90,11 @@ class DataType(dtypes.DataType):
     def coerce(self, data_container: PysparkObject) -> PysparkObject:
         """Pure coerce without catching exceptions."""
         coerced = data_container.astype(self.type)
-        if type(data_container).__module__.startswith("modin.pandas"):
-            # NOTE: this is a hack to enable catching of errors in modin
-            coerced.__str__()
         return coerced
 
     def try_coerce(self, data_container: PysparkObject) -> PysparkObject:
         try:
             coerced = self.coerce(data_container)
-            if type(data_container).__module__.startswith("pyspark.pandas"):
-                # NOTE: this is a hack to enable catching of errors in modin
-                coerced.__str__()
         except Exception as exc:  # pylint:disable=broad-except
             if isinstance(exc, errors.ParserError):
                 raise
@@ -131,7 +125,7 @@ class Engine(  # pylint:disable=too-few-public-methods
                 # You can manually specify the number of replacements by changing the 4th argument
                 data_type = re.sub(regex, subst, data_type, 0, re.MULTILINE)
             return engine.Engine.dtype(cls, data_type)
-        except TypeError:  # pylint:disable=try-except-raise
+        except TypeError:  # pylint:disable=try-except-raise # pragma: no cover
             raise
 
 
@@ -141,7 +135,13 @@ class Engine(  # pylint:disable=too-few-public-methods
 
 
 @Engine.register_dtype(
-    equivalents=[bool, "bool", "BooleanType()", pst.BooleanType(), pst.BooleanType],
+    equivalents=[
+        bool,
+        "bool",
+        "BooleanType()",
+        pst.BooleanType(),
+        pst.BooleanType,
+    ],
 )
 @immutable
 class Bool(DataType, dtypes.Bool):
@@ -152,9 +152,11 @@ class Bool(DataType, dtypes.Bool):
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified boolean type."""
-        if value not in self._bool_like:
-            raise TypeError(f"value {value} cannot be coerced to type {self.type}")
-        return super().coerce_value(value)
+        if value not in self._bool_like:  # pragma: no cover
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
+        return super().coerce_value(value)  # pragma: no cover
 
 
 ###############################################################################
@@ -264,20 +266,15 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
     # precision: int = dataclasses.field(default=DEFAULT_PYSPARK_PREC, init=False)
     # scale: int = dataclasses.field(default=DEFAULT_PYSPARK_SCALE, init=False)
     def __init__(  # pylint:disable=super-init-not-called
-        self, precision: int = DEFAULT_PYSPARK_PREC, scale: int = DEFAULT_PYSPARK_SCALE
+        self,
+        precision: int = DEFAULT_PYSPARK_PREC,
+        scale: int = DEFAULT_PYSPARK_SCALE,
     ) -> None:
         dtypes.Decimal.__init__(self, precision, scale, None)
         object.__setattr__(
             self,
             "type",
             pst.DecimalType(self.precision, self.scale),  # type: ignore
-        )
-
-    def __post_init__(self):
-        object.__setattr__(
-            self,
-            "type",
-            pst.DecimalType(precision=self.precision, scale=self.scale),
         )
 
     @classmethod
@@ -296,7 +293,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
             assert isinstance(
                 pandera_dtype, Decimal
             ), "The return is expected to be of Decimal class"
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return False
 
         # attempts to compare pyspark native type if possible
@@ -309,7 +306,7 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
                 & (self.precision == pandera_dtype.precision)
             )
 
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return super().check(pandera_dtype)
 
 
@@ -414,7 +411,9 @@ class TimeDelta(DataType):
     def from_parametrized_dtype(cls, ps_dtype: pst.DayTimeIntervalType):
         """Convert a :class:`pyspark.sql.types.DayTimeIntervalType` to
         a Pandera :class:`pandera.engines.pyspark_engine.TimeDelta`."""
-        return cls(start_field=ps_dtype.startField, end_field=ps_dtype.endField)
+        return cls(
+            start_field=ps_dtype.startField, end_field=ps_dtype.endField
+        )
 
     def check(
         self,
@@ -423,7 +422,7 @@ class TimeDelta(DataType):
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return False
 
         # attempts to compare pyspark native type if possible
@@ -438,7 +437,7 @@ class TimeDelta(DataType):
                 & (self.type.SECOND == pandera_dtype.type.SECOND)
             )
 
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return super().check(pandera_dtype)
 
 
@@ -482,7 +481,7 @@ class ArrayType(DataType):
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return False
         # attempts to compare pyspark native type if possible
         # to let subclass inherit check
@@ -494,7 +493,7 @@ class ArrayType(DataType):
                 & (self.type.containsNull == pandera_dtype.type.containsNull)
             )
 
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return super().check(pandera_dtype)
 
 
@@ -544,7 +543,7 @@ class MapType(DataType):
     ) -> Union[bool, Iterable[bool]]:
         try:
             pandera_dtype = Engine.dtype(pandera_dtype)
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return False
         # attempts to compare pyspark native type if possible
         # to let subclass inherit check
@@ -554,8 +553,11 @@ class MapType(DataType):
                 (self.type == pandera_dtype.type)
                 & (self.type.valueType == pandera_dtype.type.valueType)
                 & (self.type.keyType == pandera_dtype.type.keyType)
-                & (self.type.valueContainsNull == pandera_dtype.type.valueContainsNull)
+                & (
+                    self.type.valueContainsNull
+                    == pandera_dtype.type.valueContainsNull
+                )
             )
 
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return super().check(pandera_dtype)

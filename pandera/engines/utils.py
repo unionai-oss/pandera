@@ -64,7 +64,9 @@ def numpy_pandas_coerce_failure_cases(
         elif len(data_container.shape) == 2:
             data_container = pd.DataFrame(data_container)
         else:
-            raise ValueError("only numpy arrays of 1 or 2 dimensions are supported")
+            raise ValueError(
+                "only numpy arrays of 1 or 2 dimensions are supported"
+            )
 
     if is_index(data_container):
         data_container = data_container.to_series()  # type: ignore[union-attr,operator]
@@ -89,4 +91,6 @@ def numpy_pandas_coerce_failure_cases(
             f"type of data_container {type(data_container)} not understood. "
             "Must be a pandas Series, Index, or DataFrame."
         )
-    return error_formatters.reshape_failure_cases(failure_cases, ignore_na=False)
+    return error_formatters.reshape_failure_cases(
+        failure_cases, ignore_na=False
+    )

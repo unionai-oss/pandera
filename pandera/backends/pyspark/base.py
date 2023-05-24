@@ -84,13 +84,12 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         check_result = check(check_obj, *args)
         if not check_result.check_passed:
-            if check_result.failure_cases is None:
-                # encode scalar False values explicitly
-                failure_cases = scalar_failure_case(check_result.check_passed)
-                error_msg = format_generic_error_message(schema, check)
+            # encode scalar False values explicitly
+            failure_cases = scalar_failure_case(check_result.check_passed)
+            error_msg = format_generic_error_message(schema, check)
 
             # raise a warning without exiting if the check is specified to do so
-            if check.raise_warning:
+            if check.raise_warning:  # pragma: no cover
                 warnings.warn(error_msg, UserWarning)
                 return True
 

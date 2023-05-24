@@ -2,9 +2,20 @@
 import pandas as pd
 
 from pandera import (
-    Column, DataFrameSchema, Bool, Category, Check,
-    DateTime, Float, Int, Object, String, Timedelta,
-    check_input, check_output)
+    Column,
+    DataFrameSchema,
+    Bool,
+    Category,
+    Check,
+    DateTime,
+    Float,
+    Int,
+    Object,
+    String,
+    Timedelta,
+    check_input,
+    check_output,
+)
 
 
 class Validate:
@@ -14,41 +25,46 @@ class Validate:
 
     def setup(self):
         self.schema = DataFrameSchema(
-                {
-                    "a": Column(Int),
-                    "b": Column(Float),
-                    "c": Column(String),
-                    "d": Column(Bool),
-                    "e": Column(Category),
-                    "f": Column(Object),
-                    "g": Column(DateTime),
-                    "i": Column(Timedelta),
-                    },
-                )
+            {
+                "a": Column(Int),
+                "b": Column(Float),
+                "c": Column(String),
+                "d": Column(Bool),
+                "e": Column(Category),
+                "f": Column(Object),
+                "g": Column(DateTime),
+                "i": Column(Timedelta),
+            },
+        )
         self.df = pd.DataFrame(
-                {
-                    "a": [1, 2, 3],
-                    "b": [1.1, 2.5, 9.9],
-                    "c": ["z", "y", "x"],
-                    "d": [True, True, False],
-                    "e": pd.Series(["c2", "c1", "c3"], dtype="category"),
-                    "f": [(3,), (2,), (1,)],
-                    "g": [pd.Timestamp("2015-02-01"),
-                          pd.Timestamp("2015-02-02"),
-                          pd.Timestamp("2015-02-03")],
-                    "i": [pd.Timedelta(1, unit="D"),
-                          pd.Timedelta(5, unit="D"),
-                          pd.Timedelta(9, unit="D")]
-                    })
+            {
+                "a": [1, 2, 3],
+                "b": [1.1, 2.5, 9.9],
+                "c": ["z", "y", "x"],
+                "d": [True, True, False],
+                "e": pd.Series(["c2", "c1", "c3"], dtype="category"),
+                "f": [(3,), (2,), (1,)],
+                "g": [
+                    pd.Timestamp("2015-02-01"),
+                    pd.Timestamp("2015-02-02"),
+                    pd.Timestamp("2015-02-03"),
+                ],
+                "i": [
+                    pd.Timedelta(1, unit="D"),
+                    pd.Timedelta(5, unit="D"),
+                    pd.Timedelta(9, unit="D"),
+                ],
+            }
+        )
 
     def time_df_schema(self):
         self.schema.validate(self.df)
 
     def mem_df_schema(self):
-         self.schema.validate(self.df)
+        self.schema.validate(self.df)
 
     def peakmem_df_schema(self):
-         self.schema.validate(self.df)
+        self.schema.validate(self.df)
 
 
 class Decorators:

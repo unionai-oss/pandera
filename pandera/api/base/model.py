@@ -1,7 +1,17 @@
 """Base classes for model api."""
 
 import os
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pandera.api.base.model_components import BaseFieldInfo
 from pandera.api.base.model_config import BaseModelConfig

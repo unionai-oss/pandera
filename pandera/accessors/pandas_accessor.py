@@ -54,4 +54,6 @@ class PanderaSeriesAccessor(PanderaAccessor):
     @staticmethod
     def check_schema_type(schema):
         if not isinstance(schema, SeriesSchema):
-            raise TypeError(f"schema arg must be a SeriesSchema, found {type(schema)}")
+            raise TypeError(
+                f"schema arg must be a SeriesSchema, found {type(schema)}"
+            )

@@ -7,7 +7,13 @@ from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas import Column, DataFrameSchema, Index, MultiIndex, SeriesSchema
+from pandera.api.pandas import (
+    Column,
+    DataFrameSchema,
+    Index,
+    MultiIndex,
+    SeriesSchema,
+)
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
 from pandera.api.pandas.model_components import Field, check, dataframe_check
 from pandera.decorators import check_input, check_io, check_output, check_types
