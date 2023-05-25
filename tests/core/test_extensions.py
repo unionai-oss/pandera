@@ -4,6 +4,7 @@
 
 from typing import Any, Optional, Union
 
+from hypothesis import strategies as hst
 import pandas as pd
 import pytest
 
@@ -106,6 +107,33 @@ def test_register_element_wise_custom_check(
         )
         def invalid_custom_check(*args):
             pass
+
+
+@pytest.mark.xfail(reason="https://github.com/unionai-oss/pandera/issues/1192")
+def test_register_custom_check_strategy_is_used(custom_check_teardown):
+    """
+    Strategy specified for custom check method is actually used when generating
+    column examples.
+    """
+    wrapped_integers_called = False
+
+    def wrapped_integers() -> hst.SearchStrategy[int]:
+        nonlocal wrapped_integers_called  # type: ignore[misc]
+        wrapped_integers_called = True
+        return hst.integers()
+
+    # sanity check _wrapped_integers_called works
+    wrapped_integers()
+    assert wrapped_integers_called
+    wrapped_integers_called = False
+
+    @extensions.register_check_method(strategy=wrapped_integers)
+    def is_integer(series):
+        return (series.notna() % 1 == 0).all()
+
+    col = pa.Column(dtype="float64", checks=Check.is_integer())
+    col.example()
+    assert wrapped_integers_called
 
 
 def test_register_custom_groupby_check(custom_check_teardown: None) -> None:

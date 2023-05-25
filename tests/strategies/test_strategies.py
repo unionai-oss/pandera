@@ -21,10 +21,12 @@ try:
     import hypothesis
     import hypothesis.extra.numpy as npst
     import hypothesis.strategies as st
+    import hypothesis.extra.pandas as pdst
 except ImportError:
     HAS_HYPOTHESIS = False
     hypothesis = MagicMock()
     st = MagicMock()
+    pdst = MagicMock()
 else:
     HAS_HYPOTHESIS = True
 
@@ -801,6 +803,40 @@ def test_dataframe_strategy_undefined_check_strategy(
     ):
         example = data.draw(strat)
     schema(example)
+
+
+@pytest.mark.xfail(reason="https://github.com/unionai-oss/pandera/issues/1173")
+@hypothesis.given(st.data())
+def test_defined_check_strategy(data: st.DataObject):
+    """
+    Strategy specified for custom check is actually used when generating column
+    examples.
+    """
+    integer_series_drawn = False
+
+    @st.composite
+    def integer_series(draw: st.DrawFn) -> pd.Series:
+        nonlocal integer_series_drawn  # type: ignore[misc]
+        result = draw(pdst.series(dtype=int))
+        integer_series_drawn = True
+        return result
+
+    # sanity check integer_series_drawn works
+    data.draw(integer_series(), label="sanity check draw")
+    assert integer_series_drawn
+    integer_series_drawn = False
+
+    col = pa.Column(
+        dtype="float64",
+        checks=Check(
+            lambda s: (s.notna() % 1 == 0).all(), strategy=integer_series()
+        ),
+    )
+    size = data.draw(st.none() | st.integers(0, 10), label="size")
+    s = data.draw(col.strategy(size=size), label="s")
+    if size is not None:
+        assert s.size == size
+    assert integer_series_drawn
 
 
 def test_unsatisfiable_checks():
