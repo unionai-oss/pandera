@@ -131,12 +131,8 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
 class DataFrameModel(BaseModel):
     """Definition of a :class:`~pandera.api.pyspark.container.DataFrameSchema`.
 
-    *new in 0.5.0*
+    *new in 0.16.0*
 
-    .. important::
-
-        This class is the new name for ``SchemaModel``, which will be deprecated
-        in pandera version ``0.20.0``.
 
     See the :ref:`User Guide <dataframe_models>` for more.
     """
@@ -225,7 +221,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
-        """Create :class:`~pandera.DataFrameSchema` from the :class:`.DataFrameModel`."""
+        """Create :class:`~pandera.pyspark.DataFrameSchema` from the :class:`.DataFrameModel`."""
 
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]

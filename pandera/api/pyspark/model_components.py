@@ -122,7 +122,7 @@ def Field(
 ) -> Any:
     """Used to provide extra information about a field of a DataFrameModel.
 
-    *new in 0.5.0*
+    *new in 0.16.0*
 
     Some arguments apply only to numeric dtypes and some apply only to ``str``.
     See the :ref:`User Guide <dataframe_models>` for more information.
@@ -250,7 +250,7 @@ ClassCheck = Callable[[Union[classmethod, AnyCallable]], classmethod]
 def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
     """Decorator to make DataFrameModel method a column check function.
 
-    *new in 0.5.0*
+    *new in 0.16.0*
 
     This indicates that the decorated method should be used to validate a field
     (column). The method will be converted to a classmethod. Therefore
@@ -277,7 +277,7 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
 def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
     """Decorator to make DataFrameModel method a dataframe-wide check function.
 
-    *new in 0.5.0*
+    *new in 0.16.0*
 
     Decorate a method on the DataFrameModel indicating that it should be used to
     validate the DataFrame. The method will be converted to a classmethod.

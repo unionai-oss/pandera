@@ -61,7 +61,12 @@ def register_input_datatypes(
 
 
 def validate_scope(params, scope):
-    """This decorator decides if a function needs to be run or skipped based on params"""
+    """This decorator decides if a function needs to be run or skipped based on params
+
+    :param params: The configuration parameters to which define how pandera has to be used
+    :param scope: the scope for which the function is valid. i.e. "DATA" scope function only works to validate the data,
+                 "SCHEMA"  scope runs for schema checks function.
+    """
 
     def _wrapper(func):
         @functools.wraps(func)

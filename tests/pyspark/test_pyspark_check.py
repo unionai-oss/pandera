@@ -3,6 +3,7 @@
 import datetime
 import decimal
 
+from pyspark.sql.functions import col
 from pyspark.sql.types import (
     LongType,
     StringType,
@@ -22,7 +23,10 @@ from pyspark.sql.types import (
 )
 
 import pytest
+
+import pandera.extensions
 import pandera.pyspark as pa
+from pandera.pyspark import DataFrameModel, Field
 from pandera.backends.pyspark.utils import ConfigParams
 from pandera.backends.pyspark.decorators import validate_scope
 from pandera.pyspark import DataFrameSchema, Column
@@ -1575,3 +1579,86 @@ class TestInRangeCheck(BaseClass):
                 datatype,
                 data["test_expression"],
             )
+
+class TestExtension(BaseClass):
+
+    sample_numeric_data = {
+        "test_pass_data": [("foo", 31), ("bar", 33)],
+        "test_fail_data": [("foo", 34), ("bar", 31)],
+        "test_expression": 33,
+    }
+    @staticmethod
+    def _check_extension(
+        spark,
+        schema,
+        pass_case_data,
+        fail_case_data,
+        data_types
+    ):
+        """
+        This function does performs the actual validation
+        """
+
+        spark_schema = StructType(
+            [
+                StructField("product", StringType(), False),
+                StructField("code", data_types, False),
+            ],
+        )
+        df = spark.createDataFrame(data=pass_case_data, schema=spark_schema)
+        df_out = schema.validate(df)
+        if df_out.pandera.errors:
+            print(df_out.pandera.errors)
+            raise PysparkSchemaError
+
+        with pytest.raises(PysparkSchemaError):
+            df_fail = spark.createDataFrame(
+                data=fail_case_data, schema=spark_schema
+            )
+            df_out = schema.validate(df_fail)
+            if df_out.pandera.errors:
+                raise PysparkSchemaError
+
+
+    @staticmethod
+    @pandera.extensions.register_check_method
+    def new_pyspark_check(pyspark_obj, *,  max_value
+        ) -> bool:
+            """Ensure values of a series are strictly below a maximum value.
+            :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
+            :param max_value: Upper bound not to be exceeded. Must be
+                a type comparable to the dtype of the column datatype of pyspark
+            """
+            # test case exists but not detected by pytest so no cover added
+            cond = col(pyspark_obj.column_name) <= max_value
+            return pyspark_obj.dataframe.filter(~cond).limit(1).count() == 0
+
+    def test_extension(self, spark):
+        schema = DataFrameSchema(
+            {
+                "product": Column(StringType()),
+                "code": Column(IntegerType(),
+                               pa.Check.new_pyspark_check(max_value=self.sample_numeric_data["test_expression"])),
+            }
+        )
+        self._check_extension(
+            spark,
+            schema,
+            self.sample_numeric_data["test_pass_data"],
+            self.sample_numeric_data["test_fail_data"],
+            IntegerType()
+        )
+
+    def test_extension_pydantic(self, spark):
+        class Schema(DataFrameModel):
+            product: StringType()
+            code: IntegerType() = Field(new_pyspark_check={"max_value":self.sample_numeric_data["test_expression"]})
+
+        self._check_extension(
+            spark,
+            Schema,
+            self.sample_numeric_data["test_pass_data"],
+            self.sample_numeric_data["test_fail_data"],
+            IntegerType()
+        )
+
