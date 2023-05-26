@@ -805,7 +805,7 @@ def test_dataframe_strategy_undefined_check_strategy(
     schema(example)
 
 
-@pytest.mark.xfail(reason="https://github.com/unionai-oss/pandera/issues/1173")
+@pytest.mark.xfail(reason="no mechanism to specify strategy size")
 @hypothesis.given(st.data())
 def test_defined_check_strategy(data: st.DataObject):
     """

@@ -828,7 +828,7 @@ def series_strategy(
     unique: bool = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
-):
+) -> SearchStrategy[pd.Series]:
     """Strategy to generate a pandas Series.
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
@@ -882,9 +882,14 @@ def series_strategy(
         return strategy.filter(_check_fn)
 
     for check in checks if checks is not None else []:
-        check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
-        if check_strategy is None and not check.element_wise:
-            strategy = undefined_check_strategy(strategy, check)
+        if check.strategy is not None:
+            strategy = check.strategy
+        else:
+            check_strategy = STRATEGY_DISPATCHER.get(
+                (check.name, pd.Series), None
+            )
+            if check_strategy is None and not check.element_wise:
+                strategy = undefined_check_strategy(strategy, check)
 
     return strategy
 
