@@ -410,6 +410,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Coerce dataframe to the type specified in dtype.
 
         :param obj: dataframe to coerce.
+        :param schema: schema object
         :returns: dataframe with coerced dtypes
         """
         # NOTE: clean up the error handling!

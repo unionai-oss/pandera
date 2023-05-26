@@ -18,7 +18,7 @@ def convert_to_list(*args):
 
 
 class ConfigParams(dict):
-    """This class inherits froma  dictionary object and holds parameters for config variable"""
+    """This class inherits from a dictionary object and holds parameters for config variable"""
 
     def __init__(self):
         # Default config values will run everything

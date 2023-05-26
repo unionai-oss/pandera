@@ -52,17 +52,21 @@ class Column(ColumnSchema):
         :example:
 
         >>> import pyspark as ps
-        >>> import pandera as pa
+        >>> from pyspark.sql import SparkSession
+        >>> import pandera.pyspark as pa
         >>>
         >>>
         >>> schema = pa.DataFrameSchema({
         ...     "column": pa.Column(str)
         ... })
-        >>>
-        >>> schema.validate(spark.createDataFrame([{"column": "foo"},{ "column":"bar"}]))
-          column
-            foo
-            bar
+        >>> spark = SparkSession.builder.getOrCreate()
+        >>> schema.validate(spark.createDataFrame([{"column": "foo"},{ "column":"bar"}])).show()
+            +------+
+            |column|
+            +------+
+            |   foo|
+            |   bar|
+            +------+
 
         See :ref:`here<column>` for more usage details.
         """
@@ -133,7 +137,7 @@ class Column(ColumnSchema):
             `sample` are de-duplicated.
         :param tail: validate the last n rows. Rows overlapping with `head` or
             `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
+        :param sample: validate a random sample of fractional rows. Rows overlapping
             with `head` or `tail` are de-duplicated.
         :param random_state: random seed for the ``sample`` argument.
         :param lazy: if True, lazily evaluates dataframe against all validation
@@ -141,6 +145,7 @@ class Column(ColumnSchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
+        :param error_handler: pyspark error handler object to provide the error in a dictionary format.
         :returns: validated DataFrame.
         """
         return self.BACKEND.validate(
@@ -159,7 +164,7 @@ class Column(ColumnSchema):
         """Get matching column names based on regex column name pattern.
 
         :param columns: columns to regex pattern match
-        :returns: matchin columns
+        :returns: matching columns
         """
         return self.BACKEND.get_regex_columns(self, columns)
 
