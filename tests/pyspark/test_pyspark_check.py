@@ -1580,20 +1580,19 @@ class TestInRangeCheck(BaseClass):
                 data["test_expression"],
             )
 
-class TestExtension(BaseClass):
+
+class TestCustomCheck(BaseClass):
+    """This test validates the functionality of custom checks"""
 
     sample_numeric_data = {
         "test_pass_data": [("foo", 31), ("bar", 33)],
         "test_fail_data": [("foo", 34), ("bar", 31)],
         "test_expression": 33,
     }
+
     @staticmethod
     def _check_extension(
-        spark,
-        schema,
-        pass_case_data,
-        fail_case_data,
-        data_types
+        spark, schema, pass_case_data, fail_case_data, data_types
     ):
         """
         This function does performs the actual validation
@@ -1619,26 +1618,29 @@ class TestExtension(BaseClass):
             if df_out.pandera.errors:
                 raise PysparkSchemaError
 
-
     @staticmethod
     @pandera.extensions.register_check_method
-    def new_pyspark_check(pyspark_obj, *,  max_value
-        ) -> bool:
-            """Ensure values of a series are strictly below a maximum value.
-            :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
-            :param max_value: Upper bound not to be exceeded. Must be
-                a type comparable to the dtype of the column datatype of pyspark
-            """
-            # test case exists but not detected by pytest so no cover added
-            cond = col(pyspark_obj.column_name) <= max_value
-            return pyspark_obj.dataframe.filter(~cond).limit(1).count() == 0
+    def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
+        """Ensure values of a series are strictly below a maximum value.
+        :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
+        :param max_value: Upper bound not to be exceeded. Must be
+            a type comparable to the dtype of the column datatype of pyspark
+        """
+        # test case exists but not detected by pytest so no cover added
+        cond = col(pyspark_obj.column_name) <= max_value
+        return pyspark_obj.dataframe.filter(~cond).limit(1).count() == 0
 
     def test_extension(self, spark):
+        """Test custom extension with DataFrameSchema way of defining schema"""
         schema = DataFrameSchema(
             {
                 "product": Column(StringType()),
-                "code": Column(IntegerType(),
-                               pa.Check.new_pyspark_check(max_value=self.sample_numeric_data["test_expression"])),
+                "code": Column(
+                    IntegerType(),
+                    pa.Check.new_pyspark_check(
+                        max_value=self.sample_numeric_data["test_expression"]
+                    ),
+                ),
             }
         )
         self._check_extension(
@@ -1646,19 +1648,26 @@ class TestExtension(BaseClass):
             schema,
             self.sample_numeric_data["test_pass_data"],
             self.sample_numeric_data["test_fail_data"],
-            IntegerType()
+            IntegerType(),
         )
 
     def test_extension_pydantic(self, spark):
+        """Test custom extension with DataFrameModel way of defining schema"""
+
         class Schema(DataFrameModel):
+            """Test Schema"""
+
             product: StringType()
-            code: IntegerType() = Field(new_pyspark_check={"max_value":self.sample_numeric_data["test_expression"]})
+            code: IntegerType() = Field(
+                new_pyspark_check={
+                    "max_value": self.sample_numeric_data["test_expression"]
+                }
+            )
 
         self._check_extension(
             spark,
             Schema,
             self.sample_numeric_data["test_pass_data"],
             self.sample_numeric_data["test_fail_data"],
-            IntegerType()
+            IntegerType(),
         )
-
