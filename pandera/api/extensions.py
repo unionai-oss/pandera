@@ -139,7 +139,7 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-def register_check_method(
+def register_check_method(  # pylint:disable=too-many-branches
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
