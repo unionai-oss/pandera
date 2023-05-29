@@ -1,6 +1,16 @@
 """Model component base classes."""
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    Union,
+    cast,
+)
 
 from pandera.api.checks import Check
 
@@ -112,7 +122,9 @@ class BaseCheckInfo:  # pylint:disable=too-few-public-methods
         """Create a Check from metadata."""
         name = self.check_kwargs.pop("name", None)
         if not name:
-            name = getattr(self.check_fn, "__name__", self.check_fn.__class__.__name__)
+            name = getattr(
+                self.check_fn, "__name__", self.check_fn.__class__.__name__
+            )
 
         def _adapter(arg: Any) -> Union[bool, Iterable[bool]]:
             return self.check_fn(model_cls, arg)

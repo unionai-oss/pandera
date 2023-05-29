@@ -59,8 +59,12 @@ if PYSPARK_SQL_INSTALLED:
 
             default_dtype: Optional[Type] = None
 
-            def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
-                raise AttributeError("column should resolve to pyspark.sql.Column-s")
+            def __get__(
+                self, instance: object, owner: Type
+            ) -> str:  # pragma: no cover
+                raise AttributeError(
+                    "column should resolve to pyspark.sql.Column-s"
+                )
 
         class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
             """
@@ -72,7 +76,7 @@ if PYSPARK_SQL_INSTALLED:
 
             def __class_getitem__(cls, item):
                 """Define this to override's pyspark.pandas generic type."""
-                return _GenericAlias(cls, item)
+                return _GenericAlias(cls, item)  # pragma: no cover
 
         class Column(ColumnBase, ps.Column, Generic[GenericDtype]):  # type: ignore [misc]  # noqa
             """Representation of pyspark.sql.Column, only used for type annotation."""

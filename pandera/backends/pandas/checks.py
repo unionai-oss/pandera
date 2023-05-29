@@ -8,7 +8,12 @@ from multimethod import DispatchError, overload
 
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
-from pandera.api.pandas.types import is_bool, is_field, is_table, is_table_or_field
+from pandera.api.pandas.types import (
+    is_bool,
+    is_field,
+    is_table,
+    is_table_or_field,
+)
 from pandera.backends.base import BaseCheckBackend
 
 
@@ -82,7 +87,9 @@ class PandasCheckBackend(BaseCheckBackend):
             return check_obj
         return cast(
             Dict[str, pd.Series],
-            self._format_groupby_input(self.groupby(check_obj), self.check.groups),
+            self._format_groupby_input(
+                self.groupby(check_obj), self.check.groups
+            ),
         )
 
     @overload  # type: ignore [no-redef]
@@ -95,7 +102,9 @@ class PandasCheckBackend(BaseCheckBackend):
             return check_obj[key]
         return cast(
             Dict[str, pd.DataFrame],
-            self._format_groupby_input(self.groupby(check_obj)[key], self.check.groups),
+            self._format_groupby_input(
+                self.groupby(check_obj)[key], self.check.groups
+            ),
         )
 
     @overload  # type: ignore [no-redef]
@@ -108,7 +117,9 @@ class PandasCheckBackend(BaseCheckBackend):
             return check_obj
         return cast(
             Dict[str, pd.DataFrame],
-            self._format_groupby_input(self.groupby(check_obj), self.check.groups),
+            self._format_groupby_input(
+                self.groupby(check_obj), self.check.groups
+            ),
         )
 
     @overload
@@ -135,7 +146,9 @@ class PandasCheckBackend(BaseCheckBackend):
     @overload
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
-        raise TypeError(f"output type of check_fn not recognized: {type(check_output)}")
+        raise TypeError(
+            f"output type of check_fn not recognized: {type(check_output)}"
+        )
 
     @overload  # type: ignore [no-redef]
     def postprocess(

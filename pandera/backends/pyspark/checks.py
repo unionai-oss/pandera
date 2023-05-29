@@ -8,7 +8,11 @@ from pyspark.sql import DataFrame
 
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
-from pandera.api.pyspark.types import PysparkDataframeColumnObject, is_bool, is_table
+from pandera.api.pyspark.types import (
+    PysparkDataframeColumnObject,
+    is_bool,
+    is_table,
+)
 from pandera.backends.base import BaseCheckBackend
 
 
@@ -22,7 +26,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj: DataFrame):
+    def groupby(self, check_obj: DataFrame):  # pragma: no cover
         """Implements groupby behavior for check object."""
         assert self.check.groupby is not None, "Check.groupby must be set."
         if isinstance(self.check.groupby, (str, list)):
@@ -41,8 +45,8 @@ class PySparkCheckBackend(BaseCheckBackend):
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
         groups: Optional[List[str]],
-    ) -> Dict[str, DataFrame]:
-        pass
+    ) -> Dict[str, DataFrame]:  # pragma: no cover
+        raise NotImplementedError
 
     @overload  # type: ignore [no-redef]
     def preprocess(
@@ -59,23 +63,27 @@ class PySparkCheckBackend(BaseCheckBackend):
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: DataFrame):
-        return self.check_fn(check_obj)
+        return self.check_fn(check_obj)  # pragma: no cover
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: is_table):  # type: ignore [valid-type]
-        return self.check_fn(check_obj)
+        return self.check_fn(check_obj)  # pragma: no cover
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: DataFrame, column_name: str, kwargs: dict):  # type: ignore [valid-type]
         # kwargs['column_name'] = column_name
         # return self.check._check_fn(check_obj, *list(kwargs.values()))
-        check_obj_and_col_name = PysparkDataframeColumnObject(check_obj, column_name)
+        check_obj_and_col_name = PysparkDataframeColumnObject(
+            check_obj, column_name
+        )
         return self.check._check_fn(check_obj_and_col_name, **kwargs)
 
     @overload
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
-        raise TypeError(f"output type of check_fn not recognized: {type(check_output)}")
+        raise TypeError(  # pragma: no cover
+            f"output type of check_fn not recognized: {type(check_output)}"
+        )
 
     @overload  # type: ignore [no-redef]
     def postprocess(
@@ -98,11 +106,11 @@ class PySparkCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         try:
-            check_output = self.apply(# pylint:disable=too-many-function-args
+            check_output = self.apply(  # pylint:disable=too-many-function-args
                 check_obj, key, self.check._check_kwargs
             )
 
-        except DispatchError as exc:
+        except DispatchError as exc:  # pragma: no cover
             if exc.__cause__ is not None:
                 raise exc.__cause__
             raise exc

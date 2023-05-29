@@ -1,9 +1,12 @@
 """Unit tests for DataFrameModel module."""
 # pylint:disable=abstract-method
 
+from typing import Optional
 from pyspark.sql import DataFrame
 import pyspark.sql.types as T
 import pytest
+
+import pandera
 import pandera.pyspark as pa
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
@@ -17,6 +20,7 @@ def test_schema_with_bare_types():
 
     class Model(DataFrameModel):
         """Test class"""
+
         a: int
         b: str
         c: float
@@ -29,7 +33,7 @@ def test_schema_with_bare_types():
             "c": pa.Column(float),
         },
         # The Dataframe Model uses class doc as description if not explicitly defined in config class
-        description="Test class"
+        description="Test class",
     )
 
     assert expected == Model.to_schema()
@@ -42,6 +46,7 @@ def test_schema_with_bare_types_and_field():
 
     class Model(DataFrameModel):
         """Model Schema"""
+
         a: int = Field()
         b: str = Field()
         c: float = Field()
@@ -53,7 +58,7 @@ def test_schema_with_bare_types_and_field():
             "b": pa.Column(str),
             "c": pa.Column(float),
         },
-        description="Model Schema"
+        description="Model Schema",
     )
 
     assert expected == Model.to_schema()
@@ -66,6 +71,7 @@ def test_schema_with_bare_types_field_and_checks(spark):
 
     class Model(DataFrameModel):
         """Model Schema"""
+
         a: str = Field(str_startswith="B")
         b: int = Field(gt=6)
         c: float = Field()
@@ -77,7 +83,7 @@ def test_schema_with_bare_types_field_and_checks(spark):
             "b": pa.Column(int, checks=pa.Check.gt(6)),
             "c": pa.Column(float),
         },
-        description="Model Schema"
+        description="Model Schema",
     )
 
     assert expected == Model.to_schema()
@@ -104,6 +110,7 @@ def test_schema_with_bare_types_field_type(spark):
 
     class Model(DataFrameModel):
         """Model Schema"""
+
         a: str = Field(str_startswith="B")
         b: int = Field(gt=6)
         c: float = Field()
@@ -130,6 +137,7 @@ def test_pyspark_bare_fields(spark):
 
     class PanderaSchema(DataFrameModel):
         """Test schema"""
+
         id: T.IntegerType() = Field(gt=5)
         product_name: T.StringType() = Field(str_startswith="B")
         price: T.DecimalType(20, 5) = Field()
@@ -137,8 +145,20 @@ def test_pyspark_bare_fields(spark):
         meta: T.MapType(T.StringType(), T.StringType()) = Field()
 
     data_fail = [
-        (5, "Bread", 44.4, ["description of product"], {"product_category": "dairy"}),
-        (15, "Butter", 99.0, ["more details here"], {"product_category": "bakery"}),
+        (
+            5,
+            "Bread",
+            44.4,
+            ["description of product"],
+            {"product_category": "dairy"},
+        ),
+        (
+            15,
+            "Butter",
+            99.0,
+            ["more details here"],
+            {"product_category": "bakery"},
+        ),
     ]
 
     spark_schema = T.StructType(
@@ -146,7 +166,9 @@ def test_pyspark_bare_fields(spark):
             T.StructField("id", T.IntegerType(), False),
             T.StructField("product", T.StringType(), False),
             T.StructField("price", T.DecimalType(20, 5), False),
-            T.StructField("description", T.ArrayType(T.StringType(), False), False),
+            T.StructField(
+                "description", T.ArrayType(T.StringType(), False), False
+            ),
             T.StructField(
                 "meta", T.MapType(T.StringType(), T.StringType(), False), False
             ),
@@ -157,7 +179,6 @@ def test_pyspark_bare_fields(spark):
     assert df_out.pandera.errors is not None
 
 
-
 def test_pyspark_fields_metadata():
     """
     Test schema and metadata on field
@@ -165,15 +186,20 @@ def test_pyspark_fields_metadata():
 
     class PanderaSchema(DataFrameModel):
         """Pandera Schema Class"""
+
         id: T.IntegerType() = Field(
             gt=5,
-            metadata={"usecase": ["telco", "retail"], "category": "product_pricing"},
+            metadata={
+                "usecase": ["telco", "retail"],
+                "category": "product_pricing",
+            },
         )
         product_name: T.StringType() = Field(str_startswith="B")
         price: T.DecimalType(20, 5) = Field()
 
         class Config:
             """Config of pandera class"""
+
             name = "product_info"
             strict = True
             coerce = True
@@ -182,7 +208,10 @@ def test_pyspark_fields_metadata():
     expected = {
         "product_info": {
             "columns": {
-                "id": {"usecase": ["telco", "retail"], "category": "product_pricing"},
+                "id": {
+                    "usecase": ["telco", "retail"],
+                    "category": "product_pricing",
+                },
                 "product_name": None,
                 "price": None,
             },
@@ -243,12 +272,54 @@ def test_dataframe_schema_strict(spark, config_params) -> None:
                 raise pa.PysparkSchemaError
 
 
-
 def test_docstring_substitution() -> None:
     """Test the docstring substitution decorator"""
-    @docstring_substitution(test_substitution=test_docstring_substitution.__doc__)
+
+    @docstring_substitution(
+        test_substitution=test_docstring_substitution.__doc__
+    )
     def function_expected():
         """%(test_substitution)s"""
 
     expected = test_docstring_substitution.__doc__
     assert function_expected.__doc__ == expected
+
+    with pytest.raises(AssertionError) as exc_info:
+
+        @docstring_substitution(
+            test_docstring_substitution.__doc__,
+            test_substitution=test_docstring_substitution.__doc__,
+        )
+        def function_expected():
+            """%(test_substitution)s"""
+
+    assert "Either positional args or keyword args are accepted" == str(
+        exc_info.value
+    )
+
+
+def test_optional_column() -> None:
+    """Test that optional columns are not required."""
+
+    class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
+        a: Optional[str]
+        b: Optional[str] = pa.Field(eq="b")
+        c: Optional[str]  # test pandera.typing alias
+
+    schema = Schema.to_schema()
+    assert not schema.columns["a"].required
+    assert not schema.columns["b"].required
+    assert not schema.columns["c"].required
+
+
+def test_invalid_field() -> None:
+    """Test that invalid feilds raises a schemaInitError."""
+
+    class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
+        a: int = 0  # type: ignore[assignment]  # mypy identifies the wrong usage correctly
+
+    with pytest.raises(
+        pandera.errors.SchemaInitError,
+        match="'a' can only be assigned a 'Field'",
+    ):
+        Schema.to_schema()

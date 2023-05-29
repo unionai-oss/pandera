@@ -6,7 +6,14 @@ the typing module.
 
 from typing import Set, Type
 
-from pandera.typing import dask, fastapi, geopandas, modin, pyspark, pyspark_sql
+from pandera.typing import (
+    dask,
+    fastapi,
+    geopandas,
+    modin,
+    pyspark,
+    pyspark_sql,
+)
 from pandera.typing.common import (
     BOOL,
     INT8,

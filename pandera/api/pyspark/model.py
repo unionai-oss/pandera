@@ -43,14 +43,14 @@ from pandera.typing.common import DataFrameBase
 
 try:
     from typing_extensions import get_type_hints
-except ImportError:
+except ImportError:  # pragma: no cover
     from typing import get_type_hints  # type: ignore
 
 try:
     from pydantic.fields import ModelField  # pylint:disable=unused-import
 
     HAS_PYDANTIC = True
-except ImportError:
+except ImportError:  # pragma: no cover
     HAS_PYDANTIC = False
 
 
@@ -68,7 +68,9 @@ TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
     """Typed wrapper to substitute the doc strings."""
     if args and kwargs:
-        raise AssertionError("Either positional args or keyword args are accepted")
+        raise AssertionError(
+            "Either positional args or keyword args are accepted"
+        )
     params = args or kwargs
 
     def decorator(func: F) -> F:
@@ -152,13 +154,17 @@ class DataFrameModel(BaseModel):
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
-        return cast(DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs))
+        return cast(
+            DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs)
+        )
 
     def __init_subclass__(cls, **kwargs):
         """Ensure :class:`~pandera.api.pyspark.model_components.FieldInfo` instances."""
         if "Config" in cls.__dict__:
             cls.Config.name = (
-                cls.Config.name if hasattr(cls.Config, "name") else cls.__name__
+                cls.Config.name
+                if hasattr(cls.Config, "name")
+                else cls.__name__
             )
         else:
             cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
@@ -197,7 +203,9 @@ class DataFrameModel(BaseModel):
                 Type[TDataFrameModel], GENERIC_SCHEMA_CACHE[(cls, params)]
             )
 
-        param_dict: Dict[TypeVar, Type[Any]] = dict(zip(__parameters__, params))
+        param_dict: Dict[TypeVar, Type[Any]] = dict(
+            zip(__parameters__, params)
+        )
         extra: Dict[str, Any] = {"__annotations__": {}}
         for field, (annot_info, field_info) in cls._collect_fields().items():
             if isinstance(annot_info.arg, TypeVar):
@@ -208,7 +216,9 @@ class DataFrameModel(BaseModel):
                     extra["__annotations__"][field] = raw_annot
                     extra[field] = copy.deepcopy(field_info)
 
-        parameterized_name = f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
+        parameterized_name = (
+            f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
+        )
         parameterized_cls = type(parameterized_name, (cls,), extra)
         GENERIC_SCHEMA_CACHE[(cls, params)] = parameterized_cls
         return parameterized_cls
@@ -396,14 +406,18 @@ class DataFrameModel(BaseModel):
     ) -> Tuple[Type[BaseConfig], Dict[str, Any]]:
         """Collect config options from bases, splitting off unknown options."""
         bases = inspect.getmro(cls)[:-1]
-        bases = tuple(base for base in bases if issubclass(base, DataFrameModel))
+        bases = tuple(
+            base for base in bases if issubclass(base, DataFrameModel)
+        )
         root_model, *models = reversed(bases)
 
         options, extras = _extract_config_options_and_extras(root_model.Config)
 
         for model in models:
             config = getattr(model, _CONFIG_KEY, {})
-            base_options, base_extras = _extract_config_options_and_extras(config)
+            base_options, base_extras = _extract_config_options_and_extras(
+                config
+            )
             options.update(base_options)
             extras.update(base_extras)
 
@@ -416,7 +430,9 @@ class DataFrameModel(BaseModel):
         walk the inheritance tree.
         """
         bases = inspect.getmro(cls)[:-2]  # bases -> DataFrameModel -> object
-        bases = tuple(base for base in bases if issubclass(base, DataFrameModel))
+        bases = tuple(
+            base for base in bases if issubclass(base, DataFrameModel)
+        )
 
         method_names = set()
         check_infos = []

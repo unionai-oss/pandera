@@ -16,7 +16,6 @@ collect_ignore = []
 if not HAS_HYPOTHESIS:
     collect_ignore.append("test_strategies.py")
 else:
-
     suppressed_health_checks = [
         hypothesis.HealthCheck.data_too_large,
         hypothesis.HealthCheck.too_slow,

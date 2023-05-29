@@ -178,7 +178,8 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
     def _get_schema(cls, field: ModelField):
         if not field.sub_fields:
             raise TypeError(
-                "Expected a typed pandera.typing.DataFrame," " e.g. DataFrame[Schema]"
+                "Expected a typed pandera.typing.DataFrame,"
+                " e.g. DataFrame[Schema]"
             )
         schema_model = field.sub_fields[0].type_
         try:
@@ -230,10 +231,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         if "index" not in kwargs:
             kwargs["index"] = schema_index
         return DataFrame[T](
-            pd.DataFrame.from_records(
-                data=data,
-                **kwargs,
-            )[
+            pd.DataFrame.from_records(data=data, **kwargs,)[
                 schema.columns.keys()
             ]  # set the column order according to schema
         )

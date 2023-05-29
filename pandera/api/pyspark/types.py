@@ -11,7 +11,7 @@ from pandera.dtypes import DataType
 
 try:
     from typing import Literal
-except ImportError:
+except ImportError:  # pragma: no cover
     from typing_extensions import Literal  # type: ignore [misc]
 
 
@@ -80,7 +80,7 @@ def supported_types() -> SupportedTypes:
     try:
         table_types.append(DataFrame)
 
-    except ImportError:
+    except ImportError:  # pragma: no cover
         pass
 
     return SupportedTypes(

@@ -1,10 +1,11 @@
 """ conftest """
-#pylint:disable=redefined-outer-name
+# pylint:disable=redefined-outer-name
 import datetime
 import pytest
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 from pandera.backends.pyspark.utils import ConfigParams
+
 
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
@@ -37,10 +38,12 @@ def sample_spark_schema():
 
 def spark_df(spark, data: list, spark_schema: T.StructType):
     """This function creates spark dataframe from given data and schema object"""
-    return spark.createDataFrame(data=data, schema=spark_schema, verifySchema=False)
+    return spark.createDataFrame(
+        data=data, schema=spark_schema, verifySchema=False
+    )
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def sample_date_object(spark):
     """This fundtion contains sample data for datetime types object"""
     sample_data = [
@@ -65,21 +68,21 @@ def sample_date_object(spark):
             T.StructField("expected_time", T.DayTimeIntervalType(2, 3), False),
         ],
     )
-    df = spark_df(spark=spark, spark_schema=sample_spark_schema, data=sample_data)
+    df = spark_df(
+        spark=spark, spark_schema=sample_spark_schema, data=sample_data
+    )
     return df
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope="session")
 def sample_string_binary_object(spark):
     """This function creates the sample data for binary types"""
     sample_data = [
         (
-            'test1',
-            'Bread',
+            "test1",
+            "Bread",
         ),
-        (
-            'test2',
-            "Butter"
-        ),
+        ("test2", "Butter"),
     ]
     sample_spark_schema = T.StructType(
         [
@@ -87,16 +90,29 @@ def sample_string_binary_object(spark):
             T.StructField("product", T.StringType(), False),
         ],
     )
-    df = spark_df(spark=spark, spark_schema=sample_spark_schema, data=sample_data)
-    df = df.withColumn('purchase_info', df['purchase_info'].cast(T.BinaryType()))
+    df = spark_df(
+        spark=spark, spark_schema=sample_spark_schema, data=sample_data
+    )
+    df = df.withColumn(
+        "purchase_info", df["purchase_info"].cast(T.BinaryType())
+    )
     return df
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope="session")
 def sample_complex_data(spark):
     """This function creates sample data for complex datatypes types"""
     sample_data = [
-        (datetime.date(2022, 10, 1), [["josh"], ["27"]], {"product_bought": "bread"}),
-        (datetime.date(2022, 11, 5), [["Adam"], ["22"]], {"product_bought": "bread"}),
+        (
+            datetime.date(2022, 10, 1),
+            [["josh"], ["27"]],
+            {"product_bought": "bread"},
+        ),
+        (
+            datetime.date(2022, 11, 5),
+            [["Adam"], ["22"]],
+            {"product_bought": "bread"},
+        ),
     ]
 
     sample_spark_schema = T.StructType(
@@ -111,24 +127,25 @@ def sample_complex_data(spark):
             ),
             T.StructField(
                 "product_details",
-                T.MapType(
-                    T.StringType(),
-                    T.StringType()
-                ),
+                T.MapType(T.StringType(), T.StringType()),
                 False,
             ),
         ],
     )
     return spark_df(spark, sample_data, sample_spark_schema)
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope="session")
 def sample_check_data():
     """This creates data for check type"""
-    return {"test_pass_data": [("foo", 30), ("bar", 30)],
-     "test_fail_data": [("foo", 30), ("bar", 31)],
-     "test_expression": 30}
+    return {
+        "test_pass_data": [("foo", 30), ("bar", 30)],
+        "test_fail_data": [("foo", 30), ("bar", 31)],
+        "test_expression": 30,
+    }
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope="session")
 def config_params():
     """This function creates config parameters"""
     return ConfigParams()
