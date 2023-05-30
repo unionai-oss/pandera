@@ -39,7 +39,7 @@ def test_dataframe_add_schema(
     assert data.pandera.schema == schema1
     assert isinstance(schema1.validate(data), DataFrame)
     assert isinstance(schema1(data), DataFrame)
-    if config_params["DEPTH"] != "DATA_ONLY":
+    if config_params["PANDERA_DEPTH"] != "DATA_ONLY":
         assert dict(schema2(invalid_data).pandera.errors["SCHEMA"]) == {
             "WRONG_DATATYPE": [
                 {

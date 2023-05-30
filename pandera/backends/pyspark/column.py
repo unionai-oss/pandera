@@ -102,7 +102,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     ):
         """Coerce type of a pyspark.sql.function.col by type specified in dtype.
 
-        :param Dataframe: Pyspark DataFrame
+        :param check_obj: Pyspark DataFrame
         :returns: ``DataFrame`` with coerced data type
         """
         assert schema is not None, "The `schema` argument must be provided."

@@ -263,8 +263,6 @@ class Decimal(DataType, dtypes.Decimal):  # type: ignore
 
     type: pst.DecimalType = dataclasses.field(default=pst.DecimalType, init=False)  # type: ignore[assignment]  # noqa
 
-    # precision: int = dataclasses.field(default=DEFAULT_PYSPARK_PREC, init=False)
-    # scale: int = dataclasses.field(default=DEFAULT_PYSPARK_SCALE, init=False)
     def __init__(  # pylint:disable=super-init-not-called
         self,
         precision: int = DEFAULT_PYSPARK_PREC,

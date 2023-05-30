@@ -139,7 +139,7 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-def register_check_method(
+def register_check_method(  # pylint:disable=too-many-branches
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
@@ -208,7 +208,10 @@ def register_check_method(
         supported_types = (supported_types,)
 
     for supported_type in supported_types:  # type: ignore
-        if supported_type not in {pd.DataFrame, pd.Series}:
+        if PYSPARK_INSTALLED:
+            if supported_type not in {pd.DataFrame, pd.Series, ps.DataFrame}:
+                raise TypeError(msg.format(supported_type))
+        elif supported_type not in {pd.DataFrame, pd.Series}:
             raise TypeError(msg.format(supported_type))
 
     if check_type is CheckType.ELEMENT_WISE and set(supported_types) != {

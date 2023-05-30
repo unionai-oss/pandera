@@ -58,7 +58,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             particular column.
         :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
-        :param index: specify the datatypes and properties of the index.
         :param dtype: datatype of the dataframe. This overrides the data
             types specified in any of the columns. If a string is specified,
             then assumes one of the valid pyspark string values:
@@ -87,13 +86,14 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         :examples:
 
-        >>> import pandera as pa
+        >>> import pandera.pyspark as pa
+        >>> import pyspark.sql.types as pt
         >>>
         >>> schema = pa.DataFrameSchema({
         ...     "str_column": pa.Column(str),
         ...     "float_column": pa.Column(float),
         ...     "int_column": pa.Column(int),
-        ...     "date_column": pa.Column(pa.DateTime),
+        ...     "date_column": pa.Column(pt.DateType),
         ... })
 
         Use the pyspark API to define checks, which takes a function with
@@ -102,15 +102,13 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         >>> schema_withchecks = pa.DataFrameSchema({
         ...     "probability": pa.Column(
-        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
+        ...         pt.DoubleType(), pa.Check.greater_than(0)),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
         ...     "category": pa.Column(
-        ...         str, [
-        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
-        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
-        ...         ]),
+        ...         pt.StringType(), pa.Check.str_startswith("B"),
+        ...            ),
         ... })
 
         See :ref:`here<DataFrameSchemas>` for more usage details.
@@ -281,13 +279,13 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     ):
         """Check if all columns in a dataframe have a column in the Schema.
 
-        :param pd.DataFrame check_obj: the dataframe to be validated.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
+        :param check_obj: DataFrame object i.e. the dataframe to be validated.
+        :param head: Not used since spark has no concept of head or tail
+        :param tail: Not used since spark has no concept of head or tail
+        :param sample: validate a random sample of n% rows. Value ranges from
+                0-1, for example 10% rows can be sampled using setting value as 0.1.
+                refer below documentation.
+                https://spark.apache.org/docs/3.1.2/api/python/reference/api/pyspark.sql.DataFrame.sample.html
         :param random_state: random seed for the ``sample`` argument.
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrors``. Otherwise, raise
@@ -331,7 +329,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                  0.80      dog
                  0.76      dog
         """
-        if PANDERA_CONFIG["VALIDATION"] == "DISABLE":
+        if PANDERA_CONFIG["PANDERA_VALIDATION"] == "DISABLE":
             return
         error_handler = ErrorHandler(lazy)
 
@@ -390,16 +388,15 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     ):
         """Alias for :func:`DataFrameSchema.validate` method.
 
-        :param pd.DataFrame dataframe: the dataframe to be validated.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
+        :param dataframe: DataFrame object i.e. the dataframe to be validated.
+        :param head: Not used since spark has no concept of head or tail.
         :type head: int
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
+        :param tail: Not used since spark has no concept of head or tail.
         :type tail: int
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
+        :param sample: validate a random sample of n% rows. Value ranges from
+                0-1, for example 10% rows can be sampled using setting value as 0.1.
+                refer below documentation.
+                https://spark.apache.org/docs/3.1.2/api/python/reference/api/pyspark.sql.DataFrame.sample.html
         :param lazy: if True, lazily evaluates dataframe against all validation
             checks and raises a ``SchemaErrors``. Otherwise, raise
             ``SchemaError`` as soon as one occurs.

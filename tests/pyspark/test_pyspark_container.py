@@ -67,7 +67,7 @@ def test_pyspark_dataframeschema_with_alias_types(config_params):
     df_out = schema.validate(df)
 
     assert not df_out.pandera.errors
-    if config_params["DEPTH"] in ["SCHEMA_AND_DATA", "DATA_ONLY"]:
+    if config_params["PANDERA_DEPTH"] in ["SCHEMA_AND_DATA", "DATA_ONLY"]:
         with pytest.raises(pandera.errors.PysparkSchemaError):
             data_fail = [("Bread", 3), ("Butter", 15)]
 

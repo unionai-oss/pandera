@@ -99,7 +99,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         assert (
             error_handler is not None
         ), "The `error_handler` argument must be provided."
-        if self.params["VALIDATION"] == "DISABLE":
+        if self.params["PANDERA_VALIDATION"] == "DISABLE":
             warnings.warn(
                 "Skipping the validation checks as validation is disabled"
             )
@@ -410,6 +410,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Coerce dataframe to the type specified in dtype.
 
         :param obj: dataframe to coerce.
+        :param schema: schema object
         :returns: dataframe with coerced dtypes
         """
         # NOTE: clean up the error handling!

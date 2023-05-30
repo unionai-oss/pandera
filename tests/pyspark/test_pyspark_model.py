@@ -226,7 +226,7 @@ def test_dataframe_schema_strict(spark, config_params) -> None:
     Checks if strict=True whether a schema error is raised because either extra columns are present in the dataframe
     or missing columns in dataframe
     """
-    if config_params["DEPTH"] != "DATA_ONLY":
+    if config_params["PANDERA_DEPTH"] != "DATA_ONLY":
         schema = DataFrameSchema(
             {
                 "a": pa.Column("long", nullable=True),

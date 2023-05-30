@@ -17,7 +17,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from pandera.backends.base import BaseSchemaBackend
-from pandera.backends.pyspark.error_formatters import (  # format_vectorized_error_message,; consolidate_failure_cases,; summarize_failure_cases,; reshape_failure_cases,
+from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
     scalar_failure_case,
 )
@@ -75,6 +75,9 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     ) -> bool:
         """Handle check results, raising SchemaError on check failure.
 
+        :param check_obj: pyspark dataframe object
+        :param schema: schema information of the column in the dataframe that needs to be validated
+        :param check: Check object used to validate pyspark object.
         :param check_index: index of check in the schema component check list.
         :param check: Check object used to validate pyspark object.
         :param check_args: arguments to pass into check object.
