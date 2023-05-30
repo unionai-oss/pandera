@@ -21,12 +21,10 @@ try:
     import hypothesis
     import hypothesis.extra.numpy as npst
     import hypothesis.strategies as st
-    import hypothesis.extra.pandas as pdst
 except ImportError:
     HAS_HYPOTHESIS = False
     hypothesis = MagicMock()
     st = MagicMock()
-    pdst = MagicMock()
 else:
     HAS_HYPOTHESIS = True
 
@@ -402,7 +400,7 @@ def test_register_check_strategy(data) -> None:
             )
 
     check = CustomCheck.custom_equals(100)
-    result = data.draw(check.strategy(pa.Int()))
+    result = data.draw(check.strategy(pa.Int(), **check.statistics))
     assert result == 100
 
 
@@ -805,38 +803,68 @@ def test_dataframe_strategy_undefined_check_strategy(
     schema(example)
 
 
-@pytest.mark.xfail(reason="no mechanism to specify strategy size")
+@pytest.mark.parametrize("register_check", [True, False])
 @hypothesis.given(st.data())
-def test_defined_check_strategy(data: st.DataObject):
+def test_defined_check_strategy(
+    register_check: bool,
+    data: st.DataObject,
+):
     """
     Strategy specified for custom check is actually used when generating column
     examples.
     """
-    integer_series_drawn = False
 
-    @st.composite
-    def integer_series(draw: st.DrawFn) -> pd.Series:
-        nonlocal integer_series_drawn  # type: ignore[misc]
-        result = draw(pdst.series(dtype=int))
-        integer_series_drawn = True
-        return result
+    def custom_strategy(pandera_dtype, strategy=None, *, min_val, max_val):
+        """Custom strategy for range check."""
+        if strategy is None:
+            return st.floats(min_value=min_val, max_value=max_val).map(
+                # the map isn't strictly necessary, but shows an example of
+                # using the pandera_dtype argument
+                strategies.to_numpy_dtype(pandera_dtype).type
+            )
+        return strategy.filter(lambda val: 0 <= val <= 10)
 
-    # sanity check integer_series_drawn works
-    data.draw(integer_series(), label="sanity check draw")
-    assert integer_series_drawn
-    integer_series_drawn = False
+    if "custom_check_with_strategy" in pa.Check.REGISTERED_CUSTOM_CHECKS:
+        del pa.Check.REGISTERED_CUSTOM_CHECKS["custom_check_with_strategy"]
 
-    col = pa.Column(
-        dtype="float64",
-        checks=Check(
-            lambda s: (s.notna() % 1 == 0).all(), strategy=integer_series()
-        ),
+    @pa.extensions.register_check_method(
+        strategy=custom_strategy,
+        statistics=["min_val", "max_val"],
     )
-    size = data.draw(st.none() | st.integers(0, 10), label="size")
-    s = data.draw(col.strategy(size=size), label="s")
-    if size is not None:
-        assert s.size == size
-    assert integer_series_drawn
+    def custom_check_with_strategy(pandas_obj, *, min_val, max_val):
+        """Custom range check."""
+        if isinstance(pandas_obj, pd.Series):
+            return pandas_obj.between(min_val, max_val)
+        return pandas_obj.applymap(lambda x: min_val <= x <= max_val)
+
+    if register_check:
+        check = Check.custom_check_with_strategy(0, 10)
+    else:
+        check = Check(
+            custom_check_with_strategy,
+            strategy=custom_strategy,
+            min_val=0,
+            max_val=10,
+        )
+
+    # test with column and dataframe schema
+    col_schema = pa.Column(dtype="float64", checks=check, name="col_name")
+    df_schema = pa.DataFrameSchema(
+        columns={
+            "col1": pa.Column(float),
+            "col2": pa.Column(float),
+            "col3": pa.Column(float),
+        },
+        checks=check,
+    )
+
+    for schema in (col_schema, df_schema):
+        size = data.draw(st.none() | st.integers(0, 3), label="size")
+        sample = data.draw(schema.strategy(size=size), label="s")  # type: ignore
+        if size is not None:
+            assert sample.shape[0] == size
+        validated = schema.validate(sample)
+        assert isinstance(validated, pd.DataFrame)
 
 
 def test_unsatisfiable_checks():

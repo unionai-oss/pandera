@@ -195,7 +195,7 @@ class Check(BaseCheck):
             groups = [groups]
         self.groups: Optional[List[str]] = groups
 
-        self.statistics = statistics or {}
+        self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]
         self.strategy = strategy
 
