@@ -34,7 +34,7 @@ class TestConfigParams:
 
         # Need to do imports and schema definition in code to ensure the object is instantiated from scratch
         self.remove_python_module_cache()
-        monkeypatch.setenv("VALIDATION", "DISABLE")
+        monkeypatch.setenv("PANDERA_VALIDATION", "DISABLE")
 
         import pandera
         from pandera.pyspark import (
@@ -62,7 +62,7 @@ class TestConfigParams:
 
         params = ConfigParams()
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
-        expected = {"VALIDATION": "DISABLE", "DEPTH": "SCHEMA_AND_DATA"}
+        expected = {"PANDERA_VALIDATION": "DISABLE", "PANDERA_DEPTH": "SCHEMA_AND_DATA"}
 
         assert dict(params) == expected
         assert pandra_schema.validate(input_df) is None
@@ -73,8 +73,8 @@ class TestConfigParams:
     ):  # pylint:disable=too-many-locals
         """This function validates that only schema related checks are run not data level"""
         self.remove_python_module_cache()
-        monkeypatch.setenv("VALIDATION", "ENABLE")
-        monkeypatch.setenv("DEPTH", "SCHEMA_ONLY")
+        monkeypatch.setenv("PANDERA_VALIDATION", "ENABLE")
+        monkeypatch.setenv("PANDERA_DEPTH", "SCHEMA_ONLY")
         # Need to do imports and schema definition in code to ensure the object is instantiated from scratch
 
         import pandera
@@ -96,7 +96,7 @@ class TestConfigParams:
             }
         )
 
-        expected = {"VALIDATION": "ENABLE", "DEPTH": "SCHEMA_ONLY"}
+        expected = {"PANDERA_VALIDATION": "ENABLE", "PANDERA_DEPTH": "SCHEMA_ONLY"}
         assert dict(params) == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -164,8 +164,8 @@ class TestConfigParams:
     ):  # pylint:disable=too-many-locals
         """This function validates that only data related checks are run not schema level"""
         self.remove_python_module_cache()
-        monkeypatch.setenv("VALIDATION", "ENABLE")
-        monkeypatch.setenv("DEPTH", "DATA_ONLY")
+        monkeypatch.setenv("PANDERA_VALIDATION", "ENABLE")
+        monkeypatch.setenv("PANDERA_DEPTH", "DATA_ONLY")
 
         import pandera
         from pandera.pyspark import (
@@ -186,7 +186,7 @@ class TestConfigParams:
             }
         )
 
-        expected = {"VALIDATION": "ENABLE", "DEPTH": "DATA_ONLY"}
+        expected = {"PANDERA_VALIDATION": "ENABLE", "PANDERA_DEPTH": "DATA_ONLY"}
         assert dict(params) == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -260,8 +260,8 @@ class TestConfigParams:
     ):  # pylint:disable=too-many-locals
         """This function validates that both data and schema level checks are validated"""
         self.remove_python_module_cache()
-        monkeypatch.setenv("VALIDATION", "ENABLE")
-        monkeypatch.setenv("DEPTH", "SCHEMA_AND_DATA")
+        monkeypatch.setenv("PANDERA_VALIDATION", "ENABLE")
+        monkeypatch.setenv("PANDERA_DEPTH", "SCHEMA_AND_DATA")
 
         import pandera
         from pandera.pyspark import (
@@ -282,7 +282,7 @@ class TestConfigParams:
             }
         )
 
-        expected = {"VALIDATION": "ENABLE", "DEPTH": "SCHEMA_AND_DATA"}
+        expected = {"PANDERA_VALIDATION": "ENABLE", "PANDERA_DEPTH": "SCHEMA_AND_DATA"}
         assert dict(params) == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)

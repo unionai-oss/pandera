@@ -292,7 +292,7 @@ class DataFrameModel(BaseModel):
         inplace: bool = False,
     ) -> Optional[DataFrameBase[TDataFrameModel]]:
         """%(validate_doc)s"""
-        if PANDERA_CONFIG["VALIDATION"] == "DISABLE":
+        if PANDERA_CONFIG["PANDERA_VALIDATION"] == "DISABLE":
             return None
         return cast(
             DataFrameBase[TDataFrameModel],

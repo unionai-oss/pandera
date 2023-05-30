@@ -72,8 +72,8 @@ def validate_scope(params, scope):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             if scope == "SCHEMA":
-                if (params["DEPTH"] == "SCHEMA_AND_DATA") or (
-                    params["DEPTH"] == "SCHEMA_ONLY"
+                if (params["PANDERA_DEPTH"] == "SCHEMA_AND_DATA") or (
+                    params["PANDERA_DEPTH"] == "SCHEMA_ONLY"
                 ):
                     return func(self, *args, **kwargs)
                 else:
@@ -91,8 +91,8 @@ def validate_scope(params, scope):
                                 return value
 
             elif scope == "DATA":
-                if (params["DEPTH"] == "SCHEMA_AND_DATA") or (
-                    params["DEPTH"] == "DATA_ONLY"
+                if (params["PANDERA_DEPTH"] == "SCHEMA_AND_DATA") or (
+                    params["PANDERA_DEPTH"] == "DATA_ONLY"
                 ):
                     return func(self, *args, **kwargs)
                 else:

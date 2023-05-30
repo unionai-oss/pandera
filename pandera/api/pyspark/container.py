@@ -329,7 +329,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                  0.80      dog
                  0.76      dog
         """
-        if PANDERA_CONFIG["VALIDATION"] == "DISABLE":
+        if PANDERA_CONFIG["PANDERA_VALIDATION"] == "DISABLE":
             return
         error_handler = ErrorHandler(lazy)
 

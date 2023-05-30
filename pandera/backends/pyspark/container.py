@@ -99,7 +99,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         assert (
             error_handler is not None
         ), "The `error_handler` argument must be provided."
-        if self.params["VALIDATION"] == "DISABLE":
+        if self.params["PANDERA_VALIDATION"] == "DISABLE":
             warnings.warn(
                 "Skipping the validation checks as validation is disabled"
             )

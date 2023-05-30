@@ -2,7 +2,7 @@
 import os
 import warnings
 
-DEFAULT_CONFIG = {"VALIDATION": "ENABLE", "DEPTH": "SCHEMA_AND_DATA"}
+DEFAULT_CONFIG = {"PANDERA_VALIDATION": "ENABLE", "PANDERA_DEPTH": "SCHEMA_AND_DATA"}
 
 
 def convert_to_list(*args):
@@ -28,27 +28,27 @@ class ConfigParams(dict):
 
     def set_config(self):
         """This function sets the config for the instance of config param"""
-        if os.environ.get("VALIDATION"):
-            self.config["VALIDATION"] = os.environ.get("VALIDATION")
+        if os.environ.get("PANDERA_VALIDATION"):
+            self.config["PANDERA_VALIDATION"] = os.environ.get("PANDERA_VALIDATION")
             warnings.warn(
-                "Setting the VALIDATION config from environment variables",
+                "Setting the PANDERA_VALIDATION config from environment variables",
                 RuntimeWarning,
                 stacklevel=2,
             )
 
-        if os.environ.get("DEPTH"):
-            self.config["DEPTH"] = os.environ.get("DEPTH")
+        if os.environ.get("PANDERA_DEPTH"):
+            self.config["PANDERA_DEPTH"] = os.environ.get("PANDERA_DEPTH")
             warnings.warn(
-                "Setting the DEPTH config from environment variables",
+                "Setting the PANDERA_DEPTH config from environment variables",
                 RuntimeWarning,
                 stacklevel=2,
             )
 
-        if (not os.environ.get("VALIDATION")) and (
-            not os.environ.get("DEPTH")
+        if (not os.environ.get("PANDERA_VALIDATION")) and (
+            not os.environ.get("PANDERA_DEPTH")
         ):
             warnings.warn(
-                "Setting the VALIDATION and DEPTH config from default values"
+                "Setting the PANDERA_VALIDATION and PANDERA_DEPTH config from default values"
                 " since no environment variable found to overload",
                 RuntimeWarning,
             )
@@ -57,26 +57,26 @@ class ConfigParams(dict):
     @staticmethod
     def validate_params(config):
         """This function validates the input of the config"""
-        if not config.get("VALIDATION"):
+        if not config.get("PANDERA_VALIDATION"):
             raise ValueError(
-                'Parameter "VALIDATION" not found in config, ensure the parameter value is in upper case'
+                'Parameter "PANDERA_VALIDATION" not found in config, ensure the parameter value is in upper case'
             )
-        if config.get("VALIDATION") not in ["ENABLE", "DISABLE"]:
+        if config.get("PANDERA_VALIDATION") not in ["ENABLE", "DISABLE"]:
             raise ValueError(
-                "Parameter 'VALIDATION' only supports 'ENABLE' or 'DISABLE' as valid values."
+                "Parameter 'PANDERA_VALIDATION' only supports 'ENABLE' or 'DISABLE' as valid values."
                 "Ensure the value is in upper case only"
             )
-        if not config.get("DEPTH"):
+        if not config.get("PANDERA_DEPTH"):
             raise ValueError(
-                'Parameter "DEPTH" not found in config, ensure the parameter value is in upper case'
+                'Parameter "PANDERA_DEPTH" not found in config, ensure the parameter value is in upper case'
             )
-        if config.get("DEPTH") not in [
+        if config.get("PANDERA_DEPTH") not in [
             "SCHEMA_ONLY",
             "DATA_ONLY",
             "SCHEMA_AND_DATA",
         ]:
             raise ValueError(
-                "Parameter 'DEPTH' only supports 'SCHEMA_AND_DATA', 'SCHEMA_ONLY' or 'DATA_ONLY' "
+                "Parameter 'PANDERA_DEPTH' only supports 'SCHEMA_AND_DATA', 'SCHEMA_ONLY' or 'DATA_ONLY' "
                 "as valid values. Ensure the value is in upper case only"
             )
 
