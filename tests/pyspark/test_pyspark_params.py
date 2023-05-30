@@ -62,7 +62,10 @@ class TestConfigParams:
 
         params = ConfigParams()
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
-        expected = {"PANDERA_VALIDATION": "DISABLE", "PANDERA_DEPTH": "SCHEMA_AND_DATA"}
+        expected = {
+            "PANDERA_VALIDATION": "DISABLE",
+            "PANDERA_DEPTH": "SCHEMA_AND_DATA",
+        }
 
         assert dict(params) == expected
         assert pandra_schema.validate(input_df) is None
@@ -96,7 +99,10 @@ class TestConfigParams:
             }
         )
 
-        expected = {"PANDERA_VALIDATION": "ENABLE", "PANDERA_DEPTH": "SCHEMA_ONLY"}
+        expected = {
+            "PANDERA_VALIDATION": "ENABLE",
+            "PANDERA_DEPTH": "SCHEMA_ONLY",
+        }
         assert dict(params) == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -186,7 +192,10 @@ class TestConfigParams:
             }
         )
 
-        expected = {"PANDERA_VALIDATION": "ENABLE", "PANDERA_DEPTH": "DATA_ONLY"}
+        expected = {
+            "PANDERA_VALIDATION": "ENABLE",
+            "PANDERA_DEPTH": "DATA_ONLY",
+        }
         assert dict(params) == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
@@ -282,7 +291,10 @@ class TestConfigParams:
             }
         )
 
-        expected = {"PANDERA_VALIDATION": "ENABLE", "PANDERA_DEPTH": "SCHEMA_AND_DATA"}
+        expected = {
+            "PANDERA_VALIDATION": "ENABLE",
+            "PANDERA_DEPTH": "SCHEMA_AND_DATA",
+        }
         assert dict(params) == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
