@@ -231,7 +231,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         schema_index = schema.index.names if schema.index is not None else None
         if "index" not in kwargs:
             kwargs["index"] = schema_index
-        return DataFrame[T](
+        return DataFrame[schema](
             pd.DataFrame.from_records(data=data, **kwargs,)[
                 schema.columns.keys()
             ]  # set the column order according to schema
