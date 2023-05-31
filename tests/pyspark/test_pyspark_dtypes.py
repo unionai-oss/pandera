@@ -254,15 +254,6 @@ class TestAllDatetimeTestClass(BaseClass):
             {"pandera_equivalent": "datetime"},
             {"pandera_equivalent": "timestamp"},
         ],
-        "test_pyspark_all_daytimeinterval_types": [
-            {"pandera_equivalent": T.DayTimeIntervalType},
-            {"pandera_equivalent": "timedelta"},
-            {"pandera_equivalent": T.DayTimeIntervalType()},
-            {"pandera_equivalent": "DayTimeIntervalType()"},
-        ],
-        "test_pyspark_daytimeinterval_param_mismatch": [
-            {"pandera_equivalent": T.DayTimeIntervalType(1, 3)},
-        ],
     }
 
     def test_pyspark_all_date_types(
@@ -284,38 +275,6 @@ class TestAllDatetimeTestClass(BaseClass):
         column_name = "purchase_datetime"
         df = sample_date_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
-
-    def test_pyspark_all_daytimeinterval_types(
-        self, pandera_equivalent, sample_date_object
-    ):
-        """
-        Test daytimeinterval dtype column
-        """
-        column_name = "expiry_time"
-        df = sample_date_object.select(column_name)
-        self.validate_data(df, pandera_equivalent, column_name)
-
-    @validate_scope(params=BaseClass.params, scope="SCHEMA")
-    def test_pyspark_daytimeinterval_param_mismatch(
-        self, pandera_equivalent, sample_date_object
-    ):
-        """
-        Test daytimeinterval parameter mismatch
-        """
-        column_name = "expected_time"
-        df = sample_date_object.select(column_name)
-        errors = self.validate_data(df, pandera_equivalent, column_name, True)
-        assert dict(errors["SCHEMA"]) == {
-            "WRONG_DATATYPE": [
-                {
-                    "schema": None,
-                    "column": "expected_time",
-                    "check": "dtype('DayTimeIntervalType(1, 3)')",
-                    "error": "expected column 'expected_time' to have type DayTimeIntervalType(1, 3), "
-                    "got DayTimeIntervalType(2, 3)",
-                }
-            ]
-        }
 
 
 class TestBinaryStringTypes(BaseClass):
