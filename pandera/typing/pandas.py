@@ -9,6 +9,7 @@ from typing import (  # type: ignore[attr-defined]
     Generic,
     List,
     Tuple,
+    Type,
     TypeVar,
     Union,
     _type_check,
@@ -211,7 +212,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @staticmethod
     def from_records(  # type: ignore
-        schema: T,
+        schema: Type[T],
         data: Union[  # type: ignore
             np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
         ],
