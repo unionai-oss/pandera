@@ -1073,11 +1073,8 @@ def dataframe_strategy(
         undefined_strat_df_checks = []
         for check in checks:
             if (
-                getattr(
-                    check,
-                    "strategy",
-                    STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None),
-                )
+                check.strategy
+                or STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None)
                 or check.element_wise
             ):
                 # we can apply element-wise checks defined at the dataframe

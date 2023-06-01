@@ -484,6 +484,25 @@ def test_dataframe_strategy(data_type, size, data):
         )
 
 
+@pytest.mark.parametrize("size", [None, 0, 1, 3, 5])
+@hypothesis.given(st.data())
+def test_dataframe_strategy_with_check(size, data):
+    """Test DataFrameSchema strategy with dataframe-level check."""
+    dataframe_schema = pa.DataFrameSchema(
+        {"col": pa.Column(float)},
+        checks=pa.Check.in_range(5, 10),
+    )
+    df_sample = data.draw(dataframe_schema.strategy(size=size))
+    if size == 0:
+        assert df_sample.empty
+    elif size is None:
+        assert df_sample.empty or isinstance(
+            dataframe_schema(df_sample), pd.DataFrame
+        )
+    else:
+        assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
+
+
 @hypothesis.given(st.data())
 def test_dataframe_example(data) -> None:
     """Test DataFrameSchema example method generate examples that pass."""
