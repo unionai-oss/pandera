@@ -288,5 +288,6 @@ def register_check_method(
         Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(
             check_method, Check
         )
+        return check_fn
 
     return register_check_wrapper(check_fn)

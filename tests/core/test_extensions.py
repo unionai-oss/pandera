@@ -226,7 +226,7 @@ def test_register_check_with_strategy(custom_check_teardown: None) -> None:
         return pandas_obj >= min_value
 
     check = Check.custom_ge_check(min_value=0)
-    strat = check.strategy(pa.Int)
+    strat = check.strategy(pa.Int, **check.statistics)
     with pytest.warns(hypothesis.errors.NonInteractiveExampleWarning):
         assert strat.example() >= 0
 
