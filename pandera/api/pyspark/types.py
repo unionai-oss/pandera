@@ -29,7 +29,6 @@ PysparkDefaultTypes = Union[
     pst.ShortType,
     pst.ByteType,
     pst.LongType,
-    pst.DayTimeIntervalType,
     pst.BinaryType,
 ]
 
@@ -52,7 +51,6 @@ PySparkDtypeInputTypes = Union[
     pst.ShortType,
     pst.ByteType,
     pst.LongType,
-    pst.DayTimeIntervalType,
     pst.BinaryType,
 ]
 

@@ -16,7 +16,7 @@ def test_pyspark_data_type(data_type):
     if data_type.type is None:
         # don't test data types that require parameters e.g. Category
         return
-    parameterized_datatypes = ["daytimeinterval", "decimal", "array", "map"]
+    parameterized_datatypes = ["decimal", "array", "map"]
 
     pyspark_engine.Engine.dtype(
         data_type

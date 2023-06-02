@@ -31,8 +31,6 @@ except ImportError:  # pragma: no cover
 
 DEFAULT_PYSPARK_PREC = pst.DecimalType().precision
 DEFAULT_PYSPARK_SCALE = pst.DecimalType().scale
-DEFAULT_PYPSPARK_START_FIELD = pst.DayTimeIntervalType().startField
-DEFAULT_PYPSPARK_END_FIELD = pst.DayTimeIntervalType().endField
 
 
 @immutable(init=True)
@@ -366,77 +364,6 @@ class Binary(DataType, dtypes.Binary):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.BinaryType`."""
 
     type = pst.BinaryType()  # type: ignore
-
-
-###############################################################################
-# timedelta
-###############################################################################
-
-
-@Engine.register_dtype(
-    equivalents=[
-        "timedelta",
-        "DayTimeIntervalType()",
-        pst.DayTimeIntervalType(),
-        pst.DayTimeIntervalType,
-    ]
-)
-@immutable(init=True)
-class TimeDelta(DataType):
-    """Semantic representation of a :class:`pyspark.sql.types.DayTimeIntervalType`."""
-
-    type: pst.DayTimeIntervalType = dataclasses.field(
-        default=pst.DayTimeIntervalType, init=False
-    )
-    startField: int = DEFAULT_PYPSPARK_START_FIELD
-    endField: int = DEFAULT_PYPSPARK_END_FIELD
-
-    def __init__(  # pylint:disable=super-init-not-called
-        self,
-        start_field: int = DEFAULT_PYPSPARK_START_FIELD,
-        end_field: int = DEFAULT_PYPSPARK_END_FIELD,
-    ) -> None:
-        # super().__init__(self)
-        object.__setattr__(self, "startField", start_field)
-        object.__setattr__(self, "endField", end_field)
-        object.__setattr__(
-            self,
-            "type",
-            pst.DayTimeIntervalType(self.startField, self.endField),
-        )
-
-    @classmethod
-    def from_parametrized_dtype(cls, ps_dtype: pst.DayTimeIntervalType):
-        """Convert a :class:`pyspark.sql.types.DayTimeIntervalType` to
-        a Pandera :class:`pandera.engines.pyspark_engine.TimeDelta`."""
-        return cls(
-            start_field=ps_dtype.startField, end_field=ps_dtype.endField
-        )
-
-    def check(
-        self,
-        pandera_dtype: dtypes.DataType,
-        data_container: Any = None,  # pylint: disable=unused-argument
-    ) -> Union[bool, Iterable[bool]]:
-        try:
-            pandera_dtype = Engine.dtype(pandera_dtype)
-        except TypeError:  # pragma: no cover
-            return False
-
-        # attempts to compare pyspark native type if possible
-        # to let subclass inherit check
-        # (super will compare that DataType classes are exactly the same)
-        try:
-            return (
-                (self.type == pandera_dtype.type)
-                & (self.type.DAY == pandera_dtype.type.DAY)
-                & (self.type.HOUR == pandera_dtype.type.HOUR)
-                & (self.type.MINUTE == pandera_dtype.type.MINUTE)
-                & (self.type.SECOND == pandera_dtype.type.SECOND)
-            )
-
-        except TypeError:  # pragma: no cover
-            return super().check(pandera_dtype)
 
 
 ###############################################################################

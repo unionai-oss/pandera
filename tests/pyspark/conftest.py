@@ -50,22 +50,16 @@ def sample_date_object(spark):
         (
             datetime.date(2022, 10, 1),
             datetime.datetime(2022, 10, 1, 5, 32, 0),
-            datetime.timedelta(45),
-            datetime.timedelta(45),
         ),
         (
             datetime.date(2022, 11, 5),
             datetime.datetime(2022, 11, 5, 15, 34, 0),
-            datetime.timedelta(30),
-            datetime.timedelta(45),
         ),
     ]
     sample_spark_schema = T.StructType(
         [
             T.StructField("purchase_date", T.DateType(), False),
             T.StructField("purchase_datetime", T.TimestampType(), False),
-            T.StructField("expiry_time", T.DayTimeIntervalType(), False),
-            T.StructField("expected_time", T.DayTimeIntervalType(2, 3), False),
         ],
     )
     df = spark_df(

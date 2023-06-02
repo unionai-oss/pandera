@@ -26,7 +26,6 @@ ALL_DATE_TYPE = [pst.DateType, pst.TimestampType]
 BOLEAN_TYPE = pst.BooleanType
 BINARY_TYPE = pst.BinaryType
 STRING_TYPE = pst.StringType
-DAYTIMEINTERVAL_TYPE = pst.DayTimeIntervalType
 
 
 @register_builtin_check(
