@@ -117,6 +117,8 @@ def _get_series_base_schema_statistics(series_schema_base):
         "coerce": series_schema_base.coerce,
         "name": series_schema_base.name,
         "unique": series_schema_base.unique,
+        "title": series_schema_base.title,
+        "description": series_schema_base.description,
     }
 
 

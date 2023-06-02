@@ -12,6 +12,13 @@ try:
 except ImportError:
     PYSPARK_INSTALLED = False
 
+try:
+    from pyspark.sql import DataFrame
+
+    PYSPARK_INSTALLED = True
+except ImportError:
+    PYSPARK_INSTALLED = False
+
 PandasObject = Union[pd.Series, pd.DataFrame]
 PandasExtensionType = pd.core.dtypes.base.ExtensionDtype
 PandasDataType = Union[pd.core.dtypes.base.ExtensionDtype, np.dtype, type]

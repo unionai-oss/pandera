@@ -18,12 +18,8 @@ def test_pyspark_data_type(data_type):
         return
     parameterized_datatypes = ["decimal", "array", "map"]
 
-    pyspark_engine.Engine.dtype(
-        data_type
-    )  # pylint:disable=no-value-for-parameter
-    pyspark_engine.Engine.dtype(
-        data_type.type
-    )  # pylint:disable=no-value-for-parameter
+    pyspark_engine.Engine.dtype(data_type)  # pylint:disable=no-value-for-parameter
+    pyspark_engine.Engine.dtype(data_type.type)  # pylint:disable=no-value-for-parameter
     if data_type.type.typeName() not in parameterized_datatypes:
         pyspark_engine.Engine.dtype(
             str(data_type.type)

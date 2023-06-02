@@ -24,6 +24,7 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
 :py:class:`~pandera.api.pandas.model.DataFrameModel` for validation.
 
 .. testcode:: scaling_pyspark
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
     import pyspark.pandas as ps
     import pandas as pd
@@ -57,6 +58,7 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
 
 
 .. testoutput:: scaling_pyspark
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
       state           city  price
     0    FL        Orlando      8
@@ -72,6 +74,7 @@ pyspark pandas dataframes at runtime:
 
 
 .. testcode:: scaling_pyspark
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
     @pa.check_types
     def function(df: DataFrame[Schema]) -> DataFrame[Schema]:
@@ -81,6 +84,7 @@ pyspark pandas dataframes at runtime:
 
 
 .. testoutput:: scaling_pyspark
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
       state           city  price
     3    CA  San Francisco     16
@@ -92,6 +96,7 @@ And of course, you can use the object-based API to validate dask dataframes:
 
 
 .. testcode:: scaling_pyspark
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
     schema = pa.DataFrameSchema({
         "state": pa.Column(str),
@@ -102,6 +107,7 @@ And of course, you can use the object-based API to validate dask dataframes:
 
 
 .. testoutput:: scaling_pyspark
+    :skipif: SKIP_PANDAS_LT_V1_OR_GT_V2
 
       state           city  price
     0    FL        Orlando      8

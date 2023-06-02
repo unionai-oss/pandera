@@ -5,32 +5,77 @@ import pandas as pd
 import pandera.typing
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
+from pandera.api.pandas.array import SeriesSchema
+from pandera.api.pandas.container import DataFrameSchema
+from pandera.api.pandas.components import Column, Index, MultiIndex
+
 from pandera.backends.pandas import builtin_checks, builtin_hypotheses
 from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
+from pandera.backends.pandas.array import SeriesSchemaBackend
+from pandera.backends.pandas.container import DataFrameSchemaBackend
+from pandera.backends.pandas.components import (
+    ColumnBackend,
+    IndexBackend,
+    MultiIndexBackend,
+)
 
-data_types = [pd.DataFrame, pd.Series]
+
+dataframe_datatypes = [pd.DataFrame]
+series_datatypes = [pd.Series]
+index_datatypes = [pd.Index]
+multiindex_datatypes = [pd.MultiIndex]
 
 if pandera.typing.dask.DASK_INSTALLED:
     import dask.dataframe as dd
 
-    data_types.extend([dd.DataFrame, dd.Series])
+    dataframe_datatypes.append(dd.DataFrame)
+    series_datatypes.append(dd.Series)
+    index_datatypes.append(dd.Index)
 
 if pandera.typing.modin.MODIN_INSTALLED:
     import modin.pandas as mpd
 
-    data_types.extend([mpd.DataFrame, mpd.Series])
+    dataframe_datatypes.append(mpd.DataFrame)
+    series_datatypes.append(mpd.Series)
+    index_datatypes.append(mpd.Index)
+    multiindex_datatypes.append(mpd.MultiIndex)
 
 if pandera.typing.pyspark.PYSPARK_INSTALLED:
     import pyspark.pandas as ps
 
-    data_types.extend([ps.DataFrame, ps.Series])
+    dataframe_datatypes.append(ps.DataFrame)
+    series_datatypes.append(ps.Series)
+    index_datatypes.append(ps.Index)
+    multiindex_datatypes.append(ps.MultiIndex)
 
 if pandera.typing.geopandas.GEOPANDAS_INSTALLED:
     import geopandas as gpd
 
-    data_types.extend([gpd.GeoDataFrame, gpd.GeoSeries])
+    dataframe_datatypes.append(gpd.GeoDataFrame)
+    series_datatypes.append(gpd.GeoSeries)
 
-for t in data_types:
+for t in [
+    *dataframe_datatypes,
+    *series_datatypes,
+    *index_datatypes,
+]:
     Check.register_backend(t, PandasCheckBackend)
     Hypothesis.register_backend(t, PandasHypothesisBackend)
+
+for t in dataframe_datatypes:
+    DataFrameSchema.register_backend(t, DataFrameSchemaBackend)
+    Column.register_backend(t, ColumnBackend)
+    MultiIndex.register_backend(t, MultiIndexBackend)
+    Index.register_backend(t, IndexBackend)
+
+for t in series_datatypes:
+    SeriesSchema.register_backend(t, SeriesSchemaBackend)
+    Column.register_backend(t, ColumnBackend)
+    Index.register_backend(t, IndexBackend)
+
+for t in index_datatypes:
+    Index.register_backend(t, IndexBackend)
+
+for t in multiindex_datatypes:
+    MultiIndex.register_backend(t, MultiIndexBackend)

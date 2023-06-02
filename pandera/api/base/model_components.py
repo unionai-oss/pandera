@@ -42,6 +42,7 @@ class BaseFieldInfo:
         "dtype_kwargs",
         "title",
         "description",
+        "default",
         "metadata",
     )
 
@@ -57,6 +58,7 @@ class BaseFieldInfo:
         dtype_kwargs: Optional[Dict[str, Any]] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
         metadata: Optional[dict] = None,
     ) -> None:
         self.checks = to_checklist(checks)
@@ -70,6 +72,7 @@ class BaseFieldInfo:
         self.dtype_kwargs = dtype_kwargs
         self.title = title
         self.description = description
+        self.default = default
         self.metadata = metadata
 
     @property
@@ -110,6 +113,9 @@ class BaseFieldInfo:
     def __get_metadata__(self):
         return self.metadata
 
+    def __get_metadata__(self):
+        return self.metadata
+
 
 class BaseCheckInfo:  # pylint:disable=too-few-public-methods
     """Captures extra information about a Check."""
@@ -122,9 +128,7 @@ class BaseCheckInfo:  # pylint:disable=too-few-public-methods
         """Create a Check from metadata."""
         name = self.check_kwargs.pop("name", None)
         if not name:
-            name = getattr(
-                self.check_fn, "__name__", self.check_fn.__class__.__name__
-            )
+            name = getattr(self.check_fn, "__name__", self.check_fn.__class__.__name__)
 
         def _adapter(arg: Any) -> Union[bool, Iterable[bool]]:
             return self.check_fn(model_cls, arg)

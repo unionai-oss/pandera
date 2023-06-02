@@ -2,11 +2,14 @@
 
 import traceback
 from copy import copy, deepcopy
-from typing import Iterable, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 
+from pandera.backends.base import CoreCheckResult
+from pandera.backends.pandas.array import ArraySchemaBackend
+from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.api.pandas.types import (
     is_field,
     is_index,
@@ -45,7 +48,7 @@ class ColumnBackend(ArraySchemaBackend):
             raise SchemaError(
                 schema,
                 check_obj,
-                "column name is set to None. Pass the ``name` argument when "
+                "column name is set to None. Pass the ``name`` argument when "
                 "initializing a Column object, or use the ``set_name`` "
                 "method.",
             )
@@ -64,9 +67,10 @@ class ColumnBackend(ArraySchemaBackend):
                     inplace=inplace,
                 )
             except SchemaErrors as err:
-                for err_dict in err.schema_errors:
+                for err in err.schema_errors:
                     error_handler.collect_error(
-                        err_dict["reason_code"], err_dict["error"]
+                        reason_code=None,
+                        schema_error=err,
                     )
             except SchemaError as err:
                 error_handler.collect_error(err.reason_code, err)
@@ -79,17 +83,17 @@ class ColumnBackend(ArraySchemaBackend):
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj[column_name] = self.coerce_dtype(
-                    check_obj[column_name],
-                    schema=schema,
-                    error_handler=error_handler,
-                )
+                try:
+                    check_obj[column_name] = self.coerce_dtype(
+                        check_obj[column_name],
+                        schema=schema,
+                    )
+                except SchemaErrors as exc:
+                    error_handler.collect_errors(exc)
 
             if is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):
-                    validate_column(
-                        check_obj[column_name].iloc[:, [i]], column_name
-                    )
+                    validate_column(check_obj[column_name].iloc[:, [i]], column_name)
             else:
                 validate_column(check_obj, column_name)
 
@@ -159,9 +163,7 @@ class ColumnBackend(ArraySchemaBackend):
     def coerce_dtype(
         self,
         check_obj: Union[pd.DataFrame, pd.Series],
-        *,
         schema=None,
-        error_handler: SchemaErrorHandler = None,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
@@ -171,50 +173,53 @@ class ColumnBackend(ArraySchemaBackend):
             return super(ColumnBackend, self).coerce_dtype(
                 check_obj,
                 schema=schema,
-                error_handler=error_handler,
             )
         return check_obj.apply(
             lambda x: super(ColumnBackend, self).coerce_dtype(
                 x,
                 schema=schema,
-                error_handler=error_handler,
             ),
             axis="columns",
         )
 
-    def run_checks(self, check_obj, schema, error_handler, lazy):
-        check_results = []
+    def run_checks(self, check_obj, schema):
+        check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             check_args = [None] if is_field(check_obj) else [schema.name]
             try:
                 check_results.append(
-                    self.run_check(
-                        check_obj, schema, check, check_index, *check_args
-                    )
+                    self.run_check(check_obj, schema, check, check_index, *check_args)
                 )
             except SchemaError as err:
-                error_handler.collect_error(
-                    SchemaErrorReason.DATAFRAME_CHECK,
-                    err,
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                        message=str(err),
+                        failure_cases=err.failure_cases,
+                        original_exc=err,
+                    )
                 )
             except Exception as err:  # pylint: disable=broad-except
                 # catch other exceptions that may occur when executing the Check
                 err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
                 err_str = f"{err.__class__.__name__}({ err_msg})"
-                error_handler.collect_error(
-                    SchemaErrorReason.CHECK_ERROR,
-                    SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=(
-                            f"Error while executing check function: {err_str}\n"
-                            + traceback.format_exc()
-                        ),
-                        failure_cases=scalar_failure_case(err_str),
+                msg = (
+                    f"Error while executing check function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
                         check=check,
                         check_index=check_index,
-                    ),
-                    original_exc=err,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                        message=msg,
+                        failure_cases=scalar_failure_case(err_str),
+                        original_exc=err,
+                    )
                 )
         return check_results
 
@@ -245,9 +250,7 @@ class IndexBackend(ArraySchemaBackend):
                 check_obj.index.to_series().reset_index(drop=True)
             )
         else:
-            obj_to_validate = check_obj.index.to_series().reset_index(
-                drop=True
-            )
+            obj_to_validate = check_obj.index.to_series().reset_index(drop=True)
 
         assert is_field(
             super().validate(
@@ -272,9 +275,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         # pylint: disable=fixme
         # TODO: make MultiIndex not inherit from DataFrameSchemaBackend
         check_obj: pd.MultiIndex,
-        *,
         schema=None,
-        error_handler: SchemaErrorHandler = None,
     ) -> pd.MultiIndex:
         """Coerce type of a pd.Series by type specified in dtype.
 
@@ -295,9 +296,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 index_levels = [i]
             else:
                 index_levels = [
-                    i
-                    for i, name in enumerate(check_obj.names)
-                    if name == index.name
+                    i for i, name in enumerate(check_obj.names) if name == index.name
                 ]
             for index_level in index_levels:
                 index_array = check_obj.get_level_values(index_level)
@@ -340,9 +339,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 v.to_numpy()
                 if type(v).__module__.startswith("pyspark.pandas")
                 else v.array
-                for _, v in sorted(
-                    coerced_multi_index.items(), key=lambda x: x[0]
-                )
+                for _, v in sorted(coerced_multi_index.items(), key=lambda x: x[0])
             ],
             names=check_obj.names,
         )
@@ -385,7 +382,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             except SchemaErrors as err:
                 if lazy:
                     raise
-                raise err.schema_errors[0]["error"] from err
+                raise err.schema_errors[0] from err
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the
@@ -409,9 +406,7 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                     index_names.append(name)
 
             columns = {}
-            for name, (_, column) in zip(
-                index_names, schema_copy.columns.items()
-            ):
+            for name, (_, column) in zip(index_names, schema_copy.columns.items()):
                 columns[name] = column.set_name(name)
             schema_copy.columns = columns
 
@@ -452,23 +447,24 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             # This is a hack to re-raise the SchemaErrors exception and change
             # the schema context to MultiIndex. This should be fixed by with
             # a more principled schema class hierarchy.
-            schema_error_dicts = []
-            for schema_error_dict in err.schema_errors:
-                error = schema_error_dict["error"]
-                error = SchemaError(
-                    schema,
-                    check_obj,
-                    error.args[0],
-                    error.failure_cases.assign(column=error.schema.name),
-                    error.check,
-                    error.check_index,
+            schema_errors = []
+            for schema_error in err.schema_errors:
+                schema_errors.append(
+                    SchemaError(
+                        schema,
+                        check_obj,
+                        schema_error.args[0],
+                        schema_error.failure_cases.assign(
+                            column=schema_error.schema.name
+                        ),
+                        schema_error.check,
+                        schema_error.check_index,
+                    )
                 )
-                schema_error_dict["error"] = error
-                schema_error_dicts.append(schema_error_dict)
 
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=schema_error_dicts,
+                schema_errors=schema_errors,
                 data=check_obj,
             ) from err
 

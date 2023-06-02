@@ -20,6 +20,16 @@ from pandera.typing.common import (
     INT16,
     INT32,
     INT64,
+    PYSPARK_BINARY,
+    PYSPARK_BYTEINT,
+    PYSPARK_DATE,
+    PYSPARK_DECIMAL,
+    PYSPARK_FLOAT,
+    PYSPARK_INT,
+    PYSPARK_LONGINT,
+    PYSPARK_SHORTINT,
+    PYSPARK_STRING,
+    PYSPARK_TIMESTAMP,
     STRING,
     UINT8,
     UINT16,
@@ -49,6 +59,7 @@ from pandera.typing.common import (
     UInt64,
 )
 from pandera.typing.pandas import DataFrame, Index, Series
+from pandera.typing.pyspark_sql import Column
 
 if pyspark_sql.PYSPARK_SQL_INSTALLED:
     from pandera.typing.pyspark_sql import Column

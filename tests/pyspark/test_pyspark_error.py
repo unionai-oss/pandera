@@ -118,11 +118,7 @@ def test_pyspark_check_nullable(spark, sample_spark_schema):
             {
                 "check": "not_nullable",
                 "column": "price",
-                "error": "non-nullable "
-                "column "
-                "'price' "
-                "contains "
-                "null",
+                "error": "non-nullable " "column " "'price' " "contains " "null",
                 "schema": None,
             }
         ]
@@ -271,9 +267,7 @@ def test_pyspark_fields(spark):
         "SCHEMA": {
             "WRONG_DATATYPE": [
                 {
-                    "check": "dtype('MapType(StringType(), "
-                    "StringType(), "
-                    "True)')",
+                    "check": "dtype('MapType(StringType(), " "StringType(), " "True)')",
                     "column": "product_info",
                     "error": "expected "
                     "column "

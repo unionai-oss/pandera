@@ -30,8 +30,6 @@ N_INDENT_SPACES = 4
 class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     """A light-weight pandas DataFrame validator."""
 
-    BACKEND = DataFrameSchemaBackend()
-
     def __init__(
         self,
         columns: Optional[  # type: ignore [name-defined]
@@ -119,6 +117,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         if columns is None:
             columns = {}
+
         _validate_columns(columns)
         columns = _columns_renamed(columns)
 
@@ -242,7 +241,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 regex_dtype.update(
                     {
                         c: column.dtype
-                        for c in column.BACKEND.get_regex_columns(
+                        for c in column.get_backend(
+                            dataframe
+                        ).get_regex_columns(
                             column,
                             dataframe.columns,
                         )
@@ -266,7 +267,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self._dtype = pandas_engine.Engine.dtype(value) if value else None
 
     def coerce_dtype(self, check_obj: pd.DataFrame) -> pd.DataFrame:
-        return self.BACKEND.coerce_dtype(check_obj, schema=self)
+        return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
@@ -335,6 +336,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
         # implementation comes in.
+
         if hasattr(check_obj, "dask"):
             # special case for dask dataframes
             if inplace:
@@ -383,7 +385,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 UserWarning,
             )
 
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,
             head=head,

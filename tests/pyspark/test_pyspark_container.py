@@ -71,9 +71,7 @@ def test_pyspark_dataframeschema_with_alias_types(config_params):
         with pytest.raises(pandera.errors.PysparkSchemaError):
             data_fail = [("Bread", 3), ("Butter", 15)]
 
-            df_fail = spark.createDataFrame(
-                data=data_fail, schema=spark_schema
-            )
+            df_fail = spark.createDataFrame(data=data_fail, schema=spark_schema)
 
             fail_df = schema.validate(df_fail)
             if fail_df.pandera.errors:

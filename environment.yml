@@ -47,9 +47,8 @@ dependencies:
 
   # testing
   - isort >= 5.7.0
-  - codecov
   - mypy <= 0.982
-  - pylint = 2.12.2
+  - pylint <= 2.17.3
   - pytest
   - pytest-cov
   - pytest-xdist
@@ -82,6 +81,7 @@ dependencies:
   - pip:
       - furo
       - ray
+      - typeguard >= 3.0.2
       - types-click
       - types-pyyaml
       - types-pkg_resources

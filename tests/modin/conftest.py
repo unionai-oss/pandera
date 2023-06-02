@@ -9,7 +9,6 @@ from tests.core.checks_fixtures import custom_check_teardown  # noqa
 
 ENGINES = os.getenv("CI_MODIN_ENGINES", "").split(",")
 if ENGINES == [""]:
-    # ENGINES = ["ray", "dask"]
     ENGINES = ["dask"]
 
 

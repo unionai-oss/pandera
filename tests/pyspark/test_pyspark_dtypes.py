@@ -33,15 +33,10 @@ class BaseClass:
         argnames = sorted(funcarglist[0])
         metafunc.parametrize(
             argnames,
-            [
-                [funcargs[name] for name in argnames]
-                for funcargs in funcarglist
-            ],
+            [[funcargs[name] for name in argnames] for funcargs in funcarglist],
         )
 
-    def validate_data(
-        self, df, pandera_equivalent, column_name, return_error=False
-    ):
+    def validate_data(self, df, pandera_equivalent, column_name, return_error=False):
         """
         This function runs the actual validation of object on the dataframe
         """
@@ -130,9 +125,7 @@ class TestAllNumericTypes(BaseClass):
         )
         return spark_schema
 
-    def test_pyspark_all_float_types(
-        self, spark, sample_data, pandera_equivalent
-    ):
+    def test_pyspark_all_float_types(self, spark, sample_data, pandera_equivalent):
         """
         Test float dtype column
         """
@@ -141,9 +134,7 @@ class TestAllNumericTypes(BaseClass):
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    def test_pyspark_all_double_types(
-        self, spark, sample_data, pandera_equivalent
-    ):
+    def test_pyspark_all_double_types(self, spark, sample_data, pandera_equivalent):
         """
         Test double dtype column
         """
@@ -173,9 +164,7 @@ class TestAllNumericTypes(BaseClass):
         column_name = "price"
         spark_schema = self.create_schema(column_name, T.DecimalType(20, 5))
         df = spark_df(spark, sample_data, spark_schema)
-        self.validate_data(
-            df, pandera_equivalent["parameter_match"], column_name
-        )
+        self.validate_data(df, pandera_equivalent["parameter_match"], column_name)
         errors = self.validate_data(
             df, pandera_equivalent["parameter_mismatch"], column_name, True
         )
@@ -191,9 +180,7 @@ class TestAllNumericTypes(BaseClass):
             ]
         }
 
-    def test_pyspark_all_int_types(
-        self, spark, sample_data, pandera_equivalent
-    ):
+    def test_pyspark_all_int_types(self, spark, sample_data, pandera_equivalent):
         """
         Test int dtype column
         """
@@ -202,9 +189,7 @@ class TestAllNumericTypes(BaseClass):
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    def test_pyspark_all_longint_types(
-        self, spark, sample_data, pandera_equivalent
-    ):
+    def test_pyspark_all_longint_types(self, spark, sample_data, pandera_equivalent):
         """
         Test long dtype column
         """
@@ -213,9 +198,7 @@ class TestAllNumericTypes(BaseClass):
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    def test_pyspark_all_shortint_types(
-        self, spark, sample_data, pandera_equivalent
-    ):
+    def test_pyspark_all_shortint_types(self, spark, sample_data, pandera_equivalent):
         """
         Test short int dtype column
         """
@@ -224,9 +207,7 @@ class TestAllNumericTypes(BaseClass):
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    def test_pyspark_all_bytetint_types(
-        self, spark, sample_data, pandera_equivalent
-    ):
+    def test_pyspark_all_bytetint_types(self, spark, sample_data, pandera_equivalent):
         """
         Test byte int dtype column
         """
@@ -256,9 +237,7 @@ class TestAllDatetimeTestClass(BaseClass):
         ],
     }
 
-    def test_pyspark_all_date_types(
-        self, pandera_equivalent, sample_date_object
-    ):
+    def test_pyspark_all_date_types(self, pandera_equivalent, sample_date_object):
         """
         Test date dtype column
         """
@@ -266,9 +245,7 @@ class TestAllDatetimeTestClass(BaseClass):
         df = sample_date_object.select(column_name)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    def test_pyspark_all_datetime_types(
-        self, pandera_equivalent, sample_date_object
-    ):
+    def test_pyspark_all_datetime_types(self, pandera_equivalent, sample_date_object):
         """
         Test datetime dtype column
         """
@@ -326,9 +303,7 @@ class TestComplexType(BaseClass):
             {
                 "pandera_equivalent": {
                     "schema_match": T.ArrayType(T.ArrayType(T.StringType())),
-                    "schema_mismatch": T.ArrayType(
-                        T.ArrayType(T.IntegerType())
-                    ),
+                    "schema_mismatch": T.ArrayType(T.ArrayType(T.IntegerType())),
                 }
             }
         ],
@@ -336,9 +311,7 @@ class TestComplexType(BaseClass):
             {
                 "pandera_equivalent": {
                     "schema_match": T.MapType(T.StringType(), T.StringType()),
-                    "schema_mismatch": T.MapType(
-                        T.StringType(), T.IntegerType()
-                    ),
+                    "schema_mismatch": T.MapType(T.StringType(), T.IntegerType()),
                 }
             }
         ],

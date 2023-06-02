@@ -952,7 +952,6 @@ def test_to_yaml_custom_dataframe_check():
 
 def test_to_yaml_bugfix_warn_unregistered_global_checks():
     """Ensure that unregistered global checks raises a warning."""
-    # pylint: disable=no-self-use
 
     class CheckedDataFrameModel(pandera.DataFrameModel):
         """Schema with a global check"""
@@ -963,7 +962,6 @@ def test_to_yaml_bugfix_warn_unregistered_global_checks():
         @pandera.dataframe_check()
         def unregistered_check(self, _):
             """sample unregistered check"""
-            ...
 
     with pytest.warns(UserWarning, match=".*registered checks.*"):
         CheckedDataFrameModel.to_yaml()
@@ -1322,8 +1320,8 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     assert err.value.failure_cases[["check", "failure_case"]].fillna(
         "NaN"
     ).to_dict(orient="records") == [
-        {"check": "column_in_dataframe", "failure_case": "date_col"},
         {"check": "column_in_schema", "failure_case": "unexpected_column"},
+        {"check": "column_in_dataframe", "failure_case": "date_col"},
         {
             "check": "str_length(3, 80)",
             "failure_case": "dddddddddddddddddddddddddddddddddddddddddddddddddddd"
@@ -1339,12 +1337,12 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
             "failure_case": "789c",
         },
         {"check": "str_length(3, 80)", "failure_case": "a"},
+        {"check": "coerce_dtype('float64')", "failure_case": "a"},
         {"check": "less_than_or_equal_to(30)", "failure_case": 113},
         {"check": "in_range(10, 99)", "failure_case": 180},
         {"check": "in_range(10, 99)", "failure_case": 1},
         {"check": "field_uniqueness", "failure_case": 12},
         {"check": "field_uniqueness", "failure_case": 12},
-        {"check": "coerce_dtype('float64')", "failure_case": "a"},
         {"check": "dtype('float64')", "failure_case": "object"},
     ], "validation failure cases not as expected"
 

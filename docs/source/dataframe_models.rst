@@ -91,7 +91,7 @@ Basic Usage
     0      2          1999
 
 
-As you can see in the example above, you can define a schema by sub-classing
+As you can see in the examples above, you can define a schema by sub-classing
 :class:`~pandera.api.pandas.model.DataFrameModel` and defining column/index fields as class attributes.
 The :func:`~pandera.decorators.check_types` decorator is required to perform validation of the dataframe at
 run-time.
@@ -117,6 +117,24 @@ In the example above, this will simply be the string `"year"`.
     0  2001  200
     1  2002  156
     2  2003  365
+
+
+Using Data Types directly for Column Type Annotations
+-----------------------------------------------------
+
+*new in 0.15.0*
+
+For conciseness, you can also use type annotations for columns without using
+the :py:class:`~pandera.typing.Series` generic. This class attributes will be
+interpreted as :py:class:`~pandera.api.pandas.components.Column` objects
+under the hood.
+
+.. testcode:: dataframe_schema_model
+
+    class InputSchema(pa.DataFrameModel):
+        year: int = pa.Field(gt=2000, coerce=True)
+        month: int = pa.Field(ge=1, le=12, coerce=True)
+        day: int = pa.Field(ge=0, le=365, coerce=True)
 
 
 Validate on Initialization
@@ -336,6 +354,11 @@ Supported dtypes
 Any dtypes supported by ``pandera`` can be used as type parameters for
 :class:`~pandera.typing.Series` and :class:`~pandera.typing.Index`. There are,
 however, a couple of gotchas.
+
+.. important::
+
+    You can learn more about how data type validation works
+    :ref:`dtype_validation`.
 
 Dtype aliases
 ^^^^^^^^^^^^^

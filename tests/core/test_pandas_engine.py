@@ -25,7 +25,11 @@ def test_pandas_data_type(data_type):
 
     pandas_engine.Engine.dtype(data_type)
     pandas_engine.Engine.dtype(data_type.type)
-    pandas_engine.Engine.dtype(str(data_type.type))
+    pandas_engine.Engine.dtype(
+        getattr(data_type.type, "__name__", None)
+        or getattr(data_type.type, "name", None)
+        or data_type.type
+    )
 
     with pytest.warns(UserWarning):
         pd_dtype = pandas_engine.DataType(data_type.type)
@@ -65,7 +69,7 @@ def test_pandas_category_dtype(data):
     coerced_data = dtype.coerce(data)
     assert dtype.check(coerced_data.dtype)
 
-    for _, value in data.iteritems():
+    for _, value in data.items():
         coerced_value = dtype.coerce_value(value)
         assert coerced_value in CATEGORIES
 
@@ -79,7 +83,7 @@ def test_pandas_category_dtype_error(data):
     with pytest.raises(TypeError):
         dtype.coerce(data)
 
-    for _, value in data.iteritems():
+    for _, value in data.items():
         with pytest.raises(TypeError):
             dtype.coerce_value(value)
 
@@ -98,7 +102,7 @@ def test_pandas_boolean_native_type(data):
         coerced_data = dtype.coerce(data)
         assert dtype.check(coerced_data.dtype)
 
-    for _, value in data.iteritems():
+    for _, value in data.items():
         dtype.coerce_value(value)
 
 
@@ -111,7 +115,7 @@ def test_pandas_boolean_native_type_error(data):
     with pytest.raises(TypeError):
         dtype.coerce(data)
 
-    for _, value in data.iteritems():
+    for _, value in data.items():
         with pytest.raises(TypeError):
             dtype.coerce_value(value)
 

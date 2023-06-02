@@ -38,9 +38,7 @@ def sample_spark_schema():
 
 def spark_df(spark, data: list, spark_schema: T.StructType):
     """This function creates spark dataframe from given data and schema object"""
-    return spark.createDataFrame(
-        data=data, schema=spark_schema, verifySchema=False
-    )
+    return spark.createDataFrame(data=data, schema=spark_schema, verifySchema=False)
 
 
 @pytest.fixture(scope="session")
@@ -62,9 +60,7 @@ def sample_date_object(spark):
             T.StructField("purchase_datetime", T.TimestampType(), False),
         ],
     )
-    df = spark_df(
-        spark=spark, spark_schema=sample_spark_schema, data=sample_data
-    )
+    df = spark_df(spark=spark, spark_schema=sample_spark_schema, data=sample_data)
     return df
 
 
@@ -84,12 +80,8 @@ def sample_string_binary_object(spark):
             T.StructField("product", T.StringType(), False),
         ],
     )
-    df = spark_df(
-        spark=spark, spark_schema=sample_spark_schema, data=sample_data
-    )
-    df = df.withColumn(
-        "purchase_info", df["purchase_info"].cast(T.BinaryType())
-    )
+    df = spark_df(spark=spark, spark_schema=sample_spark_schema, data=sample_data)
+    df = df.withColumn("purchase_info", df["purchase_info"].cast(T.BinaryType()))
     return df
 
 

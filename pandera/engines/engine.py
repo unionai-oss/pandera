@@ -3,6 +3,7 @@
 # pylint:disable=no-value-for-parameter
 import functools
 import inspect
+import sys
 from abc import ABCMeta
 from dataclasses import dataclass
 from typing import (
@@ -11,6 +12,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    NamedTuple,
     Optional,
     Set,
     Tuple,
@@ -22,6 +24,14 @@ from typing import (
 import typing_inspect
 
 from pandera.dtypes import DataType
+
+
+# register different TypedDict type depending on python version
+if sys.version_info >= (3, 9):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict  # noqa
+
 
 _DataType = TypeVar("_DataType", bound=DataType)
 _Engine = TypeVar("_Engine", bound="Engine")
@@ -46,6 +56,16 @@ else:
     Dispatch = Callable[[Any], DataType]
 
 
+def _is_typeddict(x: Type) -> bool:
+    return x.__class__.__name__ == "_TypedDictMeta"
+
+
+def _is_namedtuple(x: Type) -> bool:
+    return tuple in getattr(x, "__bases__", ()) and hasattr(
+        x, "__annotations__"
+    )
+
+
 @dataclass
 class _DtypeRegistry:
     dispatch: Dispatch
@@ -62,7 +82,7 @@ class Engine(ABCMeta):
     _registered_dtypes: Set[Type[DataType]]
     _base_pandera_dtypes: Tuple[Type[DataType]]
 
-    def __new__(cls, name, bases, namespace, **kwargs):
+    def __new__(mcs, name, bases, namespace, **kwargs):
         base_pandera_dtypes = kwargs.pop("base_pandera_dtypes")
         try:
             namespace["_base_pandera_dtypes"] = tuple(base_pandera_dtypes)
@@ -70,13 +90,13 @@ class Engine(ABCMeta):
             namespace["_base_pandera_dtypes"] = (base_pandera_dtypes,)
 
         namespace["_registered_dtypes"] = set()
-        engine = super().__new__(cls, name, bases, namespace, **kwargs)
+        engine = super().__new__(mcs, name, bases, namespace, **kwargs)
 
         @functools.singledispatch
         def dtype(data_type: Any) -> DataType:
             raise ValueError(f"Data type '{data_type}' not understood")
 
-        cls._registry[engine] = _DtypeRegistry(dispatch=dtype, equivalents={})
+        mcs._registry[engine] = _DtypeRegistry(dispatch=dtype, equivalents={})
         return engine
 
     def _check_source_dtype(cls, data_type: Any) -> None:
@@ -168,6 +188,8 @@ class Engine(ABCMeta):
                 )
 
             if equivalents:
+                # pylint: disable=fixme
+                # Todo - Need changes to this function to support uninitialised object
                 cls._register_equivalents(pandera_dtype_cls, *equivalents)
 
             if "from_parametrized_dtype" in pandera_dtype_cls.__dict__:
@@ -183,6 +205,7 @@ class Engine(ABCMeta):
 
     def dtype(cls: _EngineType, data_type: Any) -> DataType:
         """Convert input into a Pandera :class:`DataType` object."""
+        # pylint: disable=too-many-return-statements
         if isinstance(data_type, cls._base_pandera_dtypes):
             return data_type
 
@@ -190,6 +213,8 @@ class Engine(ABCMeta):
             data_type, cls._base_pandera_dtypes
         ):
             try:
+                # pylint: disable=fixme
+                # Todo  - check if we can move to validate without initialization
                 return data_type()
             except (TypeError, AttributeError) as err:
                 raise TypeError(
@@ -199,6 +224,33 @@ class Engine(ABCMeta):
                 ) from err
 
         registry = cls._registry[cls]
+
+        # handle python generic types, e.g. typing.Dict[str, str]
+        datatype_origin = typing_inspect.get_origin(data_type)
+        if datatype_origin is not None:
+            equivalent_data_type = registry.equivalents.get(datatype_origin)
+            return type(equivalent_data_type)(data_type)
+
+        # handle python's special declared type constructs like NamedTuple and
+        # TypedDict
+        datatype_generic_bases = (
+            # handle python < 3.9 cases, where TypedDict/NameDtuple isn't part
+            # of the generic base classes returned by
+            # typing_inspect.get_generic_bases
+            ((TypedDict,) if _is_typeddict(data_type) else ())
+            or ((NamedTuple,) if _is_namedtuple(data_type) else ())
+            or typing_inspect.get_generic_bases(data_type)
+        )
+        if datatype_generic_bases:
+            equivalent_data_type = None
+            for base in datatype_generic_bases:
+                equivalent_data_type = registry.equivalents.get(base)
+                break
+            if equivalent_data_type is None:
+                raise TypeError(
+                    f"Type '{data_type}' not understood by {cls.__name__}."
+                )
+            return type(equivalent_data_type)(data_type)
 
         equivalent_data_type = registry.equivalents.get(data_type)
         if equivalent_data_type is not None:
@@ -221,6 +273,6 @@ class Engine(ABCMeta):
     def get_registered_dtypes(  # pylint:disable=W1401
         cls,
     ) -> List[Type[DataType]]:
-        """Return the :class:`pandera.dtypes.DataType`\s registered
+        r"""Return the :class:`pandera.dtypes.DataType`\s registered
         with this engine."""
         return list(cls._registered_dtypes)
