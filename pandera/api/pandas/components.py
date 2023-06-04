@@ -140,6 +140,7 @@ class Column(ArraySchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False,
     ) -> pd.DataFrame:
         """Validate a Column in a DataFrame object.
 
@@ -156,6 +157,7 @@ class Column(ArraySchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
+        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame.
         """
         return self.get_backend(check_obj).validate(
@@ -167,6 +169,7 @@ class Column(ArraySchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            drop_invalid=drop_invalid,
         )
 
     def get_regex_columns(
@@ -264,6 +267,7 @@ class Index(ArraySchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 
@@ -280,6 +284,7 @@ class Index(ArraySchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
+        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame or Series.
         """
         return self.get_backend(check_obj).validate(
@@ -291,6 +296,7 @@ class Index(ArraySchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            drop_invalid=drop_invalid,
         )
 
     def __eq__(self, other):

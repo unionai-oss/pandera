@@ -827,7 +827,7 @@ def series_strategy(
     unique: bool = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
-) -> SearchStrategy[pd.Series]:
+) -> SearchStrategy:
     """Strategy to generate a pandas Series.
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.

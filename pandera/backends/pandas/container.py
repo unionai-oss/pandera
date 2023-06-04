@@ -122,7 +122,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 ]
                 return check_obj
             else:
-                raise err
+                raise
 
         return check_obj
 
