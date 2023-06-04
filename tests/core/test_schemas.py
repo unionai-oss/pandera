@@ -2077,13 +2077,16 @@ def test_pandas_dataframe_subclass_validation():
             DataFrameSchema(
                 {
                     "str_col": Column(str),
-                    "col": Column(int, checks=[Check(lambda x: x >= 3)]),
+                    "int_col": Column(int, checks=[Check(lambda x: x >= 3)]),
                 },
             ),
             pd.DataFrame(
-                {"str_col": ["a", "b", "c", "d", "e"], "col": [1, 2, 3, 4, 5]}
+                {
+                    "str_col": ["a", "b", "c", "d", "e"],
+                    "int_col": [1, 2, 3, 4, 5],
+                }
             ),
-            pd.DataFrame({"str_col": ["c", "d", "e"], "col": [3, 4, 5]}),
+            pd.DataFrame({"str_col": ["c", "d", "e"], "int_col": [3, 4, 5]}),
         ),
     ],
 )
@@ -2124,18 +2127,3 @@ def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
     expected_obj = expected_obj.reset_index(drop=True)
 
     pd.testing.assert_series_equal(trimmed_obj, expected_obj)
-
-
-if __name__ == "__main__":
-    test_drop_invalid_for_dataframe_schema(
-        DataFrameSchema(
-            {
-                "str_col": Column(str),
-                "col": Column(int, checks=[Check(lambda x: x >= 3)]),
-            },
-        ),
-        pd.DataFrame(
-            {"str_col": ["a", "b", "c", "d", "e"], "col": [1, 2, 3, 4, 5]}
-        ),
-        pd.DataFrame({"str_col": ["c", "d", "e"], "col": [3, 4, 5]}),
-    )
