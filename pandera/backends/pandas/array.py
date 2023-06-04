@@ -69,7 +69,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         if lazy and error_handler.collected_errors:
             if drop_invalid:
-                check_obj = self.drop_invalid(check_obj, error_handler)
+                check_obj = self.drop_invalid_data(check_obj, error_handler)
                 return check_obj
             else:
                 raise SchemaErrors(
@@ -80,7 +80,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         return check_obj
 
-    def drop_invalid(self, check_obj, error_handler):
+    def drop_invalid_data(self, check_obj, error_handler):
         """Remove invalid elements in a `check_obj` according to failures in caught by the `error_handler`"""
         errors = error_handler.collected_errors
         for err in errors:
