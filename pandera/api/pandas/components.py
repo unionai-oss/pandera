@@ -460,6 +460,7 @@ class MultiIndex(DataFrameSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrame or Series MultiIndex.
 
@@ -476,6 +477,7 @@ class MultiIndex(DataFrameSchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
+        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame or Series.
         """
         return self.get_backend(check_obj).validate(
@@ -487,6 +489,7 @@ class MultiIndex(DataFrameSchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            drop_invalid=drop_invalid,
         )
 
     def __repr__(self):
