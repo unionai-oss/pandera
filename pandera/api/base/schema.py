@@ -50,6 +50,7 @@ class BaseSchema(ABC):
         random_state=None,
         lazy=False,
         inplace=False,
+        drop_invalid=False,
     ):
         """Validate method to be implemented by subclass."""
         raise NotImplementedError
