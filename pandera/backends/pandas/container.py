@@ -54,67 +54,63 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         object.
         """
         # pylint: disable=too-many-locals
-        try:
-            if not is_table(check_obj):
-                raise TypeError(
-                    f"expected pd.DataFrame, got {type(check_obj)}"
-                )
+        if not is_table(check_obj):
+            raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
-            error_handler = SchemaErrorHandler(lazy)
+        error_handler = SchemaErrorHandler(lazy)
 
-            check_obj = self.preprocess(check_obj, inplace=inplace)
-            if hasattr(check_obj, "pandera"):
-                check_obj = check_obj.pandera.add_schema(schema)
+        check_obj = self.preprocess(check_obj, inplace=inplace)
+        if hasattr(check_obj, "pandera"):
+            check_obj = check_obj.pandera.add_schema(schema)
 
-            column_info = self.collect_column_info(check_obj, schema, lazy)
+        column_info = self.collect_column_info(check_obj, schema, lazy)
 
-            # collect schema components
-            components = self.collect_schema_components(
-                check_obj, schema, column_info
-            )
+        # collect schema components
+        components = self.collect_schema_components(
+            check_obj, schema, column_info
+        )
 
-            core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
-                (self.strict_filter_columns, (schema, column_info)),
-                (self.coerce_dtype, (schema,)),
-            ]
+        core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
+            (self.strict_filter_columns, (schema, column_info)),
+            (self.coerce_dtype, (schema,)),
+        ]
 
-            for parser, args in core_parsers:
-                try:
-                    check_obj = parser(check_obj, *args)
-                except SchemaError as exc:
-                    error_handler.collect_error(exc.reason_code, exc)
-                except SchemaErrors as exc:
-                    error_handler.collect_errors(exc)
+        for parser, args in core_parsers:
+            try:
+                check_obj = parser(check_obj, *args)
+            except SchemaError as exc:
+                error_handler.collect_error(exc.reason_code, exc)
+            except SchemaErrors as exc:
+                error_handler.collect_errors(exc)
 
-            # run the checks
-            error_handler = self.run_checks_and_handle_errors(
-                error_handler,
-                schema,
-                check_obj,
-                column_info,
-                sample,
-                components,
-                lazy,
-                head,
-                tail,
-                random_state,
-            )
+        # run the checks
+        error_handler = self.run_checks_and_handle_errors(
+            error_handler,
+            schema,
+            check_obj,
+            column_info,
+            sample,
+            components,
+            lazy,
+            head,
+            tail,
+            random_state,
+        )
 
-            if error_handler.collected_errors:
+        if error_handler.collected_errors:
+            if drop_invalid:
+                errors = error_handler.collected_errors
+                for err in errors:
+                    check_obj = check_obj.loc[
+                        ~check_obj.index.isin(err.failure_cases["index"])
+                    ]
+                return check_obj
+            else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.collected_errors,
                     data=check_obj,
                 )
-
-        except (SchemaError, SchemaErrors) as err:
-            if drop_invalid:
-                check_obj = err.data.loc[
-                    ~err.data.index.isin(err.failure_cases["index"])
-                ]
-                return check_obj
-            else:
-                raise
 
         return check_obj
 

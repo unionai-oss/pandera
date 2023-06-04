@@ -2089,7 +2089,7 @@ def test_pandas_dataframe_subclass_validation():
 )
 def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
     """Test drop_invalid works as expected on DataFrameSchema.validate"""
-    trimmed_obj = schema.validate(obj, drop_invalid=True)
+    trimmed_obj = schema.validate(obj, lazy=True, drop_invalid=True)
     trimmed_obj.index = expected_obj.index
     trimmed_obj.col = trimmed_obj.col.astype(expected_obj.col.dtype)
 
@@ -2124,3 +2124,18 @@ def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
     expected_obj = expected_obj.reset_index(drop=True)
 
     pd.testing.assert_series_equal(trimmed_obj, expected_obj)
+
+
+if __name__ == "__main__":
+    test_drop_invalid_for_dataframe_schema(
+        DataFrameSchema(
+            {
+                "str_col": Column(str),
+                "col": Column(int, checks=[Check(lambda x: x >= 3)]),
+            },
+        ),
+        pd.DataFrame(
+            {"str_col": ["a", "b", "c", "d", "e"], "col": [1, 2, 3, 4, 5]}
+        ),
+        pd.DataFrame({"str_col": ["c", "d", "e"], "col": [3, 4, 5]}),
+    )

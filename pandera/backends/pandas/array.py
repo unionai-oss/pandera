@@ -43,46 +43,44 @@ class ArraySchemaBackend(PandasSchemaBackend):
         drop_invalid: bool = False,
     ):
         # pylint: disable=too-many-locals
-        try:
-            error_handler = SchemaErrorHandler(lazy)
-            check_obj = self.preprocess(check_obj, inplace)
+        error_handler = SchemaErrorHandler(lazy)
+        check_obj = self.preprocess(check_obj, inplace)
 
-            # fill nans with `default` if it's present
-            if hasattr(schema, "default") and pd.notna(schema.default):
-                check_obj.fillna(schema.default, inplace=True)
+        # fill nans with `default` if it's present
+        if hasattr(schema, "default") and pd.notna(schema.default):
+            check_obj.fillna(schema.default, inplace=True)
 
-            if schema.coerce:
-                try:
-                    check_obj = self.coerce_dtype(check_obj, schema=schema)
-                except SchemaError as exc:
-                    error_handler.collect_error(exc.reason_code, exc)
+        if schema.coerce:
+            try:
+                check_obj = self.coerce_dtype(check_obj, schema=schema)
+            except SchemaError as exc:
+                error_handler.collect_error(exc.reason_code, exc)
 
-            # run the core checks
-            error_handler = self.run_checks_and_handle_errors(
-                error_handler,
-                schema,
-                check_obj,
-                head,
-                tail,
-                sample,
-                random_state,
-            )
+        # run the core checks
+        error_handler = self.run_checks_and_handle_errors(
+            error_handler,
+            schema,
+            check_obj,
+            head,
+            tail,
+            sample,
+            random_state,
+        )
 
-            if lazy and error_handler.collected_errors:
+        if lazy and error_handler.collected_errors:
+            if drop_invalid:
+                errors = error_handler.collected_errors
+                for err in errors:
+                    check_obj = check_obj.loc[
+                        ~check_obj.index.isin(err.failure_cases["index"])
+                    ]
+                return check_obj
+            else:
                 raise SchemaErrors(
                     schema=schema,
                     schema_errors=error_handler.collected_errors,
                     data=check_obj,
                 )
-
-        except (SchemaError, SchemaErrors) as err:
-            if drop_invalid:
-                check_obj = err.data.loc[
-                    ~err.data.index.isin(err.failure_cases["index"])
-                ]
-                return check_obj
-            else:
-                raise
 
         return check_obj
 
