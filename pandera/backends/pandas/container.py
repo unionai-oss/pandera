@@ -86,26 +86,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 except SchemaErrors as exc:
                     error_handler.collect_errors(exc)
 
-            # subsample the check object if head, tail, or sample are specified
-            sample = self.subsample(
-                check_obj, head, tail, sample, random_state
-            )
-
-            # check the container metadata, e.g. field names
-            core_checks = [
-                (self.check_column_names_are_unique, (check_obj, schema)),
-                (self.check_column_presence, (check_obj, schema, column_info)),
-                (self.check_column_values_are_unique, (sample, schema)),
-                (self.run_schema_component_checks, (sample, components, lazy)),
-                (self.run_checks, (sample, schema)),
-            ]
-
             # run the checks
-            error_handler = self.__run_checks_and_handle_errors(
-                core_checks,
+            error_handler = self.run_checks_and_handle_errors(
                 error_handler,
                 schema,
                 check_obj,
+                column_info,
+                sample,
+                components,
+                lazy,
+                head,
+                tail,
+                random_state,
             )
 
             if error_handler.collected_errors:
@@ -126,10 +118,33 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
         return check_obj
 
-    def __run_checks_and_handle_errors(
-        self, core_checks, error_handler, schema, check_obj
+    def run_checks_and_handle_errors(
+        self,
+        error_handler,
+        schema,
+        check_obj,
+        column_info,
+        sample,
+        components,
+        lazy,
+        head,
+        tail,
+        random_state,
     ):
-        """Run the checks and handle errors according to the error raised"""
+        """Run checks on schema"""
+        # pylint: disable=too-many-locals
+
+        # subsample the check object if head, tail, or sample are specified
+        sample = self.subsample(check_obj, head, tail, sample, random_state)
+
+        # check the container metadata, e.g. field names
+        core_checks = [
+            (self.check_column_names_are_unique, (check_obj, schema)),
+            (self.check_column_presence, (check_obj, schema, column_info)),
+            (self.check_column_values_are_unique, (sample, schema)),
+            (self.run_schema_component_checks, (sample, components, lazy)),
+            (self.run_checks, (sample, schema)),
+        ]
         for check, args in core_checks:
             results = check(*args)  # type: ignore [operator]
             if isinstance(results, CoreCheckResult):

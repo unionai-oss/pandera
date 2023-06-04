@@ -57,36 +57,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 except SchemaError as exc:
                     error_handler.collect_error(exc.reason_code, exc)
 
-            field_obj_subsample = self.subsample(
-                check_obj if is_field(check_obj) else check_obj[schema.name],
-                head,
-                tail,
-                sample,
-                random_state,
-            )
-
-            check_obj_subsample = self.subsample(
-                check_obj,
-                head,
-                tail,
-                sample,
-                random_state,
-            )
-
-            core_checks = [
-                (self.check_name, (field_obj_subsample, schema)),
-                (self.check_nullable, (field_obj_subsample, schema)),
-                (self.check_unique, (field_obj_subsample, schema)),
-                (self.check_dtype, (field_obj_subsample, schema)),
-                (self.run_checks, (check_obj_subsample, schema)),
-            ]
-
             # run the core checks
-            error_handler = self.__run_checks_and_handle_errors(
-                core_checks,
+            error_handler = self.run_checks_and_handle_errors(
                 error_handler,
                 schema,
                 check_obj,
+                head,
+                tail,
+                sample,
+                random_state,
             )
 
             if lazy and error_handler.collected_errors:
@@ -107,13 +86,42 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         return check_obj
 
-    def __run_checks_and_handle_errors(
+    def run_checks_and_handle_errors(
         self,
-        core_checks,
         error_handler,
         schema,
         check_obj,
+        head,
+        tail,
+        sample,
+        random_state,
     ):
+        """Run checks on schema"""
+        # pylint: disable=too-many-locals
+        field_obj_subsample = self.subsample(
+            check_obj if is_field(check_obj) else check_obj[schema.name],
+            head,
+            tail,
+            sample,
+            random_state,
+        )
+
+        check_obj_subsample = self.subsample(
+            check_obj,
+            head,
+            tail,
+            sample,
+            random_state,
+        )
+
+        core_checks = [
+            (self.check_name, (field_obj_subsample, schema)),
+            (self.check_nullable, (field_obj_subsample, schema)),
+            (self.check_unique, (field_obj_subsample, schema)),
+            (self.check_dtype, (field_obj_subsample, schema)),
+            (self.run_checks, (check_obj_subsample, schema)),
+        ]
+
         for core_check, args in core_checks:
             results = core_check(*args)
             if isinstance(results, CoreCheckResult):
@@ -141,6 +149,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         error,
                         original_exc=result.original_exc,
                     )
+
         return error_handler
 
     def coerce_dtype(
