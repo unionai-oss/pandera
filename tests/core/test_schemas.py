@@ -2076,17 +2076,17 @@ def test_pandas_dataframe_subclass_validation():
         (
             DataFrameSchema(
                 {
-                    "str_col": Column(str),
+                    "col": Column(str),
                     "int_col": Column(int, checks=[Check(lambda x: x >= 3)]),
                 },
             ),
             pd.DataFrame(
                 {
-                    "str_col": ["a", "b", "c", "d", "e"],
+                    "col": ["a", "b", "c", "d", "e"],
                     "int_col": [1, 2, 3, 4, 5],
                 }
             ),
-            pd.DataFrame({"str_col": ["c", "d", "e"], "int_col": [3, 4, 5]}),
+            pd.DataFrame({"col": ["c", "d", "e"], "int_col": [3, 4, 5]}),
         ),
     ],
 )
