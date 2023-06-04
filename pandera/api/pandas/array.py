@@ -151,6 +151,7 @@ class ArraySchema(BaseSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False,
     ):
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Validate a series or specific column in dataframe.
@@ -168,6 +169,7 @@ class ArraySchema(BaseSchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
+        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame or Series.
 
         """
@@ -180,6 +182,7 @@ class ArraySchema(BaseSchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            drop_invalid=drop_invalid,
         )
 
     def __call__(
@@ -357,6 +360,7 @@ class SeriesSchema(ArraySchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
+        drop_invalid: bool = False,
     ) -> pd.Series:
         """Validate a Series object.
 
@@ -374,6 +378,7 @@ class SeriesSchema(ArraySchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
+        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated Series.
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -439,6 +444,7 @@ class SeriesSchema(ArraySchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
+            drop_invalid=drop_invalid,
         )
         return cast(pd.Series, validated_obj)
 

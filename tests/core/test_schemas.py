@@ -2094,3 +2094,33 @@ def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
     trimmed_obj.col = trimmed_obj.col.astype(expected_obj.col.dtype)
 
     pd.testing.assert_frame_equal(trimmed_obj, expected_obj)
+
+
+@pytest.mark.parametrize(
+    "schema, obj, expected_obj",
+    [
+        (
+            SeriesSchema(
+                int,
+                checks=[Check(lambda x: x > 3)],
+            ),
+            pd.Series([9, 6, 3]),
+            pd.Series([9, 6]),
+        ),
+        (
+            SeriesSchema(
+                str,
+            ),
+            pd.Series(["nine", 6, "three"]),
+            pd.Series(["nine", "three"]),
+        ),
+    ],
+)
+def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
+    """Test drop_invalid works as expected on Series.validate"""
+    trimmed_obj = schema.validate(
+        obj, lazy=True, drop_invalid=True
+    ).reset_index(drop=True)
+    expected_obj = expected_obj.reset_index(drop=True)
+
+    pd.testing.assert_series_equal(trimmed_obj, expected_obj)
