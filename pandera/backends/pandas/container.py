@@ -100,33 +100,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 (self.run_checks, (sample, schema)),
             ]
 
-            for check, args in core_checks:
-                results = check(*args)  # type: ignore [operator]
-                if isinstance(results, CoreCheckResult):
-                    results = [results]
-
-                for result in results:
-                    if result.passed:
-                        continue
-
-                    if result.schema_error is not None:
-                        error = result.schema_error
-                    else:
-                        error = SchemaError(
-                            schema,
-                            data=check_obj,
-                            message=result.message,
-                            failure_cases=result.failure_cases,
-                            check=result.check,
-                            check_index=result.check_index,
-                            check_output=result.check_output,
-                            reason_code=result.reason_code,
-                        )
-                    error_handler.collect_error(
-                        result.reason_code,
-                        error,
-                        original_exc=result.original_exc,
-                    )
+            # run the checks
+            error_handler = self.__run_checks_and_handle_errors(
+                core_checks,
+                error_handler,
+                schema,
+                check_obj,
+            )
 
             if error_handler.collected_errors:
                 raise SchemaErrors(
@@ -141,8 +121,44 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     ~err.data.index.isin(err.failure_cases["index"])
                 ]
                 return check_obj
+            else:
+                raise err
 
         return check_obj
+
+    def __run_checks_and_handle_errors(
+        self, core_checks, error_handler, schema, check_obj
+    ):
+        """Run the checks and handle errors according to the error raised"""
+        for check, args in core_checks:
+            results = check(*args)  # type: ignore [operator]
+            if isinstance(results, CoreCheckResult):
+                results = [results]
+
+            for result in results:
+                if result.passed:
+                    continue
+
+                if result.schema_error is not None:
+                    error = result.schema_error
+                else:
+                    error = SchemaError(
+                        schema,
+                        data=check_obj,
+                        message=result.message,
+                        failure_cases=result.failure_cases,
+                        check=result.check,
+                        check_index=result.check_index,
+                        check_output=result.check_output,
+                        reason_code=result.reason_code,
+                    )
+                error_handler.collect_error(
+                    result.reason_code,
+                    error,
+                    original_exc=result.original_exc,
+                )
+
+        return error_handler
 
     def run_schema_component_checks(
         self,
