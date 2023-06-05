@@ -300,7 +300,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
 
         >>> import pandera as pa
-        >>>
+        >>> from pyspark.sql import SparkSession
+        >>> spark = SparkSession.builder.getOrCreate()
         >>> df = spark.createDataFrame([(0.1, 'dog'), (0.4, 'dog'), (0.52, 'cat'), (0.23, 'duck'),
         ... (0.8, 'dog'), (0.76, 'dog')],schema=['probability','category'])
         >>>
