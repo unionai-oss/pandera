@@ -299,7 +299,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         Calling ``schema.validate`` returns the dataframe.
 
 
-        >>> import pandera as pa
+        >>> import pandera.pyspark as pa
         >>> from pyspark.sql import SparkSession
         >>>
         >>> spark = SparkSession.builder.getOrCreate()
