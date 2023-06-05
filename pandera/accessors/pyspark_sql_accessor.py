@@ -7,8 +7,8 @@ from typing import Optional
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.error_handler import ErrorHandler
 
-Schemas = DataFrameSchema
-Errors = ErrorHandler
+Schemas = DataFrameSchema  # type: ignore
+Errors = ErrorHandler  # type: ignore
 
 
 class PanderaAccessor:
@@ -32,17 +32,17 @@ class PanderaAccessor:
         return self._pyspark_obj
 
     @property
-    def schema(self) -> Optional[Schemas]:
+    def schema(self) -> Optional[Schemas]:  # type: ignore
         """Access schema metadata."""
         return self._schema
 
     @property
-    def errors(self) -> Optional[Errors]:
+    def errors(self) -> Optional[Errors]:  # type: ignore
         """Access errors details."""
         return self._errors
 
     @errors.setter
-    def errors(self, value: Optional[Errors]):
+    def errors(self, value: Optional[Errors]):  # type: ignore
         """Set errors details."""
         self._errors = value
 
