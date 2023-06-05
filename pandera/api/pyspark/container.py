@@ -86,28 +86,28 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         :examples:
 
-        >>> import pandera.pyspark as pa
+        >>> import pandera.pyspark as psa
         >>> import pyspark.sql.types as pt
         >>>
-        >>> schema = pa.DataFrameSchema({
-        ...     "str_column": pa.Column(str),
-        ...     "float_column": pa.Column(float),
-        ...     "int_column": pa.Column(int),
-        ...     "date_column": pa.Column(pt.DateType),
+        >>> schema = psa.DataFrameSchema({
+        ...     "str_column": psa.Column(str),
+        ...     "float_column": psa.Column(float),
+        ...     "int_column": psa.Column(int),
+        ...     "date_column": psa.Column(pt.DateType),
         ... })
 
         Use the pyspark API to define checks, which takes a function with
         the signature: ``ps.Dataframe -> Union[bool]`` where the
         output contains boolean values.
 
-        >>> schema_withchecks = pa.DataFrameSchema({
-        ...     "probability": pa.Column(
-        ...         pt.DoubleType(), pa.Check.greater_than(0)),
+        >>> schema_withchecks = psa.DataFrameSchema({
+        ...     "probability": psa.Column(
+        ...         pt.DoubleType(), psa.Check.greater_than(0)),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
-        ...     "category": pa.Column(
-        ...         pt.StringType(), pa.Check.str_startswith("B"),
+        ...     "category": psa.Column(
+        ...         pt.StringType(), psa.Check.str_startswith("B"),
         ...            ),
         ... })
 
@@ -299,23 +299,23 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         Calling ``schema.validate`` returns the dataframe.
 
 
-        >>> import pandera.pyspark as pa
+        >>> import pandera.pyspark as psa
         >>> from pyspark.sql import SparkSession
         >>>
         >>> spark = SparkSession.builder.getOrCreate()
         >>> df = spark.createDataFrame([(0.1, 'dog'), (0.4, 'dog'), (0.52, 'cat'), (0.23, 'duck'),
         ... (0.8, 'dog'), (0.76, 'dog')],schema=['probability','category'])
         >>>
-        >>> schema_withchecks = pa.DataFrameSchema({
-        ...     "probability": pa.Column(
-        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
+        >>> schema_withchecks = psa.DataFrameSchema({
+        ...     "probability": psa.Column(
+        ...         float, psa.Check(lambda s: (s >= 0) & (s <= 1))),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
-        ...     "category": pa.Column(
+        ...     "category": psa.Column(
         ...         str, [
-        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
-        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
+        ...             psa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
+        ...             psa.Check(lambda s: (s == "dog").mean() > 0.5),
         ...         ]),
         ... })
         >>>
