@@ -51,7 +51,7 @@ class BaseClass:
                 return df_out.pandera.errors
             else:
                 print(df_out.pandera.errors)
-                raise Exception
+                assert False
 
 
 class TestAllNumericTypes(BaseClass):
