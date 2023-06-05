@@ -80,15 +80,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         return check_obj
 
-    def drop_invalid_data(self, check_obj, error_handler):
-        """Remove invalid elements in a `check_obj` according to failures in caught by the `error_handler`"""
-        errors = error_handler.collected_errors
-        for err in errors:
-            check_obj = check_obj.loc[
-                ~check_obj.index.isin(err.failure_cases["index"])
-            ]
-        return check_obj
-
     def run_checks_and_handle_errors(
         self,
         error_handler,

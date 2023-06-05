@@ -100,11 +100,15 @@ class ColumnBackend(ArraySchemaBackend):
                 validate_column(check_obj, column_name)
 
         if lazy and error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+            if drop_invalid:
+                check_obj = self.drop_invalid_data(check_obj, error_handler)
+                return check_obj
+            else:
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.collected_errors,
+                    data=check_obj,
+                )
 
         return check_obj
 

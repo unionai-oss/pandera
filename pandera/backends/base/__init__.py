@@ -125,6 +125,10 @@ class BaseSchemaBackend(ABC):
         """Get failure cases metadata for lazy validation."""
         raise NotImplementedError
 
+    def drop_invalid_data(self, check_obj, error_handler):
+        """Remove invalid elements in a `check_obj` according to failures in caught by the `error_handler`"""
+        raise NotImplementedError
+
 
 class BaseCheckBackend(ABC):
     """Abstract base class for a check backend implementation."""

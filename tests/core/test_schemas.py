@@ -2091,7 +2091,7 @@ def test_pandas_dataframe_subclass_validation():
     ],
 )
 def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
-    """Test drop_invalid works as expected on DataFrameSchema.validate"""
+    """Test drop_invalid works as expected on DataFrameSchemaBackend.validate"""
     trimmed_obj = schema.validate(obj, lazy=True, drop_invalid=True)
     trimmed_obj.index = expected_obj.index
     trimmed_obj.col = trimmed_obj.col.astype(expected_obj.col.dtype)
@@ -2120,10 +2120,29 @@ def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
     ],
 )
 def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
-    """Test drop_invalid works as expected on Series.validate"""
+    """Test drop_invalid works as expected on SeriesSchemaBackend.validate"""
     trimmed_obj = schema.validate(
         obj, lazy=True, drop_invalid=True
     ).reset_index(drop=True)
     expected_obj = expected_obj.reset_index(drop=True)
 
     pd.testing.assert_series_equal(trimmed_obj, expected_obj)
+
+
+@pytest.mark.parametrize(
+    "col, obj, expected_obj",
+    [
+        (
+            Column(str, name="column1"),
+            pd.DataFrame({"column1": [None, 1, "two"]}),
+            pd.DataFrame({"column1": ["two"]}),
+        )
+    ],
+)
+def test_drop_invalid_for_column(col, obj, expected_obj):
+    """Test drop_invalid works as expected on ColumnBackend.validate"""
+    actual = col.validate(obj, lazy=True, drop_invalid=True)
+
+    pd.testing.assert_frame_equal(
+        expected_obj.reset_index(drop=True), actual.reset_index(drop=True)
+    )
