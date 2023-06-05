@@ -29,16 +29,16 @@ if PYSPARK_SQL_INSTALLED:
         "PysparkDType",
         bound=Union[
             PysparkString,  # type: ignore
-            PysparkInt,
-            PysparkLongInt,
-            PysparkShortInt,
-            PysparkByteInt,
-            PysparkDouble,
-            PysparkFloat,
-            PysparkDecimal,
-            PysparkDate,
-            PysparkTimestamp,
-            PysparkBinary,
+            PysparkInt,  # type: ignore
+            PysparkLongInt,  # type: ignore
+            PysparkShortInt,  # type: ignore
+            PysparkByteInt,  # type: ignore
+            PysparkDouble,  # type: ignore
+            PysparkFloat,  # type: ignore
+            PysparkDecimal,  # type: ignore
+            PysparkDate,  # type: ignore
+            PysparkTimestamp,  # type: ignore
+            PysparkBinary,  # type: ignore
         ],
     )
     from typing import TYPE_CHECKING, Generic
