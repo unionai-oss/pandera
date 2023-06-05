@@ -28,7 +28,7 @@ if PYSPARK_SQL_INSTALLED:
     PysparkDType = TypeVar(  # type: ignore
         "PysparkDType",
         bound=Union[
-            PysparkString,
+            PysparkString,  # type: ignore
             PysparkInt,
             PysparkLongInt,
             PysparkShortInt,

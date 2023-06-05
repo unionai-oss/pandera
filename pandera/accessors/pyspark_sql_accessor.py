@@ -21,7 +21,7 @@ class PanderaAccessor:
         self._errors: Optional[Errors] = None
 
     @staticmethod
-    def check_schema_type(schema: Schemas):
+    def check_schema_type(schema: Schemas):  # type: ignore
         """Abstract method for checking the schema type."""
         raise NotImplementedError
 
