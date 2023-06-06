@@ -11,6 +11,7 @@ import pandera as pa
 import pandera.strategies as st
 from pandera import DataType, extensions
 from pandera.api.checks import Check
+import pyspark.sql as ps
 
 
 def test_custom_checks_in_dir(extra_registered_checks):
@@ -32,7 +33,7 @@ def test_register_vectorized_custom_check(
 
     @extensions.register_check_method(
         statistics=["val"],
-        supported_types=(pd.Series, pd.DataFrame),
+        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="vectorized",
     )
     def custom_check(pandas_obj, *, val):
@@ -75,7 +76,7 @@ def test_register_element_wise_custom_check(
 
     @extensions.register_check_method(
         statistics=["val"],
-        supported_types=(pd.Series, pd.DataFrame),
+        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="element_wise",
     )
     def custom_check(element, *, val):
@@ -112,7 +113,7 @@ def test_register_custom_groupby_check(custom_check_teardown: None) -> None:
 
     @extensions.register_check_method(
         statistics=["group_a", "group_b"],
-        supported_types=(pd.Series, pd.DataFrame),
+        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="groupby",
     )
     def custom_check(dict_groups, *, group_a, group_b):
@@ -231,7 +232,7 @@ def test_schema_model_field_kwarg(custom_check_teardown: None) -> None:
 
     @extensions.register_check_method(
         statistics=["val"],
-        supported_types=(pd.Series, pd.DataFrame),
+        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="vectorized",
     )
     def custom_gt(pandas_obj, val):
@@ -239,7 +240,7 @@ def test_schema_model_field_kwarg(custom_check_teardown: None) -> None:
 
     @extensions.register_check_method(
         statistics=["min_value", "max_value"],
-        supported_types=(pd.Series, pd.DataFrame),
+        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="vectorized",
     )
     def custom_in_range(pandas_obj, min_value, max_value):
