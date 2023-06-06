@@ -810,10 +810,11 @@ data pipeline:
         coerce=False,
         dtype=None,
         index=None,
-        strict=True
+        strict=True,
         name=None,
         ordered=False,
-        unique_column_names=False
+        unique_column_names=False,
+        metadata=None, 
     )>
 
 If during the course of a data pipeline one of your columns is moved into the
@@ -858,10 +859,11 @@ the pipeline output.
             name=None,
             ordered=True
         )>,
-        strict=True
+        strict=True,
         name=None,
         ordered=False,
-        unique_column_names=False
+        unique_column_names=False,
+        metadata=None,
     )>
 
 
