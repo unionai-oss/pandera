@@ -280,8 +280,7 @@ def str_length(
     str_len = data.str.len()
     if min_value is None and max_value is None:
         raise ValueError(
-            "At least a minimum or a maximum need to be specified. Got "
-            "None."
+            "At least a minimum or a maximum need to be specified. Got " "None."
         )
     if max_value is None:
         return str_len >= min_value  # type: ignore[operator]

@@ -28,9 +28,7 @@ def setup_modin_engine(request):
         # pylint: disable=import-outside-toplevel
         import ray
 
-        ray.init(
-            runtime_env={"env_vars": {"__MODIN_AUTOIMPORT_PANDAS__": "1"}}
-        )
+        ray.init(runtime_env={"env_vars": {"__MODIN_AUTOIMPORT_PANDAS__": "1"}})
         yield
         ray.shutdown()
 

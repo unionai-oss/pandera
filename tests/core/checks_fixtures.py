@@ -23,9 +23,7 @@ def custom_check_teardown() -> Generator[None, None, None]:
 def extra_registered_checks() -> Generator[None, None, None]:
     """temporarily registers custom checks onto the Check class"""
     # pylint: disable=unused-variable
-    with mock.patch(
-        "pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict
-    ):
+    with mock.patch("pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict):
         # register custom checks here
         @pa_ext.register_check_method()
         def no_param_check(_: pd.DataFrame) -> bool:

@@ -20,9 +20,7 @@ DtypeInputTypes = Union[str, type, DataType, Type]
 class BaseSchema(ABC):
     """Core schema specification."""
 
-    BACKEND_REGISTRY: Dict[
-        Tuple[Type, Type], Type[BaseSchemaBackend]
-    ] = {}  # noqa
+    BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseSchemaBackend]] = {}  # noqa
 
     def __init__(
         self,
@@ -82,9 +80,7 @@ class BaseSchema(ABC):
         elif check_type is not None:
             check_obj_cls = check_type
         else:
-            raise ValueError(
-                "Must pass in one of `check_obj` or `check_type`."
-            )
+            raise ValueError("Must pass in one of `check_obj` or `check_type`.")
         classes = inspect.getmro(check_obj_cls)
         for _class in classes:
             try:

@@ -129,9 +129,7 @@ def test_infer_series_schema(series: pd.Series) -> None:
         schema.validate(series)
 
     # modifying an inferred schema should set _is_inferred to False
-    schema_with_new_checks = schema.set_checks(
-        [pa.Check(lambda x: x is not None)]
-    )
+    schema_with_new_checks = schema.set_checks([pa.Check(lambda x: x is not None)])
     assert schema._is_inferred
     assert not schema_with_new_checks._is_inferred
     assert isinstance(schema_with_new_checks.validate(series), pd.Series)

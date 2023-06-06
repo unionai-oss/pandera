@@ -130,15 +130,15 @@ if __name__ == "__main__":
     )
     args = argparser.parse_args()
 
-    res = main(
-        CONDA_REQUIREMENTS_FILE, PIP_REQUIREMENTS_FILE, compare=args.compare
-    )
+    res = main(CONDA_REQUIREMENTS_FILE, PIP_REQUIREMENTS_FILE, compare=args.compare)
     if res:
         msg = (
             f"`{PIP_REQUIREMENTS_FILE}` has to be generated with `{sys.argv[0]}` after "
             f"`{CONDA_REQUIREMENTS_FILE}` is modified.\n"
         )
         if args.azure:
-            msg = f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
+            msg = (
+                f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
+            )
         sys.stderr.write(msg)
     sys.exit(res)

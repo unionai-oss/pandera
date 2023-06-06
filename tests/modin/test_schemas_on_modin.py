@@ -35,13 +35,9 @@ TEST_DTYPES_ON_MODIN = []
 for dtype_cls in pandas_engine.Engine.get_registered_dtypes():
     if (
         dtype_cls in UNSUPPORTED_STRATEGY_DTYPE_CLS
-        or (
-            pandas_engine.Engine.dtype(dtype_cls)
-            not in SUPPORTED_STRATEGY_DTYPES
-        )
+        or (pandas_engine.Engine.dtype(dtype_cls) not in SUPPORTED_STRATEGY_DTYPES)
         or not (
-            pandas_engine.GEOPANDAS_INSTALLED
-            and dtype_cls == pandas_engine.Geometry
+            pandas_engine.GEOPANDAS_INSTALLED and dtype_cls == pandas_engine.Geometry
         )
     ):
         continue
@@ -154,9 +150,7 @@ def test_index_dtypes(
     if modin_version().release < (0, 16, 0) and dtype is bool:
         assert sample.dtype == "object"
         return
-    assert isinstance(
-        schema(mpd.DataFrame(pd.DataFrame(index=sample))), mpd.DataFrame
-    )
+    assert isinstance(schema(mpd.DataFrame(pd.DataFrame(index=sample))), mpd.DataFrame)
 
 
 @pytest.mark.parametrize(
@@ -236,9 +230,7 @@ def test_unique():
 
 def test_required_column():
     """Test the required column raises error."""
-    required_schema = pa.DataFrameSchema(
-        {"field": pa.Column(int, required=True)}
-    )
+    required_schema = pa.DataFrameSchema({"field": pa.Column(int, required=True)})
     schema = pa.DataFrameSchema({"field_": pa.Column(int, required=False)})
 
     data = mpd.DataFrame({"field": [1, 2, 3]})
@@ -353,10 +345,7 @@ def test_schema_model():
         Schema.validate(invalid_df, lazy=True)
     except pa.errors.SchemaErrors as err:
         expected_failures = {-1, "d", "float_field"}
-        assert (
-            set(err.failure_cases["failure_case"].tolist())
-            == expected_failures
-        )
+        assert set(err.failure_cases["failure_case"].tolist()) == expected_failures
 
 
 @pytest.mark.parametrize(

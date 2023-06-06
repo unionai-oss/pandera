@@ -70,9 +70,7 @@ def test_upload_file_endpoint(app, sample):
     expected_result = pd.read_parquet(buf).assign(name="foo")
     buf.seek(0)
 
-    response = requests.post(
-        "http://127.0.0.1:8000/file/", files={"file": buf}
-    )
+    response = requests.post("http://127.0.0.1:8000/file/", files={"file": buf})
     output = response.json()
     assert output["filename"] == "file"
     output_df = pd.read_json(output["df"])
