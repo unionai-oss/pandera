@@ -36,7 +36,6 @@ class ColumnBackend(ArraySchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> pd.DataFrame:
         """Validation backend implementation for pandas dataframe columns.."""
         if not inplace:
@@ -53,10 +52,10 @@ class ColumnBackend(ArraySchemaBackend):
                 "method.",
             )
 
-        def validate_column(check_obj, column_name):
+        def validate_column(check_obj, column_name, return_check_obj=False):
             try:
                 # pylint: disable=super-with-arguments
-                super(ColumnBackend, self).validate(
+                validated_check_obj = super(ColumnBackend, self).validate(
                     check_obj,
                     copy(schema).set_name(column_name),
                     head=head,
@@ -66,6 +65,10 @@ class ColumnBackend(ArraySchemaBackend):
                     lazy=lazy,
                     inplace=inplace,
                 )
+
+                if return_check_obj:
+                    return validated_check_obj
+
             except SchemaErrors as err:
                 for err in err.schema_errors:
                     error_handler.collect_error(
@@ -97,10 +100,16 @@ class ColumnBackend(ArraySchemaBackend):
                         check_obj[column_name].iloc[:, [i]], column_name
                     )
             else:
-                validate_column(check_obj, column_name)
+                if hasattr(schema, "drop_invalid") and schema.drop_invalid:
+                    # replace the check_obj with the validated check_obj
+                    check_obj = validate_column(
+                        check_obj, column_name, return_check_obj=True
+                    )
+                else:
+                    validate_column(check_obj, column_name)
 
         if lazy and error_handler.collected_errors:
-            if drop_invalid:
+            if hasattr(schema, "drop_invalid") and schema.drop_invalid:
                 check_obj = self.drop_invalid_data(check_obj, error_handler)
                 return check_obj
             else:
@@ -246,7 +255,6 @@ class IndexBackend(ArraySchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         if is_multiindex(check_obj.index):
             raise SchemaError(
@@ -273,7 +281,6 @@ class IndexBackend(ArraySchemaBackend):
                 random_state=random_state,
                 lazy=lazy,
                 inplace=inplace,
-                drop_invalid=drop_invalid,
             ),
         )
         return check_obj
@@ -371,7 +378,6 @@ class MultiIndexBackend(DataFrameSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrame or Series MultiIndex.
 
@@ -388,7 +394,6 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame or Series.
         """
         if schema.coerce:
@@ -431,7 +436,6 @@ class MultiIndexBackend(DataFrameSchemaBackend):
                 random_state=random_state,
                 lazy=lazy,
                 inplace=inplace,
-                drop_invalid=drop_invalid,
             )
         except SchemaErrors as err:
             # This is a hack to re-raise the SchemaErrors exception and change

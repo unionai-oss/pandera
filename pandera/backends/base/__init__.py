@@ -63,7 +63,6 @@ class BaseSchemaBackend(ABC):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ):
         """
         Parse and validate a check object, returning type-coerced and validated

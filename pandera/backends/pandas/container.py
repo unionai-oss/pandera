@@ -47,7 +47,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ):
         """
         Parse and validate a check object, returning type-coerced and validated
@@ -98,7 +97,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         )
 
         if error_handler.collected_errors:
-            if drop_invalid:
+            if hasattr(schema, "drop_invalid") and schema.drop_invalid:
                 check_obj = self.drop_invalid_data(check_obj, error_handler)
                 return check_obj
             else:

@@ -30,6 +30,7 @@ class Column(ArraySchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        drop_invalid: bool = False,
     ) -> None:
         """Create column validator object.
 
@@ -54,6 +55,7 @@ class Column(ArraySchema):
         :param title: A human-readable label for the column.
         :param description: An arbitrary textual description of the column.
         :param default: The default value for missing values in the column.
+        :param drop_invalid: if True, drop invalid rows on validation.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -85,6 +87,7 @@ class Column(ArraySchema):
             title=title,
             description=description,
             default=default,
+            drop_invalid=drop_invalid,
         )
         if (
             name is not None
@@ -140,7 +143,6 @@ class Column(ArraySchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> pd.DataFrame:
         """Validate a Column in a DataFrame object.
 
@@ -157,7 +159,6 @@ class Column(ArraySchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame.
         """
         return self.get_backend(check_obj).validate(
@@ -169,7 +170,6 @@ class Column(ArraySchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            drop_invalid=drop_invalid,
         )
 
     def get_regex_columns(
@@ -267,7 +267,6 @@ class Index(ArraySchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrameSchema or SeriesSchema Index.
 
@@ -284,7 +283,6 @@ class Index(ArraySchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame or Series.
         """
         return self.get_backend(check_obj).validate(
@@ -296,7 +294,6 @@ class Index(ArraySchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            drop_invalid=drop_invalid,
         )
 
     def __eq__(self, other):
@@ -466,7 +463,6 @@ class MultiIndex(DataFrameSchema):
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> Union[pd.DataFrame, pd.Series]:
         """Validate DataFrame or Series MultiIndex.
 
@@ -483,7 +479,6 @@ class MultiIndex(DataFrameSchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated DataFrame or Series.
         """
         return self.get_backend(check_obj).validate(
@@ -495,7 +490,6 @@ class MultiIndex(DataFrameSchema):
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            drop_invalid=drop_invalid,
         )
 
     def __repr__(self):

@@ -32,6 +32,7 @@ class BaseSchema(ABC):
         name=None,
         title=None,
         description=None,
+        drop_invalid=False,
     ):
         """Abstract base schema initializer."""
         self.dtype = dtype
@@ -40,6 +41,7 @@ class BaseSchema(ABC):
         self.name = name
         self.title = title
         self.description = description
+        self.drop_invalid = drop_invalid
 
     def validate(
         self,
@@ -50,7 +52,6 @@ class BaseSchema(ABC):
         random_state=None,
         lazy=False,
         inplace=False,
-        drop_invalid=False,
     ):
         """Validate method to be implemented by subclass."""
         raise NotImplementedError

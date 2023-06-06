@@ -46,6 +46,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         unique_column_names: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        drop_invalid: bool = False,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -77,6 +78,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param unique_column_names: whether or not column names must be unique.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
+        :param drop_invalid: if True, drop invalid rows on validation.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -152,7 +154,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self._unique = unique
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
-
+        self.drop_invalid = drop_invalid
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
@@ -260,7 +262,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> pd.DataFrame:
         """Check if all columns in a dataframe have a column in the Schema.
 
@@ -277,7 +278,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :param drop_invalid: if True, drops invalid rows on validate.
         :returns: validated ``DataFrame``
 
         :raises SchemaError: when ``DataFrame`` violates built-in or custom
@@ -348,7 +348,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            drop_invalid=drop_invalid,
         )
 
     def _validate(
@@ -360,7 +359,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-        drop_invalid: bool = False,
     ) -> pd.DataFrame:
 
         if self._is_inferred:
@@ -381,7 +379,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             random_state=random_state,
             lazy=lazy,
             inplace=inplace,
-            drop_invalid=drop_invalid,
         )
 
     def __call__(
