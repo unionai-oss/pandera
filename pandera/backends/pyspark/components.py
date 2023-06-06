@@ -118,7 +118,9 @@ class ColumnBackend(ColumnSchemaBackend):
         # pylint: disable=super-with-arguments
         # pylint: disable=fixme
 
-        check_obj = check_obj.withColumn(schema.name, col(schema.name).cast(schema.dtype))
+        check_obj = check_obj.withColumn(
+            schema.name, col(schema.name).cast(schema.dtype)
+        )
 
         return check_obj
 
