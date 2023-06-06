@@ -6,7 +6,7 @@ from copy import copy
 from typing import Iterable, Optional
 
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import cast
+from pyspark.sql.functions import col
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.column import ColumnSchemaBackend
@@ -118,7 +118,7 @@ class ColumnBackend(ColumnSchemaBackend):
         # pylint: disable=super-with-arguments
         # pylint: disable=fixme
 
-        check_obj = check_obj.withColumn(schema.name, cast(schema.dtype))
+        check_obj = check_obj.withColumn(schema.name, col(schema.name).cast(schema.dtype))
 
         return check_obj
 

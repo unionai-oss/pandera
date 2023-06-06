@@ -360,8 +360,8 @@ class TestComplexType(BaseClass):
                 {
                     "schema": None,
                     "column": "customer_details",
-                    "check": "dtype('ArrayType(ArrayType(IntegerType(), True), True)')",
-                    "error": "expected column 'customer_details' to have type ArrayType(ArrayType(IntegerType(), True), True), got ArrayType(ArrayType(StringType(), True), True)",
+                    "check": f"dtype('{str(T.ArrayType(T.ArrayType(T.IntegerType(), True), True))}')",
+                    "error": f"expected column 'customer_details' to have type {str(T.ArrayType(T.ArrayType(T.IntegerType(), True), True))}, got {str(T.ArrayType(T.ArrayType(T.StringType(), True), True))}",
                 }
             ]
         }
@@ -382,8 +382,8 @@ class TestComplexType(BaseClass):
                 {
                     "schema": None,
                     "column": "product_details",
-                    "check": "dtype('MapType(StringType(), IntegerType(), True)')",
-                    "error": "expected column 'product_details' to have type MapType(StringType(), IntegerType(), True), got MapType(StringType(), StringType(), True)",
+                    "check": f"dtype('{str(T.MapType(T.StringType(), T.IntegerType(), True))}')",
+                    "error": f"expected column 'product_details' to have type {str(T.MapType(T.StringType(), T.IntegerType(), True))}, got {str(T.MapType(T.StringType(), T.StringType(), True))}",
                 }
             ]
         }

@@ -209,7 +209,7 @@ class TestConfigParams:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",
@@ -245,7 +245,7 @@ class TestConfigParams:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",
@@ -308,7 +308,7 @@ class TestConfigParams:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",
@@ -360,7 +360,7 @@ class TestConfigParams:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",

@@ -69,7 +69,7 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
                 "error": "column "
                 "'product' "
                 "with type "
-                "StringType() "
+                f"{str(StringType())} "
                 "failed "
                 "validation "
                 "str_startswith('B')",
@@ -81,7 +81,7 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
                 "error": "column "
                 "'price' with "
                 "type "
-                "IntegerType() "
+                f"{str(T.IntegerType())} "
                 "failed "
                 "validation "
                 "greater_than(5)",
@@ -165,7 +165,7 @@ def test_pyspark_schema_data_checks(spark):
                     "check": "str_startswith('B')",
                     "column": "product",
                     "error": "column 'product' with "
-                    "type StringType() failed "
+                    f"type {str(T.StringType())} failed "
                     "validation "
                     "str_startswith('B')",
                     "schema": "product_schema",
@@ -174,7 +174,7 @@ def test_pyspark_schema_data_checks(spark):
                     "check": "greater_than(5)",
                     "column": "price",
                     "error": "column 'price' with type "
-                    "IntegerType() failed "
+                    f"{str(T.IntegerType())} failed "
                     "validation "
                     "greater_than(5)",
                     "schema": "product_schema",
@@ -184,15 +184,13 @@ def test_pyspark_schema_data_checks(spark):
         "SCHEMA": {
             "WRONG_DATATYPE": [
                 {
-                    "check": "dtype('ArrayType(StringType(), True)')",
+                    "check": f"dtype('{str(T.ArrayType(StringType(), True))}')",
                     "column": "id",
                     "error": "expected "
                     "column 'id' "
                     "to have type "
-                    "ArrayType(StringType(), "
-                    "True), got "
-                    "ArrayType(StringType(), "
-                    "False)",
+                    f"{str(T.ArrayType(StringType(), True))}, got "
+                    f"{str(T.ArrayType(StringType(), False))}",
                     "schema": "product_schema",
                 }
             ]
@@ -248,7 +246,7 @@ def test_pyspark_fields(spark):
                     "error": "column "
                     "'product' "
                     "with type "
-                    "StringType() "
+                    f"{str(T.StringType())} "
                     "failed "
                     "validation "
                     "str_startswith('B')",
@@ -260,7 +258,7 @@ def test_pyspark_fields(spark):
                     "error": "column "
                     "'price' with "
                     "type "
-                    "IntegerType() "
+                    f"{str(T.IntegerType())} "
                     "failed "
                     "validation "
                     "greater_than(5)",
@@ -271,20 +269,14 @@ def test_pyspark_fields(spark):
         "SCHEMA": {
             "WRONG_DATATYPE": [
                 {
-                    "check": "dtype('MapType(StringType(), "
-                    "StringType(), "
-                    "True)')",
+                    "check": f"dtype('{str(T.MapType(StringType(), StringType(), True))}')",
                     "column": "product_info",
                     "error": "expected "
                     "column "
                     "'product_info' "
                     "to have type "
-                    "MapType(StringType(), "
-                    "StringType(), "
-                    "True), got "
-                    "MapType(StringType(), "
-                    "StringType(), "
-                    "False)",
+                    f"{str(T.MapType(T.StringType(), T.StringType(), True))}, got "
+                    f"{str(T.MapType(T.StringType(), T.StringType(), False))}",
                     "schema": "PanderaSchema",
                 }
             ]
