@@ -217,6 +217,7 @@ def register_check_method(  # pylint:disable=too-many-branches
     if check_type is CheckType.ELEMENT_WISE and set(supported_types) != {
         pd.DataFrame,
         pd.Series,
+        ps.DataFrame,
     }:  # type: ignore
         raise ValueError(
             "Element-wise checks should support DataFrame and Series "
