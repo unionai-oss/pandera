@@ -205,10 +205,11 @@ You can easily convert a :class:`~pandera.api.pandas.model.DataFrameModel` class
         coerce=False,
         dtype=None,
         index=None,
-        strict=False
+        strict=False,
         name=InputSchema,
         ordered=False,
-        unique_column_names=False
+        unique_column_names=False,
+        metadata=None,
     )>
 
 You can also use the :meth:`~pandera.api.pandas.model.DataFrameModel.validate` method to
