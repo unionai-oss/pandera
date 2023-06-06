@@ -155,6 +155,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
         self.drop_invalid = drop_invalid
+
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False

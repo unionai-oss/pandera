@@ -2145,11 +2145,3 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
     pd.testing.assert_frame_equal(
         expected_obj.reset_index(drop=True), actual.reset_index(drop=True)
     )
-
-
-if __name__ == "__main__":
-    test_drop_invalid_for_column(
-        Column(str, name="column1", drop_invalid=True),
-        pd.DataFrame({"column1": [None, 1, "two"]}),
-        pd.DataFrame({"column1": ["two"]}),
-    )
