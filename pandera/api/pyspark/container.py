@@ -301,32 +301,30 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         >>> import pandera.pyspark as psa
         >>> from pyspark.sql import SparkSession
-        >>>
+        >>> import pyspark.sql.types as T
         >>> spark = SparkSession.builder.getOrCreate()
-        >>> df = spark.createDataFrame([(0.1, 'dog'), (0.4, 'dog'), (0.52, 'cat'), (0.23, 'duck'),
-        ... (0.8, 'dog'), (0.76, 'dog')],schema=['probability','category'])
         >>>
-        >>> schema_withchecks = psa.DataFrameSchema({
-        ...     "probability": psa.Column(
-        ...         float, psa.Check(lambda s: (s >= 0) & (s <= 1))),
-        ...
-        ...     # check that the "category" column contains a few discrete
-        ...     # values, and the majority of the entries are dogs.
-        ...     "category": psa.Column(
-        ...         str, [
-        ...             psa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
-        ...             psa.Check(lambda s: (s == "dog").mean() > 0.5),
-        ...         ]),
-        ... })
+        >>> data = [("Bread", 9), ("Butter", 15)]
+        >>> spark_schema = T.StructType(
+        ...         [
+        ...             T.StructField("product", T.StringType(), False),
+        ...             T.StructField("price", T.IntegerType(), False),
+        ...         ],
+        ...     )
+        >>> df = spark.createDataFrame(data=data, schema=spark_schema)
         >>>
-        >>> schema_withchecks.validate(df)[["probability", "category"]]
-           probability category
-                 0.10      dog
-                 0.40      dog
-                 0.52      cat
-                 0.23     duck
-                 0.80      dog
-                 0.76      dog
+        >>> schema_withchecks = psa.DataFrameSchema(
+        ...         columns={
+        ...             "product": psa.Column("str", checks=psa.Check.str_startswith("B")),
+        ...             "price": psa.Column("int", checks=psa.Check.gt(5)),
+        ...         },
+        ...         name="product_schema",
+        ...         description="schema for product info",
+        ...         title="ProductSchema",
+        ...     )
+        >>>
+        >>> schema_withchecks.validate(df).take(2)
+            [Row(product='Bread', price=9), Row(product='Butter', price=15)]
         """
         if PANDERA_CONFIG["PANDERA_VALIDATION"] == "DISABLE":
             return
