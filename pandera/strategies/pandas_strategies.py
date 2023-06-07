@@ -20,6 +20,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     List,
     Optional,
     Sequence,
@@ -51,8 +52,10 @@ try:
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
 
+    T = TypeVar("T")
+
     # pylint: disable=too-few-public-methods
-    class SearchStrategy:  # type: ignore
+    class SearchStrategy(Generic[T]):  # type: ignore
         """placeholder type."""
 
     def composite(fn):  # type: ignore
