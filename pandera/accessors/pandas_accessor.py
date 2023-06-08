@@ -43,7 +43,7 @@ class PanderaDataFrameAccessor(PanderaAccessor):
     def check_schema_type(schema):
         if not isinstance(schema, DataFrameSchema):
             raise TypeError(
-                f"schema arg must be a DataFrameSchema, found {type(schema)}"
+                f"schema arg must be a {DataFrameSchema}, found {type(schema)}"
             )
 
 
@@ -55,5 +55,5 @@ class PanderaSeriesAccessor(PanderaAccessor):
     def check_schema_type(schema):
         if not isinstance(schema, SeriesSchema):
             raise TypeError(
-                f"schema arg must be a SeriesSchema, found {type(schema)}"
+                f"schema arg must be a {SeriesSchema}, found {type(schema)}"
             )
