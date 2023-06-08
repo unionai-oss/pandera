@@ -64,9 +64,15 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
     is_py_newer_than_39 = sys.version_info[:2] >= (3, 9)
     # Exclusion criteria
     is_regular_method = inspect.ismethod(fn) and first_arg_is_self
-    is_decorated_cls_method = is_decorated_classmethod(fn) and is_py_newer_than_39
+    is_decorated_cls_method = (
+        is_decorated_classmethod(fn) and is_py_newer_than_39
+    )
     is_cls_method_from_meta_method = is_classmethod_from_meta(fn)
-    if is_regular_method or is_decorated_cls_method or is_cls_method_from_meta_method:
+    if (
+        is_regular_method
+        or is_decorated_cls_method
+        or is_cls_method_from_meta_method
+    ):
         # Don't include "self" / "cls" argument
         arg_spec_args = arg_spec_args[1:]
     return arg_spec_args
@@ -112,9 +118,7 @@ def _parse_schema_error(
     func_name = fn.__name__
     if isinstance(fn, types.MethodType):
         func_name = fn.__self__.__class__.__name__ + "." + func_name
-    msg = (
-        f"error in {decorator_name} decorator of function '{func_name}': {schema_error}"
-    )
+    msg = f"error in {decorator_name} decorator of function '{func_name}': {schema_error}"
     return errors.SchemaError(  # type: ignore[misc]
         schema,
         data_obj,
@@ -226,7 +230,9 @@ def check_input(
                 ) from exc
         elif isinstance(obj_getter, str):
             if obj_getter in kwargs:
-                kwargs[obj_getter] = schema.validate(kwargs[obj_getter], *validate_args)
+                kwargs[obj_getter] = schema.validate(
+                    kwargs[obj_getter], *validate_args
+                )
             else:
                 arg_spec_args = _get_fn_argnames(fn)
                 args_dict = OrderedDict(zip(arg_spec_args, args))
@@ -253,7 +259,9 @@ def check_input(
                     "check_input", fn, schema, kwargs[args_names[0]], e
                 )
         else:
-            raise TypeError(f"obj_getter is unrecognized type: {type(obj_getter)}")
+            raise TypeError(
+                f"obj_getter is unrecognized type: {type(obj_getter)}"
+            )
         return fn(*args, **kwargs)
 
     return _wrapper
@@ -477,7 +485,9 @@ def check_io(
         elif out is None:
             out_schemas = []
         else:
-            raise TypeError(f"type of out argument not recognized: {type(out)}")
+            raise TypeError(
+                f"type of out argument not recognized: {type(out)}"
+            )
 
         wrapped_fn = fn
         for input_getter, input_schema in inputs.items():
@@ -488,7 +498,9 @@ def check_io(
 
         # pylint: disable=no-value-for-parameter
         for out_getter, out_schema in out_schemas:  # type: ignore
-            wrapped_fn = check_output(out_schema, out_getter, *check_args)(wrapped_fn)
+            wrapped_fn = check_output(out_schema, out_getter, *check_args)(
+                wrapped_fn
+            )
 
         return wrapped_fn(*args, **kwargs)
 
@@ -587,7 +599,9 @@ def check_types(
                         continue
 
                     schema_model = cast(SchemaModel, sub_annotation_info.arg)
-                    annotation_model_pairs.append((schema_model, sub_annotation_info))
+                    annotation_model_pairs.append(
+                        (schema_model, sub_annotation_info)
+                    )
             else:
                 continue
         else:
@@ -601,7 +615,9 @@ def check_types(
         Validate function's argument if annoted with a schema, else
         pass-through.
         """
-        annotation_model_pairs = annotated_schema_models.get(arg_name, [(None, None)])
+        annotation_model_pairs = annotated_schema_models.get(
+            arg_name, [(None, None)]
+        )
 
         if not annotation_model_pairs:
             return arg_value
@@ -623,7 +639,9 @@ def check_types(
                 schema = schema_model.to_schema()
 
                 if data_container_type and config and config.from_format:
-                    arg_value = data_container_type.from_format(arg_value, config)
+                    arg_value = data_container_type.from_format(
+                        arg_value, config
+                    )
 
                 # Don't do checks if value is still a built-in type
                 if isinstance(
@@ -657,7 +675,9 @@ def check_types(
                         continue
 
                 if data_container_type and config and config.to_format:
-                    arg_value = data_container_type.to_format(arg_value, config)
+                    arg_value = data_container_type.to_format(
+                        arg_value, config
+                    )
 
                 return arg_value
 
@@ -710,7 +730,9 @@ def check_types(
             if with_pydantic:
                 out = await validate_arguments(wrapped_)(*args, **kwargs)
             else:
-                validated_pos, validated_kwd = validate_inputs(instance, args, kwargs)
+                validated_pos, validated_kwd = validate_inputs(
+                    instance, args, kwargs
+                )
                 out = await wrapped_(*validated_pos.values(), **validated_kwd)
             return _check_arg("return", out)
 
@@ -726,7 +748,9 @@ def check_types(
             if with_pydantic:
                 out = validate_arguments(wrapped_)(*args, **kwargs)
             else:
-                validated_pos, validated_kwd = validate_inputs(instance, args, kwargs)
+                validated_pos, validated_kwd = validate_inputs(
+                    instance, args, kwargs
+                )
                 out = wrapped_(*validated_pos.values(), **validated_kwd)
             return _check_arg("return", out)
 

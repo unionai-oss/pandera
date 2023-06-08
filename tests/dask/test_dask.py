@@ -145,4 +145,6 @@ def test_init_pandas_dataframe_errors(invalid_data):
     """Test errors from initializing a pandas.typing.DataFrame with Schema."""
     ddf = dd.from_pandas(pd.DataFrame(invalid_data), npartitions=2)
     with pytest.raises(pa.errors.SchemaError):
-        DataFrame[InitSchema](ddf.dask, ddf._name, ddf._meta, ddf.divisions).compute()
+        DataFrame[InitSchema](
+            ddf.dask, ddf._name, ddf._meta, ddf.divisions
+        ).compute()

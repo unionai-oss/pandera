@@ -59,8 +59,12 @@ if PYSPARK_SQL_INSTALLED:
 
             default_dtype: Optional[Type] = None
 
-            def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
-                raise AttributeError("column should resolve to pyspark.sql.Column-s")
+            def __get__(
+                self, instance: object, owner: Type
+            ) -> str:  # pragma: no cover
+                raise AttributeError(
+                    "column should resolve to pyspark.sql.Column-s"
+                )
 
         class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
             """

@@ -120,7 +120,9 @@ class PandasHypothesisBackend(PandasCheckBackend):
             return check_obj[key]
         return cast(
             Dict[str, pd.DataFrame],
-            self._format_groupby_input(self.groupby(check_obj)[key], self.check.groups),
+            self._format_groupby_input(
+                self.groupby(check_obj)[key], self.check.groups
+            ),
         )
 
     @overload  # type: ignore [no-redef]
@@ -140,7 +142,9 @@ class PandasHypothesisBackend(PandasCheckBackend):
         if self.is_one_sample_test:
             return check_obj[self.check.samples[0]]  # type: ignore
 
-        check_obj = [(sample, check_obj[sample]) for sample in self.check.samples]
+        check_obj = [
+            (sample, check_obj[sample]) for sample in self.check.samples
+        ]
         return cast(
             Dict[str, pd.DataFrame],
             self._format_groupby_input(check_obj, self.check.groups),

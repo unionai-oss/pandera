@@ -11,7 +11,6 @@ import pandera as pa
 import pandera.strategies as st
 from pandera import DataType, extensions
 from pandera.api.checks import Check
-import pyspark.sql as ps
 
 
 def test_custom_checks_in_dir(extra_registered_checks):
@@ -33,7 +32,6 @@ def test_register_vectorized_custom_check(
 
     @extensions.register_check_method(
         statistics=["val"],
-        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="vectorized",
     )
     def custom_check(pandas_obj, *, val):
@@ -76,7 +74,6 @@ def test_register_element_wise_custom_check(
 
     @extensions.register_check_method(
         statistics=["val"],
-        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="element_wise",
     )
     def custom_check(element, *, val):
@@ -97,7 +94,8 @@ def test_register_element_wise_custom_check(
 
     with pytest.raises(
         ValueError,
-        match="Element-wise checks should support DataFrame and Series " "validation",
+        match="Element-wise checks should support DataFrame and Series "
+        "validation",
     ):
 
         @extensions.register_check_method(
@@ -113,7 +111,6 @@ def test_register_custom_groupby_check(custom_check_teardown: None) -> None:
 
     @extensions.register_check_method(
         statistics=["group_a", "group_b"],
-        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="groupby",
     )
     def custom_check(dict_groups, *, group_a, group_b):
@@ -123,7 +120,10 @@ def test_register_custom_groupby_check(custom_check_teardown: None) -> None:
         Note that this function can handle groups of both dataframes and
         series.
         """
-        return dict_groups[group_a].values.mean() > dict_groups[group_b].values.mean()
+        return (
+            dict_groups[group_a].values.mean()
+            > dict_groups[group_b].values.mean()
+        )
 
     # column groupby check
     data_column_check = pd.DataFrame(
@@ -160,7 +160,9 @@ def test_register_custom_groupby_check(custom_check_teardown: None) -> None:
             "col3": pa.Column(int),
         },
         index=pa.Index(str, name="my_index"),
-        checks=Check.custom_check(group_a="a", group_b="b", groupby="my_index"),
+        checks=Check.custom_check(
+            group_a="a", group_b="b", groupby="my_index"
+        ),
     )
     assert isinstance(schema_df_check(data_df_check), pd.DataFrame)
 
@@ -232,7 +234,6 @@ def test_schema_model_field_kwarg(custom_check_teardown: None) -> None:
 
     @extensions.register_check_method(
         statistics=["val"],
-        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="vectorized",
     )
     def custom_gt(pandas_obj, val):
@@ -240,7 +241,6 @@ def test_schema_model_field_kwarg(custom_check_teardown: None) -> None:
 
     @extensions.register_check_method(
         statistics=["min_value", "max_value"],
-        supported_types=(pd.Series, pd.DataFrame, ps.DataFrame),
         check_type="vectorized",
     )
     def custom_in_range(pandas_obj, min_value, max_value):
@@ -309,4 +309,6 @@ def test_if_statistics_are_sane(custom_check_teardown: None) -> None:
         return df[col_a].mean() > df[col_b].mean()
 
     with pytest.raises(TypeError, match=r"is not part of .*? signature"):
-        extensions.register_check_method(mean_a_gt_mean_b, statistics=["col_a", "colb"])
+        extensions.register_check_method(
+            mean_a_gt_mean_b, statistics=["col_a", "colb"]
+        )

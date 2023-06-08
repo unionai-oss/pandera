@@ -93,7 +93,9 @@ def reshape_failure_cases(
         reshaped_failure_cases = (
             failure_cases.rename_axis("column", axis=1)  # type: ignore[call-overload]
             .assign(
-                index=lambda df: (df.index.to_frame().apply(tuple, axis=1).astype(str))
+                index=lambda df: (
+                    df.index.to_frame().apply(tuple, axis=1).astype(str)
+                )
             )
             .set_index("index", drop=True)
             .unstack()
@@ -120,7 +122,8 @@ def reshape_failure_cases(
         reshaped_failure_cases = reshaped_failure_cases.reset_index()
     else:
         raise TypeError(
-            "type of failure_cases argument not understood: " f"{type(failure_cases)}"
+            "type of failure_cases argument not understood: "
+            f"{type(failure_cases)}"
         )
 
     return (
@@ -203,7 +206,8 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
     # NOTE: this is a hack to support pyspark.pandas and modin
     concat_fn = pd.concat  # type: ignore
     if any(
-        type(x).__module__.startswith("pyspark.pandas") for x in check_failure_cases
+        type(x).__module__.startswith("pyspark.pandas")
+        for x in check_failure_cases
     ):
         # pylint: disable=import-outside-toplevel
         import pyspark.pandas as ps
@@ -214,7 +218,8 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
             for x in check_failure_cases
         ]
     elif any(
-        type(x).__module__.startswith("modin.pandas") for x in check_failure_cases
+        type(x).__module__.startswith("modin.pandas")
+        for x in check_failure_cases
     ):
         # pylint: disable=import-outside-toplevel
         import modin.pandas as mpd
@@ -283,7 +288,9 @@ def summarize_failure_cases(
                 .agg({"failure_case": "unique"})
                 .failure_case
             )
-        return df.groupby(["schema_context", "column", "check"]).failure_case.unique()
+        return df.groupby(
+            ["schema_context", "column", "check"]
+        ).failure_case.unique()
 
     summarized_failure_cases = (
         failure_cases.fillna({"column": "<NA>"})

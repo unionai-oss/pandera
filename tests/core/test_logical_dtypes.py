@@ -93,7 +93,9 @@ def test_logical_datatype_check(
     actual_datatype = pandas_engine.Engine.dtype(data.dtype)
 
     # wrong data type argument, should return all False
-    assert not any(cast(Iterable[bool], expected_datatype.check(SimpleDtype(), data)))
+    assert not any(
+        cast(Iterable[bool], expected_datatype.check(SimpleDtype(), data))
+    )
     assert expected_datatype.check(SimpleDtype(), None) is False
 
     # No data container
@@ -153,7 +155,9 @@ def test_logical_datatype_coerce(
         actual_failure_cases = pd.Series(
             exc.value.failure_cases["failure_case"].to_numpy()
         )
-        assert_series_equal(failure_cases, actual_failure_cases, check_names=False)
+        assert_series_equal(
+            failure_cases, actual_failure_cases, check_names=False
+        )
 
         schema = pa.SeriesSchema(expected_datatype, coerce=True)
         try:
@@ -165,7 +169,9 @@ def test_logical_datatype_coerce(
                     "failure_case",
                 ].to_numpy()
             )
-            assert_series_equal(failure_cases, err_failure_cases, check_names=False)
+            assert_series_equal(
+                failure_cases, err_failure_cases, check_names=False
+            )
 
     else:
         coerced_data = expected_datatype.coerce(data)
@@ -287,6 +293,8 @@ def test_decimal_scale_zero_coercions(value):
     check_type = pandas_engine.Decimal(28, 0)
 
     coerced = check_type.coerce(value)
-    result = check_type.check(pandas_engine.Engine.dtype(coerced.dtype), coerced)
+    result = check_type.check(
+        pandas_engine.Engine.dtype(coerced.dtype), coerced
+    )
 
     assert result.all()

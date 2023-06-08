@@ -144,7 +144,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             "filter",
         ):
             raise errors.SchemaInitError(
-                "strict parameter must equal either `True`, `False`, " "or `'filter'`."
+                "strict parameter must equal either `True`, `False`, "
+                "or `'filter'`."
             )
 
         self.strict: Union[bool, str] = strict
@@ -200,7 +201,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         :returns: dictionary of columns and their associated dtypes.
         """
-        regex_columns = [name for name, col in self.columns.items() if col.regex]
+        regex_columns = [
+            name for name, col in self.columns.items() if col.regex
+        ]
         if regex_columns:
             warnings.warn(
                 "Schema has columns specified as regex column names: "
@@ -400,7 +403,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
         """
-        return self.validate(dataframe, head, tail, sample, random_state, lazy, inplace)
+        return self.validate(
+            dataframe, head, tail, sample, random_state, lazy, inplace
+        )
 
     def __repr__(self) -> str:
         """Represent string for logging."""
@@ -465,7 +470,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             return NotImplemented
 
         def _compare_dict(obj):
-            return {k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"}
+            return {
+                k: v for k, v in obj.__dict__.items() if k != "_IS_INFERRED"
+            }
 
         return _compare_dict(self) == _compare_dict(other)
 
@@ -542,14 +549,20 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         return pandera.io.from_json(source)
 
     @overload
-    def to_json(self, target: None = None, **kwargs) -> str:  # pragma: no cover
+    def to_json(
+        self, target: None = None, **kwargs
+    ) -> str:  # pragma: no cover
         ...
 
     @overload
-    def to_json(self, target: os.PathLike, **kwargs) -> None:  # pragma: no cover
+    def to_json(
+        self, target: os.PathLike, **kwargs
+    ) -> None:  # pragma: no cover
         ...
 
-    def to_json(self, target: Optional[os.PathLike] = None, **kwargs) -> Optional[str]:
+    def to_json(
+        self, target: Optional[os.PathLike] = None, **kwargs
+    ) -> Optional[str]:
         """Write DataFrameSchema to json file.
 
         :param target: file target to write to. If None, dumps to string.

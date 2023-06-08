@@ -95,8 +95,12 @@ def test_is_decorated_classmethod() -> None:
     for method in cls_methods_with_deco:
         assert is_decorated_classmethod(method), f"{method} is decorated"
     for method in all_methods - cls_methods_with_deco:
-        assert not is_decorated_classmethod(method), f"{method} is not decorated"
+        assert not is_decorated_classmethod(
+            method
+        ), f"{method} is not decorated"
     for method in cls_methods_from_meta:
         assert is_classmethod_from_meta(method), f"{method} comes from meta"
     for method in all_methods - cls_methods_from_meta:
-        assert not is_classmethod_from_meta(method), f"{method} does not come from meta"
+        assert not is_classmethod_from_meta(
+            method
+        ), f"{method} does not come from meta"

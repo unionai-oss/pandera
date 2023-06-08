@@ -1,7 +1,6 @@
 """Pandera array backends."""
 
-import traceback
-from typing import cast, Iterable, List, NamedTuple, Optional
+from typing import cast, List, Optional
 
 import pandas as pd
 from multimethod import DispatchError
@@ -168,7 +167,9 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 f"non-nullable series '{check_obj.name}' contains "
                 f"null values:\n{check_obj[isna]}"
             ),
-            failure_cases=reshape_failure_cases(check_obj[isna], ignore_na=False),
+            failure_cases=reshape_failure_cases(
+                check_obj[isna], ignore_na=False
+            ),
         )
 
     def check_unique(self, check_obj: pd.Series, schema) -> CoreCheckResult:

@@ -198,7 +198,9 @@ def register_check_strategy(strategy_fn: StrategyFn):
                     "method."
                 )
             strategy_kwargs = {
-                arg: stat for arg, stat in check.statistics.items() if stat is not None
+                arg: stat
+                for arg, stat in check.statistics.items()
+                if stat is not None
             }
             check.strategy = partial(strategy_fn, **strategy_kwargs)
             return check
@@ -416,7 +418,9 @@ def pandas_dtype_strategy(
     elif is_complex(pandera_dtype):
         return numpy_complex_dtypes(
             np_dtype,
-            **compat_kwargs("min_value", "max_value", "allow_infinity", "allow_nan"),
+            **compat_kwargs(
+                "min_value", "max_value", "allow_infinity", "allow_nan"
+            ),
         )
     return npst.from_dtype(
         np_dtype,
@@ -588,7 +592,9 @@ def in_range_strategy(
         )
     min_op = operator.ge if include_min else operator.gt
     max_op = operator.le if include_max else operator.lt
-    return strategy.filter(lambda x: min_op(x, min_value) and max_op(x, max_value))
+    return strategy.filter(
+        lambda x: min_op(x, min_value) and max_op(x, max_value)
+    )
 
 
 def isin_strategy(
@@ -606,7 +612,9 @@ def isin_strategy(
     :returns: ``hypothesis`` strategy
     """
     if strategy is None:
-        return pandas_dtype_strategy(pandera_dtype, st.sampled_from(allowed_values))
+        return pandas_dtype_strategy(
+            pandera_dtype, st.sampled_from(allowed_values)
+        )
     return strategy.filter(lambda x: x in allowed_values)
 
 
@@ -789,13 +797,17 @@ def field_element_strategy(
             "definition. This can considerably slow down data-generation."
         )
         return (
-            pandas_dtype_strategy(pandera_dtype) if elements is None else elements
+            pandas_dtype_strategy(pandera_dtype)
+            if elements is None
+            else elements
         ).filter(check._check_fn)
 
     for check in checks:
         check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
         if check_strategy is not None:
-            elements = check_strategy(pandera_dtype, elements, **check.statistics)
+            elements = check_strategy(
+                pandera_dtype, elements, **check.statistics
+            )
         elif check.element_wise:
             elements = undefined_check_strategy(elements, check)
         # NOTE: vectorized checks with undefined strategies should be handled
@@ -982,7 +994,8 @@ def dataframe_strategy(
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     if n_regex_columns < 1:
         raise ValueError(
-            "`n_regex_columns` must be a positive integer, found: " f"{n_regex_columns}"
+            "`n_regex_columns` must be a positive integer, found: "
+            f"{n_regex_columns}"
         )
     if strategy:
         raise BaseStrategyOnlyError(
@@ -1026,9 +1039,13 @@ def dataframe_strategy(
     def make_row_strategy(col, checks):
         strategy = None
         for check in checks:
-            check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None)
+            check_strategy = STRATEGY_DISPATCHER.get(
+                (check.name, pd.DataFrame), None
+            )
             if check_strategy is not None:
-                strategy = check_strategy(col.dtype, strategy, **check.statistics)
+                strategy = check_strategy(
+                    col.dtype, strategy, **check.statistics
+                )
             else:
                 strategy = undefined_check_strategy(
                     strategy=(
@@ -1047,7 +1064,9 @@ def dataframe_strategy(
         row_strategy_checks = []
         undefined_strat_df_checks = []
         for check in checks:
-            check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.DataFrame))
+            check_strategy = STRATEGY_DISPATCHER.get(
+                (check.name, pd.DataFrame)
+            )
             if check_strategy is not None or check.element_wise:
                 # we can apply element-wise checks defined at the dataframe
                 # level to the row strategy
@@ -1080,7 +1099,9 @@ def dataframe_strategy(
                     )
                 )
                 for regex_col in regex_columns:
-                    expanded_columns[regex_col] = deepcopy(column).set_name(regex_col)
+                    expanded_columns[regex_col] = deepcopy(column).set_name(
+                        regex_col
+                    )
 
         # collect all non-element-wise column checks with undefined strategies
         undefined_strat_column_checks: Dict[str, list] = defaultdict(list)
@@ -1095,11 +1116,14 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: str(col.dtype) if pandera_dtype is None else str(pandera_dtype)
+            col_name: str(col.dtype)
+            if pandera_dtype is None
+            else str(pandera_dtype)
             for col_name, col in expanded_columns.items()
         }
         nullable_columns = {
-            col_name: col.nullable for col_name, col in expanded_columns.items()
+            col_name: col.nullable
+            for col_name, col in expanded_columns.items()
         }
 
         row_strategy = None
@@ -1113,7 +1137,8 @@ def dataframe_strategy(
 
         strategy = pdst.data_frames(
             columns=[
-                column.strategy_component() for column in expanded_columns.values()
+                column.strategy_component()
+                for column in expanded_columns.values()
             ],
             rows=row_strategy,
             index=pdst.range_indexes(
@@ -1124,14 +1149,19 @@ def dataframe_strategy(
         # this is a hack to convert np.str_ data values into native python str.
         string_columns = []
         for col_name, col_dtype in col_dtypes.items():
-            if col_dtype in {"object", "str"} or col_dtype.startswith("string"):
+            if col_dtype in {"object", "str"} or col_dtype.startswith(
+                "string"
+            ):
                 string_columns.append(col_name)
 
         if string_columns:
             # pylint: disable=cell-var-from-loop,undefined-loop-variable
             strategy = strategy.map(
                 lambda df: df.assign(
-                    **{col_name: df[col_name].map(str) for col_name in string_columns}
+                    **{
+                        col_name: df[col_name].map(str)
+                        for col_name in string_columns
+                    }
                 )
             )
 
@@ -1148,7 +1178,9 @@ def dataframe_strategy(
 
         for col_name, column_checks in undefined_strat_column_checks.items():
             for check in column_checks:  # type: ignore
-                strategy = undefined_check_strategy(strategy, check, column=col_name)
+                strategy = undefined_check_strategy(
+                    strategy, check, column=col_name
+                )
 
         return draw(strategy)
 
@@ -1190,7 +1222,9 @@ def multiindex_strategy(
     }
     strategy = pdst.data_frames(
         [index.strategy_component() for index in indexes],
-        index=pdst.range_indexes(min_size=0 if size is None else size, max_size=size),
+        index=pdst.range_indexes(
+            min_size=0 if size is None else size, max_size=size
+        ),
     ).map(
         lambda x: x.astype(index_dtypes)  # type: ignore[arg-type]
     )
@@ -1199,7 +1233,9 @@ def multiindex_strategy(
     for name, dtype in index_dtypes.items():
         if dtype in {"object", "str"} or dtype.startswith("string"):
             # pylint: disable=cell-var-from-loop,undefined-loop-variable
-            strategy = strategy.map(lambda df: df.assign(**{name: df[name].map(str)}))
+            strategy = strategy.map(
+                lambda df: df.assign(**{name: df[name].map(str)})
+            )
 
     if any(nullable_index.values()):
         strategy = null_dataframe_masks(strategy, nullable_index)

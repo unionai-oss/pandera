@@ -47,7 +47,9 @@ class TestConfigParams:
 
         pandra_schema = DataFrameSchema(
             {
-                "product": Column(T.StringType(), pandera.Check.str_startswith("B")),
+                "product": Column(
+                    T.StringType(), pandera.Check.str_startswith("B")
+                ),
                 "price_val": Column(T.IntegerType()),
             }
         )
@@ -90,7 +92,9 @@ class TestConfigParams:
         params = ConfigParams()
         pandra_schema = DataFrameSchema(
             {
-                "product": Column(T.StringType(), pandera.Check.str_startswith("B")),
+                "product": Column(
+                    T.StringType(), pandera.Check.str_startswith("B")
+                ),
                 "price_val": Column(T.IntegerType()),
             }
         )
@@ -120,7 +124,9 @@ class TestConfigParams:
             }
         }
 
-        assert "DATA" not in dict(output_dataframeschema_df.pandera.errors).keys()
+        assert (
+            "DATA" not in dict(output_dataframeschema_df.pandera.errors).keys()
+        )
         assert (
             dict(output_dataframeschema_df.pandera.errors["SCHEMA"])
             == expected_dataframeschema["SCHEMA"]
@@ -151,7 +157,9 @@ class TestConfigParams:
             }
         }
 
-        assert "DATA" not in dict(output_dataframemodel_df.pandera.errors).keys()
+        assert (
+            "DATA" not in dict(output_dataframemodel_df.pandera.errors).keys()
+        )
         assert (
             dict(output_dataframemodel_df.pandera.errors["SCHEMA"])
             == expected_dataframemodel["SCHEMA"]
@@ -177,7 +185,9 @@ class TestConfigParams:
         params = ConfigParams()
         pandra_schema = DataFrameSchema(
             {
-                "product": Column(T.StringType(), pandera.Check.str_startswith("B")),
+                "product": Column(
+                    T.StringType(), pandera.Check.str_startswith("B")
+                ),
                 "price_val": Column(T.IntegerType()),
             }
         )
@@ -209,7 +219,10 @@ class TestConfigParams:
             }
         }
 
-        assert "SCHEMA" not in dict(output_dataframeschema_df.pandera.errors).keys()
+        assert (
+            "SCHEMA"
+            not in dict(output_dataframeschema_df.pandera.errors).keys()
+        )
         assert (
             dict(output_dataframeschema_df.pandera.errors["DATA"])
             == expected_dataframeschema["DATA"]
@@ -242,7 +255,10 @@ class TestConfigParams:
             }
         }
 
-        assert "SCHEMA" not in dict(output_dataframemodel_df.pandera.errors).keys()
+        assert (
+            "SCHEMA"
+            not in dict(output_dataframemodel_df.pandera.errors).keys()
+        )
         assert (
             dict(output_dataframemodel_df.pandera.errors["DATA"])
             == expected_dataframemodel["DATA"]
@@ -268,7 +284,9 @@ class TestConfigParams:
         params = ConfigParams()
         pandra_schema = DataFrameSchema(
             {
-                "product": Column(T.StringType(), pandera.Check.str_startswith("B")),
+                "product": Column(
+                    T.StringType(), pandera.Check.str_startswith("B")
+                ),
                 "price_val": Column(T.IntegerType()),
             }
         )

@@ -151,7 +151,9 @@ class Bool(DataType, dtypes.Bool):
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified boolean type."""
         if value not in self._bool_like:  # pragma: no cover
-            raise TypeError(f"value {value} cannot be coerced to type {self.type}")
+            raise TypeError(
+                f"value {value} cannot be coerced to type {self.type}"
+            )
         return super().coerce_value(value)  # pragma: no cover
 
 
@@ -476,7 +478,10 @@ class MapType(DataType):
                 (self.type == pandera_dtype.type)
                 & (self.type.valueType == pandera_dtype.type.valueType)
                 & (self.type.keyType == pandera_dtype.type.keyType)
-                & (self.type.valueContainsNull == pandera_dtype.type.valueContainsNull)
+                & (
+                    self.type.valueContainsNull
+                    == pandera_dtype.type.valueContainsNull
+                )
             )
 
         except TypeError:  # pragma: no cover

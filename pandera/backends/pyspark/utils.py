@@ -32,7 +32,9 @@ class ConfigParams(dict):
     def set_config(self):
         """This function sets the config for the instance of config param"""
         if os.environ.get("PANDERA_VALIDATION"):
-            self.config["PANDERA_VALIDATION"] = os.environ.get("PANDERA_VALIDATION")
+            self.config["PANDERA_VALIDATION"] = os.environ.get(
+                "PANDERA_VALIDATION"
+            )
             warnings.warn(
                 "Setting the PANDERA_VALIDATION config from environment variables",
                 RuntimeWarning,

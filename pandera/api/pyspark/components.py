@@ -173,6 +173,9 @@ class Column(ColumnSchema):
             return NotImplemented
 
         def _compare_dict(obj):
-            return {k: v if k != "_checks" else set(v) for k, v in obj.__dict__.items()}
+            return {
+                k: v if k != "_checks" else set(v)
+                for k, v in obj.__dict__.items()
+            }
 
         return _compare_dict(self) == _compare_dict(other)

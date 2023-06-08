@@ -814,7 +814,7 @@ data pipeline:
         name=None,
         ordered=False,
         unique_column_names=False,
-        metadata=None, 
+        metadata=None,
     )>
 
 If during the course of a data pipeline one of your columns is moved into the

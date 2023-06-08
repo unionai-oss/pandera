@@ -67,7 +67,9 @@ def test_check_function_decorators() -> None:
     out_schema = DataFrameSchema(
         {
             "e": Column(String, Check(lambda s: s == "foo")),
-            "f": Column(String, Check(lambda x: x in ["a", "b"], element_wise=True)),
+            "f": Column(
+                String, Check(lambda x: x in ["a", "b"], element_wise=True)
+            ),
         }
     )
 
@@ -328,10 +330,14 @@ def test_check_input_method_decorators() -> None:
 
     # call method with a dataframe passed as a second keyword argument
     _assert_expectation(
-        transformer.transform_first_arg_with_two_func_args(x="foo", df=dataframe)
+        transformer.transform_first_arg_with_two_func_args(
+            x="foo", df=dataframe
+        )
     )
 
-    _assert_expectation(transformer.transform_first_arg_with_list_getter(dataframe))
+    _assert_expectation(
+        transformer.transform_first_arg_with_list_getter(dataframe)
+    )
     _assert_expectation(
         transformer.transform_secord_arg_with_list_getter(None, dataframe)
     )
@@ -446,7 +452,9 @@ def test_check_io() -> None:
             invalid_out_schema_type(df1)
 
 
-@pytest.mark.parametrize("obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}])
+@pytest.mark.parametrize(
+    "obj_getter", [1.5, 0.1, ["foo"], {1, 2, 3}, {"foo": "bar"}]
+)
 def test_check_input_output_unrecognized_obj_getter(obj_getter) -> None:
     """
     Test that check_input and check_output raise correct errors on unrecognized
@@ -501,7 +509,9 @@ def test_check_io_unrecognized_obj_getter(out, error, msg) -> None:
 
 # required to be a global: see
 # https://pydantic-docs.helpmanual.io/usage/postponed_annotations/
-class OnlyZeroesSchema(DataFrameModel):  # pylint:disable=too-few-public-methods
+class OnlyZeroesSchema(
+    DataFrameModel
+):  # pylint:disable=too-few-public-methods
     """Schema with a single column containing zeroes."""
 
     a: Series[int] = Field(eq=0)
@@ -608,7 +618,9 @@ def test_check_types_multiple_inputs() -> None:
     transform(correct, df_2=correct)  # type: ignore
 
     wrong = pd.DataFrame({"b": [1]})
-    with pytest.raises(errors.SchemaError, match="column 'a' not in dataframe"):
+    with pytest.raises(
+        errors.SchemaError, match="column 'a' not in dataframe"
+    ):
         transform(correct, wrong)  # type: ignore
 
 
@@ -620,7 +632,9 @@ def test_check_types_error_input() -> None:
         return df
 
     df = pd.DataFrame({"b": [1]})
-    with pytest.raises(errors.SchemaError, match="column 'a' not in dataframe"):
+    with pytest.raises(
+        errors.SchemaError, match="column 'a' not in dataframe"
+    ):
         transform(df)  # type: ignore
 
     try:
@@ -640,7 +654,9 @@ def test_check_types_error_output() -> None:
     ) -> DataFrame[DerivedOutSchema]:
         return df  # type: ignore
 
-    with pytest.raises(errors.SchemaError, match="column 'b' not in dataframe"):
+    with pytest.raises(
+        errors.SchemaError, match="column 'b' not in dataframe"
+    ):
         transform_derived(df)  # type: ignore
 
     try:
@@ -654,7 +670,9 @@ def test_check_types_error_output() -> None:
     def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
         return df  # type: ignore
 
-    with pytest.raises(errors.SchemaError, match="column 'b' not in dataframe"):
+    with pytest.raises(
+        errors.SchemaError, match="column 'b' not in dataframe"
+    ):
         transform(df)  # type: ignore
 
     try:
@@ -832,7 +850,9 @@ def test_check_types_method_args() -> None:
         out, instance.regular_method(in1, in2)
     )  # Used to fail
     pd.testing.assert_frame_equal(out, instance.regular_method(in1, df2=in2))
-    pd.testing.assert_frame_equal(out, instance.regular_method(df1=in1, df2=in2))
+    pd.testing.assert_frame_equal(
+        out, instance.regular_method(df1=in1, df2=in2)
+    )
 
     with pytest.raises(errors.SchemaError):
         instance.regular_method(in2, in1)  # type: ignore
@@ -843,7 +863,9 @@ def test_check_types_method_args() -> None:
 
     pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, in2))
     pd.testing.assert_frame_equal(out, SomeClass.class_method(in1, df2=in2))
-    pd.testing.assert_frame_equal(out, SomeClass.class_method(df1=in1, df2=in2))
+    pd.testing.assert_frame_equal(
+        out, SomeClass.class_method(df1=in1, df2=in2)
+    )
 
     with pytest.raises(errors.SchemaError):
         instance.class_method(in2, in1)  # type: ignore
@@ -856,7 +878,9 @@ def test_check_types_method_args() -> None:
     pd.testing.assert_frame_equal(out, SomeClass.static_method(in1, in2))
     pd.testing.assert_frame_equal(out, instance.static_method(in1, df2=in2))
     pd.testing.assert_frame_equal(out, SomeClass.static_method(in1, df2=in2))
-    pd.testing.assert_frame_equal(out, instance.static_method(df1=in1, df2=in2))
+    pd.testing.assert_frame_equal(
+        out, instance.static_method(df1=in1, df2=in2)
+    )
 
     with pytest.raises(errors.SchemaError):
         instance.static_method(in2, in1)  # type: ignore
@@ -890,7 +914,9 @@ def test_check_types_union_args() -> None:
 
     @check_types
     def validate_union_wrong_outputs(
-        df: typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]],
+        df: typing.Union[
+            DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]
+        ],
     ) -> typing.Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
         new_df = df.copy()
         new_df["a"] = [0, 1]
@@ -908,7 +934,9 @@ def test_check_types_non_dataframes() -> None:
         return val
 
     @check_types
-    def union_int_str_types(val: typing.Union[int, str]) -> typing.Union[int, str]:
+    def union_int_str_types(
+        val: typing.Union[int, str]
+    ) -> typing.Union[int, str]:
         return val
 
     only_int_type(1)
@@ -992,7 +1020,9 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
         @check_output(Schema.to_schema())
         @check_input(Schema.to_schema(), "df1")
         @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
-        async def class_coroutine(cls, df1: DataFrame[Schema]) -> DataFrame[Schema]:
+        async def class_coroutine(
+            cls, df1: DataFrame[Schema]
+        ) -> DataFrame[Schema]:
             return df1
 
         @staticmethod

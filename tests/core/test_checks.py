@@ -139,8 +139,12 @@ def test_check_groups() -> None:
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["foo"] > 10, groupby="col2", groups=["foo"]),
-                    Check(lambda s: s["foo"] > 10, groupby="col2", groups="foo"),
+                    Check(
+                        lambda s: s["foo"] > 10, groupby="col2", groups=["foo"]
+                    ),
+                    Check(
+                        lambda s: s["foo"] > 10, groupby="col2", groups="foo"
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -165,7 +169,9 @@ def test_check_groups() -> None:
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["bar"] > 10, groupby="col2", groups="foo"),
+                    Check(
+                        lambda s: s["bar"] > 10, groupby="col2", groups="foo"
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -184,7 +190,9 @@ def test_check_groups() -> None:
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["baz"] > 10, groupby="col2", groups=["foo"]),
+                    Check(
+                        lambda s: s["baz"] > 10, groupby="col2", groups=["foo"]
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -202,7 +210,9 @@ def test_check_groups() -> None:
             "col1": Column(
                 Int,
                 [
-                    Check(lambda s: s["foo"] > 10, groupby="col2", groups=["baz"]),
+                    Check(
+                        lambda s: s["foo"] > 10, groupby="col2", groups=["baz"]
+                    ),
                 ],
             ),
             "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
@@ -229,7 +239,9 @@ def test_groupby_init_exceptions() -> None:
                         ),
                     ],
                 ),
-                "col2": Column(String, Check(lambda s: s.isin(["foo", "bar"]))),
+                "col2": Column(
+                    String, Check(lambda s: s.isin(["foo", "bar"]))
+                ),
             }
         )
 
@@ -366,7 +378,9 @@ def test_raise_warning_series() -> None:
     """Test that checks with raise_warning=True raise a warning."""
     data = pd.Series([-1, -2, -3])
     error_schema = SeriesSchema(checks=Check(lambda s: s > 0))
-    warning_schema = SeriesSchema(checks=Check(lambda s: s > 0, raise_warning=True))
+    warning_schema = SeriesSchema(
+        checks=Check(lambda s: s > 0, raise_warning=True)
+    )
 
     with pytest.raises(errors.SchemaError):
         error_schema(data)
@@ -402,10 +416,14 @@ def test_dataframe_schema_check() -> None:
     """Test that DataFrameSchema-level Checks work properly."""
     data = pd.DataFrame([range(10) for _ in range(10)])
 
-    schema_check_return_bool = DataFrameSchema(checks=Check(lambda df: (df < 10).all()))
+    schema_check_return_bool = DataFrameSchema(
+        checks=Check(lambda df: (df < 10).all())
+    )
     assert isinstance(schema_check_return_bool.validate(data), pd.DataFrame)
 
-    schema_check_return_series = DataFrameSchema(checks=Check(lambda df: df[0] < 10))
+    schema_check_return_series = DataFrameSchema(
+        checks=Check(lambda df: df[0] < 10)
+    )
     assert isinstance(schema_check_return_series.validate(data), pd.DataFrame)
 
     schema_check_return_df = DataFrameSchema(checks=Check(lambda df: df < 10))
@@ -416,7 +434,9 @@ def test_dataframe_check_schema_error() -> None:
     """Test that DataFramSchema-level checks raises errors."""
 
     schema = DataFrameSchema(
-        checks=Check(lambda df: df["a"].isna() | ~df["b"].isna(), ignore_na=False)
+        checks=Check(
+            lambda df: df["a"].isna() | ~df["b"].isna(), ignore_na=False
+        )
     )
     df = pd.DataFrame(
         {
@@ -429,10 +449,14 @@ def test_dataframe_check_schema_error() -> None:
         schema(df, lazy=True)
     except errors.SchemaErrors as exc:
         assert pd.isna(
-            exc.failure_cases.query("index == 2 & column == 'b'").failure_case.iloc[0]
+            exc.failure_cases.query(
+                "index == 2 & column == 'b'"
+            ).failure_case.iloc[0]
         )
         assert pd.isna(
-            exc.failure_cases.query("index == 3 & column == 'b'").failure_case.iloc[0]
+            exc.failure_cases.query(
+                "index == 3 & column == 'b'"
+            ).failure_case.iloc[0]
         )
 
 
