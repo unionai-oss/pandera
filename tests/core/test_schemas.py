@@ -2065,42 +2065,42 @@ def test_pandas_dataframe_subclass_validation():
     [
         (
             DataFrameSchema(
-                {"col": Column(int, checks=[Check(lambda x: x >= 3)])},
+                {"numbers": Column(int, checks=[Check(lambda x: x >= 3)])},
                 drop_invalid=True,
             ),
-            pd.DataFrame({"col": [1, 2, 3, 4, 5]}),
-            pd.DataFrame({"col": [3, 4, 5]}),
+            pd.DataFrame({"numbers": [1, 2, 3, 4, 5]}),
+            pd.DataFrame({"numbers": [3, 4, 5]}),
         ),
         (
-            DataFrameSchema({"col": Column(str)}, drop_invalid=True),
-            pd.DataFrame({"col": [1, 2, 3, 4, 5]}),
-            pd.DataFrame({"col": []}),
+            DataFrameSchema({"numbers": Column(str)}, drop_invalid=True),
+            pd.DataFrame({"numbers": [1, 2, 3, 4, 5]}),
+            pd.DataFrame({"numbers": []}),
         ),
         (
             DataFrameSchema(
                 {
-                    "col": Column(str),
-                    "int_col": Column(int, checks=[Check(lambda x: x >= 3)]),
+                    "letters": Column(str),
+                    "numbers": Column(int, checks=[Check(lambda x: x >= 3)]),
                 },
                 drop_invalid=True,
             ),
             pd.DataFrame(
                 {
-                    "col": ["a", "b", "c", "d", "e"],
-                    "int_col": [1, 2, 3, 4, 5],
+                    "letters": ["a", "b", "c", "d", "e"],
+                    "numbers": [1, 2, 3, 4, 5],
                 }
             ),
-            pd.DataFrame({"col": ["c", "d", "e"], "int_col": [3, 4, 5]}),
+            pd.DataFrame({"letters": ["c", "d", "e"], "numbers": [3, 4, 5]}),
         ),
     ],
 )
 def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
     """Test drop_invalid works as expected on DataFrameSchemaBackend.validate"""
-    trimmed_obj = schema.validate(obj, lazy=True)
-    trimmed_obj.index = expected_obj.index
-    trimmed_obj.col = trimmed_obj.col.astype(expected_obj.col.dtype)
+    actual_obj = schema.validate(obj, lazy=True)
+    actual_obj.index = expected_obj.index
+    actual_obj.numbers = actual_obj.numbers.astype(expected_obj.numbers.dtype)
 
-    pd.testing.assert_frame_equal(trimmed_obj, expected_obj)
+    pd.testing.assert_frame_equal(actual_obj, expected_obj)
 
 
 @pytest.mark.parametrize(
@@ -2124,44 +2124,43 @@ def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
 )
 def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
     """Test drop_invalid works as expected on SeriesSchemaBackend.validate"""
-    trimmed_obj = schema.validate(obj, lazy=True).reset_index(drop=True)
+    actual_obj = schema.validate(obj, lazy=True).reset_index(drop=True)
     expected_obj = expected_obj.reset_index(drop=True)
 
-    pd.testing.assert_series_equal(trimmed_obj, expected_obj)
+    pd.testing.assert_series_equal(actual_obj, expected_obj)
 
 
 @pytest.mark.parametrize(
     "col, obj, expected_obj",
     [
         (
-            Column(str, name="column1", drop_invalid=True),
-            pd.DataFrame({"column1": [None, 1, "two"]}),
-            pd.DataFrame({"column1": ["two"]}),
+            Column(str, name="letters", drop_invalid=True),
+            pd.DataFrame({"letters": [None, 1, "c"]}),
+            pd.DataFrame({"letters": ["c"]}),
         )
     ],
 )
 def test_drop_invalid_for_column(col, obj, expected_obj):
     """Test drop_invalid works as expected on ColumnBackend.validate"""
-    actual = col.validate(obj, lazy=True)
+    actual_obj = col.validate(obj, lazy=True)
 
     pd.testing.assert_frame_equal(
-        expected_obj.reset_index(drop=True), actual.reset_index(drop=True)
+        expected_obj.reset_index(drop=True), actual_obj.reset_index(drop=True)
     )
-
-
-class ThreeToFiveSchema(DataFrameModel):
-    counter: int = Field(in_range={"min_value": 3, "max_value": 5})
-
-    class Config:
-        drop_invalid = True
 
 
 def test_drop_invalid_for_model_schema():
+    class MySchema(DataFrameModel):
+        counter: int = Field(in_range={"min_value": 3, "max_value": 5})
+
+        class Config:
+            drop_invalid = True
+
     expected_obj = pd.DataFrame({"counter": [3, 4, 5]})
 
-    trimmed_obj = ThreeToFiveSchema.validate(
+    actual_obj = MySchema.validate(
         pd.DataFrame({"counter": [1, 2, 3, 4, 5, 6]}), lazy=True
     )
 
-    trimmed_obj.index = expected_obj.index
-    pd.testing.assert_frame_equal(expected_obj, trimmed_obj)
+    actual_obj.index = expected_obj.index
+    pd.testing.assert_frame_equal(expected_obj, actual_obj)
