@@ -2150,10 +2150,16 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
 
 
 def test_drop_invalid_for_model_schema():
+    """Test drop_invalid works as expected on DataFrameModel.validate"""
+
     class MySchema(DataFrameModel):
+        """Schema for the test"""
+
         counter: int = Field(in_range={"min_value": 3, "max_value": 5})
 
         class Config:
+            """Config for the schema model for the test"""
+
             drop_invalid = True
 
     expected_obj = pd.DataFrame({"counter": [3, 4, 5]})
