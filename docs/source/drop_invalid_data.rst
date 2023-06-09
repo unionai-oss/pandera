@@ -75,9 +75,18 @@ Dropping invalid rows with :class:`~pandera.api.pandas.model.DataFrameModel`
     import pandas as pd
     import pandera as pa
 
-    from pandera import Check, Column
+    from pandera import Check, DataFrameModel, Field
 
-    # TODO!
+    class MySchema(DataFrameModel):
+        counter: int = Field(in_range={"min_value": 3, "max_value": 5})
+
+        class Config:
+            drop_invalid = True
+
+
+    MySchema.validate(
+        pd.DataFrame({"counter": [1, 2, 3, 4, 5, 6]}), lazy=True
+    )
 
 
 **Note** that in order to use ``drop_invalid=True``, ``lazy=True`` must
