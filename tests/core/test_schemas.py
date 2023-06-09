@@ -21,6 +21,8 @@ from pandera import (
     SeriesSchema,
     String,
     errors,
+    Field,
+    DataFrameModel,
 )
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
@@ -2145,3 +2147,21 @@ def test_drop_invalid_for_column(col, obj, expected_obj):
     pd.testing.assert_frame_equal(
         expected_obj.reset_index(drop=True), actual.reset_index(drop=True)
     )
+
+
+class ThreeToFiveSchema(DataFrameModel):
+    counter: int = Field(in_range={"min_value": 3, "max_value": 5})
+
+    class Config:
+        drop_invalid = True
+
+
+def test_drop_invalid_for_model_schema():
+    expected_obj = pd.DataFrame({"counter": [3, 4, 5]})
+
+    trimmed_obj = ThreeToFiveSchema.validate(
+        pd.DataFrame({"counter": [1, 2, 3, 4, 5, 6]}), lazy=True
+    )
+
+    trimmed_obj.index = expected_obj.index
+    pd.testing.assert_frame_equal(expected_obj, trimmed_obj)
