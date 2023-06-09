@@ -12,6 +12,7 @@ from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
 from pandera.api.pandas.model_components import Field, check, dataframe_check
+from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,
     Category,
@@ -62,7 +63,6 @@ import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
 
 from pandera.schema_inference.pandas import infer_schema
-from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.version import __version__
 
 

@@ -1,13 +1,17 @@
 """Unit tests for dask_accessor module."""
+# pylint:disable=redefined-outer-name,abstract-method
+
 from typing import Union
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pyspark.sql.types as T
-import pytest
-import pandera.pyspark as pa
-
 from pyspark.sql.types import StringType
+import pytest
+
+from pandera.errors import SchemaError, SchemaErrorReason
+from pandera.api.pyspark import error_handler
+import pandera.pyspark as pa
 from pandera.pyspark import DataFrameSchema, Column, DataFrameModel, Field
 from tests.pyspark.conftest import spark_df
 
@@ -36,15 +40,13 @@ def test_dataframe_add_schema(
     invalid_data: Union[DataFrame, col],
 ) -> None:
     """
-    Test that pandas object contains schema metadata after pandera validation.
+    Test that pyspark object contains schema metadata after pandera validation.
     """
     schema(invalid_data, lazy=True)  # type: ignore[arg-type]
 
 
 def test_pyspark_check_eq(spark, sample_spark_schema):
-    """
-    Test creating a pyspark DataFrameSchema object
-    """
+    """Test creating a pyspark DataFrameSchema object"""
 
     pandera_schema = DataFrameSchema(
         columns={
@@ -58,13 +60,41 @@ def test_pyspark_check_eq(spark, sample_spark_schema):
 
     data_fail = [("Bread", 5), ("Cutter", 15)]
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
-    errors = pandera_schema.validate(check_obj=df_fail)
-    print(errors)
+    df_out = pandera_schema.validate(check_obj=df_fail)
+    expected = {
+        "DATAFRAME_CHECK": [
+            {
+                "check": "str_startswith('B')",
+                "column": "product",
+                "error": "column "
+                "'product' "
+                "with type "
+                "StringType() "
+                "failed "
+                "validation "
+                "str_startswith('B')",
+                "schema": "product_schema",
+            },
+            {
+                "check": "greater_than(5)",
+                "column": "price",
+                "error": "column "
+                "'price' with "
+                "type "
+                "IntegerType() "
+                "failed "
+                "validation "
+                "greater_than(5)",
+                "schema": "product_schema",
+            },
+        ]
+    }
+    assert dict(df_out.pandera.errors["DATA"]) == expected
 
 
 def test_pyspark_check_nullable(spark, sample_spark_schema):
     """
-    Test creating a pyspark DataFrameSchema object
+    Test creating a pyspark DataFrameSchema object to validate the nullability functionality
     """
 
     pandera_schema = DataFrameSchema(
@@ -82,13 +112,27 @@ def test_pyspark_check_nullable(spark, sample_spark_schema):
         ],
     )
     df_fail = spark_df(spark, data_fail, sample_spark_schema)
-    errors = pandera_schema.validate(check_obj=df_fail)
-    print(errors.pandera.errors)
+    dataframe_output = pandera_schema.validate(check_obj=df_fail)
+    expected = {
+        "SERIES_CONTAINS_NULLS": [
+            {
+                "check": "not_nullable",
+                "column": "price",
+                "error": "non-nullable "
+                "column "
+                "'price' "
+                "contains "
+                "null",
+                "schema": None,
+            }
+        ]
+    }
+    assert dict(dataframe_output.pandera.errors["SCHEMA"]) == expected
 
 
 def test_pyspark_schema_data_checks(spark):
     """
-    Test schema and data level checks
+    Test schema and data level checks to check the Complex type data match
     """
 
     pandera_schema = DataFrameSchema(
@@ -108,21 +152,65 @@ def test_pyspark_schema_data_checks(spark):
         [
             T.StructField("product", T.StringType(), False),
             T.StructField("price", T.IntegerType(), False),
-            T.StructField("id", T.ArrayType(StringType()), False),
+            T.StructField("id", T.ArrayType(StringType(), False), False),
         ],
     )
 
     df_fail = spark_df(spark, data_fail, spark_schema)
-    errors = pandera_schema.validate(check_obj=df_fail)
-    print(errors)
+    output_data = pandera_schema.validate(check_obj=df_fail)
+    expected = {
+        "DATA": {
+            "DATAFRAME_CHECK": [
+                {
+                    "check": "str_startswith('B')",
+                    "column": "product",
+                    "error": "column 'product' with "
+                    "type StringType() failed "
+                    "validation "
+                    "str_startswith('B')",
+                    "schema": "product_schema",
+                },
+                {
+                    "check": "greater_than(5)",
+                    "column": "price",
+                    "error": "column 'price' with type "
+                    "IntegerType() failed "
+                    "validation "
+                    "greater_than(5)",
+                    "schema": "product_schema",
+                },
+            ]
+        },
+        "SCHEMA": {
+            "WRONG_DATATYPE": [
+                {
+                    "check": "dtype('ArrayType(StringType(), True)')",
+                    "column": "id",
+                    "error": "expected "
+                    "column 'id' "
+                    "to have type "
+                    "ArrayType(StringType(), "
+                    "True), got "
+                    "ArrayType(StringType(), "
+                    "False)",
+                    "schema": "product_schema",
+                }
+            ]
+        },
+    }
+
+    assert dict(output_data.pandera.errors["DATA"]) == expected["DATA"]
+    assert dict(output_data.pandera.errors["SCHEMA"]) == expected["SCHEMA"]
 
 
 def test_pyspark_fields(spark):
     """
-    Test schema and data level checks
+    Test schema and data level checks for pydantic validation
     """
 
-    class pandera_schema(DataFrameModel):
+    class PanderaSchema(DataFrameModel):
+        """Test case schema class"""
+
         product: T.StringType = Field(str_startswith="B")
         price: T.IntegerType = Field(gt=5)
         id: T.DecimalType(20, 5) = Field()
@@ -148,6 +236,100 @@ def test_pyspark_fields(spark):
         ],
     )
     df_fail = spark_df(spark, data_fail, spark_schema)
-    df_out = pandera_schema.validate(check_obj=df_fail)
+    df_out = PanderaSchema.validate(check_obj=df_fail)
+    data_errors = dict(df_out.pandera.errors["DATA"])
+    schema_errors = dict(df_out.pandera.errors["SCHEMA"])
+    expected = {
+        "DATA": {
+            "DATAFRAME_CHECK": [
+                {
+                    "check": "str_startswith('B')",
+                    "column": "product",
+                    "error": "column "
+                    "'product' "
+                    "with type "
+                    "StringType() "
+                    "failed "
+                    "validation "
+                    "str_startswith('B')",
+                    "schema": "PanderaSchema",
+                },
+                {
+                    "check": "greater_than(5)",
+                    "column": "price",
+                    "error": "column "
+                    "'price' with "
+                    "type "
+                    "IntegerType() "
+                    "failed "
+                    "validation "
+                    "greater_than(5)",
+                    "schema": "PanderaSchema",
+                },
+            ]
+        },
+        "SCHEMA": {
+            "WRONG_DATATYPE": [
+                {
+                    "check": "dtype('MapType(StringType(), "
+                    "StringType(), "
+                    "True)')",
+                    "column": "product_info",
+                    "error": "expected "
+                    "column "
+                    "'product_info' "
+                    "to have type "
+                    "MapType(StringType(), "
+                    "StringType(), "
+                    "True), got "
+                    "MapType(StringType(), "
+                    "StringType(), "
+                    "False)",
+                    "schema": "PanderaSchema",
+                }
+            ]
+        },
+    }
 
-    print(df_out)
+    assert data_errors == expected["DATA"]
+    assert schema_errors == expected["SCHEMA"]
+
+
+def test_pyspark__error_handler_lazy_validation():
+    """This function tests the lazy validation for the error handler class of pyspark"""
+
+    errors_not_lazy = error_handler.ErrorHandler(lazy=False)
+    errors_lazy = error_handler.ErrorHandler(lazy=True)
+
+    class BaseSchema(DataFrameModel):  # pylint:disable=abstract-method
+        """test class"""
+
+        id: int
+
+    test_error = SchemaError(BaseSchema, [123], "Test")
+
+    assert not errors_not_lazy.lazy
+    with pytest.raises(SchemaError):
+        errors_not_lazy.collect_error(
+            error_handler.ErrorCategory.SCHEMA,
+            SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+            test_error,
+        )
+    assert errors_lazy.lazy
+
+    test_error.schema.name = "Test"
+    errors_lazy.collect_error(
+        error_handler.ErrorCategory.SCHEMA,
+        SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+        test_error,
+    )
+
+    assert [
+        {
+            "type": error_handler.ErrorCategory.SCHEMA,
+            "column": "Test",
+            "check": None,
+            "reason_code": SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+            "error": test_error,
+        }
+    ] == errors_lazy._collected_errors

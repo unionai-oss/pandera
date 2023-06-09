@@ -1,22 +1,16 @@
-"""Custom accessor functionality for PySpark.Sql.
+"""Custom accessor functionality for PySpark.Sql. Register pyspark accessor for pandera schema metadata.
 """
 
 import warnings
-from functools import wraps
-from typing import Optional, Union
-
+from typing import Optional
 
 from pandera.api.pyspark.container import DataFrameSchema
 from pandera.api.pyspark.error_handler import ErrorHandler
 
-"""Register pyspark accessor for pandera schema metadata."""
+Schemas = DataFrameSchema  # type: ignore
+Errors = ErrorHandler  # type: ignore
 
 
-Schemas = Union[DataFrameSchema]
-Errors = Union[ErrorHandler]
-
-
-# Todo Refactor to create a seperate module for panderaAccessor
 class PanderaAccessor:
     """Pandera accessor for pyspark object."""
 
@@ -27,7 +21,7 @@ class PanderaAccessor:
         self._errors: Optional[Errors] = None
 
     @staticmethod
-    def check_schema_type(schema: Schemas):
+    def check_schema_type(schema: Schemas):  # type: ignore
         """Abstract method for checking the schema type."""
         raise NotImplementedError
 
@@ -38,18 +32,18 @@ class PanderaAccessor:
         return self._pyspark_obj
 
     @property
-    def schema(self) -> Optional[Schemas]:
+    def schema(self) -> Optional[Schemas]:  # type: ignore
         """Access schema metadata."""
         return self._schema
 
     @property
-    def errors(self) -> Optional[Errors]:
-        """Access errors data."""
+    def errors(self) -> Optional[Errors]:  # type: ignore
+        """Access errors details."""
         return self._errors
 
     @errors.setter
-    def errors(self, value: dict):
-        """Set errors data."""
+    def errors(self, value: Optional[Errors]):  # type: ignore
+        """Set errors details."""
         self._errors = value
 
 
@@ -133,4 +127,3 @@ class PanderaDataFrameAccessor(PanderaAccessor):
 
 
 register_dataframe_accessor("pandera")(PanderaDataFrameAccessor)
-# register_series_accessor("pandera")(PanderaSeriesAccessor)

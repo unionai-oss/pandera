@@ -2,8 +2,20 @@
 import pandas as pd
 
 from pandera import (
-    Column, DataFrameSchema, SeriesSchema, Bool, Category, Check,
-    DateTime, Float, Int, Object, String, Timedelta, String)
+    Column,
+    DataFrameSchema,
+    SeriesSchema,
+    Bool,
+    Category,
+    Check,
+    DateTime,
+    Float,
+    Int,
+    Object,
+    String,
+    Timedelta,
+    String,
+)
 
 
 class Validate:
@@ -13,23 +25,23 @@ class Validate:
 
     def setup(self):
         self.schema = SeriesSchema(
-                String,
-                checks=[
-                    Check(lambda s: s.str.startswith("foo")),
-                    Check(lambda s: s.str.endswith("bar")),
-                    Check(lambda x: len(x) > 3, element_wise=True)
-                    ],
-                nullable=False,
-                unique=False,
-                name="my_series")
-        self.series = pd.Series(["foobar", "foobar", "foobar"],
-                                name="my_series")
+            String,
+            checks=[
+                Check(lambda s: s.str.startswith("foo")),
+                Check(lambda s: s.str.endswith("bar")),
+                Check(lambda x: len(x) > 3, element_wise=True),
+            ],
+            nullable=False,
+            unique=False,
+            name="my_series",
+        )
+        self.series = pd.Series(["foobar", "foobar", "foobar"], name="my_series")
 
     def time_series_schema(self):
         self.schema.validate(self.series)
 
     def mem_series_schema(self):
-         self.schema.validate(self.series)
+        self.schema.validate(self.series)
 
     def peakmem_series_schema(self):
-         self.schema.validate(self.series)
+        self.schema.validate(self.series)

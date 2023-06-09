@@ -33,6 +33,7 @@ class ArraySchema(BaseSchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        metadata: Optional[dict] = None,
     ) -> None:
         """Initialize array schema.
 
@@ -58,7 +59,8 @@ class ArraySchema(BaseSchema):
         :param name: column name in dataframe to validate.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
-        :param default: The default value for missing values in the series.
+        :param metadata: An optional key-value data.
+        :type nullable: bool
         """
 
         super().__init__(
@@ -68,6 +70,7 @@ class ArraySchema(BaseSchema):
             name=name,
             title=title,
             description=description,
+            metadata=metadata,
         )
 
         if checks is None:
@@ -82,6 +85,7 @@ class ArraySchema(BaseSchema):
         self.title = title
         self.description = description
         self.default = default
+        self.metadata = metadata
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:

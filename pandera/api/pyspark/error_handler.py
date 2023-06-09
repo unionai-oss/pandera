@@ -4,8 +4,8 @@ from collections import defaultdict
 from enum import Enum
 from typing import Dict, List, Union
 
-from pandera.errors import SchemaError, SchemaErrorReason
 from pandera.api.checks import Check
+from pandera.errors import SchemaError, SchemaErrorReason
 
 
 class ErrorCategory(Enum):
@@ -26,7 +26,7 @@ class ErrorHandler:
         """
         self._lazy = lazy
         self._collected_errors = []  # type: ignore
-        self._summarized_errors = defaultdict(lambda: defaultdict(list))
+        self._summarized_errors = defaultdict(lambda: defaultdict(list))  # type: ignore
 
     @property
     def lazy(self) -> bool:
@@ -35,7 +35,7 @@ class ErrorHandler:
 
     def collect_error(
         self,
-        type: ErrorCategory,
+        type: ErrorCategory,  # pylint:disable=redefined-builtin
         reason_code: SchemaErrorReason,
         schema_error: SchemaError,
         original_exc: BaseException = None,

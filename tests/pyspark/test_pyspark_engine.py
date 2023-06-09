@@ -1,28 +1,33 @@
-"""Tests Engine subclassing and registring DataTypes."""
+"""Tests Engine subclassing and registring DataTypes.Test pyspark engine."""
 # pylint:disable=redefined-outer-name,unused-argument
-# pylint:disable=missing-function-docstring,missing-class-docstring
-"""Test pyspark engine."""
 
 import pytest
-
 from pandera.engines import pyspark_engine
 
 
 @pytest.mark.parametrize(
-    "data_type", list(pyspark_engine.Engine.get_registered_dtypes())
+    "data_type",
+    list(
+        pyspark_engine.Engine.get_registered_dtypes()
+    ),  # pylint:disable=no-value-for-parameter
 )
 def test_pyspark_data_type(data_type):
     """Test pyspark engine DataType base class."""
     if data_type.type is None:
         # don't test data types that require parameters e.g. Category
         return
-    parameterized_datatypes = ["daytimeinterval", "decimal", "array", "map"]
+    parameterized_datatypes = ["decimal", "array", "map"]
 
-    pyspark_engine.Engine.dtype(data_type)
-    pyspark_engine.Engine.dtype(data_type.type)
+    pyspark_engine.Engine.dtype(
+        data_type
+    )  # pylint:disable=no-value-for-parameter
+    pyspark_engine.Engine.dtype(
+        data_type.type
+    )  # pylint:disable=no-value-for-parameter
     if data_type.type.typeName() not in parameterized_datatypes:
-        print(data_type.type.typeName())
-        pyspark_engine.Engine.dtype(str(data_type.type))
+        pyspark_engine.Engine.dtype(
+            str(data_type.type)
+        )  # pylint:disable=no-value-for-parameter
 
     with pytest.warns(UserWarning):
         pd_dtype = pyspark_engine.DataType(data_type.type)

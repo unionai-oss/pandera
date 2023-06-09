@@ -47,6 +47,14 @@ class Index(IndexBase, pd.Index, Generic[GenericDtype]):
     """
 
 
+# pyspark.pandas actually patches the __class_getitem__ method of pd.Series and
+# pd.DataFrame, so import it here to make sure that we can override the patching
+try:
+    import pyspark.pandas  # pylint: disable=unused-import
+except ImportError:  # pragma: no cover
+    pass
+
+
 # pylint:disable=too-few-public-methods
 class Series(SeriesBase, pd.Series, Generic[GenericDtype]):  # type: ignore
     """Representation of pandas.Series, only used for type annotation.

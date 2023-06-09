@@ -1383,3 +1383,41 @@ def test_repeated_generic() -> None:
         IntYFloatZModel.validate(
             pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
         )
+
+
+def test_pandas_fields_metadata():
+    """
+    Test schema and metadata on field
+    """
+
+    class PanderaSchema(pa.DataFrameModel):
+        id: Series[int] = pa.Field(
+            gt=5,
+            metadata={
+                "usecase": ["telco", "retail"],
+                "category": "product_pricing",
+            },
+        )
+        product_name: Series[str] = pa.Field(str_startswith="B")
+        price: Series[float] = pa.Field()
+
+        class Config:
+            name = "product_info"
+            strict = True
+            coerce = True
+            metadata = {"category": "product-details"}
+
+    expected = {
+        "product_info": {
+            "columns": {
+                "id": {
+                    "usecase": ["telco", "retail"],
+                    "category": "product_pricing",
+                },
+                "product_name": None,
+                "price": None,
+            },
+            "dataframe": {"category": "product-details"},
+        }
+    }
+    assert PanderaSchema.get_metadata() == expected

@@ -71,7 +71,24 @@ class FieldInfo(BaseFieldInfo):
             title=self.title,
             description=self.description,
             default=self.default,
+            metadata=self.metadata,
         )
+
+    @property
+    def properties(self) -> Dict[str, Any]:
+        """Get column properties."""
+
+        return {
+            "dtype": self.dtype_kwargs,
+            "checks": self.checks,
+            "nullable": self.nullable,
+            "coerce": self.coerce,
+            "name": self.name,
+            "regex": self.regex,
+            "title": self.title,
+            "description": self.description,
+            "metadata": self.metadata,
+        }
 
     def to_index(
         self,
@@ -123,6 +140,7 @@ def Field(
     title: Optional[str] = None,
     description: Optional[str] = None,
     default: Optional[Any] = None,
+    metadata: Optional[dict] = None,
     **kwargs,
 ) -> Any:
     """Used to provide extra information about a field of a DataFrameModel.
@@ -152,6 +170,7 @@ def Field(
     :param title: A human-readable label for the field.
     :param description: An arbitrary textual description of the field.
     :param default: Optional default value of the field.
+    :param metadata: An optional key-value data.
     :param kwargs: Specify custom checks that have been registered with the
         :class:`~pandera.extensions.register_check_method` decorator.
     """
@@ -195,6 +214,7 @@ def Field(
         description=description,
         default=default,
         dtype_kwargs=dtype_kwargs,
+        metadata=metadata,
     )
 
 

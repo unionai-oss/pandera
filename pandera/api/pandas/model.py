@@ -556,6 +556,21 @@ class DataFrameModel(BaseModel):
         return cast("DataFrameModel", schema_model)
 
     @classmethod
+    def get_metadata(cls) -> Optional[dict]:
+        """Provide metadata for columns and schema level"""
+        res: Dict[Any, Any] = {"columns": {}}
+        columns = cls._collect_fields()
+
+        for k, (_, v) in columns.items():
+            res["columns"][k] = v.properties["metadata"]
+
+        res["dataframe"] = cls.Config.metadata
+
+        meta = {}
+        meta[cls.Config.name] = res
+        return meta
+
+    @classmethod
     def __modify_schema__(cls, field_schema):
         """Update pydantic field schema."""
         field_schema.update(_to_json_schema(cls.to_schema()))

@@ -1,11 +1,22 @@
-import warnings
+"""This module holds the decorators only valid for pyspark"""
+
 import functools
+import warnings
+from enum import Enum
+from typing import List, Type
 
 import pyspark.sql
 
-from pandera.errors import SchemaError
-from typing import List, Type
 from pandera.api.pyspark.types import PysparkDefaultTypes
+from pandera.config import CONFIG, ValidationDepth
+from pandera.errors import SchemaError
+
+
+class ValidationScope(Enum):
+    """Indicates whether a check/validator operates at a schema of data level."""
+
+    SCHEMA = "schema"
+    DATA = "data"
 
 
 def register_input_datatypes(
@@ -22,7 +33,7 @@ def register_input_datatypes(
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
             # Get the pyspark object from arguments
-            pyspark_object = [a for a in args][0]
+            pyspark_object = list(args)[0]
             validation_df = pyspark_object.dataframe
             validation_column = pyspark_object.column_name
             pandera_schema_datatype = validation_df.pandera.schema.get_dtypes(
@@ -40,10 +51,10 @@ def register_input_datatypes(
                 raise SchemaError(
                     schema=validation_df.pandera.schema,
                     data=validation_df,
-                    message=f'The check with name "{func.__name__}" only accepts the following datatypes \n'
-                    f"{[i.typeName() for i in acceptable_datatypes]} but got {current_datatype()} from the input. \n"
-                    f" This error is usually caused by schema mismatch of value is different from schema defined in"
-                    f" pandera schema",
+                    message=f'The check with name "{func.__name__}" was expected to be run for \n'
+                    f"{pandera_schema_datatype()} but got {current_datatype()} instead from the input. \n"
+                    f" This error is usually caused by schema mismatch the value is different from schema defined in"
+                    f" pandera schema and one in the dataframe",
                 )
             if current_datatype in valid_datatypes:
                 return func(*args, **kwargs)
@@ -59,21 +70,30 @@ def register_input_datatypes(
     return wrapper
 
 
-def validate_params(params, scope):
+def validate_scope(scope: ValidationScope):
+    """This decorator decides if a function needs to be run or skipped based on params
+
+    :param params: The configuration parameters to which define how pandera has to be used
+    :param scope: the scope for which the function is valid. i.e. "DATA" scope function only works to validate the data,
+                 "SCHEMA"  scope runs for schema checks function.
+    """
+
     def _wrapper(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            if scope == "SCHEMA":
-                if (params["DEPTH"] == "SCHEMA_AND_DATA") or (
-                    params["DEPTH"] == "SCHEMA_ONLY"
+            if scope == ValidationScope.SCHEMA:
+                if CONFIG.validation_depth in (
+                    ValidationDepth.SCHEMA_AND_DATA,
+                    ValidationDepth.SCHEMA_ONLY,
                 ):
                     return func(self, *args, **kwargs)
                 else:
                     warnings.warn(
-                        "Skipping Execution of function as parameters set to DATA_ONLY "
+                        "Skipping Execution of function as parameters set to DATA_ONLY ",
+                        stacklevel=2,
                     )
                     if not kwargs:
-                        for key, value in kwargs.items():
+                        for value in kwargs.values():
                             if isinstance(value, pyspark.sql.DataFrame):
                                 return value
                     if args:
@@ -81,14 +101,16 @@ def validate_params(params, scope):
                             if isinstance(value, pyspark.sql.DataFrame):
                                 return value
 
-            elif scope == "DATA":
-                if (params["DEPTH"] == "SCHEMA_AND_DATA") or (
-                    params["DEPTH"] == "DATA_ONLY"
+            elif scope == ValidationScope.DATA:
+                if CONFIG.validation_depth in (
+                    ValidationDepth.SCHEMA_AND_DATA,
+                    ValidationDepth.DATA_ONLY,
                 ):
                     return func(self, *args, **kwargs)
                 else:
                     warnings.warn(
-                        "Skipping Execution of function as parameters set to SCHEMA_ONLY "
+                        "Skipping Execution of function as parameters set to SCHEMA_ONLY ",
+                        stacklevel=2,
                     )
 
         return wrapper

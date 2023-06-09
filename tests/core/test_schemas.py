@@ -1113,7 +1113,6 @@ def test_lazy_dataframe_validation_error() -> None:
     try:
         schema.validate(dataframe, lazy=True)
     except errors.SchemaErrors as err:
-
         # data in the caught exception should be equal to the dataframe
         # passed into validate
         assert err.data.equals(dataframe)  # type: ignore

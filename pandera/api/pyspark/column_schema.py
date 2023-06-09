@@ -1,4 +1,4 @@
-"""Core pyspark array specification."""
+"""Core pyspark column specification."""
 
 import copy
 from typing import Any, List, Optional, TypeVar, cast
@@ -29,7 +29,7 @@ class ColumnSchema(BaseSchema):
         description: Optional[str] = None,
         metadata: Optional[dict] = None,
     ) -> None:
-        """Initialize array schema.
+        """Initialize column schema.
 
         :param dtype: datatype of the column.
         :param checks: If element_wise is True, then callable signature should
@@ -43,9 +43,9 @@ class ColumnSchema(BaseSchema):
             be coerced into the specified dtype. This has no effect on columns
             where ``dtype=None``.
         :param name: column name in dataframe to validate.
-        :param title: A human-readable label for the series.
+        :param title: A human-readable label for the column.
         :param description: An arbitrary textual description of the series.
-        :param metadata: An optional key-value data.
+        :param metadata: An optional key-value data element.
         :type nullable: bool
         """
 
@@ -68,7 +68,6 @@ class ColumnSchema(BaseSchema):
         self.title = title
         self.description = description
         self.metadata = metadata
-        self._dtype = None
 
     @property
     def dtype(self) -> DataType:
@@ -78,9 +77,9 @@ class ColumnSchema(BaseSchema):
     @dtype.setter
     def dtype(self, value: Optional[PySparkDtypeInputTypes]) -> None:
         """Set the pyspark dtype"""
-        # this is a pylint false positive
-        # pylint: disable=no-value-for-parameter
-        self._dtype = pyspark_engine.Engine.dtype(value) if value else None
+        self._dtype = (
+            pyspark_engine.Engine.dtype(value) if value else None
+        )  # pylint:disable=no-value-for-parameter
 
     def validate(
         self,
@@ -94,7 +93,7 @@ class ColumnSchema(BaseSchema):
         error_handler: ErrorHandler = None,
     ):
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-        """Validate a series or specific column in dataframe.
+        """Validate a specific column in a dataframe.
 
         :check_obj: pyspark DataFrame to validate.
         :param head: validate the first n rows. Rows overlapping with `tail` or
@@ -109,7 +108,8 @@ class ColumnSchema(BaseSchema):
             ``SchemaError`` as soon as one occurs.
         :param inplace: if True, applies coercion to the object of validation,
             otherwise creates a copy of the data.
-        :returns: validated DataFrame or Series.
+        :param error_handler: pyspark error handler object to provide the error in a dictionary format.
+        :returns: validated DataFrame.
 
         """
         return self.get_backend(check_obj).validate(
@@ -162,24 +162,24 @@ class ColumnSchema(BaseSchema):
 
     @inferred_schema_guard
     def update_checks(self, checks: List[Check]):
-        """Create a new SeriesSchema with a new set of Checks
+        """Create a new Schema with a new set of Checks
 
         :param checks: checks to set on the new schema
-        :returns: a new SeriesSchema with a new set of checks
+        :returns: a new Schema with a new set of checks
         """
         schema_copy = cast(ColumnSchema, copy.deepcopy(self))
         schema_copy.checks = checks
         return schema_copy
 
     def set_checks(self, checks: CheckList):
-        """Create a new SeriesSchema with a new set of Checks
+        """Create a new Schema with a new set of Checks
 
         .. caution::
            This method will be deprecated in favor of ``update_checks`` in
            v0.15.0
 
         :param checks: checks to set on the new schema
-        :returns: a new SeriesSchema with a new set of checks
+        :returns: a new Schema with a new set of checks
         """
         return self.update_checks(checks)
 

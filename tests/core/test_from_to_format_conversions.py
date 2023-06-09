@@ -203,7 +203,6 @@ def test_from_format(schema, to_fn, buf_cls):
         (mock_dataframe(), False),
         (invalid_input_dataframe(), True),
     ]:
-
         buf = None if buf_cls is None else buf_cls()
 
         if _needs_pyarrow(schema):

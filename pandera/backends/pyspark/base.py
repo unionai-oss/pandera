@@ -17,11 +17,10 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from pandera.backends.base import BaseSchemaBackend
-from pandera.backends.pyspark.error_formatters import (  # format_vectorized_error_message,; consolidate_failure_cases,; summarize_failure_cases,; reshape_failure_cases,
+from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
     scalar_failure_case,
 )
-from pandera.backends.pyspark.utils import ConfigParams
 from pandera.errors import FailureCaseMetadata, SchemaError
 
 
@@ -49,20 +48,17 @@ T = TypeVar(
 class PysparkSchemaBackend(BaseSchemaBackend):
     """Base backend for pyspark schemas."""
 
-    try:
-        params = ConfigParams("pyspark", "parameters.yaml")
-    except Exception as err:
-        raise err
-
     def subsample(
         self,
         check_obj: DataFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
         sample: Optional[float] = None,
-        seed: Optional[int] = None,
+        random_state: Optional[int] = None,
     ):
         if sample is not None:
             return check_obj.sample(
-                withReplacement=False, fraction=sample, seed=seed
+                withReplacement=False, fraction=sample, seed=random_state
             )
         return check_obj
 
@@ -76,6 +72,9 @@ class PysparkSchemaBackend(BaseSchemaBackend):
     ) -> bool:
         """Handle check results, raising SchemaError on check failure.
 
+        :param check_obj: pyspark dataframe object
+        :param schema: schema information of the column in the dataframe that needs to be validated
+        :param check: Check object used to validate pyspark object.
         :param check_index: index of check in the schema component check list.
         :param check: Check object used to validate pyspark object.
         :param check_args: arguments to pass into check object.
@@ -85,13 +84,12 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         check_result = check(check_obj, *args)
         if not check_result.check_passed:
-            if check_result.failure_cases is None:
-                # encode scalar False values explicitly
-                failure_cases = scalar_failure_case(check_result.check_passed)
-                error_msg = format_generic_error_message(schema, check)
+            # encode scalar False values explicitly
+            failure_cases = scalar_failure_case(check_result.check_passed)
+            error_msg = format_generic_error_message(schema, check)
 
             # raise a warning without exiting if the check is specified to do so
-            if check.raise_warning:
+            if check.raise_warning:  # pragma: no cover
                 warnings.warn(error_msg, UserWarning)
                 return True
 
@@ -115,6 +113,6 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         return FailureCaseMetadata(
             failure_cases=None,
-            message=schema_errors,
-            error_counts=None,
+            message=schema_errors,  # type: ignore
+            error_counts={},
         )

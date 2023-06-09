@@ -59,7 +59,10 @@ from pandera.typing.common import (
     UInt64,
 )
 from pandera.typing.pandas import DataFrame, Index, Series
-from pandera.typing.pyspark_sql import Column
+
+if pyspark_sql.PYSPARK_SQL_INSTALLED:
+    from pandera.typing.pyspark_sql import Column
+
 
 DATAFRAME_TYPES: Set[Type] = {DataFrame}
 SERIES_TYPES: Set[Type] = {Series}

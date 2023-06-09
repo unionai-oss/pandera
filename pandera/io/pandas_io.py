@@ -55,7 +55,6 @@ def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
-
         if pandas_engine.Engine.dtype(dtypes.DateTime).check(
             dtype
         ) and hasattr(stat, "strftime"):

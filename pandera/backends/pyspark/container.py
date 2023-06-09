@@ -2,7 +2,8 @@
 
 import copy
 import traceback
-from typing import Any, List, Optional
+import warnings
+from typing import Any, List, Optional, Dict
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -10,9 +11,9 @@ from pyspark.sql.functions import col
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.api.pyspark.types import is_table
 from pandera.backends.pyspark.base import ColumnInfo, PysparkSchemaBackend
+from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
-from pandera.backends.pyspark.decorators import validate_params
-
+from pandera.config import CONFIG
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -20,7 +21,6 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaErrors,
 )
-import warnings
 
 
 class DataFrameSchemaBackend(PysparkSchemaBackend):
@@ -30,7 +30,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Preprocesses a check object before applying check functions."""
         return check_obj
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def _column_checks(
         self,
         check_obj: DataFrame,
@@ -85,8 +85,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema,
         *,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
+        head: Optional[int] = None,  # pylint: disable=unused-argument
+        tail: Optional[int] = None,  # pylint: disable=unused-argument
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
@@ -97,7 +97,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         Parse and validate a check object, returning type-coerced and validated
         object.
         """
-        if self.params["VALIDATION"] == "DISABLE":
+        assert (
+            error_handler is not None
+        ), "The `error_handler` argument must be provided."
+        if not CONFIG.validation_enabled:
             warnings.warn(
                 "Skipping the validation checks as validation is disabled"
             )
@@ -121,9 +124,10 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         schema_components = self.collect_schema_components(
             check_obj, schema, column_info
         )
-        check_obj_subsample = self.subsample(check_obj, sample, random_state)
+        check_obj_subsample = self.subsample(
+            check_obj, sample=sample, random_state=random_state
+        )
         try:
-            # TODO: need to create apply at column level
             self.run_schema_component_checks(
                 check_obj_subsample, schema_components, lazy, error_handler
             )
@@ -155,9 +159,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_obj: DataFrame,
         schema_components: List,
         lazy: bool,
-        error_handler: ErrorHandler,
+        error_handler: Optional[ErrorHandler],
     ):
         """Run checks for all schema components."""
+        assert (
+            error_handler is not None
+        ), "The `error_handler` argument must be provided."
         check_results = []
         # schema-component-level checks
         for schema_component in schema_components:
@@ -177,7 +184,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
         assert all(check_results)
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="DATA")
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj: DataFrame, schema, error_handler):
         """Run a list of checks on the check object."""
         # dataframe-level checks
@@ -274,26 +281,26 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ):
         """Collects all schema components to use for validation."""
         schema_components = []
-        for col_name, col in schema.columns.items():
+        for col_name, column in schema.columns.items():
             if (
-                col.required or col_name in check_obj
+                column.required or col_name in check_obj
             ) and col_name not in column_info.lazy_exclude_column_names:
-                col = copy.deepcopy(col)
+                column = copy.deepcopy(column)
                 if schema.dtype is not None:
                     # override column dtype with dataframe dtype
-                    col.dtype = schema.dtype
+                    column.dtype = schema.dtype
 
                 # disable coercion at the schema component level since the
                 # dataframe-level schema already coerced it.
-                col.coerce = False
-                schema_components.append(col)
+                column.coerce = False
+                schema_components.append(column)
 
         return schema_components
 
     ###########
     # Parsers #
     ###########
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def strict_filter_columns(
         self,
         check_obj: DataFrame,
@@ -354,7 +361,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         return check_obj
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def coerce_dtype(
         self,
         check_obj: DataFrame,
@@ -364,6 +371,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
+        assert (
+            error_handler is not None
+        ), "The `error_handler` argument must be provided."
 
         if not (
             schema.coerce or any(col.coerce for col in schema.columns.values())
@@ -401,6 +411,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Coerce dataframe to the type specified in dtype.
 
         :param obj: dataframe to coerce.
+        :param schema: schema object
         :returns: dataframe with coerced dtypes
         """
         # NOTE: clean up the error handling!
@@ -470,9 +481,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 _col_schema.coerce = True
                 obj = _try_coercion(obj, colname, col_schema)
 
-        if schema.dtype is not None:
-            obj = _try_coercion(_coerce_df_dtype, obj)
-
         if error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
@@ -486,12 +494,12 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     # Checks #
     ##########
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_names_are_unique(self, check_obj: DataFrame, schema):
         """Check for column name uniquness."""
         if not schema.unique_column_names:
             return
-        column_count_dict = {}
+        column_count_dict: Dict[Any, Any] = {}
         failed = []
         for column_name in check_obj.columns:
             if column_count_dict.get(column_name):
@@ -516,7 +524,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
             )
 
-    @validate_params(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self, check_obj: DataFrame, schema, column_info: ColumnInfo
     ):

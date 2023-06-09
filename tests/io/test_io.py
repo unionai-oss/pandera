@@ -42,7 +42,6 @@ pytestmark = pytest.mark.skipif(
 
 
 def _create_schema(index="single"):
-
     if index == "multi":
         index = pandera.MultiIndex(
             [
@@ -250,7 +249,6 @@ description: null
 
 
 def _create_schema_null_index():
-
     return pandera.DataFrameSchema(
         columns={
             "float_column": pandera.Column(
@@ -511,7 +509,6 @@ description: null
 
 
 def _create_schema_no_descr_no_title(index="single"):
-
     if index == "multi":
         index = pandera.MultiIndex(
             [
@@ -821,7 +818,6 @@ def test_to_script(index):
     schema_to_write = _create_schema(index)
 
     for script in [io.to_script(schema_to_write), schema_to_write.to_script()]:
-
         local_dict = {}
         # pylint: disable=exec-used
         exec(script, globals(), local_dict)

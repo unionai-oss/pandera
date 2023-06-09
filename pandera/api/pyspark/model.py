@@ -1,5 +1,5 @@
 """Class-based api for pyspark models."""
-
+# pylint:disable=abstract-method
 import copy
 import inspect
 import os
@@ -37,19 +37,19 @@ from pandera.api.pyspark.model_components import (
 )
 from pandera.api.pyspark.model_config import BaseConfig
 from pandera.errors import SchemaInitError
-from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
+from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 
 try:
     from typing_extensions import get_type_hints
-except ImportError:
+except ImportError:  # pragma: no cover
     from typing import get_type_hints  # type: ignore
 
 try:
     from pydantic.fields import ModelField  # pylint:disable=unused-import
 
     HAS_PYDANTIC = True
-except ImportError:
+except ImportError:  # pragma: no cover
     HAS_PYDANTIC = False
 
 
@@ -64,13 +64,19 @@ F = TypeVar("F", bound=Callable)
 TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 
 
-# def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-#     """Typed wrapper around pd.util.Substitution."""
+def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
+    """Typed wrapper to substitute the doc strings."""
+    if args and kwargs:
+        raise AssertionError(
+            "Either positional args or keyword args are accepted"
+        )
+    params = args or kwargs
 
-#     def decorator(func: F) -> F:
-#         return cast(F, pd.util.Substitution(*args, **kwargs)(func))
+    def decorator(func: F) -> F:
+        func.__doc__ = func.__doc__ and func.__doc__ % params
+        return cast(F, func)
 
-#     return decorator
+    return decorator
 
 
 def _is_field(name: str) -> bool:
@@ -124,12 +130,8 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
 class DataFrameModel(BaseModel):
     """Definition of a :class:`~pandera.api.pyspark.container.DataFrameSchema`.
 
-    *new in 0.5.0*
+    *new in 0.16.0*
 
-    .. important::
-
-        This class is the new name for ``SchemaModel``, which will be deprecated
-        in pandera version ``0.20.0``.
 
     See the :ref:`User Guide <dataframe_models>` for more.
     """
@@ -144,7 +146,7 @@ class DataFrameModel(BaseModel):
     __checks__: Dict[str, List[Check]] = {}
     __root_checks__: List[Check] = []
 
-    # @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
         return cast(
@@ -218,7 +220,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def to_schema(cls) -> DataFrameSchema:
-        """Create :class:`~pandera.DataFrameSchema` from the :class:`.DataFrameModel`."""
+        """Create :class:`~pandera.pyspark.DataFrameSchema` from the :class:`.DataFrameModel`."""
 
         if cls in MODEL_CACHE:
             return MODEL_CACHE[cls]
@@ -277,7 +279,7 @@ class DataFrameModel(BaseModel):
         return cls.to_schema().to_yaml(stream)
 
     @classmethod
-    # @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
+    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
     def validate(
         cls: Type[TDataFrameModel],
         check_obj: ps.DataFrame,
@@ -287,7 +289,7 @@ class DataFrameModel(BaseModel):
         random_state: Optional[int] = None,
         lazy: bool = True,
         inplace: bool = False,
-    ) -> DataFrameBase[TDataFrameModel]:
+    ) -> Optional[DataFrameBase[TDataFrameModel]]:
         """%(validate_doc)s"""
         return cast(
             DataFrameBase[TDataFrameModel],
@@ -497,18 +499,18 @@ class DataFrameModel(BaseModel):
         return cast("DataFrameModel", schema_model)
 
     @classmethod
-    def get_metadata(self) -> Optional[dict]:
+    def get_metadata(cls) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
-        res = {"columns": {}}
-        columns = self._collect_fields()
+        res: Dict[Any, Any] = {"columns": {}}
+        columns = cls._collect_fields()
 
         for k, (_, v) in columns.items():
             res["columns"][k] = v.properties["metadata"]
 
-        res["dataframe"] = self.Config.metadata
+        res["dataframe"] = cls.Config.metadata
 
         meta = {}
-        meta[self.Config.name] = res
+        meta[cls.Config.name] = res
         return meta
 
 

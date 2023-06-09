@@ -5,6 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 import pytest
 
+from pandera.config import PanderaConfig, ValidationDepth
 import pandera.pyspark as pa
 from pandera.pyspark import pyspark_sql_accessor
 
@@ -23,22 +24,22 @@ spark = SparkSession.builder.getOrCreate()
         ],
     ],
 )
-def test_dataframe_series_add_schema(
+def test_dataframe_add_schema(
     schema1: pa.DataFrameSchema,
     schema2: pa.DataFrameSchema,
     data: Union[DataFrame, col],
     invalid_data: Union[DataFrame, col],
-    config_params: pa.ConfigParams,
+    config_params: PanderaConfig,
 ) -> None:
     """
-    Test that pandas object contains schema metadata after pandera validation.
+    Test that pyspark object contains schema metadata after pandera validation.
     """
-    validated_data_1 = schema1(data)  # type: ignore[arg-type]
+    schema1(data)  # type: ignore[arg-type]
 
     assert data.pandera.schema == schema1
     assert isinstance(schema1.validate(data), DataFrame)
     assert isinstance(schema1(data), DataFrame)
-    if config_params["DEPTH"] != "DATA_ONLY":
+    if config_params.validation_depth != ValidationDepth.DATA_ONLY:
         assert dict(schema2(invalid_data).pandera.errors["SCHEMA"]) == {
             "WRONG_DATATYPE": [
                 {

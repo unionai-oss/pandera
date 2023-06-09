@@ -1,7 +1,7 @@
 """Check backend for pyspark."""
 
 from functools import partial
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from multimethod import DispatchError, overload
 from pyspark.sql import DataFrame
@@ -26,7 +26,7 @@ class PySparkCheckBackend(BaseCheckBackend):
         self.check = check
         self.check_fn = partial(check._check_fn, **check._check_kwargs)
 
-    def groupby(self, check_obj: DataFrame):
+    def groupby(self, check_obj: DataFrame):  # pragma: no cover
         """Implements groupby behavior for check object."""
         assert self.check.groupby is not None, "Check.groupby must be set."
         if isinstance(self.check.groupby, (str, list)):
@@ -45,8 +45,8 @@ class PySparkCheckBackend(BaseCheckBackend):
     def _format_groupby_input(
         groupby_obj: GroupbyObject,
         groups: Optional[List[str]],
-    ) -> Dict[str, DataFrame]:
-        pass
+    ) -> Dict[str, DataFrame]:  # pragma: no cover
+        raise NotImplementedError
 
     @overload  # type: ignore [no-redef]
     def preprocess(
@@ -63,11 +63,11 @@ class PySparkCheckBackend(BaseCheckBackend):
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: DataFrame):
-        return self.check_fn(check_obj)
+        return self.check_fn(check_obj)  # pragma: no cover
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: is_table):  # type: ignore [valid-type]
-        return self.check_fn(check_obj)
+        return self.check_fn(check_obj)  # pragma: no cover
 
     @overload  # type: ignore [no-redef]
     def apply(self, check_obj: DataFrame, column_name: str, kwargs: dict):  # type: ignore [valid-type]
@@ -81,7 +81,7 @@ class PySparkCheckBackend(BaseCheckBackend):
     @overload
     def postprocess(self, check_obj, check_output):
         """Postprocesses the result of applying the check function."""
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             f"output type of check_fn not recognized: {type(check_output)}"
         )
 
@@ -106,9 +106,11 @@ class PySparkCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         check_obj = self.preprocess(check_obj, key)
         try:
-            check_output = self.apply(check_obj, key, self.check._check_kwargs)
+            check_output = self.apply(  # pylint:disable=too-many-function-args
+                check_obj, key, self.check._check_kwargs
+            )
 
-        except DispatchError as exc:
+        except DispatchError as exc:  # pragma: no cover
             if exc.__cause__ is not None:
                 raise exc.__cause__
             raise exc

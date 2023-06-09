@@ -10,8 +10,8 @@ from pandera.api.checks import Check
 from pandera.dtypes import DataType
 
 try:
-    from typing import Literal, NamedTuple
-except ImportError:
+    from typing import Literal
+except ImportError:  # pragma: no cover
     from typing_extensions import Literal  # type: ignore [misc]
 
 
@@ -29,7 +29,6 @@ PysparkDefaultTypes = Union[
     pst.ShortType,
     pst.ByteType,
     pst.LongType,
-    pst.DayTimeIntervalType,
     pst.BinaryType,
 ]
 
@@ -52,7 +51,6 @@ PySparkDtypeInputTypes = Union[
     pst.ShortType,
     pst.ByteType,
     pst.LongType,
-    pst.DayTimeIntervalType,
     pst.BinaryType,
 ]
 
@@ -65,6 +63,8 @@ SupportedTypes = NamedTuple(
 
 
 class PysparkDataframeColumnObject(NamedTuple):
+    """Pyspark Object which holds dataframe and column value in a named tuble"""
+
     dataframe: DataFrame
     column_name: str
 
@@ -78,7 +78,7 @@ def supported_types() -> SupportedTypes:
     try:
         table_types.append(DataFrame)
 
-    except ImportError:
+    except ImportError:  # pragma: no cover
         pass
 
     return SupportedTypes(

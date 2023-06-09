@@ -10,7 +10,7 @@ from pandera.typing.formats import Format
 class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     """Define DataFrameSchema-wide options.
 
-    *new in 0.5.0*
+    *new in 0.16.0*
     """
 
     #: datatype of the dataframe. This overrides the data types specified in
