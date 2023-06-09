@@ -9,7 +9,6 @@ from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
-from pandera.backends.pyspark.column import ColumnSchemaBackend
 from pandera.dtypes import DataType
 from pandera.engines import pyspark_engine
 
@@ -18,8 +17,6 @@ TColumnSchemaBase = TypeVar("TColumnSchemaBase", bound="ColumnSchema")
 
 class ColumnSchema(BaseSchema):
     """Base column validator object."""
-
-    BACKEND = ColumnSchemaBackend()
 
     def __init__(
         self,
@@ -115,7 +112,7 @@ class ColumnSchema(BaseSchema):
         :returns: validated DataFrame.
 
         """
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,
             head=head,

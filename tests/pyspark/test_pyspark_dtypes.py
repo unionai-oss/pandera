@@ -6,14 +6,14 @@ from pyspark.sql import DataFrame
 
 from pandera.pyspark import DataFrameSchema, Column
 from tests.pyspark.conftest import spark_df
-from pandera.backends.pyspark.utils import ConfigParams
-from pandera.backends.pyspark.decorators import validate_scope
+from pandera.config import PanderaConfig
+from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
 
 
 class BaseClass:
     """Base class for all the dtypes"""
 
-    params: Any = ConfigParams()
+    params: Any = PanderaConfig()
 
     def validate_datatype(self, df, pandera_schema):
         """
@@ -163,7 +163,7 @@ class TestAllNumericTypes(BaseClass):
         df = spark_df(spark, sample_data, spark_schema)
         self.validate_data(df, pandera_equivalent, column_name)
 
-    @validate_scope(params=BaseClass.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def test_pyspark_decimal_parameterized_types(
         self, spark, sample_data, pandera_equivalent
     ):
@@ -344,7 +344,7 @@ class TestComplexType(BaseClass):
         ],
     }
 
-    @validate_scope(params=BaseClass.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def test_pyspark_array_type(self, sample_complex_data, pandera_equivalent):
         """
         Test array dtype column
@@ -366,7 +366,7 @@ class TestComplexType(BaseClass):
             ]
         }
 
-    @validate_scope(params=BaseClass.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def test_pyspark_map_type(self, sample_complex_data, pandera_equivalent):
         """
         Test map dtype column

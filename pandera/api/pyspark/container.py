@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 from pyspark.sql import DataFrame
 
 from pandera import errors
+from pandera.config import CONFIG
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
@@ -19,8 +20,6 @@ from pandera.api.pyspark.types import (
     PySparkDtypeInputTypes,
     StrictType,
 )
-from pandera.backends.pyspark.container import DataFrameSchemaBackend
-from pandera.backends.pyspark.utils import PANDERA_CONFIG, ConfigParams
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
 
@@ -29,9 +28,6 @@ N_INDENT_SPACES = 4
 
 class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     """A light-weight PySpark DataFrame validator."""
-
-    BACKEND = DataFrameSchemaBackend()
-    params = ConfigParams()
 
     def __init__(
         self,
@@ -265,7 +261,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         )  # pylint:disable=no-value-for-parameter
 
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
-        return self.BACKEND.coerce_dtype(check_obj, schema=self)
+        return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
@@ -329,7 +325,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         >>> schema_withchecks.validate(df).take(2)
             [Row(product='Bread', price=9), Row(product='Butter', price=15)]
         """
-        if PANDERA_CONFIG["PANDERA_VALIDATION"] == "DISABLE":
+        if not CONFIG.validation_enabled:
             return
         error_handler = ErrorHandler(lazy)
 
@@ -364,7 +360,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 UserWarning,
             )
 
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj=check_obj,
             schema=self,
             head=head,

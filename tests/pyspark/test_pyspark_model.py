@@ -8,6 +8,7 @@ import pytest
 
 import pandera
 import pandera.pyspark as pa
+from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
 from pandera.api.pyspark.model import docstring_substitution
@@ -221,12 +222,12 @@ def test_pyspark_fields_metadata():
     assert PanderaSchema.get_metadata() == expected
 
 
-def test_dataframe_schema_strict(spark, config_params) -> None:
+def test_dataframe_schema_strict(spark, config_params: PanderaConfig) -> None:
     """
     Checks if strict=True whether a schema error is raised because either extra columns are present in the dataframe
     or missing columns in dataframe
     """
-    if config_params["PANDERA_DEPTH"] != "DATA_ONLY":
+    if config_params.validation_depth != ValidationDepth.DATA_ONLY:
         schema = DataFrameSchema(
             {
                 "a": pa.Column("long", nullable=True),

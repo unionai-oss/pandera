@@ -5,6 +5,7 @@ import pyspark.sql.types as T
 import pytest
 import pandera.pyspark as pa
 import pandera.errors
+from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import DataFrameSchema, Column
 
 spark = SparkSession.builder.getOrCreate()
@@ -38,7 +39,9 @@ def test_pyspark_dataframeschema():
     assert not df_out.pandera.errors
 
 
-def test_pyspark_dataframeschema_with_alias_types(config_params):
+def test_pyspark_dataframeschema_with_alias_types(
+    config_params: PanderaConfig,
+):
     """
     Test creating a pyspark DataFrameSchema object
     """
@@ -67,7 +70,10 @@ def test_pyspark_dataframeschema_with_alias_types(config_params):
     df_out = schema.validate(df)
 
     assert not df_out.pandera.errors
-    if config_params["PANDERA_DEPTH"] in ["SCHEMA_AND_DATA", "DATA_ONLY"]:
+    if config_params.validation_depth in [
+        ValidationDepth.SCHEMA_AND_DATA,
+        ValidationDepth.DATA_ONLY,
+    ]:
         with pytest.raises(pandera.errors.PysparkSchemaError):
             data_fail = [("Bread", 3), ("Butter", 15)]
 

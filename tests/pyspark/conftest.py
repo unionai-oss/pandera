@@ -4,7 +4,7 @@ import datetime
 import pytest
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
-from pandera.backends.pyspark.utils import ConfigParams
+from pandera.config import PanderaConfig
 
 
 @pytest.fixture(scope="session")
@@ -142,4 +142,4 @@ def sample_check_data():
 @pytest.fixture(scope="session")
 def config_params():
     """This function creates config parameters"""
-    return ConfigParams()
+    return PanderaConfig()

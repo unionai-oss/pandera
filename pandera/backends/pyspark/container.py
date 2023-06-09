@@ -11,8 +11,9 @@ from pyspark.sql.functions import col
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.api.pyspark.types import is_table
 from pandera.backends.pyspark.base import ColumnInfo, PysparkSchemaBackend
-from pandera.backends.pyspark.decorators import validate_scope
+from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
+from pandera.config import CONFIG
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -29,7 +30,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Preprocesses a check object before applying check functions."""
         return check_obj
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def _column_checks(
         self,
         check_obj: DataFrame,
@@ -99,7 +100,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         assert (
             error_handler is not None
         ), "The `error_handler` argument must be provided."
-        if self.params["PANDERA_VALIDATION"] == "DISABLE":
+        if not CONFIG.validation_enabled:
             warnings.warn(
                 "Skipping the validation checks as validation is disabled"
             )
@@ -183,7 +184,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 )
         assert all(check_results)
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="DATA")
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj: DataFrame, schema, error_handler):
         """Run a list of checks on the check object."""
         # dataframe-level checks
@@ -299,7 +300,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     ###########
     # Parsers #
     ###########
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def strict_filter_columns(
         self,
         check_obj: DataFrame,
@@ -360,7 +361,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         return check_obj
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def coerce_dtype(
         self,
         check_obj: DataFrame,
@@ -493,7 +494,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
     # Checks #
     ##########
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_names_are_unique(self, check_obj: DataFrame, schema):
         """Check for column name uniquness."""
         if not schema.unique_column_names:
@@ -523,7 +524,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 reason_code=SchemaErrorReason.DUPLICATE_COLUMN_LABELS,
             )
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self, check_obj: DataFrame, schema, column_info: ColumnInfo
     ):
