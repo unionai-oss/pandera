@@ -155,7 +155,7 @@ class TestPanderaConfig:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",
@@ -191,7 +191,7 @@ class TestPanderaConfig:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",
@@ -240,7 +240,7 @@ class TestPanderaConfig:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",
@@ -292,7 +292,7 @@ class TestPanderaConfig:
                         "error": "column "
                         "'product' "
                         "with type "
-                        "StringType() "
+                        f"{str(T.StringType())} "
                         "failed "
                         "validation "
                         "str_startswith('B')",

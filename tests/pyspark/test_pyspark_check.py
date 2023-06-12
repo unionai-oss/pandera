@@ -112,15 +112,15 @@ class TestDecorator:
             "SCHEMA": {
                 "WRONG_DATATYPE": [
                     {
-                        "check": "dtype('StringType()')",
+                        "check": f"dtype('{str(StringType())}')",
                         "column": "code",
                         "error": "expected "
                         "column "
                         "'code' to "
                         "have type "
-                        "StringType(), "
+                        f"{str(StringType())}, "
                         "got "
-                        "IntegerType()",
+                        f"{str(IntegerType())}",
                         "schema": None,
                     }
                 ]

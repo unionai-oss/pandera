@@ -3,6 +3,7 @@ from typing import Union
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
+from pyspark.sql.types import FloatType, LongType
 import pytest
 
 from pandera.config import PanderaConfig, ValidationDepth
@@ -45,8 +46,8 @@ def test_dataframe_add_schema(
                 {
                     "schema": None,
                     "column": "col",
-                    "check": "dtype('FloatType()')",
-                    "error": "expected column 'col' to have type FloatType(), got LongType()",
+                    "check": f"dtype('{str(FloatType())}')",
+                    "error": f"expected column 'col' to have type {str(FloatType())}, got {str(LongType())}",
                 }
             ]
         }  # type: ignore[arg-type]
