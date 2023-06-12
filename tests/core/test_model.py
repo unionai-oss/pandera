@@ -43,9 +43,7 @@ def test_to_schema_and_validate() -> None:
     assert expected_legacy == SchemaLegacy.to_schema()
 
     Schema(pd.DataFrame({"a": [1], "b": ["foo"], "c": [3.4]}, index=["1"]))
-    SchemaLegacy(
-        pd.DataFrame({"a": [1], "b": ["foo"], "c": [3.4]}, index=["1"])
-    )
+    SchemaLegacy(pd.DataFrame({"a": [1], "b": ["foo"], "c": [3.4]}, index=["1"]))
     with pytest.raises(pa.errors.SchemaError):
         Schema(pd.DataFrame({"a": [1]}))
     with pytest.raises(pa.errors.SchemaError):
@@ -139,9 +137,7 @@ def test_invalid_annotations() -> None:
     class InvalidDtype(pa.DataFrameModel):
         d: Series[DummyType]  # type: ignore
 
-    with pytest.raises(
-        TypeError, match="dtype '<class '.*DummyType'>' not understood"
-    ):
+    with pytest.raises(TypeError, match="dtype '<class '.*DummyType'>' not understood"):
         InvalidDtype.to_schema()
 
 
@@ -280,9 +276,7 @@ def test_multiindex_check_name() -> None:
     """Test a MultiIndex name."""
 
     df = pd.DataFrame(
-        index=pd.MultiIndex.from_arrays(
-            [["foo", "bar"], [0, 1]], names=["a", "b"]
-        )
+        index=pd.MultiIndex.from_arrays([["foo", "bar"], [0, 1]], names=["a", "b"])
     )
 
     class DefaultSchema(pa.DataFrameModel):
@@ -301,9 +295,7 @@ def test_multiindex_check_name() -> None:
         a: Index[str] = pa.Field(check_name=False)
         b: Index[int] = pa.Field(check_name=False)
 
-    df = pd.DataFrame(
-        index=pd.MultiIndex.from_arrays([["foo", "bar"], [0, 1]])
-    )
+    df = pd.DataFrame(index=pd.MultiIndex.from_arrays([["foo", "bar"], [0, 1]]))
     assert isinstance(NotCheckNameSchema.validate(df), pd.DataFrame)
 
 
@@ -426,9 +418,7 @@ def test_check_non_existing() -> None:
         def int_column_lt_100(cls, series: pd.Series) -> Iterable[bool]:
             return series < 100
 
-    err_msg = (
-        "Check int_column_lt_100 is assigned to a non-existing field 'nope'"
-    )
+    err_msg = "Check int_column_lt_100 is assigned to a non-existing field 'nope'"
     with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
         Schema.to_schema()
 
@@ -476,9 +466,7 @@ def test_check_multiple_columns() -> None:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "b": [200]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="2 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
         Schema.validate(df, lazy=True)
 
 
@@ -496,9 +484,7 @@ def test_check_regex() -> None:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="1 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors, match="1 schema errors were found"):
         Schema.validate(df, lazy=True)
 
 
@@ -558,9 +544,7 @@ def test_inherit_dataframemodel_fields_alias() -> None:
     ).update_column("b", dtype=int)
     expected_child_override_attr.name = "ChildOverrideAttr"
 
-    expected_child_override_alias = expected_mid.rename_columns(
-        {"_b": "new_b"}
-    )
+    expected_child_override_alias = expected_mid.rename_columns({"_b": "new_b"})
     expected_child_override_alias.name = "ChildOverrideAlias"
 
     expected_child_new_attr = expected_mid.add_columns(
@@ -640,9 +624,7 @@ def test_dataframe_check() -> None:
     assert len(schema.checks) == 2
 
     df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="2 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors, match="2 schema errors were found"):
         schema.validate(df, lazy=True)
 
 
@@ -1054,9 +1036,7 @@ def test_validate_coerce_on_init():
     class Schema(pa.DataFrameModel):
         state: Series[str]
         city: Series[str]
-        price: Series[float] = pa.Field(
-            in_range={"min_value": 5, "max_value": 20}
-        )
+        price: Series[float] = pa.Field(in_range={"min_value": 5, "max_value": 20})
 
         class Config:
             coerce = True
@@ -1258,9 +1238,7 @@ def test_generic_optional_field() -> None:
     IntYModel.validate(pd.DataFrame({"x": [1, 2, 3]}))
     IntYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}))
     with pytest.raises(SchemaError):
-        IntYModel.validate(
-            pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]})
-        )
+        IntYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]}))
 
     class FloatYModel(GenericModel[float]):
         ...
@@ -1290,15 +1268,11 @@ def test_generic_model_multiple_inheritance() -> None:
     )
     with pytest.raises(SchemaError):
         IntYFloatZModel.validate(
-            pd.DataFrame(
-                {"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}
-            )
+            pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
         )
     with pytest.raises(SchemaError):
         IntYFloatZModel.validate(
-            pd.DataFrame(
-                {"x": ["a", "b", "c"], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}
-            )
+            pd.DataFrame({"x": ["a", "b", "c"], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
         )
 
     class FloatYIntZModel(GenericYModel[float], GenericZModel[int]):
@@ -1307,18 +1281,14 @@ def test_generic_model_multiple_inheritance() -> None:
     FloatYIntZModel.to_schema()
     with pytest.raises(SchemaError):
         FloatYIntZModel.validate(
-            pd.DataFrame(
-                {"x": [1, 2, 3], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}
-            )
+            pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
         )
     FloatYIntZModel.validate(
         pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
     )
     with pytest.raises(SchemaError):
         FloatYIntZModel.validate(
-            pd.DataFrame(
-                {"x": ["a", "b", "c"], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}
-            )
+            pd.DataFrame({"x": ["a", "b", "c"], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
         )
 
 
@@ -1336,22 +1306,16 @@ def test_multiple_generic() -> None:
 
     IntYFloatZModel.to_schema()
     IntYFloatZModel.to_schema()
-    IntYFloatZModel.validate(
-        pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
-    )
+    IntYFloatZModel.validate(pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
     with pytest.raises(SchemaError):
-        IntYFloatZModel.validate(
-            pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
-        )
+        IntYFloatZModel.validate(pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
 
     class FloatYIntZModel(GenericModel[float, int]):
         ...
 
     FloatYIntZModel.to_schema()
     with pytest.raises(SchemaError):
-        FloatYIntZModel.validate(
-            pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
-        )
+        FloatYIntZModel.validate(pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
     FloatYIntZModel.validate(
         pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
     )
@@ -1376,13 +1340,9 @@ def test_repeated_generic() -> None:
     class IntYFloatZModel(IntYGenericZModel[float]):
         ...
 
-    IntYFloatZModel.validate(
-        pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
-    )
+    IntYFloatZModel.validate(pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]}))
     with pytest.raises(SchemaError):
-        IntYFloatZModel.validate(
-            pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
-        )
+        IntYFloatZModel.validate(pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]}))
 
 
 def test_pandas_fields_metadata():

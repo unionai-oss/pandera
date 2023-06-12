@@ -90,9 +90,7 @@ def test_infer_dataframe_statistics(multi_index: bool, nullable: bool) -> None:
             )
 
     assert DEFAULT_FLOAT.check(stat_columns["float"]["dtype"])
-    assert pandas_engine.Engine.dtype(str).check(
-        stat_columns["string"]["dtype"]
-    )
+    assert pandas_engine.Engine.dtype(str).check(stat_columns["string"]["dtype"])
     assert pandas_engine.Engine.dtype(pa.DateTime).check(
         stat_columns["datetime"]["dtype"]
     )
@@ -177,9 +175,7 @@ def _test_statistics(statistics, expectations):
     [
         *[
             [
-                pd.Series(
-                    [1, 2, 3], dtype=str(pandas_engine.Engine.dtype(data_type))
-                ),
+                pd.Series([1, 2, 3], dtype=str(pandas_engine.Engine.dtype(data_type))),
                 {
                     "dtype": pandas_engine.Engine.dtype(data_type),
                     "nullable": False,
@@ -308,9 +304,7 @@ def test_infer_series_schema_statistics(series, expectation) -> None:
         ],
     ],
 )
-def test_infer_nullable_series_schema_statistics(
-    null_index, series, expectation
-):
+def test_infer_nullable_series_schema_statistics(null_index, series, expectation):
     """Test nullable series statistics are correctly inferred."""
     series.iloc[null_index] = None
     statistics = schema_statistics.infer_series_statistics(series)
@@ -422,9 +416,7 @@ def test_infer_index_statistics(index, expectation):
         with pytest.warns(UserWarning, match="^index type .+ not recognized"):
             schema_statistics.infer_index_statistics(index)
     else:
-        _test_statistics(
-            schema_statistics.infer_index_statistics(index), expectation
-        )
+        _test_statistics(schema_statistics.infer_index_statistics(index), expectation)
 
 
 def test_get_dataframe_schema_statistics():
@@ -581,9 +573,7 @@ def test_get_series_schema_statistics():
 )
 def test_get_index_schema_statistics(index_schema_component, expectation):
     """Test that index schema statistics logic is correct."""
-    statistics = schema_statistics.get_index_schema_statistics(
-        index_schema_component
-    )
+    statistics = schema_statistics.get_index_schema_statistics(index_schema_component)
     _test_statistics(statistics, expectation)
 
 

@@ -140,9 +140,7 @@ def less_than(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
 @register_input_datatypes(
     acceptable_datatypes=convert_to_list(ALL_NUMERIC_TYPE, ALL_DATE_TYPE)
 )
-def less_than_or_equal_to(
-    data: PysparkDataframeColumnObject, max_value: Any
-) -> bool:
+def less_than_or_equal_to(data: PysparkDataframeColumnObject, max_value: Any) -> bool:
     """Ensure values of a series are strictly below a maximum value.
 
     :param data: NamedTuple PysparkDataframeColumnObject contains the dataframe and column name for the check. The keys
@@ -230,9 +228,7 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
     :param allowed_values: The set of allowed values. May be any iterable.
     """
     return (
-        data.dataframe.filter(
-            ~col(data.column_name).isin(list(allowed_values))
-        )
+        data.dataframe.filter(~col(data.column_name).isin(list(allowed_values)))
         .limit(1)
         .count()
         == 0
@@ -248,9 +244,7 @@ def isin(data: PysparkDataframeColumnObject, allowed_values: Iterable) -> bool:
         ALL_NUMERIC_TYPE, ALL_DATE_TYPE, STRING_TYPE, BINARY_TYPE
     )
 )
-def notin(
-    data: PysparkDataframeColumnObject, forbidden_values: Iterable
-) -> bool:
+def notin(data: PysparkDataframeColumnObject, forbidden_values: Iterable) -> bool:
     """Ensure some defined values don't occur within a series.
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.
@@ -266,9 +260,7 @@ def notin(
         be any iterable.
     """
     return (
-        data.dataframe.filter(
-            col(data.column_name).isin(list(forbidden_values))
-        )
+        data.dataframe.filter(col(data.column_name).isin(list(forbidden_values)))
         .limit(1)
         .count()
         == 0
@@ -280,9 +272,7 @@ def notin(
     error="str_contains('{pattern}')",
 )
 @register_input_datatypes(acceptable_datatypes=convert_to_list(STRING_TYPE))
-def str_contains(
-    data: PysparkDataframeColumnObject, pattern: re.Pattern
-) -> bool:
+def str_contains(data: PysparkDataframeColumnObject, pattern: re.Pattern) -> bool:
     """Ensure that a pattern can be found within each row.
 
     Remember it can be a compute intensive check on large dataset. So, use it with caution.

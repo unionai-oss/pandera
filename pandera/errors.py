@@ -27,9 +27,7 @@ class ReducedPickleExceptionBase(Exception):
         representation.
         """
         state = {
-            key: str(val)
-            if key in self.TO_STRING_KEYS and val is not None
-            else val
+            key: str(val) if key in self.TO_STRING_KEYS and val is not None else val
             for key, val in self.__dict__.items()
         }
         state["args"] = self.args  # message may not be in __dict__
@@ -175,9 +173,9 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self.schema_errors = schema_errors
         self.data = data
 
-        failure_cases_metadata = schema.get_backend(
-            data
-        ).failure_cases_metadata(schema.name, schema_errors)
+        failure_cases_metadata = schema.get_backend(data).failure_cases_metadata(
+            schema.name, schema_errors
+        )
         self.error_counts = failure_cases_metadata.error_counts
         self.failure_cases = failure_cases_metadata.failure_cases
         super().__init__(failure_cases_metadata.message)

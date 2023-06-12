@@ -58,9 +58,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 )
 
             except SchemaError as err:
-                error_handler.collect_error(
-                    ErrorCategory.DATA, err.reason_code, err
-                )
+                error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
 
         column_keys_to_check = (
             self.get_regex_columns(schema, check_obj.columns)
@@ -70,12 +68,10 @@ class ColumnBackend(ColumnSchemaBackend):
 
         for column_name in column_keys_to_check:
             if schema.coerce:
-                check_obj = (
-                    self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
-                        check_obj,
-                        schema=schema,
-                        error_handler=error_handler,
-                    )
+                check_obj = self.coerce_dtype(  # pylint:disable=unexpected-keyword-arg
+                    check_obj,
+                    schema=schema,
+                    error_handler=error_handler,
                 )
             validate_column(check_obj, column_name)
 
@@ -131,9 +127,7 @@ class ColumnBackend(ColumnSchemaBackend):
             check_args = [schema.name]
             try:
                 check_results.append(
-                    self.run_check(
-                        check_obj, schema, check, check_index, *check_args
-                    )
+                    self.run_check(check_obj, schema, check, check_index, *check_args)
                 )
             except SchemaError as err:
                 error_handler.collect_error(

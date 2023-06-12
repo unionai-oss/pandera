@@ -167,9 +167,7 @@ def test_pyspark_bare_fields(spark):
             T.StructField("id", T.IntegerType(), False),
             T.StructField("product", T.StringType(), False),
             T.StructField("price", T.DecimalType(20, 5), False),
-            T.StructField(
-                "description", T.ArrayType(T.StringType(), False), False
-            ),
+            T.StructField("description", T.ArrayType(T.StringType(), False), False),
             T.StructField(
                 "meta", T.MapType(T.StringType(), T.StringType(), False), False
             ),
@@ -276,9 +274,7 @@ def test_dataframe_schema_strict(spark, config_params: PanderaConfig) -> None:
 def test_docstring_substitution() -> None:
     """Test the docstring substitution decorator"""
 
-    @docstring_substitution(
-        test_substitution=test_docstring_substitution.__doc__
-    )
+    @docstring_substitution(test_substitution=test_docstring_substitution.__doc__)
     def function_expected():
         """%(test_substitution)s"""
 
@@ -294,9 +290,7 @@ def test_docstring_substitution() -> None:
         def function_expected():
             """%(test_substitution)s"""
 
-    assert "Either positional args or keyword args are accepted" == str(
-        exc_info.value
-    )
+    assert "Either positional args or keyword args are accepted" == str(exc_info.value)
 
 
 def test_optional_column() -> None:

@@ -36,9 +36,7 @@ SKIP_YAML_TESTS = PYYAML_VERSION is None or PYYAML_VERSION.release < (5, 1, 0)  
 
 
 # skip all tests in module if "io" depends aren't installed
-pytestmark = pytest.mark.skipif(
-    not HAS_IO, reason='needs "io" module dependencies'
-)
+pytestmark = pytest.mark.skipif(not HAS_IO, reason='needs "io" module dependencies')
 
 
 def _create_schema(index="single"):
@@ -841,9 +839,7 @@ def test_to_script_lambda_check():
         {
             "a": pandera.Column(
                 pandera.Int,
-                checks=pandera.Check(
-                    lambda s: s.mean() > 5, element_wise=False
-                ),
+                checks=pandera.Check(lambda s: s.mean() > 5, element_wise=False),
             ),
         }
     )
@@ -870,9 +866,7 @@ def test_to_yaml_lambda_check():
         {
             "a": pandera.Column(
                 pandera.Int,
-                checks=pandera.Check(
-                    lambda s: s.mean() > 5, element_wise=False
-                ),
+                checks=pandera.Check(lambda s: s.mean() > 5, element_wise=False),
             ),
         }
     )
@@ -1286,18 +1280,14 @@ INVALID_FRICTIONLESS_DF = pd.DataFrame(
 )
 
 
-@pytest.mark.parametrize(
-    "frictionless_schema", [FRICTIONLESS_YAML, FRICTIONLESS_JSON]
-)
+@pytest.mark.parametrize("frictionless_schema", [FRICTIONLESS_YAML, FRICTIONLESS_JSON])
 def test_frictionless_schema_parses_correctly(frictionless_schema):
     """Test parsing frictionless schema from yaml and json."""
     schema = pandera.io.from_frictionless_schema(frictionless_schema)
 
     assert str(schema.to_yaml()).strip() == YAML_FROM_FRICTIONLESS.strip()
 
-    assert isinstance(
-        schema, DataFrameSchema
-    ), "schema object not loaded successfully"
+    assert isinstance(schema, DataFrameSchema), "schema object not loaded successfully"
 
     df = schema.validate(VALID_FRICTIONLESS_DF)
     assert dict(df.dtypes) == {
@@ -1307,9 +1297,7 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
         "string_col_2": STR_DTYPE_ALIAS,
         "string_col_3": STR_DTYPE_ALIAS,
         "string_col_4": STR_DTYPE_ALIAS,
-        "float_col": pd.CategoricalDtype(
-            categories=[1.0, 2.0, 3.0], ordered=False
-        ),
+        "float_col": pd.CategoricalDtype(categories=[1.0, 2.0, 3.0], ordered=False),
         "float_col_2": "float64",
         "date_col": STR_DTYPE_ALIAS,
     }, "dtypes not parsed correctly from frictionless schema"
@@ -1317,9 +1305,9 @@ def test_frictionless_schema_parses_correctly(frictionless_schema):
     with pytest.raises(pandera.errors.SchemaErrors) as err:
         schema.validate(INVALID_FRICTIONLESS_DF, lazy=True)
     # check we're capturing all errors according to the frictionless schema:
-    assert err.value.failure_cases[["check", "failure_case"]].fillna(
-        "NaN"
-    ).to_dict(orient="records") == [
+    assert err.value.failure_cases[["check", "failure_case"]].fillna("NaN").to_dict(
+        orient="records"
+    ) == [
         {"check": "column_in_schema", "failure_case": "unexpected_column"},
         {"check": "column_in_dataframe", "failure_case": "date_col"},
         {

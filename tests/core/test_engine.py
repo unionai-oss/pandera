@@ -48,9 +48,7 @@ def test_register_equivalents(engine: Engine, equivalents: List[Any]):
     for equivalent in equivalents:
         assert engine.dtype(equivalent) == SimpleDtype()
 
-    with pytest.raises(
-        TypeError, match="Data type 'foo' not understood by FakeEngine"
-    ):
+    with pytest.raises(TypeError, match="Data type 'foo' not understood by FakeEngine"):
         engine.dtype("foo")
 
 
@@ -65,9 +63,7 @@ def test_register_from_parametrized_dtype(engine: Engine):
 
     assert engine.dtype(42) == 42
 
-    with pytest.raises(
-        TypeError, match="Data type 'foo' not understood by FakeEngine"
-    ):
+    with pytest.raises(TypeError, match="Data type 'foo' not understood by FakeEngine"):
         engine.dtype("foo")
 
 
@@ -97,9 +93,7 @@ def test_register_notclassmethod_from_parametrized_dtype(engine: Engine):
 
         @engine.register_dtype
         class _InvalidDtype(BaseDataType):
-            def from_parametrized_dtype(
-                cls, x: int
-            ):  # pylint:disable=no-self-argument
+            def from_parametrized_dtype(cls, x: int):  # pylint:disable=no-self-argument
                 return x
 
 

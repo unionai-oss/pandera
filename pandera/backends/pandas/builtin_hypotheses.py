@@ -43,6 +43,4 @@ def one_sample_ttest(
     assert (
         len(samples) == 1
     ), "Expected one sample ttest data to contain only one sample"
-    return stats.ttest_1samp(
-        samples[0], popmean=popmean, nan_policy=nan_policy
-    )
+    return stats.ttest_1samp(samples[0], popmean=popmean, nan_policy=nan_policy)

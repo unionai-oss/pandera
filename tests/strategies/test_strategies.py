@@ -51,10 +51,7 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
         getattr(data_type, "bit_width", -1) > 64
         or is_category(data_type)
         or data_type in UNSUPPORTED_DTYPE_CLS
-        or (
-            pandas_engine.GEOPANDAS_INSTALLED
-            and data_type == pandas_engine.Geometry
-        )
+        or (pandas_engine.GEOPANDAS_INSTALLED and data_type == pandas_engine.Geometry)
     ):
         continue
 
@@ -62,9 +59,7 @@ for data_type in pandas_engine.Engine.get_registered_dtypes():
 
 SUPPORTED_DTYPES.add(pandas_engine.Engine.dtype("datetime64[ns, UTC]"))
 
-NUMERIC_DTYPES = [
-    data_type for data_type in SUPPORTED_DTYPES if data_type.continuous
-]
+NUMERIC_DTYPES = [data_type for data_type in SUPPORTED_DTYPES if data_type.continuous]
 
 NULLABLE_DTYPES = [
     data_type
@@ -127,18 +122,10 @@ def test_check_strategy_continuous(data_type, data):
 
     assert data.draw(strategies.ne_strategy(data_type, value=value)) != value
     assert data.draw(strategies.eq_strategy(data_type, value=value)) == value
-    assert (
-        data.draw(strategies.gt_strategy(data_type, min_value=value)) > value
-    )
-    assert (
-        data.draw(strategies.ge_strategy(data_type, min_value=value)) >= value
-    )
-    assert (
-        data.draw(strategies.lt_strategy(data_type, max_value=value)) < value
-    )
-    assert (
-        data.draw(strategies.le_strategy(data_type, max_value=value)) <= value
-    )
+    assert data.draw(strategies.gt_strategy(data_type, min_value=value)) > value
+    assert data.draw(strategies.ge_strategy(data_type, min_value=value)) >= value
+    assert data.draw(strategies.lt_strategy(data_type, max_value=value)) < value
+    assert data.draw(strategies.le_strategy(data_type, max_value=value)) <= value
 
 
 def value_ranges(data_type: pa.DataType):
@@ -151,12 +138,8 @@ def value_ranges(data_type: pa.DataType):
     )
     return (
         st.tuples(
-            strategies.pandas_dtype_strategy(
-                data_type, strategy=None, **kwargs
-            ),
-            strategies.pandas_dtype_strategy(
-                data_type, strategy=None, **kwargs
-            ),
+            strategies.pandas_dtype_strategy(data_type, strategy=None, **kwargs),
+            strategies.pandas_dtype_strategy(data_type, strategy=None, **kwargs),
         )
         .map(sorted)
         .filter(lambda x: x[0] < x[1])  # type: ignore
@@ -210,9 +193,7 @@ def test_check_strategy_chained_continuous(
 
     local_vars = locals()
     assert_value = local_vars[arg_name]
-    example = data.draw(
-        strat_fn(data_type, assert_base_st, **{arg_name: assert_value})
-    )
+    example = data.draw(strat_fn(data_type, assert_base_st, **{arg_name: assert_value}))
     assert compare_op(example, assert_value)
 
 
@@ -272,16 +253,12 @@ def test_isin_notin_strategies(data_type, chained, data):
     notin_base_st = None
     if chained:
         base_values = values + [data.draw(value_st) for _ in range(10)]
-        isin_base_st = strategies.isin_strategy(
-            data_type, allowed_values=base_values
-        )
+        isin_base_st = strategies.isin_strategy(data_type, allowed_values=base_values)
         notin_base_st = strategies.notin_strategy(
             data_type, forbidden_values=base_values
         )
 
-    isin_st = strategies.isin_strategy(
-        data_type, isin_base_st, allowed_values=values
-    )
+    isin_st = strategies.isin_strategy(data_type, isin_base_st, allowed_values=values)
     notin_st = strategies.notin_strategy(
         data_type, notin_base_st, forbidden_values=values
     )
@@ -465,16 +442,12 @@ def test_column_example():
 @hypothesis.given(st.data())
 def test_dataframe_strategy(data_type, size, data):
     """Test DataFrameSchema strategy."""
-    dataframe_schema = pa.DataFrameSchema(
-        {f"{data_type}_col": pa.Column(data_type)}
-    )
+    dataframe_schema = pa.DataFrameSchema({f"{data_type}_col": pa.Column(data_type)})
     df_sample = data.draw(dataframe_schema.strategy(size=size))
     if size == 0:
         assert df_sample.empty
     elif size is None:
-        assert df_sample.empty or isinstance(
-            dataframe_schema(df_sample), pd.DataFrame
-        )
+        assert df_sample.empty or isinstance(dataframe_schema(df_sample), pd.DataFrame)
     else:
         assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
 
@@ -527,9 +500,7 @@ def test_dataframe_with_regex(regex: str, data, n_regex_columns: int) -> None:
     else:
         df = dataframe_schema(
             data.draw(
-                dataframe_schema.strategy(
-                    size=5, n_regex_columns=n_regex_columns
-                )
+                dataframe_schema.strategy(size=5, n_regex_columns=n_regex_columns)
             )
         )
         assert df.shape[1] == n_regex_columns
@@ -549,17 +520,13 @@ def test_dataframe_checks(data_type, data):
     dataframe_schema(example)
 
 
-@pytest.mark.parametrize(
-    "data_type", [pa.Int(), pa.Float, pa.String, pa.DateTime]
-)
+@pytest.mark.parametrize("data_type", [pa.Int(), pa.Float, pa.String, pa.DateTime])
 @hypothesis.given(st.data())
 def test_dataframe_strategy_with_indexes(data_type, data):
     """Test dataframe strategy with index and multiindex components."""
     dataframe_schema_index = pa.DataFrameSchema(index=pa.Index(data_type))
     dataframe_schema_multiindex = pa.DataFrameSchema(
-        index=pa.MultiIndex(
-            [pa.Index(data_type, name=f"index{i}") for i in range(3)]
-        )
+        index=pa.MultiIndex([pa.Index(data_type, name=f"index{i}") for i in range(3)])
     )
 
     dataframe_schema_index(data.draw(dataframe_schema_index.strategy(size=10)))
@@ -605,9 +572,7 @@ def test_multiindex_strategy(data) -> None:
     strat = multiindex.strategy(size=10)
     example = data.draw(strat)
     for i in range(example.nlevels):
-        actual_data_type = pandas_engine.Engine.dtype(
-            example.get_level_values(i).dtype
-        )
+        actual_data_type = pandas_engine.Engine.dtype(example.get_level_values(i).dtype)
         assert data_type.check(actual_data_type)
 
     with pytest.raises(pa.errors.BaseStrategyOnlyError):
@@ -661,16 +626,11 @@ def test_field_element_strategy(data_type, data):
 )
 @pytest.mark.parametrize("nullable", [True, False])
 @hypothesis.given(st.data())
-def test_check_nullable_field_strategy(
-    data_type, field_strategy, nullable, data
-):
+def test_check_nullable_field_strategy(data_type, field_strategy, nullable, data):
     """Test strategies for generating nullable column/index data."""
     size = 5
 
-    if (
-        str(data_type) == "float16"
-        and field_strategy.__name__ == "index_strategy"
-    ):
+    if str(data_type) == "float16" and field_strategy.__name__ == "index_strategy":
         pytest.xfail("float16 is not supported for indexes")
 
     strat = field_strategy(data_type, nullable=nullable, size=size)
@@ -806,9 +766,7 @@ def test_dataframe_strategy_undefined_check_strategy(
 def test_unsatisfiable_checks():
     """Test that unsatisfiable checks raise an exception."""
     schema = pa.DataFrameSchema(
-        columns={
-            "col1": pa.Column(int, checks=[pa.Check.gt(0), pa.Check.lt(0)])
-        }
+        columns={"col1": pa.Column(int, checks=[pa.Check.gt(0), pa.Check.lt(0)])}
     )
     for _ in range(5):
         with pytest.raises(hypothesis.errors.Unsatisfiable):
@@ -882,9 +840,7 @@ def test_datetime_example(check_arg, data) -> None:
         pa.Check.eq(check_arg),
         pa.Check.isin([check_arg]),
     ]:
-        column_schema = pa.Column(
-            "datetime", checks=checks, name="test_datetime"
-        )
+        column_schema = pa.Column("datetime", checks=checks, name="test_datetime")
         column_schema(data.draw(column_schema.strategy()))
 
 

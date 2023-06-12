@@ -149,9 +149,7 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
 
     # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
     dtype = pandas_engine.Engine.dtype(
-        pandas_engine.DateTime(
-            tz=timezone, tz_localize_kwargs=tz_localize_kwargs
-        )
+        pandas_engine.DateTime(tz=timezone, tz_localize_kwargs=tz_localize_kwargs)
     )
     if expected_failure:
         with pytest.raises(pytz.exceptions.NonExistentTimeError):
@@ -184,14 +182,11 @@ def test_pandas_date_coerce_dtype(to_df, data):
         )
 
         assert (
-            coerced_data.applymap(lambda x: isinstance(x, date))
-            | coerced_data.isna()
+            coerced_data.applymap(lambda x: isinstance(x, date)) | coerced_data.isna()
         ).all(axis=None)
         return
 
     assert (coerced_data.dtype == "object") or (
         coerced_data.isna().all() and coerced_data.dtype == "datetime64[ns]"
     )
-    assert (
-        coerced_data.map(lambda x: isinstance(x, date)) | coerced_data.isna()
-    ).all()
+    assert (coerced_data.map(lambda x: isinstance(x, date)) | coerced_data.isna()).all()

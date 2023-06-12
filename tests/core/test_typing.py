@@ -125,9 +125,7 @@ class SchemaUINT64(pa.DataFrameModel):
     col: Series[pa.typing.UINT64]
 
 
-def _test_literal_pandas_dtype(
-    model: Type[pa.DataFrameModel], pandas_dtype: DataType
-):
+def _test_literal_pandas_dtype(model: Type[pa.DataFrameModel], pandas_dtype: DataType):
     schema = model.to_schema()
     expected = pa.Column(pandas_dtype, name="col").dtype
     assert schema.columns["col"].dtype == expected
@@ -215,9 +213,7 @@ def _test_default_annotated_dtype(
 
 
 class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
-    col: Series[pd.DatetimeTZDtype] = pa.Field(
-        dtype_kwargs={"unit": "ns", "tz": "EST"}
-    )
+    col: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
 
 
 class SchemaFieldIntervalDtype(pa.DataFrameModel):

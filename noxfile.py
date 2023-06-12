@@ -55,9 +55,7 @@ def _build_setup_requirements() -> Dict[str, List[Requirement]]:
     dist = run_setup("setup.py")
     reqs = {"core": dist.install_requires}  # type: ignore
     reqs.update(dist.extras_require)  # type: ignore
-    return {
-        extra: list(parse_requirements(reqs)) for extra, reqs in reqs.items()
-    }
+    return {extra: list(parse_requirements(reqs)) for extra, reqs in reqs.items()}
 
 
 def _build_dev_requirements() -> List[Requirement]:
@@ -104,9 +102,7 @@ def _build_requires() -> Dict[str, Dict[str, str]]:
     ]
     requires = {"all": _requirement_to_dict(extras["all"])}
     requires["core"] = {
-        pkg: specs
-        for pkg, specs in requires["all"].items()
-        if pkg not in optionals
+        pkg: specs for pkg, specs in requires["all"].items() if pkg not in optionals
     }
     requires.update(  # add extras
         {
@@ -224,9 +220,7 @@ def install_extras(
         elif req_name == "pandas" and pandas != "latest":
             specs.append(f"pandas~={pandas}")
         else:
-            specs.append(
-                spec if spec != "pandas" else f"pandas{pandas_version}"
-            )
+            specs.append(spec if spec != "pandas" else f"pandas{pandas_version}")
     if extra in {"core", "pyspark", "modin", "fastapi"}:
         specs.append(REQUIRES["all"]["hypothesis"])
 
@@ -247,9 +241,7 @@ def install_extras(
     session.install("-e", ".", "--no-deps")  # install pandera
 
 
-def _generate_pip_deps_from_conda(
-    session: Session, compare: bool = False
-) -> None:
+def _generate_pip_deps_from_conda(session: Session, compare: bool = False) -> None:
     args = ["scripts/generate_pip_deps_from_conda.py"]
     if compare:
         args.append("--compare")
@@ -273,10 +265,7 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
     str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
     for extra, reqs in SETUP_REQUIREMENTS.items():
         for req in reqs:
-            if (
-                req.project_name not in ignored_pkgs
-                and str(req) not in str_dev_reqs
-            ):
+            if req.project_name not in ignored_pkgs and str(req) not in str_dev_reqs:
                 mismatched.append(f"{extra}: {req.project_name}")
 
     if mismatched:
@@ -294,11 +283,7 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
 EXTRA_NAMES = [
     extra
     for extra in REQUIRES
-    if (
-        extra != "all"
-        and "python_version" not in extra
-        and extra not in {"modin"}
-    )
+    if (extra != "all" and "python_version" not in extra and extra not in {"modin"})
 ]
 
 
@@ -309,9 +294,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
     """Run the test suite."""
 
     # skip these conditions
-    python = (
-        session.python or f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    python = session.python or f"{sys.version_info.major}.{sys.version_info.minor}"
     if (
         (pandas, extra)
         in {

@@ -191,8 +191,7 @@ class DataFrameBase(Generic[T]):
             orig_class = getattr(self, "__orig_class__")
             class_args = getattr(orig_class, "__args__", None)
             if class_args is not None and any(
-                x.__name__ == "DataFrameModel"
-                for x in inspect.getmro(class_args[0])
+                x.__name__ == "DataFrameModel" for x in inspect.getmro(class_args[0])
             ):
                 schema_model = value.__args__[0]
             else:
@@ -215,9 +214,7 @@ class SeriesBase(Generic[GenericDtype]):
 
     default_dtype: Optional[Type] = None
 
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
+    def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
         raise AttributeError("Series should resolve to Field-s")
 
 
@@ -230,9 +227,7 @@ class IndexBase(Generic[GenericDtype]):
 
     default_dtype: Optional[Type] = None
 
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
+    def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
@@ -244,9 +239,7 @@ class ColumnBase(Generic[GenericDtype]):
 
     default_dtype: Optional[Type] = None
 
-    def __get__(
-        self, instance: object, owner: Type
-    ) -> str:  # pragma: no cover
+    def __get__(self, instance: object, owner: Type) -> str:  # pragma: no cover
         raise AttributeError("column should resolve to pyspark.sql.Column-s")
 
 

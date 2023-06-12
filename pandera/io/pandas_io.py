@@ -55,9 +55,9 @@ def _serialize_check_stats(check_stats, dtype=None):
     """Serialize check statistics into json/yaml-compatible format."""
 
     def handle_stat_dtype(stat):
-        if pandas_engine.Engine.dtype(dtypes.DateTime).check(
-            dtype
-        ) and hasattr(stat, "strftime"):
+        if pandas_engine.Engine.dtype(dtypes.DateTime).check(dtype) and hasattr(
+            stat, "strftime"
+        ):
             # try serializing stat as a string if it's datetime-like,
             # otherwise return original value
             return stat.strftime(DATETIME_FORMAT)
@@ -210,9 +210,7 @@ def _deserialize_component_stats(serialized_component_stats):
     checks = serialized_component_stats.get("checks")
     if checks is not None:
         checks = [
-            _deserialize_check_stats(
-                getattr(Check, check_name), check_stats, dtype
-            )
+            _deserialize_check_stats(getattr(Check, check_name), check_stats, dtype)
             for check_name, check_stats in checks.items()
         ]
     return {
@@ -266,8 +264,7 @@ def deserialize_schema(serialized_schema):
 
     if index is not None:
         index = [
-            _deserialize_component_stats(index_component)
-            for index_component in index
+            _deserialize_component_stats(index_component) for index_component in index
         ]
 
     if checks is not None:
@@ -296,9 +293,7 @@ def deserialize_schema(serialized_schema):
         ordered=serialized_schema.get("ordered", False),
         unique=serialized_schema.get("unique", None),
         report_duplicates=serialized_schema.get("report_duplicates", "all"),
-        unique_column_names=serialized_schema.get(
-            "unique_column_names", False
-        ),
+        unique_column_names=serialized_schema.get("unique_column_names", False),
         title=serialized_schema.get("title", None),
         description=serialized_schema.get("description", None),
     )
@@ -453,9 +448,7 @@ def _format_checks(checks_dict):
                 "This check will be ignored"
             )
         else:
-            args = ", ".join(
-                f"{k}={v.__repr__()}" for k, v in check_kwargs.items()
-            )
+            args = ", ".join(f"{k}={v.__repr__()}" for k, v in check_kwargs.items())
             checks.append(f"Check.{check_name}({args})")
     return f"[{', '.join(checks)}]"
 
@@ -476,9 +469,7 @@ def _format_index(index_statistics):
             nullable=properties["nullable"],
             coerce=properties["coerce"],
             name=(
-                "None"
-                if properties["name"] is None
-                else f"\"{properties['name']}\""
+                "None" if properties["name"] is None else f"\"{properties['name']}\""
             ),
             description=(None if description is None else f'"{description}"'),
             title=(None if title is None else f'"{title}"'),
@@ -524,11 +515,7 @@ def to_script(dataframe_schema, path_or_buf=None):
         )
         columns[colname] = column_code.strip()
 
-    index = (
-        None
-        if statistics["index"] is None
-        else _format_index(statistics["index"])
-    )
+    index = None if statistics["index"] is None else _format_index(statistics["index"])
 
     column_str = ", ".join(f"'{k}': {v}" for k, v in columns.items())
 
@@ -610,11 +597,7 @@ class FrictionlessFieldParser:
             "geojson": "object",
             "any": "string",
         }
-        return (
-            "category"
-            if self.constraints.get("enum", None)
-            else types[self.type]
-        )
+        return "category" if self.constraints.get("enum", None) else types[self.type]
 
     @property
     def checks(self) -> Optional[Dict]:
@@ -798,8 +781,6 @@ def from_frictionless_schema(
         "strict": True,
         # only set dataframe-level uniqueness if the frictionless primary
         # key property specifies more than one field
-        "unique": (
-            None if len(schema.primary_key) == 1 else list(schema.primary_key)
-        ),
+        "unique": (None if len(schema.primary_key) == 1 else list(schema.primary_key)),
     }
     return deserialize_schema(assembled_schema)
