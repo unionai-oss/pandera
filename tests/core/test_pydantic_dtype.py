@@ -69,7 +69,9 @@ def test_pydantic_model():
     try:
         func(invalid_df)
     except pa.errors.SchemaError as exc:
-        pd.testing.assert_frame_equal(exc.failure_cases, expected_failure_cases)
+        pd.testing.assert_frame_equal(
+            exc.failure_cases, expected_failure_cases
+        )
 
 
 @pytest.mark.parametrize("series_type", [pa.SeriesSchema, pa.Column, pa.Index])
@@ -85,5 +87,7 @@ def test_pydantic_model_init_errors(series_type: Type[ArraySchema]):
 def test_pydantic_model_coerce(coerce: bool):
     """Test that DataFrameSchema.coerce is always True with pydantic model"""
 
-    dataframe_schema = pa.DataFrameSchema(dtype=PydanticModel(Record), coerce=coerce)
+    dataframe_schema = pa.DataFrameSchema(
+        dtype=PydanticModel(Record), coerce=coerce
+    )
     assert dataframe_schema.coerce is True

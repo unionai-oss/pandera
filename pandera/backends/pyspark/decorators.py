@@ -43,7 +43,9 @@ def register_input_datatypes(
             # only checking type not the parameters
             valid_datatypes = [i.typeName for i in acceptable_datatypes]
             current_datatype = (
-                validation_df.select(validation_column).schema[0].dataType.typeName
+                validation_df.select(validation_column)
+                .schema[0]
+                .dataType.typeName
             )
             if pandera_schema_datatype != current_datatype:
                 raise SchemaError(

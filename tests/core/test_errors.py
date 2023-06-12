@@ -145,7 +145,9 @@ class TestSchemaError:
     """Tests pickling behavior of errors.SchemaError."""
 
     @staticmethod
-    @pytest.mark.parametrize("check_obj", [Check.isin([0, 1]), Check(lambda x: x >= 0)])
+    @pytest.mark.parametrize(
+        "check_obj", [Check.isin([0, 1]), Check(lambda x: x >= 0)]
+    )
     def test_pickling(int_dataframe: pd.DataFrame, check_obj: Check):
         """Test for a non-empty pickled object."""
         schema = DataFrameSchema({"a": Column(int, check_obj)})
@@ -161,7 +163,9 @@ class TestSchemaError:
     @pytest.mark.parametrize("n_tile", [1, 10000])
     def test_unpickling(self, int_dataframe: pd.DataFrame, n_tile: int):
         """Tests content validity of unpickled SchemaError."""
-        df = pd.DataFrame({"a": np.tile(int_dataframe["a"].to_numpy(), n_tile)})
+        df = pd.DataFrame(
+            {"a": np.tile(int_dataframe["a"].to_numpy(), n_tile)}
+        )
         schema = DataFrameSchema({"a": Column(int, Check.isin([0, 1]))})
         loaded = None
         try:
@@ -260,7 +264,9 @@ class TestSchemaErrors:
         assert str(exc_unpickled) == str(exc_native)
         # compare schema_errors as string, as it is a nested container with
         # elements that compare by identity
-        assert str(exc_unpickled.schema_errors) == str(exc_native.schema_errors)
+        assert str(exc_unpickled.schema_errors) == str(
+            exc_native.schema_errors
+        )
         assert exc_unpickled.error_counts == exc_native.error_counts
         assert exc_unpickled.failure_cases == str(exc_native.failure_cases)
         assert exc_unpickled.data == str(exc_native.data)

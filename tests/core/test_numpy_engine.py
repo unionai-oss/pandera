@@ -6,7 +6,9 @@ import pytest
 from pandera.engines import numpy_engine
 
 
-@pytest.mark.parametrize("data_type", list(numpy_engine.Engine.get_registered_dtypes()))
+@pytest.mark.parametrize(
+    "data_type", list(numpy_engine.Engine.get_registered_dtypes())
+)
 def test_numpy_data_type(data_type):
     """Test base numpy engine DataType."""
     numpy_engine.Engine.dtype(data_type)
@@ -23,7 +25,9 @@ def test_numpy_data_type(data_type):
 def test_numpy_engine_dtype_exceptions(data_type):
     """Test invalid inputs to numpy data-types."""
     if data_type != np.void:
-        with pytest.raises(TypeError, match="data type '.+' not understood by"):
+        with pytest.raises(
+            TypeError, match="data type '.+' not understood by"
+        ):
             numpy_engine.Engine.dtype(data_type)
     else:
         numpy_engine.Engine._registered_dtypes = set()

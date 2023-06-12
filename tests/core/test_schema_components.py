@@ -36,7 +36,9 @@ def test_column() -> None:
     column_b = Column(Float, name="b")
     column_c = Column(String, name="c")
 
-    assert isinstance(data.pipe(column_a).pipe(column_b).pipe(column_c), pd.DataFrame)
+    assert isinstance(
+        data.pipe(column_a).pipe(column_b).pipe(column_c), pd.DataFrame
+    )
 
     with pytest.raises(errors.SchemaError):
         Column(Int)(data)
@@ -126,7 +128,9 @@ def test_multi_index_columns() -> None:
         [
             DataFrameSchema(
                 {
-                    ("foo", "bar"): Column(int, checks=Check(lambda s: s == 1)),
+                    ("foo", "bar"): Column(
+                        int, checks=Check(lambda s: s == 1)
+                    ),
                 }
             ),
             pd.DataFrame({("foo", "bar"): [1, 2, 3, 4, 5]}),
@@ -244,7 +248,8 @@ def tests_multi_index_subindex_coerce() -> None:
         validated_df_override = schema_override(data)
         for level_i in range(validated_df_override.index.nlevels):
             assert (
-                validated_df_override.index.get_level_values(level_i).dtype == "object"
+                validated_df_override.index.get_level_values(level_i).dtype
+                == "object"
             )
 
     # coerce=False at the MultiIndex level should result in two type errors
@@ -295,10 +300,14 @@ def test_schema_component_equality_operators():
     multi_index = MultiIndex(
         indexes=[
             Index(Int, Check(lambda s: (s < 5) & (s >= 0)), name="index0"),
-            Index(String, Check(lambda s: s.isin(["foo", "bar"])), name="index1"),
+            Index(
+                String, Check(lambda s: s.isin(["foo", "bar"])), name="index1"
+            ),
         ]
     )
-    not_equal_schema = DataFrameSchema({"col1": Column(Int, Check(lambda s: s >= 0))})
+    not_equal_schema = DataFrameSchema(
+        {"col1": Column(Int, Check(lambda s: s >= 0))}
+    )
 
     assert column == copy.deepcopy(column)
     assert column != not_equal_schema
@@ -310,7 +319,9 @@ def test_schema_component_equality_operators():
 
 def test_column_regex() -> None:
     """Test that column regex work on single-level column index."""
-    column_schema = Column(Int, Check(lambda s: s >= 0), name="foo_*", regex=True)
+    column_schema = Column(
+        Int, Check(lambda s: s >= 0), name="foo_*", regex=True
+    )
 
     dataframe_schema = DataFrameSchema(
         {
@@ -358,7 +369,9 @@ def test_column_regex_multiindex() -> None:
     )
     dataframe_schema = DataFrameSchema(
         {
-            ("foo_*", "baz_*"): Column(Int, Check(lambda s: s >= 0), regex=True),
+            ("foo_*", "baz_*"): Column(
+                Int, Check(lambda s: s >= 0), regex=True
+            ),
         }
     )
 
@@ -531,7 +544,9 @@ def test_column_regex_strict() -> None:
             "foo_3": [1, 2, 3],
         }
     )
-    schema = DataFrameSchema(columns={"foo_*": Column(Int, regex=True)}, strict=True)
+    schema = DataFrameSchema(
+        columns={"foo_*": Column(Int, regex=True)}, strict=True
+    )
     assert isinstance(schema.validate(data), pd.DataFrame)
 
     # adding an extra column in the dataframe should cause error
@@ -541,9 +556,9 @@ def test_column_regex_strict() -> None:
 
     # adding an extra regex column to the schema should pass the strictness
     # test
-    validated_data = schema.add_columns({"bar_*": Column(Int, regex=True)}).validate(
-        data.assign(bar_1=[1, 2, 3])
-    )
+    validated_data = schema.add_columns(
+        {"bar_*": Column(Int, regex=True)}
+    ).validate(data.assign(bar_1=[1, 2, 3]))
     assert isinstance(validated_data, pd.DataFrame)
 
 
@@ -606,11 +621,15 @@ def test_column_type_can_be_set() -> None:
     "multiindex, error",
     [
         [
-            pd.MultiIndex.from_arrays([[1, 2, 3], [1, 2, 3]], names=["a", "a"]),
+            pd.MultiIndex.from_arrays(
+                [[1, 2, 3], [1, 2, 3]], names=["a", "a"]
+            ),
             False,
         ],
         [
-            pd.MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]], names=["a", "a"]),
+            pd.MultiIndex.from_arrays(
+                [[1, 2, 3], ["a", "b", "c"]], names=["a", "a"]
+            ),
             True,
         ],
     ],
@@ -730,18 +749,24 @@ def test_multiindex_ordered(
         # unordered schema component, no names in multiindex
         [
             pd.MultiIndex.from_arrays([[1], [1]]),
-            MultiIndex([Index(int, name="a"), Index(int, name="b")], ordered=False),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")], ordered=False
+            ),
             True,
         ],
         [
             pd.MultiIndex.from_arrays([[1], [1]], names=[None, "b"]),
-            MultiIndex([Index(int, name="a"), Index(int, name="b")], ordered=False),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")], ordered=False
+            ),
             True,
         ],
         # unordered schema component with names in multiindex
         [
             pd.MultiIndex.from_arrays([[1], [1]], names=["b", "a"]),
-            MultiIndex([Index(int, name="a"), Index(int, name="b")], ordered=False),
+            MultiIndex(
+                [Index(int, name="a"), Index(int, name="b")], ordered=False
+            ),
             False,
         ],
         [
@@ -823,7 +848,9 @@ def test_index_validation_pandas_string_dtype():
     """Test that pandas string type is correctly validated."""
 
     if pandas_version().release <= (1, 3, 5):
-        pytest.xfail("pd.StringDtype is not supported in the pd.Index in pandas<=1.3.5")
+        pytest.xfail(
+            "pd.StringDtype is not supported in the pd.Index in pandas<=1.3.5"
+        )
 
     schema = DataFrameSchema(
         columns={"data": Column(int)},

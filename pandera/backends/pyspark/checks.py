@@ -73,7 +73,9 @@ class PySparkCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: DataFrame, column_name: str, kwargs: dict):  # type: ignore [valid-type]
         # kwargs['column_name'] = column_name
         # return self.check._check_fn(check_obj, *list(kwargs.values()))
-        check_obj_and_col_name = PysparkDataframeColumnObject(check_obj, column_name)
+        check_obj_and_col_name = PysparkDataframeColumnObject(
+            check_obj, column_name
+        )
         return self.check._check_fn(check_obj_and_col_name, **kwargs)
 
     @overload

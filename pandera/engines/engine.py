@@ -61,7 +61,9 @@ def _is_typeddict(x: Type) -> bool:
 
 
 def _is_namedtuple(x: Type) -> bool:
-    return tuple in getattr(x, "__bases__", ()) and hasattr(x, "__annotations__")
+    return tuple in getattr(x, "__bases__", ()) and hasattr(
+        x, "__annotations__"
+    )
 
 
 @dataclass
@@ -245,7 +247,9 @@ class Engine(ABCMeta):
                 equivalent_data_type = registry.equivalents.get(base)
                 break
             if equivalent_data_type is None:
-                raise TypeError(f"Type '{data_type}' not understood by {cls.__name__}.")
+                raise TypeError(
+                    f"Type '{data_type}' not understood by {cls.__name__}."
+                )
             return type(equivalent_data_type)(data_type)
 
         equivalent_data_type = registry.equivalents.get(data_type)

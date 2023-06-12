@@ -55,4 +55,6 @@ def test_schema_model(data, invalid: bool):
             GeoDataFrame[Schema]({"geometry": data})
         return
 
-    assert isinstance(GeoDataFrame[Schema]({"geometry": data}), gpd.GeoDataFrame)
+    assert isinstance(
+        GeoDataFrame[Schema]({"geometry": data}), gpd.GeoDataFrame
+    )

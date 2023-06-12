@@ -52,7 +52,9 @@ class multidispatch(_multidispatch):
     @property
     def __code__(self):
         """Retrieves the 'base' function of the multidispatch object."""
-        assert len(self) > 0, f"multidispatch object {self} has no functions registered"
+        assert (
+            len(self) > 0
+        ), f"multidispatch object {self} has no functions registered"
         fn, *_ = [*self.values()]  # type: ignore[misc]
         return fn.__code__
 
@@ -81,7 +83,9 @@ class multidispatch(_multidispatch):
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
-    BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseCheckBackend]] = {}  # noqa
+    BACKEND_REGISTRY: Dict[
+        Tuple[Type, Type], Type[BaseCheckBackend]
+    ] = {}  # noqa
     """Registry of check backends implemented for specific data objects."""
 
     CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa
@@ -215,7 +219,9 @@ class BaseCheck(metaclass=MetaCheck):
             are_strategy_fn_objects_equal = True
 
         are_all_other_check_attributes_equal = {
-            k: v for k, v in self.__dict__.items() if k not in ["_check_fn", "strategy"]
+            k: v
+            for k, v in self.__dict__.items()
+            if k not in ["_check_fn", "strategy"]
         } == {
             k: v
             for k, v in other.__dict__.items()

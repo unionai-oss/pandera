@@ -101,10 +101,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             error_handler is not None
         ), "The `error_handler` argument must be provided."
         if not CONFIG.validation_enabled:
-            warnings.warn("Skipping the validation checks as validation is disabled")
+            warnings.warn(
+                "Skipping the validation checks as validation is disabled"
+            )
             return check_obj
         if not is_table(check_obj):
-            raise TypeError(f"expected a pyspark DataFrame, got {type(check_obj)}")
+            raise TypeError(
+                f"expected a pyspark DataFrame, got {type(check_obj)}"
+            )
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
@@ -112,7 +116,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         column_info = self.collect_column_info(check_obj, schema, lazy)
 
         # validate the columns of the dataframe
-        check_obj = self._column_checks(check_obj, schema, column_info, error_handler)
+        check_obj = self._column_checks(
+            check_obj, schema, column_info, error_handler
+        )
 
         # collect schema components and prepare check object to be validated
         schema_components = self.collect_schema_components(
@@ -183,13 +189,17 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Run a list of checks on the check object."""
         # dataframe-level checks
         check_results = []
-        for check_index, check in enumerate(schema.checks):  # schama.checks is null
+        for check_index, check in enumerate(
+            schema.checks
+        ):  # schama.checks is null
             try:
                 check_results.append(
                     self.run_check(check_obj, schema, check, check_index)
                 )
             except SchemaError as err:
-                error_handler.collect_error(ErrorCategory.DATA, err.reason_code, err)
+                error_handler.collect_error(
+                    ErrorCategory.DATA, err.reason_code, err
+                )
             except SchemaDefinitionError:
                 raise
             except Exception as err:  # pylint: disable=broad-except
@@ -365,7 +375,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             error_handler is not None
         ), "The `error_handler` argument must be provided."
 
-        if not (schema.coerce or any(col.coerce for col in schema.columns.values())):
+        if not (
+            schema.coerce or any(col.coerce for col in schema.columns.values())
+        ):
             return check_obj
 
         try:
@@ -385,7 +397,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         except SchemaError as err:
             if not error_handler.lazy:
                 raise err
-            error_handler.collect_error(ErrorCategory.SCHEMA, err.reason_code, err)
+            error_handler.collect_error(
+                ErrorCategory.SCHEMA, err.reason_code, err
+            )
 
         return check_obj
 
@@ -428,7 +442,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
             try:
                 schema = obj.pandera.schema
 
-                obj = obj.withColumn(colname, col(colname).cast(col_schema.dtype.type))
+                obj = obj.withColumn(
+                    colname, col(colname).cast(col_schema.dtype.type)
+                )
                 obj.pandera.add_schema(schema)
                 return obj
 
@@ -500,7 +516,8 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema=schema,
                 data=check_obj,
                 message=(
-                    "dataframe contains multiple columns with label(s): " f"{failed}"
+                    "dataframe contains multiple columns with label(s): "
+                    f"{failed}"
                 ),
                 failure_cases=scalar_failure_case(failed),
                 check="dataframe_column_labels_unique",

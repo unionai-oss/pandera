@@ -15,7 +15,9 @@ from pandera.engines import utils
         [pd.Series([1, 2, "foo", "bar"]), float, [True, True, False, False]],
     ],
 )
-def test_numpy_pandas_coercible(data_container, data_type, expected_failure_cases):
+def test_numpy_pandas_coercible(
+    data_container, data_type, expected_failure_cases
+):
     """Test that the correct boolean Series outputs are returned."""
     assert (
         expected_failure_cases
@@ -37,7 +39,9 @@ def test_numpy_pandas_coerce_failure_cases(data_container):
     Test that different data container types can be checked for coerce failure
     cases.
     """
-    failure_cases = utils.numpy_pandas_coerce_failure_cases(data_container, int)
+    failure_cases = utils.numpy_pandas_coerce_failure_cases(
+        data_container, int
+    )
     assert isinstance(failure_cases, pd.DataFrame)
     assert failure_cases.empty
 

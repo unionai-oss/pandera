@@ -172,7 +172,11 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (uint_dtypes, [1]),
     (nullable_uint_dtypes, [1, None]),
     (float_dtypes, [1.0]),
-    *([] if NULLABLE_FLOAT_DTYPES is None else [(NULLABLE_FLOAT_DTYPES, [1.0, None])]),
+    *(
+        []
+        if NULLABLE_FLOAT_DTYPES is None
+        else [(NULLABLE_FLOAT_DTYPES, [1.0, None])]
+    ),
     (complex_dtypes, [complex(1)]),
     (boolean_dtypes, [True, False]),
     (nullable_boolean_dtypes, [True, None]),
@@ -186,7 +190,9 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     ),
     (  # type: ignore
         period_dtypes,
-        pd.to_datetime(["2019/01/01", "2018/05/21"]).to_period("D").to_series(),
+        pd.to_datetime(["2019/01/01", "2018/05/21"])
+        .to_period("D")
+        .to_series(),
     ),
     (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),  # type: ignore
     (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),  # type: ignore
@@ -200,7 +206,9 @@ if GEOPANDAS_INSTALLED:
     from pandera.engines.pandas_engine import Geometry
 
     geometry_dtypes = {Geometry: "geometry"}
-    dtype_fixtures.append((geometry_dtypes, [Polygon(((0, 0), (0, 1), (1, 1)))]))
+    dtype_fixtures.append(
+        (geometry_dtypes, [Polygon(((0, 0), (0, 1), (1, 1)))])
+    )
 
 
 def pretty_param(*values: Any, **kw: Any) -> ParameterSet:
@@ -208,7 +216,9 @@ def pretty_param(*values: Any, **kw: Any) -> ParameterSet:
     id_ = kw.pop("id", None)
     if not id_:
         id_ = "-".join(
-            f"{val.__module__}.{val.__name__}" if inspect.isclass(val) else repr(val)
+            f"{val.__module__}.{val.__name__}"
+            if inspect.isclass(val)
+            else repr(val)
             for val in values
         )
     return pytest.param(*values, id=id_, **kw)
@@ -231,7 +241,10 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
             for dtype, pd_dtype in dtypes.items():
                 if "data_type" in fixtures and not (
                     isinstance(dtype, pa.DataType)
-                    or (inspect.isclass(dtype) and issubclass(dtype, pa.DataType))
+                    or (
+                        inspect.isclass(dtype)
+                        and issubclass(dtype, pa.DataType)
+                    )
                 ):
                     # not a pa.DataType class or instance
                     continue
@@ -249,7 +262,9 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
 def test_datatype_init(data_type: Any):
     """Test that a default pa.DataType can be constructed."""
     if not inspect.isclass(data_type):
-        pytest.skip("test_datatype_init tests pa.DataType classes, not instances.")
+        pytest.skip(
+            "test_datatype_init tests pa.DataType classes, not instances."
+        )
     assert isinstance(data_type(), pa.DataType)
 
     with pytest.raises(TypeError, match="DataType may not be instantiated"):
@@ -286,7 +301,9 @@ def test_frozen_datatype(data_type: Any):
 def test_invalid_pandas_extension_dtype():
     """Test that an invalid dtype is rejected."""
     with pytest.raises(TypeError):
-        pandas_engine.Engine.dtype(pd.PeriodDtype)  # PerioDtype has required parameters
+        pandas_engine.Engine.dtype(
+            pd.PeriodDtype
+        )  # PerioDtype has required parameters
 
 
 def test_check_equivalent(dtype: Any, pd_dtype: Any):
@@ -324,13 +341,17 @@ def test_coerce_no_cast(dtype: Any, pd_dtype: Any, data: List[Any]):
     coerced_series = expected_dtype.coerce(series)
 
     assert series.equals(coerced_series)
-    assert expected_dtype.check(pandas_engine.Engine.dtype(coerced_series.dtype))
+    assert expected_dtype.check(
+        pandas_engine.Engine.dtype(coerced_series.dtype)
+    )
 
     df = pd.DataFrame({"col": series})
     coerced_df = expected_dtype.coerce(df)
 
     assert df.equals(coerced_df)
-    assert expected_dtype.check(pandas_engine.Engine.dtype(coerced_df["col"].dtype))
+    assert expected_dtype.check(
+        pandas_engine.Engine.dtype(coerced_df["col"].dtype)
+    )
 
 
 def _flatten_dtypesdict(*dtype_kinds):
@@ -519,7 +540,9 @@ def test_numpy_dtypes(alias, np_dtype):
         # not a valid alias
         assert pandas_engine.Engine.dtype(np_dtype)
     else:
-        assert pandas_engine.Engine.dtype(alias) == pandas_engine.Engine.dtype(np_dtype)
+        assert pandas_engine.Engine.dtype(alias) == pandas_engine.Engine.dtype(
+            np_dtype
+        )
 
 
 def test_numpy_string():
@@ -639,7 +662,8 @@ def test_is_bool(bool_dtype: Any, expected: bool):
 
 @pytest.mark.parametrize(
     "string_dtype, expected",
-    [(dtype, True) for dtype in string_dtypes] + [("int", False)],  # type:ignore
+    [(dtype, True) for dtype in string_dtypes]
+    + [("int", False)],  # type:ignore
 )
 def test_is_string(string_dtype: Any, expected: bool):
     """Test is_string."""
