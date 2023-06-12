@@ -259,7 +259,7 @@ def test_check_instance_method_decorator_error() -> None:
     class TestClass:
         @check_input(DataFrameSchema({"column1": Column(Int)}))
         def test_method(self, df):
-            # pylint: disable=missing-function-docstring,no-self-use
+            # pylint: disable=missing-function-docstring
             return df
 
     with pytest.raises(
@@ -823,7 +823,7 @@ def test_check_types_method_args() -> None:
 
     class SomeClass:
         @check_types
-        def regular_method(  # pylint: disable=no-self-use
+        def regular_method(
             self,
             df1: DataFrame[SchemaIn1],
             df2: DataFrame[SchemaIn2],
@@ -978,7 +978,7 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
         @check_output(Schema.to_schema())
         @check_input(Schema.to_schema(), "df1")
         @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
-        async def regular_meta_coroutine(  # pylint: disable=no-self-use
+        async def regular_meta_coroutine(
             cls,
             df1: DataFrame[Schema],
         ) -> DataFrame[Schema]:
@@ -1009,7 +1009,7 @@ def test_coroutines(event_loop: AbstractEventLoop) -> None:
         @check_output(Schema.to_schema())
         @check_input(Schema.to_schema(), "df1")
         @check_io(df1=Schema.to_schema(), out=Schema.to_schema())
-        async def regular_coroutine(  # pylint: disable=no-self-use
+        async def regular_coroutine(
             self,
             df1: DataFrame[Schema],
         ) -> DataFrame[Schema]:

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 from pyspark.sql import DataFrame
 
 from pandera import errors
+from pandera.config import CONFIG
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
@@ -19,8 +20,6 @@ from pandera.api.pyspark.types import (
     PySparkDtypeInputTypes,
     StrictType,
 )
-from pandera.backends.pyspark.container import DataFrameSchemaBackend
-from pandera.backends.pyspark.utils import PANDERA_CONFIG, ConfigParams
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
 
@@ -29,9 +28,6 @@ N_INDENT_SPACES = 4
 
 class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
     """A light-weight PySpark DataFrame validator."""
-
-    BACKEND = DataFrameSchemaBackend()
-    params = ConfigParams()
 
     def __init__(
         self,
@@ -86,28 +82,28 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
 
         :examples:
 
-        >>> import pandera.pyspark as pa
+        >>> import pandera.pyspark as psa
         >>> import pyspark.sql.types as pt
         >>>
-        >>> schema = pa.DataFrameSchema({
-        ...     "str_column": pa.Column(str),
-        ...     "float_column": pa.Column(float),
-        ...     "int_column": pa.Column(int),
-        ...     "date_column": pa.Column(pt.DateType),
+        >>> schema = psa.DataFrameSchema({
+        ...     "str_column": psa.Column(str),
+        ...     "float_column": psa.Column(float),
+        ...     "int_column": psa.Column(int),
+        ...     "date_column": psa.Column(pt.DateType),
         ... })
 
         Use the pyspark API to define checks, which takes a function with
         the signature: ``ps.Dataframe -> Union[bool]`` where the
         output contains boolean values.
 
-        >>> schema_withchecks = pa.DataFrameSchema({
-        ...     "probability": pa.Column(
-        ...         pt.DoubleType(), pa.Check.greater_than(0)),
+        >>> schema_withchecks = psa.DataFrameSchema({
+        ...     "probability": psa.Column(
+        ...         pt.DoubleType(), psa.Check.greater_than(0)),
         ...
         ...     # check that the "category" column contains a few discrete
         ...     # values, and the majority of the entries are dogs.
-        ...     "category": pa.Column(
-        ...         pt.StringType(), pa.Check.str_startswith("B"),
+        ...     "category": psa.Column(
+        ...         pt.StringType(), psa.Check.str_startswith("B"),
         ...            ),
         ... })
 
@@ -265,7 +261,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         )  # pylint:disable=no-value-for-parameter
 
     def coerce_dtype(self, check_obj: DataFrame) -> DataFrame:
-        return self.BACKEND.coerce_dtype(check_obj, schema=self)
+        return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
@@ -302,34 +298,34 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         Calling ``schema.validate`` returns the dataframe.
 
 
-        >>> import pandera as pa
+        >>> import pandera.pyspark as psa
+        >>> from pyspark.sql import SparkSession
+        >>> import pyspark.sql.types as T
+        >>> spark = SparkSession.builder.getOrCreate()
         >>>
-        >>> df = spark.createDataFrame([(0.1, 'dog'), (0.4, 'dog'), (0.52, 'cat'), (0.23, 'duck'),
-        ... (0.8, 'dog'), (0.76, 'dog')],schema=['probability','category'])
+        >>> data = [("Bread", 9), ("Butter", 15)]
+        >>> spark_schema = T.StructType(
+        ...         [
+        ...             T.StructField("product", T.StringType(), False),
+        ...             T.StructField("price", T.IntegerType(), False),
+        ...         ],
+        ...     )
+        >>> df = spark.createDataFrame(data=data, schema=spark_schema)
         >>>
-        >>> schema_withchecks = pa.DataFrameSchema({
-        ...     "probability": pa.Column(
-        ...         float, pa.Check(lambda s: (s >= 0) & (s <= 1))),
-        ...
-        ...     # check that the "category" column contains a few discrete
-        ...     # values, and the majority of the entries are dogs.
-        ...     "category": pa.Column(
-        ...         str, [
-        ...             pa.Check(lambda s: s.isin(["dog", "cat", "duck"])),
-        ...             pa.Check(lambda s: (s == "dog").mean() > 0.5),
-        ...         ]),
-        ... })
+        >>> schema_withchecks = psa.DataFrameSchema(
+        ...         columns={
+        ...             "product": psa.Column("str", checks=psa.Check.str_startswith("B")),
+        ...             "price": psa.Column("int", checks=psa.Check.gt(5)),
+        ...         },
+        ...         name="product_schema",
+        ...         description="schema for product info",
+        ...         title="ProductSchema",
+        ...     )
         >>>
-        >>> schema_withchecks.validate(df)[["probability", "category"]]
-           probability category
-                 0.10      dog
-                 0.40      dog
-                 0.52      cat
-                 0.23     duck
-                 0.80      dog
-                 0.76      dog
+        >>> schema_withchecks.validate(df).take(2)
+            [Row(product='Bread', price=9), Row(product='Butter', price=15)]
         """
-        if PANDERA_CONFIG["PANDERA_VALIDATION"] == "DISABLE":
+        if not CONFIG.validation_enabled:
             return
         error_handler = ErrorHandler(lazy)
 
@@ -364,7 +360,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 UserWarning,
             )
 
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj=check_obj,
             schema=self,
             head=head,

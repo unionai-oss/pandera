@@ -9,7 +9,7 @@ from pyspark.sql.functions import col
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.base import PysparkSchemaBackend
-from pandera.backends.pyspark.decorators import validate_scope
+from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
 from pandera.errors import ParserError, SchemaError, SchemaErrorReason
@@ -31,7 +31,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
     def preprocess(self, check_obj, inplace: bool = False):
         return check_obj
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def _core_checks(self, check_obj, schema, error_handler):
         """This function runs the core checks"""
         # run the core checks
@@ -92,7 +92,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
         return check_obj
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def coerce_dtype(
         self,
         check_obj,
@@ -123,7 +123,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
                 check=f"coerce_dtype('{schema.dtype}')",
             ) from exc
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_nullable(self, check_obj: DataFrame, schema):
         isna = (
             check_obj.filter(col(schema.name).isNull()).limit(1).count() == 0
@@ -137,7 +137,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             failure_cases=scalar_failure_case(schema.name),
         )
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_name(self, check_obj: DataFrame, schema):
         column_found = not (
             schema.name is None or schema.name not in check_obj.columns
@@ -159,7 +159,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             else None,
         )
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="SCHEMA")
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(self, check_obj: DataFrame, schema):
         passed = True
         failure_cases = None
@@ -199,7 +199,7 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    @validate_scope(params=PysparkSchemaBackend.params, scope="DATA")
+    @validate_scope(scope=ValidationScope.DATA)
     # pylint: disable=unused-argument
     def run_checks(self, check_obj, schema, error_handler, lazy):
         check_results = []

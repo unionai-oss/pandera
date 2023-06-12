@@ -114,7 +114,7 @@ done with the `-s` or `--signoff` flag:
 git commit -s -m 'my commit'
 ```
 
-Refer to [this guide](https://github.com/src-d/guide/blob/master/developer-community/fix-DCO.md)
+Refer to [this guide](https://github.com/src-d/guide/blob/master/developer-community/fix-DCO.md#dco-is-missing)
 to add sign-offs retroactivately.
 
 ### Run the Full Test Suite Locally

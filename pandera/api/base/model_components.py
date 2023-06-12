@@ -42,6 +42,7 @@ class BaseFieldInfo:
         "dtype_kwargs",
         "title",
         "description",
+        "default",
         "metadata",
     )
 
@@ -57,6 +58,7 @@ class BaseFieldInfo:
         dtype_kwargs: Optional[Dict[str, Any]] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
         metadata: Optional[dict] = None,
     ) -> None:
         self.checks = to_checklist(checks)
@@ -70,6 +72,7 @@ class BaseFieldInfo:
         self.dtype_kwargs = dtype_kwargs
         self.title = title
         self.description = description
+        self.default = default
         self.metadata = metadata
 
     @property

@@ -61,12 +61,10 @@ def _serialize_check_stats(check_stats, dtype=None):
             # try serializing stat as a string if it's datetime-like,
             # otherwise return original value
             return stat.strftime(DATETIME_FORMAT)
-        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(
-            dtype
-        ) and hasattr(stat, "delta"):
+        elif pandas_engine.Engine.dtype(dtypes.Timedelta).check(dtype):
             # try serializing stat into an int in nanoseconds if it's
             # timedelta-like, otherwise return original value
-            return stat.delta
+            return getattr(stat, "value", stat)
 
         return stat
 

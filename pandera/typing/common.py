@@ -1,5 +1,5 @@
 """Common typing functionality."""
-# pylint:disable=abstract-method,disable=too-many-ancestors
+# pylint:disable=abstract-method,too-many-ancestors,invalid-name
 
 import inspect
 from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union
@@ -8,7 +8,7 @@ import pandas as pd
 import typing_inspect
 
 from pandera import dtypes
-from pandera.engines import numpy_engine, pandas_engine
+from pandera.engines import numpy_engine, pandas_engine, pyspark_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
 Date = dtypes.Date  #: ``datetime.date`` object dtype
@@ -43,6 +43,17 @@ String = dtypes.String  #: ``"str"`` numpy dtype
 #: fall back on the str-as-object-array representation.
 STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
+PYSPARK_STRING = pyspark_engine.String
+PYSPARK_INT = pyspark_engine.Int
+PYSPARK_LONGINT = pyspark_engine.BigInt
+PYSPARK_SHORTINT = pyspark_engine.ShortInt
+PYSPARK_BYTEINT = pyspark_engine.ByteInt
+PYSPARK_DOUBLE = pyspark_engine.Double
+PYSPARK_FLOAT = pyspark_engine.Float
+PYSPARK_DECIMAL = pyspark_engine.Decimal
+PYSPARK_DATE = pyspark_engine.Date
+PYSPARK_TIMESTAMP = pyspark_engine.Timestamp
+PYSPARK_BINARY = pyspark_engine.Binary
 
 try:
     Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
@@ -90,6 +101,16 @@ if GEOPANDAS_INSTALLED:
             String,
             STRING,
             Geometry,
+            pyspark_engine.String,
+            pyspark_engine.Int,
+            pyspark_engine.BigInt,
+            pyspark_engine.ShortInt,
+            pyspark_engine.ByteInt,
+            pyspark_engine.Float,
+            pyspark_engine.Decimal,
+            pyspark_engine.Date,
+            pyspark_engine.Timestamp,
+            pyspark_engine.Binary,
         ],
     )
 else:
@@ -131,11 +152,20 @@ else:
             Object,
             String,
             STRING,
+            pyspark_engine.String,
+            pyspark_engine.Int,
+            pyspark_engine.BigInt,
+            pyspark_engine.ShortInt,
+            pyspark_engine.ByteInt,
+            pyspark_engine.Float,
+            pyspark_engine.Decimal,
+            pyspark_engine.Date,
+            pyspark_engine.Timestamp,
+            pyspark_engine.Binary,
         ],
     )
 
-
-DataFrameModel = TypeVar("Schema", bound="DataFrameModel")  # type: ignore
+DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
 
 # pylint:disable=invalid-name
@@ -206,6 +236,20 @@ class IndexBase(Generic[GenericDtype]):
         raise AttributeError("Indexes should resolve to pa.Index-s")
 
 
+class ColumnBase(Generic[GenericDtype]):
+    """Representation of pandas.Index, only used for type annotation.
+
+    *new in 0.5.0*
+    """
+
+    default_dtype: Optional[Type] = None
+
+    def __get__(
+        self, instance: object, owner: Type
+    ) -> str:  # pragma: no cover
+        raise AttributeError("column should resolve to pyspark.sql.Column-s")
+
+
 class AnnotationInfo:  # pylint:disable=too-few-public-methods
     """Captures extra information about an annotation.
 
@@ -256,12 +300,18 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
 
         self.metadata = getattr(self.arg, "__metadata__", None)
         self.literal = typing_inspect.is_literal_type(self.arg)
-
         if self.metadata:
             self.arg = typing_inspect.get_args(self.arg)[0]
         elif self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
         elif self.origin is None:
-            self.arg = raw_annotation
+            if isinstance(raw_annotation, type) and issubclass(
+                raw_annotation, SeriesBase
+            ):
+                # handle case where the provided annotation is just a pandera Series generic.
+                self.arg = Any
+            else:
+                # otherwise assume that the annotation is the data type itself.
+                self.arg = raw_annotation
 
         self.default_dtype = getattr(raw_annotation, "default_dtype", None)

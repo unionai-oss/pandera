@@ -1,11 +1,11 @@
 """Make schema error messages human-friendly."""
 
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 
-from pandera.errors import SchemaErrorReason
+from pandera.errors import SchemaError, SchemaErrorReason
 
 
 def format_generic_error_message(
@@ -142,7 +142,7 @@ def _multiindex_to_frame(df):
     return df.index.to_frame().drop_duplicates()
 
 
-def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
+def consolidate_failure_cases(schema_errors: List[SchemaError]):
     """Consolidate schema error dicts to produce data for error message."""
     assert schema_errors, (
         "schema_errors input cannot be empty. Check how the backend "
@@ -159,9 +159,8 @@ def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
         "index",
     ]
 
-    for schema_error_dict in schema_errors:
-        reason_code = schema_error_dict["reason_code"]
-        err = schema_error_dict["error"]
+    for schema_error in schema_errors:
+        err, reason_code = schema_error, schema_error.reason_code
 
         check_identifier = (
             None
@@ -230,6 +229,7 @@ def consolidate_failure_cases(schema_errors: List[Dict[str, Any]]):
             x if isinstance(x, mpd.DataFrame) else mpd.DataFrame(x)
             for x in check_failure_cases
         ]
+        return concat_fn(check_failure_cases).reset_index(drop=True)
 
     return (
         concat_fn(check_failure_cases)
@@ -257,14 +257,14 @@ except SchemaErrors as err:
 
 def summarize_failure_cases(
     schema_name: str,
-    schema_errors: List[Dict[str, Any]],
+    schema_errors: List[SchemaError],
     failure_cases: pd.DataFrame,
 ) -> Tuple[str, Dict[str, int]]:
     """Format error message."""
 
     error_counts = defaultdict(int)  # type: ignore
-    for schema_error_dict in schema_errors:
-        reason_code = schema_error_dict["reason_code"]
+    for schema_error in schema_errors:
+        reason_code = schema_error.reason_code
         error_counts[reason_code] += 1
 
     msg = (

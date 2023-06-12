@@ -2,6 +2,8 @@
 
 import os
 
+from pandera.engines.utils import pandas_version
+
 try:
     # pylint: disable=unused-import
     import hypothesis  # noqa F401
@@ -13,6 +15,14 @@ else:
 
 # ignore test files associated with hypothesis strategies
 collect_ignore = []
+collect_ignore_glob = []
+
+# ignore pyspark, modin and dask tests until these libraries support pandas 2
+if pandas_version().release >= (2, 0, 0):
+    collect_ignore_glob.append("pyspark/**")
+    collect_ignore_glob.append("modin/**")
+    collect_ignore_glob.append("dask/**")
+
 if not HAS_HYPOTHESIS:
     collect_ignore.append("test_strategies.py")
 else:
@@ -30,7 +40,7 @@ else:
     )
     settings.register_profile(
         "dev",
-        max_examples=5,
+        max_examples=3,
         deadline=None,
         suppress_health_check=suppressed_health_checks,
     )

@@ -1,5 +1,6 @@
 [BASIC]
-ignore=mypy.py
+ignore=mypy.py,noxfile.py,pandera/accessors/pyspark_sql_accessor.py,pandera/engines/pyspark_engine.py,pandera/pyspark.py,pandera/typing/pyspark_sql.py,
+ignore-patterns=pandera/api/pyspark/*,tests/pyspark/*
 good-names=
     T,
     F,
@@ -21,12 +22,16 @@ good-names=
     ge,
     lt,
     le,
-    dt
+    dt,
+    tz,
+    TBaseModel,
+    TArraySchemaBase,
+    TDataFrameModel,
+    _DataType
 
 [MESSAGES CONTROL]
 disable=
     # C0330 conflicts with black: https://github.com/psf/black/issues/48
-    C0330,
     R0913,
     duplicate-code,
     too-many-instance-attributes,
@@ -40,4 +45,6 @@ disable=
     ungrouped-imports,
     function-redefined,
     arguments-differ,
-    no-self-use
+    unnecessary-dunder-call,
+    use-dict-literal,
+    invalid-name

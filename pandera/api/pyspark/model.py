@@ -36,7 +36,6 @@ from pandera.api.pyspark.model_components import (
     FieldInfo,
 )
 from pandera.api.pyspark.model_config import BaseConfig
-from pandera.backends.pyspark.utils import PANDERA_CONFIG
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
@@ -292,8 +291,6 @@ class DataFrameModel(BaseModel):
         inplace: bool = False,
     ) -> Optional[DataFrameBase[TDataFrameModel]]:
         """%(validate_doc)s"""
-        if PANDERA_CONFIG["PANDERA_VALIDATION"] == "DISABLE":
-            return None
         return cast(
             DataFrameBase[TDataFrameModel],
             cls.to_schema().validate(

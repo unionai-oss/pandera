@@ -82,6 +82,15 @@ def test_index_schema_coerce(dtype):
     assert schema.index.dtype.check(validated_index_dtype)
 
 
+@pytest.mark.parametrize("dtype", [Float, Int, String])
+def test_index_schema_coerce_when_coerce_specified_at_schema_level(dtype):
+    """Test that index can be type-coerced when coercion requested at schema level"""
+    schema = DataFrameSchema(index=Index(dtype), coerce=True)
+    df = pd.DataFrame(index=pd.Index([1, 2, 3, 4], dtype="int64"))
+    validated_index_dtype = Engine.dtype(schema(df).index.dtype)
+    assert schema.index.dtype.check(validated_index_dtype)
+
+
 def test_multi_index_columns() -> None:
     """Tests that multi-index Columns within DataFrames validate correctly."""
     schema = DataFrameSchema(
@@ -854,3 +863,39 @@ def test_index_validation_pandas_string_dtype():
     )
 
     assert isinstance(schema.validate(df), pd.DataFrame)
+
+
+@pytest.mark.parametrize(
+    "dtype,default",
+    [
+        (str, "a default"),
+        (bool, True),
+        (float, 42.0),
+        ("Int64", 0),
+    ],
+)
+def test_column_default_works_when_dtype_match(dtype: Any, default: Any):
+    """Test ``default`` fills ``nan`` values as expected when the ``dtype`` matches that of the ``Column``"""
+    column = Column(dtype, name="column1", default=default)
+    df = pd.DataFrame({"column1": [None]})
+    column.validate(df, inplace=True)
+
+    assert df.iloc[0]["column1"] == default
+
+
+@pytest.mark.parametrize(
+    "dtype,default",
+    [
+        (str, 1),
+        (bool, 42.0),
+        (float, True),
+        ("Int64", "a default"),
+    ],
+)
+def test_column_default_errors_on_dtype_mismatch(dtype: Any, default: Any):
+    """Test that setting a ``default`` of different ``dtype`` to that of the ```Column`` raises an error"""
+    column = Column(dtype, name="column1", default=default)
+    df = pd.DataFrame({"column1": [None]})
+
+    with pytest.raises(errors.SchemaError):
+        column.validate(df, inplace=True)

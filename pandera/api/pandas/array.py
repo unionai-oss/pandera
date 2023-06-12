@@ -12,10 +12,6 @@ from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, is_field
-from pandera.backends.pandas.array import (
-    ArraySchemaBackend,
-    SeriesSchemaBackend,
-)
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 
@@ -24,8 +20,6 @@ TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 
 class ArraySchema(BaseSchema):
     """Base array validator object."""
-
-    BACKEND = ArraySchemaBackend()
 
     def __init__(
         self,
@@ -38,6 +32,7 @@ class ArraySchema(BaseSchema):
         name: Any = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
         metadata: Optional[dict] = None,
     ) -> None:
         """Initialize array schema.
@@ -89,6 +84,7 @@ class ArraySchema(BaseSchema):
         self.report_duplicates = report_duplicates
         self.title = title
         self.description = description
+        self.default = default
         self.metadata = metadata
 
         for check in self.checks:
@@ -144,7 +140,7 @@ class ArraySchema(BaseSchema):
             (including time series).
         :returns: ``Series`` with coerced data type
         """
-        return self.BACKEND.coerce_dtype(check_obj, schema=self)
+        return self.get_backend(check_obj).coerce_dtype(check_obj, schema=self)
 
     def validate(
         self,
@@ -175,7 +171,7 @@ class ArraySchema(BaseSchema):
         :returns: validated DataFrame or Series.
 
         """
-        return self.BACKEND.validate(
+        return self.get_backend(check_obj).validate(
             check_obj,
             schema=self,
             head=head,
@@ -291,8 +287,6 @@ class ArraySchema(BaseSchema):
 class SeriesSchema(ArraySchema):
     """Series validator."""
 
-    BACKEND = SeriesSchemaBackend()
-
     def __init__(
         self,
         dtype: PandasDtypeInputTypes = None,
@@ -305,6 +299,7 @@ class SeriesSchema(ArraySchema):
         name: str = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        default: Optional[Any] = None,
     ) -> None:
         """Initialize series schema base object.
 
@@ -331,6 +326,7 @@ class SeriesSchema(ArraySchema):
         :param name: series name.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
+        :param default: The default value for missing values in the series.
 
         """
         super().__init__(
@@ -343,6 +339,7 @@ class SeriesSchema(ArraySchema):
             name,
             title,
             description,
+            default,
         )
         self.index = index
 
