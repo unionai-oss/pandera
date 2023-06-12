@@ -85,9 +85,7 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "DATA" not in dict(output_dataframeschema_df.pandera.errors).keys()
-        )
+        assert "DATA" not in dict(output_dataframeschema_df.pandera.errors).keys()
         assert (
             dict(output_dataframeschema_df.pandera.errors["SCHEMA"])
             == expected_dataframeschema["SCHEMA"]
@@ -118,9 +116,7 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "DATA" not in dict(output_dataframemodel_df.pandera.errors).keys()
-        )
+        assert "DATA" not in dict(output_dataframemodel_df.pandera.errors).keys()
         assert (
             dict(output_dataframemodel_df.pandera.errors["SCHEMA"])
             == expected_dataframemodel["SCHEMA"]
@@ -165,10 +161,7 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "SCHEMA"
-            not in dict(output_dataframeschema_df.pandera.errors).keys()
-        )
+        assert "SCHEMA" not in dict(output_dataframeschema_df.pandera.errors).keys()
         assert (
             dict(output_dataframeschema_df.pandera.errors["DATA"])
             == expected_dataframeschema["DATA"]
@@ -201,10 +194,7 @@ class TestPanderaConfig:
             }
         }
 
-        assert (
-            "SCHEMA"
-            not in dict(output_dataframemodel_df.pandera.errors).keys()
-        )
+        assert "SCHEMA" not in dict(output_dataframemodel_df.pandera.errors).keys()
         assert (
             dict(output_dataframemodel_df.pandera.errors["DATA"])
             == expected_dataframemodel["DATA"]
