@@ -11,8 +11,7 @@ Apache Spark is an open-source unified analytics engine for large-scale data pro
 `Pyspark <https://spark.apache.org/docs/3.2.0/api/python/index.html>`__ is the Python API for Apache Spark, an open source, distributed computing framework and set of libraries for real-time, large-scale data processing.
 
 You can use pandera to validate :py:func:`~pyspark.sql.DataFrame`
- objects directly. First, install
-``pandera`` with the ``pyspark`` extra:
+ objects directly. First, install `pandera` with the `pyspark` extra:
 
 .. code:: bash
 
@@ -22,23 +21,22 @@ What is different?
 ------------------
 There are some small changes to support nuances of pyspark SQL and expected usage, they are as follow:-
 
-1. The output will a dataframe in pyspark SQL even in case of errors during validation. Instead of raising the error, the errors are collected and can be accessed via attribute as shown in example :any:`Registering Custom Checks` .This decision is based on expectation that most use case of pyspark SQL implementation would be in production where data quality information may be used later, such cases prioritise completing the production load and data quality issue might be solved at a later stage.
+1. The output will a dataframe in pyspark SQL even in case of errors during validation. Instead of raising the error, the errors are collected and can be accessed via attribute as shown in example `native_pyspark`. 
+   This decision is based on expectation that most use case of pyspark SQL implementation would be in production where data quality information may be used later, such cases prioritise completing the production load and data quality issue might be solved at a later stage.
 
-2. Unlike the pandas version the default behaviour of the pyspark SQL version for errors is lazy=True. i.e. All the errors would be collected instead of raising at first error instance.
+2. Unlike the pandas version the default behaviour of the pyspark SQL version for errors is lazy=True. i.e. all the errors would be collected instead of raising at first error instance.
 
-3. No support for lambda based vectorized checks since in spark lambda checks needs UDF which is inefficient. However pyspark sql does support custom check via register custom check method.
+3. No support for lambda based vectorized checks since in spark lambda checks needs UDF which is inefficient. However pyspark sql does support custom checks via register custom check method.
 
 4. The custom check has to return a boolean value instead of a series.
 
-5. In defining the type annotation, there is limited support for default python data types such as int, str etc.
+5. In defining the type annotation, there is limited support for default python data types such as int, str etc instead use `pyspark.sql.types` based datatypes such as `StringType`, `IntegerType`, etc.
 
 
 Basic Usage
 -----------
 
-Then you can use pandera schemas to validate pyspark dataframes. In the example
-below we'll use the :ref:`class-based API <dataframe_models>` to define a
-:py:class:`~pandera.api.pyspark.model.DataFrameModel` for validation.
+In this section, lets look at an end to end example of how pandera would work in a native pyspark implementation.
 
 .. testcode:: native_pyspark
 
@@ -55,8 +53,6 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
         price: T.DecimalType(20, 5) = pa.Field()
         description: T.ArrayType(T.StringType()) = pa.Field()
         meta: T.MapType(T.StringType(), T.StringType()) = pa.Field()
-
-
 
     data = [
         (5, "Bread", Decimal(44.4), ["description of product"], {"product_category": "dairy"}),
@@ -87,18 +83,24 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
     |15 |Butter |null |[more details here]     |{product_category -> bakery}|
     +---+-------+-----+------------------------+----------------------------+
 
+In above example, `PanderaSchema` class inherits from `DataFrameModel` base class. It has type annotations for 5 fields with 2 of the fields having checks enforced e.g. `gt=5` and `str_startswith="B"`.
 
+Just to simulate some schema and data validations, we also defined native spark's schema `spark_schema` and enforced it on our dataframe `df`.
 
-You can use the :py:func:`~PanderaSchema.validate` function to validate
-pyspark sql dataframes at runtime.
-If you notice in below code the output is expected to be dataframe with an appended attribute "pandera", which itself contains an errors attribute that stores the error report.
+Next, you can use the :py:func:`~PanderaSchema.validate` function to validate pyspark sql dataframes at runtime.
 
 .. testcode:: native_pyspark
 
     df_out = PanderaSchema.validate(check_obj=df)
+
+After running :py:func:`~PanderaSchema.validate`, the returned object `df_out` will be a `pyspark` dataframe extended to hold validation results  on it.
+
+You can print the validation results as follows:
+
+.. testcode:: native_pyspark
+
     df_out_errors = df_out.pandera.errors
     print(df_out_errors)
-
 
 .. testoutput:: native_pyspark
 
@@ -139,10 +141,13 @@ If you notice in below code the output is expected to be dataframe with an appen
         }
     }
 
-As seen above, the error report is grouped on type of validation (schema or data) and category of errors such as dataframe_check or wrong_dtype, etc. for easy processing by downstream applications.
+As seen above, the error report is aggregated on 2 levels in a `python dictionary` object:
+1. type of validation (SCHEMA or DATA) and 
+2. category of errors such as DATAFRAME_CHECK or WRONG_DATATYPE, etc. 
 
-Note: further operations on same dataframe may drop errors information as expected. So recommendation is to extract the `errors` dictionary object and persist before continuing.
+so as to be easily consumed by downstream applications such as timeseries visualization of errors over time.
 
+Note: It's critical to extract errors report from `df_out.pandera.errors` as any further `pyspark` operations may reset it.
 
 Granular Control of Pandera's Execution
 ----------------------------------------
