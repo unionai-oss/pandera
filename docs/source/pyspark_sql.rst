@@ -147,28 +147,44 @@ As seen above, the error report is aggregated on 2 levels in a `python dictionar
 
 so as to be easily consumed by downstream applications such as timeseries visualization of errors over time.
 
-Note: It's critical to extract errors report from `df_out.pandera.errors` as any further `pyspark` operations may reset it.
+.. important::
+    It's critical to extract errors report from `df_out.pandera.errors` as any further `pyspark` operations may reset it.
 
 Granular Control of Pandera's Execution
 ----------------------------------------
 *new in 0.16.0*
 
 By default, error report is generated for both schema and data level validation.
-In *0.16.0* we also introduced a more granular control over the execution of Pandera's validation flow. This is achieved by introducing configurable settings set using environment variables that allow you to control execution at three different levels:
+In *0.16.0* we also introduced a more granular control over the execution of Pandera's validation flow. This is achieved by introducing configurable settings using environment variables that allow you to control execution at three different levels:
 
-1.	SCHEMA_ONLY: This setting performs schema validations only. It checks that the data conforms to the schema definition, but does not perform any additional data-level validations.
+1.	SCHEMA_ONLY - to perform schema validations only. It checks that data conforms to the schema definition, but does not perform any data-level validations on dataframe.
 
-2.	DATA_ONLY: This setting performs data-level validations only. It checks the data against the defined constraints and rules, but does not validate the schema.
+2.	DATA_ONLY - to perform data-level validations only. It validates that data conforms to the defined `checks`, but does not validate the schema.
 
-3.	SCHEMA_DATA_BOTH: This setting performs both schema and data-level validations. It checks the data against both the schema definition and the defined constraints and rules.
+3.	SCHEMA_AND_DATA: (**default**) - to perform both schema and data level validations. It runs most exhaustive validation and could be compute intensive.
 
-By configuring `PANDERA_DEPTH` parameter, you can choose the level of validation that best fits your specific use case. For example, if the main concern is to ensure that the data conforms to the defined schema, the SCHEMA_ONLY setting can be used to reduce the overall processing time. Alternatively, if the data is known to conform to the schema and the focus is on ensuring data quality, the DATA_ONLY setting can be used to prioritize data-level validations.
+How to use
+-----------
+You can override default behaviour by setting an environment variable from terminal before running the `pandera` process as:
 
-.. testcode:: native_pyspark
-    {
-        'PANDERA_VALIDATION': 'ENABLE',
-        'PANDERA_DEPTH': 'SCHEMA_AND_DATA',
-    }
+    `export PANDERA_VALIDATION_DEPTH=SCHEMA_ONLY`
+
+This will be picked up by `pandera` to only enforce SCHEMA level validations.
+
+ON/OFF Switch
+-------------
+*new in 0.16.0*
+
+It's very common in production to enable or disable certain services to save computing resources. We thought about it and thus introduced a switch to enable or disable pandera in production.
+
+How to use
+----------
+
+You can override default behaviour by setting an environment variable from terminal before running  the `pandera` process as follow:
+
+    `export PANDERA_VALIDATION_ENABLED=False`
+
+This will be picked up by `pandera` to disable all validations in the application.
 
 
 By default, validations are enabled and depth is set to `SCHEMA_AND_DATA` which can be changed to `SCHEMA_ONLY` or `DATA_ONLY` as required by the use case.
@@ -181,7 +197,7 @@ Registering Custom Checks
 that they're available in the :class:`~pandera.api.checks.Check` namespace. See
 :ref:`the extensions<extensions>` document for more information.
 
-Pyspark SQL supports custom check using only this way. Unlike the pandas version, pyspark sql does not support lambda function in check.
+Unlike the pandas version, pyspark sql does not support lambda function inside `check`.
 It is because to implement lambda functions would mean introducing spark UDF which is expensive operation due to serialization, hence it is better to create native pyspark function.
 
 Note: The output of the function should be a boolean value "True" for passed and "False" for failure. Unlike the Pandas version which expect it to be a series of boolean values.
