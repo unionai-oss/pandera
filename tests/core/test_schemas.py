@@ -431,58 +431,6 @@ def test_add_missing_columns():
     ]
     assert validated_frame_unknown["b"].eq(9).all()
 
-    # Add nullable column without a default value
-    schema_no_default_nullable = DataFrameSchema(
-        columns={
-            i: Column(int, default=None, nullable=True) for i in col_labels
-        },
-        strict=True,
-        add_missing_columns=True,
-    )
-    validated_frame_nullable = schema_no_default_nullable.validate(
-        frame_missing_first
-    )
-    assert validated_frame_nullable[["a"]].isna().all(axis=None)
-
-    # Try to add a non-nullable column without a default value to existing schema
-    with pytest.raises(
-        errors.SchemaInitError,
-        match="column 'missing' requires a default value when non-nullable add_missing_columns is enabled",
-    ):
-        schema_no_default_nullable.add_columns({"missing": Column()})
-
-    # Try to update a non-nullable column with a default to one without
-    with pytest.raises(
-        errors.SchemaInitError,
-        match="column 'a' requires a default value when non-nullable add_missing_columns is enabled",
-    ):
-        schema_no_default_nullable.update_column(
-            "a", default=np.nan, nullable=False
-        )
-
-    # Try to update a non-nullable column with a default to one without
-    with pytest.raises(
-        errors.SchemaInitError,
-        match="column 'a' requires a default value when non-nullable add_missing_columns is enabled",
-    ):
-        schema_no_default_nullable.update_columns(
-            {"a": {"default": np.nan, "nullable": False}}
-        )
-
-    # Create schema containing non-nullable columns without a default value
-    with pytest.raises(
-        errors.SchemaInitError,
-        match="column 'a' requires a default value when non-nullable add_missing_columns is enabled",
-    ):
-        DataFrameSchema(
-            columns={
-                i: Column(int, default=None, nullable=False)
-                for i in col_labels
-            },
-            strict=True,
-            add_missing_columns=True,
-        )
-
 
 def test_series_schema() -> None:
     """Tests that a SeriesSchema Check behaves as expected for integers and

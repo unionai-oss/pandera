@@ -724,7 +724,7 @@ def test_config() -> None:
     """Test that Config can be inherited and translate into DataFrameSchema options."""
 
     class Base(pa.DataFrameModel):
-        a: Series[int] = pa.Field(default=0)
+        a: Series[int]
         idx_1: Index[str]
         idx_2: Index[str]
 
@@ -739,7 +739,7 @@ def test_config() -> None:
             add_missing_columns = True
 
     class Child(Base):
-        b: Series[int] = pa.Field(default=0)
+        b: Series[int]
 
         class Config:
             name = "Child schema"
@@ -749,10 +749,7 @@ def test_config() -> None:
             title = "bar"
 
     expected = pa.DataFrameSchema(
-        columns={
-            "a": pa.Column(int, default=0),
-            "b": pa.Column(int, default=0),
-        },
+        columns={"a": pa.Column(int), "b": pa.Column(int)},
         index=pa.MultiIndex(
             [pa.Index(str, name="idx_1"), pa.Index(str, name="idx_2")],
             coerce=True,
@@ -774,7 +771,7 @@ def test_config() -> None:
 
 def test_multiindex_unique() -> None:
     class Base(pa.DataFrameModel):
-        a: Series[int] = pa.Field(default=0)
+        a: Series[int]
         idx_1: Index[str]
         idx_2: Index[str]
 
@@ -790,7 +787,7 @@ def test_multiindex_unique() -> None:
             add_missing_columns = True
 
     expected = pa.DataFrameSchema(
-        columns={"a": pa.Column(int, default=0)},
+        columns={"a": pa.Column(int)},
         index=pa.MultiIndex(
             [pa.Index(str, name="idx_1"), pa.Index(str, name="idx_2")],
             coerce=True,
