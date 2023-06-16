@@ -46,14 +46,20 @@ class ArraySchemaBackend(PandasSchemaBackend):
         check_obj = self.preprocess(check_obj, inplace)
 
         # fill nans with `default` if it's present
-        if pd.notna(schema.default):
+        if is_field(check_obj) and pd.notna(schema.default):
             check_obj.fillna(schema.default, inplace=True)
+        elif pd.notna(schema.default):
+            check_obj[schema.name].fillna(schema.default, inplace=True)
 
-        if schema.coerce:
-            try:
+        try:
+            if is_field(check_obj) and schema.coerce:
                 check_obj = self.coerce_dtype(check_obj, schema=schema)
-            except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
+            elif schema.coerce:
+                check_obj[schema.name] = self.coerce_dtype(
+                    check_obj[schema.name], schema=schema
+                )
+        except SchemaError as exc:
+            error_handler.collect_error(exc.reason_code, exc)
 
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],

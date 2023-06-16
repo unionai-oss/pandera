@@ -62,12 +62,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)
 
+        # Collect status of columns against schema
         column_info = self.collect_column_info(check_obj, schema)
-
-        # collect schema components
-        components = self.collect_schema_components(
-            check_obj, schema, column_info
-        )
 
         core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
@@ -82,6 +78,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 error_handler.collect_error(exc.reason_code, exc)
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc)
+
+        # We may have modified columns, for example by
+        # add_missing_columns, so regenerate column info
+        column_info = self.collect_column_info(check_obj, schema)
+
+        # collect schema components
+        components = self.collect_schema_components(
+            check_obj, schema, column_info
+        )
 
         # subsample the check object if head, tail, or sample are specified
         sample = self.subsample(check_obj, head, tail, sample, random_state)

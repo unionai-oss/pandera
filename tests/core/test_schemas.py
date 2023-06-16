@@ -2106,7 +2106,7 @@ def test_missing_columns():
         ),
     ],
 )
-def test_default_with_correct_dtype(
+def test_series_default_with_correct_dtype(
     series_schema: SeriesSchema, series: pd.Series, expected_values: list
 ):
     """Test that missing rows are backfilled with the default if missing"""
@@ -2114,13 +2114,38 @@ def test_default_with_correct_dtype(
     assert set(validated_series.values) == set(expected_values)
 
 
-def test_default_with_incorrect_dtype_raises_error():
+def test_series_default_with_incorrect_dtype_raises_error():
     """Test that if a default with the incorrect dtype is passed, a SchemaError is raised"""
     series_schema = SeriesSchema(str, default=1)
 
     series = pd.Series(["the first", None])
     with pytest.raises(errors.SchemaError):
         series_schema.validate(series)
+
+
+@pytest.mark.parametrize(
+    "dataframe_schema,dataframe,expected_dataframe",
+    [
+        (
+            DataFrameSchema(
+                columns={
+                    "a": Column(pd.Int64Dtype(), default=9),
+                    "b": Column(pd.Int64Dtype(), nullable=True),
+                },
+            ),
+            pd.DataFrame({"a": [0, None], "b": [None, 5]}, dtype="Int64"),
+            pd.DataFrame({"a": [0, 9], "b": [None, 5]}, dtype="Int64"),
+        ),
+    ],
+)
+def test_dataframe_default_with_correct_dtype(
+    dataframe_schema: DataFrameSchema,
+    dataframe: pd.DataFrame,
+    expected_dataframe: pd.DataFrame,
+):
+    """Test that missing rows are backfilled with the default if missing"""
+    validated_dataframe = dataframe_schema.validate(dataframe)
+    pd.testing.assert_frame_equal(validated_dataframe, expected_dataframe)
 
 
 def test_pandas_dataframe_subclass_validation():
