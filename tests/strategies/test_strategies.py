@@ -868,7 +868,7 @@ def test_defined_check_strategy(
 
     # test with column and dataframe schema
     col_schema = pa.Column(dtype="float64", checks=check, name="col_name")
-    df_schema = pa.DataFrameSchema(
+    df_schema_df_level_check = pa.DataFrameSchema(
         columns={
             "col1": pa.Column(float),
             "col2": pa.Column(float),
@@ -876,8 +876,15 @@ def test_defined_check_strategy(
         },
         checks=check,
     )
+    df_schema_col_level_check = pa.DataFrameSchema(
+        columns={"col1": col_schema}
+    )
 
-    for schema in (col_schema, df_schema):
+    for schema in (
+        col_schema,
+        df_schema_df_level_check,
+        df_schema_col_level_check,
+    ):
         size = data.draw(st.none() | st.integers(0, 3), label="size")
         sample = data.draw(schema.strategy(size=size), label="s")  # type: ignore
         if size is not None:
