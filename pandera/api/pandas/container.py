@@ -148,6 +148,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 "or `'filter'`."
             )
 
+        if add_missing_columns:
+            _validate_add_missing_columns_default(columns)
+
         self.index = index
         self.strict: Union[bool, str] = strict
         self._coerce = coerce
@@ -556,6 +559,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         .. seealso:: :func:`remove_columns`
 
         """
+        if self.add_missing_columns:
+            _validate_add_missing_columns_default(extra_schema_cols)
+
         schema_copy = copy.deepcopy(self)
         schema_copy.columns = {
             **schema_copy.columns,
@@ -683,6 +689,10 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         new_column = column_copy.__class__(
             **{**column_copy.properties, **kwargs}
         )
+
+        if self.add_missing_columns:
+            _validate_add_missing_columns_default({column_name: new_column})
+
         schema_copy.columns.update({column_name: new_column})
         return cast(DataFrameSchema, schema_copy)
 
@@ -767,6 +777,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 new_columns[col] = new_schema.columns[col].__class__(
                     **original_properties
                 )
+
+        if self.add_missing_columns:
+            _validate_add_missing_columns_default(new_columns)
 
         new_schema.columns = new_columns
 
@@ -1357,6 +1370,17 @@ def _validate_columns(
                     f"Check for Column {column_name} not "
                     "specified in the DataFrameSchema."
                 )
+
+
+def _validate_add_missing_columns_default(
+    column_dict: dict[Any, "pandera.api.pandas.components.Column"],  # type: ignore [name-defined]
+) -> None:
+    for column_name, column in column_dict.items():
+        if pd.isna(column.default) and not column.nullable:
+            raise errors.SchemaInitError(
+                f"column '{column_name}' requires a default value "
+                f"when non-nullable add_missing_columns is enabled"
+            )
 
 
 def _columns_renamed(
