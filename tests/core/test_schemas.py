@@ -431,6 +431,18 @@ def test_add_missing_columns():
     ]
     assert validated_frame_unknown["b"].eq(9).all()
 
+    # Validate schema containing non-nullable column without a default value
+    schema_no_default_not_nullable = DataFrameSchema(
+        columns={i: Column(int, nullable=False) for i in ["a", "b", "c"]},
+        strict=True,
+        add_missing_columns=True,
+    )
+    with pytest.raises(
+        errors.SchemaError,
+        match="column 'a' in .* requires a default value when non-nullable add_missing_columns is enabled",
+    ):
+        schema_no_default_not_nullable.validate(frame_missing_first)
+
 
 def test_series_schema() -> None:
     """Tests that a SeriesSchema Check behaves as expected for integers and

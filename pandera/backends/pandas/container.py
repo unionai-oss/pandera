@@ -319,6 +319,24 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         ):
             return check_obj
 
+        # Absent columns are required to have a default
+        # value or be nullable
+        for col_name in column_info.absent_column_names:
+            col_schema = schema.columns[col_name]
+            if pd.isna(col_schema.default) and not col_schema.nullable:
+                raise SchemaError(
+                    schema=schema,
+                    data=check_obj,
+                    message=(
+                        f"column '{col_name}' in {schema.__class__.__name__}"
+                        f" {schema.columns} requires a default value "
+                        f"when non-nullable add_missing_columns is enabled"
+                    ),
+                    failure_cases=scalar_failure_case(col_name),
+                    check="add_missing_has_default",
+                    reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
+                )
+
         # Ascertain order in which missing columns should
         # be inserted into dataframe. Be careful not to
         # modify order of existing dataframe columns to

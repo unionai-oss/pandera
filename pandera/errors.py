@@ -153,6 +153,7 @@ class SchemaErrorReason(Enum):
     SERIES_CHECK = "series_check"
     WRONG_DATATYPE = "wrong_dtype"
     INDEX_CHECK = "index_check"
+    ADD_MISSING_COLUMN_NO_DEFAULT = "add_missing_column_no_default"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):
