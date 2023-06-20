@@ -5,6 +5,7 @@ import operator
 import re
 from typing import Any, Callable, Optional, Set
 from unittest.mock import MagicMock
+from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
@@ -822,6 +823,7 @@ def test_dataframe_strategy_undefined_check_strategy(
     schema(example)
 
 
+@pytest.mark.xfail(reason="https://github.com/unionai-oss/pandera/issues/1220")
 @pytest.mark.parametrize("register_check", [True, False])
 @hypothesis.given(st.data())
 def test_defined_check_strategy(
@@ -886,7 +888,12 @@ def test_defined_check_strategy(
         df_schema_col_level_check,
     ):
         size = data.draw(st.none() | st.integers(0, 3), label="size")
-        sample = data.draw(schema.strategy(size=size), label="s")  # type: ignore
+        with catch_warnings(record=True) as record:
+            sample = data.draw(schema.strategy(size=size), label="s")  # type: ignore
+            # We specifically test against warnings here, as they might indicate
+            # the defined strategy isn't being used.
+            # See https://github.com/unionai-oss/pandera/issues/1220
+            assert len(record) == 0
         if size is not None:
             assert sample.shape[0] == size
         validated = schema.validate(sample)
