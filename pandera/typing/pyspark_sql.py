@@ -62,6 +62,3 @@ if PYSPARK_SQL_INSTALLED:
             def __class_getitem__(cls, item):
                 """Define this to override's pyspark.pandas generic type."""
                 return _GenericAlias(cls, item)  # pragma: no cover
-
-        class Column(ps.Column, Generic[GenericDtype]):  # type: ignore [misc]  # noqa
-            """Representation of pyspark.sql.Column, only used for type annotation."""

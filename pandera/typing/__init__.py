@@ -60,9 +60,6 @@ from pandera.typing.common import (
 )
 from pandera.typing.pandas import DataFrame, Index, Series
 
-if pyspark_sql.PYSPARK_SQL_INSTALLED:
-    from pandera.typing.pyspark_sql import Column
-
 
 DATAFRAME_TYPES: Set[Type] = {DataFrame}
 SERIES_TYPES: Set[Type] = {Series}
@@ -85,7 +82,6 @@ if pyspark.PYSPARK_INSTALLED:
 
 if pyspark_sql.PYSPARK_SQL_INSTALLED:
     DATAFRAME_TYPES.update({pyspark_sql.DataFrame})
-    COLUMN_TYPES: Set[Type] = {Column}
 
 if geopandas.GEOPANDAS_INSTALLED:
     DATAFRAME_TYPES.update({geopandas.GeoDataFrame})
