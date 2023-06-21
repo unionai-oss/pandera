@@ -3,7 +3,7 @@
 .. _native_pyspark:
 
 Data Validation with Pyspark SQL ⭐️ (New)
-=======================================
+==========================================
 
 *new in 0.16.0*
 
@@ -95,6 +95,10 @@ Next, you can use the :py:func:`~PanderaSchema.validate` function to validate py
 
 After running :py:func:`~PanderaSchema.validate`, the returned object `df_out` will be a `pyspark` dataframe extended to hold validation results  on it.
 
+Introducing Error Report
+------------------------
+*new in 0.16.0*
+
 You can print the validation results as follows:
 
 .. testcode:: native_pyspark
@@ -150,6 +154,7 @@ so as to be easily consumed by downstream applications such as timeseries visual
 .. important::
     It's critical to extract errors report from `df_out.pandera.errors` as any further `pyspark` operations may reset it.
 
+
 Granular Control of Pandera's Execution
 ----------------------------------------
 *new in 0.16.0*
@@ -170,6 +175,7 @@ You can override default behaviour by setting an environment variable from termi
     `export PANDERA_VALIDATION_DEPTH=SCHEMA_ONLY`
 
 This will be picked up by `pandera` to only enforce SCHEMA level validations.
+
 
 ON/OFF Switch
 -------------
@@ -225,4 +231,46 @@ Note: The output of the function should be a boolean value "True" for passed and
                     "max_value": 30
                 }
             )
+
+Metadata at Dataframe and Field level
+-------------------------------------
+*new in 0.16.0*
+
+In real world use cases, we often need to embed additional information on objects. Thats why we introduced a new feature in Pandera that allows users to store additional metadata at `Field` and `Schema` / `Model` levels. This feature is designed to provide greater context and information about the data, which can be leveraged by other applications.
+
+For example, by storing details about a specific column, such as data type, format, or units, developers can ensure that downstream applications are able to interpret and use the data correctly. Similarly, by storing information about which columns of a schema are needed for a specific use case, developers can optimize data processing pipelines, reduce storage costs, and improve query performance.
+
+.. testcode:: native_pyspark
+
+    class PanderaSchema(DataFrameModel):
+        """Pandera Schema Class"""
+
+        product_id: T.IntegerType() = Field(),
+        product_class: T.StringType() = Field(
+            metadata={
+                "search_filter": "product_pricing",
+            },
+        )
+        product_name: T.StringType() = Field()
+        price: T.DecimalType(20, 5) = Field()
+
+        class Config:
+            """Config of pandera class"""
+
+            name = "product_info"
+            strict = True
+            coerce = True
+            metadata = {"category": "product-details"}
+
+
+As seen in above example, `product_class` field has additional embedded information such as `search_filter`. This metadata can be leveraged to search and filter multiple schemas for certain keywords.
+This is clearly a very basic example, but the possibilities are endless with having metadata at `Field` and `DataFrame` levels.
+
+We also provided a helper function to extract metadata from a schema as follows:
+
+.. testcode:: native_pyspark
+    
+    PanderaSchema.get_metadata()
+
+This feature is available for `PySpark.sql` and `Pandas` both.
 
