@@ -1,6 +1,6 @@
 """Pandera type annotations for Pyspark."""
 from typing import Union, TypeVar
-from pandera.typing.common import DataFrameBase, GenericDtype
+from pandera.typing.common import DataFrameBase
 from pandera.typing.pandas import DataFrameModel, _GenericAlias
 
 try:

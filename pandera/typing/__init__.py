@@ -88,4 +88,4 @@ if geopandas.GEOPANDAS_INSTALLED:
     SERIES_TYPES.update({geopandas.GeoSeries})
 
 
-__all__ = ["DataFrame", "Series", "Index", "Column"]
+__all__ = ["DataFrame", "Series", "Index"]
