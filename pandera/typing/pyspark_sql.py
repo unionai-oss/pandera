@@ -1,6 +1,6 @@
 """Pandera type annotations for Pyspark."""
-from typing import Union, Optional, Type, TypeVar
-from pandera.typing.common import DataFrameBase, GenericDtype
+from typing import Union, TypeVar
+from pandera.typing.common import DataFrameBase
 from pandera.typing.pandas import DataFrameModel, _GenericAlias
 
 try:
@@ -51,21 +51,6 @@ if PYSPARK_SQL_INSTALLED:
 
     if PYSPARK_SQL_INSTALLED:
         # pylint: disable=too-few-public-methods,arguments-renamed
-        class ColumnBase(Generic[PysparkDType]):
-            """Representation of pandas.Index, only used for type annotation.
-
-            *new in 0.5.0*
-            """
-
-            default_dtype: Optional[Type] = None
-
-            def __get__(
-                self, instance: object, owner: Type
-            ) -> str:  # pragma: no cover
-                raise AttributeError(
-                    "column should resolve to pyspark.sql.Column-s"
-                )
-
         class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
             """
             Representation of dask.dataframe.DataFrame, only used for type
@@ -77,6 +62,3 @@ if PYSPARK_SQL_INSTALLED:
             def __class_getitem__(cls, item):
                 """Define this to override's pyspark.pandas generic type."""
                 return _GenericAlias(cls, item)  # pragma: no cover
-
-        class Column(ColumnBase, ps.Column, Generic[GenericDtype]):  # type: ignore [misc]  # noqa
-            """Representation of pyspark.sql.Column, only used for type annotation."""
