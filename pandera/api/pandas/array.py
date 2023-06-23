@@ -37,6 +37,7 @@ class ArraySchema(BaseSchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize array schema.
 
@@ -63,6 +64,8 @@ class ArraySchema(BaseSchema):
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
         :param default: The default value for missing values in the series.
+        :param drop_invalid_rows: if True, drop invalid rows on validation.
+
         """
 
         super().__init__(
@@ -72,6 +75,7 @@ class ArraySchema(BaseSchema):
             name=name,
             title=title,
             description=description,
+            drop_invalid_rows=drop_invalid_rows,
         )
 
         if checks is None:
@@ -300,6 +304,7 @@ class SeriesSchema(ArraySchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize series schema base object.
 
@@ -327,6 +332,7 @@ class SeriesSchema(ArraySchema):
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
         :param default: The default value for missing values in the series.
+        :param drop_invalid_rows: if True, drop invalid rows on validation.
 
         """
         super().__init__(
@@ -340,6 +346,7 @@ class SeriesSchema(ArraySchema):
             title,
             description,
             default,
+            drop_invalid_rows,
         )
         self.index = index
 

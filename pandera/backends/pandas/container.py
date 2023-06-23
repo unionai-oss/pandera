@@ -56,6 +56,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
         error_handler = SchemaErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
@@ -82,6 +87,49 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc)
 
+        # run the checks
+        error_handler = self.run_checks_and_handle_errors(
+            error_handler,
+            schema,
+            check_obj,
+            column_info,
+            sample,
+            components,
+            lazy,
+            head,
+            tail,
+            random_state,
+        )
+
+        if error_handler.collected_errors:
+            if getattr(schema, "drop_invalid_rows", False):
+                check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                return check_obj
+            else:
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.collected_errors,
+                    data=check_obj,
+                )
+
+        return check_obj
+
+    def run_checks_and_handle_errors(
+        self,
+        error_handler,
+        schema,
+        check_obj,
+        column_info,
+        sample,
+        components,
+        lazy,
+        head,
+        tail,
+        random_state,
+    ):
+        """Run checks on schema"""
+        # pylint: disable=too-many-locals
+
         # subsample the check object if head, tail, or sample are specified
         sample = self.subsample(check_obj, head, tail, sample, random_state)
 
@@ -93,7 +141,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.run_schema_component_checks, (sample, components, lazy)),
             (self.run_checks, (sample, schema)),
         ]
-
         for check, args in core_checks:
             results = check(*args)  # type: ignore [operator]
             if isinstance(results, CoreCheckResult):
@@ -122,14 +169,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     original_exc=result.original_exc,
                 )
 
-        if error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
-
-        return check_obj
+        return error_handler
 
     def run_schema_component_checks(
         self,
