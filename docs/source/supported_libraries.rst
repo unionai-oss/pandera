@@ -49,8 +49,10 @@ dataframes.
      - Apply pandera schemas to distributed dataframe partitions with Fugue.
    * - :ref:`Koalas <scaling_koalas>` *[Deprecated]*
      - A pandas drop-in replacement, distributed using a Spark backend.
-   * - :ref:`Pyspark <scaling_pyspark>`
+   * - :ref:`Pyspark Pandas <scaling_pyspark>`
      - Exposes a ``pyspark.pandas`` module, distributed using a Spark backend.
+   * - :ref:`Pyspark SQL <pyspark_sql>`
+     - A data processing library for large-scale data.
    * - :ref:`Modin <scaling_modin>`
      - A pandas drop-in replacement, distributed using a Ray or Dask backend.
 
