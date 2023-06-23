@@ -211,6 +211,7 @@ Note: The output of the function should be a boolean value ``True`` for passed a
 .. testcode:: native_pyspark
 
     from pandera.extensions import register_check_method
+    import pyspark.sql.types as T
 
     @register_check_method
     def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
@@ -225,8 +226,8 @@ Note: The output of the function should be a boolean value ``True`` for passed a
     class Schema(DataFrameModel):
             """Schema"""
 
-            product: StringType()
-            code: IntegerType() = Field(
+            product: T.StringType()
+            code: T.IntegerType() = Field(
                 new_pyspark_check={
                     "max_value": 30
                 }
@@ -243,6 +244,7 @@ For example, by storing details about a specific column, such as data type, form
 
 .. testcode:: native_pyspark
 
+    import pyspark.sql.types as T
     class PanderaSchema(DataFrameModel):
         """Pandera Schema Class"""
 
