@@ -79,12 +79,12 @@ In this section, lets look at an end to end example of how pandera would work in
 
 .. testoutput:: native_pyspark
 
-    +---+-------+-----+------------------------+----------------------------+
-    |id |product|price|description             |meta                        |
-    +---+-------+-----+------------------------+----------------------------+
-    |5  |Bread  |null |[description of product]|{product_category -> dairy} |
-    |15 |Butter |null |[more details here]     |{product_category -> bakery}|
-    +---+-------+-----+------------------------+----------------------------+
+    +---+-------+--------+--------------------+--------------------+
+    | id|product|   price|         description|                meta|
+    +---+-------+--------+--------------------+--------------------+
+    |  5|  Bread|44.40000|[description of p...|{product_category...|
+    | 15| Butter|99.00000| [more details here]|{product_category...|
+    +---+-------+--------+--------------------+--------------------+
 
 In above example, `PanderaSchema` class inherits from `DataFrameModel` base class. It has type annotations for 5 fields with 2 of the fields having checks enforced e.g. `gt=5` and `str_startswith="B"`.
 
