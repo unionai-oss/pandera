@@ -20,7 +20,7 @@ What is different?
 ------------------
 There are some small changes to support nuances of pyspark SQL and expected usage, they are as follow:-
 
-1. The output will a dataframe in pyspark SQL even in case of errors during validation. Instead of raising the error, the errors are collected and can be accessed via attribute as shown in the ``native_pyspark`` example. 
+1. The output will a dataframe in pyspark SQL even in case of errors during validation. Instead of raising the error, the errors are collected and can be accessed via attribute as shown in this example. 
    This decision is based on expectation that most use case of pyspark SQL implementation would be in production where data quality information may be used later, such cases prioritise completing the production load and data quality issue might be solved at a later stage.
 
 2. Unlike the pandas version the default behaviour of the pyspark SQL version for errors is ``lazy=True``. i.e. all the errors would be collected instead of raising at first error instance.
