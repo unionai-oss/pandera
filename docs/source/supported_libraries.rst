@@ -51,7 +51,7 @@ dataframes.
      - A pandas drop-in replacement, distributed using a Spark backend.
    * - :ref:`Pyspark Pandas <scaling_pyspark>`
      - Exposes a ``pyspark.pandas`` module, distributed using a Spark backend.
-   * - :ref:`Pyspark SQL <native_pyspark>`
+   * - :ref:`Pyspark SQL <pyspark_sql>`
      - A data processing library for large-scale data.
    * - :ref:`Modin <scaling_modin>`
      - A pandas drop-in replacement, distributed using a Ray or Dask backend.
@@ -63,8 +63,7 @@ dataframes.
     Dask <dask>
     Fugue <fugue>
     Koalas <koalas>
-    Pyspark Pandas <pyspark>
-    Pyspark SQL ⭐️ (New) <pyspark_sql>
+    Pyspark Pandas ⭐️ (New) <pyspark>
     Modin <modin>
 
 
