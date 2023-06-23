@@ -273,4 +273,3 @@ We also provided a helper function to extract metadata from a schema as follows:
     PanderaSchema.get_metadata()
 
 This feature is available for `PySpark.sql` and `Pandas` both.
-
