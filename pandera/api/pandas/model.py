@@ -268,7 +268,7 @@ class DataFrameModel(BaseModel):
                 "title": cls.__config__.title,
                 "description": cls.__config__.description or cls.__doc__,
                 "unique_column_names": cls.__config__.unique_column_names,
-                "drop_invalid": cls.__config__.drop_invalid,
+                "drop_invalid_rows": cls.__config__.drop_invalid_rows,
             }
         cls.__schema__ = DataFrameSchema(
             columns,

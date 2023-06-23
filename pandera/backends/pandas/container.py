@@ -56,6 +56,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
         error_handler = SchemaErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
@@ -97,8 +102,8 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         )
 
         if error_handler.collected_errors:
-            if hasattr(schema, "drop_invalid") and schema.drop_invalid:
-                check_obj = self.drop_invalid_data(check_obj, error_handler)
+            if getattr(schema, "drop_invalid_rows", False):
+                check_obj = self.drop_invalid_rows(check_obj, error_handler)
                 return check_obj
             else:
                 raise SchemaErrors(

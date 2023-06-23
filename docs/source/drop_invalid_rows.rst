@@ -1,14 +1,14 @@
 .. currentmodule:: pandera
 
-.. _drop_invalid_data:
+.. _drop_invalid_rows:
 
-Dropping Invalid Data
+Dropping Invalid Rows
 =====================
 
 *New in version 0.16.0*
 
 If you wish to use the validation step to remove invalid data, you can pass the
-``drop_invalid=True`` argument to the ``schema`` object on creation. On ``schema.validate()``,
+``drop_invalid_rows=True`` argument to the ``schema`` object on creation. On ``schema.validate()``,
 if a data-level check fails, then that row which caused the failure will be removed from the dataframe
 when it is returned.
 
@@ -19,23 +19,25 @@ This functionality is available on ``DataFrameSchema``, ``SeriesSchema``, ``Colu
 as well as ``DataFrameModel`` schemas.
 
 Dropping invalid rows with :class:`~pandera.api.pandas.container.DataFrameSchema`:
-.. testcode:: drop_invalid_data_data_frame_schema
+
+.. testcode:: drop_invalid_rows_data_frame_schema
 
    import pandas as pd
    import pandera as pa
 
-   from pandera import Check, DataFrameSchema
+   from pandera import Check, Column, DataFrameSchema
 
    df = pd.DataFrame({"counter": ["1", "2", "3"]})
    schema = DataFrameSchema(
-                {"counter": Column(int, checks=[Check(lambda x: x >= 3)])},
-                drop_invalid=True,
-            )
+       {"counter": Column(int, checks=[Check(lambda x: x >= 3)])},
+       drop_invalid_rows=True,
+   )
 
    schema.validate(df, lazy=True)
 
 Dropping invalid rows with :class:`~pandera.api.pandas.array.SeriesSchema`:
-.. testcode:: drop_invalid_data_series_schema
+
+.. testcode:: drop_invalid_rows_series_schema
 
    import pandas as pd
    import pandera as pa
@@ -44,15 +46,16 @@ Dropping invalid rows with :class:`~pandera.api.pandas.array.SeriesSchema`:
 
    series = pd.Series(["1", "2", "3"])
    schema = SeriesSchema(
-                int,
-                checks=[Check(lambda x: x >= 3)],
-                drop_invalid=True,
-            )
+       int,
+       checks=[Check(lambda x: x >= 3)],
+       drop_invalid_rows=True,
+   )
 
    schema.validate(series, lazy=True)
 
 Dropping invalid rows with :class:`~pandera.api.pandas.components.Column`:
-.. testcode:: drop_invalid_data_column
+
+.. testcode:: drop_invalid_rows_column
 
    import pandas as pd
    import pandera as pa
@@ -61,16 +64,17 @@ Dropping invalid rows with :class:`~pandera.api.pandas.components.Column`:
 
    df = pd.DataFrame({"counter": ["1", "2", "3"]})
    schema = Column(
-                int,
-                name="counter",
-                drop_invalid=True,
-                checks=[Check(lambda x: x >= 3)]
-            ),
+       int,
+       name="counter",
+       drop_invalid_rows=True,
+       checks=[Check(lambda x: x >= 3)]
+   )
 
    schema.validate(df, lazy=True)
 
-Dropping invalid rows with :class:`~pandera.api.pandas.model.DataFrameModel`
-.. testcode:: drop_invalid_data_data_frame_model
+Dropping invalid rows with :class:`~pandera.api.pandas.model.DataFrameModel`:
+
+.. testcode:: drop_invalid_rows_data_frame_model
 
     import pandas as pd
     import pandera as pa
@@ -81,15 +85,15 @@ Dropping invalid rows with :class:`~pandera.api.pandas.model.DataFrameModel`
         counter: int = Field(in_range={"min_value": 3, "max_value": 5})
 
         class Config:
-            drop_invalid = True
+            drop_invalid_rows = True
 
 
     MySchema.validate(
         pd.DataFrame({"counter": [1, 2, 3, 4, 5, 6]}), lazy=True
     )
 
-
-**Note** that in order to use ``drop_invalid=True``, ``lazy=True`` must
-be passed to the ``schema.validatate()``. :ref:`_lazy_validation` enables all schema
-errors to be collected and raised together, meaning all invalid rows can be dropped together.
-This provides clear API for ensuring the validated dataframe contains only valid data.
+.. note::
+    In order to use ``drop_invalid_rows=True``, ``lazy=True`` must
+    be passed to the ``schema.validate()``. :ref:`lazy_validation` enables all schema
+    errors to be collected and raised together, meaning all invalid rows can be dropped together.
+    This provides clear API for ensuring the validated dataframe contains only valid data.

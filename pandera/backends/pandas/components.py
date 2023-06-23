@@ -19,7 +19,12 @@ from pandera.api.pandas.types import (
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
+from pandera.errors import (
+    SchemaError,
+    SchemaErrors,
+    SchemaErrorReason,
+    SchemaDefinitionError,
+)
 
 
 class ColumnBackend(ArraySchemaBackend):
@@ -42,6 +47,11 @@ class ColumnBackend(ArraySchemaBackend):
             check_obj = check_obj.copy()
 
         error_handler = SchemaErrorHandler(lazy=lazy)
+
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
 
         if schema.name is None:
             raise SchemaError(
@@ -100,7 +110,7 @@ class ColumnBackend(ArraySchemaBackend):
                         check_obj[column_name].iloc[:, [i]], column_name
                     )
             else:
-                if hasattr(schema, "drop_invalid") and schema.drop_invalid:
+                if getattr(schema, "drop_invalid_rows", False):
                     # replace the check_obj with the validated check_obj
                     check_obj = validate_column(
                         check_obj, column_name, return_check_obj=True

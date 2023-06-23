@@ -21,7 +21,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
     title: Optional[str] = None  #: human-readable label for schema
     description: Optional[str] = None  #: arbitrary textual description
     coerce: bool = False  #: coerce types of all schema components
-    drop_invalid: bool = False  #: drop invalid rows on validation
+    drop_invalid_rows: bool = False  #: drop invalid rows on validation
 
     #: make sure certain column combinations are unique
     unique: Optional[Union[str, List[str]]] = None

@@ -2066,13 +2066,13 @@ def test_pandas_dataframe_subclass_validation():
         (
             DataFrameSchema(
                 {"numbers": Column(int, checks=[Check(lambda x: x >= 3)])},
-                drop_invalid=True,
+                drop_invalid_rows=True,
             ),
             pd.DataFrame({"numbers": [1, 2, 3, 4, 5]}),
             pd.DataFrame({"numbers": [3, 4, 5]}),
         ),
         (
-            DataFrameSchema({"numbers": Column(str)}, drop_invalid=True),
+            DataFrameSchema({"numbers": Column(str)}, drop_invalid_rows=True),
             pd.DataFrame({"numbers": [1, 2, 3, 4, 5]}),
             pd.DataFrame({"numbers": []}),
         ),
@@ -2082,7 +2082,7 @@ def test_pandas_dataframe_subclass_validation():
                     "letters": Column(str),
                     "numbers": Column(int, checks=[Check(lambda x: x >= 3)]),
                 },
-                drop_invalid=True,
+                drop_invalid_rows=True,
             ),
             pd.DataFrame(
                 {
@@ -2095,12 +2095,15 @@ def test_pandas_dataframe_subclass_validation():
     ],
 )
 def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
-    """Test drop_invalid works as expected on DataFrameSchemaBackend.validate"""
+    """Test drop_invalid_rows works as expected on DataFrameSchemaBackend.validate"""
     actual_obj = schema.validate(obj, lazy=True)
     actual_obj.index = expected_obj.index
     actual_obj.numbers = actual_obj.numbers.astype(expected_obj.numbers.dtype)
 
     pd.testing.assert_frame_equal(actual_obj, expected_obj)
+
+    with pytest.raises(errors.SchemaDefinitionError):
+        schema.validate(obj, lazy=False)
 
 
 @pytest.mark.parametrize(
@@ -2110,47 +2113,53 @@ def test_drop_invalid_for_dataframe_schema(schema, obj, expected_obj):
             SeriesSchema(
                 int,
                 checks=[Check(lambda x: x > 3)],
-                drop_invalid=True,
+                drop_invalid_rows=True,
             ),
             pd.Series([9, 6, 3]),
             pd.Series([9, 6]),
         ),
         (
-            SeriesSchema(str, drop_invalid=True),
+            SeriesSchema(str, drop_invalid_rows=True),
             pd.Series(["nine", 6, "three"]),
             pd.Series(["nine", "three"]),
         ),
     ],
 )
 def test_drop_invalid_for_series_schema(schema, obj, expected_obj):
-    """Test drop_invalid works as expected on SeriesSchemaBackend.validate"""
+    """Test drop_invalid_rows works as expected on SeriesSchemaBackend.validate"""
     actual_obj = schema.validate(obj, lazy=True).reset_index(drop=True)
     expected_obj = expected_obj.reset_index(drop=True)
 
     pd.testing.assert_series_equal(actual_obj, expected_obj)
+
+    with pytest.raises(errors.SchemaDefinitionError):
+        schema.validate(obj, lazy=False)
 
 
 @pytest.mark.parametrize(
     "col, obj, expected_obj",
     [
         (
-            Column(str, name="letters", drop_invalid=True),
+            Column(str, name="letters", drop_invalid_rows=True),
             pd.DataFrame({"letters": [None, 1, "c"]}),
             pd.DataFrame({"letters": ["c"]}),
         )
     ],
 )
 def test_drop_invalid_for_column(col, obj, expected_obj):
-    """Test drop_invalid works as expected on ColumnBackend.validate"""
+    """Test drop_invalid_rows works as expected on ColumnBackend.validate"""
     actual_obj = col.validate(obj, lazy=True)
 
     pd.testing.assert_frame_equal(
         expected_obj.reset_index(drop=True), actual_obj.reset_index(drop=True)
     )
 
+    with pytest.raises(errors.SchemaDefinitionError):
+        col.validate(obj, lazy=False)
+
 
 def test_drop_invalid_for_model_schema():
-    """Test drop_invalid works as expected on DataFrameModel.validate"""
+    """Test drop_invalid_rows works as expected on DataFrameModel.validate"""
 
     class MySchema(DataFrameModel):
         """Schema for the test"""
@@ -2160,7 +2169,7 @@ def test_drop_invalid_for_model_schema():
         class Config:
             """Config for the schema model for the test"""
 
-            drop_invalid = True
+            drop_invalid_rows = True
 
     expected_obj = pd.DataFrame({"counter": [3, 4, 5]})
 
@@ -2170,3 +2179,6 @@ def test_drop_invalid_for_model_schema():
 
     actual_obj.index = expected_obj.index
     pd.testing.assert_frame_equal(expected_obj, actual_obj)
+
+    with pytest.raises(errors.SchemaDefinitionError):
+        MySchema.validate(actual_obj, lazy=False)

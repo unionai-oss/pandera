@@ -151,7 +151,7 @@ class PandasSchemaBackend(BaseSchemaBackend):
             error_counts=error_counts,
         )
 
-    def drop_invalid_data(self, check_obj, error_handler: SchemaErrorHandler):
+    def drop_invalid_rows(self, check_obj, error_handler: SchemaErrorHandler):
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
         errors = error_handler.collected_errors
         for err in errors:

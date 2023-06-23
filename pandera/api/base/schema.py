@@ -32,7 +32,7 @@ class BaseSchema(ABC):
         name=None,
         title=None,
         description=None,
-        drop_invalid=False,
+        drop_invalid_rows=False,
     ):
         """Abstract base schema initializer."""
         self.dtype = dtype
@@ -41,7 +41,7 @@ class BaseSchema(ABC):
         self.name = name
         self.title = title
         self.description = description
-        self.drop_invalid = drop_invalid
+        self.drop_invalid_rows = drop_invalid_rows
 
     def validate(
         self,
