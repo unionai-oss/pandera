@@ -106,43 +106,45 @@ You can print the validation results as follows:
 
 .. testcode:: native_pyspark
 
+    import json
+
     df_out_errors = df_out.pandera.errors
-    print(df_out_errors)
+    print(json.dumps(dict(df_out_errors), indent=4))
 
 .. testoutput:: native_pyspark
 
     {
-        "SCHEMA":{
-            "COLUMN_NOT_IN_DATAFRAME":[
+        "SCHEMA": {
+            "COLUMN_NOT_IN_DATAFRAME": [
                 {
-                    "schema":"PanderaSchema",
-                    "column":"PanderaSchema",
-                    "check":"column_in_dataframe",
-                    "error":"column 'product_name' not in dataframe Row(id=5, product='Bread', price=None, description=['description of product'], meta={'product_category': 'dairy'})"
+                    "schema": "PanderaSchema",
+                    "column": "PanderaSchema",
+                    "check": "column_in_dataframe",
+                    "error": "column 'product_name' not in dataframe\nRow(id=5, product='Bread', price=Decimal('44.40000'), description=['description of product'], meta={'product_category': 'dairy'})"
                 }
             ],
-            "WRONG_DATATYPE":[
+            "WRONG_DATATYPE": [
                 {
-                    "schema":"PanderaSchema",
-                    "column":"description",
-                    "check":"dtype('ArrayType(StringType(), True)')",
-                    "error":"expected column 'description' to have type ArrayType(StringType(), True), got ArrayType(StringType(), False)"
+                    "schema": "PanderaSchema",
+                    "column": "description",
+                    "check": "dtype('ArrayType(StringType(), True)')",
+                    "error": "expected column 'description' to have type ArrayType(StringType(), True), got ArrayType(StringType(), False)"
                 },
                 {
-                    "schema":"PanderaSchema",
-                    "column":"meta",
-                    "check":"dtype('MapType(StringType(), StringType(), True)')",
-                    "error":"expected column 'meta' to have type MapType(StringType(), StringType(), True), got MapType(StringType(), StringType(), False)"
+                    "schema": "PanderaSchema",
+                    "column": "meta",
+                    "check": "dtype('MapType(StringType(), StringType(), True)')",
+                    "error": "expected column 'meta' to have type MapType(StringType(), StringType(), True), got MapType(StringType(), StringType(), False)"
                 }
             ]
         },
-        "DATA":{
-            "DATAFRAME_CHECK":[
+        "DATA": {
+            "DATAFRAME_CHECK": [
                 {
-                    "schema":"PanderaSchema",
-                    "column":"id",
-                    "check":"greater_than(5)",
-                    "error":"column 'id' with type IntegerType() failed validation greater_than(5)"
+                    "schema": "PanderaSchema",
+                    "column": "id",
+                    "check": "greater_than(5)",
+                    "error": "column 'id' with type IntegerType() failed validation greater_than(5)"
                 }
             ]
         }
