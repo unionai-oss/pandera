@@ -44,8 +44,11 @@ In this section, lets look at an end to end example of how pandera would work in
     import pyspark.sql.types as T
 
     from decimal import Decimal
+    from pyspark.sql import SparkSession
     from pyspark.sql import DataFrame
     from pandera.pyspark import DataFrameModel
+
+    spark = SparkSession.builder.getOrCreate()
 
     class PanderaSchema(DataFrameModel):
         id: T.IntegerType() = pa.Field(gt=5)
