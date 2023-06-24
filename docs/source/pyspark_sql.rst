@@ -248,7 +248,7 @@ For example, by storing details about a specific column, such as data type, form
     class PanderaSchema(DataFrameModel):
         """Pandera Schema Class"""
 
-        product_id: T.IntegerType() = pa.Field(),
+        product_id: T.IntegerType() = pa.Field()
         product_class: T.StringType() = pa.Field(
             metadata={
                 "search_filter": "product_pricing",
