@@ -227,7 +227,7 @@ Note: The output of the function should be a boolean value ``True`` for passed a
             """Schema"""
 
             product: T.StringType()
-            code: T.IntegerType() = Field(
+            code: T.IntegerType() = pa.Field(
                 new_pyspark_check={
                     "max_value": 30
                 }
@@ -248,14 +248,14 @@ For example, by storing details about a specific column, such as data type, form
     class PanderaSchema(DataFrameModel):
         """Pandera Schema Class"""
 
-        product_id: T.IntegerType() = Field(),
-        product_class: T.StringType() = Field(
+        product_id: T.IntegerType() = pa.Field(),
+        product_class: T.StringType() = pa.Field(
             metadata={
                 "search_filter": "product_pricing",
             },
         )
-        product_name: T.StringType() = Field()
-        price: T.DecimalType(20, 5) = Field()
+        product_name: T.StringType() = pa.Field()
+        price: T.DecimalType(20, 5) = pa.Field()
 
         class Config:
             """Config of pandera class"""
