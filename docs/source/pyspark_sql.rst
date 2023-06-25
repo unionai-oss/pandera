@@ -18,18 +18,23 @@ You can use pandera to validate ``pyspark.sql.DataFrame`` objects directly. Firs
 
 What is different?
 ------------------
-There are some small changes to support nuances of pyspark SQL and expected usage, they are as follow:-
 
-1. The output will a dataframe in pyspark SQL even in case of errors during validation. Instead of raising the error, the errors are collected and can be accessed via attribute as shown in this example. 
-   This decision is based on expectation that most use case of pyspark SQL implementation would be in production where data quality information may be used later, such cases prioritise completing the production load and data quality issue might be solved at a later stage.
+There are some small changes to support nuances of pyspark SQL and expected usage, they are as follow:
 
-2. Unlike the pandas version the default behaviour of the pyspark SQL version for errors is ``lazy=True``. i.e. all the errors would be collected instead of raising at first error instance.
+1. The output of ``schema.validate`` will produce a dataframe in pyspark SQL even in case of errors during validation.
+   Instead of raising the error, the errors are collected and can be accessed via the ``dataframe.pandera.errors`` attribute  as shown in this example. 
 
-3. No support for lambda based vectorized checks since in spark lambda checks needs UDF which is inefficient. However pyspark sql does support custom checks via register custom check method.
+   .. note::
+      This design decision is based on the expectation that most use cases for pyspark SQL dataframes means entails a production ETL setting.
+      In these settings, pandera prioritizes completing the production load and saving the data quality issues for downstream rectification.
 
-4. The custom check has to return a boolean value instead of a series.
+2. Unlike the pandera pandas schemas, the default behaviour of the pyspark SQL version for errors is ``lazy=True``, i.e. all the errors would be collected instead of raising at first error instance.
 
-5. In defining the type annotation, there is limited support for default python data types such as int, str etc instead use ``pyspark.sql.types`` based datatypes such as ``StringType``, ``IntegerType``, etc.
+3. There is no support for lambda based vectorized checks since in spark lambda checks needs UDFs, which is inefficient. However pyspark sql does support custom checks via the :func:`~pandera.extensions.register_check_method` decorator.
+
+4. The custom check has to return a scalar boolean value instead of a series.
+
+5. In defining the type annotation, there is limited support for default python data types such as int, str etc. When using the ``pandera.pyspark`` API, using ``pyspark.sql.types`` based datatypes such as ``StringType``, ``IntegerType``, etc. is highly recommended.
 
 
 Basic Usage
