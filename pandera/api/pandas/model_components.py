@@ -214,6 +214,7 @@ def _check_dispatch():
         "str_matches": Check.str_matches,
         "str_length": Check.str_length,
         "str_startswith": Check.str_startswith,
+        "unique_values_eq": Check.unique_values_eq,
         **Check.REGISTERED_CUSTOM_CHECKS,
     }
 

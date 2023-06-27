@@ -5,6 +5,7 @@ import operator
 import re
 from typing import Any, Callable, Optional, Set
 from unittest.mock import MagicMock
+from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
@@ -400,7 +401,7 @@ def test_register_check_strategy(data) -> None:
             )
 
     check = CustomCheck.custom_equals(100)
-    result = data.draw(check.strategy(pa.Int()))
+    result = data.draw(check.strategy(pa.Int(), **check.statistics))
     assert result == 100
 
 
@@ -482,6 +483,25 @@ def test_dataframe_strategy(data_type, size, data):
         strategies.dataframe_strategy(
             data_type, strategies.pandas_dtype_strategy(data_type)
         )
+
+
+@pytest.mark.parametrize("size", [None, 0, 1, 3, 5])
+@hypothesis.given(st.data())
+def test_dataframe_strategy_with_check(size, data):
+    """Test DataFrameSchema strategy with dataframe-level check."""
+    dataframe_schema = pa.DataFrameSchema(
+        {"col": pa.Column(float)},
+        checks=pa.Check.in_range(5, 10),
+    )
+    df_sample = data.draw(dataframe_schema.strategy(size=size))
+    if size == 0:
+        assert df_sample.empty
+    elif size is None:
+        assert df_sample.empty or isinstance(
+            dataframe_schema(df_sample), pd.DataFrame
+        )
+    else:
+        assert isinstance(dataframe_schema(df_sample), pd.DataFrame)
 
 
 @hypothesis.given(st.data())
@@ -801,6 +821,83 @@ def test_dataframe_strategy_undefined_check_strategy(
     ):
         example = data.draw(strat)
     schema(example)
+
+
+@pytest.mark.xfail(reason="https://github.com/unionai-oss/pandera/issues/1220")
+@pytest.mark.parametrize("register_check", [True, False])
+@hypothesis.given(st.data())
+def test_defined_check_strategy(
+    register_check: bool,
+    data: st.DataObject,
+):
+    """
+    Strategy specified for custom check is actually used when generating column
+    examples.
+    """
+
+    def custom_strategy(pandera_dtype, strategy=None, *, min_val, max_val):
+        """Custom strategy for range check."""
+        if strategy is None:
+            return st.floats(min_value=min_val, max_value=max_val).map(
+                # the map isn't strictly necessary, but shows an example of
+                # using the pandera_dtype argument
+                strategies.to_numpy_dtype(pandera_dtype).type
+            )
+        return strategy.filter(lambda val: 0 <= val <= 10)
+
+    if "custom_check_with_strategy" in pa.Check.REGISTERED_CUSTOM_CHECKS:
+        del pa.Check.REGISTERED_CUSTOM_CHECKS["custom_check_with_strategy"]
+
+    @pa.extensions.register_check_method(
+        strategy=custom_strategy,
+        statistics=["min_val", "max_val"],
+    )
+    def custom_check_with_strategy(pandas_obj, *, min_val, max_val):
+        """Custom range check."""
+        if isinstance(pandas_obj, pd.Series):
+            return pandas_obj.between(min_val, max_val)
+        return pandas_obj.applymap(lambda x: min_val <= x <= max_val)
+
+    if register_check:
+        check = Check.custom_check_with_strategy(0, 10)
+    else:
+        check = Check(
+            custom_check_with_strategy,
+            strategy=custom_strategy,
+            min_val=0,
+            max_val=10,
+        )
+
+    # test with column and dataframe schema
+    col_schema = pa.Column(dtype="float64", checks=check, name="col_name")
+    df_schema_df_level_check = pa.DataFrameSchema(
+        columns={
+            "col1": pa.Column(float),
+            "col2": pa.Column(float),
+            "col3": pa.Column(float),
+        },
+        checks=check,
+    )
+    df_schema_col_level_check = pa.DataFrameSchema(
+        columns={"col1": col_schema}
+    )
+
+    for schema in (
+        col_schema,
+        df_schema_df_level_check,
+        df_schema_col_level_check,
+    ):
+        size = data.draw(st.none() | st.integers(0, 3), label="size")
+        with catch_warnings(record=True) as record:
+            sample = data.draw(schema.strategy(size=size), label="s")  # type: ignore
+            # We specifically test against warnings here, as they might indicate
+            # the defined strategy isn't being used.
+            # See https://github.com/unionai-oss/pandera/issues/1220
+            assert len(record) == 0
+        if size is not None:
+            assert sample.shape[0] == size
+        validated = schema.validate(sample)
+        assert isinstance(validated, pd.DataFrame)
 
 
 def test_unsatisfiable_checks():

@@ -105,7 +105,7 @@ The corresponding strategy for this check would be:
            )
        return strategy.filter(lambda x: x == value)
 
-As you may notice, the ``pandera`` strategy interface is has two arguments
+As you may notice, the ``pandera`` strategy interface has two positional arguments
 followed by keyword-only arguments that match the check function keyword-only
 check statistics. The ``pandera_dtype`` positional argument is useful for
 ensuring the correct data type. In the above example, we're using the

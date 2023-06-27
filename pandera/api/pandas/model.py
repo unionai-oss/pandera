@@ -269,6 +269,8 @@ class DataFrameModel(BaseModel):
                 "description": cls.__config__.description or cls.__doc__,
                 "unique_column_names": cls.__config__.unique_column_names,
                 "add_missing_columns": cls.__config__.add_missing_columns,
+                "drop_invalid_rows": cls.__config__.drop_invalid_rows,
+
             }
         cls.__schema__ = DataFrameSchema(
             columns,

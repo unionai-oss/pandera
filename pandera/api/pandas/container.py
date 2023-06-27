@@ -47,6 +47,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         add_missing_columns: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -80,6 +81,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             value, if specified in column schema, or NaN if column is nullable.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
+        :param drop_invalid_rows: if True, drop invalid rows on validation.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -156,6 +158,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
         self.add_missing_columns = add_missing_columns
+        self.drop_invalid_rows = drop_invalid_rows
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.

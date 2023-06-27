@@ -1,4 +1,5 @@
 """Backend implementation for pandas schema components."""
+# pylint: disable=too-many-locals
 
 import traceback
 from copy import copy, deepcopy
@@ -18,7 +19,12 @@ from pandera.api.pandas.types import (
 )
 from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors, SchemaErrorReason
+from pandera.errors import (
+    SchemaError,
+    SchemaErrors,
+    SchemaErrorReason,
+    SchemaDefinitionError,
+)
 
 
 class ColumnBackend(ArraySchemaBackend):
@@ -42,6 +48,11 @@ class ColumnBackend(ArraySchemaBackend):
 
         error_handler = SchemaErrorHandler(lazy=lazy)
 
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
         if schema.name is None:
             raise SchemaError(
                 schema,
@@ -51,10 +62,10 @@ class ColumnBackend(ArraySchemaBackend):
                 "method.",
             )
 
-        def validate_column(check_obj, column_name):
+        def validate_column(check_obj, column_name, return_check_obj=False):
             try:
                 # pylint: disable=super-with-arguments
-                super(ColumnBackend, self).validate(
+                validated_check_obj = super(ColumnBackend, self).validate(
                     check_obj,
                     copy(schema).set_name(column_name),
                     head=head,
@@ -64,6 +75,10 @@ class ColumnBackend(ArraySchemaBackend):
                     lazy=lazy,
                     inplace=inplace,
                 )
+
+                if return_check_obj:
+                    return validated_check_obj
+
             except SchemaErrors as err:
                 for err in err.schema_errors:
                     error_handler.collect_error(
@@ -95,7 +110,13 @@ class ColumnBackend(ArraySchemaBackend):
                         check_obj[column_name].iloc[:, [i]], column_name
                     )
             else:
-                validate_column(check_obj, column_name)
+                if getattr(schema, "drop_invalid_rows", False):
+                    # replace the check_obj with the validated check_obj
+                    check_obj = validate_column(
+                        check_obj, column_name, return_check_obj=True
+                    )
+                else:
+                    validate_column(check_obj, column_name)
 
         if lazy and error_handler.collected_errors:
             raise SchemaErrors(
@@ -381,16 +402,8 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             otherwise creates a copy of the data.
         :returns: validated DataFrame or Series.
         """
-        # pylint: disable=too-many-locals
         if schema.coerce:
-            try:
-                check_obj.index = self.coerce_dtype(
-                    check_obj.index, schema=schema  # type: ignore [arg-type]
-                )
-            except SchemaErrors as err:
-                if lazy:
-                    raise
-                raise err.schema_errors[0] from err
+            check_obj.index = self.__coerce_index(check_obj, schema, lazy)
 
         # Prevent data type coercion when the validate method is called because
         # it leads to some weird behavior when calling coerce_dtype within the
@@ -419,32 +432,9 @@ class MultiIndexBackend(DataFrameSchemaBackend):
             ):
                 columns[name] = column.set_name(name)
             schema_copy.columns = columns
-
-        def to_dataframe(multiindex):
-            """
-            Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
-            duplicate index names if they exist.
-            """
-            # NOTE: this is a hack to support pyspark.pandas
-            if type(multiindex).__module__.startswith("pyspark.pandas"):
-                df = multiindex.to_frame()
-            else:
-                df = pd.DataFrame(
-                    {
-                        i: multiindex.get_level_values(i)
-                        for i in range(multiindex.nlevels)
-                    }
-                )
-                df.columns = [
-                    i if name is None else name
-                    for i, name in enumerate(multiindex.names)
-                ]
-                df.index = multiindex
-            return df
-
         try:
             validation_result = super().validate(
-                to_dataframe(check_obj.index),
+                self.__to_dataframe(check_obj.index),
                 schema_copy,
                 head=head,
                 tail=tail,
@@ -480,3 +470,36 @@ class MultiIndexBackend(DataFrameSchemaBackend):
 
         assert is_table(validation_result)
         return check_obj
+
+    def __to_dataframe(self, multiindex):
+        """
+        Emulate the behavior of pandas.MultiIndex.to_frame, but preserve
+        duplicate index names if they exist.
+        """
+        # NOTE: this is a hack to support pyspark.pandas
+        if type(multiindex).__module__.startswith("pyspark.pandas"):
+            df = multiindex.to_frame()
+        else:
+            df = pd.DataFrame(
+                {
+                    i: multiindex.get_level_values(i)
+                    for i in range(multiindex.nlevels)
+                }
+            )
+            df.columns = [
+                i if name is None else name
+                for i, name in enumerate(multiindex.names)
+            ]
+            df.index = multiindex
+        return df
+
+    def __coerce_index(self, check_obj, schema, lazy):
+        """Coerce index"""
+        try:
+            return self.coerce_dtype(
+                check_obj.index, schema=schema  # type: ignore [arg-type]
+            )
+        except SchemaErrors as err:
+            if lazy:
+                raise
+            raise err.schema_errors[0] from err
