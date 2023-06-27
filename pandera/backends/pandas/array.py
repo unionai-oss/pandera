@@ -20,6 +20,7 @@ from pandera.errors import (
     SchemaError,
     SchemaErrors,
     SchemaErrorReason,
+    SchemaDefinitionError,
 )
 
 
@@ -45,6 +46,11 @@ class ArraySchemaBackend(PandasSchemaBackend):
         error_handler = SchemaErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
         # fill nans with `default` if it's present
         if hasattr(schema, "default") and pd.notna(schema.default):
             check_obj.fillna(schema.default, inplace=True)
@@ -55,6 +61,42 @@ class ArraySchemaBackend(PandasSchemaBackend):
             except SchemaError as exc:
                 error_handler.collect_error(exc.reason_code, exc)
 
+        # run the core checks
+        error_handler = self.run_checks_and_handle_errors(
+            error_handler,
+            schema,
+            check_obj,
+            head,
+            tail,
+            sample,
+            random_state,
+        )
+
+        if lazy and error_handler.collected_errors:
+            if getattr(schema, "drop_invalid_rows", False):
+                check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                return check_obj
+            else:
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.collected_errors,
+                    data=check_obj,
+                )
+
+        return check_obj
+
+    def run_checks_and_handle_errors(
+        self,
+        error_handler,
+        schema,
+        check_obj,
+        head,
+        tail,
+        sample,
+        random_state,
+    ):
+        """Run checks on schema"""
+        # pylint: disable=too-many-locals
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],
             head,
@@ -71,14 +113,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
             random_state,
         )
 
-        # run the core checks
-        for core_check, args in (
+        core_checks = [
             (self.check_name, (field_obj_subsample, schema)),
             (self.check_nullable, (field_obj_subsample, schema)),
             (self.check_unique, (field_obj_subsample, schema)),
             (self.check_dtype, (field_obj_subsample, schema)),
             (self.run_checks, (check_obj_subsample, schema)),
-        ):
+        ]
+
+        for core_check, args in core_checks:
             results = core_check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
@@ -106,13 +149,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         original_exc=result.original_exc,
                     )
 
-        if lazy and error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
-        return check_obj
+        return error_handler
 
     def coerce_dtype(
         self,

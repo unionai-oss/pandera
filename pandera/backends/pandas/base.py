@@ -24,6 +24,7 @@ from pandera.backends.pandas.error_formatters import (
     scalar_failure_case,
 )
 from pandera.errors import FailureCaseMetadata, SchemaError, SchemaErrorReason
+from pandera.error_handlers import SchemaErrorHandler
 
 
 class ColumnInfo(NamedTuple):
@@ -149,3 +150,12 @@ class PandasSchemaBackend(BaseSchemaBackend):
             message=message,
             error_counts=error_counts,
         )
+
+    def drop_invalid_rows(self, check_obj, error_handler: SchemaErrorHandler):
+        """Remove invalid elements in a check obj according to failures in caught by the error handler."""
+        errors = error_handler.collected_errors
+        for err in errors:
+            check_obj = check_obj.loc[
+                ~check_obj.index.isin(err.failure_cases["index"])
+            ]
+        return check_obj
