@@ -53,7 +53,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         # fill nans with `default` if it's present
         if hasattr(schema, "default") and pd.notna(schema.default):
-            check_obj.fillna(schema.default, inplace=True)
+            check_obj = self.set_default(check_obj, schema)
 
         if schema.coerce:
             try:
@@ -318,6 +318,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
                     )
                 )
         return check_results
+
+    def set_default(self, check_obj, schema):
+        """Sets the ``schema.default`` value on the ``check_obj``"""
+        if is_field(check_obj):
+            check_obj.fillna(schema.default, inplace=True)
+        else:
+            check_obj[schema.name].fillna(schema.default, inplace=True)
+
+        return check_obj
 
 
 class SeriesSchemaBackend(ArraySchemaBackend):
