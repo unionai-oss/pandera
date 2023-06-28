@@ -2150,6 +2150,30 @@ def test_dataframe_default_with_correct_dtype(
     pd.testing.assert_frame_equal(validated_dataframe, expected_dataframe)
 
 
+def test_default_works_correctly_on_schemas_with_multiple_colummns():
+    """Test that each column defaults to the correct value"""
+
+    df = pd.DataFrame(
+        {"x": [1, 2, 3], "y": [None, None, None], "z": [None, None, None]}
+    ).astype("Int64")
+
+    schema = DataFrameSchema(
+        columns={
+            "x": Column("Int64", nullable=True, default=-999),
+            "y": Column("Int64", nullable=True, default=123),
+            "z": Column("Int64", nullable=True, default=1000),
+        }
+    )
+
+    schema.validate(df, inplace=True)
+
+    expected_df = pd.DataFrame(
+        {"x": [1, 2, 3], "y": [123, 123, 123], "z": [1000, 1000, 1000]}
+    ).astype("Int64")
+
+    pd.testing.assert_frame_equal(df, expected_df)
+
+
 def test_pandas_dataframe_subclass_validation():
     """Test that DataFrame subclasses can be validated by pandera."""
 
