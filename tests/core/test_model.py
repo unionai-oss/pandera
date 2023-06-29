@@ -1090,6 +1090,7 @@ def test_from_records_validates_the_schema():
         state: Series[str]
         city: Series[str]
         price: Series[float]
+        postal_code: Optional[Series[int]] = pa.Field(nullable=True)
 
     raw_data = [
         {
