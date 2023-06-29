@@ -14,7 +14,6 @@ from typing import (  # type: ignore[attr-defined]
     Union,
     _type_check,
 )
-from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -235,12 +234,5 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         data_df = pd.DataFrame.from_records(data=data, **kwargs)
         return DataFrame[schema](  # type: ignore
             # set the column order according to schema
-            data_df[
-                list(
-                    filter(
-                        lambda column: column in data_df.columns,
-                        OrderedDict.fromkeys(schema.columns),
-                    )
-                )
-            ]
+            data_df[[c for c in schema.columns if c in data_df.columns]]
         )
