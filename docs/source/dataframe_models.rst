@@ -210,6 +210,7 @@ You can easily convert a :class:`~pandera.api.pandas.model.DataFrameModel` class
         ordered=False,
         unique_column_names=False,
         metadata=None,
+        add_missing_columns=False
     )>
 
 You can also use the :meth:`~pandera.api.pandas.model.DataFrameModel.validate` method to

@@ -154,6 +154,7 @@ class SchemaErrorReason(Enum):
     WRONG_DATATYPE = "wrong_dtype"
     INDEX_CHECK = "index_check"
     NO_ERROR = "no_errors"
+    ADD_MISSING_COLUMN_NO_DEFAULT = "add_missing_column_no_default"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):

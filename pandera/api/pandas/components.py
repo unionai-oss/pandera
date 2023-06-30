@@ -31,6 +31,7 @@ class Column(ArraySchema):
         description: Optional[str] = None,
         default: Optional[Any] = None,
         metadata: Optional[dict] = None,
+        drop_invalid_rows: bool = False,
     ) -> None:
         """Create column validator object.
 
@@ -56,6 +57,7 @@ class Column(ArraySchema):
         :param description: An arbitrary textual description of the column.
         :param default: The default value for missing values in the column.
         :param metadata: An optional key value data.
+        :param drop_invalid_rows: if True, drop invalid rows on validation.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -88,6 +90,7 @@ class Column(ArraySchema):
             description=description,
             default=default,
             metadata=metadata,
+            drop_invalid_rows=drop_invalid_rows,
         )
         if (
             name is not None

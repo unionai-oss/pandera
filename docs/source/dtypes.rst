@@ -18,7 +18,7 @@ Pandera defines its own interface for data types in order to abstract the
 specifics of dataframe-like data structures in the python ecosystem, such
 as Apache Spark, Apache Arrow and xarray.
 
-The pandera type system servers twow function:
+The pandera type system serves two functions:
 
 1. To provide a standardized API for data types that work well within pandera
    so users can define data types with it if they so desire.

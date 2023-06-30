@@ -360,6 +360,7 @@ page or reach out to the maintainers and pandera community on
    hypothesis
    dtypes
    decorators
+   drop_invalid_rows
    schema_inference
    lazy_validation
    data_synthesis_strategies

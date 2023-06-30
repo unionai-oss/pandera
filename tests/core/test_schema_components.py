@@ -44,6 +44,15 @@ def test_column() -> None:
         Column(Int)(data)
 
 
+def test_column_coerce() -> None:
+    """Test that the Column object can be used to coerce dataframe types."""
+    data = pd.DataFrame({"a": [1, 2, 3]})
+    column_schema = Column(Int, name="a", coerce=True)
+    validated = column_schema.validate(data)
+    assert isinstance(validated, pd.DataFrame)
+    assert Engine.dtype(validated.a.dtype) == Engine.dtype(int)
+
+
 def test_column_in_dataframe_schema():
     """Test that a Column check returns a dataframe."""
     schema = DataFrameSchema(

@@ -102,7 +102,8 @@ class Check(BaseCheck):
         :param statistics: kwargs to pass into the check function. These values
             are serialized and represent the constraints of the checks.
         :param strategy: A hypothesis strategy, used for implementing data
-            synthesis strategies for this check.
+            synthesis strategies for this check. See the
+            :ref:`User Guide <custom_strategies>` for more details.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
@@ -193,7 +194,7 @@ class Check(BaseCheck):
             groups = [groups]
         self.groups: Optional[List[str]] = groups
 
-        self.statistics = statistics or {}
+        self.statistics = statistics or check_kwargs or {}
         self.statistics_args = [*self.statistics.keys()]
         self.strategy = strategy
 

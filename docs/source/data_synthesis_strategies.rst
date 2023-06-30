@@ -218,9 +218,50 @@ that are in the set ``{"foo", "bar"}``, which will be very slow and most likely
 raise an ``Unsatisfiable`` exception. To get around this limitation, you can
 register custom checks and define strategies that correspond to them.
 
+.. _custom_strategies:
 
-Defining Custom Strategies
---------------------------
+Defining Custom Strategies via the ``strategy`` kwarg
+-----------------------------------------------------
+
+The :class:`~pandera.api.checks.Check` constructor exposes a ``strategy``
+keyword argument that allows you to define a data synthesis strategy that can
+work as a *base strategy* or *chained strategy*. For example, suppose you define
+a custom check that makes sure values in a column are in some specified range.
+
+.. testcode:: data_synthesis_strategies
+   :skipif: SKIP_STRATEGY
+
+   check = pa.Check(lambda x: x.between(0, 100))
+
+You can then define a strategy for this check with:
+
+.. testcode:: data_synthesis_strategies
+   :skipif: SKIP_STRATEGY
+
+   def in_range_strategy(pandera_dtype, strategy=None):
+       if strategy is None:
+           # handle base strategy case
+           return st.floats(min_value=min_val, max_value=max_val).map(
+               # the map isn't strictly necessary, but shows an example of
+               # using the pandera_dtype argument
+               strategies.to_numpy_dtype(pandera_dtype).type
+           )
+
+       # handle chained strategy case
+       return strategy.filter(lambda val: 0 <= val <= 10)
+
+   check = pa.Check(lambda x: x.between(0, 100), strategy=in_range_strategy)
+
+
+Notice that the ``in_range_strategy`` function takes two arguments: ``pandera_dtype``,
+and ``strategy``. ``pandera_dtype`` is required, since this is almost always
+required information when generating data. The ``strategy`` argument is optional,
+where the default case assumes a *base strategy*, where the check is specified
+as the first one in the list of checks specified at the column- or dataframe- level.
+
+
+Defining Custom Strategies via Check Registration
+-------------------------------------------------
 
 All built-in :class:`~pandera.api.checks.Check` s are associated with a data
 synthesis strategy. You can define your own data synthesis strategies by using

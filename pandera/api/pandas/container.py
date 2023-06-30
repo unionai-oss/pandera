@@ -26,7 +26,9 @@ from pandera.engines import pandas_engine
 N_INDENT_SPACES = 4
 
 
-class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
+class DataFrameSchema(
+    BaseSchema
+):  # pylint: disable=too-many-public-methods,too-many-locals
     """A light-weight pandas DataFrame validator."""
 
     def __init__(
@@ -44,9 +46,11 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         unique: Optional[Union[str, List[str]]] = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
+        add_missing_columns: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
         metadata: Optional[dict] = None,
+        drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -76,9 +80,12 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             - `exclude_last`: report all duplicates except last occurence
             - `all`: (default) report all duplicates
         :param unique_column_names: whether or not column names must be unique.
+        :param add_missing_columns: add missing column names with either default
+            value, if specified in column schema, or NaN if column is nullable.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
         :param metadata: An optional key-value data.
+        :param drop_invalid_rows: if True, drop invalid rows on validation.
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -155,6 +162,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self._unique = unique
         self.report_duplicates = report_duplicates
         self.unique_column_names = unique_column_names
+        self.add_missing_columns = add_missing_columns
+        self.drop_invalid_rows = drop_invalid_rows
 
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
@@ -441,6 +450,8 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             f"ordered={self.ordered}, "
             f"unique_column_names={self.unique_column_names}"
             f"metadata='{self.metadata}, "
+            f"unique_column_names={self.unique_column_names}, "
+            f"add_missing_columns={self.add_missing_columns}"
             ")>"
         )
 
@@ -491,6 +502,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             f"{indent}ordered={self.ordered},\n"
             f"{indent}unique_column_names={self.unique_column_names},\n"
             f"{indent}metadata={self.metadata}, \n"
+            f"{indent}add_missing_columns={self.add_missing_columns}\n"
             ")>"
         )
 
@@ -563,6 +575,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         .. seealso:: :func:`remove_columns`
@@ -615,6 +628,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         .. seealso:: :func:`add_columns`
@@ -678,6 +692,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         .. seealso:: :func:`rename_columns`
@@ -742,6 +757,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         """
@@ -825,6 +841,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         .. seealso:: :func:`update_column`
@@ -904,6 +921,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         .. note:: If an index is present in the schema, it will also be
@@ -971,6 +989,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         If you have an existing index in your schema, and you would like to
@@ -1008,6 +1027,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         .. seealso:: :func:`reset_index`
@@ -1106,6 +1126,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         This reclassifies an index (or indices) as a column (or columns).
@@ -1137,6 +1158,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             ordered=False,
             unique_column_names=False,
             metadata=None,
+            add_missing_columns=False
         )>
 
         .. seealso:: :func:`set_index`

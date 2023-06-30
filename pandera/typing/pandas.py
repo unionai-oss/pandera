@@ -9,6 +9,7 @@ from typing import (  # type: ignore[attr-defined]
     Generic,
     List,
     Tuple,
+    Type,
     TypeVar,
     Union,
     _type_check,
@@ -219,7 +220,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
     @staticmethod
     def from_records(  # type: ignore
-        schema: T,
+        schema: Type[T],
         data: Union[  # type: ignore
             np.ndarray, List[Tuple[Any, ...]], Dict[Any, Any], pd.DataFrame
         ],
@@ -238,8 +239,8 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         schema_index = schema.index.names if schema.index is not None else None
         if "index" not in kwargs:
             kwargs["index"] = schema_index
-        return DataFrame[T](
-            pd.DataFrame.from_records(data=data, **kwargs,)[
-                schema.columns.keys()
-            ]  # set the column order according to schema
+        data_df = pd.DataFrame.from_records(data=data, **kwargs)
+        return DataFrame[schema](  # type: ignore
+            # set the column order according to schema
+            data_df[[c for c in schema.columns if c in data_df.columns]]
         )

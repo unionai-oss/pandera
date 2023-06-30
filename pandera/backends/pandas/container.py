@@ -3,7 +3,7 @@
 import copy
 import itertools
 import traceback
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple, Dict
 
 import pandas as pd
 from pydantic import BaseModel
@@ -56,20 +56,22 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if not is_table(check_obj):
             raise TypeError(f"expected pd.DataFrame, got {type(check_obj)}")
 
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
         error_handler = SchemaErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
             check_obj = check_obj.pandera.add_schema(schema)
 
-        column_info = self.collect_column_info(check_obj, schema, lazy)
-
-        # collect schema components
-        components = self.collect_schema_components(
-            check_obj, schema, column_info
-        )
+        # Collect status of columns against schema
+        column_info = self.collect_column_info(check_obj, schema)
 
         core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
+            (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
             (self.coerce_dtype, (schema,)),
         ]
@@ -82,6 +84,58 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc)
 
+        # We may have modified columns, for example by
+        # add_missing_columns, so regenerate column info
+        column_info = self.collect_column_info(check_obj, schema)
+
+        # collect schema components
+        components = self.collect_schema_components(
+            check_obj, schema, column_info
+        )
+
+        # run the checks
+        error_handler = self.run_checks_and_handle_errors(
+            error_handler,
+            schema,
+            check_obj,
+            column_info,
+            sample,
+            components,
+            lazy,
+            head,
+            tail,
+            random_state,
+        )
+
+        if error_handler.collected_errors:
+            if getattr(schema, "drop_invalid_rows", False):
+                check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                return check_obj
+            else:
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.collected_errors,
+                    data=check_obj,
+                )
+
+        return check_obj
+
+    def run_checks_and_handle_errors(
+        self,
+        error_handler,
+        schema,
+        check_obj,
+        column_info,
+        sample,
+        components,
+        lazy,
+        head,
+        tail,
+        random_state,
+    ):
+        """Run checks on schema"""
+        # pylint: disable=too-many-locals
+
         # subsample the check object if head, tail, or sample are specified
         sample = self.subsample(check_obj, head, tail, sample, random_state)
 
@@ -93,7 +147,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             (self.run_schema_component_checks, (sample, components, lazy)),
             (self.run_checks, (sample, schema)),
         ]
-
         for check, args in core_checks:
             results = check(*args)  # type: ignore [operator]
             if isinstance(results, CoreCheckResult):
@@ -122,14 +175,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     original_exc=result.original_exc,
                 )
 
-        if error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
-
-        return check_obj
+        return error_handler
 
     def run_schema_component_checks(
         self,
@@ -211,12 +257,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         self,
         check_obj: pd.DataFrame,
         schema,
-        lazy: bool,
     ) -> ColumnInfo:
         """Collect column metadata."""
         column_names: List[Any] = []
         absent_column_names: List[Any] = []
-        lazy_exclude_column_names: List[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -225,11 +269,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 and col_schema.required
             ):
                 absent_column_names.append(col_name)
-                if lazy:
-                    # NOTE: remove this since we can just use
-                    # absent_column_names in the collect_schema_components
-                    # method
-                    lazy_exclude_column_names.append(col_name)
 
             if col_schema.regex:
                 try:
@@ -255,7 +294,6 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             expanded_column_names=frozenset(column_names),
             destuttered_column_names=destuttered_column_names,
             absent_column_names=absent_column_names,
-            lazy_exclude_column_names=lazy_exclude_column_names,
         )
 
     def collect_schema_components(
@@ -288,21 +326,22 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
 
             columns = {}
             for col in check_obj.columns:
-                columns[col] = Column(schema.dtype, name=col)
+                columns[col] = Column(schema.dtype, name=str(col))
 
         schema_components = []
         for col_name, col in columns.items():
             if (
-                col.required or col_name in check_obj
-            ) and col_name not in column_info.lazy_exclude_column_names:
+                col.required  # type: ignore[union-attr]
+                or col_name in check_obj
+            ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:
                     # override column dtype with dataframe dtype
-                    col.dtype = schema.dtype
+                    col.dtype = schema.dtype  # type: ignore[union-attr]
 
                 # disable coercion at the schema component level since the
                 # dataframe-level schema already coerced it.
-                col.coerce = False
+                col.coerce = False  # type: ignore[union-attr]
                 schema_components.append(col)
 
         if schema.index is not None:
@@ -312,6 +351,92 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     ###########
     # Parsers #
     ###########
+
+    def add_missing_columns(
+        self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
+    ):
+        """Add columns that aren't in the dataframe."""
+        # Add missing columns to dataframe based on 'add_missing_columns'
+        # schema property
+
+        if not (
+            column_info.absent_column_names and schema.add_missing_columns
+        ):
+            return check_obj
+
+        # Absent columns are required to have a default
+        # value or be nullable
+        for col_name in column_info.absent_column_names:
+            col_schema = schema.columns[col_name]
+            if pd.isna(col_schema.default) and not col_schema.nullable:
+                raise SchemaError(
+                    schema=schema,
+                    data=check_obj,
+                    message=(
+                        f"column '{col_name}' in {schema.__class__.__name__}"
+                        f" {schema.columns} requires a default value "
+                        f"when non-nullable add_missing_columns is enabled"
+                    ),
+                    failure_cases=scalar_failure_case(col_name),
+                    check="add_missing_has_default",
+                    reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
+                )
+
+        # Ascertain order in which missing columns should
+        # be inserted into dataframe. Be careful not to
+        # modify order of existing dataframe columns to
+        # avoid ripple effects in downstream validation
+        # (e.g., ordered schema).
+        schema_cols_dict: Dict[Any, None] = dict()
+        for col_name, col_schema in schema.columns.items():
+            if col_name in check_obj.columns or col_schema.required:
+                schema_cols_dict[col_name] = None
+
+        concat_ordered_cols = []
+        for col_name in check_obj.columns:
+            pop_cols = []
+            for next_col_name in iter(schema_cols_dict):
+                if next_col_name in column_info.absent_column_names:
+                    # Next schema column is missing from dataframe,
+                    # so mark for insertion here
+                    concat_ordered_cols.append(next_col_name)
+                    pop_cols.append(next_col_name)
+                else:
+                    # Pop marked columns from schema list
+                    for pop_col in pop_cols:
+                        schema_cols_dict.pop(pop_col)
+                    break
+
+            # Add current column
+            concat_ordered_cols.append(col_name)
+
+            # Pop current column if it exists in schema
+            schema_cols_dict.pop(col_name, None)
+
+        # Add any remaining absent columns
+        for col_name in column_info.absent_column_names:
+            if col_name not in concat_ordered_cols:
+                concat_ordered_cols.append(col_name)
+
+        # Create companion dataframe of default values for missing columns
+        defaults = {
+            c: schema.columns[c].default
+            for c in column_info.absent_column_names
+        }
+
+        missing_obj = pd.DataFrame(
+            data=defaults,
+            columns=column_info.absent_column_names,
+            index=check_obj.index,
+        )
+
+        # Append missing columns
+        concat_obj = pd.concat([check_obj, missing_obj], axis=1)
+
+        # Set column order
+        concat_obj = concat_obj[concat_ordered_cols]
+
+        return concat_obj
 
     def strict_filter_columns(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
@@ -542,7 +667,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     ) -> List[CoreCheckResult]:
         """Check for presence of specified columns in the data object."""
         results = []
-        if column_info.absent_column_names:
+        if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:
                 results.append(
                     CoreCheckResult(

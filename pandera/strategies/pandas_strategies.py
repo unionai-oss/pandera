@@ -20,6 +20,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     List,
     Optional,
     Sequence,
@@ -50,8 +51,11 @@ try:
     import hypothesis.strategies as st
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
+
+    T = TypeVar("T")
+
     # pylint: disable=too-few-public-methods
-    class SearchStrategy:  # type: ignore
+    class SearchStrategy(Generic[T]):  # type: ignore
         """placeholder type."""
 
     def composite(fn):  # type: ignore
@@ -197,12 +201,7 @@ def register_check_strategy(strategy_fn: StrategyFn):
                     f"specify the statistics for the {class_method.__name__} "
                     "method."
                 )
-            strategy_kwargs = {
-                arg: stat
-                for arg, stat in check.statistics.items()
-                if stat is not None
-            }
-            check.strategy = partial(strategy_fn, **strategy_kwargs)
+            check.strategy = strategy_fn
             return check
 
         return _wrapper
@@ -803,7 +802,11 @@ def field_element_strategy(
         ).filter(check._check_fn)
 
     for check in checks:
-        check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
+        check_strategy = (
+            check.strategy
+            if check.strategy is not None
+            else STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
+        )
         if check_strategy is not None:
             elements = check_strategy(
                 pandera_dtype, elements, **check.statistics
@@ -827,7 +830,7 @@ def series_strategy(
     unique: bool = False,
     name: Optional[str] = None,
     size: Optional[int] = None,
-):
+) -> SearchStrategy:
     """Strategy to generate a pandas Series.
 
     :param pandera_dtype: :class:`pandera.dtypes.DataType` instance.
@@ -870,7 +873,7 @@ def series_strategy(
     def undefined_check_strategy(strategy, check):
         """Strategy for checks with undefined strategies."""
         warnings.warn(
-            "Vectorized check doesn't have a defined strategy."
+            "Vectorized check doesn't have a defined strategy. "
             "Falling back to filtering drawn values based on the check "
             "definition. This can considerably slow down data-generation."
         )
@@ -881,8 +884,13 @@ def series_strategy(
         return strategy.filter(_check_fn)
 
     for check in checks if checks is not None else []:
-        check_strategy = STRATEGY_DISPATCHER.get((check.name, pd.Series), None)
-        if check_strategy is None and not check.element_wise:
+        # for checks with undefined built-in or custom strategies that are
+        # vectorized, apply check function to the entire series.
+        if (
+            check.strategy is None
+            and not STRATEGY_DISPATCHER.get((check.name, pd.Series))
+            and not check.element_wise
+        ):
             strategy = undefined_check_strategy(strategy, check)
 
     return strategy
@@ -1039,11 +1047,14 @@ def dataframe_strategy(
     def make_row_strategy(col, checks):
         strategy = None
         for check in checks:
-            check_strategy = STRATEGY_DISPATCHER.get(
-                (check.name, pd.DataFrame), None
-            )
-            if check_strategy is not None:
-                strategy = check_strategy(
+            if check.strategy is not None:
+                strategy = check.strategy(
+                    col.dtype,
+                    strategy,
+                    **check.statistics,
+                )
+            elif STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None):
+                strategy = STRATEGY_DISPATCHER.get((check.name, pd.DataFrame))(
                     col.dtype, strategy, **check.statistics
                 )
             else:
@@ -1064,10 +1075,11 @@ def dataframe_strategy(
         row_strategy_checks = []
         undefined_strat_df_checks = []
         for check in checks:
-            check_strategy = STRATEGY_DISPATCHER.get(
-                (check.name, pd.DataFrame)
-            )
-            if check_strategy is not None or check.element_wise:
+            if (
+                check.strategy
+                or STRATEGY_DISPATCHER.get((check.name, pd.DataFrame), None)
+                or check.element_wise
+            ):
                 # we can apply element-wise checks defined at the dataframe
                 # level to the row strategy
                 row_strategy_checks.append(check)

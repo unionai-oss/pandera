@@ -49,6 +49,7 @@ is a simple example:
         ordered=False,
         unique_column_names=False,
         metadata=None,
+        add_missing_columns=False
     )>
 
 
@@ -167,6 +168,7 @@ You can also write your schema to a python script with :func:`~pandera.io.to_scr
         unique=None,
         report_duplicates="all",
         unique_column_names=False,
+        add_missing_columns=False,
         title=None,
         description=None,
     )
@@ -251,6 +253,7 @@ is a convenience method for this functionality.
     unique: null
     report_duplicates: all
     unique_column_names: false
+    add_missing_columns: false
     title: null
     description: null
 
@@ -351,6 +354,7 @@ is a convenience method for this functionality.
         "unique": null,
         "report_duplicates": "all",
         "unique_column_names": false,
+        "add_missing_columns": false,
         "title": null,
         "description": null
     }

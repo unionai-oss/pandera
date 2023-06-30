@@ -151,11 +151,6 @@ def register_check_method(  # pylint:disable=too-many-branches
 
     See the :ref:`user guide<extensions>` for more details.
 
-    .. warning::
-
-        This is the legacy method for registering check methods. Use the
-        :py:func:`~pandera.api.extensions.register_check` decorator instead.
-
     :param check_fn: check function to register. The function should take one
         positional argument for the object to validate and additional
         keyword-only arguments for the check statistics.
@@ -307,5 +302,6 @@ def register_check_method(  # pylint:disable=too-many-branches
         Check.REGISTERED_CUSTOM_CHECKS[check_fn.__name__] = partial(
             check_method, Check
         )
+        return check_fn
 
     return register_check_wrapper(check_fn)
