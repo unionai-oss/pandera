@@ -244,6 +244,7 @@ ordered: false
 unique: null
 report_duplicates: all
 unique_column_names: false
+add_missing_columns: false
 title: null
 description: null
 """
@@ -505,6 +506,7 @@ ordered: false
 unique: null
 report_duplicates: all
 unique_column_names: false
+add_missing_columns: false
 title: null
 description: null
 """
@@ -1251,6 +1253,7 @@ ordered: false
 unique: null
 report_duplicates: all
 unique_column_names: false
+add_missing_columns: false
 title: null
 description: null
 """

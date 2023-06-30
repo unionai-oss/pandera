@@ -542,6 +542,43 @@ To control how unique errors are reported, the `report_duplicates` argument acce
     1      c      1             3
 
 
+Adding missing columns
+~~~~~~~~~~~~~~~~~~~~~~
+
+When loading raw data into a form that's ready for data processing, it's often
+useful to have guarantees that the columns specified in the schema are present,
+even if they're missing from the raw data. This is where it's useful to
+specify ``add_missing_columns=True`` in your schema definition.
+
+When you call ``schema.validate(data)``, the schema will add any missing columns
+to the dataframe, defaulting to the ``default`` value if supplied at the column-level,
+or to ``NaN`` if the column is nullable.
+
+.. testcode:: add_missing_columns
+
+    import pandas as pd
+    import pandera as pa
+
+    schema = pa.DataFrameSchema(
+        columns={
+            "a": pa.Column(int),
+            "b": pa.Column(int, default=1),
+            "c": pa.Column(float, nullable=True),
+        },
+        add_missing_columns=True,
+        coerce=True,
+    )
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    print(schema.validate(df))
+
+.. testoutput:: add_missing_columns
+
+       a  b   c
+    0  1  1 NaN
+    1  2  1 NaN
+    2  3  1 NaN
+
+
 Index Validation
 ----------------
 
@@ -813,7 +850,8 @@ data pipeline:
         strict=True
         name=None,
         ordered=False,
-        unique_column_names=False
+        unique_column_names=False,
+        add_missing_columns=False
     )>
 
 If during the course of a data pipeline one of your columns is moved into the
@@ -861,7 +899,8 @@ the pipeline output.
         strict=True
         name=None,
         ordered=False,
-        unique_column_names=False
+        unique_column_names=False,
+        add_missing_columns=False
     )>
 
 

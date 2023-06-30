@@ -55,11 +55,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
         if hasattr(schema, "default") and pd.notna(schema.default):
             check_obj = self.set_default(check_obj, schema)
 
-        if schema.coerce:
-            try:
+        try:
+            if is_field(check_obj) and schema.coerce:
                 check_obj = self.coerce_dtype(check_obj, schema=schema)
-            except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
+            elif schema.coerce:
+                check_obj[schema.name] = self.coerce_dtype(
+                    check_obj[schema.name], schema=schema
+                )
+        except SchemaError as exc:
+            error_handler.collect_error(exc.reason_code, exc)
 
         # run the core checks
         error_handler = self.run_checks_and_handle_errors(
