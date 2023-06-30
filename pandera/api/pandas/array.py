@@ -303,6 +303,7 @@ class SeriesSchema(ArraySchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        metadata: Optional[dict] = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize series schema base object.
@@ -330,6 +331,7 @@ class SeriesSchema(ArraySchema):
         :param name: series name.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
+        :param metadata: An optional key-value data.
         :param default: The default value for missing values in the series.
         :param drop_invalid_rows: if True, drop invalid rows on validation.
 
@@ -345,6 +347,7 @@ class SeriesSchema(ArraySchema):
             title,
             description,
             default,
+            metadata,
             drop_invalid_rows,
         )
         self.index = index
