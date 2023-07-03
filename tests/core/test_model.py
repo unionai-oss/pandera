@@ -502,6 +502,31 @@ def test_check_regex() -> None:
         Schema.validate(df, lazy=True)
 
 
+def test_field_has_metadata() -> None:
+    """Test we can apply metadata on a field"""
+
+    class Schema(pa.DataFrameModel):
+        ihasmeta: Index[int] = pa.Field(metadata={"foo": "bar"})
+        fhasmeta: Series[float] = pa.Field(metadata={"hello": "world"})
+        fnometa: Series[float]
+
+    schema = Schema.to_schema()
+    assert schema.index.metadata is not None
+    assert schema.index.metadata["foo"] == "bar"
+    assert schema.columns["fhasmeta"].metadata is not None
+    assert schema.columns["fhasmeta"].metadata["hello"] == "world"
+    assert schema.columns["fnometa"].metadata is None
+
+    class SchemaWithMultiIndex(pa.DataFrameModel):
+        ihasmeta: Index[int] = pa.Field(metadata={"foo": "bar"})
+        inometa: Index[int]
+
+    schema = SchemaWithMultiIndex.to_schema()
+    assert schema.index.indexes[0].metadata is not None
+    assert schema.index.indexes[0].metadata["foo"] == "bar"
+    assert schema.index.indexes[1].metadata is None
+
+
 def test_inherit_dataframemodel_fields() -> None:
     """Test that columns and indices are inherited."""
 

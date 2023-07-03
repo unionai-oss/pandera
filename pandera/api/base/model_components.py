@@ -43,6 +43,7 @@ class BaseFieldInfo:
         "title",
         "description",
         "default",
+        "metadata",
     )
 
     def __init__(
@@ -58,6 +59,7 @@ class BaseFieldInfo:
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        metadata: Optional[dict] = None,
     ) -> None:
         self.checks = to_checklist(checks)
         self.nullable = nullable
@@ -71,6 +73,7 @@ class BaseFieldInfo:
         self.title = title
         self.description = description
         self.default = default
+        self.metadata = metadata
 
     @property
     def name(self) -> str:
