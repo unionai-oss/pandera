@@ -78,6 +78,7 @@ class ArraySchema(BaseSchema):
             title=title,
             description=description,
             drop_invalid_rows=drop_invalid_rows,
+            metadata=metadata,
         )
 
         if checks is None:
@@ -92,7 +93,6 @@ class ArraySchema(BaseSchema):
         self.title = title
         self.description = description
         self.default = default
-        self.metadata = metadata
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:

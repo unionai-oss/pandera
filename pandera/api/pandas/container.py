@@ -50,6 +50,7 @@ class DataFrameSchema(
         title: Optional[str] = None,
         description: Optional[str] = None,
         drop_invalid_rows: bool = False,
+        metadata: Optional[dict] = None,
     ) -> None:
         """Initialize DataFrameSchema validator.
 
@@ -84,6 +85,7 @@ class DataFrameSchema(
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
         :param drop_invalid_rows: if True, drop invalid rows on validation.
+        :param metadata: User metadata for dataframe
 
         :raises SchemaInitError: if impossible to build schema from parameters
 
@@ -136,6 +138,7 @@ class DataFrameSchema(
             name=name,
             title=title,
             description=description,
+            metadata=metadata,
         )
 
         self.columns: Dict[Any, "pandera.api.pandas.components.Column"] = (  # type: ignore [name-defined]
@@ -433,6 +436,7 @@ class DataFrameSchema(
             f"name={self.name}, "
             f"ordered={self.ordered}, "
             f"unique_column_names={self.unique_column_names}, "
+            f"metadata={self.metadata}, "
             f"add_missing_columns={self.add_missing_columns}"
             ")>"
         )
@@ -483,6 +487,7 @@ class DataFrameSchema(
             f"{indent}name={self.name},\n"
             f"{indent}ordered={self.ordered},\n"
             f"{indent}unique_column_names={self.unique_column_names},\n"
+            f"{indent}metadata={self.metadata},\n"
             f"{indent}add_missing_columns={self.add_missing_columns}\n"
             ")>"
         )
@@ -555,6 +560,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -607,6 +613,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -670,6 +677,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -734,6 +742,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -817,6 +826,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -896,6 +906,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -963,6 +974,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -1000,6 +1012,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -1098,6 +1111,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -1129,6 +1143,7 @@ class DataFrameSchema(
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 

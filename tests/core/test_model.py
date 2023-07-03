@@ -761,6 +761,7 @@ def test_config() -> None:
             multiindex_strict = True
             multiindex_name: Optional[str] = "mi"
             unique_column_names = True
+            metadata = {"foo": "baz"}
             add_missing_columns = True
 
     class Child(Base):
@@ -789,6 +790,7 @@ def test_config() -> None:
         add_missing_columns=True,
         description="foo",
         title="bar",
+        metadata={"foo": "baz"},
     )
 
     assert expected == Child.to_schema()
