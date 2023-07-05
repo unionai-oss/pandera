@@ -110,9 +110,6 @@ class BaseFieldInfo:
     def __set__(self, instance: Any, value: Any) -> None:  # pragma: no cover
         raise AttributeError(f"Can't set the {self.original_name} field.")
 
-    def __get_metadata__(self):
-        return self.metadata
-
 
 class BaseCheckInfo:  # pylint:disable=too-few-public-methods
     """Captures extra information about a Check."""

@@ -9,14 +9,14 @@ try:
     from pyspark.sql import DataFrame
 
     PYSPARK_INSTALLED = True
-except ImportError:
+except ImportError:  # pragma: no cover
     PYSPARK_INSTALLED = False
 
 try:
     from pyspark.sql import DataFrame
 
     PYSPARK_INSTALLED = True
-except ImportError:
+except ImportError:  # pragma: no cover
     PYSPARK_INSTALLED = False
 
 PandasObject = Union[pd.Series, pd.DataFrame]

@@ -223,7 +223,6 @@ class DataFrameSchema(
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
 
-    @property
     def get_metadata(self) -> Optional[dict]:
         """Provide metadata for columns and schema level"""
         res: Dict[Any, Any] = {"columns": {}}

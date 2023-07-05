@@ -18,7 +18,7 @@ try:
     import pyspark.sql as ps
 
     PYSPARK_INSTALLED = True
-except ImportError:
+except ImportError:  # pragma: no cover
     PYSPARK_INSTALLED = False
 
 

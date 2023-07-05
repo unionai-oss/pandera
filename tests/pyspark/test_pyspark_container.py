@@ -119,7 +119,7 @@ def test_pyspark_column_metadata():
         }
     }
 
-    assert schema.get_metadata == expected
+    assert schema.get_metadata() == expected
 
 
 def test_pyspark_sample():
