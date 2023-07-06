@@ -36,10 +36,15 @@ from pandera.api.pandas.model_components import (
     FieldInfo,
 )
 from pandera.api.pandas.model_config import BaseConfig
+from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
 from pandera.strategies import pandas_strategies as st
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
+
+if PYDANTIC_V2:
+    from pydantic_core import core_schema
+    from pydantic import GetJsonSchemaHandler, GetCoreSchemaHandler
 
 try:
     from typing_extensions import get_type_hints
@@ -533,8 +538,19 @@ class DataFrameModel(BaseModel):
         return [check_info.to_check(cls) for check_info in check_infos]
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.pydantic_validate
+    def get_metadata(cls) -> Optional[dict]:
+        """Provide metadata for columns and schema level"""
+        res: Dict[Any, Any] = {"columns": {}}
+        columns = cls._collect_fields()
+
+        for k, (_, v) in columns.items():
+            res["columns"][k] = v.properties["metadata"]
+
+        res["dataframe"] = cls.Config.metadata
+
+        meta = {}
+        meta[cls.Config.name] = res
+        return meta
 
     @classmethod
     def pydantic_validate(cls, schema_model: Any) -> "DataFrameModel":
@@ -557,25 +573,37 @@ class DataFrameModel(BaseModel):
 
         return cast("DataFrameModel", schema_model)
 
-    @classmethod
-    def get_metadata(cls) -> Optional[dict]:
-        """Provide metadata for columns and schema level"""
-        res: Dict[Any, Any] = {"columns": {}}
-        columns = cls._collect_fields()
+    if PYDANTIC_V2:
 
-        for k, (_, v) in columns.items():
-            res["columns"][k] = v.properties["metadata"]
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls, _source_type: Any, _handler: GetCoreSchemaHandler
+        ) -> core_schema.CoreSchema:
+            return core_schema.no_info_plain_validator_function(
+                cls.pydantic_validate,
+            )
 
-        res["dataframe"] = cls.Config.metadata
+        @classmethod
+        def __get_pydantic_json_schema__(
+            cls,
+            _core_schema: core_schema.CoreSchema,
+            _handler: GetJsonSchemaHandler,
+        ):
+            """Update pydantic field schema."""
+            json_schema = _handler(_core_schema)
+            json_schema = _handler.resolve_ref_schema(json_schema)
+            json_schema.update(_to_json_schema(cls.to_schema()))
 
-        meta = {}
-        meta[cls.Config.name] = res
-        return meta
+    else:
 
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        """Update pydantic field schema."""
-        field_schema.update(_to_json_schema(cls.to_schema()))
+        @classmethod
+        def __modify_schema__(cls, field_schema):
+            """Update pydantic field schema."""
+            field_schema.update(_to_json_schema(cls.to_schema()))
+
+        @classmethod
+        def __get_validators__(cls):
+            yield cls.pydantic_validate
 
 
 SchemaModel = DataFrameModel

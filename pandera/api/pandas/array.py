@@ -13,7 +13,12 @@ from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, is_field
 from pandera.dtypes import DataType, UniqueSettings
-from pandera.engines import pandas_engine
+from pandera.engines import pandas_engine, PYDANTIC_V2
+
+if PYDANTIC_V2:
+    from pydantic_core import core_schema
+    from pydantic import GetCoreSchemaHandler
+
 
 TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
 
@@ -203,9 +208,21 @@ class ArraySchema(BaseSchema):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
-    @classmethod
-    def __get_validators__(cls):
-        yield cls._pydantic_validate
+    if PYDANTIC_V2:
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls, _source_type: Any, _handler: GetCoreSchemaHandler
+        ) -> core_schema.CoreSchema:
+            return core_schema.no_info_plain_validator_function(
+                cls._pydantic_validate,  # type: ignore[misc]
+            )
+
+    else:
+
+        @classmethod
+        def __get_validators__(cls):
+            yield cls._pydantic_validate
 
     @classmethod
     def _pydantic_validate(  # type: ignore

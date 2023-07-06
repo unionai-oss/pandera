@@ -15,9 +15,15 @@ from typing import (  # type: ignore[attr-defined]
     _type_check,
 )
 
+try:
+    from typing import get_args
+except ImportError:
+    from typing_extensions import get_args
+
 import numpy as np
 import pandas as pd
 
+from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing.common import (
     DataFrameBase,
@@ -33,6 +39,10 @@ try:
 except ImportError:  # pragma: no cover
     _GenericAlias = None
 
+
+if PYDANTIC_V2:
+    from pydantic_core import core_schema
+    from pydantic import GetCoreSchemaHandler
 
 try:
     from pydantic.fields import ModelField
@@ -96,10 +106,6 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             """
             _type_check(item, "Parameters to generic types must be types.")
             return _GenericAlias(cls, item)
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.pydantic_validate
 
     @classmethod
     def from_format(cls, obj: Any, config) -> pd.DataFrame:
@@ -202,21 +208,59 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             ) from exc
         return schema_model, schema
 
+    if PYDANTIC_V2:
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls, _source_type: Any, _handler: GetCoreSchemaHandler
+        ) -> core_schema.CoreSchema:
+            schema_model = get_args(_source_type)[0]
+            schema = schema_model.to_schema()
+            return core_schema.no_info_plain_validator_function(
+                functools.partial(
+                    cls.pydantic_validate,
+                    schema_model=schema_model,
+                    schema=schema,
+                ),
+            )
+
+    else:
+
+        @classmethod
+        def __get_validators__(cls):
+            yield cls._pydantic_validate
+
     @classmethod
-    def pydantic_validate(cls, obj: Any, field: ModelField) -> pd.DataFrame:
+    def pydantic_validate(
+        cls,
+        obj: Any,
+        schema_model,
+        schema,
+    ) -> pd.DataFrame:
         """
         Verify that the input can be converted into a pandas dataframe that
         meets all schema requirements.
-        """
-        schema_model, schema = cls._get_schema(field)
-        data = cls.from_format(obj, schema_model.__config__)
 
+        This is for pydantic >= v2
+        """
+        data = cls.from_format(obj, schema_model.__config__)
         try:
             valid_data = schema.validate(data)
         except SchemaError as exc:
             raise ValueError(str(exc)) from exc
 
         return cls.to_format(valid_data, schema_model.__config__)
+
+    @classmethod
+    def _pydantic_validate(cls, obj: Any, field: ModelField) -> pd.DataFrame:
+        """
+        Verify that the input can be converted into a pandas dataframe that
+        meets all schema requirements.
+
+        This is for pydantic < v1
+        """
+        schema_model, schema = cls._get_schema(field)
+        return cls.pydantic_validate(obj, schema_model, schema)
 
     @staticmethod
     def from_records(  # type: ignore

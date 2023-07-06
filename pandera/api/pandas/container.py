@@ -21,7 +21,11 @@ from pandera.api.pandas.types import (
     StrictType,
 )
 from pandera.dtypes import DataType, UniqueSettings
-from pandera.engines import pandas_engine
+from pandera.engines import pandas_engine, PYDANTIC_V2
+
+if PYDANTIC_V2:
+    from pydantic_core import core_schema
+    from pydantic import GetCoreSchemaHandler
 
 N_INDENT_SPACES = 4
 
@@ -516,9 +520,21 @@ class DataFrameSchema(
 
         return _compare_dict(self) == _compare_dict(other)
 
-    @classmethod
-    def __get_validators__(cls):
-        yield cls._pydantic_validate
+    if PYDANTIC_V2:
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls, _source_type: Any, _handler: GetCoreSchemaHandler
+        ) -> core_schema.CoreSchema:
+            return core_schema.no_info_plain_validator_function(
+                cls._pydantic_validate,
+            )
+
+    else:
+
+        @classmethod
+        def __get_validators__(cls):
+            yield cls._pydantic_validate
 
     @classmethod
     def _pydantic_validate(cls, schema: Any) -> "DataFrameSchema":
