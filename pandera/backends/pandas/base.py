@@ -34,6 +34,7 @@ class ColumnInfo(NamedTuple):
     expanded_column_names: FrozenSet
     destuttered_column_names: List
     absent_column_names: List
+    regex_match_patterns: List
 
 
 FieldCheckObj = Union[pd.Series, pd.DataFrame]
