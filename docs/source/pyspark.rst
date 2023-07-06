@@ -2,7 +2,7 @@
 
 .. _scaling_pyspark:
 
-Data Validation with Pyspark ⭐️ (New)
+Data Validation with Pyspark Pandas
 =======================================
 
 *new in 0.10.0*

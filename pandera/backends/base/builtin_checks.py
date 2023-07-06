@@ -13,7 +13,6 @@ from typing import Any, Iterable, TypeVar, Union
 
 from pandera.api.checks import Check
 
-
 T = TypeVar("T")
 
 

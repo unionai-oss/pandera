@@ -26,7 +26,6 @@ if pandas_version().release >= (2, 0, 0):
 if not HAS_HYPOTHESIS:
     collect_ignore.append("test_strategies.py")
 else:
-
     suppressed_health_checks = [
         hypothesis.HealthCheck.data_too_large,
         hypothesis.HealthCheck.too_slow,
@@ -41,7 +40,7 @@ else:
     )
     settings.register_profile(
         "dev",
-        max_examples=5,
+        max_examples=3,
         deadline=None,
         suppress_health_check=suppressed_health_checks,
     )

@@ -1197,7 +1197,6 @@ def test_lazy_dataframe_validation_error() -> None:
     try:
         schema.validate(dataframe, lazy=True)
     except errors.SchemaErrors as err:
-
         # data in the caught exception should be equal to the dataframe
         # passed into validate
         assert err.data.equals(dataframe)  # type: ignore
@@ -2313,3 +2312,35 @@ def test_drop_invalid_for_model_schema():
 
     with pytest.raises(errors.SchemaDefinitionError):
         MySchema.validate(actual_obj, lazy=False)
+
+
+def test_get_schema_metadata():
+    """Test fetching schema metadata."""
+
+    schema = DataFrameSchema(
+        columns={
+            "int_column": Column(int, metadata={"key": "value"}),
+            "float_column": Column(float, metadata={"key": [1, 2, 3]}),
+            "str_column": Column(str, metadata={"key": {"nested": "value"}}),
+        },
+        metadata={"df_level": "schema-level metadata"},
+        name="dataframe_name",
+    )
+    metadata = schema.get_metadata()
+    expected = {
+        "dataframe_name": {
+            "columns": {
+                "int_column": {"key": "value"},
+                "float_column": {
+                    "key": [
+                        1,
+                        2,
+                        3,
+                    ]
+                },
+                "str_column": {"key": {"nested": "value"}},
+            },
+            "dataframe": {"df_level": "schema-level metadata"},
+        }
+    }
+    assert expected == metadata

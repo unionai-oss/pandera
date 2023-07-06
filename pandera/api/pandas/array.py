@@ -11,11 +11,7 @@ from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import (
-    CheckList,
-    PandasDtypeInputTypes,
-    is_field,
-)
+from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, is_field
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine
 
@@ -37,6 +33,7 @@ class ArraySchema(BaseSchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        metadata: Optional[dict] = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize array schema.
@@ -63,9 +60,9 @@ class ArraySchema(BaseSchema):
         :param name: column name in dataframe to validate.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
+        :param metadata: An optional key-value data.
         :param default: The default value for missing values in the series.
         :param drop_invalid_rows: if True, drop invalid rows on validation.
-
         """
 
         super().__init__(
@@ -75,6 +72,7 @@ class ArraySchema(BaseSchema):
             name=name,
             title=title,
             description=description,
+            metadata=metadata,
             drop_invalid_rows=drop_invalid_rows,
         )
 
@@ -90,6 +88,7 @@ class ArraySchema(BaseSchema):
         self.title = title
         self.description = description
         self.default = default
+        self.metadata = metadata
 
         for check in self.checks:
             if check.groupby is not None and not self._allow_groupby:
@@ -304,6 +303,7 @@ class SeriesSchema(ArraySchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        metadata: Optional[dict] = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize series schema base object.
@@ -331,6 +331,7 @@ class SeriesSchema(ArraySchema):
         :param name: series name.
         :param title: A human-readable label for the series.
         :param description: An arbitrary textual description of the series.
+        :param metadata: An optional key-value data.
         :param default: The default value for missing values in the series.
         :param drop_invalid_rows: if True, drop invalid rows on validation.
 
@@ -346,6 +347,7 @@ class SeriesSchema(ArraySchema):
             title,
             description,
             default,
+            metadata,
             drop_invalid_rows,
         )
         self.index = index

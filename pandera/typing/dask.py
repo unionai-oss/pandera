@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from pandera.typing.common import DataFrameBase, IndexBase, SeriesBase
-from pandera.typing.pandas import GenericDtype, DataFrameModel
+from pandera.typing.pandas import DataFrameModel, GenericDtype
 
 try:
     import dask.dataframe as dd
@@ -21,7 +21,6 @@ else:
 
 
 if DASK_INSTALLED:
-
     # pylint: disable=too-few-public-methods,abstract-method
     class DataFrame(DataFrameBase, dd.DataFrame, Generic[T]):
         """

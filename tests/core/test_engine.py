@@ -97,9 +97,9 @@ def test_register_notclassmethod_from_parametrized_dtype(engine: Engine):
 
         @engine.register_dtype
         class _InvalidDtype(BaseDataType):
-            def from_parametrized_dtype(  # pylint:disable=no-self-argument
+            def from_parametrized_dtype(
                 cls, x: int
-            ):
+            ):  # pylint:disable=no-self-argument
                 return x
 
 

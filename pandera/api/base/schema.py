@@ -8,7 +8,7 @@ together to implement the pandera schema specification.
 import inspect
 from abc import ABC
 from functools import wraps
-from typing import Any, Dict, Tuple, Type, Union
+from typing import Any, Dict, Tuple, Type, Optional, Union
 
 from pandera.backends.base import BaseSchemaBackend
 from pandera.errors import BackendNotFoundError
@@ -32,6 +32,7 @@ class BaseSchema(ABC):
         name=None,
         title=None,
         description=None,
+        metadata=None,
         drop_invalid_rows=False,
     ):
         """Abstract base schema initializer."""
@@ -41,6 +42,7 @@ class BaseSchema(ABC):
         self.name = name
         self.title = title
         self.description = description
+        self.metadata = metadata
         self.drop_invalid_rows = drop_invalid_rows
 
     def validate(
@@ -71,9 +73,20 @@ class BaseSchema(ABC):
         cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
-    def get_backend(cls, check_obj: Any) -> BaseSchemaBackend:
+    def get_backend(
+        cls,
+        check_obj: Optional[Any] = None,
+        check_type: Optional[Type] = None,
+    ) -> BaseSchemaBackend:
         """Get the backend associated with the type of ``check_obj`` ."""
-        check_obj_cls = type(check_obj)
+        if check_obj is not None:
+            check_obj_cls = type(check_obj)
+        elif check_type is not None:
+            check_obj_cls = check_type
+        else:
+            raise ValueError(
+                "Must pass in one of `check_obj` or `check_type`."
+            )
         classes = inspect.getmro(check_obj_cls)
         for _class in classes:
             try:

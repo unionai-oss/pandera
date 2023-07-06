@@ -10,8 +10,8 @@ from tests.core.test_logical_dtypes import *
 
 
 @pytest.fixture(scope="module")  # type: ignore
-def datacontainer_lib() -> Generator[
-    ModuleType, None, None
-]:  # pylint: disable=function-redefined
+def datacontainer_lib() -> (
+    Generator[ModuleType, None, None]
+):  # pylint: disable=function-redefined
     """Yield the modin.pandas module"""
     yield mpd

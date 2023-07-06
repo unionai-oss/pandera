@@ -847,10 +847,11 @@ data pipeline:
         coerce=False,
         dtype=None,
         index=None,
-        strict=True
+        strict=True,
         name=None,
         ordered=False,
         unique_column_names=False,
+        metadata=None,
         add_missing_columns=False
     )>
 
@@ -896,10 +897,11 @@ the pipeline output.
             name=None,
             ordered=True
         )>,
-        strict=True
+        strict=True,
         name=None,
         ordered=False,
         unique_column_names=False,
+        metadata=None,
         add_missing_columns=False
     )>
 

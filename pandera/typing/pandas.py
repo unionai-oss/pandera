@@ -21,9 +21,9 @@ import pandas as pd
 from pandera.errors import SchemaError, SchemaInitError
 from pandera.typing.common import (
     DataFrameBase,
+    DataFrameModel,
     GenericDtype,
     IndexBase,
-    DataFrameModel,
     SeriesBase,
 )
 from pandera.typing.formats import Formats
@@ -46,6 +46,14 @@ class Index(IndexBase, pd.Index, Generic[GenericDtype]):
 
     *new in 0.5.0*
     """
+
+
+# pyspark.pandas actually patches the __class_getitem__ method of pd.Series and
+# pd.DataFrame, so import it here to make sure that we can override the patching
+try:
+    import pyspark.pandas  # pylint: disable=unused-import
+except ImportError:  # pragma: no cover
+    pass
 
 
 # pylint:disable=too-few-public-methods

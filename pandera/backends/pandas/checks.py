@@ -4,17 +4,17 @@ from functools import partial
 from typing import Dict, List, Optional, Union, cast
 
 import pandas as pd
-from multimethod import overload, DispatchError
+from multimethod import DispatchError, overload
 
-from pandera.backends.base import BaseCheckBackend
 from pandera.api.base.checks import CheckResult, GroupbyObject
 from pandera.api.checks import Check
 from pandera.api.pandas.types import (
-    is_table,
-    is_field,
-    is_table_or_field,
     is_bool,
+    is_field,
+    is_table,
+    is_table_or_field,
 )
+from pandera.backends.base import BaseCheckBackend
 
 
 class PandasCheckBackend(BaseCheckBackend):

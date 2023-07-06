@@ -49,6 +49,7 @@ class DataFrameSchema(
         add_missing_columns: bool = False,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        metadata: Optional[dict] = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Initialize DataFrameSchema validator.
@@ -83,6 +84,7 @@ class DataFrameSchema(
             value, if specified in column schema, or NaN if column is nullable.
         :param title: A human-readable label for the schema.
         :param description: An arbitrary textual description of the schema.
+        :param metadata: An optional key-value data.
         :param drop_invalid_rows: if True, drop invalid rows on validation.
 
         :raises SchemaInitError: if impossible to build schema from parameters
@@ -136,6 +138,7 @@ class DataFrameSchema(
             name=name,
             title=title,
             description=description,
+            metadata=metadata,
         )
 
         self.columns: Dict[Any, "pandera.api.pandas.components.Column"] = (  # type: ignore [name-defined]
@@ -165,6 +168,7 @@ class DataFrameSchema(
         # this attribute is not meant to be accessed by users and is explicitly
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
+        self.metadata = metadata
 
     @property
     def coerce(self) -> bool:
@@ -218,6 +222,18 @@ class DataFrameSchema(
                 UserWarning,
             )
         return {n: c.dtype for n, c in self.columns.items() if not c.regex}
+
+    def get_metadata(self) -> Optional[dict]:
+        """Provide metadata for columns and schema level"""
+        res: Dict[Any, Any] = {"columns": {}}
+        for k in self.columns.keys():
+            res["columns"][k] = self.columns[k].properties["metadata"]
+
+        res["dataframe"] = self.metadata
+
+        meta = {}
+        meta[self.name] = res
+        return meta
 
     def get_dtypes(self, dataframe: pd.DataFrame) -> Dict[str, DataType]:
         """
@@ -367,7 +383,6 @@ class DataFrameSchema(
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-
         if self._is_inferred:
             warnings.warn(
                 f"This {type(self)} is an inferred schema that hasn't been "
@@ -432,6 +447,8 @@ class DataFrameSchema(
             f"strict={self.strict}, "
             f"name={self.name}, "
             f"ordered={self.ordered}, "
+            f"unique_column_names={self.unique_column_names}"
+            f"metadata='{self.metadata}, "
             f"unique_column_names={self.unique_column_names}, "
             f"add_missing_columns={self.add_missing_columns}"
             ")>"
@@ -479,10 +496,11 @@ class DataFrameSchema(
             f"{indent}coerce={self.coerce},\n"
             f"{indent}dtype={self._dtype},\n"
             f"{indent}index={index},\n"
-            f"{indent}strict={self.strict}\n"
+            f"{indent}strict={self.strict},\n"
             f"{indent}name={self.name},\n"
             f"{indent}ordered={self.ordered},\n"
             f"{indent}unique_column_names={self.unique_column_names},\n"
+            f"{indent}metadata={self.metadata}, \n"
             f"{indent}add_missing_columns={self.add_missing_columns}\n"
             ")>"
         )
@@ -551,10 +569,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=None,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -603,10 +622,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=None,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -666,10 +686,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=None,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -730,10 +751,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=None,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -813,10 +835,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=None,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -892,10 +915,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=None,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -959,10 +983,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=<Schema Index(name=category, type=DataType(str))>,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -996,10 +1021,11 @@ class DataFrameSchema(
                 name=None,
                 ordered=True
             )>,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -1094,10 +1120,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=None,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 
@@ -1125,10 +1152,11 @@ class DataFrameSchema(
             coerce=False,
             dtype=None,
             index=<Schema Index(name=unique_id2, type=DataType(str))>,
-            strict=False
+            strict=False,
             name=None,
             ordered=False,
             unique_column_names=False,
+            metadata=None,
             add_missing_columns=False
         )>
 

@@ -16,12 +16,12 @@ import pandas as pd
 from pandera.api.base.checks import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pandas.error_formatters import (
+    consolidate_failure_cases,
     format_generic_error_message,
     format_vectorized_error_message,
-    consolidate_failure_cases,
-    summarize_failure_cases,
     reshape_failure_cases,
     scalar_failure_case,
+    summarize_failure_cases,
 )
 from pandera.errors import FailureCaseMetadata, SchemaError, SchemaErrorReason
 from pandera.error_handlers import SchemaErrorHandler

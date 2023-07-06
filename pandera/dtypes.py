@@ -530,6 +530,14 @@ class Timedelta(DataType):
         return "timedelta"
 
 
+@immutable
+class Binary(DataType):
+    """Semantic representation of a delta time data type."""
+
+    def __str__(self) -> str:
+        return "binary"
+
+
 ###############################################################################
 # Utilities
 ###############################################################################
@@ -594,6 +602,11 @@ def is_datetime(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
 def is_timedelta(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
     """Return True if :class:`pandera.dtypes.DataType` is a timedelta."""
     return is_subdtype(pandera_dtype, Timedelta)
+
+
+def is_binary(pandera_dtype: Union[DataType, Type[DataType]]) -> bool:
+    """Return True if :class:`pandera.dtypes.DataType` is a timedelta."""
+    return is_subdtype(pandera_dtype, Binary)
 
 
 UniqueSettings = Union[

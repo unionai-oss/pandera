@@ -62,7 +62,7 @@ PYSPARK_PANDAS_UNSUPPORTED = {
     pandas_engine.Date,
 }
 
-SPARK_VERSION = version.parse(SparkContext().version)
+SPARK_VERSION = version.parse(SparkContext.getOrCreate().version)
 
 if SPARK_VERSION < version.parse("3.3.0"):
     PYSPARK_PANDAS_UNSUPPORTED.add(numpy_engine.Timedelta64)

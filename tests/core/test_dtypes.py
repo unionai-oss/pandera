@@ -701,6 +701,11 @@ def test_is_timedelta(timedelta_dtype: Any, expected: bool):
     assert pa.dtypes.is_timedelta(pandera_dtype) == expected
 
 
+def test_pandera_timedelta_dtype():
+    """Test is pandera-native timedelta dtype."""
+    assert pa.Timedelta().__str__() == "timedelta"
+
+
 @pytest.mark.parametrize(
     "numeric_dtype, expected",
     [(dtype, True) for dtype, _ in numeric_dtypes] + [("string", False)],
@@ -709,6 +714,13 @@ def test_is_numeric(numeric_dtype: Any, expected: bool):
     """Test is_timedelta."""
     pandera_dtype = pandas_engine.Engine.dtype(numeric_dtype)
     assert pa.dtypes.is_numeric(pandera_dtype) == expected
+
+
+def test_is_binary():
+    """Test is_binary."""
+    assert pa.dtypes.is_binary(pa.dtypes.Binary)
+    assert pa.dtypes.is_binary(pa.dtypes.Binary())
+    assert pa.dtypes.Binary().__str__() == "binary"
 
 
 def test_python_typing_dtypes():

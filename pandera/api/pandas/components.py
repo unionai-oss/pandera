@@ -30,6 +30,7 @@ class Column(ArraySchema):
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,
+        metadata: Optional[dict] = None,
         drop_invalid_rows: bool = False,
     ) -> None:
         """Create column validator object.
@@ -55,6 +56,7 @@ class Column(ArraySchema):
         :param title: A human-readable label for the column.
         :param description: An arbitrary textual description of the column.
         :param default: The default value for missing values in the column.
+        :param metadata: An optional key value data.
         :param drop_invalid_rows: if True, drop invalid rows on validation.
 
         :raises SchemaInitError: if impossible to build schema from parameters
@@ -87,6 +89,7 @@ class Column(ArraySchema):
             title=title,
             description=description,
             default=default,
+            metadata=metadata,
             drop_invalid_rows=drop_invalid_rows,
         )
         if (
@@ -101,6 +104,7 @@ class Column(ArraySchema):
         self.required = required
         self.name = name
         self.regex = regex
+        self.metadata = metadata
 
     @property
     def _allow_groupby(self) -> bool:
@@ -123,6 +127,7 @@ class Column(ArraySchema):
             "title": self.title,
             "description": self.description,
             "default": self.default,
+            "metadata": self.metadata,
         }
 
     def set_name(self, name: str):
@@ -184,7 +189,7 @@ class Column(ArraySchema):
         from pandera.backends.pandas.components import ColumnBackend
 
         return cast(
-            ColumnBackend, self.get_backend(pd.DataFrame())
+            ColumnBackend, self.get_backend(check_type=pd.DataFrame)
         ).get_regex_columns(self, columns)
 
     def __eq__(self, other):

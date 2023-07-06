@@ -33,7 +33,6 @@ from pydantic import BaseModel, ValidationError, create_model
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
-from pandera.system import FLOAT_128_AVAILABLE
 from pandera.engines import engine, numpy_engine, utils
 from pandera.engines.type_aliases import (
     PandasDataType,
@@ -41,6 +40,7 @@ from pandera.engines.type_aliases import (
     PandasObject,
 )
 from pandera.engines.utils import pandas_version
+from pandera.system import FLOAT_128_AVAILABLE
 
 try:
     import pyarrow  # pylint: disable=unused-import
@@ -750,7 +750,6 @@ class _BaseDateTime(DataType):
 
     @staticmethod
     def _get_to_datetime_fn(obj: Any) -> Callable:
-
         # NOTE: this is a hack to support pyspark.pandas. This needs to be
         # thoroughly tested, right now pyspark.pandas returns NA when a
         # dtype value can't be coerced into the target dtype.

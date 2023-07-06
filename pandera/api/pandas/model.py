@@ -23,7 +23,6 @@ from typing import (
 
 import pandas as pd
 
-from pandera.strategies import pandas_strategies as st
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
 from pandera.api.pandas.components import Column, Index, MultiIndex
@@ -38,6 +37,7 @@ from pandera.api.pandas.model_components import (
 )
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.errors import SchemaInitError
+from pandera.strategies import pandas_strategies as st
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
 
@@ -556,6 +556,21 @@ class DataFrameModel(BaseModel):
             ) from exc
 
         return cast("DataFrameModel", schema_model)
+
+    @classmethod
+    def get_metadata(cls) -> Optional[dict]:
+        """Provide metadata for columns and schema level"""
+        res: Dict[Any, Any] = {"columns": {}}
+        columns = cls._collect_fields()
+
+        for k, (_, v) in columns.items():
+            res["columns"][k] = v.properties["metadata"]
+
+        res["dataframe"] = cls.Config.metadata
+
+        meta = {}
+        meta[cls.Config.name] = res
+        return meta
 
     @classmethod
     def __modify_schema__(cls, field_schema):

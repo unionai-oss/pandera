@@ -44,10 +44,11 @@ is a simple example:
         coerce=True,
         dtype=None,
         index=<Schema Index(name=None, type=DataType(int64))>,
-        strict=False
+        strict=False,
         name=None,
         ordered=False,
         unique_column_names=False,
+        metadata=None,
         add_missing_columns=False
     )>
 

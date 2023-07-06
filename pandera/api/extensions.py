@@ -14,6 +14,13 @@ from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
 
+try:
+    import pyspark.sql as ps
+
+    PYSPARK_INSTALLED = True
+except ImportError:  # pragma: no cover
+    PYSPARK_INSTALLED = False
+
 
 class BuiltinCheckRegistrationError(Exception):
     """
@@ -132,11 +139,11 @@ def register_check_statistics(statistics_args):
     return register_check_statistics_decorator
 
 
-def register_check_method(
+def register_check_method(  # pylint:disable=too-many-branches
     check_fn=None,
     *,
     statistics: Optional[List[str]] = None,
-    supported_types: Union[type, Tuple, List] = (pd.DataFrame, pd.Series),
+    supported_types: Optional[Union[type, Tuple, List]] = None,
     check_type: Union[CheckType, str] = "vectorized",
     strategy=None,
 ):
@@ -151,8 +158,10 @@ def register_check_method(
         which serve as the statistics needed to serialize/de-serialize the
         check and generate data if a ``strategy`` function is provided.
     :param supported_types: the pandas type(s) supported by the check function.
-        Valid values are ``pd.DataFrame``, ``pd.Series``, or a list/tuple of
-        ``(pa.DataFrame, pa.Series)`` if both types are supported.
+        Valid values are ``pd.DataFrame``, ``pd.Series``, ``ps.DataFrame``, or a list/tuple of
+        ``(pa.DataFrame, pa.Series, ps.DataFrame)`` if both types are supported.
+        Valid values are ``pd.DataFrame``, ``pd.Series``, ``ps.DataFrame``, or a list/tuple of
+        ``(pa.DataFrame, pa.Series, ps.DataFrame)`` if both types are supported.
     :param check_type: the expected input of the check function. Valid values
         are :class:`~pandera.extensions.CheckType` enums or
         ``{"vectorized", "element_wise", "groupby"}``. The input signature of
@@ -184,18 +193,30 @@ def register_check_method(
         "{} is not a valid input type for check_fn. You must specify one of "
         "pandas.DataFrame, pandas.Series, or a tuple of both."
     )
+
+    if supported_types is None:
+        supported_types = [pd.DataFrame, pd.Series]
+        if PYSPARK_INSTALLED:
+            supported_types.append(ps.DataFrame)
+
     if isinstance(supported_types, list):
         supported_types = tuple(supported_types)
     elif not isinstance(supported_types, tuple):
         supported_types = (supported_types,)
 
+    ALLOWED_TYPES = (
+        {pd.DataFrame, pd.Series, ps.DataFrame}
+        if PYSPARK_INSTALLED
+        else {pd.DataFrame, pd.Series}
+    )
     for supported_type in supported_types:  # type: ignore
-        if supported_type not in {pd.DataFrame, pd.Series}:
+        if supported_type not in ALLOWED_TYPES:
             raise TypeError(msg.format(supported_type))
 
     if check_type is CheckType.ELEMENT_WISE and set(supported_types) != {
         pd.DataFrame,
         pd.Series,
+        ps.DataFrame,
     }:  # type: ignore
         raise ValueError(
             "Element-wise checks should support DataFrame and Series "
