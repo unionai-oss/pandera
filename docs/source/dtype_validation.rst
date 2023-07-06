@@ -194,7 +194,7 @@ For example:
 
     from typing import Dict, List, Tuple, NamedTuple
 
-    if sys.version_info >= (3, 9):
+    if sys.version_info >= (3, 12):
         from typing import TypedDict
         # use typing_extensions.TypedDict for python < 3.9 in order to support
         # run-time availability of optional/required fields

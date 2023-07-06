@@ -740,11 +740,11 @@ def test_python_typing_dtypes():
 
     schema = pa.DataFrameSchema(
         {
-            # "dict_column": pa.Column(Dict[str, int]),
-            # "list_column": pa.Column(List[float]),
-            # "tuple_column": pa.Column(Tuple[int, str, float]),
+            "dict_column": pa.Column(Dict[str, int]),
+            "list_column": pa.Column(List[float]),
+            "tuple_column": pa.Column(Tuple[int, str, float]),
             "typeddict_column": pa.Column(PointDict),
-            # "namedtuple_column": pa.Column(PointTuple),
+            "namedtuple_column": pa.Column(PointTuple),
         },
     )
 
