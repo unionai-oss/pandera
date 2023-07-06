@@ -204,11 +204,13 @@ def register_check_method(  # pylint:disable=too-many-branches
     elif not isinstance(supported_types, tuple):
         supported_types = (supported_types,)
 
+    ALLOWED_TYPES = (
+        {pd.DataFrame, pd.Series, ps.DataFrame}
+        if PYSPARK_INSTALLED
+        else {pd.DataFrame, pd.Series}
+    )
     for supported_type in supported_types:  # type: ignore
-        if PYSPARK_INSTALLED:
-            if supported_type not in {pd.DataFrame, pd.Series, ps.DataFrame}:
-                raise TypeError(msg.format(supported_type))
-        elif supported_type not in {pd.DataFrame, pd.Series}:
+        if supported_type not in ALLOWED_TYPES:
             raise TypeError(msg.format(supported_type))
 
     if check_type is CheckType.ELEMENT_WISE and set(supported_types) != {
