@@ -261,6 +261,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         """Collect column metadata."""
         column_names: List[Any] = []
         absent_column_names: List[Any] = []
+        regex_match_patterns: List[Any] = []
 
         for col_name, col_schema in schema.columns.items():
             if (
@@ -277,6 +278,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                             col_schema, check_obj.columns
                         )
                     )
+                    regex_match_patterns.append(col_schema.name)
                 except SchemaError:
                     pass
             elif col_name in check_obj.columns:
@@ -294,6 +296,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             expanded_column_names=frozenset(column_names),
             destuttered_column_names=destuttered_column_names,
             absent_column_names=absent_column_names,
+            regex_match_patterns=regex_match_patterns,
         )
 
     def collect_schema_components(
@@ -333,6 +336,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             if (
                 col.required  # type: ignore[union-attr]
                 or col_name in check_obj
+                or col_name in column_info.regex_match_patterns
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:

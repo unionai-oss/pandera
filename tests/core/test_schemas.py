@@ -242,7 +242,14 @@ def test_dataframe_dtype_coerce(with_columns):
 def test_dataframe_coerce_regex() -> None:
     """Test dataframe pandas dtype coercion for regex columns"""
     schema = DataFrameSchema(
-        columns={"column_": Column(float, regex=True, required=False)},
+        columns={
+            "column_": Column(
+                float,
+                checks=Check.gt(0),
+                regex=True,
+                required=False,
+            )
+        },
         dtype=int,
         coerce=True,
     )
@@ -254,9 +261,18 @@ def test_dataframe_coerce_regex() -> None:
             "column_2": ["1", "2", "3"],
         }
     )
+    match_invalid_df = pd.DataFrame(
+        {
+            "column_1": [-1, 2, 3],
+            "column_2": ["1", "-2", "3"],
+        }
+    )
 
     schema(no_match_df)
     schema(match_valid_df)
+
+    with pytest.raises(errors.SchemaError):
+        schema(match_invalid_df)
 
     # if the regex column is required, no matches should raise an error
     schema_required = schema.update_column("column_", required=True)
