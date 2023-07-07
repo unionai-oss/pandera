@@ -190,23 +190,14 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         return buffer
 
     @classmethod
-    def _get_schema(cls, field: ModelField):
+    def _get_schema_model(cls, field: ModelField):
         if not field.sub_fields:
             raise TypeError(
                 "Expected a typed pandera.typing.DataFrame,"
                 " e.g. DataFrame[Schema]"
             )
         schema_model = field.sub_fields[0].type_
-        try:
-            schema = schema_model.to_schema()
-        except SchemaInitError as exc:
-            raise ValueError(
-                f"Cannot use {cls.__name__} as a pydantic type as its "
-                "DataFrameModel cannot be converted to a DataFrameSchema.\n"
-                f"Please revisit the model to address the following errors:"
-                f"\n{exc}"
-            ) from exc
-        return schema_model, schema
+        return schema_model
 
     if PYDANTIC_V2:
 
@@ -215,12 +206,10 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             cls, _source_type: Any, _handler: GetCoreSchemaHandler
         ) -> core_schema.CoreSchema:
             schema_model = get_args(_source_type)[0]
-            schema = schema_model.to_schema()
             return core_schema.no_info_plain_validator_function(
                 functools.partial(
                     cls.pydantic_validate,
                     schema_model=schema_model,
-                    schema=schema,
                 ),
             )
 
@@ -231,19 +220,25 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             yield cls._pydantic_validate
 
     @classmethod
-    def pydantic_validate(
-        cls,
-        obj: Any,
-        schema_model,
-        schema,
-    ) -> pd.DataFrame:
+    def pydantic_validate(cls, obj: Any, schema_model) -> pd.DataFrame:
         """
         Verify that the input can be converted into a pandas dataframe that
         meets all schema requirements.
 
         This is for pydantic >= v2
         """
+        try:
+            schema = schema_model.to_schema()
+        except SchemaInitError as exc:
+            raise ValueError(
+                f"Cannot use {cls.__name__} as a pydantic type as its "
+                "DataFrameModel cannot be converted to a DataFrameSchema.\n"
+                f"Please revisit the model to address the following errors:"
+                f"\n{exc}"
+            ) from exc
+
         data = cls.from_format(obj, schema_model.__config__)
+
         try:
             valid_data = schema.validate(data)
         except SchemaError as exc:
@@ -259,8 +254,8 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
 
         This is for pydantic < v1
         """
-        schema_model, schema = cls._get_schema(field)
-        return cls.pydantic_validate(obj, schema_model, schema)
+        schema_model = cls._get_schema_model(field)
+        return cls.pydantic_validate(obj, schema_model)
 
     @staticmethod
     def from_records(  # type: ignore

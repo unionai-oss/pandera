@@ -66,7 +66,7 @@ if FASTAPI_INSTALLED:
                 raise ValueError(f"Expected UploadFile, received: {type(obj)}")
 
             schema_model_field = field.sub_fields[0]  # type: ignore[index]
-            validated_data = schema_model_field.type_.pydantic_validate(
+            validated_data = schema_model_field.type_._pydantic_validate(
                 obj.file, schema_model_field
             )
             obj.file.seek(0)
