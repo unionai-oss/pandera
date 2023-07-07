@@ -1156,7 +1156,11 @@ class PythonGenericType(DataType):
             _type = getattr(self, "generic_type") or getattr(
                 self, "special_type"
             )
-            if engine._is_typeddict(_type) and sys.version_info < (3, 12):
+            if (
+                engine._is_typeddict(_type)
+                and sys.version_info < (3, 12)
+                and sys.version_info >= (3, 8)
+            ):
                 # replace the typing_extensions TypedDict with typing.TypedDict,
                 # since pydantic needs typing_extensions.TypedDict but typeguard
                 # can only type-check typing.TypedDict
