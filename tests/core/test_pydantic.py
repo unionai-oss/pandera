@@ -73,19 +73,11 @@ def test_invalid_typed_dataframe():
 
         str_col = pa.Field(unique=True)  # omit annotation
 
-    if PYDANTIC_V2:
-        with pytest.raises(pa.errors.SchemaInitError):
+    class PydanticModel(BaseModel):
+        pa_schema: DataFrame[InvalidSchema]
 
-            class PydanticModel(BaseModel):
-                pa_schema: DataFrame[InvalidSchema]
-
-    else:
-
-        class PydanticModel(BaseModel):
-            pa_schema: DataFrame[InvalidSchema]
-
-        with pytest.raises(ValueError):
-            PydanticModel(pa_schema=InvalidSchema)
+    with pytest.raises(ValueError):
+        PydanticModel(pa_schema=InvalidSchema)
 
 
 def test_dataframemodel():
