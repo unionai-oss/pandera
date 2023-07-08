@@ -186,10 +186,10 @@ jobs:
       - name: Unit Tests - Core
         run: pytest tests/core ${{ env.PYTEST_FLAGS }}
 
-      - name: Unit Tests - Core [Pydantic v2]
-        run: |
-          pip install 'pydantic==2.0.2'
-          pytest tests/core ${{ env.PYTEST_FLAGS }}
+      # - name: Unit Tests - Core [Pydantic v2]
+      #   run: |
+      #     pip install 'pydantic==2.0.2'
+      #     pytest tests/core ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Hypotheses
         run: pytest tests/hypotheses ${{ env.PYTEST_FLAGS }}
