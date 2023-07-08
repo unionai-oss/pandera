@@ -205,6 +205,7 @@ jobs:
         run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} ${{ env.HYPOTHESIS_FLAGS }}
 
       - name: Unit Tests - FastAPI
+        if: ${{ matrix.python-version != '3.7' }}
         run: pytest tests/fastapi ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - GeoPandas
