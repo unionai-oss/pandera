@@ -179,7 +179,7 @@ jobs:
 
       - name: Install Pydantic Deps
         run: |
-          pip install --U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
+          pip install -U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
 
       - run: |
           conda info
