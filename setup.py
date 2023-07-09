@@ -49,7 +49,7 @@ setup(
         "numpy >= 1.19.0",
         "packaging >= 20.0",
         "pandas >= 1.2.0",
-        "pydantic",
+        "pydantic < 2.0.0",
         "typeguard >= 3.0.2",
         "typing_extensions >= 3.7.4.3 ; python_version<'3.8'",
         "typing_inspect >= 0.6.0",
