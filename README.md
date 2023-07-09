@@ -1,11 +1,19 @@
 <br>
 <div align="center"><img src="docs/source/_static/pandera-banner.png" width="400"></div>
 
-<hr>
+<br>
 
-# The Open-source Framework for Precision Data Testing
+<h1 align="center">
+  The Open-source Framework for Precision Data Testing
+</h1>
 
-> *Data validation for scientists, engineers, and analysts seeking correctness.*
+<p align="center">
+  📊 🔎 ✅
+</p>
+
+<p align="center">
+  <i>Data validation for scientists, engineers, and analysts seeking correctness.</i>
+</p>
 
 <br>
 
