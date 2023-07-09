@@ -2,11 +2,6 @@ a {
   color: #78ac1b;
 }
 
-#the-open-source-framework-for-precision-data-testing h1:first-child {
-  margin-top: 0.5rem;
-  font-size: 1.7em;
-}
-
 div.content {
   margin-bottom: 70px;
 }
@@ -16,11 +11,15 @@ div.content {
 }
 
 .sidebar-logo {
-  max-width: 40%;
+  max-width: 80%;
 }
 
 .sidebar-brand-text, .sidebar-logo-container {
   margin: var(--sidebar-item-spacing-vertical) auto;
+}
+
+.sidebar-brand-text {
+  display: none;
 }
 
 .sidebar-drawer {

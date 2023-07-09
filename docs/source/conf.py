@@ -122,8 +122,6 @@ set_type_checking_flag = True
 
 # -- Options for HTML output -------------------------------------------------
 
-html_title = "pandera"
-
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
@@ -133,22 +131,31 @@ html_theme = "furo"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-html_logo = "_static/pandera-logo.png"
+announcement = """
+🎉 Pandera 0.16.0 now supports <a href="pyspark_sql.html">Pyspark SQL!</a>.
+If you like this project, <a href='https://github.com/unionai-oss/pandera' target='_blank'>give us a star ⭐️! </a>
+"""
+
+html_logo = "_static/pandera-banner.png"
 html_favicon = "_static/pandera-favicon.png"
 html_theme_options = {
     "light_css_variables": {
         "color-brand-primary": "#78ac1b",
         "color-brand-content": "#78ac1b",
         "color-api-highlight-on-target": "#e5fff5",
+        "color-announcement-background": "#FEE7B8",
+        "color-announcement-text": "#535353",
     },
     "dark_css_variables": {
         "color-brand-primary": "#78ac1b",
         "color-brand-content": "#78ac1b",
         "color-api-highlight-on-target": "#e5fff5",
+        "color-announcement-background": "#493100",
     },
     "source_repository": "https://github.com/pandera-dev/pandera",
     "source_branch": "main",
     "source_directory": "docs/source/",
+    "announcement": announcement,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

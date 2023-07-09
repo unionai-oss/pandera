@@ -1,11 +1,5 @@
 .. pandera documentation entrypoint
 
-.. raw:: html
-
-   <div align="left">
-     <img src="_static/pandera-banner.png" width="500" style="margin-left: -15px; margin-top: 40px;">
-   </div>
-
 The Open-source Framework for Precision Data Testing
 ====================================================
 
