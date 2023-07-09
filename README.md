@@ -1,8 +1,6 @@
 <br>
 <div align="center"><img src="docs/source/_static/pandera-banner.png" width="400"></div>
 
-<br>
-
 <h1 align="center">
   The Open-source Framework for Precision Data Testing
 </h1>
