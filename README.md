@@ -1,30 +1,30 @@
 <br>
-<div align="center"><img src="https://raw.githubusercontent.com/pandera-dev/pandera/main/docs/source/_static/pandera-banner.png" width="400"></div>
+<div align="center"><img src="docs/source/_static/pandera-banner.png" width="400"></div>
 
 <hr>
 
-# A Statistical Data Testing Toolkit
+# The Open-source Framework for Precision Data Testing
 
-*A data validation library for scientists, engineers, and analysts seeking
-correctness.*
+> *Data validation for scientists, engineers, and analysts seeking correctness.*
 
 <br>
 
-[![CI Build](https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=main)](https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amain)
-[![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=stable)](https://pandera.readthedocs.io/en/stable/?badge=stable)
-[![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg)](https://pypi.org/project/pandera/)
-[![PyPI license](https://img.shields.io/pypi/l/pandera.svg)](https://pypi.python.org/pypi/)
-[![pyOpenSci](https://tinyurl.com/y22nb8up)](https://github.com/pyOpenSci/software-review/issues/12)
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest)](https://pandera.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/unionai-oss/pandera/branch/main/graph/badge.svg)](https://codecov.io/gh/pandera-dev/pandera)
-[![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg)](https://pypi.python.org/pypi/pandera/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg)](https://doi.org/10.5281/zenodo.3385265)
-[![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat)](https://pandera-dev.github.io/pandera-asv-logs/)
-[![Downloads](https://pepy.tech/badge/pandera/month)](https://pepy.tech/project/pandera)
-[![Downloads](https://pepy.tech/badge/pandera)](https://pepy.tech/project/pandera)
-[![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pandera?label=conda%20downloads)](https://anaconda.org/conda-forge/pandera)
-[![Discord](https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord)](https://discord.gg/vyanhWuaKB)
+
+[![CI Build](https://img.shields.io/github/actions/workflow/status/unionai-oss/pandera/ci-tests.yml?branch=main&label=tests&style=for-the-badge)](https://github.com/unionai-oss/pandera/actions/workflows/ci-tests.yml?query=branch%3Amain)
+[![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=stable&style=for-the-badge)](https://pandera.readthedocs.io/en/stable/?badge=stable)
+[![PyPI version shields.io](https://img.shields.io/pypi/v/pandera.svg?style=for-the-badge)](https://pypi.org/project/pandera/)
+[![PyPI license](https://img.shields.io/pypi/l/pandera.svg?style=for-the-badge)](https://pypi.python.org/pypi/)
+[![pyOpenSci](https://go.union.ai/pandera-pyopensci-badge)](https://github.com/pyOpenSci/software-review/issues/12)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://img.shields.io/badge/repo%20status-Active-Green?style=for-the-badge)](https://www.repostatus.org/#active)
+[![Documentation Status](https://readthedocs.org/projects/pandera/badge/?version=latest&style=for-the-badge)](https://pandera.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://img.shields.io/codecov/c/github/unionai-oss/pandera?style=for-the-badge)](https://codecov.io/gh/unionai-oss/pandera)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/pandera.svg?style=for-the-badge)](https://pypi.python.org/pypi/pandera/)
+[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.3385265-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.3385265)
+[![asv](http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=for-the-badge)](https://pandera-dev.github.io/pandera-asv-logs/)
+[![Downloads](https://img.shields.io/pypi/dm/pandera?style=for-the-badge&color=blue)](https://pepy.tech/project/pandera)
+[![Downloads](https://img.shields.io/badge/dynamic/json?style=for-the-badge&label=total%20downloads&query=%24.total_downloads&url=https%3A%2F%2Fapi.pepy.tech%2Fapi%2Fv2%2Fprojects%2Fpandera)](https://pepy.tech/project/pandera)
+[![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pandera?style=for-the-badge)](https://anaconda.org/conda-forge/pandera)
+[![Discord](https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge)](https://discord.gg/vyanhWuaKB)
 
 `pandera` provides a flexible and expressive API for performing data
 validation on dataframe-like objects to make data processing pipelines more
@@ -196,7 +196,7 @@ pip install pytest
 pytest tests
 ```
 
-## Contributing to pandera [![GitHub contributors](https://img.shields.io/github/contributors/pandera-dev/pandera.svg)](https://github.com/pandera-dev/pandera/graphs/contributors)
+## Contributing to pandera [![GitHub contributors](https://img.shields.io/github/contributors/pandera-dev/pandera.svg?style=for-the-badge)](https://github.com/pandera-dev/pandera/graphs/contributors)
 
 All contributions, bug reports, bug fixes, documentation improvements,
 enhancements and ideas are welcome.
@@ -280,7 +280,7 @@ consider citing the **paper** and/or **software package**.
 
 ### Software Package
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg)](https://doi.org/10.5281/zenodo.3385265)
+[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.3385265-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.3385265)
 
 
 ## License and Credits

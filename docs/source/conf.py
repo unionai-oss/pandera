@@ -137,13 +137,13 @@ html_logo = "_static/pandera-logo.png"
 html_favicon = "_static/pandera-favicon.png"
 html_theme_options = {
     "light_css_variables": {
-        "color-brand-primary": "#26b079",
-        "color-brand-content": "#26b079",
+        "color-brand-primary": "#78ac1b",
+        "color-brand-content": "#78ac1b",
         "color-api-highlight-on-target": "#e5fff5",
     },
     "dark_css_variables": {
-        "color-brand-primary": "#26b079",
-        "color-brand-content": "#26b079",
+        "color-brand-primary": "#78ac1b",
+        "color-brand-content": "#78ac1b",
         "color-api-highlight-on-target": "#e5fff5",
     },
     "source_repository": "https://github.com/pandera-dev/pandera",

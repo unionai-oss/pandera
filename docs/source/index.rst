@@ -1,69 +1,74 @@
 .. pandera documentation entrypoint
 
-A Statistical Data Testing Toolkit
-=======================================
+.. raw:: html
 
-*A data validation library for scientists, engineers, and analysts seeking
-correctness.*
+   <div align="left">
+     <img src="_static/pandera-banner.png" width="500" style="margin-left: -15px; margin-top: 40px;">
+   </div>
+
+The Open-source Framework for Precision Data Testing
+====================================================
+
+   *Data validation for scientists, engineers, and analysts seeking correctness.*
 
 
-.. image:: https://github.com/pandera-dev/pandera/workflows/CI%20Tests/badge.svg?branch=main
-    :target: https://github.com/pandera-dev/pandera/actions?query=workflow%3A%22CI+Tests%22+branch%3Amain
+.. image:: https://img.shields.io/github/actions/workflow/status/unionai-oss/pandera/ci-tests.yml?branch=main&label=tests&style=for-the-badge
+    :target: https://github.com/unionai-oss/pandera/actions/workflows/ci-tests.yml?query=branch%3Amain
     :alt: CI Build
 
-.. image:: https://readthedocs.org/projects/pandera/badge/?version=stable
+.. image:: https://readthedocs.org/projects/pandera/badge/?version=stable&style=for-the-badge
     :target: https://pandera.readthedocs.io/en/stable/?badge=stable
     :alt: Documentation Stable Status
 
-.. image:: https://img.shields.io/pypi/v/pandera.svg
+.. image:: https://img.shields.io/pypi/v/pandera.svg?style=for-the-badge
     :target: https://pypi.org/project/pandera/
     :alt: pypi
 
-.. image:: https://img.shields.io/pypi/l/pandera.svg
+.. image:: https://img.shields.io/pypi/l/pandera.svg?style=for-the-badge
     :target: https://pypi.python.org/pypi/
     :alt: pypi versions
 
-.. image:: https://tinyurl.com/y22nb8up
+.. image:: https://go.union.ai/pandera-pyopensci-badge
     :target: https://github.com/pyOpenSci/software-review/issues/12
     :alt: pyOpenSci Review
 
-.. image:: https://www.repostatus.org/badges/latest/active.svg
+.. image:: https://img.shields.io/badge/repo%20status-Active-Green?style=for-the-badge
     :target: https://www.repostatus.org/#active
     :alt: Project Status: Active – The project has reached a stable, usable state and is being actively developed.
 
-.. image:: https://readthedocs.org/projects/pandera/badge/?version=latest
+.. image:: https://readthedocs.org/projects/pandera/badge/?version=latest&style=for-the-badge
     :target: https://pandera.readthedocs.io/en/stable/?badge=latest
     :alt: Documentation Latest Status
 
-.. image:: https://codecov.io/gh/unionai-oss/pandera/branch/main/graph/badge.svg
+.. image:: https://img.shields.io/codecov/c/github/unionai-oss/pandera?style=for-the-badge
     :target: https://codecov.io/gh/unionai-oss/pandera
     :alt: Code Coverage
 
-.. image:: https://img.shields.io/pypi/pyversions/pandera.svg
+.. image:: https://img.shields.io/pypi/pyversions/pandera.svg?style=for-the-badge
     :target: https://pypi.python.org/pypi/pandera/
     :alt: PyPI pyversions
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg
+.. image:: https://img.shields.io/badge/DOI-10.5281/zenodo.3385265-blue?style=for-the-badge
     :target: https://doi.org/10.5281/zenodo.3385265
     :alt: DOI
 
-.. image:: http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat
+.. image:: http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=for-the-badge
     :target: https://pandera-dev.github.io/pandera-asv-logs/
     :alt: asv
 
-.. image:: https://pepy.tech/badge/pandera/month
+.. image:: https://img.shields.io/pypi/dm/pandera?style=for-the-badge&color=blue
     :target: https://pepy.tech/project/pandera
     :alt: Monthly Downloads
 
-.. image:: https://pepy.tech/badge/pandera
+.. image:: https://img.shields.io/badge/dynamic/json?style=for-the-badge&label=total%20downloads&query=%24.total_downloads&url=https%3A%2F%2Fapi.pepy.tech%2Fapi%2Fv2%2Fprojects%2Fpandera
     :target: https://pepy.tech/badge/pandera
     :alt: Total Downloads
 
-.. image:: https://img.shields.io/conda/dn/conda-forge/pandera?label=conda%20downloads
+.. image:: https://img.shields.io/conda/dn/conda-forge/pandera?style=for-the-badge
     :target: https://anaconda.org/conda-forge/pandera
     :alt: Conda Downloads
 
-.. image:: https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord
+.. image:: https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge
     :target: https://discord.gg/vyanhWuaKB
     :alt: Discord Community
 
@@ -344,8 +349,9 @@ page or reach out to the maintainers and pandera community on
     :caption: Introduction
     :hidden:
 
-    self
+    Welcome to Pandera <self>
     ▶️ Try Pandera <try_pandera>
+    Official Website <https://union.ai/pandera>
 
 .. toctree::
    :maxdepth: 6
@@ -407,9 +413,9 @@ consider citing the paper and/or software package.
 Software Package
 ~~~~~~~~~~~~~~~~
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3385265.svg
+.. image:: https://img.shields.io/badge/DOI-10.5281/zenodo.3385265-blue?style=for-the-badge
     :target: https://doi.org/10.5281/zenodo.3385265
-    :alt: software package
+    :alt: DOI
 
 |
 

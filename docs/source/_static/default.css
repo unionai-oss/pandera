@@ -1,5 +1,10 @@
 a {
-  color: #26b079;
+  color: #78ac1b;
+}
+
+#the-open-source-framework-for-precision-data-testing h1:first-child {
+  margin-top: 0.5rem;
+  font-size: 1.7em;
 }
 
 div.content {
@@ -12,6 +17,10 @@ div.content {
 
 .sidebar-logo {
   max-width: 40%;
+}
+
+.sidebar-brand-text, .sidebar-logo-container {
+  margin: var(--sidebar-item-spacing-vertical) auto;
 }
 
 .sidebar-drawer {
@@ -60,17 +69,21 @@ div.sponsorship {
 
 /* tabbed content */
 .tabbed-set>label {
-  color: #9ad8bf;
-  border-color: var(--tabs-color-overline);
+  color: #acc385;
+  border-color: #d1dfb8;
+}
+
+.tabbed-content {
+  box-shadow: 0 -0.0625rem #d1dfb8, 0 0.0625rem #d1dfb8;
 }
 
 .tabbed-set>label:hover {
-  color: #26b079 !important;
+  color: #acc385 !important;
 }
 
 .tabbed-set>input:checked+label {
-  color: #26b079;
-  border-color: #26b079;
+  color: #78ac1b;
+  border-color: #78ac1b;
 }
 
 
