@@ -40,17 +40,17 @@ users have when working with pyspark SQL dataframes:
       pandera prioritizes completing the production load and saving the data quality
       issues for downstream rectification.
 
-3. Unlike the pandera pandas schemas, the default behaviour of the pyspark SQL
+2. Unlike the pandera pandas schemas, the default behaviour of the pyspark SQL
    version for errors is ``lazy=True``, i.e. all the errors would be collected
    instead of raising at first error instance.
 
-5. There is no support for lambda based vectorized checks since in spark lambda
+3. There is no support for lambda based vectorized checks since in spark lambda
    checks needs UDFs, which is inefficient. However pyspark sql does support custom
    checks via the :func:`~pandera.extensions.register_check_method` decorator.
 
-7. The custom check has to return a scalar boolean value instead of a series.
+4. The custom check has to return a scalar boolean value instead of a series.
 
-8. In defining the type annotation, there is limited support for default python
+5. In defining the type annotation, there is limited support for default python
    data types such as ``int``, ``str``, etc. When using the ``pandera.pyspark`` API, using
    ``pyspark.sql.types`` based datatypes such as ``StringType``, ``IntegerType``,
    etc. is highly recommended.
