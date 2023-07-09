@@ -44,11 +44,6 @@ if PYDANTIC_V2:
     from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
 
-try:
-    from pydantic.fields import ModelField
-except ImportError:
-    ModelField = Any  # type: ignore
-
 
 # pylint:disable=too-few-public-methods
 class Index(IndexBase, pd.Index, Generic[GenericDtype]):
@@ -190,7 +185,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         return buffer
 
     @classmethod
-    def _get_schema_model(cls, field: ModelField):
+    def _get_schema_model(cls, field):
         if not field.sub_fields:
             raise TypeError(
                 "Expected a typed pandera.typing.DataFrame,"
@@ -247,7 +242,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
         return cls.to_format(valid_data, schema_model.__config__)
 
     @classmethod
-    def _pydantic_validate(cls, obj: Any, field: ModelField) -> pd.DataFrame:
+    def _pydantic_validate(cls, obj: Any, field) -> pd.DataFrame:
         """
         Verify that the input can be converted into a pandas dataframe that
         meets all schema requirements.

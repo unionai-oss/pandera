@@ -51,13 +51,6 @@ try:
 except ImportError:
     from typing import get_type_hints  # type: ignore
 
-try:
-    from pydantic.fields import ModelField  # pylint:disable=unused-import
-
-    HAS_PYDANTIC = True
-except ImportError:
-    HAS_PYDANTIC = False
-
 
 SchemaIndex = Union[Index, MultiIndex]
 
