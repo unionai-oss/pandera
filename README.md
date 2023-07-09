@@ -1,5 +1,5 @@
 <br>
-<div align="center"><img src="docs/source/_static/pandera-banner.png" width="400"></div>
+<div align="center"><a href="https://www.union.ai/pandera"><img src="docs/source/_static/pandera-banner.png" width="400"></a></div>
 
 <h1 align="center">
   The Open-source Framework for Precision Data Testing
