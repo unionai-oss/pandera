@@ -132,7 +132,7 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-🎉 Pandera 0.16.0 now supports <a href="pyspark_sql.html">Pyspark SQL!</a>.
+📢 Pandera 0.16.0 now supports <a href="pyspark_sql.html">Pyspark SQL</a> 🎉.
 If you like this project, <a href='https://github.com/unionai-oss/pandera' target='_blank'>give us a star ⭐️! </a>
 """
 
