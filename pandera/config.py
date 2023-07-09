@@ -1,7 +1,19 @@
 """Pandera configuration."""
 
 from enum import Enum
-from pydantic import BaseSettings
+
+from pandera.engines import PYDANTIC_V2
+
+if not PYDANTIC_V2:
+    from pydantic import BaseSettings
+else:
+    try:
+        from pydantic_settings import BaseSettings
+    except ImportError as exc:
+        raise ImportError(
+            "If using pydantic v2 you need to install the pydantic_settings "
+            "package."
+        ) from exc
 
 
 class ValidationDepth(Enum):

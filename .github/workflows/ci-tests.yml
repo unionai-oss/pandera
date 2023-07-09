@@ -178,8 +178,11 @@ jobs:
           mamba env update -n pandera-dev -f environment.yml
 
       - name: Install Pydantic Deps
-        run: |
-          pip install -U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
+        run: pip install -U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
+
+      - name: Install Pydantic v2 Deps
+        if : ${{ matrix.pydantic-version == '2.0.2' }}
+        run: pip install pydantic-settings
 
       - run: |
           conda info
