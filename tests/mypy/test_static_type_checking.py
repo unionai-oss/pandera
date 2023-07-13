@@ -54,7 +54,11 @@ PANDAS_DATAFRAME_ERRORS = [
 ]
 
 
-def test_mypy_pandas_dataframe(capfd) -> None:
+@pytest.mark.parametrize(
+    ["config_file", "expected_errors"],
+    [("no_plugin.ini", PANDAS_DATAFRAME_ERRORS), ("plugin_mypy.ini", [])],
+)
+def test_mypy_pandas_dataframe(capfd, config_file, expected_errors) -> None:
     """Test that mypy raises expected errors on pandera-decorated functions."""
     # pylint: disable=subprocess-run-check
     cache_dir = str(test_module_dir / ".mypy_cache" / "test-mypy-default")
@@ -67,13 +71,13 @@ def test_mypy_pandas_dataframe(capfd) -> None:
             "--cache-dir",
             cache_dir,
             "--config-file",
-            str(test_module_dir / "config" / "no_plugin.ini"),
+            str(test_module_dir / "config" / config_file),
         ],
         text=True,
     )
     errors = _get_mypy_errors("pandas_dataframe.py", capfd.readouterr().out)
-    assert len(PANDAS_DATAFRAME_ERRORS) == len(errors)
-    for expected, error in zip(PANDAS_DATAFRAME_ERRORS, errors):
+    assert len(expected_errors) == len(errors)
+    for expected, error in zip(expected_errors, errors):
         assert error["errcode"] == expected["errcode"]
         assert expected["msg"] == error["msg"] or re.match(
             expected["msg"], error["msg"]

@@ -5,7 +5,7 @@ This test module uses https://github.com/davidfritzsche/pytest-mypy-testing to
 run statically check the functions marked pytest.mark.mypy_testing
 """
 
-from typing import cast
+from typing import Optional, cast
 
 import pandas as pd
 
@@ -24,7 +24,7 @@ class SchemaOut(pa.DataFrameModel):
 
 class AnotherSchema(pa.DataFrameModel):
     id: Series[int]
-    first_name: Series[str]
+    first_name: Optional[Series[str]]
 
 
 def fn(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
