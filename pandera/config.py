@@ -1,19 +1,9 @@
 """Pandera configuration."""
 
+import os
 from enum import Enum
 
-from pandera.engines import PYDANTIC_V2
-
-if not PYDANTIC_V2:
-    from pydantic import BaseSettings
-else:
-    try:
-        from pydantic_settings import BaseSettings
-    except ImportError as exc:
-        raise ImportError(
-            "If using pydantic v2 you need to install the pydantic_settings "
-            "package."
-        ) from exc
+from pydantic import BaseModel
 
 
 class ValidationDepth(Enum):
@@ -24,7 +14,7 @@ class ValidationDepth(Enum):
     SCHEMA_AND_DATA = "SCHEMA_AND_DATA"
 
 
-class PanderaConfig(BaseSettings):
+class PanderaConfig(BaseModel):
     """Pandera config base class.
 
     This should pick up environment variables automatically, e.g.:
@@ -35,11 +25,14 @@ class PanderaConfig(BaseSettings):
     validation_enabled: bool = True
     validation_depth: ValidationDepth = ValidationDepth.SCHEMA_AND_DATA
 
-    class Config:
-        """Pydantic configuration settings."""
-
-        env_prefix = "pandera_"
-
 
 # this config variable should be accessible globally
-CONFIG = PanderaConfig()
+CONFIG = PanderaConfig(
+    validation_enabled=os.environ.get(
+        "PANDERA_VALIDATION_ENABLED",
+        True,
+    ),
+    validation_depth=os.environ.get(
+        "PANDERA_VALIDATION_DEPTH", ValidationDepth.SCHEMA_AND_DATA
+    ),
+)

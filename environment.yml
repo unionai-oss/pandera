@@ -18,7 +18,7 @@ dependencies:
   - typing_extensions >= 3.7.4.3
   - frictionless <= 4.40.8  # v5.* introduces breaking changes
   - pyarrow
-  - pydantic < 2.0.0
+  - pydantic
   - multimethod
 
   # mypy extra
@@ -80,7 +80,6 @@ dependencies:
 
   - pip:
       - furo
-      - pydantic_settings
       - ray
       - typeguard >= 3.0.2
       - types-click
