@@ -80,6 +80,7 @@ dependencies:
 
   - pip:
       - furo
+      - pydantic_settings
       - ray
       - typeguard >= 3.0.2
       - types-click

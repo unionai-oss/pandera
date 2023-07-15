@@ -1,9 +1,15 @@
 """FastAPI-specific types."""
 
-from typing import Any, BinaryIO, Callable, Generic, Iterable, Type
+import functools
+from typing import Any, BinaryIO, Generic, Type
 
 from pandera.engines import PYDANTIC_V2
 from pandera.typing.common import T
+
+try:
+    from typing import get_args
+except ImportError:
+    from typing_extensions import get_args
 
 try:
     import fastapi
@@ -16,7 +22,7 @@ except ImportError:
 
 if PYDANTIC_V2:
     from pydantic_core import core_schema
-    from pydantic import GetJsonSchemaHandler, GetCoreSchemaHandler
+    from pydantic import GetCoreSchemaHandler
 
 
 if FASTAPI_INSTALLED:
@@ -29,16 +35,9 @@ if FASTAPI_INSTALLED:
         :py:class:`pandera.api.pandas.models.DataFrameModel` configuration.
         """
 
-        __slots__ = (
-            "data",
-            "filename",
-            "file",
-            "headers",
-        )
-
         def __init__(
             self,
-            pandera_data: Any,
+            data: Any,
             filename: str,
             file: BinaryIO,
             *args,
@@ -49,26 +48,30 @@ if FASTAPI_INSTALLED:
             contains validated data.
 
             :param data: pandera-validated data
-            :filename: name of file
+            :filename: name of file©
             :file: a file-like object
             """
-            self.pandera_data = pandera_data
+            self.data = data
             super().__init__(file=file, filename=filename, *args, **kwargs)
 
         if PYDANTIC_V2:
-            from pydantic import FieldValidationInfo
 
+            # pylint: disable=unused-argument
             @classmethod
             def __get_pydantic_core_schema__(
                 cls, _source_type: Any, _handler: GetCoreSchemaHandler
             ) -> core_schema.CoreSchema:
-                return core_schema.general_plain_validator_function(
-                    cls.pydantic_validate_v2,
+                dataframe_type = get_args(_source_type)[0]
+                return core_schema.no_info_plain_validator_function(
+                    functools.partial(
+                        cls.pydantic_validate_v2,
+                        dataframe_type=dataframe_type,
+                    )
                 )
 
             @classmethod
             def pydantic_validate_v2(
-                cls: Type["UploadFile"], obj: Any, info: FieldValidationInfo
+                cls: Type["UploadFile"], obj: Any, dataframe_type
             ) -> Any:
                 """
                 Pydantic validation method for validating dataframes in the context
@@ -79,10 +82,9 @@ if FASTAPI_INSTALLED:
                         f"Expected UploadFile, received: {type(obj)}"
                     )
 
-                schema_model_field = field.sub_fields[0]  # type: ignore[index]
-                cls.model_fields
-                validated_data = schema_model_field.type_._pydantic_validate(
-                    obj.file, schema_model_field
+                schema_model = get_args(dataframe_type)[0]
+                validated_data = dataframe_type.pydantic_validate(
+                    obj.file, schema_model
                 )
                 obj.file.seek(0)
                 return UploadFile(validated_data, obj.filename, obj.file)
