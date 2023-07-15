@@ -13,7 +13,7 @@ from tests.fastapi.models import (
 )
 
 try:
-    from typing import Annotated
+    from typing import Annotated  # type: ignore[attr-defined]
 except ImportError:
     from typing_extensions import Annotated  # type: ignore[misc]
 
