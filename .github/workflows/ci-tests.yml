@@ -86,7 +86,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}), pydantic-${{ matrix.pydantic-version }}
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}, pydantic-${{ matrix.pydantic-version }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
