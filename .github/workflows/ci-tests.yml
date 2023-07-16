@@ -86,7 +86,7 @@ jobs:
 
   tests:
     name: >
-      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }})
+      CI Tests (${{ matrix.python-version }}, ${{ matrix.os }}, pandas-${{ matrix.pandas-version }}), pydantic-${{ matrix.pydantic-version }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -210,7 +210,7 @@ jobs:
       - name: Unit Tests - FastAPI
         # there's an issue with the fastapi tests in CI that's not reproducible locally
         # when pydantic > v2
-        if: ${{ matrix.python-version != '3.7'  && matrix.pydantic-version != '2.0.2' }}
+        if: ${{ matrix.python-version != '3.7' }}
         run: pytest tests/fastapi ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - GeoPandas
