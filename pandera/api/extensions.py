@@ -213,11 +213,7 @@ def register_check_method(  # pylint:disable=too-many-branches
         if supported_type not in ALLOWED_TYPES:
             raise TypeError(msg.format(supported_type))
 
-    if check_type is CheckType.ELEMENT_WISE and set(supported_types) != {
-        pd.DataFrame,
-        pd.Series,
-        ps.DataFrame,
-    }:  # type: ignore
+    if check_type is CheckType.ELEMENT_WISE and set(supported_types) != ALLOWED_TYPES:  # type: ignore
         raise ValueError(
             "Element-wise checks should support DataFrame and Series "
             "validation. Use the default setting for the 'supported_types' "
