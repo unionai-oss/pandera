@@ -52,7 +52,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
 
         # fill nans with `default` if it's present
-        if hasattr(schema, "default") and pd.notna(schema.default):
+        if hasattr(schema, "default") and schema.default is not None:
             check_obj = self.set_default(check_obj, schema)
 
         try:

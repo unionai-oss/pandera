@@ -394,8 +394,8 @@ def test_duplicate_columns_dataframe():
     assert not schema.unique_column_names
 
 
-def test_add_missing_columns():
-    """Test that missing columns are added."""
+def test_add_missing_columns_order():
+    """Test that missing columns are added in the correct order."""
     col_labels = ["a", "b", "c"]
 
     # Missing column is first in schema
@@ -474,6 +474,39 @@ def test_add_missing_columns():
         match="column 'a' in .* requires a default value when non-nullable add_missing_columns is enabled",
     ):
         schema_no_default_not_nullable.validate(frame_missing_first)
+
+
+def test_add_missing_columns_dtype():
+    """Test that missing columns are added with the correct dtype."""
+    ref_df = pd.DataFrame(
+        {
+            "a": pd.Series([2, 5], dtype=int),
+            "b": pd.Series([9, 9], dtype=int),
+            "c": pd.Series([9, 9], dtype=np.int8),
+            "d": pd.Series([np.nan, np.nan], dtype=float),
+            "e": pd.Series(
+                [7, 7], dtype=pd.SparseDtype(dtype=np.int8, fill_value=5)
+            ),
+            "f": pd.Series([pd.NA, pd.NA], dtype=pd.Int32Dtype()),
+        }
+    )
+
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(int),
+            "b": Column(int, default=9),
+            "c": Column(np.int8, default=9),
+            "d": Column(float, default=np.nan, nullable=True),
+            "e": Column(
+                pd.SparseDtype(dtype=np.int8, fill_value=5), default=7
+            ),
+            "f": Column(pd.Int32Dtype(), default=pd.NA, nullable=True),
+        },
+        add_missing_columns=True,
+        coerce=False,
+    )
+    test_df = schema.validate(pd.DataFrame(data={"a": [2, 5]}))
+    pd.testing.assert_frame_equal(ref_df, test_df)
 
 
 def test_series_schema() -> None:
