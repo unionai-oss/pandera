@@ -1427,6 +1427,7 @@ def test_pandas_fields_metadata():
     }
     assert PanderaSchema.get_metadata() == expected
 
+
 def test_iter_fieldnames():
     """
     Test we can iterate over the `DataFrameModel` to get the field names.
@@ -1437,12 +1438,11 @@ def test_iter_fieldnames():
         product_name: Series[str]
         price: Series[float]
 
-        class Config:
-            name = "product_info"
-            strict = True
-            coerce = True
-
-    expected = ["id", "product_name", "price"]
+    expected = [
+        PanderaSchema.id,
+        PanderaSchema.product_name,
+        PanderaSchema.price,
+    ]
     assert list(PanderaSchema) == expected
 
 
@@ -1466,8 +1466,15 @@ def test_iter_fieldnames_inheritance():
     class CombinedSchema(PanderaSchema1, PanderaSchema2, PanderaSchema3):
         pass
 
-    expected = ["id", "product_name", "price", "quantity", "quality"]
+    expected = [
+        PanderaSchema1.id,
+        PanderaSchema1.product_name,
+        PanderaSchema1.price,
+        PanderaSchema2.quantity,
+        PanderaSchema3.quality,
+    ]
     assert list(CombinedSchema) == expected
+
 
 def test_iter_fieldnames_df_index():
     """
@@ -1490,9 +1497,13 @@ def test_iter_fieldnames_df_index():
         }
     )
     assert df.columns == [
-        PanderaSchema.price, PanderaSchema.id, PanderaSchema.product_name
+        PanderaSchema.price,
+        PanderaSchema.id,
+        PanderaSchema.product_name,
     ]
     df = df[list(PanderaSchema)].copy()
     assert df.columns == [
-        PanderaSchema.id, PanderaSchema.product_name, PanderaSchema.price
+        PanderaSchema.id,
+        PanderaSchema.product_name,
+        PanderaSchema.price,
     ]

@@ -124,6 +124,7 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
 
     return checks
 
+
 class MetaDataFrameModel(MetaModel):
     """A metaclass for DataFrameModel to provide iter support."""
 
@@ -136,6 +137,7 @@ class MetaDataFrameModel(MetaModel):
         # False positive in metaclass context; pylint: disable=no-value-for-parameter
         schema = cls.to_schema()
         return iter(schema.columns)
+
 
 class DataFrameModel(BaseModel, metaclass=MetaDataFrameModel):
     """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
