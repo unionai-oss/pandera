@@ -124,8 +124,18 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
 
     return checks
 
+class MetaDataFrameModel(MetaModel):
+    """A metaclass for DataFrameModel to provide iter support."""
+    
+    def to_schema(cls) -> DataFrameSchema:
+         """Create :class:`~pandera.DataFrameSchema` from the class."""
+        raise NotImplementedError
 
-class DataFrameModel(BaseModel):
+    def __iter__(cls) -> Iterable[str]:
+        """Iterate over the fields of the schema"""
+        return iter(cls.to_schema().columns)
+
+class DataFrameModel(BaseModel, metaclass=MetaDataFrameModel):
     """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
     *new in 0.5.0*
