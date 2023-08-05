@@ -1507,3 +1507,4 @@ def test_iter_fieldnames_df_index():
         PanderaSchema.product_name,
         PanderaSchema.price,
     ]
+    PanderaSchema.validate(df)
