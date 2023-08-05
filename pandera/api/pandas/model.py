@@ -23,7 +23,7 @@ from typing import (
 
 import pandas as pd
 
-from pandera.api.base.model import BaseModel
+from pandera.api.base.model import BaseModel, MetaModel
 from pandera.api.checks import Check
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.container import DataFrameSchema
@@ -126,14 +126,16 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
 
 class MetaDataFrameModel(MetaModel):
     """A metaclass for DataFrameModel to provide iter support."""
-    
+
     def to_schema(cls) -> DataFrameSchema:
-         """Create :class:`~pandera.DataFrameSchema` from the class."""
+        """Create :class:`~pandera.DataFrameSchema` from the class."""
         raise NotImplementedError
 
     def __iter__(cls) -> Iterable[str]:
         """Iterate over the fields of the schema"""
-        return iter(cls.to_schema().columns)
+        # False positive in metaclass context; pylint: disable=no-value-for-parameter
+        schema = cls.to_schema()
+        return iter(schema.columns)
 
 class DataFrameModel(BaseModel, metaclass=MetaDataFrameModel):
     """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
