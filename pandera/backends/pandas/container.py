@@ -3,20 +3,20 @@
 import copy
 import itertools
 import traceback
-from typing import Any, Callable, List, Optional, Tuple, Dict
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel
 
-from pandera.backends.base import CoreCheckResult
 from pandera.api.pandas.types import is_table
+from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.engines import pandas_engine
 from pandera.backends.pandas.utils import convert_uniquesettings
+from pandera.engines import pandas_engine
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     ParserError,

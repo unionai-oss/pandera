@@ -25,7 +25,6 @@ import typing_inspect
 
 from pandera.dtypes import DataType
 
-
 # register different TypedDict type depending on python version
 if sys.version_info >= (3, 9):
     from typing import TypedDict

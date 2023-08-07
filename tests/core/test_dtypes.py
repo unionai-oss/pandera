@@ -29,7 +29,6 @@ from pandera.system import FLOAT_128_AVAILABLE
 # instances.
 from pandera.typing.geopandas import GEOPANDAS_INSTALLED
 
-
 # register different TypedDict type depending on python version
 if sys.version_info >= (3, 9):
     from typing import TypedDict

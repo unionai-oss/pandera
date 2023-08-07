@@ -2,14 +2,17 @@
 import platform
 
 import pandera.backends
+import pandera.backends.base.builtin_checks
+import pandera.backends.base.builtin_hypotheses
+import pandera.backends.pandas
 from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
-from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
 from pandera.api.pandas.model_components import Field, check, dataframe_check
 from pandera.decorators import check_input, check_io, check_output, check_types
@@ -57,14 +60,8 @@ from pandera.engines.pandas_engine import (
     UINT64,
     pandas_version,
 )
-
-import pandera.backends.base.builtin_checks
-import pandera.backends.base.builtin_hypotheses
-import pandera.backends.pandas
-
 from pandera.schema_inference.pandas import infer_schema
 from pandera.version import __version__
-
 
 if platform.system() != "Windows":
     # pylint: disable=ungrouped-imports

@@ -6,9 +6,9 @@ import pyspark.sql.types as T
 from pandera.config import CONFIG, ValidationDepth
 from pandera.pyspark import (
     Check,
-    DataFrameSchema,
     Column,
     DataFrameModel,
+    DataFrameSchema,
     Field,
 )
 from tests.pyspark.conftest import spark_df

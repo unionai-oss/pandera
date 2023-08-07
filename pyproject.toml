@@ -1,7 +1,13 @@
 [tool.pyright]
-include = [ "pandera", "tests" ]
+include = ["pandera", "tests"]
 exclude = [".nox/**", ".nox-*/**"]
 
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = 20
+
+[tool.isort]
+profile = "black"
+line_length = 79               # sync with black
+float_to_top = true
+skip = ["docs/source/conf.py"]

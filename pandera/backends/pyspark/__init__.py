@@ -12,7 +12,6 @@ from pandera.backends.pyspark.column import ColumnSchemaBackend
 from pandera.backends.pyspark.components import ColumnBackend
 from pandera.backends.pyspark.container import DataFrameSchemaBackend
 
-
 for t in [pst.DataFrame]:
     Check.register_backend(t, PySparkCheckBackend)
     ColumnSchema.register_backend(t, ColumnSchemaBackend)

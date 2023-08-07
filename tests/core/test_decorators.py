@@ -9,12 +9,12 @@ import pytest
 from pandera import (
     Check,
     Column,
+    DataFrameModel,
     DataFrameSchema,
     DateTime,
     Field,
     Float,
     Int,
-    DataFrameModel,
     String,
     check_input,
     check_io,

@@ -3,18 +3,17 @@
 
 from typing import Union
 
+import pyspark.sql.types as T
+import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
-import pyspark.sql.types as T
 from pyspark.sql.types import StringType
-import pytest
 
-from pandera.errors import SchemaError, SchemaErrorReason
-from pandera.api.pyspark import error_handler
 import pandera.pyspark as pa
-from pandera.pyspark import DataFrameSchema, Column, DataFrameModel, Field
+from pandera.api.pyspark import error_handler
+from pandera.errors import SchemaError, SchemaErrorReason
+from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
-
 
 spark = SparkSession.builder.getOrCreate()
 

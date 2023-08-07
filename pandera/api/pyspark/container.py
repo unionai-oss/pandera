@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 from pyspark.sql import DataFrame
 
 from pandera import errors
-from pandera.config import CONFIG
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
@@ -20,6 +19,7 @@ from pandera.api.pyspark.types import (
     PySparkDtypeInputTypes,
     StrictType,
 )
+from pandera.config import CONFIG
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
 

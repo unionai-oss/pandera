@@ -23,8 +23,8 @@ from pandera.backends.pandas.error_formatters import (
     scalar_failure_case,
     summarize_failure_cases,
 )
-from pandera.errors import FailureCaseMetadata, SchemaError, SchemaErrorReason
 from pandera.error_handlers import SchemaErrorHandler
+from pandera.errors import FailureCaseMetadata, SchemaError, SchemaErrorReason
 
 
 class ColumnInfo(NamedTuple):

@@ -10,7 +10,7 @@ from pyspark.sql.functions import col
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.column import ColumnSchemaBackend
-from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
+from pandera.backends.pyspark.decorators import ValidationScope, validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.errors import SchemaError, SchemaErrorReason
 

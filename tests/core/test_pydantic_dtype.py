@@ -7,8 +7,8 @@ import pytest
 from pydantic import BaseModel
 
 import pandera as pa
-from pandera.engines.pandas_engine import PydanticModel
 from pandera.api.pandas.array import ArraySchema
+from pandera.engines.pandas_engine import PydanticModel
 
 
 class Record(BaseModel):

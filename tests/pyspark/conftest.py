@@ -1,9 +1,11 @@
 """ conftest """
 # pylint:disable=redefined-outer-name
 import datetime
+
+import pyspark.sql.types as T
 import pytest
 from pyspark.sql import SparkSession
-import pyspark.sql.types as T
+
 from pandera.config import PanderaConfig
 
 
