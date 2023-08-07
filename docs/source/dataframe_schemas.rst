@@ -201,7 +201,9 @@ The best way to handle this case is to simply specify the column as a
 
 If you want to coerce all of the columns specified in the
 ``DataFrameSchema``, you can specify the ``coerce`` argument with
-``DataFrameSchema(..., coerce=True)``.
+``DataFrameSchema(..., coerce=True)``. Note that this will have
+the effect of overriding any ``coerce=False`` arguments specified at
+the ``Column`` or ``Index`` level.
 
 .. _required:
 
