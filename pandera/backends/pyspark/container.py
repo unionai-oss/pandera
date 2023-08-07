@@ -357,7 +357,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                     )
 
         if schema.strict == "filter":
-            check_obj = check_obj.drop(*filter_out_columns)
+            check_obj = check_obj.drop(columns=filter_out_columns)
 
         return check_obj
 

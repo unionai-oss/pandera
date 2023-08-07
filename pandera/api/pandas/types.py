@@ -11,9 +11,10 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
 
 try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore [misc]
+    # python 3.8+
+    from typing import Literal  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
+    from typing_extensions import Literal  # type: ignore[misc]
 
 
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]

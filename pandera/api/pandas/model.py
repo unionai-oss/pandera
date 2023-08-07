@@ -19,6 +19,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_type_hints,
 )
 
 import pandas as pd
@@ -40,11 +41,6 @@ from pandera.errors import SchemaInitError
 from pandera.strategies import pandas_strategies as st
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
-
-try:
-    from typing_extensions import get_type_hints
-except ImportError:
-    from typing import get_type_hints  # type: ignore
 
 try:
     from pydantic.fields import ModelField  # pylint:disable=unused-import
@@ -424,9 +420,12 @@ class DataFrameModel(BaseModel):
     @classmethod
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
-        annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
-            cls, include_extras=True  # type: ignore [call-arg]
+        # pylint: disable=unexpected-keyword-arg
+        annotations = get_type_hints(  # type: ignore[call-arg]
+            cls,
+            include_extras=True,
         )
+        # pylint: enable=unexpected-keyword-arg
         attrs = cls._get_model_attrs()
 
         missing = []

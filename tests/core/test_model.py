@@ -835,8 +835,8 @@ def test_check_types() -> None:
     assert isinstance(transform(data), pd.DataFrame)  # type: ignore
 
     for invalid_data in [
-        data.drop("a", axis="columns"),
-        data.drop("b", axis="columns"),
+        data.drop(columns="a"),
+        data.drop(columns="b"),
         data.assign(a=["a", "b", "c"]),
         data.assign(b=["a", "b", "c"]),
         data.reset_index(drop=True),

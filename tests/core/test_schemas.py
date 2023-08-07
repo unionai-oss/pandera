@@ -85,7 +85,7 @@ def test_dataframe_schema() -> None:
 
     # error case
     with pytest.raises(errors.SchemaError):
-        schema.validate(df.drop("a", axis=1))
+        schema.validate(df.drop(columns="a"))
 
     with pytest.raises(errors.SchemaError):
         schema.validate(df.assign(a=[-1, -2, -1]))
