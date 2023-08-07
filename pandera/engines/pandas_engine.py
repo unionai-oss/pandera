@@ -655,9 +655,9 @@ else:
 
     @Engine.register_dtype(
         equivalents=["string", pd.StringDtype, pd.StringDtype()]  # type: ignore
-    )  # type: ignore[no-redef]
+    )  # type: ignore[no-redef] # python 3.7
     @immutable
-    class STRING(DataType, dtypes.String):
+    class STRING(DataType, dtypes.String):  # type: ignore[no-redef] # python 3.8+
         """Semantic representation of a :class:`pandas.StringDtype`."""
 
         type = pd.StringDtype()  # type: ignore

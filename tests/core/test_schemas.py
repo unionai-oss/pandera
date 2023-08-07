@@ -14,19 +14,19 @@ from pandera import (
     Category,
     Check,
     Column,
+    DataFrameModel,
     DataFrameSchema,
+    Field,
     Index,
     Int,
     MultiIndex,
     SeriesSchema,
     String,
     errors,
-    Field,
-    DataFrameModel,
 )
+from pandera.api.pandas.array import ArraySchema
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
-from pandera.api.pandas.array import ArraySchema
 
 
 def test_dataframe_schema() -> None:
@@ -36,16 +36,30 @@ def test_dataframe_schema() -> None:
     """
     schema = DataFrameSchema(
         {
-            "a": Column(int, Check(lambda x: x > 0, element_wise=True)),
+            "a": Column(
+                int,
+                Check(lambda x: x > 0, element_wise=True),
+            ),
             "b": Column(
-                float, Check(lambda x: 0 <= x <= 10, element_wise=True)
+                float,
+                Check(lambda x: 0 <= x <= 10, element_wise=True),
             ),
-            "c": Column(str, Check(lambda x: set(x) == {"x", "y", "z"})),
-            "d": Column(bool, Check(lambda x: x.mean() > 0.5)),
+            "c": Column(
+                str,
+                Check(lambda x: set(x) == {"x", "y", "z"}),
+            ),
+            "d": Column(
+                bool,
+                Check(lambda x: x.mean() > 0.5),
+            ),
             "e": Column(
-                Category, Check(lambda x: set(x) == {"c1", "c2", "c3"})
+                Category,
+                Check(lambda x: set(x) == {"c1", "c2", "c3"}),
             ),
-            "f": Column(object, Check(lambda x: x.isin([(1,), (2,), (3,)]))),
+            "f": Column(
+                object,
+                Check(lambda x: x.isin([(1,), (2,), (3,)])),
+            ),
             "g": Column(
                 datetime,
                 Check(
@@ -1674,7 +1688,7 @@ def test_schema_coerce_inplace_validation(
         from_dtype if from_dtype is not int else str(Engine.dtype(from_dtype))
     )
     to_dtype = to_dtype if to_dtype is not int else str(Engine.dtype(to_dtype))
-    df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})
+    df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})  # type: ignore[call-overload]
     schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})  # type: ignore
     validated_df = schema.validate(df, inplace=inplace)
 
@@ -1699,7 +1713,7 @@ def test_schema_coerce_inplace_validation(
 )
 def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
     """Test that different unique settings work as expected"""
-    df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
+    df: pd.DataFrame = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
     schemas = [
         DataFrameSchema(
             {"a": Column(int)}, unique="a", report_duplicates=unique
@@ -1718,7 +1732,8 @@ def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
     series_schema = SeriesSchema(int, unique=True, report_duplicates=unique)
 
     with pytest.raises(errors.SchemaError) as err:
-        series_schema.validate(df["a"])
+        srs: pd.Series = df["a"]  # type: ignore[assignment]
+        series_schema.validate(srs)
 
     assert err.value.failure_cases["index"].to_list() == answers
 

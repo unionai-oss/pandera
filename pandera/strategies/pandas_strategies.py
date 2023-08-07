@@ -265,7 +265,8 @@ def convert_dtypes(df: pd.DataFrame, col_dtypes: Dict[str, Any]):
         return df
 
     for col_name, col_dtype in col_dtypes.items():
-        df[col_name] = convert_dtype(df[col_name], col_dtype)
+        array: pd.Series = df[col_name]  # type: ignore[assignment]
+        df[col_name] = convert_dtype(array, col_dtype)
 
     return df
 

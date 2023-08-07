@@ -23,6 +23,7 @@ from typing import (
 )
 
 import pandas as pd
+import pandas.util
 
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
@@ -65,10 +66,11 @@ TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 
 
 def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Typed wrapper around pd.util.Substitution."""
+    """Typed wrapper around pandas.util.Substitution."""
 
     def decorator(func: F) -> F:
-        return cast(F, pd.util.Substitution(*args, **kwargs)(func))
+        substitutor = pandas.util.Substitution(*args, **kwargs)  # type: ignore[attr-defined]
+        return cast(F, substitutor(func))
 
     return decorator
 
