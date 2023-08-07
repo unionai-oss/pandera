@@ -19,7 +19,6 @@ from typing import (
     TypeVar,
     Union,
     cast,
-    get_type_hints,
 )
 
 import pandas as pd
@@ -42,6 +41,11 @@ from pandera.errors import SchemaInitError
 from pandera.strategies import pandas_strategies as st
 from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
+
+try:
+    from typing_extensions import get_type_hints
+except ImportError:  # pragma: no cover
+    from typing import get_type_hints  # type: ignore
 
 try:
     from pydantic.fields import ModelField  # pylint:disable=unused-import
