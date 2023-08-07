@@ -655,9 +655,9 @@ else:
 
     @Engine.register_dtype(
         equivalents=["string", pd.StringDtype, pd.StringDtype()]  # type: ignore
-    )
+    )  # type: ignore[no-redef]
     @immutable
-    class STRING(DataType, dtypes.String):  # type: ignore[no-redef]
+    class STRING(DataType, dtypes.String):
         """Semantic representation of a :class:`pandas.StringDtype`."""
 
         type = pd.StringDtype()  # type: ignore
@@ -1024,8 +1024,8 @@ class Sparse(DataType):
     def from_parametrized_dtype(cls, pd_dtype: pd.SparseDtype):
         """Convert a :class:`pandas.SparseDtype` to
         a Pandera :class:`pandera.engines.pandas_engine.Sparse`."""
-        return cls(
-            dtype=pd_dtype.subtype,  # type: ignore[call-arg, attr-defined]
+        return cls(  # type: ignore[call-arg]
+            dtype=pd_dtype.subtype,  # type: ignore[attr-defined]
             fill_value=pd_dtype.fill_value,
         )
 
