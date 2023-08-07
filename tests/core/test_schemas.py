@@ -14,19 +14,19 @@ from pandera import (
     Category,
     Check,
     Column,
+    DataFrameModel,
     DataFrameSchema,
+    Field,
     Index,
     Int,
     MultiIndex,
     SeriesSchema,
     String,
     errors,
-    Field,
-    DataFrameModel,
 )
+from pandera.api.pandas.array import ArraySchema
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
-from pandera.api.pandas.array import ArraySchema
 
 
 def test_dataframe_schema() -> None:
