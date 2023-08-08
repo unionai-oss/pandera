@@ -125,16 +125,7 @@ class PandasSchemaBackend(BaseSchemaBackend):
             if check.raise_warning:
                 warnings.warn(
                     message,
-                    SchemaWarning(
-                        schema=schema,
-                        data=check_obj,
-                        message=message,
-                        failure_cases=failure_cases,
-                        check=check,
-                        check_index=check_index,
-                        check_output=check_result.check_output,
-                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
-                    ),
+                    SchemaWarning,
                 )
                 return CoreCheckResult(
                     passed=True,

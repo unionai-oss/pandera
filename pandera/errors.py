@@ -2,7 +2,7 @@
 
 import warnings
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple, TypeVar
+from typing import Any, Dict, List, NamedTuple
 
 
 class BackendNotFoundError(Exception):
@@ -105,10 +105,7 @@ class SchemaError(ReducedPickleExceptionBase):
         self.reason_code = reason_code
 
 
-_T = TypeVar("_T", bound="SchemaWarning")
-
-
-class SchemaWarning(UserWarning, SchemaError):
+class SchemaWarning(UserWarning):
     """Warning when object does not pass schema validation constraints."""
 
 

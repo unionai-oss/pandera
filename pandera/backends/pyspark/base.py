@@ -88,7 +88,15 @@ class PysparkSchemaBackend(BaseSchemaBackend):
             failure_cases = scalar_failure_case(check_result.check_passed)
             error_msg = format_generic_error_message(schema, check)
 
-            error = SchemaError(
+            # raise a warning without exiting if the check is specified to do so
+            if check.raise_warning:  # pragma: no cover
+                warnings.warn(
+                    message=error_msg,
+                    category=SchemaWarning,
+                )
+                return True
+
+            raise SchemaError(
                 schema,
                 check_obj,
                 error_msg,
@@ -97,25 +105,6 @@ class PysparkSchemaBackend(BaseSchemaBackend):
                 check_index=check_index,
                 check_output=check_result.check_output,
             )
-
-            # raise a warning without exiting if the check is specified to do so
-            if check.raise_warning:  # pragma: no cover
-                warnings.warn(
-                    error_msg,
-                    SchemaWarning(
-                        schema=error.schema,
-                        data=error.data,
-                        message=error_msg,
-                        failure_cases=error.failure_cases,
-                        check=error.check,
-                        check_index=error.check_index,
-                        check_output=error.check_output,
-                        reason_code=error.reason_code,
-                    ),
-                )
-                return True
-
-            raise error
         return check_result.check_passed
 
     def failure_cases_metadata(
