@@ -100,7 +100,19 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
             # raise a warning without exiting if the check is specified to do so
             if check.raise_warning:  # pragma: no cover
-                warnings.warn(error_msg, SchemaWarning._from_error(error))
+                warnings.warn(
+                    error_msg,
+                    SchemaWarning(
+                        schema=error.schema,
+                        data=error.data,
+                        message=error_msg,
+                        failure_cases=error.failure_cases,
+                        check=error.check,
+                        check_index=error.check_index,
+                        check_output=error.check_output,
+                        reason_code=error.reason_code,
+                    ),
+                )
                 return True
 
             raise error

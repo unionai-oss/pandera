@@ -111,19 +111,6 @@ _T = TypeVar("_T", bound="SchemaWarning")
 class SchemaWarning(SchemaError, UserWarning):
     """Warning when object does not pass schema validation constraints."""
 
-    @classmethod
-    def _from_error(cls: _T, error: SchemaError) -> _T:
-        return cls(
-            schema=error.schema,
-            data=error.data,
-            message=error.args[0],
-            failure_cases=error.failure_cases,
-            check=error.check,
-            check_index=error.check_index,
-            check_output=error.check_output,
-            reason_code=error.reason_code,
-        )
-
 
 class BaseStrategyOnlyError(Exception):
     """Custom error for reporting strategies that must be base strategies."""
