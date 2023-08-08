@@ -388,6 +388,10 @@ def test_raise_warning_series() -> None:
     with pytest.warns(errors.SchemaWarning):
         warning_schema(data)
 
+    # For compatibility with old behaviour of raise_warning to give UserWarning
+    with pytest.warns(UserWarning):
+        warning_schema(data)
+
 
 def test_raise_warning_dataframe() -> None:
     """Test that checks with raise_warning=True raise a warning."""

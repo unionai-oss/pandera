@@ -86,6 +86,11 @@ def check_raise_error_or_warning(failure_values, check) -> None:
         SeriesSchema(checks=check)(failure_series)
         DataFrameSchema({"failure_column": Column(checks=check)})(failure_df)
 
+    # For compatibility with old behaviour of raise_warning to give UserWarning
+    with pytest.warns(UserWarning):
+        SeriesSchema(checks=check)(failure_series)
+        DataFrameSchema({"failure_column": Column(checks=check)})(failure_df)
+
 
 class TestGreaterThan:
     """Tests for Check.greater_than"""
