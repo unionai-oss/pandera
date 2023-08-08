@@ -108,7 +108,7 @@ class SchemaError(ReducedPickleExceptionBase):
 _T = TypeVar("_T", bound="SchemaWarning")
 
 
-class SchemaWarning(SchemaError, UserWarning):
+class SchemaWarning(UserWarning, SchemaError):
     """Warning when object does not pass schema validation constraints."""
 
 
