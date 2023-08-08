@@ -123,7 +123,19 @@ class PandasSchemaBackend(BaseSchemaBackend):
             # raise a warning without exiting if the check is specified to do so
             # but make sure the check passes
             if check.raise_warning:
-                warnings.warn(message, SchemaWarning)
+                warnings.warn(
+                    message,
+                    SchemaWarning(
+                        schema=schema,
+                        data=check_obj,
+                        message=message,
+                        failure_cases=failure_cases,
+                        check=check,
+                        check_index=check_index,
+                        check_output=check_result.check_output,
+                        reason_code=SchemaErrorReason.DATAFRAME_CHECK,
+                    ),
+                )
                 return CoreCheckResult(
                     passed=True,
                     check=check,
