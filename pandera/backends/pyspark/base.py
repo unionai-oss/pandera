@@ -21,7 +21,7 @@ from pandera.backends.pyspark.error_formatters import (
     format_generic_error_message,
     scalar_failure_case,
 )
-from pandera.errors import FailureCaseMetadata, SchemaError
+from pandera.errors import FailureCaseMetadata, SchemaError, SchemaWarning
 
 
 class ColumnInfo(NamedTuple):
@@ -90,7 +90,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
             # raise a warning without exiting if the check is specified to do so
             if check.raise_warning:  # pragma: no cover
-                warnings.warn(error_msg, UserWarning)
+                warnings.warn(error_msg, SchemaWarning)
                 return True
 
             raise SchemaError(

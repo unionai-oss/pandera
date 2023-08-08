@@ -23,8 +23,13 @@ from pandera.backends.pandas.error_formatters import (
     scalar_failure_case,
     summarize_failure_cases,
 )
-from pandera.errors import FailureCaseMetadata, SchemaError, SchemaErrorReason
 from pandera.error_handlers import SchemaErrorHandler
+from pandera.errors import (
+    FailureCaseMetadata,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaWarning,
+)
 
 
 class ColumnInfo(NamedTuple):
@@ -118,7 +123,7 @@ class PandasSchemaBackend(BaseSchemaBackend):
             # raise a warning without exiting if the check is specified to do so
             # but make sure the check passes
             if check.raise_warning:
-                warnings.warn(message, UserWarning)
+                warnings.warn(message, SchemaWarning)
                 return CoreCheckResult(
                     passed=True,
                     check=check,

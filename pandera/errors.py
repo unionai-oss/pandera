@@ -105,6 +105,10 @@ class SchemaError(ReducedPickleExceptionBase):
         self.reason_code = reason_code
 
 
+class SchemaWarning(SchemaError, UserWarning):
+    """Warning when object does not pass schema validation constraints."""
+
+
 class BaseStrategyOnlyError(Exception):
     """Custom error for reporting strategies that must be base strategies."""
 
