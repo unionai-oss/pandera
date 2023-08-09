@@ -152,20 +152,19 @@ jobs:
           channel-priority: true
           use-only-tar-bz2: true
 
-      # need to install pandas via pip: conda installation is on the fritz
-      - name: Install Conda Deps [pandas 2]
-        if: ${{ matrix.pandas-version == '2.0.1' }}
-        run: |
-          mamba install -c conda-forge asv pandas geopandas bokeh
-          pip install pandas==${{ matrix.pandas-version }}
-          pip install -r requirements-dev.txt
-          pip install --user dask>=2023.3.2
+      # ray currently cannot be installed on python 3.11
+      - name: Remove Ray from Deps
+        if: ${{ matrix.python-version == '3.11' && matrix.os != 'macos-latest' }}
+        run: sed -i '/ray/d' environment.yml
+
+      - name: Remove Ray from Deps
+        if: ${{ matrix.python-version == '3.11' && matrix.os == 'macos-latest' }}
+        run: sed -i .bak '/ray/d' environment.yml
 
       - name: Install Conda Deps
-        if: ${{ matrix.pandas-version != '2.0.1' }}
         run: |
           mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
-          pip install -r requirements-dev.txt
+          mamba env update -n pandera-dev -f environment.yml
 
       - run: |
           conda info
