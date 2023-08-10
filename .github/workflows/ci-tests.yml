@@ -94,7 +94,7 @@ jobs:
     env:
       PYTHONUTF8: 1
       NOX_FLAGS: -v --no-install --no-venv --non-interactive
-      PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
+      PYTEST_FLAGS: -v -v -v --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
       fail-fast: true
