@@ -156,7 +156,7 @@ jobs:
         run: |
           mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
           mamba env update -n pandera-dev -f environment.yml
-          pip install modin>=0.23.0
+          pip install --upgrade modin
 
       - run: |
           conda info
