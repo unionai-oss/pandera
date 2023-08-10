@@ -28,7 +28,7 @@ dependencies:
   - pyspark >= 3.2.0
 
   # modin extra
-  - modin
+  - modin>=0.23.0
   - protobuf
 
   # dask extra
