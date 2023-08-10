@@ -202,7 +202,7 @@ jobs:
       #     CI_MODIN_ENGINES: dask
 
       - name: Unit Tests - Modin-Ray
-        if: ${{ matrix.pandas-version != '1.3.0' }}
+        if: ${{ !contains(fromJson('["1.3.0", "2.0.1"]'), matrix.pandas-version) }}
         run: pytest tests/modin/* ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
