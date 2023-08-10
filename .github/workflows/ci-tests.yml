@@ -202,11 +202,7 @@ jobs:
       #     CI_MODIN_ENGINES: dask
 
       - name: Unit Tests - Modin-Ray
-        # ray CI issues with the following:
-        # - windows, python 3.10
-        # - mac, python 3.7
-        # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
+        if: ${{ matrix.pandas-version != '"1.3.0"' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
