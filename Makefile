@@ -17,14 +17,8 @@ upload-pypi:
 		twine upload dist/* && \
 		rm -rf dist
 
-install-pip-compile:
-	pip install pip-tools
-
-requirements-lock.txt: install-pip-compile
-	pip-compile --output-file requirements-lock.txt --resolver=backtracking requirements-dev.txt
-
-requirements: requirements-lock.txt
-	pip install -r requirements-lock.txt
+requirements:
+	pip install -r requirements-dev.txt
 
 docs-clean:
 	rm -rf docs/**/generated docs/**/methods docs/_build docs/source/_contents
