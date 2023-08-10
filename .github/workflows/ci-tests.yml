@@ -155,7 +155,7 @@ jobs:
       - name: Install Conda Deps
         run: |
           mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
-          pip install pandas==${{ matrix.pandas-version }} ray
+          pip install pandas==${{ matrix.pandas-version }} ray modin>=0.23.0
           mamba env update -n pandera-dev -f environment.yml
 
       - run: |
