@@ -147,7 +147,12 @@ jobs:
           channel-priority: true
           use-only-tar-bz2: true
 
-      - run: |
+      - name: Install Deps via pip in conda
+        run: |
+          mamba env update -n pandera-${{ matrix.python-version }}-${{ matrix.pandas-version }} -f "requirements/ci-tests/requirements-${{ matrix.python-version }}-pd${{ matrix.pandas-version }}.txt"
+
+      - name: Conda + Pip Install Info
+        run: |
           conda info
           conda list
           conda config --show-sources
