@@ -153,6 +153,7 @@ jobs:
           conda config --show-sources
           conda config --show
           printenv | sort
+          pip list
 
       - name: Unit Tests - Core
         run: pytest tests/core ${{ env.PYTEST_FLAGS }}
