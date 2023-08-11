@@ -123,7 +123,7 @@ jobs:
           CACHE_NUMBER: 1
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles(format('requirements/conda/environment-{0}.yml'), matrix.python-version) }}-${{ hashFiles(format('requirements/ci-tests/requirements-{0}-pd{1}.txt'), matrix.python-version, matrix.pandas-version) }}
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles(format('requirements/conda/environment-{0}.yml', matrix.python-version)) }}-${{ hashFiles(format('requirements/ci-tests/requirements-{0}-pd{1}.txt', matrix.python-version, matrix.pandas-version)) }}
         id: cache
 
       - name: Cache pip
