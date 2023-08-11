@@ -27,17 +27,17 @@ pyspark >= 3.2.0
 modin # sync with modin-ray, modin-dask
 ray ; python_version<'3.11' # sync with modin-ray
 dask >= 2023.3.2 # sync with dask
-protobuf <= 3.20.3 # sync with modin-ray, modin-dask
+protobuf # sync with modin-ray, modin-dask
 
 # modin-ray
 modin # sync with modin, modin-dask
 ray ; python_version<'3.11' # sync with modin
-protobuf <= 3.20.3 # sync with modin, modin-dask
+protobuf # sync with modin, modin-dask
 
 # modin-dask
 modin # sync with modin, modin-ray
 dask >= 2023.3.2 # sync with dask
-protobuf <= 3.20.3 # sync with modin, modin-ray
+protobuf # sync with modin, modin-ray
 
 # dask
 dask # sync with dask
