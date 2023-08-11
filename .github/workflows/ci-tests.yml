@@ -149,7 +149,7 @@ jobs:
 
       - name: Install Deps via pip in conda
         run: |
-          mamba env update -n pandera-${{ matrix.python-version }}-${{ matrix.pandas-version }} -f "requirements/ci-tests/requirements-${{ matrix.python-version }}-pd${{ matrix.pandas-version }}.txt"
+          mamba env update -n pandera-${{ matrix.python-version }}-${{ matrix.pandas-version }} -f "requirements/conda/environment-${{ matrix.python-version }}-pd${{ matrix.pandas-version }}.yml"
 
       - name: Conda + Pip Install Info
         run: |
