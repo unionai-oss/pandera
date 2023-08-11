@@ -52,7 +52,7 @@ types-urllib3==1.26.25.14
     # via types-requests
 typing-extensions==4.7.1
     # via mypy
-virtualenv==20.24.2
+virtualenv==20.24.3
     # via
     #   nox
     #   pre-commit

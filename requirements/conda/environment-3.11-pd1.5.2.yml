@@ -1,0 +1,9 @@
+name: pandera-3.11-pd1.5.2
+channels:
+    - conda-forge
+dependencies:
+    - python==3.11
+    - anaconda
+    - pip
+    - pip:
+          - -r file:requirements/ci-tests/requirements-3.11-pd1.5.2.txt

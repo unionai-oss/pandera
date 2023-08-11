@@ -1,0 +1,9 @@
+name: pandera-3.7-pd1.3.0
+channels:
+  - conda-forge
+dependencies:
+  - python==3.7
+  - anaconda
+  - pip
+  - pip:
+      - -r file:requirements/ci-tests/requirements-3.7-pd1.3.0.txt

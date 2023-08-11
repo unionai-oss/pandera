@@ -1,0 +1,9 @@
+name: pandera-3.9-pd2.0.1
+channels:
+    - conda-forge
+dependencies:
+    - python==3.9
+    - anaconda
+    - pip
+    - pip:
+          - -r file:requirements/ci-tests/requirements-3.9-pd2.0.1.txt

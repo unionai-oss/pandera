@@ -119,18 +119,18 @@ jobs:
       - name: Cache conda
         uses: actions/cache@v3
         env:
-          # Increase this value to reset cache if etc/environment.yml has not changed
+          # Increase this value to reset cache if environment.yml has not changed
           CACHE_NUMBER: 1
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles(format('requirements/conda/environment-{0}.yml'), matrix.python-version) }}-${{ hashFiles(format('requirements/ci-tests/requirements-{0}-pd{1}.txt'), matrix.python-version, matrix.pandas-version) }}
         id: cache
 
       - name: Cache pip
         uses: actions/cache@v3
         with:
           path: ${{ matrix.pip-cache }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+          key: ${{ hashFiles(format('requirements/ci-tests/requirements-{0}-pd{1}.txt'), matrix.python-version, matrix.pandas-version) }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -141,34 +141,10 @@ jobs:
           miniforge-version: latest
           miniforge-variant: Mambaforge
           use-mamba: true
-          activate-environment: pandera-dev
+          activate-environment: pandera-${{ matrix.python-version }}-${{ matrix.pandas-version }}
           channels: conda-forge
           channel-priority: true
           use-only-tar-bz2: true
-
-      # ray currently cannot be installed on python 3.11
-      - name: Remove Ray from Deps
-        if: ${{ matrix.python-version == '3.11' && matrix.os != 'macos-latest' }}
-        run: sed -i '/ray/d' environment.yml
-
-      - name: Remove Ray from Deps
-        if: ${{ matrix.python-version == '3.11' && matrix.os == 'macos-latest' }}
-        run: sed -i .bak '/ray/d' environment.yml
-
-      # need to install pandas via pip: conda installation is on the fritz
-      - name: Install Conda Deps [pandas 2]
-        if: ${{ matrix.pandas-version == '2.0.1' }}
-        run: |
-          mamba install -c conda-forge asv pandas geopandas bokeh
-          mamba env update -n pandera-dev -f environment.yml
-          pip install pandas==${{ matrix.pandas-version }}
-          pip install --user dask>=2023.3.2
-
-      - name: Install Conda Deps
-        if: ${{ matrix.pandas-version != '2.0.1' }}
-        run: |
-          mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
-          mamba env update -n pandera-dev -f environment.yml
 
       - run: |
           conda info
