@@ -97,4 +97,4 @@ def is_table(obj):
 
 def is_bool(x):
     """Verifies whether an object is a boolean type."""
-    return isinstance(x, (bool, pst.BooleanType()))
+    return isinstance(x, (bool, type(pst.BooleanType())))
