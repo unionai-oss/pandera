@@ -58,10 +58,11 @@ jobs:
       - name: Check requirements
         run: >
           nox
-          -db virtualenv -r
+          -db virtualenv
+          -r
           --non-interactive
           --python ${{ matrix.python-version }}
-          --session requirements-${{ matrix.python-version }}
+          --session "requirements-${{ matrix.python-version }}""
 
       - name: Sort Imports
         run: pre-commit run isort --all-files
