@@ -29,7 +29,6 @@ from pandera.system import FLOAT_128_AVAILABLE
 # instances.
 from pandera.typing.geopandas import GEOPANDAS_INSTALLED
 
-
 # register different TypedDict type depending on python version
 if sys.version_info >= (3, 9):
     from typing import TypedDict
@@ -186,13 +185,13 @@ dtype_fixtures: List[Tuple[Dict, List]] = [
     (category_dtypes, [1, 2, None]),
     (  # type: ignore
         timestamp_dtypes,
-        pd.to_datetime(["2019/01/01", "2018/05/21"]).to_series(),
+        pd.to_datetime(["2019/01/01", "2018/05/21"]).to_series(),  # type: ignore[attr-defined]
     ),
     (  # type: ignore
         period_dtypes,
         pd.to_datetime(["2019/01/01", "2018/05/21"])
         .to_period("D")
-        .to_series(),
+        .to_series(),  # type: ignore[attr-defined]
     ),
     (sparse_dtypes, pd.Series([1, None], dtype=pd.SparseDtype(float))),  # type: ignore
     (interval_dtypes, pd.interval_range(-10.0, 10.0).to_series()),  # type: ignore
