@@ -131,7 +131,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ matrix.pip-cache }}
-          key: ${{ hashFiles(format('requirements/ci-tests/requirements-{0}-pd{1}.txt', matrix.python-version, matrix.pandas-version)) }}
+          key: ${{ runner.os }}-pip-${{ hashFiles(format('requirements/ci-tests/requirements-{0}-pd{1}.txt', matrix.python-version, matrix.pandas-version)) }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
