@@ -387,7 +387,7 @@ class DataFrameModel(BaseModel):
             if not isinstance(field, FieldInfo):
                 raise SchemaInitError(
                     f"'{field_name}' can only be assigned a 'Field', "
-                    + f"not a '{type(field)}.'"
+                    + f"not a '{type(field)}'."
                 )
             fields[field.name] = (AnnotationInfo(annotation), field)
 
