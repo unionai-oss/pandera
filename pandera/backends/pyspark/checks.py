@@ -51,8 +51,19 @@ class PySparkCheckBackend(BaseCheckBackend):
     @overload  # type: ignore [no-redef]
     def preprocess(
         self,
+        check_obj: DataFrame,
+        key: str,  # type: ignore [valid-type]
+    ) -> DataFrame:
+        return check_obj
+
+    # Workaround for multimethod not supporting Optional arguments
+    # such as `key: Optional[str]` (fails in multimethod)
+    # https://github.com/coady/multimethod/issues/90
+    # FIXME when the multimethod supports Optional args # pylint: disable=fixme
+    @overload  # type: ignore [no-redef]
+    def preprocess(
+        self,
         check_obj: DataFrame,  # type: ignore [valid-type]
-        key: str,
     ) -> DataFrame:
         return check_obj
 
@@ -104,11 +115,21 @@ class PySparkCheckBackend(BaseCheckBackend):
         check_obj: DataFrame,
         key: Optional[str] = None,
     ) -> CheckResult:
-        check_obj = self.preprocess(check_obj, key)
+        if key is None:
+            # pylint:disable=no-value-for-parameter
+            check_obj = self.preprocess(check_obj)
+        else:
+            check_obj = self.preprocess(check_obj, key)
+
         try:
-            check_output = self.apply(  # pylint:disable=too-many-function-args
-                check_obj, key, self.check._check_kwargs
-            )
+            if key is None:
+                check_output = self.apply(check_obj)
+            else:
+                check_output = (
+                    self.apply(  # pylint:disable=too-many-function-args
+                        check_obj, key, self.check._check_kwargs
+                    )
+                )
 
         except DispatchError as exc:  # pragma: no cover
             if exc.__cause__ is not None:
