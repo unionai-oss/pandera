@@ -7,6 +7,7 @@ import pyspark.sql.types as T
 import pytest
 
 import pandera
+import pandera.api.extensions as pax
 import pandera.pyspark as pa
 from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
@@ -324,3 +325,33 @@ def test_invalid_field() -> None:
         match="'a' can only be assigned a 'Field'",
     ):
         Schema.to_schema()
+
+
+def test_registered_dataframemodel_checks(spark) -> None:
+    """Check that custom registered checks work"""
+
+    @pax.register_check_method(
+        supported_types=DataFrame,
+    )
+    def always_true_check(df: DataFrame):
+        # pylint: disable=unused-argument
+        return True
+
+    class ExampleDFModel(
+        DataFrameModel
+    ):  # pylint:disable=missing-class-docstring
+        name: str
+        age: int
+
+        class Config:
+            coerce = True
+            always_true_check = ()
+
+    example_data_cols = ("name", "age")
+    example_data = [("foo", 42), ("bar", 24)]
+
+    df = spark.createDataFrame(example_data, example_data_cols)
+
+    out = ExampleDFModel.validate(df, lazy=False)
+
+    assert not out.pandera.errors

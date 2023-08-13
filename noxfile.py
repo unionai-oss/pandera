@@ -267,7 +267,7 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
         print(f"{REQUIREMENT_PATH} has been re-generated ✨ 🍰 ✨")
         raise err
 
-    ignored_pkgs = {"black", "pandas", "pandas-stubs"}
+    ignored_pkgs = {"black", "pandas", "pandas-stubs", "modin"}
     mismatched = []
     # only compare package versions, not python version markers.
     str_dev_reqs = [str(x) for x in DEV_REQUIREMENTS]
