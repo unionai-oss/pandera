@@ -1,12 +1,15 @@
 """Data validation checks for hypothesis testing."""
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
 from pandera import errors
 from pandera.api.checks import Check
 from pandera.strategies import SearchStrategy
 
 DEFAULT_ALPHA = 0.01
+
+
+T = TypeVar("T")
 
 
 class Hypothesis(Check):

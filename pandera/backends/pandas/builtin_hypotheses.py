@@ -5,10 +5,6 @@ from typing import Tuple
 
 from pandera.api.extensions import register_builtin_hypothesis
 from pandera.backends.pandas.builtin_checks import PandasData
-from pandera.backends.pandas.hypotheses import HAS_SCIPY
-
-if HAS_SCIPY:
-    from scipy import stats
 
 
 @register_builtin_hypothesis(
@@ -20,6 +16,8 @@ def two_sample_ttest(
     equal_var: bool = True,
     nan_policy: str = "propagate",
 ) -> Tuple[float, float]:
+    from scipy import stats  # pylint: disable=import-outside-toplevel
+
     assert (
         len(samples) == 2
     ), "Expected two sample ttest data to contain exactly two samples"
@@ -40,6 +38,8 @@ def one_sample_ttest(
     popmean: float,
     nan_policy: str = "propagate",
 ) -> Tuple[float, float]:
+    from scipy import stats  # pylint: disable=import-outside-toplevel
+
     assert (
         len(samples) == 1
     ), "Expected one sample ttest data to contain only one sample"

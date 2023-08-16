@@ -12,7 +12,7 @@ If you wish to use the validation step to remove invalid data, you can pass the
 if a data-level check fails, then that row which caused the failure will be removed from the dataframe
 when it is returned.
 
-``drop_invalid`` will prevent data-level schema errors being raised and will instead
+``drop_invalid_rows`` will prevent data-level schema errors being raised and will instead
 remove the rows which causes the failure.
 
 This functionality is available on ``DataFrameSchema``, ``SeriesSchema``, ``Column``,

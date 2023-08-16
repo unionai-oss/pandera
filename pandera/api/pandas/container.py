@@ -1265,7 +1265,7 @@ class DataFrameSchema(
     #####################
 
     def to_script(self, fp: Union[str, Path] = None) -> "DataFrameSchema":
-        """Create DataFrameSchema from yaml file.
+        """Write DataFrameSchema to python script.
 
         :param path: str, Path to write script
         :returns: dataframe schema.

@@ -12,8 +12,6 @@ from typing import (
     Union,
 )
 
-import pandas as pd
-
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
 from pandera.strategies import SearchStrategy
@@ -200,7 +198,7 @@ class Check(BaseCheck):
 
     def __call__(
         self,
-        check_obj: Union[pd.DataFrame, pd.Series],
+        check_obj: Any,
         column: Optional[str] = None,
     ) -> CheckResult:
         # pylint: disable=too-many-branches
