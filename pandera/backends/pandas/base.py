@@ -1,4 +1,5 @@
 """Pandas Parsing, Validation, and Error Reporting Backends."""
+
 import warnings
 from typing import (
     FrozenSet,
@@ -149,14 +150,6 @@ class PandasSchemaBackend(BaseSchemaBackend):
             message=message,
             error_counts=error_counts,
         )
-
-    def _string_multi_index_to_tuples(self, series):
-        tuples = series.apply(eval)
-
-        # Create a MultiIndex from the tuples
-        multi_index = pd.MultiIndex.from_tuples(tuples)
-
-        return multi_index
 
     def drop_invalid_rows(self, check_obj, error_handler: SchemaErrorHandler):
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
