@@ -155,7 +155,15 @@ class PandasSchemaBackend(BaseSchemaBackend):
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
         errors = error_handler.collected_errors
         for err in errors:
-            check_obj = check_obj.loc[
-                ~check_obj.index.isin(err.failure_cases["index"])
-            ]
+            index_values = err.failure_cases["index"]
+            if isinstance(check_obj.index, pd.MultiIndex):
+                # MultiIndex values are saved on the error as strings so need to be cast back
+                # to their original types
+                index_tuples = err.failure_cases["index"].apply(eval)
+                index_values = pd.MultiIndex.from_tuples(index_tuples)
+
+            mask = ~check_obj.index.isin(index_values)
+
+            check_obj = check_obj.loc[mask]
+
         return check_obj
