@@ -2330,6 +2330,141 @@ def test_drop_invalid_for_model_schema():
         MySchema.validate(actual_obj, lazy=False)
 
 
+@pytest.mark.parametrize(
+    "schema, obj, expected_obj",
+    [
+        (
+            DataFrameSchema(
+                columns={
+                    "name": Column(str),
+                    "occupation": Column(str, nullable=False),
+                },
+                index=MultiIndex(
+                    [
+                        Index(str, name="state"),
+                        Index(str, name="city"),
+                    ]
+                ),
+                drop_invalid_rows=True,
+            ),
+            pd.DataFrame(
+                {
+                    "name": ["Frodo", "Boromir"],
+                    "occupation": ["Ring bearer", None],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    (("MiddleEarth", "TheShire"), ("MiddleEarth", "Gondor")),
+                    names=["state", "city"],
+                ),
+            ),
+            pd.DataFrame(
+                {"name": ["Frodo"], "occupation": ["Ring bearer"]},
+                index=pd.MultiIndex.from_tuples(
+                    (("MiddleEarth", "TheShire"),), names=["state", "city"]
+                ),
+            ),
+        ),
+        (
+            DataFrameSchema(
+                columns={
+                    "path_description": Column(str, nullable=False),
+                    "days_to_travel": Column(float, nullable=False),
+                },
+                index=MultiIndex(
+                    [
+                        Index(str, name="character_name"),
+                        Index(int, name="path_id"),
+                    ]
+                ),
+                drop_invalid_rows=True,
+            ),
+            pd.DataFrame(
+                {
+                    "path_description": [
+                        "To Rivendell",
+                        "To Mordor",
+                        "To Gondor",
+                        None,
+                    ],
+                    "days_to_travel": [30.0, 60.5, None, 15.9],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    (("Frodo", 1), ("Sam", 2), ("Boromir", 3), ("Legolas", 4)),
+                    names=["character_name", "path_id"],
+                ),
+            ),
+            pd.DataFrame(
+                {
+                    "path_description": [
+                        "To Rivendell",
+                        "To Mordor",
+                    ],
+                    "days_to_travel": [30.0, 60.5],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    (("Frodo", 1), ("Sam", 2)),
+                    names=["character_name", "path_id"],
+                ),
+            ),
+        ),
+        (
+            DataFrameSchema(
+                columns={
+                    "battle_name": Column(str, nullable=False),
+                    "victor": Column(str, nullable=False),
+                },
+                index=MultiIndex(
+                    [
+                        Index(int, name="year"),
+                        Index(float, name="coordinates"),
+                    ]
+                ),
+                drop_invalid_rows=True,
+            ),
+            pd.DataFrame(
+                {
+                    "battle_name": [
+                        "Battle of Helm's Deep",
+                        "Battle of the Black Gate",
+                        "Siege of Gondor",
+                        "Skirmish at Weathertop",
+                    ],
+                    "victor": [
+                        "Rohan & Allies",
+                        "Free Peoples",
+                        None,
+                        "Nazgûl",
+                    ],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    ((3019, 42.5), (3019, 42.6), (3019, 42.7), (3018, 42.8)),
+                    names=["year", "coordinates"],
+                ),
+            ),
+            pd.DataFrame(
+                {
+                    "battle_name": [
+                        "Battle of Helm's Deep",
+                        "Battle of the Black Gate",
+                        "Skirmish at Weathertop",
+                    ],
+                    "victor": ["Rohan & Allies", "Free Peoples", "Nazgûl"],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    ((3019, 42.5), (3019, 42.6), (3018, 42.8)),
+                    names=["year", "coordinates"],
+                ),
+            ),
+        ),
+    ],
+)
+def test_drop_invalid_for_multi_index(schema, obj, expected_obj):
+    """Test drop_invalid_rows works as expected on multi-index dataframes"""
+    actual_obj = schema.validate(obj, lazy=True)
+
+    pd.testing.assert_frame_equal(actual_obj, expected_obj)
+
+
 def test_get_schema_metadata():
     """Test fetching schema metadata."""
 

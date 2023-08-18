@@ -1,5 +1,4 @@
 """Pandas Parsing, Validation, and Error Reporting Backends."""
-
 import warnings
 from typing import (
     FrozenSet,
@@ -151,11 +150,27 @@ class PandasSchemaBackend(BaseSchemaBackend):
             error_counts=error_counts,
         )
 
+    def _string_multi_index_to_tuples(self, series):
+        tuples = series.apply(eval)
+
+        # Create a MultiIndex from the tuples
+        multi_index = pd.MultiIndex.from_tuples(tuples)
+
+        return multi_index
+
     def drop_invalid_rows(self, check_obj, error_handler: SchemaErrorHandler):
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
         errors = error_handler.collected_errors
         for err in errors:
-            check_obj = check_obj.loc[
-                ~check_obj.index.isin(err.failure_cases["index"])
-            ]
+            index_values = err.failure_cases["index"]
+            if isinstance(check_obj.index, pd.MultiIndex):
+                # MultiIndex values are saved on the error as strings so need to be cast back
+                # to their original types
+                index_tuples = err.failure_cases["index"].apply(eval)
+                index_values = pd.MultiIndex.from_tuples(index_tuples)
+
+            mask = ~check_obj.index.isin(index_values)
+
+            check_obj = check_obj.loc[mask]
+
         return check_obj
