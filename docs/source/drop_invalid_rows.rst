@@ -18,6 +18,9 @@ remove the rows which causes the failure.
 This functionality is available on ``DataFrameSchema``, ``SeriesSchema``, ``Column``,
 as well as ``DataFrameModel`` schemas.
 
+**Note** that this functionality works by identifying the index or multi-index of the failing rows.
+If you index is not unique, this could result in the incorrect rows being dropped.
+
 Dropping invalid rows with :class:`~pandera.api.pandas.container.DataFrameSchema`:
 
 .. testcode:: drop_invalid_rows_data_frame_schema
