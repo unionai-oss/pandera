@@ -71,7 +71,7 @@ def fn_cast_dataframe(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
 @pa.check_types
 def fn_mutate_inplace(df: DataFrame[Schema]) -> DataFrame[SchemaOut]:
     out = df.assign(age=30).pipe(DataFrame[SchemaOut])
-    out.drop(["age"], axis=1, inplace=True)
+    out.drop(columns="age", inplace=True)
     return out  # okay for mypy, pandera raises error
 
 

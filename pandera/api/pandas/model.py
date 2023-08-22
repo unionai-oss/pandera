@@ -22,6 +22,7 @@ from typing import (
 )
 
 import pandas as pd
+import pandas.util
 
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
@@ -43,7 +44,7 @@ from pandera.typing.common import DataFrameBase
 
 try:
     from typing_extensions import get_type_hints
-except ImportError:
+except ImportError:  # pragma: no cover
     from typing import get_type_hints  # type: ignore
 
 try:
@@ -69,10 +70,11 @@ TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 
 
 def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Typed wrapper around pd.util.Substitution."""
+    """Typed wrapper around pandas.util.Substitution."""
 
     def decorator(func: F) -> F:
-        return cast(F, pd.util.Substitution(*args, **kwargs)(func))
+        substitutor = pandas.util.Substitution(*args, **kwargs)  # type: ignore[attr-defined]
+        return cast(F, substitutor(func))
 
     return decorator
 
@@ -424,9 +426,12 @@ class DataFrameModel(BaseModel):
     @classmethod
     def _collect_fields(cls) -> Dict[str, Tuple[AnnotationInfo, FieldInfo]]:
         """Centralize publicly named fields and their corresponding annotations."""
-        annotations = get_type_hints(  # pylint:disable=unexpected-keyword-arg
-            cls, include_extras=True  # type: ignore [call-arg]
+        # pylint: disable=unexpected-keyword-arg
+        annotations = get_type_hints(  # type: ignore[call-arg]
+            cls,
+            include_extras=True,
         )
+        # pylint: enable=unexpected-keyword-arg
         attrs = cls._get_model_attrs()
 
         missing = []

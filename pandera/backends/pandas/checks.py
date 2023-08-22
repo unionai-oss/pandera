@@ -56,12 +56,12 @@ class PandasCheckBackend(BaseCheckBackend):
         # NOTE: this behavior should be deprecated such that the user deals with
         # pandas groupby objects instead of dicts.
         if groups is None:
-            return {
+            return {  # type: ignore[return-value]
                 (k if isinstance(k, bool) else k[0] if len(k) == 1 else k): v
-                for k, v in groupby_obj  # type: ignore [union-attr]
+                for k, v in groupby_obj  # type: ignore[union-attr]
             }
         group_keys = set(
-            k[0] if len(k) == 1 else k for k, _ in groupby_obj  # type: ignore [union-attr]
+            k[0] if len(k) == 1 else k for k, _ in groupby_obj  # type: ignore[union-attr]
         )
         invalid_groups = [g for g in groups if g not in group_keys]
         if invalid_groups:
@@ -69,7 +69,7 @@ class PandasCheckBackend(BaseCheckBackend):
                 f"groups {invalid_groups} provided in `groups` argument not a "
                 f"valid group key. Valid group keys: {group_keys}"
             )
-        return {
+        return {  # type: ignore[return-value]
             group_key: group
             for group_key, group in groupby_obj  # type: ignore [union-attr]
             if group_key in groups
