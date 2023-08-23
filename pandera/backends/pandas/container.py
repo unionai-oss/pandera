@@ -3,20 +3,20 @@
 import copy
 import itertools
 import traceback
-from typing import Any, Callable, List, Optional, Tuple, Dict
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 from pydantic import BaseModel
 
-from pandera.backends.base import CoreCheckResult
 from pandera.api.pandas.types import is_table
+from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.engines import pandas_engine
 from pandera.backends.pandas.utils import convert_uniquesettings
+from pandera.engines import pandas_engine
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     ParserError,
@@ -334,18 +334,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         schema_components = []
         for col_name, col in columns.items():
             if (
-                col.required  # type: ignore[union-attr]
+                col.required  # type: ignore
                 or col_name in check_obj
                 or col_name in column_info.regex_match_patterns
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:
                     # override column dtype with dataframe dtype
-                    col.dtype = schema.dtype  # type: ignore[union-attr]
+                    col.dtype = schema.dtype  # type: ignore
 
                 # disable coercion at the schema component level since the
                 # dataframe-level schema already coerced it.
-                col.coerce = False  # type: ignore[union-attr]
+                col.coerce = False  # type: ignore
                 schema_components.append(col)
 
         if schema.index is not None:
