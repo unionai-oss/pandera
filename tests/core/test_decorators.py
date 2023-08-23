@@ -26,10 +26,10 @@ from pandera.engines.pandas_engine import Engine
 from pandera.typing import DataFrame, Index, Series
 
 try:
-    from typing import Literal  # type: ignore
-except ImportError:
-    # Remove this after dropping python 3.6
-    from typing_extensions import Literal  # type: ignore
+    # python 3.8+
+    from typing import Literal  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
+    from typing_extensions import Literal  # type: ignore[misc]
 
 
 def test_check_function_decorators() -> None:

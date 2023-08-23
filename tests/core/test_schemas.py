@@ -14,19 +14,19 @@ from pandera import (
     Category,
     Check,
     Column,
+    DataFrameModel,
     DataFrameSchema,
+    Field,
     Index,
     Int,
     MultiIndex,
     SeriesSchema,
     String,
     errors,
-    Field,
-    DataFrameModel,
 )
+from pandera.api.pandas.array import ArraySchema
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
-from pandera.api.pandas.array import ArraySchema
 
 
 def test_dataframe_schema() -> None:
@@ -36,16 +36,30 @@ def test_dataframe_schema() -> None:
     """
     schema = DataFrameSchema(
         {
-            "a": Column(int, Check(lambda x: x > 0, element_wise=True)),
+            "a": Column(
+                int,
+                Check(lambda x: x > 0, element_wise=True),
+            ),
             "b": Column(
-                float, Check(lambda x: 0 <= x <= 10, element_wise=True)
+                float,
+                Check(lambda x: 0 <= x <= 10, element_wise=True),
             ),
-            "c": Column(str, Check(lambda x: set(x) == {"x", "y", "z"})),
-            "d": Column(bool, Check(lambda x: x.mean() > 0.5)),
+            "c": Column(
+                str,
+                Check(lambda x: set(x) == {"x", "y", "z"}),
+            ),
+            "d": Column(
+                bool,
+                Check(lambda x: x.mean() > 0.5),
+            ),
             "e": Column(
-                Category, Check(lambda x: set(x) == {"c1", "c2", "c3"})
+                Category,
+                Check(lambda x: set(x) == {"c1", "c2", "c3"}),
             ),
-            "f": Column(object, Check(lambda x: x.isin([(1,), (2,), (3,)]))),
+            "f": Column(
+                object,
+                Check(lambda x: x.isin([(1,), (2,), (3,)])),
+            ),
             "g": Column(
                 datetime,
                 Check(
@@ -85,7 +99,7 @@ def test_dataframe_schema() -> None:
 
     # error case
     with pytest.raises(errors.SchemaError):
-        schema.validate(df.drop("a", axis=1))
+        schema.validate(df.drop(columns="a"))
 
     with pytest.raises(errors.SchemaError):
         schema.validate(df.assign(a=[-1, -2, -1]))
@@ -1674,7 +1688,7 @@ def test_schema_coerce_inplace_validation(
         from_dtype if from_dtype is not int else str(Engine.dtype(from_dtype))
     )
     to_dtype = to_dtype if to_dtype is not int else str(Engine.dtype(to_dtype))
-    df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})
+    df = pd.DataFrame({"column": pd.Series([1, 2, 6], dtype=from_dtype)})  # type: ignore[call-overload]
     schema = DataFrameSchema({"column": Column(to_dtype, coerce=True)})  # type: ignore
     validated_df = schema.validate(df, inplace=inplace)
 
@@ -1699,7 +1713,7 @@ def test_schema_coerce_inplace_validation(
 )
 def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
     """Test that different unique settings work as expected"""
-    df = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
+    df: pd.DataFrame = pd.DataFrame({"a": [1, 2, 3, 4, 1, 1, 2, 3]})
     schemas = [
         DataFrameSchema(
             {"a": Column(int)}, unique="a", report_duplicates=unique
@@ -1718,7 +1732,8 @@ def test_different_unique_settings(unique: UniqueSettings, answers: List[int]):
     series_schema = SeriesSchema(int, unique=True, report_duplicates=unique)
 
     with pytest.raises(errors.SchemaError) as err:
-        series_schema.validate(df["a"])
+        srs: pd.Series = df["a"]  # type: ignore[assignment]
+        series_schema.validate(srs)
 
     assert err.value.failure_cases["index"].to_list() == answers
 
@@ -2328,6 +2343,141 @@ def test_drop_invalid_for_model_schema():
 
     with pytest.raises(errors.SchemaDefinitionError):
         MySchema.validate(actual_obj, lazy=False)
+
+
+@pytest.mark.parametrize(
+    "schema, obj, expected_obj",
+    [
+        (
+            DataFrameSchema(
+                columns={
+                    "name": Column(str),
+                    "occupation": Column(str, nullable=False),
+                },
+                index=MultiIndex(
+                    [
+                        Index(str, name="state"),
+                        Index(str, name="city"),
+                    ]
+                ),
+                drop_invalid_rows=True,
+            ),
+            pd.DataFrame(
+                {
+                    "name": ["Frodo", "Boromir"],
+                    "occupation": ["Ring bearer", None],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    (("MiddleEarth", "TheShire"), ("MiddleEarth", "Gondor")),
+                    names=["state", "city"],
+                ),
+            ),
+            pd.DataFrame(
+                {"name": ["Frodo"], "occupation": ["Ring bearer"]},
+                index=pd.MultiIndex.from_tuples(
+                    (("MiddleEarth", "TheShire"),), names=["state", "city"]
+                ),
+            ),
+        ),
+        (
+            DataFrameSchema(
+                columns={
+                    "path_description": Column(str, nullable=False),
+                    "days_to_travel": Column(float, nullable=False),
+                },
+                index=MultiIndex(
+                    [
+                        Index(str, name="character_name"),
+                        Index(int, name="path_id"),
+                    ]
+                ),
+                drop_invalid_rows=True,
+            ),
+            pd.DataFrame(
+                {
+                    "path_description": [
+                        "To Rivendell",
+                        "To Mordor",
+                        "To Gondor",
+                        None,
+                    ],
+                    "days_to_travel": [30.0, 60.5, None, 15.9],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    (("Frodo", 1), ("Sam", 2), ("Boromir", 3), ("Legolas", 4)),
+                    names=["character_name", "path_id"],
+                ),
+            ),
+            pd.DataFrame(
+                {
+                    "path_description": [
+                        "To Rivendell",
+                        "To Mordor",
+                    ],
+                    "days_to_travel": [30.0, 60.5],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    (("Frodo", 1), ("Sam", 2)),
+                    names=["character_name", "path_id"],
+                ),
+            ),
+        ),
+        (
+            DataFrameSchema(
+                columns={
+                    "battle_name": Column(str, nullable=False),
+                    "victor": Column(str, nullable=False),
+                },
+                index=MultiIndex(
+                    [
+                        Index(int, name="year"),
+                        Index(float, name="coordinates"),
+                    ]
+                ),
+                drop_invalid_rows=True,
+            ),
+            pd.DataFrame(
+                {
+                    "battle_name": [
+                        "Battle of Helm's Deep",
+                        "Battle of the Black Gate",
+                        "Siege of Gondor",
+                        "Skirmish at Weathertop",
+                    ],
+                    "victor": [
+                        "Rohan & Allies",
+                        "Free Peoples",
+                        None,
+                        "Nazgûl",
+                    ],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    ((3019, 42.5), (3019, 42.6), (3019, 42.7), (3018, 42.8)),
+                    names=["year", "coordinates"],
+                ),
+            ),
+            pd.DataFrame(
+                {
+                    "battle_name": [
+                        "Battle of Helm's Deep",
+                        "Battle of the Black Gate",
+                        "Skirmish at Weathertop",
+                    ],
+                    "victor": ["Rohan & Allies", "Free Peoples", "Nazgûl"],
+                },
+                index=pd.MultiIndex.from_tuples(
+                    ((3019, 42.5), (3019, 42.6), (3018, 42.8)),
+                    names=["year", "coordinates"],
+                ),
+            ),
+        ),
+    ],
+)
+def test_drop_invalid_for_multi_index(schema, obj, expected_obj):
+    """Test drop_invalid_rows works as expected on multi-index dataframes"""
+    actual_obj = schema.validate(obj, lazy=True)
+
+    pd.testing.assert_frame_equal(actual_obj, expected_obj)
 
 
 def test_get_schema_metadata():

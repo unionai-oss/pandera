@@ -9,6 +9,7 @@ import warnings
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 import numpy as np
+from numpy.typing import DTypeLike
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
@@ -21,7 +22,7 @@ from pandera.system import FLOAT_128_AVAILABLE
 class DataType(dtypes.DataType):
     """Base `DataType` for boxing Numpy data types."""
 
-    type: np.dtype = dataclasses.field(
+    type: DTypeLike = dataclasses.field(
         default=np.dtype("object"), repr=False, init=False
     )
     """Native numpy dtype boxed by the data type."""

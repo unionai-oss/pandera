@@ -18,8 +18,9 @@ from typing import (
 )
 
 try:
-    from typing import Literal
-except ImportError:
+    # python 3.8+
+    from typing import Literal  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
     from typing_extensions import Literal  # type: ignore[misc]
 
 

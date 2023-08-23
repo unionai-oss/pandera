@@ -62,9 +62,10 @@ else:
 
 
 try:
-    from typing import Literal  # type: ignore
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
+    # python 3.8+
+    from typing import Literal  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
+    from typing_extensions import Literal  # type: ignore[misc]
 
 
 def is_extension_dtype(
@@ -654,9 +655,9 @@ else:
 
     @Engine.register_dtype(
         equivalents=["string", pd.StringDtype, pd.StringDtype()]  # type: ignore
-    )
+    )  # type: ignore[no-redef] # python 3.7
     @immutable
-    class STRING(DataType, dtypes.String):  # type: ignore
+    class STRING(DataType, dtypes.String):  # type: ignore[no-redef] # python 3.8+
         """Semantic representation of a :class:`pandas.StringDtype`."""
 
         type = pd.StringDtype()  # type: ignore
@@ -1023,8 +1024,9 @@ class Sparse(DataType):
     def from_parametrized_dtype(cls, pd_dtype: pd.SparseDtype):
         """Convert a :class:`pandas.SparseDtype` to
         a Pandera :class:`pandera.engines.pandas_engine.Sparse`."""
-        return cls(
-            dtype=pd_dtype.subtype, fill_value=pd_dtype.fill_value  # type: ignore
+        return cls(  # type: ignore[call-arg]
+            dtype=pd_dtype.subtype,  # type: ignore[attr-defined]
+            fill_value=pd_dtype.fill_value,
         )
 
 
@@ -1127,7 +1129,7 @@ class PydanticModel(DataType):
                     failure_cases, ignore_na=False
                 ),
             )
-        return coerced_df.drop(["failure_cases"], axis="columns")
+        return coerced_df.drop(columns="failure_cases")
 
 
 ###############################################################################

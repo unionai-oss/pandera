@@ -4,9 +4,10 @@ from enum import Enum
 from typing import Union
 
 try:
-    from typing import Literal  # type: ignore
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
+    # python 3.8+
+    from typing import Literal  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
+    from typing_extensions import Literal  # type: ignore[misc]
 
 
 class Formats(Enum):
