@@ -65,8 +65,9 @@ class DataFrameSchema(
             then assumes one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes.
         :param coerce: whether or not to coerce all of the columns on
-            validation. This has no effect on columns where
-            ``dtype=None``
+            validation. This overrides any coerce setting at the column
+            or index level. This has no effect on columns where
+            ``dtype=None``.
         :param strict: ensure that all and only the columns defined in the
             schema are present in the dataframe. If set to 'filter',
             only the columns in the schema will be passed to the validated
