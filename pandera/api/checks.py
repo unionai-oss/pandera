@@ -89,7 +89,7 @@ class Check(BaseCheck):
         :param name: optional name for the check.
         :param error: custom error message if series fails validation
             check.
-        :param raise_warning: if True, raise a UserWarning and do not throw
+        :param raise_warning: if True, raise a SchemaWarning and do not throw
             exception instead of raising a SchemaError for a specific check.
             This option should be used carefully in cases where a failing
             check is informational and shouldn't stop execution of the program.
@@ -408,7 +408,7 @@ class Check(BaseCheck):
 
         :param forbidden_values: The set of values which should not occur. May
             be any iterable.
-        :param raise_warning: if True, check raises UserWarning instead of
+        :param raise_warning: if True, check raises SchemaWarning instead of
             SchemaError on validation.
         """
         try:

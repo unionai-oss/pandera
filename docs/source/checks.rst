@@ -250,13 +250,13 @@ should return a ``bool``, a ``Series`` of booleans, or a ``DataFrame`` of
 boolean values.
 
 
-Raise UserWarning on Check Failure
-----------------------------------
+Raise Warning Instead of Error on Check Failure
+-----------------------------------------------
 
-In some cases, you might want to raise a ``UserWarning`` and continue execution
+In some cases, you might want to raise a warning and continue execution
 of your program. The ``Check`` and ``Hypothesis`` classes and their built-in
 methods support the keyword argument ``raise_warning``, which is ``False``
-by default. If set to ``True``, the check will raise a ``UserWarning`` instead
+by default. If set to ``True``, the check will warn with a ``SchemaWarning`` instead
 of raising a ``SchemaError`` exception.
 
 .. note::

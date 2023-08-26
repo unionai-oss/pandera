@@ -85,7 +85,7 @@ class Hypothesis(Check):
             threshold in a t-test.
         :param name: optional name of hypothesis test
         :param error: error message to show
-        :param raise_warning: if True, raise a UserWarning and do not throw
+        :param raise_warning: if True, raise a SchemaWarning and do not throw
             exception instead of raising a SchemaError for a specific check.
             This option should be used carefully in cases where a failing
             check is informational and shouldn't stop execution of the program.
@@ -331,7 +331,7 @@ class Hypothesis(Check):
             example, a significance level of 0.01 indicates a 1% risk of
             concluding that a difference exists when there is no actual
             difference.
-        :param raise_warning: if True, check raises UserWarning instead of
+        :param raise_warning: if True, check raises SchemaWarning instead of
             SchemaError on validation.
 
         :example:

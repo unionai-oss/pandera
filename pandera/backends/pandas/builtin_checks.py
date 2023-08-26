@@ -200,7 +200,7 @@ def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
 
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
-    :param raise_warning: if True, check raises UserWarning instead of
+    :param raise_warning: if True, check raises SchemaWarning instead of
         SchemaError on validation.
     """
     return ~data.isin(forbidden_values)
