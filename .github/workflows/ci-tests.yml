@@ -181,7 +181,7 @@ jobs:
         run: pip install -U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
 
       - name: Install Pydantic v2 Deps
-        if : ${{ matrix.pydantic-version == '2.0.2' }}
+        if : ${{ matrix.pydantic-version == '2.3.0' }}
         run: pip install fastapi>=0.100.0
 
       - run: |
