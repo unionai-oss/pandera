@@ -11,7 +11,7 @@ from pandera.api.checks import Check
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.components import Column
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.errors import SchemaError
+from pandera.errors import SchemaError, SchemaWarning
 
 
 def check_values(
@@ -69,7 +69,7 @@ def check_raise_error_or_warning(failure_values, check) -> None:
     """
     Check that Series and DataFrameSchemas raise warnings instead of exceptions
 
-    NOTE: it's not ideal that we have to import schema and schemaa_components
+    NOTE: it's not ideal that we have to import schema and schema_components
     modules into this test module to test this functionality, this doesn't
     separate the units under test very well.
     """
@@ -82,6 +82,11 @@ def check_raise_error_or_warning(failure_values, check) -> None:
         DataFrameSchema({"failure_column": Column(checks=check)})(failure_df)
 
     check.raise_warning = True
+    with pytest.warns(SchemaWarning):
+        SeriesSchema(checks=check)(failure_series)
+        DataFrameSchema({"failure_column": Column(checks=check)})(failure_df)
+
+    # For compatibility with old behaviour of raise_warning to give UserWarning
     with pytest.warns(UserWarning):
         SeriesSchema(checks=check)(failure_series)
         DataFrameSchema({"failure_column": Column(checks=check)})(failure_df)

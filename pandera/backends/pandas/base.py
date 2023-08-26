@@ -24,7 +24,12 @@ from pandera.backends.pandas.error_formatters import (
     summarize_failure_cases,
 )
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import FailureCaseMetadata, SchemaError, SchemaErrorReason
+from pandera.errors import (
+    FailureCaseMetadata,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaWarning,
+)
 
 
 class ColumnInfo(NamedTuple):
@@ -118,7 +123,10 @@ class PandasSchemaBackend(BaseSchemaBackend):
             # raise a warning without exiting if the check is specified to do so
             # but make sure the check passes
             if check.raise_warning:
-                warnings.warn(message, UserWarning)
+                warnings.warn(
+                    message,
+                    SchemaWarning,
+                )
                 return CoreCheckResult(
                     passed=True,
                     check=check,
@@ -155,7 +163,15 @@ class PandasSchemaBackend(BaseSchemaBackend):
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
         errors = error_handler.collected_errors
         for err in errors:
-            check_obj = check_obj.loc[
-                ~check_obj.index.isin(err.failure_cases["index"])
-            ]
+            index_values = err.failure_cases["index"]
+            if isinstance(check_obj.index, pd.MultiIndex):
+                # MultiIndex values are saved on the error as strings so need to be cast back
+                # to their original types
+                index_tuples = err.failure_cases["index"].apply(eval)
+                index_values = pd.MultiIndex.from_tuples(index_tuples)
+
+            mask = ~check_obj.index.isin(index_values)
+
+            check_obj = check_obj.loc[mask]
+
         return check_obj

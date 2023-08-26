@@ -47,4 +47,5 @@ disable=
     arguments-differ,
     unnecessary-dunder-call,
     use-dict-literal,
-    invalid-name
+    invalid-name,
+    import-outside-toplevel

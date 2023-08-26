@@ -18,7 +18,7 @@ changes to the codebase.
 
 First create your own fork of pandera, then clone it:
 
-```
+```bash
 # replace <my-username> with your github username
 git clone https://github.com/<my-username>/pandera.git
 ```
@@ -58,27 +58,25 @@ pip install -e .
 
 #### Run Tests
 
-```
+```bash
 pytest tests
 ```
 
 #### Build Documentation Locally
 
-```
+```bash
 make docs
 ```
 
-
 #### Adding New Dependencies
 
-To add new dependencies to the project, make sure to alter the *environment.yml* file. Then to sync the dependencies from the *environment.yml* file to the *requirements-dev.txt* run the following command
+To add new dependencies to the project, make sure to alter the _environment.yml_ file. Then to sync the dependencies from the _environment.yml_ file to the _requirements-dev.txt_ run the following command
 
-```
+```bash
 python scripts/generate_pip_deps_from_conda.py
 ```
 
 Moreover to add new dependencies in setup.py, it is necessary to add it to the **_extras_require** dictionary.
-
 
 #### Set up `pre-commit`
 
@@ -90,7 +88,7 @@ checks should be run with every commit.
 
 Make sure everything is working correctly by running
 
-```
+```bash
 pre-commit run --all
 ```
 
@@ -98,7 +96,7 @@ pre-commit run --all
 
 Before making changes to the codebase or documentation, create a new branch with:
 
-```
+```bash
 git checkout -b <my-branch>
 ```
 
@@ -110,7 +108,7 @@ This project enforces the [DCO](https://developercertificate.org/) standard for
 contributions, which requires authors to sign off on their commits. This can be
 done with the `-s` or `--signoff` flag:
 
-```
+```bash
 git commit -s -m 'my commit'
 ```
 
@@ -122,12 +120,12 @@ to add sign-offs retroactivately.
 Before submitting your changes for review, make sure to check that your changes
 do not break any tests by running:
 
-```
+```bash
 # option 1: if you're working with conda (recommended)
-$ make nox-conda
+make nox-conda
 
 # option 2: if you're working with virtualenv
-$ make nox
+make nox
 ```
 
 Option 2 assumes that you have python environments for all of the versions
@@ -140,9 +138,9 @@ implementation of [miniconda](https://docs.conda.io/en/latest/miniconda.html),
 to run the `nox` test suite. Simply install it via conda-forge, and
 `make nox-conda` should use it under the hood.
 
-```
-$ conda install -c conda-forge mamba
-$ make nox-conda
+```bash
+conda install -c conda-forge mamba
+make nox-conda
 ```
 
 ### Project Releases
@@ -192,15 +190,18 @@ type of issue the pull request is resolving, your pull request should merge
 onto the appropriate branch:
 
 #### Bugfixes
+
 - branch naming convention: `bugfix/<issue number>` or `bugfix/<bugfix-name>`
 - pull request to: `main`
 
 #### Documentation
+
 - branch naming convention: `docs/<issue number>` or `docs/<doc-name>`
 - pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `main`
 
 #### Enhancements
-- branch naming convention: `feature/<issue number>` or `feature/<bugfix-name>`
+
+- branch naming convention: `feature/<issue number>` or `feature/<enhancement-name>`
 - pull request to: `release/x.x.x` branch if specified in the issue milestone, otherwise `main`
 
 We will review your changes, and might ask you to make additional changes
@@ -250,6 +251,7 @@ DataFrameSchema(
 ```
 
 If specifying columns with additional arguments that don't fit in one line:
+
 ```python
 DataFrameSchema(
     {
@@ -270,8 +272,8 @@ DataFrameSchema(
 
 This project adopts a rolling policy regarding the minimum supported version of its dependencies, based on [NEP 29](https://numpy.org/neps/nep-0029-deprecation_policy.html):
 
-* **Python**: 42 months
-* **NumPy**: 24 months
-* **Pandas**: 18 months
+- **Python**: 42 months
+- **NumPy**: 24 months
+- **Pandas**: 18 months
 
 This means the latest minor (X.Y) version from N months prior. Patch versions (x.y.Z) are not pinned, and only the latest available at the moment of publishing the release is guaranteed to work.

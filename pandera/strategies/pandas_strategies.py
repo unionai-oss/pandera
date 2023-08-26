@@ -51,7 +51,6 @@ try:
     import hypothesis.strategies as st
     from hypothesis.strategies import SearchStrategy, composite
 except ImportError:  # pragma: no cover
-
     T = TypeVar("T")
 
     # pylint: disable=too-few-public-methods
@@ -266,7 +265,8 @@ def convert_dtypes(df: pd.DataFrame, col_dtypes: Dict[str, Any]):
         return df
 
     for col_name, col_dtype in col_dtypes.items():
-        df[col_name] = convert_dtype(df[col_name], col_dtype)
+        array: pd.Series = df[col_name]  # type: ignore[assignment]
+        df[col_name] = convert_dtype(array, col_dtype)
 
     return df
 
@@ -284,8 +284,8 @@ def numpy_time_dtypes(
 
     def _to_unix(value: Any) -> int:
         if dtype.type is np.timedelta64:
-            return pd.Timedelta(value).value
-        return pd.Timestamp(value).value
+            return pd.Timedelta(value).value  # type: ignore[attr-defined]
+        return pd.Timestamp(value).value  # type: ignore[attr-defined]
 
     min_value = MIN_DT_VALUE if min_value is None else _to_unix(min_value)
     max_value = MAX_DT_VALUE if max_value is None else _to_unix(max_value)

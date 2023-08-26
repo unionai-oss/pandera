@@ -7,11 +7,17 @@ import pytest
 
 import pandera as pa
 from pandera.typing import DataFrame, Series
+from pandera.engines.utils import pydantic_version
 
 try:
     from pydantic import BaseModel, ValidationError
 except ImportError:
     pytest.skip("Pydantic not available", allow_module_level=True)
+
+
+PYDANTIC_V2 = False
+if pydantic_version().release >= (2, 0, 0):
+    PYDANTIC_V2 = True
 
 
 class SimpleSchema(pa.DataFrameModel):
@@ -84,10 +90,10 @@ def test_dataframemodel():
 
 def test_invalid_dataframemodel():
     """Test that an invalid typed DataFrameModel is recognized by pydantic."""
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         DataFrameModelPydantic(pa_schema=1)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         DataFrameModelPydantic(pa_schema=SimpleSchema.to_schema())
 
     class InvalidSchema(pa.DataFrameModel):
@@ -98,7 +104,7 @@ def test_invalid_dataframemodel():
     class PydanticModel(BaseModel):
         pa_schema: InvalidSchema
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         PydanticModel(pa_schema=InvalidSchema)
 
 
@@ -120,7 +126,7 @@ def test_dataframemodel_inheritance():
     class NotChild(pa.DataFrameModel):
         b: Series[str]
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         assert isinstance(PydanticModel(pa_schema=NotChild), PydanticModel)
 
 
@@ -137,10 +143,10 @@ def test_dataframeschema():
 
 def test_invalid_dataframeschema():
     """Test that an invalid DataFrameSchema is recognized by pydantic."""
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         DataFrameSchemaPydantic(pa_schema=1)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         DataFrameSchemaPydantic(pa_mi="1")
 
 
@@ -158,11 +164,11 @@ def test_seriesschema():
 
 def test_invalid_seriesschema():
     """Test that an invalid SeriesSchemaBase is recognized by pydantic."""
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         SeriesSchemaPydantic(pa_series_schema=1)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         SeriesSchemaPydantic(pa_column="1")
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError if PYDANTIC_V2 else ValidationError):
         SeriesSchemaPydantic(pa_index="1")

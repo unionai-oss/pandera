@@ -12,11 +12,14 @@ If you wish to use the validation step to remove invalid data, you can pass the
 if a data-level check fails, then that row which caused the failure will be removed from the dataframe
 when it is returned.
 
-``drop_invalid`` will prevent data-level schema errors being raised and will instead
+``drop_invalid_rows`` will prevent data-level schema errors being raised and will instead
 remove the rows which causes the failure.
 
 This functionality is available on ``DataFrameSchema``, ``SeriesSchema``, ``Column``,
 as well as ``DataFrameModel`` schemas.
+
+**Note** that this functionality works by identifying the index or multi-index of the failing rows.
+If the index is not unique on the dataframe, this could result in incorrect rows being dropped.
 
 Dropping invalid rows with :class:`~pandera.api.pandas.container.DataFrameSchema`:
 

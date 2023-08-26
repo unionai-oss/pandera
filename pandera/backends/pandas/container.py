@@ -334,18 +334,18 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         schema_components = []
         for col_name, col in columns.items():
             if (
-                col.required  # type: ignore[union-attr]
+                col.required  # type: ignore
                 or col_name in check_obj
                 or col_name in column_info.regex_match_patterns
             ) and col_name not in column_info.absent_column_names:
                 col = copy.deepcopy(col)
                 if schema.dtype is not None:
                     # override column dtype with dataframe dtype
-                    col.dtype = schema.dtype  # type: ignore[union-attr]
+                    col.dtype = schema.dtype  # type: ignore
 
                 # disable coercion at the schema component level since the
                 # dataframe-level schema already coerced it.
-                col.coerce = False  # type: ignore[union-attr]
+                col.coerce = False  # type: ignore
                 schema_components.append(col)
 
         if schema.index is not None:

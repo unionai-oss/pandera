@@ -30,7 +30,7 @@ from pandera.system import FLOAT_128_AVAILABLE
 from pandera.typing.geopandas import GEOPANDAS_INSTALLED
 
 # register different TypedDict type depending on python version
-if sys.version_info >= (3, 9):
+if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict  # noqa

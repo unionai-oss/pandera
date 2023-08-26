@@ -200,7 +200,7 @@ def notin(data: PandasData, forbidden_values: Iterable) -> PandasData:
 
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
-    :param raise_warning: if True, check raises UserWarning instead of
+    :param raise_warning: if True, check raises SchemaWarning instead of
         SchemaError on validation.
     """
     return ~data.isin(forbidden_values)
@@ -297,7 +297,7 @@ def unique_values_eq(data: PandasData, values: Iterable):
     """Ensure that unique values in the data object contain all values.
 
     .. note::
-        In constrast with :func:`isin`, this check makes sure that all the items
+        In contrast with :func:`isin`, this check makes sure that all the items
         in the ``values`` iterable are contained within the series.
 
     :param values: The set of values that must be present. Maybe any iterable.

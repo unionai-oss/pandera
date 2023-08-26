@@ -1,6 +1,5 @@
 # pylint: skip-file
-import pandas as pd
-from fastapi import FastAPI, File
+from fastapi import Body, FastAPI, File
 from fastapi.responses import HTMLResponse
 
 from pandera.typing import DataFrame
@@ -13,6 +12,11 @@ from tests.fastapi.models import (
     TransactionsParquet,
 )
 
+try:
+    from typing import Annotated  # type: ignore[attr-defined]
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore[misc]
+
 app = FastAPI()
 
 
@@ -22,7 +26,9 @@ def create_item(item: Item):
 
 
 @app.post("/transactions/", response_model=DataFrame[TransactionsDictOut])
-def create_transactions(transactions: DataFrame[Transactions]):
+def create_transactions(
+    transactions: Annotated[DataFrame[Transactions], Body()]
+):
     output = transactions.assign(name="foo")
     ...  # do other stuff, e.g. update backend database with transactions
     return output
@@ -30,7 +36,7 @@ def create_transactions(transactions: DataFrame[Transactions]):
 
 @app.post("/file/", response_model=ResponseModel)
 def create_upload_file(
-    file: UploadFile[DataFrame[TransactionsParquet]] = File(...),
+    file: Annotated[UploadFile[DataFrame[TransactionsParquet]], File()],
 ):
     return {
         "filename": file.filename,

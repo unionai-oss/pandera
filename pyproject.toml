@@ -11,3 +11,23 @@ profile = "black"
 line_length = 79               # sync with black
 float_to_top = true
 skip = ["docs/source/conf.py"]
+
+[tool.black]
+line-length = 79
+target-version = [
+  'py37',
+  'py38',
+  'py39',
+  'py310',
+  # 'py311' Disabled until black>=23.7.0
+]
+include = '^(\.py)|(\.pyi)$'
+exclude = '''
+(
+  \.git
+  | \.venv
+  | \.nox
+  | setup.py
+  | asv_bench
+)
+'''
