@@ -27,7 +27,7 @@ from pandera.dtypes import DataType
 
 
 # register different TypedDict type depending on python version
-if sys.version_info >= (3, 9):
+if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict  # noqa

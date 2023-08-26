@@ -40,7 +40,11 @@ from pandera.engines.type_aliases import (
     PandasObject,
 )
 from pandera.engines.utils import pandas_version
+from pandera.engines import PYDANTIC_V2
 from pandera.system import FLOAT_128_AVAILABLE
+
+if PYDANTIC_V2:
+    from pydantic import RootModel
 
 try:
     import pyarrow  # pylint: disable=unused-import
@@ -55,7 +59,7 @@ PANDAS_1_3_0_PLUS = pandas_version().release >= (1, 3, 0)
 
 
 # register different TypedDict type depending on python version
-if sys.version_info >= (3, 9):
+if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict  # noqa
@@ -1154,6 +1158,19 @@ class PythonGenericType(DataType):
             _type = getattr(self, "generic_type") or getattr(
                 self, "special_type"
             )
+            if (
+                engine._is_typeddict(_type)
+                and sys.version_info < (3, 12)
+                and sys.version_info >= (3, 8)
+            ):
+                # replace the typing_extensions TypedDict with typing.TypedDict,
+                # since pydantic needs typing_extensions.TypedDict but typeguard
+                # can only type-check typing.TypedDict
+
+                # pylint: disable=import-outside-toplevel,no-member
+                from typing import TypedDict as _TypedDict
+
+                _type = _TypedDict(_type.__name__, _type.__annotations__)  # type: ignore
             typeguard.check_type(element, _type)
             return True
         except typeguard.TypeCheckError:
@@ -1214,6 +1231,16 @@ class PythonGenericType(DataType):
         return str(self.generic_type or self.type)
 
 
+def _create_coercion_model(generic_type: Any):
+    if PYDANTIC_V2:
+        return create_model(
+            "coercion_model",
+            __base__=RootModel,
+            root=(generic_type, ...),
+        )
+    return create_model("coercion_model", __root__=(generic_type, ...))
+
+
 @Engine.register_dtype(equivalents=[dict, "dict"])
 @dtypes.immutable(init=True)
 class PythonDict(PythonGenericType):
@@ -1231,7 +1258,7 @@ class PythonDict(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model("coercion_model", __root__=(generic_type, ...)),
+                _create_coercion_model(generic_type),
             )
 
 
@@ -1252,7 +1279,7 @@ class PythonList(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model("coercion_model", __root__=(generic_type, ...)),
+                _create_coercion_model(generic_type),
             )
 
 
@@ -1273,7 +1300,7 @@ class PythonTuple(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model("coercion_model", __root__=(generic_type, ...)),
+                _create_coercion_model(generic_type),
             )
 
 
@@ -1295,10 +1322,7 @@ class PythonTypedDict(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model(
-                    "coercion_model",
-                    __root__=(self.special_type or self.type, ...),  # type: ignore[has-type]
-                ),
+                _create_coercion_model(self.special_type or self.type),  # type: ignore
             )
 
     def __str__(self) -> str:
@@ -1323,10 +1347,7 @@ class PythonNamedTuple(PythonGenericType):
             object.__setattr__(
                 self,
                 "coercion_model",
-                create_model(
-                    "coercion_model",
-                    __root__=(self.special_type or self.type, ...),
-                ),
+                _create_coercion_model(self.special_type or self.type),  # type: ignore
             )
 
     def __str__(self) -> str:

@@ -45,13 +45,6 @@ try:
 except ImportError:  # pragma: no cover
     from typing import get_type_hints  # type: ignore
 
-try:
-    from pydantic.fields import ModelField  # pylint:disable=unused-import
-
-    HAS_PYDANTIC = True
-except ImportError:  # pragma: no cover
-    HAS_PYDANTIC = False
-
 
 _CONFIG_KEY = "Config"
 MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
