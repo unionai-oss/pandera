@@ -6,7 +6,7 @@ import copy
 import os
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast, overload
+from typing import Any, Dict, List, Optional, Sequence, Union, cast, overload
 
 from pyspark.sql import DataFrame
 
@@ -40,7 +40,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         strict: StrictType = False,
         name: Optional[str] = None,
         ordered: bool = False,
-        unique: Optional[Union[str, List[str]]] = None,
+        unique: Optional[Union[str, Sequence[str]]] = None,
         report_duplicates: UniqueSettings = "all",
         unique_column_names: bool = False,
         title: Optional[str] = None,
@@ -169,12 +169,12 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         self._coerce = value
 
     @property
-    def unique(self):
+    def unique(self) -> Optional[Sequence[str]]:
         """List of columns that should be jointly unique."""
         return self._unique
 
     @unique.setter
-    def unique(self, value: Optional[Union[str, List[str]]]) -> None:
+    def unique(self, value: Optional[Union[str, Sequence[str]]]) -> None:
         """Set unique attribute."""
         self._unique = [value] if isinstance(value, str) else value
 
