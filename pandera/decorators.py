@@ -718,7 +718,7 @@ def check_types(
                 for arg_name, arg_value in named_arguments.items()
             )
 
-            return list(*explicit_args_tuple, *star_args_tuple)
+            return list((*explicit_args_tuple, *star_args_tuple))
 
         else:
             return list(
@@ -740,7 +740,7 @@ def check_types(
         """
 
         # Check for an '**kwargs'-like argument
-        if len(kwargs) > len(named_kwargs):
+        if kwargs.keys() != named_kwargs.keys():
             star_kwargs_name, star_kwargs_dict = named_kwargs.popitem()  # **kwargs is the last item
 
             explicit_kwargs_dict = {
