@@ -708,7 +708,7 @@ def check_types(
             args = (instance, *args)
 
         validated_pos = validate_args(sig.bind_partial(*args).arguments)
-        validated_kwd = validate_args(sig.bind_partial(**kwargs).arguments)
+        validated_kwd = validate_args(sig.bind_partial(**kwargs).kwargs)
 
         if instance is not None:
             # If the decorated func is a method, "wrapped" is a bound method
