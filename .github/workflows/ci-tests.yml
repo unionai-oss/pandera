@@ -200,9 +200,8 @@ jobs:
       - name: Unit Tests - IO
         run: pytest tests/io ${{ env.PYTEST_FLAGS }}
 
-      # only test mypy plugin for python 3.10+ and latest version of pandas
       - name: Unit Tests - Mypy
-        if: ${{ !contains(fromJson('["3.7", "3.8", "3.9"]'), matrix.python-version) && matrix.pandas-version == '2.0.3' }}
+        if: ${{ matrix.python-version != '3.7' }}
         run: pytest -v tests/mypy ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Strategies
