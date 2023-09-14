@@ -114,7 +114,7 @@ PANDAS_TIME_ERRORS = [
 ]
 
 PYTHON_SLICE_ERRORS = [
-    {"msg": "Slice index must be an integer or None", "errcode": "misc"},
+    {"msg": "Slice index must be an integer", "errcode": "misc"},
 ]
 
 PANDAS_INDEX_ERRORS = [
