@@ -304,12 +304,6 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
         f"pandas{pandas}-"
         f"pydantic{pydantic}.txt"
     )
-    args = [
-        "--upgrade-package",
-        f"pandas=={pandas}",
-        "--upgrade-package",
-        f"pydantic=={pydantic}",
-    ]
     session.run(
         "pip-compile",
         "requirements.in",
@@ -318,7 +312,10 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
         "-v",
         "--resolver",
         "backtracking",
-        *args,
+        "--upgrade-package",
+        f"pandas=={pandas}",
+        "--upgrade-package",
+        f"pydantic=={pydantic}",
     )
 
 
