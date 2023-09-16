@@ -28,7 +28,7 @@ RENAME: Dict[str, str] = {}
 
 REPO_PATH = Path(__file__).resolve().absolute().parents[1]
 CONDA_REQUIREMENTS_FILE = REPO_PATH / "environment.yml"
-PIP_REQUIREMENTS_FILE = REPO_PATH / "requirements-dev.txt"
+PIP_REQUIREMENTS_FILE = REPO_PATH / "requirements.in"
 
 
 def conda_package_to_pip(package: str) -> Optional[str]:
@@ -106,7 +106,7 @@ def main(conda_file: Path, pip_file: Path, compare: bool = False) -> bool:
         "# See that file for comments about the need/usage of "
         "each dependency.\n\n"
     )
-    pip_content = header + "\n".join(pip_deps)
+    pip_content = header + "\n".join(pip_deps) + "\n"
 
     if compare:
         return pip_file.read_text().strip() != pip_content.strip()

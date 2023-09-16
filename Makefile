@@ -40,3 +40,6 @@ NOX_FLAGS ?= "-r"
 
 nox-conda:
 	nox -db conda --envdir .nox-conda ${NOX_FLAGS}
+
+nox-ci-requirements:
+	nox -db mamba --envdir .nox-mamba -s ci_requirements

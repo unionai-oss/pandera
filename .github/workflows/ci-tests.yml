@@ -97,21 +97,12 @@ jobs:
       PYTEST_FLAGS: --cov=pandera --cov-report=term-missing --cov-report=xml --cov-append
       HYPOTHESIS_FLAGS: -n=auto -q --hypothesis-profile=ci
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         pandas-version: ["1.5.3", "2.0.3"]
         pydantic-version: ["1.10.11", "2.3.0"]
-        exclude:
-        - python-version: "3.7"
-          pandas-version: "2.0.3"
-        - python-version: "3.7"
-          pandas-version: "1.5.2"
-        - python-version: "3.10"
-          pandas-version: "1.3.0"
-        - python-version: "3.11"
-          pandas-version: "1.3.0"
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
@@ -153,36 +144,39 @@ jobs:
           channel-priority: true
           use-only-tar-bz2: true
 
-      # ray currently cannot be installed on python 3.11
-      - name: Remove Ray from Deps
-        if: ${{ matrix.python-version == '3.11' && matrix.os != 'macos-latest' }}
-        run: sed -i '/ray/d' environment.yml
+      # # ray currently cannot be installed on python 3.11
+      # - name: Remove Ray from Deps
+      #   if: ${{ matrix.python-version == '3.11' && matrix.os != 'macos-latest' }}
+      #   run: sed -i '/ray/d' environment.yml
 
-      - name: Remove Ray from Deps
-        if: ${{ matrix.python-version == '3.11' && matrix.os == 'macos-latest' }}
-        run: sed -i .bak '/ray/d' environment.yml
+      # - name: Remove Ray from Deps
+      #   if: ${{ matrix.python-version == '3.11' && matrix.os == 'macos-latest' }}
+      #   run: sed -i .bak '/ray/d' environment.yml
 
-      # need to install pandas via pip: conda installation is on the fritz
-      - name: Install Conda Deps [pandas 2]
-        if: ${{ matrix.pandas-version == '2.0.3' }}
-        run: |
-          mamba install -c conda-forge asv pandas geopandas bokeh
-          mamba env update -n pandera-dev -f environment.yml
-          pip install pandas==${{ matrix.pandas-version }}
-          pip install --user dask>=2023.3.2
+      # # need to install pandas via pip: conda installation is on the fritz
+      # - name: Install Conda Deps [pandas 2]
+      #   if: ${{ matrix.pandas-version == '2.0.3' }}
+      #   run: |
+      #     mamba install -c conda-forge asv pandas geopandas bokeh
+      #     mamba env update -n pandera-dev -f environment.yml
+      #     pip install pandas==${{ matrix.pandas-version }}
+      #     pip install --user dask>=2023.3.2
 
-      - name: Install Conda Deps
-        if: ${{ matrix.pandas-version != '2.0.3' }}
-        run: |
-          mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
-          mamba env update -n pandera-dev -f environment.yml
+      # - name: Install Conda Deps
+      #   if: ${{ matrix.pandas-version != '2.0.3' }}
+      #   run: |
+      #     mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
+      #     mamba env update -n pandera-dev -f environment.yml
 
-      - name: Install Pydantic Deps
-        run: pip install -U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
+      # - name: Install Pydantic Deps
+      #   run: pip install -U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
 
-      - name: Install Pydantic v2 Deps
-        if : ${{ matrix.pydantic-version == '2.3.0' }}
-        run: pip install fastapi>=0.100.0
+      # - name: Install Pydantic v2 Deps
+      #   if : ${{ matrix.pydantic-version == '2.3.0' }}
+      #   run: pip install fastapi>=0.100.0
+
+      - name: Install deps
+        run: pip install ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
 
       - run: |
           conda info

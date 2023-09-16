@@ -19,7 +19,7 @@ from pkg_resources import Requirement, parse_requirements
 
 nox.options.sessions = (
     "requirements",
-    "mypy",
+    "ci_requirements",
     "tests",
     "docs",
     "doctests",
@@ -27,7 +27,8 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
-PANDAS_VERSIONS = ["1.2.0", "1.3.5", "latest"]
+PANDAS_VERSIONS = ["1.5.3", "2.0.3"]
+PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
 PACKAGE = "pandera"
 
@@ -289,6 +290,36 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
             + f"then run 'nox -s requirements' to generate {REQUIREMENT_PATH}"
         )
         sys.exit(1)
+
+
+@nox.session(python=PYTHON_VERSIONS)
+@nox.parametrize("pandas", PANDAS_VERSIONS)
+@nox.parametrize("pydantic", PYDANTIC_VERSIONS)
+def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
+    """Install pinned dependencies for CI."""
+    session.install("pip-tools")
+    output_file = (
+        "ci/requirements-"
+        f"py{session.python}-"
+        f"pandas{pandas}-"
+        f"pydantic{pydantic}.txt"
+    )
+    args = [
+        "--upgrade-package",
+        f"pandas=={pandas}",
+        "--upgrade-package",
+        f"pydantic=={pydantic}",
+    ]
+    session.run(
+        "pip-compile",
+        "requirements.in",
+        "--output-file",
+        output_file,
+        "-v",
+        "--resolver",
+        "backtracking",
+        *args,
+    )
 
 
 EXTRA_NAMES = [
