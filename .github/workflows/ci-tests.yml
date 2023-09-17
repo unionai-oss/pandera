@@ -114,10 +114,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # - name: Set up Python ${{ matrix.python-version }}
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Cache conda
         uses: actions/cache@v3
@@ -137,17 +137,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: true
-          activate-environment: pandera-dev
-          channels: conda-forge
-          channel-priority: true
-          use-only-tar-bz2: true
+      # - uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     auto-update-conda: true
+      #     python-version: ${{ matrix.python-version }}
+      #     miniforge-version: latest
+      #     miniforge-variant: Mambaforge
+      #     use-mamba: true
+      #     activate-environment: pandera-dev
+      #     channels: conda-forge
+      #     channel-priority: true
+      #     use-only-tar-bz2: true
 
       - name: Install deps
         run: pip install -r ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
@@ -167,7 +167,7 @@ jobs:
 
       - name: Unit Tests - Mypy
         # mypy tests hang on windows
-        # if: ${{ matrix.os != 'windows-latest' }}
+        if: ${{ matrix.os != 'windows-latest' }}
         run: pytest -v tests/mypy ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Strategies
