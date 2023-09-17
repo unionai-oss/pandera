@@ -137,18 +137,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # - uses: conda-incubator/setup-miniconda@v2
-      #   with:
-      #     auto-update-conda: true
-      #     python-version: ${{ matrix.python-version }}
-      #     miniforge-version: latest
-      #     miniforge-variant: Mambaforge
-      #     use-mamba: true
-      #     activate-environment: pandera-dev
-      #     channels: conda-forge
-      #     channel-priority: true
-      #     use-only-tar-bz2: true
-
       - name: Install deps
         run: pip install -r ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
 
@@ -195,14 +183,14 @@ jobs:
         env:
           CI_MODIN_ENGINES: dask
 
-      # - name: Unit Tests - Modin-Ray
-      #   # ray CI issues with the following:
-      #   # - windows, python 3.10
-      #   # Tracking issue: https://github.com/modin-project/modin/issues/5466
-      #   if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.10", "3.11"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
-      #   run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
-      #   env:
-      #     CI_MODIN_ENGINES: ray
+      - name: Unit Tests - Modin-Ray
+        # ray CI issues with the following:
+        # - windows, python 3.10
+        # Tracking issue: https://github.com/modin-project/modin/issues/5466
+        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
+        run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
+        env:
+          CI_MODIN_ENGINES: ray
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
