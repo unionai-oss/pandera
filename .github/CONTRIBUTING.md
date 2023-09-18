@@ -73,10 +73,32 @@ make docs
 To add new dependencies to the project, make sure to alter the _environment.yml_ file. Then to sync the dependencies from the _environment.yml_ file to the _requirements-dev.txt_ run the following command
 
 ```bash
-python scripts/generate_pip_deps_from_conda.py
+make requirements-dev.txt
 ```
 
-Moreover to add new dependencies in setup.py, it is necessary to add it to the **_extras_require** dictionary.
+This will:
+
+- Invoke `python scripts/generate_pip_deps_from_conda.py` to convert `environment.yml`
+  to a `requirements.in` file.
+- Use `pip-compile` to create `requirements-dev.txt` file that has a fully specified
+  set of dependencies.
+
+You can use the resulting `requirements-dev.txt` file to install your dependencies
+with `pip`:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Moreover to add new extra dependencies in setup.py, it is necessary to add it to
+the **_extras_require** dictionary.
+
+When you update dependencies also need to update the `pip-compile`d requirements
+files in the `ci` directory, which are used by the CI/CD process of this repo:
+
+```bash
+make nox-ci-requirements
+```
 
 #### Set up `pre-commit`
 
