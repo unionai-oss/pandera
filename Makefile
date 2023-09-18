@@ -1,5 +1,5 @@
 .PHONY: tests clean clean-pyc upload-pypi-test upload-pypi requirements docs \
-	code-cov docs-clean
+	code-cov docs-clean requirements-dev.txt
 
 clean:
 	python setup.py clean
@@ -40,3 +40,11 @@ NOX_FLAGS ?= "-r"
 
 nox-conda:
 	nox -db conda --envdir .nox-conda ${NOX_FLAGS}
+
+nox-ci-requirements:
+	python scripts/generate_pip_deps_from_conda.py && \
+		nox -db mamba --envdir .nox-mamba -s ci_requirements
+
+requirements-dev.txt:
+	python scripts/generate_pip_deps_from_conda.py && \
+		pip-compile requirements.in --output-file requirements-dev.txt -v --resolver backtracking

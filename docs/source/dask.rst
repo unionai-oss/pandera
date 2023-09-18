@@ -64,10 +64,10 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
     Dask DataFrame Structure:
                     state    city  price
     npartitions=2
-    0              object  object  int64
+    0              string  string  int64
     3                 ...     ...    ...
     5                 ...     ...    ...
-    Dask Name: validate, 2 graph layers
+    Dask Name: validate, 3 graph layers
 
 
 As you can see, passing the dask dataframe into ``Schema`` will produce

@@ -1,1 +1,1 @@
--r requirements-dev.txt
+-r requirements.in

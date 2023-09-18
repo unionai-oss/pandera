@@ -100,18 +100,9 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         pandas-version: ["1.5.3", "2.0.3"]
         pydantic-version: ["1.10.11", "2.3.0"]
-        exclude:
-        - python-version: "3.7"
-          pandas-version: "2.0.3"
-        - python-version: "3.7"
-          pandas-version: "1.5.2"
-        - python-version: "3.10"
-          pandas-version: "1.3.0"
-        - python-version: "3.11"
-          pandas-version: "1.3.0"
         include:
         - os: ubuntu-latest
           pip-cache: ~/.cache/pip
@@ -122,6 +113,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Cache conda
         uses: actions/cache@v3
@@ -141,54 +137,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: true
-          activate-environment: pandera-dev
-          channels: conda-forge
-          channel-priority: true
-          use-only-tar-bz2: true
-
-      # ray currently cannot be installed on python 3.11
-      - name: Remove Ray from Deps
-        if: ${{ matrix.python-version == '3.11' && matrix.os != 'macos-latest' }}
-        run: sed -i '/ray/d' environment.yml
-
-      - name: Remove Ray from Deps
-        if: ${{ matrix.python-version == '3.11' && matrix.os == 'macos-latest' }}
-        run: sed -i .bak '/ray/d' environment.yml
-
-      # need to install pandas via pip: conda installation is on the fritz
-      - name: Install Conda Deps [pandas 2]
-        if: ${{ matrix.pandas-version == '2.0.3' }}
-        run: |
-          mamba install -c conda-forge asv pandas geopandas bokeh
-          mamba env update -n pandera-dev -f environment.yml
-          pip install pandas==${{ matrix.pandas-version }}
-          pip install --user dask>=2023.3.2
-
-      - name: Install Conda Deps
-        if: ${{ matrix.pandas-version != '2.0.3' }}
-        run: |
-          mamba install -c conda-forge asv pandas==${{ matrix.pandas-version }} geopandas bokeh
-          mamba env update -n pandera-dev -f environment.yml
-
-      - name: Install Pydantic Deps
-        run: pip install -U --upgrade-strategy only-if-needed pydantic==${{ matrix.pydantic-version }}
-
-      - name: Install Pydantic v2 Deps
-        if : ${{ matrix.pydantic-version == '2.3.0' }}
-        run: pip install fastapi>=0.100.0
+      - name: Install deps
+        run: pip install -r ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
 
       - run: |
-          conda info
-          conda list
-          conda config --show-sources
-          conda config --show
+          pip list
           printenv | sort
 
       - name: Unit Tests - Core
@@ -201,7 +154,8 @@ jobs:
         run: pytest tests/io ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Mypy
-        if: ${{ matrix.python-version != '3.7' }}
+        # mypy tests hang on windows
+        if: ${{ matrix.os != 'windows-latest' }}
         run: pytest -v tests/mypy ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Strategies
@@ -210,7 +164,6 @@ jobs:
       - name: Unit Tests - FastAPI
         # there's an issue with the fastapi tests in CI that's not reproducible locally
         # when pydantic > v2
-        if: ${{ matrix.python-version != '3.7' }}
         run: pytest tests/fastapi ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - GeoPandas
@@ -221,32 +174,31 @@ jobs:
         run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Pyspark
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.3' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
         run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Modin-Dask
-        if: ${{ !contains(fromJson('["3.11"]'), matrix.python-version) && matrix.pandas-version != '2.0.3' }}
+        if: ${{ matrix.pandas-version != '2.0.3' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: dask
 
-      # - name: Unit Tests - Modin-Ray
-      #   # ray CI issues with the following:
-      #   # - windows, python 3.10
-      #   # - mac, python 3.7
-      #   # Tracking issue: https://github.com/modin-project/modin/issues/5466
-      #   if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version)  && matrix.pandas-version != '2.0.1' }}
-      #   run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
-      #   env:
-      #     CI_MODIN_ENGINES: ray
+      - name: Unit Tests - Modin-Ray
+        # ray CI issues with the following:
+        # - windows, python 3.10
+        # Tracking issue: https://github.com/modin-project/modin/issues/5466
+        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
+        run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
+        env:
+          CI_MODIN_ENGINES: ray
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
 
       - name: Check Docstrings
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) && matrix.pydantic-version != '2.0.2' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pandas-version == '2.0.3' }}
         run: nox ${{ env.NOX_FLAGS }} --session doctests
 
       - name: Check Docs
-        if: ${{ matrix.os != 'windows-latest' && !contains(fromJson('["3.7", "3.10", "3.11"]'), matrix.python-version) && matrix.pydantic-version != '2.0.2' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.python-version == '3.11' && matrix.pydantic-version == '2.0.3' }}
         run: nox ${{ env.NOX_FLAGS }} --session docs

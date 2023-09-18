@@ -390,6 +390,11 @@ You must give a **type**, not an **instance**.
 
 :red:`✘` Bad:
 
+.. note::
+
+    This is only applicable for pandas versions < 2.0.0. In pandas > 2.0.0,
+    pd.StringDtype() will produce a type.
+
 .. testcode:: dataframe_schema_model
     :skipif: SKIP_SCHEMA_MODEL
 
