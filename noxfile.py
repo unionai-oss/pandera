@@ -33,7 +33,7 @@ PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
-REQUIREMENT_PATH = "requirements-dev.txt"
+REQUIREMENT_PATH = "requirements.in"
 ALWAYS_USE_PIP = {
     "ray",
     "furo",
@@ -354,8 +354,6 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         }
         or (python, extra)
         in {
-            ("3.7", "modin-dask"),
-            ("3.7", "modin-ray"),
             ("3.10", "modin-dask"),
             ("3.10", "modin-ray"),
             ("3.10", "pyspark"),
@@ -378,10 +376,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         path = f"tests/{extra}/" if extra != "all" else "tests"
         args = []
         if extra == "strategies":
-            # strategies tests runs very slowly in python 3.7:
-            # https://github.com/pandera-dev/pandera/issues/556
-            # as a stop-gap, use the "dev" profile for 3.7
-            profile = "ci" if CI_RUN and session.python != "3.7" else "dev"
+            profile = "ci"
             # enable threading via pytest-xdist
             args = [
                 "-n=auto",

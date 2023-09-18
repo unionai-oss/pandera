@@ -3,17 +3,17 @@
 # pandas and is distributed under the terms of the BSD 3 License that can be
 # found at: https://github.com/pandas-dev/pandas/blob/main/LICENSE
 """
-Convert the conda environment.yml to the pip requirements-dev.txt,
+Convert the conda environment.yml to the pip requirements.in,
 or check that they have the same packages (for the CI)
 
 Usage:
 
-    Generate `requirements-dev.txt`
-    $ ./conda_to_pip
+    Generate `requirements-dev.in`
+    $ ./generate_pip_deps_from_conda
 
-    Compare and fail (exit status != 0) if `requirements-dev.txt` has not been
+    Compare and fail (exit status != 0) if `requirements-dev.in` has not been
     generated with this script:
-    $ ./conda_to_pip --compare
+    $ ./generate_pip_deps_from_conda --compare
 """
 import argparse
 import re
@@ -139,6 +139,6 @@ if __name__ == "__main__":
             f"`{CONDA_REQUIREMENTS_FILE}` is modified.\n"
         )
         if args.azure:
-            msg = f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
+            msg = f"##vso[task.logissue type=error;sourcepath=requirements-in.txt]{msg}"
         sys.stderr.write(msg)
     sys.exit(res)
