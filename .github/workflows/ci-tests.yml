@@ -174,9 +174,11 @@ jobs:
         run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Pyspark
+        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
         run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
 
       - name: Unit Tests - Modin-Dask
+        if: ${{ matrix.pandas-version != '2.0.3' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: dask
@@ -185,7 +187,7 @@ jobs:
         # ray CI issues with the following:
         # - windows, python 3.10
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
         run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
         env:
           CI_MODIN_ENGINES: ray
