@@ -8,7 +8,7 @@ import inspect
 import re
 import sys
 from decimal import Decimal
-from typing import Any, Dict, List, NamedTuple, Tuple
+from typing import Any, Dict, List, NamedTuple, Tuple, Union
 
 import hypothesis
 import numpy as np
@@ -745,17 +745,44 @@ def test_python_typing_dtypes():
             "tuple_column": pa.Column(Tuple[int, str, float]),
             "typeddict_column": pa.Column(PointDict),
             "namedtuple_column": pa.Column(PointTuple),
+            "column_union_float": pa.Column(Union[str, float]),
+            "column_union_str": pa.Column(Union[str, float]),
+            "column_union_obj": pa.Column(Union[str, float]),
         },
     )
 
     data = pd.DataFrame(
         {
-            "dict_column": [{"foo": 1, "bar": 2}],
-            "list_column": [[1.0]],
-            "tuple_column": [(1, "bar", 1.0)],
-            "typeddict_column": [PointDict(x=2.1, y=4.8)],
-            "namedtuple_column": [PointTuple(x=9.2, y=1.6)],
+            "dict_column": [{"foo": 1, "bar": 2}, {"foobar": 3}],
+            "list_column": [[1.0], [2.0]],
+            "tuple_column": [(1, "bar", 1.0), (2, "foobar", 2.0)],
+            "typeddict_column": [
+                PointDict(x=2.1, y=4.8),
+                PointDict(x=2.5, y=9.0),
+            ],
+            "namedtuple_column": [
+                PointTuple(x=9.2, y=1.6),
+                PointTuple(x=2.5, y=1.4),
+            ],
+            "column_union_float": [1.0, 2.0],
+            "column_union_str": ["foo", "bar"],
+            "column_union_obj": [12.0, "foo"],
         }
     )
 
     schema.validate(data)
+
+    float_or_str_schema = pa.DataFrameSchema(
+        {
+            "column_union": pa.Column(Union[str, float]),
+        },
+    )
+
+    int_data = pd.DataFrame(
+        {
+            "column_union": [1, 2],
+        }
+    )
+
+    with pytest.raises(pa.errors.SchemaError):
+        float_or_str_schema.validate(int_data)

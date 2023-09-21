@@ -43,6 +43,7 @@ UNSUPPORTED_DTYPE_CLS: Set[Any] = set(
         pandas_engine.PythonTuple,
         pandas_engine.PythonTypedDict,
         pandas_engine.PythonNamedTuple,
+        pandas_engine.PythonUnion,
     ]
 )
 SUPPORTED_DTYPES = set()

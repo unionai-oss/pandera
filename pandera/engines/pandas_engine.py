@@ -25,6 +25,7 @@ from typing import (
     Union,
     cast,
 )
+from mypy.types import UnionType
 
 import numpy as np
 import pandas as pd
@@ -63,7 +64,6 @@ if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict  # noqa
-
 
 try:
     # python 3.8+
@@ -1352,3 +1352,39 @@ class PythonNamedTuple(PythonGenericType):
 
     def __str__(self) -> str:
         return str(NamedTuple.__name__)
+
+
+@Engine.register_dtype(equivalents=[UnionType, Union, "UnionType", "union"])
+@dtypes.immutable(init=True)
+class PythonUnion(PythonGenericType):
+    """A datatype to support python generics."""
+
+    type = UnionType
+
+    def __init__(  # pylint:disable=super-init-not-called
+        self, generic_type: Optional[Type] = None
+    ) -> None:
+        if generic_type is not None:
+            object.__setattr__(self, "generic_type", generic_type)
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PandasObject] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        """Check that data container has the expected type."""
+        pandera_dtype = Engine.dtype(pandera_dtype)
+
+        pandas_types = [object]
+        pandas_types.extend(
+            self.generic_type.__args__  # pylint: disable=no-member
+        )
+
+        # the underlying pandas dtype must be an object
+        if pandera_dtype not in map(Engine.dtype, pandas_types):
+            return False
+
+        if data_container is None:
+            return True
+        else:
+            return data_container.map(self._check_type)  # type: ignore[operator]
