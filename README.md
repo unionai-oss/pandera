@@ -32,9 +32,9 @@
 [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pandera?style=for-the-badge)](https://anaconda.org/conda-forge/pandera)
 [![Discord](https://img.shields.io/badge/discord-chat-purple?color=%235765F2&label=discord&logo=discord&style=for-the-badge)](https://discord.gg/vyanhWuaKB)
 
-`pandera` provides a flexible and expressive API for performing data
-validation on dataframe-like objects to make data processing pipelines more
-readable and robust.
+`pandera` is a [Union.ai](https://union.ai/blog-post/pandera-joins-union-ai) open
+source project that provides a flexible and expressive API for performing data
+validation on dataframe-like objects to make data processing pipelines more readable and robust.
 
 Dataframes contain information that `pandera` explicitly validates at runtime.
 This is useful in production-critical or reproducible research settings. With
@@ -63,7 +63,7 @@ This is useful in production-critical or reproducible research settings. With
 
 ## Documentation
 
-The official documentation is hosted on ReadTheDocs: https://pandera.readthedocs.io
+The official documentation is hosted here: https://pandera.readthedocs.io
 
 
 ## Install
@@ -240,30 +240,6 @@ page or reach out to the maintainers and pandera community on
 - `Check`s and `Hypothesis` objects support both [tidy and wide data validation](https://pandera.readthedocs.io/en/stable/checks.html#wide-checks).
 - Use schemas as generative contracts to [synthesize data](https://pandera.readthedocs.io/en/stable/data_synthesis_strategies.html) for unit testing.
 - [Schema inference](https://pandera.readthedocs.io/en/stable/schema_inference.html) allows you to bootstrap schemas from data.
-
-## Alternative Data Validation Libraries
-
-Here are a few other alternatives for validating Python data structures.
-
-**Generic Python object data validation**
-
-- [voloptuous](https://github.com/alecthomas/voluptuous)
-- [schema](https://github.com/keleshev/schema)
-
-**`pandas`-specific data validation**
-
-- [opulent-pandas](https://github.com/danielvdende/opulent-pandas)
-- [PandasSchema](https://github.com/TMiguelT/PandasSchema)
-- [pandas-validator](https://github.com/c-data/pandas-validator)
-- [table_enforcer](https://github.com/xguse/table_enforcer)
-- [dataenforce](https://github.com/CedricFR/dataenforce)
-- [strictly typed pandas](https://github.com/nanne-aben/strictly_typed_pandas)
-- [marshmallow-dataframe](https://github.com/facultyai/marshmallow-dataframe)
-
-**Other tools for data validation**
-
-- [great_expectations](https://github.com/great-expectations/great_expectations)
-- [frictionless schema](https://framework.frictionlessdata.io/docs/guides/framework/schema-guide/)
 
 ## How to Cite
 
