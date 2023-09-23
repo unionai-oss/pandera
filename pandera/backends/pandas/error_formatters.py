@@ -31,7 +31,7 @@ def format_vectorized_error_message(
     parent_schema,
     check,
     check_index: int,
-    reshaped_failure_cases: pd.DataFrame,
+    reshaped_failure_cases: Any,
 ) -> str:
     """Construct an error message when a validator fails.
 
