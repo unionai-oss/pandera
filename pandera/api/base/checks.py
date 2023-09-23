@@ -26,7 +26,7 @@ class CheckResult(NamedTuple):
     """Check result for user-defined checks."""
 
     check_output: Any
-    check_passed: bool
+    check_passed: Any
     checked_object: Any
     failure_cases: Any
 
