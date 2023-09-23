@@ -740,9 +740,12 @@ def test_python_typing_dtypes():
 
     schema = pa.DataFrameSchema(
         {
-            "dict_column": pa.Column(Dict[str, int]),
-            "list_column": pa.Column(List[float]),
-            "tuple_column": pa.Column(Tuple[int, str, float]),
+            "Dict_column": pa.Column(Dict[str, int]),
+            "List_column": pa.Column(List[float]),
+            "Tuple_column": pa.Column(Tuple[int, str, float]),
+            "dict_column": pa.Column(dict[str, int]),
+            "list_column": pa.Column(list[float]),
+            "tuple_column": pa.Column(tuple[int, str, float]),
             "typeddict_column": pa.Column(PointDict),
             "namedtuple_column": pa.Column(PointTuple),
         },
@@ -750,6 +753,9 @@ def test_python_typing_dtypes():
 
     data = pd.DataFrame(
         {
+            "Dict_column": [{"foo": 1, "bar": 2}],
+            "List_column": [[1.0]],
+            "Tuple_column": [(1, "bar", 1.0)],
             "dict_column": [{"foo": 1, "bar": 2}],
             "list_column": [[1.0]],
             "tuple_column": [(1, "bar", 1.0)],
@@ -759,3 +765,45 @@ def test_python_typing_dtypes():
     )
 
     schema.validate(data)
+
+
+@pytest.mark.parametrize("nullable", [True, False])
+@pytest.mark.parametrize(
+    "data_dict",
+    [
+        {
+            "dict_column": [{"foo": 1, "bar": 2}, {}, None],
+            "list_column": [[1.0], [], None],
+        },
+        {
+            "dict_column": [{"foo": "1", "bar": "2"}, {}, None],
+            "list_column": [["1.0"], [], None],
+        },
+    ],
+)
+def test_python_typing_handle_empty_list_dict_and_none(nullable, data_dict):
+    """Test that None values for python types are handled by nullable check."""
+
+    schema = pa.DataFrameSchema(
+        {
+            "dict_column": pa.Column(dict[str, int], nullable=nullable),
+            "list_column": pa.Column(list[float], nullable=nullable),
+        },
+        coerce=True,
+    )
+
+    data = pd.DataFrame(data_dict)
+
+    expected = pd.DataFrame(
+        {
+            "dict_column": [{"foo": 1, "bar": 2}, {}, pd.NA],
+            "list_column": [[1.0], [], pd.NA],
+        }
+    )
+
+    if nullable:
+        validated_data = schema.validate(data)
+        assert validated_data.equals(expected)
+    else:
+        with pytest.raises(pa.errors.SchemaError):
+            schema.validate(data)

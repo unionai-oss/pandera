@@ -209,8 +209,10 @@ class Engine(ABCMeta):
         if isinstance(data_type, cls._base_pandera_dtypes):
             return data_type
 
-        if inspect.isclass(data_type) and issubclass(
-            data_type, cls._base_pandera_dtypes
+        if (
+            inspect.isclass(data_type)
+            and not hasattr(data_type, "__origin__")
+            and issubclass(data_type, cls._base_pandera_dtypes)
         ):
             try:
                 # pylint: disable=fixme
