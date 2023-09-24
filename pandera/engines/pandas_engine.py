@@ -1154,6 +1154,12 @@ class PythonGenericType(DataType):
     _pandas_type = object
 
     def _check_type(self, element: Any) -> bool:
+        # if the element is None or pd.NA, this function should return True:
+        # the schema should only fail if nullable=False is specifed at the
+        # schema/schema component level.
+        if element is None or pd.isna(element):
+            return True
+
         try:
             _type = getattr(self, "generic_type") or getattr(
                 self, "special_type"
@@ -1179,7 +1185,12 @@ class PythonGenericType(DataType):
     def _coerce_element(self, element: Any) -> Any:
         try:
             # pylint: disable=not-callable
-            coerced_element = self.coercion_model(__root__=element).__root__
+            if PYDANTIC_V2:
+                coerced_element = self.coercion_model(element).root
+            else:
+                coerced_element = self.coercion_model(
+                    __root__=element
+                ).__root__
         except ValidationError:
             coerced_element = pd.NA
         return coerced_element
