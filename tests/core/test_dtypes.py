@@ -2,6 +2,7 @@
 coercion examples."""
 # pylint doesn't know about __init__ generated with dataclass
 # pylint:disable=unexpected-keyword-arg,no-value-for-parameter
+# pylint:disable=unsubscriptable-object
 import dataclasses
 import datetime
 import inspect
