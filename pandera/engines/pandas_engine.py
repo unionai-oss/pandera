@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 import typeguard
 from pydantic import BaseModel, ValidationError, create_model
+from typeguard import CollectionCheckStrategy
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
@@ -1157,7 +1158,7 @@ class PythonGenericType(DataType):
         # if the element is None or pd.NA, this function should return True:
         # the schema should only fail if nullable=False is specifed at the
         # schema/schema component level.
-        if element is None or pd.isna(element):
+        if element is None or element is pd.NA:
             return True
 
         try:
@@ -1177,7 +1178,13 @@ class PythonGenericType(DataType):
                 from typing import TypedDict as _TypedDict
 
                 _type = _TypedDict(_type.__name__, _type.__annotations__)  # type: ignore
-            typeguard.check_type(element, _type)
+
+            typeguard.check_type(
+                element,
+                _type,
+                # This may be worth making configurable at the global level.
+                collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+            )
             return True
         except typeguard.TypeCheckError:
             return False

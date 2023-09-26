@@ -790,12 +790,12 @@ def test_python_std_list_dict_generics():
     "data_dict",
     [
         {
-            "dict_column": [{"foo": 1, "bar": 2}, {}, None],
-            "list_column": [[1.0], [], None],
+            "dict_column": [{"foo": 1}, {"foo": 1, "bar": 2}, {}, None],
+            "list_column": [[1.0], [1.0, 2.0], [], None],
         },
         {
-            "dict_column": [{"foo": "1", "bar": "2"}, {}, None],
-            "list_column": [["1.0"], [], None],
+            "dict_column": [{"foo": "1"}, {"foo": "1", "bar": "2"}, {}, None],
+            "list_column": [["1.0"], ["1.0", "2.0"], [], None],
         },
     ],
 )
@@ -816,8 +816,8 @@ def test_python_typing_handle_empty_list_dict_and_none(nullable, data_dict):
 
     expected = pd.DataFrame(
         {
-            "dict_column": [{"foo": 1, "bar": 2}, {}, pd.NA],
-            "list_column": [[1.0], [], pd.NA],
+            "dict_column": [{"foo": 1}, {"foo": 1, "bar": 2}, {}, pd.NA],
+            "list_column": [[1.0], [1.0, 2.0], [], pd.NA],
         }
     )
 
@@ -838,12 +838,12 @@ def test_python_typing_handle_empty_list_dict_and_none(nullable, data_dict):
     "data_dict",
     [
         {
-            "dict_column": [{"foo": 1, "bar": 2}, {}, None],
-            "list_column": [[1.0], [], None],
+            "dict_column": [{"foo": 1}, {"foo": 1, "bar": 2}, {}, None],
+            "list_column": [[1.0], [1.0, 2.0], [], None],
         },
         {
-            "dict_column": [{"foo": "1", "bar": "2"}, {}, None],
-            "list_column": [["1.0"], [], None],
+            "dict_column": [{"foo": "1"}, {"foo": "1", "bar": "2"}, {}, None],
+            "list_column": [["1.0"], ["1.0", "2.0"], [], None],
         },
     ],
 )
@@ -865,8 +865,8 @@ def test_python_std_list_dict_empty_and_none(nullable, data_dict):
 
     expected = pd.DataFrame(
         {
-            "dict_column": [{"foo": 1, "bar": 2}, {}, pd.NA],
-            "list_column": [[1.0], [], pd.NA],
+            "dict_column": [{"foo": 1}, {"foo": 1, "bar": 2}, {}, pd.NA],
+            "list_column": [[1.0], [1.0, 2.0], [], pd.NA],
         }
     )
 
@@ -876,3 +876,29 @@ def test_python_std_list_dict_empty_and_none(nullable, data_dict):
     else:
         with pytest.raises(pa.errors.SchemaError):
             schema.validate(data)
+
+
+def test_python_std_list_dict_error():
+    """Test that non-standard dict/list invalid values raise Schema Error."""
+    schema = pa.DataFrameSchema(
+        {
+            "dict_column": pa.Column(dict[str, int]),
+            "list_column": pa.Column(list[float]),
+        },
+    )
+
+    data = pd.DataFrame(
+        {
+            "dict_column": [{"foo": 1}, {"foo": 1, "bar": "2"}, {}],
+            "list_column": [[1.0], ["1.0", 2.0], []],
+        }
+    )
+
+    try:
+        schema.validate(data, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases["failure_case"].iloc[0] == {
+            "foo": 1,
+            "bar": "2",
+        }
+        assert exc.failure_cases["failure_case"].iloc[1] == ["1.0", 2.0]
