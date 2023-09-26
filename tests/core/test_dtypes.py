@@ -882,8 +882,8 @@ def test_python_std_list_dict_error():
     """Test that non-standard dict/list invalid values raise Schema Error."""
     schema = pa.DataFrameSchema(
         {
-            "dict_column": pa.Column(dict[str, int]),
-            "list_column": pa.Column(list[float]),
+            "dict_column": pa.Column(Dict[str, int]),
+            "list_column": pa.Column(List[float]),
         },
     )
 
