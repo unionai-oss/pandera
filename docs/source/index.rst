@@ -369,6 +369,7 @@ page or reach out to the maintainers and pandera community on
    data_format_conversion
    supported_libraries
    integrations
+   configuration
 
 .. toctree::
    :maxdepth: 6
