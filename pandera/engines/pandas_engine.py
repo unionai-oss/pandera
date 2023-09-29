@@ -1110,7 +1110,10 @@ class PydanticModel(DataType):
             """
             try:
                 # pylint: disable=not-callable
-                row = pd.Series(self.type(**row).dict())
+                if PYDANTIC_V2:
+                    row = self.type(**row).model_dump()
+                else:
+                    row = self.type(**row).dict()
                 row["failure_cases"] = np.nan
             except ValidationError as exc:
                 row["failure_cases"] = {
@@ -1119,7 +1122,10 @@ class PydanticModel(DataType):
 
             return row
 
-        coerced_df = data_container.apply(_coerce_row, axis="columns")
+        records = data_container.to_dict(orient="records")  # type: ignore
+        coerced_df = type(data_container).from_records(  # type: ignore
+            [_coerce_row(row) for row in records]
+        )
 
         # raise a ParserError with failure cases where each case is a
         # dictionary containing the failed elements in the pydantic record
