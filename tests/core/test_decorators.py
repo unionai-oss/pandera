@@ -963,9 +963,9 @@ def test_check_types_star_args() -> None:
 
     @check_types
     def get_len_star_args__int(
-            # pylint: disable=unused-argument
-            arg1: int,
-            *args: int
+        # pylint: disable=unused-argument
+        arg1: int,
+        *args: int,
     ) -> int:
         return len(args)
 
@@ -973,7 +973,7 @@ def test_check_types_star_args() -> None:
     def get_len_star_args__dataframe(
         # pylint: disable=unused-argument
         arg1: DataFrame[InSchema],
-        *args: DataFrame[InSchema]
+        *args: DataFrame[InSchema],
     ) -> int:
         return len(args)
 
@@ -997,17 +997,17 @@ def test_check_types_star_kwargs() -> None:
 
     @check_types
     def get_star_kwargs_keys_int(
-            # pylint: disable=unused-argument
-            kwarg1: int = 1,
-            **kwargs: int
+        # pylint: disable=unused-argument
+        kwarg1: int = 1,
+        **kwargs: int,
     ) -> typing.List[str]:
         return list(kwargs.keys())
 
     @check_types
     def get_star_kwargs_keys_dataframe(
-            # pylint: disable=unused-argument
-            kwarg1: DataFrame[InSchema] = 1,
-            **kwargs: DataFrame[InSchema]
+        # pylint: disable=unused-argument
+        kwarg1: DataFrame[InSchema] = None,
+        **kwargs: DataFrame[InSchema],
     ) -> typing.List[str]:
         return list(kwargs.keys())
 
@@ -1016,32 +1016,24 @@ def test_check_types_star_kwargs() -> None:
     in_3 = pd.DataFrame({"a": [1]}, index=["1"])
     in_4_error = pd.DataFrame({"b": [1]}, index=["1"])
 
-    int_kwargs_keys = get_star_kwargs_keys_int(
-        kwarg1=1,
-        kwarg2=2,
-        kwarg3=3
-    )
+    int_kwargs_keys = get_star_kwargs_keys_int(kwarg1=1, kwarg2=2, kwarg3=3)
     df_kwargs_keys_1 = get_star_kwargs_keys_dataframe(
         kwarg1=in_1,
         kwarg2=in_2,
     )
     df_kwargs_keys_2 = get_star_kwargs_keys_dataframe(
-        kwarg1=in_1,
-        kwarg2=in_2,
-        kwarg3=in_3
+        kwarg1=in_1, kwarg2=in_2, kwarg3=in_3
     )
 
-    assert int_kwargs_keys == ['kwarg2', 'kwarg3']
-    assert df_kwargs_keys_1 == ['kwarg2']
-    assert df_kwargs_keys_2 == ['kwarg2', 'kwarg3']
+    assert int_kwargs_keys == ["kwarg2", "kwarg3"]
+    assert df_kwargs_keys_1 == ["kwarg2"]
+    assert df_kwargs_keys_2 == ["kwarg2", "kwarg3"]
 
     with pytest.raises(
         errors.SchemaError, match="column 'a' not in dataframe"
     ):
         get_star_kwargs_keys_dataframe(
-            kwarg1=in_1,
-            kwarg2=in_2,
-            kwarg3=in_4_error
+            kwarg1=in_1, kwarg2=in_2, kwarg3=in_4_error
         )
 
 
@@ -1053,7 +1045,7 @@ def test_check_types_star_args_kwargs() -> None:
         arg1: DataFrame[InSchema],
         *args: DataFrame[InSchema],
         kwarg1: DataFrame[InSchema],
-        **kwargs: DataFrame[InSchema]
+        **kwargs: DataFrame[InSchema],
     ):
         return arg1, args, kwarg1, kwargs
 
@@ -1064,11 +1056,10 @@ def test_check_types_star_args_kwargs() -> None:
     expected_arg = in_1
     expected_star_args = (in_2, in_3)
     expected_kwarg = in_1
-    expected_star_kwargs = {'kwarg2': in_2, 'kwarg3': in_3}
+    expected_star_kwargs = {"kwarg2": in_2, "kwarg3": in_3}
 
     arg, star_args, kwarg, star_kwargs = star_args_kwargs(
-        in_1, in_2, in_3,
-        kwarg1=in_1, kwarg2=in_2, kwarg3=in_3
+        in_1, in_2, in_3, kwarg1=in_1, kwarg2=in_2, kwarg3=in_3
     )
 
     pd.testing.assert_frame_equal(expected_arg, arg)
@@ -1077,7 +1068,9 @@ def test_check_types_star_args_kwargs() -> None:
     for expected, actual in zip(expected_star_args, star_args):
         pd.testing.assert_frame_equal(expected, actual)
 
-    for expected, actual in zip(expected_star_kwargs.values(), star_kwargs.values()):
+    for expected, actual in zip(
+        expected_star_kwargs.values(), star_kwargs.values()
+    ):
         pd.testing.assert_frame_equal(expected, actual)
 
 

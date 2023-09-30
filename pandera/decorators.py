@@ -692,7 +692,9 @@ def check_types(
 
     sig = inspect.signature(wrapped)
 
-    def validate_args(named_arguments: Dict[str, Any], arguments: Tuple[Any]) -> List[Any]:
+    def validate_args(
+        named_arguments: Dict[str, Any], arguments: Tuple[Any, ...]
+    ) -> List[Any]:
         """
         Validates schemas of both explicit and *args-like function arguments.
 
@@ -701,12 +703,15 @@ def check_types(
             Example: OrderedDict({'arg1': 1, 'arg2': 2, 'star_args': (3, 4, 5)})
         :param arguments: Unpacked function arguments, as written in the function call.
             Example: (1, 2, 3, 4, 5)
-        :return: list of validated function arguments.
+        :return: List of validated function arguments.
         """
 
         # Check for an '*args'-like argument
         if len(arguments) > len(named_arguments):
-            star_args_name, star_args_values = named_arguments.popitem()  # *args is the last item
+            (
+                star_args_name,
+                star_args_values,
+            ) = named_arguments.popitem()  # *args is the last item
 
             star_args_tuple = (
                 _check_arg(star_args_name, arg_value)
@@ -726,7 +731,9 @@ def check_types(
                 for arg_name, arg_value in named_arguments.items()
             )
 
-    def validate_kwargs(named_kwargs: Dict[str, Any], kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_kwargs(
+        named_kwargs: Dict[str, Any], kwargs: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Validates schemas of both explicit and **kwargs-like function arguments.
 
@@ -741,7 +748,10 @@ def check_types(
 
         # Check for an '**kwargs'-like argument
         if kwargs.keys() != named_kwargs.keys():
-            star_kwargs_name, star_kwargs_dict = named_kwargs.popitem()  # **kwargs is the last item
+            (
+                star_kwargs_name,
+                star_kwargs_dict,
+            ) = named_kwargs.popitem()  # **kwargs is the last item
 
             explicit_kwargs_dict = {
                 arg_name: _check_arg(arg_name, arg_value)
@@ -771,7 +781,9 @@ def check_types(
             args = (instance, *args)
 
         validated_pos = validate_args(sig.bind_partial(*args).arguments, args)
-        validated_kwd = validate_kwargs(sig.bind_partial(**kwargs).arguments, kwargs)
+        validated_kwd = validate_kwargs(
+            sig.bind_partial(**kwargs).arguments, kwargs
+        )
 
         if instance is not None:
             # If the decorated func is a method, "wrapped" is a bound method
