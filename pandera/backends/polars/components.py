@@ -5,13 +5,14 @@ from typing import List, Optional, cast
 import polars as pl
 
 from pandera.api.polars.components import Column
-from pandera.backends.base import CoreCheckResult
+from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     SchemaError,
     SchemaErrors,
     SchemaErrorReason,
+    FailureCaseMetadata,
 )
 
 
