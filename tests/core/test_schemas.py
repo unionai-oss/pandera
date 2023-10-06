@@ -502,10 +502,10 @@ def test_add_missing_columns_dtype():
     """Test that missing columns are added with the correct dtype."""
     ref_df = pd.DataFrame(
         {
-            "a": pd.Series([2, 5], dtype=int),
-            "b": pd.Series([9, 9], dtype=int),
+            "a": pd.Series([2, 5], dtype=np.int64),
+            "b": pd.Series([9, 9], dtype=np.int64),
             "c": pd.Series([9, 9], dtype=np.int8),
-            "d": pd.Series([np.nan, np.nan], dtype=float),
+            "d": pd.Series([np.nan, np.nan], dtype=np.float64),
             "e": pd.Series(
                 [7, 7], dtype=pd.SparseDtype(dtype=np.int8, fill_value=5)
             ),
@@ -515,10 +515,10 @@ def test_add_missing_columns_dtype():
 
     schema = DataFrameSchema(
         columns={
-            "a": Column(int),
-            "b": Column(int, default=9),
+            "a": Column(np.int64),
+            "b": Column(np.int64, default=9),
             "c": Column(np.int8, default=9),
-            "d": Column(float, default=np.nan, nullable=True),
+            "d": Column(np.float64, default=np.nan, nullable=True),
             "e": Column(
                 pd.SparseDtype(dtype=np.int8, fill_value=5), default=7
             ),
