@@ -326,9 +326,13 @@ class ArraySchemaBackend(PandasSchemaBackend):
     def set_default(self, check_obj, schema):
         """Sets the ``schema.default`` value on the ``check_obj``"""
         # Ignore sparse dtype as it can't assign default value directly
-        if is_field(check_obj) and not isinstance(check_obj.dtype, pd.SparseDtype):
+        if is_field(check_obj) and not isinstance(
+            check_obj.dtype, pd.SparseDtype
+        ):
             check_obj.fillna(schema.default, inplace=True)
-        elif not is_field(check_obj) and not isinstance(check_obj[schema.name].dtype, pd.SparseDtype):
+        elif not is_field(check_obj) and not isinstance(
+            check_obj[schema.name].dtype, pd.SparseDtype
+        ):
             check_obj[schema.name].fillna(schema.default, inplace=True)
 
         return check_obj
