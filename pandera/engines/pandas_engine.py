@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 import typeguard
 from pydantic import BaseModel, ValidationError, create_model
+from typeguard import CollectionCheckStrategy
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
@@ -475,9 +476,9 @@ def _check_decimal(
     decimals = pandas_obj[is_decimal]
     # fix for modin unamed series raises KeyError
     # https://github.com/modin-project/modin/issues/4317
-    decimals.name = "decimals"
+    decimals.name = "decimals"  # type: ignore
 
-    splitted = decimals.astype("string").str.split(".", n=1, expand=True)
+    splitted = decimals.astype("string").str.split(".", n=1, expand=True)  # type: ignore
     if splitted.shape[1] < 2:
         splitted[1] = ""
     len_left = splitted[0].str.len().fillna(0)
@@ -485,7 +486,7 @@ def _check_decimal(
     precisions = len_left + len_right
 
     scales = series_cls(
-        np.full_like(decimals, np.nan), dtype=np.object_, index=decimals.index
+        np.full_like(decimals, np.nan), dtype=np.object_, index=decimals.index  # type: ignore
     )
     pos_left = len_left > 0
     scales[pos_left] = len_right[pos_left]
@@ -1109,7 +1110,10 @@ class PydanticModel(DataType):
             """
             try:
                 # pylint: disable=not-callable
-                row = pd.Series(self.type(**row).dict())
+                if PYDANTIC_V2:
+                    row = self.type(**row).model_dump()
+                else:
+                    row = self.type(**row).dict()
                 row["failure_cases"] = np.nan
             except ValidationError as exc:
                 row["failure_cases"] = {
@@ -1118,7 +1122,10 @@ class PydanticModel(DataType):
 
             return row
 
-        coerced_df = data_container.apply(_coerce_row, axis="columns")
+        records = data_container.to_dict(orient="records")  # type: ignore
+        coerced_df = type(data_container).from_records(  # type: ignore
+            [_coerce_row(row) for row in records]
+        )
 
         # raise a ParserError with failure cases where each case is a
         # dictionary containing the failed elements in the pydantic record
@@ -1154,6 +1161,12 @@ class PythonGenericType(DataType):
     _pandas_type = object
 
     def _check_type(self, element: Any) -> bool:
+        # if the element is None or pd.NA, this function should return True:
+        # the schema should only fail if nullable=False is specifed at the
+        # schema/schema component level.
+        if element is None or element is pd.NA:
+            return True
+
         try:
             _type = getattr(self, "generic_type") or getattr(
                 self, "special_type"
@@ -1171,7 +1184,13 @@ class PythonGenericType(DataType):
                 from typing import TypedDict as _TypedDict
 
                 _type = _TypedDict(_type.__name__, _type.__annotations__)  # type: ignore
-            typeguard.check_type(element, _type)
+
+            typeguard.check_type(
+                element,
+                _type,
+                # This may be worth making configurable at the global level.
+                collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
+            )
             return True
         except typeguard.TypeCheckError:
             return False
@@ -1179,7 +1198,12 @@ class PythonGenericType(DataType):
     def _coerce_element(self, element: Any) -> Any:
         try:
             # pylint: disable=not-callable
-            coerced_element = self.coercion_model(__root__=element).__root__
+            if PYDANTIC_V2:
+                coerced_element = self.coercion_model(element).root
+            else:
+                coerced_element = self.coercion_model(
+                    __root__=element
+                ).__root__
         except ValidationError:
             coerced_element = pd.NA
         return coerced_element

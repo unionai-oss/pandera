@@ -191,7 +191,8 @@ Schema.validate(df)
 ```
 git clone https://github.com/pandera-dev/pandera.git
 cd pandera
-pip install -r requirements-dev.txt
+export PYTHON_VERSION=...  # specify desired python version
+pip install -r dev/requirements-${PYTHON_VERSION}.txt
 pip install -e .
 ```
 
