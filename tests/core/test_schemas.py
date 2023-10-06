@@ -475,6 +475,22 @@ def test_add_missing_columns_order():
     ):
         schema_no_default_not_nullable.validate(frame_missing_first)
 
+    # Validate missing column isn't added multiple times when multiple
+    # trailing columns not in the schema exists in the dataframe
+    # https://github.com/unionai-oss/pandera/issues/1370
+    schema = DataFrameSchema(
+        columns={'col_a': Column(str), 'col_missing': Column(str, nullable=True)},
+        add_missing_columns=True,
+    )
+    df = pd.DataFrame({
+        "col_a": ["a", "b", "c"],
+        "col_b": ["d", "e", "f"],
+        "col_c": ["g", "h", "i"]
+    })
+    validated_frame_trailing = schema.validate(df)
+    compare_trailing_columns = validated_frame_trailing.columns
+    golden_trailing_columns = pd.Index(["col_a", "col_missing", "col_b", "col_c"])
+    assert compare_trailing_columns.equals(golden_trailing_columns)
 
 def test_add_missing_columns_dtype():
     """Test that missing columns are added with the correct dtype."""
