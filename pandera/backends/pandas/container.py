@@ -400,8 +400,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         for col_name in check_obj.columns:
             pop_cols = []
             for next_col_name in iter(schema_cols_dict):
-                if (next_col_name in column_info.absent_column_names and 
-                    next_col_name not in concat_ordered_cols):
+                if (
+                    next_col_name in column_info.absent_column_names
+                    and next_col_name not in concat_ordered_cols
+                ):
                     # Next schema column is missing from dataframe,
                     # so mark for insertion here
                     concat_ordered_cols.append(next_col_name)
