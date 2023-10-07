@@ -1,7 +1,7 @@
 """Make schema error messages human-friendly."""
 
 from collections import defaultdict
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -29,7 +29,7 @@ def format_vectorized_error_message(
     parent_schema,
     check,
     check_index: int,
-    reshaped_failure_cases: pd.DataFrame,
+    reshaped_failure_cases: Any,
 ) -> str:
     """Construct an error message when a validator fails.
 
