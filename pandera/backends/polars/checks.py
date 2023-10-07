@@ -57,7 +57,7 @@ class PolarsCheckBackend(BaseCheckBackend):
         passed = check_output.select([pl.col(CHECK_OUTPUT_KEY).all()])
         failure_cases = (
             check_obj.dataframe.with_context(check_output)
-            .filter(pl.col(CHECK_OUTPUT_KEY))
+            .filter(pl.col(CHECK_OUTPUT_KEY).is_not())
             .rename({check_obj.key: FAILURE_CASE_KEY})
             .select(FAILURE_CASE_KEY)
         )
