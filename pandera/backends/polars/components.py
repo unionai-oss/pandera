@@ -35,6 +35,7 @@ class ColumnBackend(PolarsSchemaBackend):
 
         core_checks = [
             (self.check_dtype, (check_obj, schema)),
+            (self.run_checks, (check_obj, schema)),
         ]
 
         for core_check, args in core_checks:
@@ -102,3 +103,35 @@ class ColumnBackend(PolarsSchemaBackend):
             message=msg,
             failure_cases=failure_cases,
         )
+
+    # pylint: disable=unused-argument
+    def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
+        check_results: List[CoreCheckResult] = []
+        for check_index, check in enumerate(schema.checks):
+            check_args = [schema.name]  # pass in column key
+            try:
+                check_results.append(
+                    self.run_check(
+                        check_obj,
+                        schema,
+                        check,
+                        check_index,
+                        *check_args,
+                    )
+                )
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the Check
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                msg = f"{err.__class__.__name__}({err_msg})"
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                        message=msg,
+                        failure_cases=msg,
+                        original_exc=err,
+                    )
+                )
+        return check_results
