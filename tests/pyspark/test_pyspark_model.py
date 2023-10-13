@@ -304,23 +304,21 @@ def test_optional_column(spark) -> None:
     """Test that optional columns are not required."""
 
     class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
-        a: str
-        b: int
-        c: Optional[str] = pa.Field(eq="Food")
-        d: Optional[T.StringType] = pa.Field(eq="Food")
+        a: Optional[str]
+        b: Optional[str] = pa.Field(eq="b")
+        c: Optional[str]  # test pandera.typing alias
 
     schema = Schema.to_schema()
-    assert schema.columns["a"].required
-    assert schema.columns["b"].required
+    assert not schema.columns["a"].required
+    assert not schema.columns["b"].required
     assert not schema.columns["c"].required
 
-    data = [("Bread", 5, "Food"), ("Butter", 15, "Food")]
-
+    data = [("Bread", "5", "Food"), ("Butter", "15", "Food")]
     spark_schema = T.StructType(
         [
             T.StructField("a", T.StringType(), False),
-            T.StructField("b", T.IntegerType(), False),
-            # missing fields
+            T.StructField("b", T.StringType(), False),
+            # 'c' column is not required
         ],
     )
 
