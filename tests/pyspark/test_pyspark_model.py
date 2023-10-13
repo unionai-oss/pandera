@@ -300,18 +300,33 @@ def test_docstring_substitution() -> None:
     )
 
 
-def test_optional_column() -> None:
+def test_optional_column(spark) -> None:
     """Test that optional columns are not required."""
 
     class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
-        a: Optional[str]
-        b: Optional[str] = pa.Field(eq="b")
-        c: Optional[str]  # test pandera.typing alias
+        a: str
+        b: int
+        c: Optional[str] = pa.Field(eq="Food")
+        d: Optional[T.StringType] = pa.Field(eq="Food")
 
     schema = Schema.to_schema()
-    assert not schema.columns["a"].required
-    assert not schema.columns["b"].required
+    assert schema.columns["a"].required
+    assert schema.columns["b"].required
     assert not schema.columns["c"].required
+
+    data = [("Bread", 5, "Food"), ("Butter", 15, "Food")]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("a", T.StringType(), False),
+            T.StructField("b", T.IntegerType(), False),
+            # missing fields
+        ],
+    )
+
+    df = spark_df(spark, data, spark_schema)
+    df_out = Schema.validate(check_obj=df)
+    assert df_out.pandera.errors == {}
 
 
 def test_invalid_field() -> None:
