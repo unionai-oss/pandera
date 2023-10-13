@@ -319,6 +319,22 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     )
 
 
+@nox.session(python=PYTHON_VERSIONS)
+def dev_requirements(session: Session) -> None:
+    """Install pinned dependencies for CI."""
+    session.install("pip-tools")
+    output_file = f"dev/requirements-{session.python}.txt"
+    session.run(
+        "pip-compile",
+        "requirements.in",
+        "--output-file",
+        output_file,
+        "-v",
+        "--resolver",
+        "backtracking",
+    )
+
+
 EXTRA_NAMES = [
     extra
     for extra in REQUIRES
