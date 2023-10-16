@@ -300,31 +300,56 @@ def test_docstring_substitution() -> None:
     )
 
 
-def test_optional_column(spark) -> None:
-    """Test that optional columns are not required."""
+# Define a fixture for the Schema
+@pytest.fixture(scope="module", name="test_schema_optional_columns")
+def test_schema():
+    """Fixture containing DataFrameModel with optional columns."""
 
-    class Schema(DataFrameModel):  # pylint:disable=missing-class-docstring
+    class Schema(pa.DataFrameModel):
+        """Simple DataFrameModel containing optional columns."""
+
         a: Optional[str]
         b: Optional[str] = pa.Field(eq="b")
         c: Optional[str]  # test pandera.typing alias
 
-    schema = Schema.to_schema()
-    assert not schema.columns["a"].required
-    assert not schema.columns["b"].required
-    assert not schema.columns["c"].required
+    return Schema
+
+
+def test_optional_column(test_schema_optional_columns) -> None:
+    """Test that optional columns are not required."""
+
+    schema = test_schema_optional_columns.to_schema()
+    assert not schema.columns[
+        "a"
+    ].required, "Optional column 'a' shouldn't be required"
+    assert not schema.columns[
+        "b"
+    ].required, "Optional column 'b' shouldn't be required"
+    assert not schema.columns[
+        "c"
+    ].required, "Optional column 'c' shouldn't be required"
+
+
+def test_validation_succeeds_with_missing_optional_column(
+    spark, test_schema_optional_columns
+) -> None:
+    """Test that validation succeeds even when an optional column is missing."""
 
     data = [("5", "b"), ("15", "b")]
     spark_schema = T.StructType(
         [
             T.StructField("a", T.StringType(), False),
             T.StructField("b", T.StringType(), False),
-            # 'c' column is not required
+            # 'c' column is missing, but it's optional
         ],
     )
-
     df = spark_df(spark, data, spark_schema)
-    df_out = Schema.validate(check_obj=df)
-    assert df_out.pandera.errors == {}
+    df_out = test_schema_optional_columns.validate(check_obj=df)
+
+    # `df_out.pandera.errors` should be empty if validation is successful.
+    assert (
+        df_out.pandera.errors == {}
+    ), "No error should be raised in case of a missing optional column."
 
 
 def test_invalid_field() -> None:
