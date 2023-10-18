@@ -400,7 +400,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         for col_name in check_obj.columns:
             pop_cols = []
             for next_col_name in iter(schema_cols_dict):
-                if next_col_name in column_info.absent_column_names:
+                if (
+                    next_col_name in column_info.absent_column_names
+                    and next_col_name not in concat_ordered_cols
+                ):
                     # Next schema column is missing from dataframe,
                     # so mark for insertion here
                     concat_ordered_cols.append(next_col_name)
@@ -423,15 +426,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 concat_ordered_cols.append(col_name)
 
         # Create companion dataframe of default values for missing columns
-        defaults = {
-            c: schema.columns[c].default
-            for c in column_info.absent_column_names
+        missing_cols_schema = {
+            k: v
+            for k, v in schema.columns.items()
+            if k in column_info.absent_column_names
         }
-
-        missing_obj = pd.DataFrame(
-            data=defaults,
-            columns=column_info.absent_column_names,
-            index=check_obj.index,
+        missing_obj = self._construct_missing_df(
+            check_obj, missing_cols_schema
         )
 
         # Append missing columns
@@ -441,6 +442,33 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         concat_obj = concat_obj[concat_ordered_cols]
 
         return concat_obj
+
+    def _construct_missing_df(
+        self,
+        obj: pd.DataFrame,
+        missing_cols_schema: Dict[str, Any],
+    ) -> pd.DataFrame:
+        """Construct dataframe of missing columns with their default values.
+
+        :param obj: dataframe of master dataframe from which to take index.
+        :param missing_cols_schema: dictionary of Column schemas
+        :returns: dataframe of missing columns
+        """
+        missing_obj = pd.DataFrame(
+            data={k: v.default for k, v in missing_cols_schema.items()},
+            index=obj.index,
+        )
+
+        # Can't specify multiple dtypes in frame construction and
+        # constructing the frame as a concatenation of indexed
+        # series is relatively slow due to copying the index for
+        # each one. Coerce dtypes afterwards instead.
+        for c in missing_obj.columns:
+            missing_obj[c] = missing_cols_schema[c].dtype.try_coerce(
+                missing_obj[c]
+            )
+
+        return missing_obj
 
     def strict_filter_columns(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
