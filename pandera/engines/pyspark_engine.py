@@ -14,6 +14,7 @@ import warnings
 from typing import Any, Iterable, Union, Optional
 import sys
 
+import pyspark
 import pyspark.sql.types as pst
 
 from pandera import dtypes, errors
@@ -341,10 +342,15 @@ class Date(DataType, dtypes.Date):  # type: ignore
 # timestamp
 ###############################################################################
 
+# Default timestamp equivalents
+equivalents = ["datetime", "timestamp", "TimestampType", "TimestampType()", pst.TimestampType(), pst.TimestampType]  # type: ignore
 
-@Engine.register_dtype(
-    equivalents=["datetime", "timestamp", "TimestampType", "TimestampType()", pst.TimestampType(), pst.TimestampType],  # type: ignore
-)
+# Include new Spark 3.4 TimestampNTZType as equivalents
+if pyspark.__version__ >= "3.4":
+    equivalents += ["TimestampNTZType", "TimestampNTZType()", pst.TimestampNTZType, pst.TimestampNTZType()]  # type: ignore
+
+
+@Engine.register_dtype(equivalents=equivalents)  # type: ignore
 @immutable
 class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.TimestampType`."""
