@@ -13,6 +13,7 @@ import re
 import warnings
 from typing import Any, Iterable, Union, Optional
 import sys
+from packaging import version
 
 import pyspark
 import pyspark.sql.types as pst
@@ -32,6 +33,8 @@ except ImportError:  # pragma: no cover
 
 DEFAULT_PYSPARK_PREC = pst.DecimalType().precision
 DEFAULT_PYSPARK_SCALE = pst.DecimalType().scale
+
+CURRENT_PYSPARK_VERSION = version.parse(pyspark.__version__)
 
 
 @immutable(init=True)
@@ -346,7 +349,7 @@ class Date(DataType, dtypes.Date):  # type: ignore
 equivalents = ["datetime", "timestamp", "TimestampType", "TimestampType()", pst.TimestampType(), pst.TimestampType]  # type: ignore
 
 # Include new Spark 3.4 TimestampNTZType as equivalents
-if pyspark.__version__ >= "3.4":
+if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
     equivalents += ["TimestampNTZType", "TimestampNTZType()", pst.TimestampNTZType, pst.TimestampNTZType()]  # type: ignore
 
 
