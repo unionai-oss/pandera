@@ -13,7 +13,9 @@ import re
 import warnings
 from typing import Any, Iterable, Union, Optional
 import sys
+from packaging import version
 
+import pyspark
 import pyspark.sql.types as pst
 
 from pandera import dtypes, errors
@@ -31,6 +33,8 @@ except ImportError:  # pragma: no cover
 
 DEFAULT_PYSPARK_PREC = pst.DecimalType().precision
 DEFAULT_PYSPARK_SCALE = pst.DecimalType().scale
+
+CURRENT_PYSPARK_VERSION = version.parse(pyspark.__version__)
 
 
 @immutable(init=True)
@@ -341,10 +345,15 @@ class Date(DataType, dtypes.Date):  # type: ignore
 # timestamp
 ###############################################################################
 
+# Default timestamp equivalents
+equivalents = ["datetime", "timestamp", "TimestampType", "TimestampType()", pst.TimestampType(), pst.TimestampType]  # type: ignore
 
-@Engine.register_dtype(
-    equivalents=["datetime", "timestamp", "TimestampType", "TimestampType()", pst.TimestampType(), pst.TimestampType],  # type: ignore
-)
+# Include new Spark 3.4 TimestampNTZType as equivalents
+if CURRENT_PYSPARK_VERSION >= version.parse("3.4"):
+    equivalents += ["TimestampNTZType", "TimestampNTZType()", pst.TimestampNTZType, pst.TimestampNTZType()]  # type: ignore
+
+
+@Engine.register_dtype(equivalents=equivalents)  # type: ignore
 @immutable
 class Timestamp(DataType, dtypes.Timestamp):  # type: ignore
     """Semantic representation of a :class:`pyspark.sql.types.TimestampType`."""
