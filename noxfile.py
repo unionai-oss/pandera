@@ -307,6 +307,7 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     session.run(
         "pip-compile",
         "requirements.in",
+        "--no-emit-index-url",
         "--output-file",
         output_file,
         "-v",
@@ -316,6 +317,7 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
         f"pandas=={pandas}",
         "--upgrade-package",
         f"pydantic=={pydantic}",
+        "--annotation-style=line",
     )
 
 
@@ -327,11 +329,13 @@ def dev_requirements(session: Session) -> None:
     session.run(
         "pip-compile",
         "requirements.in",
+        "--no-emit-index-url",
         "--output-file",
         output_file,
         "-v",
         "--resolver",
         "backtracking",
+        "--annotation-style=line",
     )
 
 
