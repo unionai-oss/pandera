@@ -1118,45 +1118,51 @@ if GEOPANDAS_INSTALLED:
                     ),
                 )
 
+            try:
+                if coerced_data.crs is None:
+                    # Allow assignment of CRS if currently
+                    # null and a non-null value is designated.
+                    # This will only work in the context of
+                    # geopandas because assinging geometry
+                    # CRS to a pandas dataframe isn't supported.
+                    coerced_data.crs = self.crs
+            except AttributeError:
+                ...
+
             return coerced_data
 
         def _coerce_container(self, obj: GeoPandasObject) -> GeoPandasObject:
             # Convertable by astype
             try:
                 return obj.astype(self.type)
-            except errors.SchemaErrors:
+            except TypeError:
                 ...
 
             # Shapely objects
             try:
                 return from_shapely(obj)
-            except errors.SchemaErrors:
+            except TypeError:
                 ...
 
             # Well-known Text (WKT) strings
             try:
                 return from_shapely(shapely.from_wkt(obj))
-            except errors.SchemaErrors:
+            except (TypeError, shapely.errors.GEOSException):
                 ...
 
             # Well-known Binary (WKB) strings
             try:
                 return from_shapely(shapely.from_wkb(obj))
-            except errors.SchemaErrors:
+            except (TypeError, shapely.errors.GEOSException):
                 ...
 
             # JSON/GEOJSON dictionary
-            try:
-                return from_shapely(obj.map(self._coerce_element))  # type: ignore[operator]
-            except errors.SchemaErrors:
-                ...
-
-            return obj
+            return from_shapely(obj.map(self._coerce_element))  # type: ignore[operator]
 
         def _coerce_element(self, element: Any) -> Any:
             try:
                 coerced_element = shapely.geometry.shape(element)
-            except errors.SchemaErrors:
+            except (TypeError, shapely.errors.GEOSException):
                 coerced_element = np.nan
             return coerced_element
 
