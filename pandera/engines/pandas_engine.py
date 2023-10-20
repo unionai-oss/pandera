@@ -1068,16 +1068,97 @@ except ImportError:  # pragma: no cover
 
 if GEOPANDAS_INSTALLED:
 
+    from geopandas.array import GeometryDtype, from_shapely
+    import shapely
+    import shapely.geometry
+
+    GeoPandasObject = Union[
+        pd.Series, pd.DataFrame, gpd.GeoSeries, gpd.GeoDataFrame
+    ]
+
     @Engine.register_dtype(
         equivalents=[
             "geometry",
-            gpd.array.GeometryDtype,
-            gpd.array.GeometryDtype(),
+            GeometryDtype,
+            GeometryDtype(),
         ]
     )
-    @dtypes.immutable
+    @dtypes.immutable(init=True)
     class Geometry(DataType):
-        type = gpd.array.GeometryDtype()
+        type = GeometryDtype()
+
+        def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
+            """Coerce data container to the specified data type."""
+            if isinstance(data_container, gpd.GeoSeries) or (
+                isinstance(data_container, (pd.DataFrame, gpd.GeoDataFrame))
+                and all(
+                    v == str(self)
+                    for v in data_container.dtypes.to_dict().values()
+                )
+            ):
+                # Return as-is if we already have the proper underlying dtype
+                return data_container
+
+            # pylint: disable=import-outside-toplevel
+            from pandera.backends.pandas import error_formatters
+
+            orig_isna = data_container.isna()
+
+            # Figure out what the input is
+            coerced_data = self._coerce_container(data_container)
+            failed_selector = coerced_data.isna() & ~orig_isna
+            failure_cases = coerced_data[failed_selector]
+
+            if len(failure_cases) > 0:
+                raise errors.ParserError(
+                    f"Could not coerce {type(data_container)} data_container "
+                    f"into type {self.type}",
+                    failure_cases=error_formatters.reshape_failure_cases(
+                        failure_cases, ignore_na=False
+                    ),
+                )
+
+            return coerced_data
+
+        def _coerce_container(self, obj: GeoPandasObject) -> GeoPandasObject:
+            # Convertable by astype
+            try:
+                return obj.astype(self.type)
+            except errors.SchemaErrors:
+                ...
+
+            # Shapely objects
+            try:
+                return from_shapely(obj)
+            except errors.SchemaErrors:
+                ...
+
+            # Well-known Text (WKT) strings
+            try:
+                return from_shapely(shapely.from_wkt(obj))
+            except errors.SchemaErrors:
+                ...
+
+            # Well-known Binary (WKB) strings
+            try:
+                return from_shapely(shapely.from_wkb(obj))
+            except errors.SchemaErrors:
+                ...
+
+            # JSON/GEOJSON dictionary
+            try:
+                return from_shapely(obj.map(self._coerce_element))  # type: ignore[operator]
+            except errors.SchemaErrors:
+                ...
+
+            return obj
+
+        def _coerce_element(self, element: Any) -> Any:
+            try:
+                coerced_element = shapely.geometry.shape(element)
+            except errors.SchemaErrors:
+                coerced_element = np.nan
+            return coerced_element
 
 
 ###############################################################################
