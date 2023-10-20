@@ -1084,8 +1084,18 @@ if GEOPANDAS_INSTALLED:
         ]
     )
     @dtypes.immutable(init=True)
-    class Geometry(DataType):
+    class Geometry(DataType, dtypes.Geometry):
         type = GeometryDtype()
+
+        def __init__(  # pylint:disable=super-init-not-called
+            self, crs: Optional[str] = None
+        ) -> None:
+            dtypes.Geometry.__init__(self, crs)
+            object.__setattr__(
+                self,
+                "type",
+                self.type,
+            )
 
         def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
             """Coerce data container to the specified data type."""

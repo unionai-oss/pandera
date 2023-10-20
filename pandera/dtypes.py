@@ -500,6 +500,27 @@ class String(DataType):
 
 
 ###############################################################################
+# geometry
+###############################################################################
+
+
+@immutable(init=True)
+class Geometry(DataType):  # type: ignore
+    """Semantic representation of a geometry data type."""
+
+    crs: Optional[str] = None
+
+    def __init__(self, crs: Optional[str] = None):
+        # Define __init__ to avoid exposing pylint errors to end users.
+        super().__init__()
+        if crs is not None:
+            object.__setattr__(self, "crs", crs)
+
+    def __str__(self) -> str:
+        return "geometry"
+
+
+###############################################################################
 # time
 ###############################################################################
 
