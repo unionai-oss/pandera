@@ -1087,14 +1087,15 @@ if GEOPANDAS_INSTALLED:
     class Geometry(DataType):
         """Semantic representation of geopandas :class:`geopandas.array.GeometryDtype`.
 
-        Extends the native GeometryDtype by allowing designation of a coordinate 
-        reference system (CRS) as found on GeometryArray, GeoSeries, and GeoDataFrame. 
+        Extends the native GeometryDtype by allowing designation of a coordinate
+        reference system (CRS) as found on GeometryArray, GeoSeries, and GeoDataFrame.
         """
+
         type = GeometryDtype()
 
         crs: Optional[str] = dataclasses.field(default=None)
-        """Coordinate Reference System of the geometry objects. When defined, validator 
-        will check for matching CRS, and coerce will transform coordinate values via 
+        """Coordinate Reference System of the geometry objects. When defined, validator
+        will check for matching CRS, and coerce will transform coordinate values via
         GeoPandas' 'to_crs' method. Otherwise, CRS of data is ignored.
         """
 
