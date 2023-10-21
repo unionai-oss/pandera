@@ -59,15 +59,6 @@ if GEOPANDAS_INSTALLED:
 
         default_dtype = Geometry
 
-        if _GenericAlias:
-
-            def __class_getitem__(cls, item):
-                """Define this to override the patch that pyspark.pandas performs on pandas.
-                https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
-                """
-                cls.default_dtype = Geometry(crs=item)
-                return cls
-
     class GeoDataFrame(DataFrameBase, gpd.GeoDataFrame, Generic[T]):
         """
         A generic type for geopandas.GeoDataFrame.
@@ -90,17 +81,15 @@ if GEOPANDAS_INSTALLED:
             except AttributeError:
                 # Assign active geometry
                 geometry_cols = obj.select_dtypes(include=["geometry"]).columns
-                if len(geometry_cols) == 1:
-                    # Only one geometry field so use regardless of name
-                    return obj.set_geometry(geometry_cols[0])
-                elif len(geometry_cols) > 1 and "geometry" in geometry_cols:
-                    # Assign to traditionally used column name
+                if "geometry" in geometry_cols:
+                    # Standard column name
                     return obj.set_geometry("geometry")
 
             # Return as-is, either because an active geometry has
-            # already been assigned, or because we have multiple
-            # geometry columns and none of them are name "geometry"
-            # meaning the user will have to set manually.
+            # already been assigned, or because we only have
+            # geometry columns not named "geometry", meaning the
+            # user will have to set manually. This follows
+            # GeoPandas' GeoDataFrame constructor behavior.
             return obj
 
         @classmethod

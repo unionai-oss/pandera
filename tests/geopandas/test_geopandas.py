@@ -8,6 +8,7 @@ from shapely.geometry import Polygon, Point
 import pandera as pa
 from pandera.typing import Series
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries
+from pandera.engines.pandas_engine import Geometry
 
 
 def test_dataframe_schema():
@@ -38,7 +39,6 @@ def test_dataframe_schema():
     ],
 )
 def test_schema_model(data, invalid: bool):
-    # pylint: disable=missing-class-docstring
     """Test that DataFrameModel works on GeoDataFrames."""
 
     class Schema(pa.DataFrameModel):
@@ -63,6 +63,158 @@ def test_schema_model(data, invalid: bool):
 
 
 @pytest.mark.parametrize(
+    "gdf_args,invalid",
+    [
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": None,
+            },
+            True,
+        ],
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": "EPSG:4326",
+            },
+            False,
+        ],
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": "EPSG:25832",
+            },
+            True,
+        ],
+    ],
+)
+def test_schema_dtype_crs_without_coerce(gdf_args, invalid: bool):
+    """Test Geometry crs annotation without coerce."""
+    # No CRS to validate
+    class Schema(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: Geometry(crs="EPSG:4326")  # type: ignore
+
+    # create a geodataframe that's validated on object initialization
+    if invalid:
+        with pytest.raises(TypeError):
+            GeoDataFrame[Schema](**gdf_args)
+        return
+
+    assert isinstance(GeoDataFrame[Schema](**gdf_args), gpd.GeoDataFrame)
+
+
+@pytest.mark.parametrize(
+    "gdf_args,invalid",
+    [
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": None,
+            },
+            False,
+        ],
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": "EPSG:4326",
+            },
+            False,
+        ],
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": "EPSG:25832",
+            },
+            False,
+        ],
+    ],
+)
+def test_schema_dtype_crs_with_coerce(gdf_args, invalid: bool):
+    """Test Geometry crs annotation with coerce."""
+    # No CRS to validate
+    class Schema(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: Geometry(crs="EPSG:4326")  # type: ignore
+
+        class Config:
+            coerce = True
+
+    # create a geodataframe that's validated on object initialization
+    if invalid:
+        with pytest.raises(TypeError):
+            GeoDataFrame[Schema](**gdf_args)
+        return
+
+    gdf = GeoDataFrame[Schema](**gdf_args)
+    assert isinstance(gdf, gpd.GeoDataFrame)
+    assert gdf.crs == "EPSG:4326"
+
+
+@pytest.mark.parametrize(
+    "gdf_args,invalid",
+    [
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": None,
+            },
+            False,
+        ],
+        [
+            {
+                "geometry": [Polygon(((0, 0), (0, -2), (-2, -2), (-2, 0)))]
+                * 2,
+                "crs": "EPSG:4326",
+            },
+            False,
+        ],
+    ],
+)
+def test_schema_dtype_without_crs(gdf_args, invalid: bool):
+    """Test Geometry without CRS."""
+    # No CRS to validate
+    class Schema(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: Geometry()  # type: ignore
+
+    # create a geodataframe that's validated on object initialization
+    if invalid:
+        with pytest.raises(TypeError):
+            GeoDataFrame[Schema](**gdf_args)
+        return
+
+    assert isinstance(GeoDataFrame[Schema](**gdf_args), gpd.GeoDataFrame)
+
+
+def test_schema_dtype_crs_transform():
+    """Test Geometry CRS coerce for coordinate transform."""
+
+    class Schema(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: Geometry(crs="EPSG:4326")
+
+        class Config:
+            coerce = True
+
+    gdf = GeoDataFrame[Schema](
+        data={"geometry": [Point([0, 1e6])]}, crs="EPSG:25832"
+    )
+    assert isinstance(gdf, gpd.GeoDataFrame)
+    assert gdf.crs == "EPSG:4326"
+    golden_gs = gpd.GeoSeries(data=[Point([4.4553, 9.0184])], crs="EPSG:4326")
+    golden_compare = gdf.geometry.geom_equals_exact(golden_gs, tolerance=1e-3)
+    assert golden_compare.all()
+
+
+@pytest.mark.parametrize(
     "data,invalid",
     [
         [
@@ -75,8 +227,7 @@ def test_schema_model(data, invalid: bool):
     ],
 )
 def test_schema_from_dataframe(data, invalid: bool):
-    # pylint: disable=missing-class-docstring
-    """Test that DataFrameModel works on GeoDataFrames."""
+    """Test that DataFrameModel works on gpd.GeoDataFrame input."""
 
     class Schema(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
@@ -98,7 +249,7 @@ def test_schema_from_dataframe(data, invalid: bool):
 
 
 @pytest.mark.parametrize(
-    "data,invalid",
+    "data,dims,invalid",
     [
         [
             [
@@ -118,12 +269,13 @@ def test_schema_from_dataframe(data, invalid: bool):
                     ],
                 },
             ],
+            2,
             False,
         ],
-        [["POINT (0 0)", "POINT (1 1)"], False],
-        [[Point(0, 0), Point(1, 1)], False],
-        [shapely.to_wkb(shapely.points([[0, 0], [1, 1]])), False],
-        [shapely.points([[0, 0], [1, 1]]), False],
+        [["POINT (0 0)", "POINT (1 1)"], 2, False],
+        [[Point(0, 0), Point(1, 1)], 2, False],
+        [shapely.to_wkb(shapely.points([[0, 0], [1, 1]])), 2, False],
+        [shapely.points([[0, 0], [1, 1]]), 2, False],
         [
             [
                 {
@@ -138,41 +290,9 @@ def test_schema_from_dataframe(data, invalid: bool):
                     ],
                 },
             ],
+            2,
             True,
         ],
-    ],
-)
-def test_schema_coerce_2d(data, invalid: bool):
-    # pylint: disable=missing-class-docstring
-    """Test that DataFrameModel works on GeoDataFrames."""
-
-    class Schema(pa.DataFrameModel):
-        # pylint: disable=missing-class-docstring
-        geometry: GeoSeries
-
-        class Config:
-            coerce = True
-
-        @pa.check("geometry")
-        @classmethod
-        def geo_check(cls, geo_series: GeoSeries) -> Series[bool]:
-            # pylint: disable=missing-function-docstring
-            return ~geo_series.has_z
-
-    # create a geodataframe that's validated on object initialization
-    if invalid:
-        with pytest.raises(pa.errors.SchemaError):
-            GeoDataFrame[Schema]({"geometry": data})
-        return
-
-    assert isinstance(
-        GeoDataFrame[Schema]({"geometry": data}), gpd.GeoDataFrame
-    )
-
-
-@pytest.mark.parametrize(
-    "data,invalid",
-    [
         [
             [
                 {
@@ -194,17 +314,17 @@ def test_schema_coerce_2d(data, invalid: bool):
                     ],
                 },
             ],
+            3,
             False,
         ],
-        [["POINT (0 0 0)", "POINT (1 1 1)"], False],
-        [[Point(0, 0, 0), Point(1, 1, 1)], False],
-        [shapely.to_wkb(shapely.points([[0, 0, 0], [1, 1, 1]])), False],
-        [shapely.points([[0, 0, 0], [1, 1, 1]]), False],
+        [["POINT (0 0 0)", "POINT (1 1 1)"], 3, False],
+        [[Point(0, 0, 0), Point(1, 1, 1)], 3, False],
+        [shapely.to_wkb(shapely.points([[0, 0, 0], [1, 1, 1]])), 3, False],
+        [shapely.points([[0, 0, 0], [1, 1, 1]]), 3, False],
     ],
 )
-def test_schema_coerce_3d(data, invalid: bool):
-    # pylint: disable=missing-class-docstring
-    """Test that DataFrameModel works on GeoDataFrames."""
+def test_schema_coerce_input(data, dims: int, invalid: bool):
+    """Test 3D Geometry input parsing."""
 
     class Schema(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
@@ -217,7 +337,9 @@ def test_schema_coerce_3d(data, invalid: bool):
         @classmethod
         def geo_check(cls, geo_series: GeoSeries) -> Series[bool]:
             # pylint: disable=missing-function-docstring
-            return geo_series.has_z
+            return ((dims == 3) & geo_series.has_z) | (
+                (dims == 2) & ~geo_series.has_z
+            )
 
     # create a geodataframe that's validated on object initialization
     if invalid:

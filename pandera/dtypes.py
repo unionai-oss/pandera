@@ -500,40 +500,6 @@ class String(DataType):
 
 
 ###############################################################################
-# geometry
-###############################################################################
-
-
-@immutable(init=True)
-class Geometry(DataType):  # type: ignore
-    """Semantic representation of a geometry data type."""
-
-    crs: Optional[Any] = None
-
-    def __init__(self, crs: Optional[Any] = None):
-        # Define __init__ to avoid exposing pylint errors to end users.
-        super().__init__()
-        if crs is not None:
-            object.__setattr__(self, "crs", crs)
-
-    def check(
-        self, pandera_dtype: "DataType", data_container: Optional[Any] = None
-    ) -> Union[bool, Iterable[bool]]:
-        return (
-            isinstance(pandera_dtype, Geometry)
-            and self.crs == pandera_dtype.crs
-        )
-
-    def __eq__(self, obj: object) -> bool:
-        if isinstance(obj, type(self)):
-            return obj.crs == self.crs
-        return super().__eq__(obj)
-
-    def __str__(self) -> str:
-        return "geometry"
-
-
-###############################################################################
 # time
 ###############################################################################
 

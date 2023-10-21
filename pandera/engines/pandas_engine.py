@@ -1068,7 +1068,7 @@ except ImportError:  # pragma: no cover
 
 if GEOPANDAS_INSTALLED:
 
-    from geopandas.array import GeometryDtype, from_shapely
+    from geopandas.array import GeometryArray, GeometryDtype, from_shapely
     import shapely
     import shapely.geometry
 
@@ -1084,15 +1084,29 @@ if GEOPANDAS_INSTALLED:
         ]
     )
     @dtypes.immutable(init=True)
-    class Geometry(DataType, dtypes.Geometry):
+    class Geometry(DataType):
+        """Semantic representation of geopandas :class:`geopandas.array.GeometryDtype`.
+
+        Extends the native GeometryDtype by allowing designation of a coordinate 
+        reference system (CRS) as found on GeometryArray, GeoSeries, and GeoDataFrame. 
+        """
         type = GeometryDtype()
 
-        def __init__(  # pylint:disable=super-init-not-called
-            self, crs: Optional[Any] = None
-        ) -> None:
-            dtypes.Geometry.__init__(self, crs)
+        crs: Optional[str] = dataclasses.field(default=None)
+        """Coordinate Reference System of the geometry objects. When defined, validator 
+        will check for matching CRS, and coerce will transform coordinate values via 
+        GeoPandas' 'to_crs' method. Otherwise, CRS of data is ignored.
+        """
 
-        def _coerce(self, obj: GeoPandasObject) -> GeoPandasObject:
+        # define __init__ to please mypy
+        def __init__(  # pylint:disable=super-init-not-called
+            self,
+            crs: Optional[Any] = None,
+        ) -> None:
+            if crs is not None:
+                object.__setattr__(self, "crs", crs)
+
+        def _coerce_values(self, obj: GeoPandasObject) -> GeoPandasObject:
             if isinstance(obj, gpd.GeoSeries) or (
                 isinstance(obj, (pd.DataFrame, gpd.GeoDataFrame))
                 and all(v == str(self) for v in obj.dtypes.to_dict().values())
@@ -1129,7 +1143,10 @@ if GEOPANDAS_INSTALLED:
 
         def _coerce_element(self, element: Any) -> Any:
             try:
-                coerced_element = shapely.geometry.shape(element)
+                if isinstance(element, dict):
+                    coerced_element = shapely.geometry.shape(element)
+                else:
+                    coerced_element = np.nan
             except (TypeError, shapely.errors.GEOSException):
                 coerced_element = np.nan
             return coerced_element
@@ -1157,8 +1174,16 @@ if GEOPANDAS_INSTALLED:
 
             orig_isna = data_container.isna()
 
-            # Coerce container
-            coerced_data = self._coerce(data_container)
+            # Coerce container data
+            coerced_data = self._coerce_values(data_container)
+
+            # Coerce container type
+            if isinstance(coerced_data, GeometryArray):
+                if isinstance(data_container, (pd.Series, gpd.GeoSeries)):
+                    coerced_data = gpd.GeoSeries(coerced_data)
+                else:
+                    coerced_data = gpd.GeoDataFrame(coerced_data)
+
             failed_selector = coerced_data.isna() & ~orig_isna
 
             if np.any(failed_selector.any()):
@@ -1173,8 +1198,9 @@ if GEOPANDAS_INSTALLED:
             return self._coerce_crs(coerced_data)
 
         def coerce_value(self, value: Any) -> Any:
-            """Coerce a value to specified crs."""
-            return self._coerce_crs(value)
+            """Coerce a value to a particular type."""
+            coerced = self._coerce_values(value)
+            return self._coerce_crs(coerced)
 
         def check(  # type: ignore
             self,
@@ -1213,18 +1239,13 @@ if GEOPANDAS_INSTALLED:
 
             return np.full_like(data_container, True, dtype=bool)
 
-        @classmethod
-        def from_parametrized_dtype(
-            cls, g: Union[dtypes.Geometry, GeometryDtype]
-        ):
-            """Convert a geometry to
-            a Pandera :class:`pandera.dtypes.pandas_engine.Geometry`."""
-            return cls(crs=g.crs)  # type: ignore
+        def __eq__(self, obj: object) -> bool:
+            if isinstance(obj, type(self)):
+                return obj.crs == self.crs
+            return super().__eq__(obj)
 
         def __str__(self) -> str:
-            # Due to assigning self type inside the constructor,
-            # use the dtype string since it's accessible via class
-            return str(dtypes.Geometry())
+            return "geometry"
 
 
 ###############################################################################
