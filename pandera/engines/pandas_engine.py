@@ -1089,14 +1089,15 @@ if GEOPANDAS_INSTALLED:
 
         Extends the native GeometryDtype by allowing designation of a coordinate
         reference system (CRS) as found on GeometryArray, GeoSeries, and GeoDataFrame.
+        When the CRS is defined, validator will check for matching CRS, and coerce
+        will transform coordinate values via GeoPandas' 'to_crs' method. Otherwise, CRS
+        of data is ignored.
         """
 
         type = GeometryDtype()
 
         crs: Optional[str] = dataclasses.field(default=None)
-        """Coordinate Reference System of the geometry objects. When defined, validator
-        will check for matching CRS, and coerce will transform coordinate values via
-        GeoPandas' 'to_crs' method. Otherwise, CRS of data is ignored.
+        """Coordinate Reference System of the geometry objects.
         """
 
         # define __init__ to please mypy
@@ -1208,7 +1209,7 @@ if GEOPANDAS_INSTALLED:
             pandera_dtype: DataType,
             data_container: Optional[GeoPandasObject] = None,
         ) -> Union[bool, Iterable[bool]]:
-            """Check data container to the specified data type and CRS."""
+            """Check data container to the specified data type."""
             # Type check
             if not super().check(pandera_dtype, data_container):
                 if data_container is None:
