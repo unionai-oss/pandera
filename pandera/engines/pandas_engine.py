@@ -1116,12 +1116,6 @@ if GEOPANDAS_INSTALLED:
                 # Return as-is if we already have the proper underlying dtype
                 return obj
 
-            # Convertable by astype
-            try:
-                return obj.astype(self.type)
-            except TypeError:
-                ...
-
             # Shapely objects
             try:
                 return from_shapely(obj)

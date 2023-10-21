@@ -214,6 +214,50 @@ def test_schema_dtype_crs_transform():
     assert golden_compare.all()
 
 
+def test_schema_dtype_multiple_crs():
+    """Test GeoDataFrame with multiple GeoSeries columns on different CRS"""
+
+    class Schema(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: Geometry(crs="EPSG:4326")
+        random: Geometry(crs="EPSG:3857")
+
+        class Config:
+            # pylint: disable=missing-class-docstring
+            coerce = True
+
+    data = {"geometry": [Point([1, 1])], "random": [Point([450000, 900000])]}
+
+    # geometry is assigned EPSG:3857 by gpd.GeoDataFrame constructor,
+    # while random isn't assigned anything. Post-coercion, both are
+    # converted to their respective CRS schema.
+    gdf = GeoDataFrame[Schema](data, crs="EPSG:3857")
+    assert gdf.geometry.crs == "EPSG:4326"
+    assert gdf["random"].crs == "EPSG:3857"
+
+    # geometry is assigned EPSG:3395 by gpd.GeoDataFrame.to_crs, while random
+    # is left unchanged
+    gdf = gdf.to_crs("EPSG:3395")
+    assert gdf.geometry.crs == "EPSG:3395"
+    assert gdf["random"].crs == "EPSG:3857"
+
+    # Pandera coerces geometry back to schema
+    gdf = GeoDataFrame[Schema](data)
+    assert gdf.geometry.crs == "EPSG:4326"
+    assert gdf["random"].crs == "EPSG:3857"
+
+    # random is assigned EPSG:4326 by gpd.GeoDataFrame.to_crs, while
+    # geometry is left unchanged
+    gdf["random"] = gdf["random"].to_crs("EPSG:4326")
+    assert gdf.geometry.crs == "EPSG:4326"
+    assert gdf["random"].crs == "EPSG:4326"
+
+    # Pandera coerces random back to schema
+    gdf = GeoDataFrame[Schema](data)
+    assert gdf.geometry.crs == "EPSG:4326"
+    assert gdf["random"].crs == "EPSG:3857"
+
+
 @pytest.mark.parametrize(
     "data,invalid",
     [
