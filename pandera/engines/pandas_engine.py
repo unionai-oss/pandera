@@ -1088,60 +1088,18 @@ if GEOPANDAS_INSTALLED:
         type = GeometryDtype()
 
         def __init__(  # pylint:disable=super-init-not-called
-            self, crs: Optional[str] = None
+            self, crs: Optional[Any] = None
         ) -> None:
             dtypes.Geometry.__init__(self, crs)
-            object.__setattr__(
-                self,
-                "type",
-                self.type,
-            )
 
-        def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
-            """Coerce data container to the specified data type."""
-            if isinstance(data_container, gpd.GeoSeries) or (
-                isinstance(data_container, (pd.DataFrame, gpd.GeoDataFrame))
-                and all(
-                    v == str(self)
-                    for v in data_container.dtypes.to_dict().values()
-                )
+        def _coerce(self, obj: GeoPandasObject) -> GeoPandasObject:
+            if isinstance(obj, gpd.GeoSeries) or (
+                isinstance(obj, (pd.DataFrame, gpd.GeoDataFrame))
+                and all(v == str(self) for v in obj.dtypes.to_dict().values())
             ):
                 # Return as-is if we already have the proper underlying dtype
-                return data_container
+                return obj
 
-            # pylint: disable=import-outside-toplevel
-            from pandera.backends.pandas import error_formatters
-
-            orig_isna = data_container.isna()
-
-            # Figure out what the input is
-            coerced_data = self._coerce_container(data_container)
-            failed_selector = coerced_data.isna() & ~orig_isna
-            failure_cases = coerced_data[failed_selector]
-
-            if len(failure_cases) > 0:
-                raise errors.ParserError(
-                    f"Could not coerce {type(data_container)} data_container "
-                    f"into type {self.type}",
-                    failure_cases=error_formatters.reshape_failure_cases(
-                        failure_cases, ignore_na=False
-                    ),
-                )
-
-            try:
-                if coerced_data.crs is None:
-                    # Allow assignment of CRS if currently
-                    # null and a non-null value is designated.
-                    # This will only work in the context of
-                    # geopandas because assinging geometry
-                    # CRS to a pandas dataframe isn't supported.
-                    coerced_data.crs = self.crs
-            except AttributeError:
-                ...
-
-            return coerced_data
-
-        def _coerce_container(self, obj: GeoPandasObject) -> GeoPandasObject:
             # Convertable by astype
             try:
                 return obj.astype(self.type)
@@ -1175,6 +1133,98 @@ if GEOPANDAS_INSTALLED:
             except (TypeError, shapely.errors.GEOSException):
                 coerced_element = np.nan
             return coerced_element
+
+        def _coerce_crs(self, value: GeoPandasObject) -> GeoPandasObject:
+            try:
+                if self.crs is not None:
+                    if value.crs is None:
+                        # Allow assignment of CRS if currently
+                        # null and a non-null value is designated.
+                        # This will only work in the context of
+                        # geopandas because assinging geometry
+                        # CRS to a pandas dataframe isn't supported.
+                        value.crs = self.crs
+                    elif self.crs != value.crs:
+                        value = value.to_crs(self.crs)  # type: ignore[operator]
+            except AttributeError:
+                ...
+            return value
+
+        def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
+            """Coerce data container to the specified data type."""
+            # pylint: disable=import-outside-toplevel
+            from pandera.backends.pandas import error_formatters
+
+            orig_isna = data_container.isna()
+
+            # Coerce container
+            coerced_data = self._coerce(data_container)
+            failed_selector = coerced_data.isna() & ~orig_isna
+
+            if np.any(failed_selector.any()):
+                failure_cases = coerced_data[failed_selector]
+                raise errors.ParserError(
+                    f"Could not coerce {type(data_container)} data_container "
+                    f"into type {self.type}",
+                    failure_cases=error_formatters.reshape_failure_cases(
+                        failure_cases, ignore_na=False
+                    ),
+                )
+            return self._coerce_crs(coerced_data)
+
+        def coerce_value(self, value: Any) -> Any:
+            """Coerce a value to specified crs."""
+            return self._coerce_crs(value)
+
+        def check(  # type: ignore
+            self,
+            pandera_dtype: DataType,
+            data_container: Optional[GeoPandasObject] = None,
+        ) -> Union[bool, Iterable[bool]]:
+            """Check data container to the specified data type and CRS."""
+            # Type check
+            if not super().check(pandera_dtype, data_container):
+                if data_container is None:
+                    return False
+                else:
+                    return np.full_like(data_container, False, dtype=bool)
+            if data_container is None:
+                return True
+
+            # CRS check
+            if self.crs is not None:
+                if (
+                    isinstance(data_container, gpd.GeoSeries)
+                    and data_container.crs != self.crs
+                ):
+                    # GeoSeries
+                    raise TypeError(
+                        f"CRS mismatch; actual {str(data_container.crs)}, expected {str(self.crs)}"
+                    )
+                if isinstance(data_container, gpd.GeoDataFrame):
+                    # GeoDataFrame
+                    col_results = []
+                    for col in data_container.columns:
+                        if data_container[col].crs != self.crs:
+                            col_err = f"CRS mismatch on column {col}; actual {str(data_container[col].crs)}, expected {str(self.crs)}"
+                            col_results.append(col_err)
+                    if col_results:
+                        raise TypeError("\n".join(col_results))
+
+            return np.full_like(data_container, True, dtype=bool)
+
+        @classmethod
+        def from_parametrized_dtype(
+            cls, g: Union[dtypes.Geometry, GeometryDtype]
+        ):
+            """Convert a geometry to
+            a Pandera :class:`pandera.dtypes.pandas_engine.Geometry`."""
+            return cls(crs=g.crs)  # type: ignore
+
+        def __str__(self) -> str:
+            # Due to assigning self type inside the constructor,
+            # use the dtype string since it's accessible via class
+            return str(dtypes.Geometry())
 
 
 ###############################################################################

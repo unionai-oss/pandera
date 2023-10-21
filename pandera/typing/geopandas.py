@@ -5,7 +5,6 @@ from typing import (  # type: ignore[attr-defined]
     Any,
     Generic,
     TypeVar,
-    Optional,
     _type_check,
 )
 
@@ -60,28 +59,19 @@ if GEOPANDAS_INSTALLED:
 
         default_dtype = Geometry
 
-        crs: Optional[str] = None
-        """Coordinate Reference System of the geometry objects."""
+        if _GenericAlias:
 
-        def __init__(self, crs: Optional[str] = None):
-            super().__init__()
-            if crs is not None:
-                object.__setattr__(self, "crs", crs)
-                self.default_dtype.crs = crs
-
-        def __str__(self) -> str:
-            return "geometry"
+            def __class_getitem__(cls, item):
+                """Define this to override the patch that pyspark.pandas performs on pandas.
+                https://github.com/apache/spark/blob/master/python/pyspark/pandas/__init__.py#L124-L144
+                """
+                cls.default_dtype = Geometry(crs=item)
+                return cls
 
     class GeoDataFrame(DataFrameBase, gpd.GeoDataFrame, Generic[T]):
         """
         A generic type for geopandas.GeoDataFrame.
         """
-
-        geometry: Optional[str] = "geometry"
-        """Column to use as geometry."""
-
-        crs: Optional[str] = None
-        """Coordinate Reference System of the geometry objects."""
 
         if hasattr(gpd.GeoDataFrame, "__class_getitem__") and _GenericAlias:
 
@@ -91,6 +81,27 @@ if GEOPANDAS_INSTALLED:
                 """
                 _type_check(item, "Parameters to generic types must be types.")
                 return _GenericAlias(cls, item)
+
+        @classmethod
+        def _activate_geometry(cls, obj: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+            try:
+                # Test for presence of active geometry attribute
+                _ = obj.geometry
+            except AttributeError:
+                # Assign active geometry
+                geometry_cols = obj.select_dtypes(include=["geometry"]).columns
+                if len(geometry_cols) == 1:
+                    # Only one geometry field so use regardless of name
+                    return obj.set_geometry(geometry_cols[0])
+                elif len(geometry_cols) > 1 and "geometry" in geometry_cols:
+                    # Assign to traditionally used column name
+                    return obj.set_geometry("geometry")
+
+            # Return as-is, either because an active geometry has
+            # already been assigned, or because we have multiple
+            # geometry columns and none of them are name "geometry"
+            # meaning the user will have to set manually.
+            return obj
 
         @classmethod
         def from_format(cls, obj: Any, config) -> gpd.GeoDataFrame:
@@ -105,13 +116,16 @@ if GEOPANDAS_INSTALLED:
             if config.from_format is None:
                 if not isinstance(obj, gpd.GeoDataFrame):
                     try:
-                        # Don't assign geometry and/or crs yet because
-                        # the geometry column may not immediately
-                        # end up as the proper geometry dtype from the
-                        # GeoDataFrame constructor. Wait until after
-                        # the GeoDataFrame columns have been validated
-                        # to assign via GeoDataFrame validator.
                         obj = gpd.GeoDataFrame(obj)
+
+                        # It's possible that geometries in non-standard
+                        # formats (geojson dicts, wkt, etc.) may not have
+                        # been properly coerced to GeoSeries through the
+                        # basic GeoDataFrame constructor, but attempt to
+                        # activate geometry anyway. Otherwise, if we can't
+                        # activate geometry now then we'll try again post-
+                        # pydantic validation.
+                        obj = cls._activate_geometry(obj)
                     except Exception as exc:
                         raise ValueError(
                             f"Expected gpd.GeoDataFrame, found {type(obj)}"
@@ -219,18 +233,8 @@ if GEOPANDAS_INSTALLED:
             data = cls.from_format(obj, schema_model.__config__)
 
             try:
-                valid_data: gpd.GeoDataFrame = schema.validate(data)
-
-                try:
-                    # Test for presence of active geometry
-                    _ = valid_data.geometry
-                except AttributeError:
-                    # Assign active geometry
-                    valid_data.set_geometry(cls.geometry, inplace=True)
-
-                if cls.crs is not None:
-                    # Assign CRS
-                    valid_data.set_crs(cls.crs, inplace=True)
+                valid_data = schema.validate(data)
+                valid_data = cls._activate_geometry(valid_data)
             except SchemaError as exc:
                 raise ValueError(str(exc)) from exc
 
