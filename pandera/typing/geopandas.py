@@ -245,7 +245,6 @@ if GEOPANDAS_INSTALLED:
 
             try:
                 valid_data = schema.validate(data)
-                valid_data = cls._coerce_geometry(valid_data)
             except SchemaError as exc:
                 raise ValueError(str(exc)) from exc
 

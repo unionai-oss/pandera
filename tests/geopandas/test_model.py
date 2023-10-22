@@ -37,10 +37,10 @@ def test_from_records_validates_the_schema():
         },
     ]
     pandera_validated_df = GeoDataFrame.from_records(Schema, raw_data)
-    pandas_df = gpd.GeoDataFrame(pd.DataFrame.from_records(raw_data))
-    assert pandera_validated_df.equals(Schema.validate(pandas_df))
     assert isinstance(pandera_validated_df, GeoDataFrame)
-    assert isinstance(pandas_df, gpd.GeoDataFrame)
+
+    pandas_df = gpd.GeoDataFrame(pd.DataFrame.from_records(raw_data))
+    pd.testing.assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
 
     raw_data = [
         {
@@ -86,12 +86,12 @@ def test_from_records_sets_the_index_from_schema():
         },
     ]
     pandera_validated_df = GeoDataFrame.from_records(Schema, raw_data)
+    assert isinstance(pandera_validated_df, GeoDataFrame)
+
     pandas_df = gpd.GeoDataFrame(
         pd.DataFrame.from_records(raw_data, index=["state"])
     )
-    assert pandera_validated_df.equals(Schema.validate(pandas_df))
-    assert isinstance(pandera_validated_df, GeoDataFrame)
-    assert isinstance(pandas_df, gpd.GeoDataFrame)
+    pd.testing.assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
 
 
 def test_from_records_sorts_the_columns():
@@ -118,11 +118,11 @@ def test_from_records_sorts_the_columns():
         },
     ]
     pandera_validated_df = GeoDataFrame.from_records(Schema, raw_data)
+    assert isinstance(pandera_validated_df, GeoDataFrame)
+
     pandas_df = gpd.GeoDataFrame(
         pd.DataFrame.from_records(raw_data)[
             ["geometry", "state", "city", "price"]
         ]
     )
-    assert pandera_validated_df.equals(Schema.validate(pandas_df))
-    assert isinstance(pandera_validated_df, GeoDataFrame)
-    assert isinstance(pandas_df, gpd.GeoDataFrame)
+    pd.testing.assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
