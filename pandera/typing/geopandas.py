@@ -5,18 +5,13 @@ import json
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
-    List,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     get_args,
     _type_check,
 )
 
-import numpy as np
 import pandas as pd
 
 from pandera.engines import PYDANTIC_V2
@@ -260,36 +255,3 @@ if GEOPANDAS_INSTALLED:
             """
             schema_model = cls._get_schema_model(field)
             return cls.pydantic_validate(obj, schema_model)
-
-        @staticmethod
-        def from_records(  # type: ignore
-            schema: Type[T],
-            data: Union[  # type: ignore
-                np.ndarray,
-                List[Tuple[Any, ...]],
-                Dict[Any, Any],
-                pd.DataFrame,
-                gpd.GeoDataFrame,
-            ],
-            **kwargs,
-        ) -> "GeoDataFrame[T]":
-            """
-            Convert structured or record ndarray to pandera-validated GeoDataFrame.
-
-            Creates a DataFrame object from a structured ndarray, sequence of tuples
-            or dicts, DataFrame, or GeoDataFrame.
-
-            See :doc:`pandas:reference/api/pandas.DataFrame.from_records` for
-            more details.
-            """
-            schema = schema.to_schema()  # type: ignore[attr-defined]
-            schema_index = (
-                schema.index.names if schema.index is not None else None
-            )
-            if "index" not in kwargs:
-                kwargs["index"] = schema_index
-            data_df = pd.DataFrame.from_records(data=data, **kwargs)
-            return GeoDataFrame[schema](  # type: ignore
-                # set the column order according to schema
-                data_df[[c for c in schema.columns if c in data_df.columns]]
-            )

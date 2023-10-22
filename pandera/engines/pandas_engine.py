@@ -1071,7 +1071,7 @@ if GEOPANDAS_INSTALLED:
     from geopandas.array import GeometryArray, GeometryDtype, from_shapely
     import shapely
     import shapely.geometry
-    from pyproj import CRS, exceptions
+    import pyproj
 
     GeoPandasObject = Union[
         pd.Series, pd.DataFrame, gpd.GeoSeries, gpd.GeoDataFrame
@@ -1108,8 +1108,8 @@ if GEOPANDAS_INSTALLED:
         ) -> None:
             if crs is not None:
                 try:
-                    CRS.from_user_input(crs)
-                except exceptions.CRSError as exc:
+                    pyproj.CRS.from_user_input(crs)
+                except pyproj.exceptions.CRSError as exc:
                     raise TypeError(f"Invalid CRS: {str(crs)}") from exc
 
                 object.__setattr__(self, "crs", crs)
@@ -1145,28 +1145,34 @@ if GEOPANDAS_INSTALLED:
 
         def _coerce_element(self, element: Any) -> Any:
             try:
-                if isinstance(element, dict):
-                    coerced_element = shapely.geometry.shape(element)
-                else:
-                    coerced_element = np.nan
-            except (TypeError, shapely.errors.GEOSException):
-                coerced_element = np.nan
-            return coerced_element
+                return shapely.geometry.shape(element)
+            except (
+                AttributeError,
+                TypeError,
+                shapely.errors.GeometryTypeError,
+                shapely.errors.GEOSException,
+            ):
+                return np.nan
 
         def _coerce_crs(self, value: GeoPandasObject) -> GeoPandasObject:
-            try:
-                if self.crs is not None:
-                    if value.crs is None:
-                        # Allow assignment of CRS if currently
-                        # null and a non-null value is designated.
-                        # This will only work in the context of
-                        # geopandas because assinging geometry
-                        # CRS to a pandas dataframe isn't supported.
-                        value.crs = self.crs
-                    elif self.crs != value.crs:
-                        value = value.to_crs(self.crs)  # type: ignore[operator]
-            except AttributeError:
-                ...
+            if self.crs is not None:
+                if value.crs is None:
+                    # Allow assignment of CRS if currently
+                    # null and a non-null value is designated.
+                    # This will only work in the context of
+                    # geopandas because assinging geometry
+                    # CRS to a pandas dataframe isn't supported.
+                    value.crs = self.crs
+                elif (
+                    isinstance(value, gpd.GeoSeries) and self.crs != value.crs
+                ):
+                    value = value.to_crs(self.crs)  # type: ignore[operator]
+                elif isinstance(value, gpd.GeoDataFrame) and any(
+                    self.crs != value[col].crs for col in value.columns
+                ):
+                    for col in value.columns:
+                        if self.crs != value[col].crs:
+                            value[col] = value[col].to_crs(self.crs)
             return value
 
         def coerce(self, data_container: GeoPandasObject) -> GeoPandasObject:
@@ -1176,11 +1182,15 @@ if GEOPANDAS_INSTALLED:
 
             orig_isna = data_container.isna()
 
+            # Copy so we don't directly modify container due
+            # to CRS re-projection, etc.)
+            data_container = data_container.copy()
+
             # Coerce container data
             coerced_data = self._coerce_values(data_container)
 
             # Coerce container type
-            if isinstance(coerced_data, GeometryArray):
+            if isinstance(coerced_data, (GeometryArray, pd.DataFrame)):
                 if isinstance(data_container, (pd.Series, gpd.GeoSeries)):
                     coerced_data = gpd.GeoSeries(coerced_data)
                 else:
@@ -1197,12 +1207,8 @@ if GEOPANDAS_INSTALLED:
                         failure_cases, ignore_na=False
                     ),
                 )
-            return self._coerce_crs(coerced_data)
-
-        def coerce_value(self, value: Any) -> Any:
-            """Coerce a value to a particular type."""
-            coerced = self._coerce_values(value)
-            return self._coerce_crs(coerced)
+            coerced = self._coerce_crs(coerced_data)
+            return coerced
 
         def check(  # type: ignore
             self,
@@ -1216,10 +1222,10 @@ if GEOPANDAS_INSTALLED:
                     return False
                 else:
                     return np.full_like(data_container, False, dtype=bool)
-            if data_container is None:
-                return True
+            if self.crs != pandera_dtype.crs and data_container is None:  # type: ignore[attr-defined]
+                return False
 
-            # CRS check
+            # CRS check extends into container
             if self.crs is not None:
                 if (
                     isinstance(data_container, gpd.GeoSeries)
@@ -1240,12 +1246,6 @@ if GEOPANDAS_INSTALLED:
                         raise TypeError("\n".join(col_results))
 
             return np.full_like(data_container, True, dtype=bool)
-
-        @classmethod
-        def from_parametrized_dtype(cls, g: GeometryArray):
-            """Convert a geometry to
-            a Pandera :class:`pandera.dtypes.pandas_engine.Geometry`."""
-            return cls(crs=g.crs)  # type: ignore
 
         def __eq__(self, obj: object) -> bool:
             if isinstance(obj, type(self)):
