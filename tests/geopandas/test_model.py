@@ -40,7 +40,9 @@ def test_from_records_validates_the_schema():
     assert isinstance(pandera_validated_df, GeoDataFrame)
 
     pandas_df = gpd.GeoDataFrame(pd.DataFrame.from_records(raw_data))
-    pd.testing.assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
+    pd.testing.assert_frame_equal(
+        pandera_validated_df, Schema.validate(pandas_df)
+    )
 
     raw_data = [
         {
@@ -91,7 +93,9 @@ def test_from_records_sets_the_index_from_schema():
     pandas_df = gpd.GeoDataFrame(
         pd.DataFrame.from_records(raw_data, index=["state"])
     )
-    pd.testing.assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
+    pd.testing.assert_frame_equal(
+        pandera_validated_df, Schema.validate(pandas_df)
+    )
 
 
 def test_from_records_sorts_the_columns():
@@ -125,4 +129,6 @@ def test_from_records_sorts_the_columns():
             ["geometry", "state", "city", "price"]
         ]
     )
-    pd.testing.assert_frame_equal(pandera_validated_df, Schema.validate(pandas_df))
+    pd.testing.assert_frame_equal(
+        pandera_validated_df, Schema.validate(pandas_df)
+    )
