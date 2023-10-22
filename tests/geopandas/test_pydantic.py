@@ -113,6 +113,6 @@ def test_pydantic_garbage_input():
 
     with pytest.raises(
         ValidationError,
-        match="Value error, Expected gpd.GeoDataFrame, found",
+        match="Expected gpd.GeoDataFrame",
     ):
         MyModel(data="invalid")
