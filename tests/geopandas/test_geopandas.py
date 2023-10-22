@@ -1,6 +1,10 @@
 """Unit tests for the geopandas integration."""
 
-from typing import Annotated
+try:  # python 3.9+
+    from typing import Annotated  # type: ignore
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
+
 import shapely
 import pandas as pd
 import geopandas as gpd
