@@ -1071,6 +1071,7 @@ if GEOPANDAS_INSTALLED:
     from geopandas.array import GeometryArray, GeometryDtype, from_shapely
     import shapely
     import shapely.geometry
+    from pyproj import CRS, exceptions
 
     GeoPandasObject = Union[
         pd.Series, pd.DataFrame, gpd.GeoSeries, gpd.GeoDataFrame
@@ -1106,6 +1107,11 @@ if GEOPANDAS_INSTALLED:
             crs: Optional[Any] = None,
         ) -> None:
             if crs is not None:
+                try:
+                    CRS.from_user_input(crs)
+                except exceptions.CRSError as exc:
+                    raise TypeError(f"Invalid CRS: {str(crs)}") from exc
+
                 object.__setattr__(self, "crs", crs)
 
         def _coerce_values(self, obj: GeoPandasObject) -> GeoPandasObject:
@@ -1234,6 +1240,12 @@ if GEOPANDAS_INSTALLED:
                         raise TypeError("\n".join(col_results))
 
             return np.full_like(data_container, True, dtype=bool)
+
+        @classmethod
+        def from_parametrized_dtype(cls, g: GeometryArray):
+            """Convert a geometry to
+            a Pandera :class:`pandera.dtypes.pandas_engine.Geometry`."""
+            return cls(crs=g.crs)  # type: ignore
 
         def __eq__(self, obj: object) -> bool:
             if isinstance(obj, type(self)):

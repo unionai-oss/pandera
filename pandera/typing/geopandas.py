@@ -1,18 +1,22 @@
 """Pandera type annotations for GeoPandas."""
 import functools
+import io
+import json
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
+    Dict,
     Generic,
+    List,
+    Tuple,
+    Type,
     TypeVar,
+    Union,
+    get_args,
     _type_check,
 )
 
-try:
-    from typing import get_args
-except ImportError:
-    from typing_extensions import get_args
-
+import numpy as np
 import pandas as pd
 
 from pandera.engines import PYDANTIC_V2
@@ -74,22 +78,26 @@ if GEOPANDAS_INSTALLED:
                 return _GenericAlias(cls, item)
 
         @classmethod
-        def _activate_geometry(cls, obj: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-            try:
-                # Test for presence of active geometry attribute
-                _ = obj.geometry
-            except AttributeError:
-                # Assign active geometry
-                geometry_cols = obj.select_dtypes(include=["geometry"]).columns
-                if "geometry" in geometry_cols:
-                    # Standard column name
-                    return obj.set_geometry("geometry")
+        def _coerce_geometry(
+            cls, obj: Union[pd.DataFrame, gpd.GeoDataFrame]
+        ) -> gpd.GeoDataFrame:
+            if not isinstance(obj, gpd.GeoDataFrame):
+                # Construct GeoDataFrame if given a vanilla DataFrame.
+                # We have confidence in geometry column being a Geometry dtype,
+                # so try to coerce and assign as active geometry. Not so much
+                # confidence in other columns because we don't have access to
+                # the schema model here.
+                if "geometry" in obj.columns:
+                    # Coerce data into GeoPandas-acceptible format
+                    obj["geometry"] = Geometry()._coerce_values(
+                        obj["geometry"]
+                    )
 
-            # Return as-is, either because an active geometry has
-            # already been assigned, or because we only have
-            # geometry columns not named "geometry", meaning the
-            # user will have to set manually. This follows
-            # GeoPandas' GeoDataFrame constructor behavior.
+                    # Construct with active geometry
+                    obj = gpd.GeoDataFrame(obj, geometry="geometry")
+                else:
+                    # Construct without active geometry
+                    obj = gpd.GeoDataFrame(obj)
             return obj
 
         @classmethod
@@ -105,16 +113,16 @@ if GEOPANDAS_INSTALLED:
             if config.from_format is None:
                 if not isinstance(obj, gpd.GeoDataFrame):
                     try:
-                        obj = gpd.GeoDataFrame(obj)
+                        # Start with loading in Pandas because DataFrame
+                        # is more flexible, as opposed to the crotchety
+                        # old man of GeoDataFrame who excepcts its geometry
+                        # column to be ready-made for GeoSeries.
+                        obj = pd.DataFrame(obj)
 
-                        # It's possible that geometries in non-standard
-                        # formats (geojson dicts, wkt, etc.) may not have
-                        # been properly coerced to GeoSeries through the
-                        # basic GeoDataFrame constructor, but attempt to
-                        # activate geometry anyway. Otherwise, if we can't
-                        # activate geometry now then we'll try again post-
-                        # pydantic validation.
-                        obj = cls._activate_geometry(obj)
+                        # Coerce into GeoDataFrame, which attempts to
+                        # convert the geometry column even if in a
+                        # non-standard format (geojson dict, wkt, etc.)
+                        obj = cls._coerce_geometry(obj)
                     except Exception as exc:
                         raise ValueError(
                             f"Expected gpd.GeoDataFrame, found {type(obj)}"
@@ -126,8 +134,16 @@ if GEOPANDAS_INSTALLED:
             else:
                 reader = {
                     Formats.dict: gpd.GeoDataFrame,
+                    Formats.csv: pd.read_csv,
+                    Formats.json: lambda x: gpd.GeoDataFrame.from_features(
+                        json.loads(x)
+                    ),
+                    Formats.feather: pd.read_feather,
+                    Formats.parquet: pd.read_parquet,
+                    Formats.pickle: pd.read_pickle,
                 }[Formats(config.from_format)]
-            return reader(obj, **(config.from_format_kwargs or {}))  # type: ignore
+            parsed = reader(obj, **(config.from_format_kwargs or {}))  # type: ignore
+            return cls._coerce_geometry(parsed)
 
         @classmethod
         def to_format(cls, data: gpd.GeoDataFrame, config) -> Any:
@@ -156,6 +172,11 @@ if GEOPANDAS_INSTALLED:
             else:
                 writer, buffer = {  # type: ignore[assignment]
                     Formats.dict: (data.to_dict, None),
+                    Formats.csv: (data.to_csv, None),
+                    Formats.json: (data.to_json, None),
+                    Formats.feather: (data.to_feather, io.BytesIO()),
+                    Formats.parquet: (data.to_parquet, io.BytesIO()),
+                    Formats.pickle: (data.to_pickle, io.BytesIO()),
                 }[Formats(config.to_format)]
 
             args = [] if buffer is None else [buffer]
@@ -164,7 +185,7 @@ if GEOPANDAS_INSTALLED:
                 return out
             elif buffer.closed:
                 raise IOError(
-                    f"pandas=={pd.__version__} closed the buffer automatically "
+                    f"geopandas=={gpd.__version__} closed the buffer automatically "
                     f"using the serialization method {writer}. Use a later "
                     "version of pandas or use a different the serialization "
                     "format."
@@ -219,11 +240,12 @@ if GEOPANDAS_INSTALLED:
                     f"Please revisit the model to address the following errors:"
                     f"\n{exc}"
                 ) from exc
+
             data = cls.from_format(obj, schema_model.__config__)
 
             try:
                 valid_data = schema.validate(data)
-                valid_data = cls._activate_geometry(valid_data)
+                valid_data = cls._coerce_geometry(valid_data)
             except SchemaError as exc:
                 raise ValueError(str(exc)) from exc
 
@@ -239,3 +261,36 @@ if GEOPANDAS_INSTALLED:
             """
             schema_model = cls._get_schema_model(field)
             return cls.pydantic_validate(obj, schema_model)
+
+        @staticmethod
+        def from_records(  # type: ignore
+            schema: Type[T],
+            data: Union[  # type: ignore
+                np.ndarray,
+                List[Tuple[Any, ...]],
+                Dict[Any, Any],
+                pd.DataFrame,
+                gpd.GeoDataFrame,
+            ],
+            **kwargs,
+        ) -> "GeoDataFrame[T]":
+            """
+            Convert structured or record ndarray to pandera-validated GeoDataFrame.
+
+            Creates a DataFrame object from a structured ndarray, sequence of tuples
+            or dicts, DataFrame, or GeoDataFrame.
+
+            See :doc:`pandas:reference/api/pandas.DataFrame.from_records` for
+            more details.
+            """
+            schema = schema.to_schema()  # type: ignore[attr-defined]
+            schema_index = (
+                schema.index.names if schema.index is not None else None
+            )
+            if "index" not in kwargs:
+                kwargs["index"] = schema_index
+            data_df = pd.DataFrame.from_records(data=data, **kwargs)
+            return GeoDataFrame[schema](  # type: ignore
+                # set the column order according to schema
+                data_df[[c for c in schema.columns if c in data_df.columns]]
+            )

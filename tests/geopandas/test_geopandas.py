@@ -1,9 +1,12 @@
 """Unit tests for the geopandas integration."""
 
+from typing import Annotated
 import shapely
+import pandas as pd
 import geopandas as gpd
 import pytest
 from shapely.geometry import Polygon, Point
+from pydantic import BaseModel
 
 import pandera as pa
 from pandera.typing import Series
@@ -60,6 +63,22 @@ def test_schema_model(data, invalid: bool):
     assert isinstance(
         GeoDataFrame[Schema]({"geometry": data}), gpd.GeoDataFrame
     )
+
+
+def test_pydantic_model():
+    """Test that GeoDataFrame type can be used in a Pydantic model"""
+
+    class Schema(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: GeoSeries
+
+    class MyModel(BaseModel):
+        # pylint: disable=missing-class-docstring
+        data: GeoDataFrame[Schema]
+
+    obj = MyModel(data=gpd.GeoDataFrame({"geometry": [Point(0, 0)]}))
+
+    assert isinstance(obj.data, gpd.GeoDataFrame)
 
 
 @pytest.mark.parametrize(
@@ -214,6 +233,30 @@ def test_schema_dtype_crs_transform():
     assert golden_compare.all()
 
 
+def test_schema_dtype_parametrized_crs():
+    """Test Geometry declaration using dtype_kwargs and Annotated."""
+
+    gdf = gpd.GeoDataFrame({"geometry": [Point([1, 1])]}, crs="EPSG:4326")
+
+    class Schema1(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: Geometry = pa.Field(dtype_kwargs={"crs": "EPSG:4326"})
+
+    assert isinstance(GeoDataFrame[Schema1](gdf), gpd.GeoDataFrame)
+
+    class Schema2(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        geometry: Annotated[GeoSeries, "EPSG:4326"]
+
+    assert isinstance(GeoDataFrame[Schema2](gdf), gpd.GeoDataFrame)
+
+
+def test_schema_dtype_invalid_crs():
+    """Test Geometry for invalid CRS."""
+    with pytest.raises(TypeError):
+        Geometry(crs="this is definitely not a valid crs")
+
+
 def test_schema_dtype_multiple_crs():
     """Test GeoDataFrame with multiple GeoSeries columns on different CRS"""
 
@@ -262,11 +305,23 @@ def test_schema_dtype_multiple_crs():
     "data,invalid",
     [
         [
+            pd.DataFrame(
+                {"geometry": [Polygon(((0, 0), (0, 1), (1, 1), (1, 0)))] * 2},
+            ),
+            False,
+        ],
+        [
+            pd.DataFrame(
+                {"geometry": ["a", "b"]},
+            ),
+            True,
+        ],
+        [
             gpd.GeoDataFrame(
                 {"geometry": [Polygon(((0, 0), (0, 1), (1, 1), (1, 0)))] * 2},
                 crs="EPSG:25832",
             ),
-            True,
+            False,
         ],
     ],
 )
@@ -277,11 +332,8 @@ def test_schema_from_dataframe(data, invalid: bool):
         # pylint: disable=missing-class-docstring
         geometry: GeoSeries
 
-        @pa.check("geometry")
-        @classmethod
-        def geo_check(cls, geo_series: GeoSeries) -> Series[bool]:
-            # pylint: disable=missing-function-docstring
-            return geo_series.area >= 2
+        class Config:
+            coerce = True
 
     # create a geodataframe that's validated on object initialization
     if invalid:
@@ -290,6 +342,19 @@ def test_schema_from_dataframe(data, invalid: bool):
         return
 
     assert isinstance(GeoDataFrame[Schema](data), gpd.GeoDataFrame)
+
+
+def test_schema_no_geometry():
+    """Test that GeoDataFrame can be constructed from data without a Geometry column."""
+
+    class Schema(pa.DataFrameModel):
+        # pylint: disable=missing-class-docstring
+        name: str
+
+    # create a geodataframe that's validated on object initialization
+    assert isinstance(
+        GeoDataFrame[Schema]({"name": ["a", "b"]}), gpd.GeoDataFrame
+    )
 
 
 @pytest.mark.parametrize(
@@ -320,6 +385,7 @@ def test_schema_from_dataframe(data, invalid: bool):
         [[Point(0, 0), Point(1, 1)], 2, False],
         [shapely.to_wkb(shapely.points([[0, 0], [1, 1]])), 2, False],
         [shapely.points([[0, 0], [1, 1]]), 2, False],
+        [[1, 2], 2, True],
         [
             [
                 {
