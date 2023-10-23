@@ -889,27 +889,31 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
 
     def coerce(self, data_container: PandasObject) -> PandasObject:
         if self.timezone_flexible:
-            if isinstance(data_container.dtype, pd.DatetimeTZDtype):
-                # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
-                tz = self.tz if self.tz else data_container.dtype.tz
-                unit = self.unit if self.unit else data_container.dtype.unit
-                type_ = pd.DatetimeTZDtype(unit, tz)
-                object.__setattr__(self, "tz", tz)
-                object.__setattr__(self, "type", type_)
-            elif all(isinstance(x, datetime.datetime) for x in data_container):
-                # The container_type must convert its values into a UTC datetimes to prepare for the remaining coercion
-                container_type = type(data_container)
-                tz = self.tz if self.tz else 'UTC'
-                unit = self.unit if self.unit else data_container.dtype.unit
-                data_container = container_type([pd.Timestamp(ts).tz_convert(tz) if pd.Timestamp(
-                    ts).tzinfo else pd.Timestamp(ts).tz_localize(tz) for ts in data_container])
-                type_ = pd.DatetimeTZDtype(unit, tz)
-                object.__setattr__(self, "tz", tz)
-                object.__setattr__(self, "type", type_)
-            else:
-                # Prepare to raise exception, adding type strictly for the check_dtype error message
-                object.__setattr__(self, "type", "datetime64[ns, <timezone>]")
+            data_container = self._prepare_coerce_timezone_flexible(data_container=data_container)
         return self._coerce(data_container, pandas_dtype=self.type)
+
+    def _prepare_coerce_timezone_flexible(self, data_container: PandasObject) -> PandasObject:
+        if isinstance(data_container.dtype, pd.DatetimeTZDtype):
+            # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
+            tz = self.tz if self.tz else data_container.dtype.tz
+            unit = self.unit if self.unit else data_container.dtype.unit
+            type_ = pd.DatetimeTZDtype(unit, tz)
+            object.__setattr__(self, "tz", tz)
+            object.__setattr__(self, "type", type_)
+        elif all(isinstance(x, datetime.datetime) for x in data_container):
+            # The container_type must convert its values into a UTC datetimes to prepare for the remaining coercion
+            container_type = type(data_container)
+            tz = self.tz if self.tz else 'UTC'
+            unit = self.unit if self.unit else data_container.dtype.unit
+            data_container = container_type([pd.Timestamp(ts).tz_convert(tz) if pd.Timestamp(
+                ts).tzinfo else pd.Timestamp(ts).tz_localize(tz) for ts in data_container])
+            type_ = pd.DatetimeTZDtype(unit, tz)
+            object.__setattr__(self, "tz", tz)
+            object.__setattr__(self, "type", type_)
+        else:
+            # Prepare to raise exception, adding type strictly for the check_dtype error message
+            object.__setattr__(self, "type", "datetime64[ns, <timezone>]")
+        return data_container
 
     def coerce_value(self, value: Any) -> Any:
         """Coerce an value to specified datatime type."""
@@ -923,19 +927,23 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         data_container: Optional[PandasObject] = None,
     ) -> Union[bool, Iterable[bool]]:
         if self.timezone_flexible:
-            # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
-            if isinstance(pandera_dtype, DateTime) and pandera_dtype.tz is not None:
-                type_ = pd.DatetimeTZDtype(self.unit, pandera_dtype.tz)
-                object.__setattr__(self, "tz", pandera_dtype.tz)
-                object.__setattr__(self, "type", type_)
-            # If the data has a mix of timezones, pandas defines the dtype as 'object
-            elif all(isinstance(x, datetime.datetime) and x.tzinfo is not None for x in data_container):
-                object.__setattr__(self, "type", np.dtype('O'))
-            else:
-                # Prepare to raise exception, adding type strictly for the check_dtype error message
-                object.__setattr__(self, "type", "datetime64[ns, <timezone>]")
-
+            self._prepare_check_timezone_flexible(pandera_dtype=pandera_dtype, data_container=data_container)
         return super().check(pandera_dtype, data_container)
+
+    def _prepare_check_timezone_flexible(
+        self, pandera_dtype: dtypes.DataType, data_container: Optional[PandasObject]
+    ) -> None:
+        # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
+        if isinstance(pandera_dtype, DateTime) and pandera_dtype.tz is not None:
+            type_ = pd.DatetimeTZDtype(self.unit, pandera_dtype.tz)
+            object.__setattr__(self, "tz", pandera_dtype.tz)
+            object.__setattr__(self, "type", type_)
+        # If the data has a mix of timezones, pandas defines the dtype as 'object
+        elif all(isinstance(x, datetime.datetime) and x.tzinfo is not None for x in data_container):
+            object.__setattr__(self, "type", np.dtype('O'))
+        else:
+            # Prepare to raise exception, adding type strictly for the check_dtype error message
+            object.__setattr__(self, "type", "datetime64[ns, <timezone>]")
 
     def __str__(self) -> str:
         if self.type == np.dtype("datetime64[ns]"):
