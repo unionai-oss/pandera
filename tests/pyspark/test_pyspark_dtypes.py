@@ -1,6 +1,7 @@
 """Unit tests for pyspark container."""
 
 from typing import Any
+import pyspark
 import pyspark.sql.types as T
 from pyspark.sql import DataFrame
 
@@ -239,6 +240,18 @@ class TestAllNumericTypes(BaseClass):
 class TestAllDatetimeTestClass(BaseClass):
     """This class is to test all the datetime types"""
 
+    # Include new Spark 3.4 TimestampNTZType as equivalents
+    ntz_equivalents = (
+        [
+            {"pandera_equivalent": "TimestampNTZType"},
+            {"pandera_equivalent": "TimestampNTZType()"},
+            {"pandera_equivalent": T.TimestampNTZType},
+            {"pandera_equivalent": T.TimestampNTZType()},
+        ]
+        if pyspark.__version__ >= "3.4"
+        else []
+    )
+
     # a map specifying multiple argument sets for a test method
     params = {
         "test_pyspark_all_date_types": [
@@ -253,7 +266,8 @@ class TestAllDatetimeTestClass(BaseClass):
             {"pandera_equivalent": T.TimestampType()},
             {"pandera_equivalent": "datetime"},
             {"pandera_equivalent": "timestamp"},
-        ],
+        ]
+        + ntz_equivalents,
     }
 
     def test_pyspark_all_date_types(

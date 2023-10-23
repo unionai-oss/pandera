@@ -51,4 +51,4 @@ nox-dev-requirements: deps-from-conda
 	nox -db mamba --envdir .nox-mamba -s dev_requirements
 
 requirements-docs.txt: deps-from-conda
-	pip-compile requirements.in --output-file requirements-docs.txt -v --resolver backtracking
+	pip-compile requirements.in --no-emit-index-url --output-file requirements-docs.txt -v --resolver backtracking

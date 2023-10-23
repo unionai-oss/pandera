@@ -52,7 +52,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
 
         # fill nans with `default` if it's present
-        if hasattr(schema, "default") and pd.notna(schema.default):
+        if hasattr(schema, "default") and schema.default is not None:
             check_obj = self.set_default(check_obj, schema)
 
         try:
@@ -325,9 +325,14 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
     def set_default(self, check_obj, schema):
         """Sets the ``schema.default`` value on the ``check_obj``"""
-        if is_field(check_obj):
+        # Ignore sparse dtype as it can't assign default value directly
+        if is_field(check_obj) and not isinstance(
+            check_obj.dtype, pd.SparseDtype
+        ):
             check_obj.fillna(schema.default, inplace=True)
-        else:
+        elif not is_field(check_obj) and not isinstance(
+            check_obj[schema.name].dtype, pd.SparseDtype
+        ):
             check_obj[schema.name].fillna(schema.default, inplace=True)
 
         return check_obj
