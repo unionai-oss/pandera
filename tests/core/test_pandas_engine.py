@@ -252,8 +252,8 @@ def generate_test_cases_timezone_flexible() -> List[
 def test_dt_timezone_flexible(examples, tz, coerce, expected_output, raises):
     """Test that timezone_flexible works as expected"""
 
-    # Need to use pydantic model with DateTime field because tz of incoming data is not known up front and thus
-    # dtype cannot be accurately defined
+    # Testing using a pandera DataFrameModel rather than directly calling dtype coerce or validate because with
+    # timezone_flexible, dtype is set dynamically based on the input data
     class SimpleSchema(DataFrameModel):
         datetime_column: pandas_engine.DateTime(timezone_flexible=True, tz=tz) = Field(coerce=coerce)
 
