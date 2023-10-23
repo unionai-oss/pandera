@@ -283,7 +283,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         schema_components = []
         for col_name, column in schema.columns.items():
             if (
-                column.required or col_name in check_obj
+                column.required or col_name in check_obj.columns
             ) and col_name not in column_info.lazy_exclude_column_names:
                 column = copy.deepcopy(column)
                 if schema.dtype is not None:
