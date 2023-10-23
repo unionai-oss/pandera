@@ -1,6 +1,8 @@
 """Test pandas engine."""
 
-from datetime import date
+import datetime as dt
+from typing import Tuple, List, Optional
+from zoneinfo import ZoneInfo
 
 import hypothesis
 import hypothesis.extra.pandas as pd_st
@@ -10,8 +12,9 @@ import pytest
 import pytz
 from hypothesis import given
 
+from pandera import Field, DataFrameModel
 from pandera.engines import pandas_engine
-from pandera.errors import ParserError
+from pandera.errors import ParserError, SchemaError
 
 
 @pytest.mark.parametrize(
@@ -159,6 +162,98 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
     else:
         coerced_data = dtype.coerce(data)
         assert coerced_data.dt.tz == timezone
+        
+
+def generate_test_cases_timezone_flexible() -> List[
+    Tuple[List[dt.datetime], Optional[ZoneInfo], bool, List[dt.datetime], bool]
+]:
+    """
+    Generate test parameter combinations for a given list of datetime lists.
+
+    Returns:
+        List of tuples:
+        - List of input datetimes
+        - tz for DateTime constructor
+        - coerce flag for Field constructor
+        - expected output datetimes
+        - raises flag (True if an exception is expected, False otherwise)
+    """
+    datetimes = [
+        # multi tz and tz naive
+        [
+            dt.datetime(2023, 3, 1, 4, tzinfo=ZoneInfo('America/New_York')),
+            dt.datetime(2023, 3, 1, 5, tzinfo=ZoneInfo('America/Los_Angeles')),
+            dt.datetime(2023, 3, 1, 5)
+        ],
+        # multiz tz
+        [
+            dt.datetime(2023, 3, 1, 4, tzinfo=ZoneInfo('America/New_York')),
+            dt.datetime(2023, 3, 1, 5, tzinfo=ZoneInfo('America/Los_Angeles'))
+        ],
+        # tz naive
+        [
+            dt.datetime(2023, 3, 1, 4),
+            dt.datetime(2023, 3, 1, 5)
+        ],
+        # single tz
+        [
+            dt.datetime(2023, 3, 1, 4, tzinfo=ZoneInfo('America/New_York')),
+            dt.datetime(2023, 3, 1, 5, tzinfo=ZoneInfo('America/New_York'))
+        ]
+    ]
+
+    test_cases = []
+
+    for datetime_list in datetimes:
+        for coerce in [True, False]:
+            for tz in [None, ZoneInfo("America/Chicago"), ZoneInfo("UTC")]:
+                # Determine if the test should raise an exception
+                has_naive_datetime = any([dt.tzinfo is None for dt in datetime_list])
+                raises = has_naive_datetime and not coerce
+
+                # Generate expected output
+                if raises:
+                    expected_output = None  # No expected output since an exception will be raised
+                else:
+                    if coerce:
+                        # localize / convert the input datetimes to the specified tz or 'UTC' (default)
+                        use_tz = tz if tz else ZoneInfo("UTC")
+                        expected_output_naive = [
+                            dt.replace(tzinfo=use_tz) for dt in datetime_list if dt.tzinfo is None
+                        ]
+                        expected_output_aware = [
+                            dt.astimezone(use_tz) for dt in datetime_list if dt.tzinfo is not None
+                        ]
+                        expected_output = expected_output_naive + expected_output_aware
+                    else:
+                        # ignore tz
+                        expected_output = datetime_list
+
+                test_case = (datetime_list, tz, coerce, expected_output, raises)
+                test_cases.append(test_case)
+    return test_cases
+
+
+@pytest.mark.parametrize(
+    "examples, tz, coerce, expected_output, raises",
+    generate_test_cases_timezone_flexible()
+)
+def test_dt_timezone_flexible(examples, tz, coerce, expected_output, raises):
+    """Test that timezone_flexible works as expected"""
+
+    # Need to use pydantic model with DateTime field because tz of incoming data is not known up front and thus
+    # dtype cannot be accurately defined
+    class SimpleSchema(DataFrameModel):
+        datetime_column: pandas_engine.DateTime(timezone_flexible=True, tz=tz) = Field(coerce=coerce)
+
+    data = pd.DataFrame({'datetime_column': examples})
+
+    if raises:
+        with pytest.raises(SchemaError):
+            SimpleSchema.validate(data)
+    else:
+        validated_df = SimpleSchema.validate(data)
+        assert sorted(validated_df['datetime_column'].tolist()) == sorted(expected_output)
 
 
 @hypothesis.settings(max_examples=1000)
@@ -184,7 +279,7 @@ def test_pandas_date_coerce_dtype(to_df, data):
         )
 
         assert (
-            coerced_data.applymap(lambda x: isinstance(x, date))
+            coerced_data.applymap(lambda x: isinstance(x, dt.date))
             | coerced_data.isna()
         ).all(axis=None)
         return
@@ -193,5 +288,5 @@ def test_pandas_date_coerce_dtype(to_df, data):
         coerced_data.isna().all() and coerced_data.dtype == "datetime64[ns]"
     )
     assert (
-        coerced_data.map(lambda x: isinstance(x, date)) | coerced_data.isna()
+        coerced_data.map(lambda x: isinstance(x, dt.date)) | coerced_data.isna()
     ).all()

@@ -905,8 +905,10 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
             container_type = type(data_container)
             tz = self.tz if self.tz else 'UTC'
             unit = self.unit if self.unit else data_container.dtype.unit
-            data_container = container_type([pd.Timestamp(ts).tz_convert(tz) if pd.Timestamp(
-                ts).tzinfo else pd.Timestamp(ts).tz_localize(tz) for ts in data_container])
+            data_container = container_type(
+                [pd.Timestamp(ts).tz_convert(tz) if pd.Timestamp(ts).tzinfo else pd.Timestamp(ts).tz_localize(tz)
+                 for ts in data_container]
+            )
             type_ = pd.DatetimeTZDtype(unit, tz)
             object.__setattr__(self, "tz", tz)
             object.__setattr__(self, "type", type_)
