@@ -165,7 +165,7 @@ def test_pandas_datetimetz_dtype(timezone_aware, data, timezone):
         
 
 def generate_test_cases_timezone_flexible() -> List[
-    Tuple[List[dt.datetime], Optional[ZoneInfo], bool, List[dt.datetime], bool]
+    Tuple[List[dt.datetime], Optional[dt.tzinfo], bool, List[dt.datetime], bool]
 ]:
     """
     Generate test parameter combinations for a given list of datetime lists.
@@ -206,7 +206,7 @@ def generate_test_cases_timezone_flexible() -> List[
 
     for datetime_list in datetimes:
         for coerce in [True, False]:
-            for tz in [None, ZoneInfo("America/Chicago"), ZoneInfo("UTC")]:
+            for tz in [None, ZoneInfo("America/Chicago"), dt.timezone(dt.timedelta(hours=2))]:
                 # Determine if the test should raise an exception
                 has_naive_datetime = any([dt.tzinfo is None for dt in datetime_list])
                 raises = has_naive_datetime and not coerce
