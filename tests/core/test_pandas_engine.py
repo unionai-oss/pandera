@@ -231,6 +231,17 @@ def generate_test_cases_timezone_flexible() -> List[
 
                 test_case = (datetime_list, tz, coerce, expected_output, raises)
                 test_cases.append(test_case)
+
+    # define final test cases with improper type
+    datetime_list = [dt.datetime(2023, 3, 1, 4, tzinfo=ZoneInfo('America/New_York')), "hello world"]
+    tz = None
+    expected_output = None
+    raises = True
+
+    bad_type_coerce = (datetime_list, tz, True, expected_output, raises)
+    bad_type_no_coerce = (datetime_list, tz, False, expected_output, raises)
+    test_cases.extend([bad_type_coerce, bad_type_no_coerce])
+
     return test_cases
 
 

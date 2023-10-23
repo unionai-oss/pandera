@@ -893,15 +893,15 @@ class DateTime(_BaseDateTime, dtypes.Timestamp):
         return self._coerce(data_container, pandas_dtype=self.type)
 
     def _prepare_coerce_timezone_flexible(self, data_container: PandasObject) -> PandasObject:
+        # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
         if isinstance(data_container.dtype, pd.DatetimeTZDtype):
-            # If there is a single timezone, define the type as a timezone-aware DatetimeTZDtype
             tz = self.tz if self.tz else data_container.dtype.tz
             unit = self.unit if self.unit else data_container.dtype.unit
             type_ = pd.DatetimeTZDtype(unit, tz)
             object.__setattr__(self, "tz", tz)
             object.__setattr__(self, "type", type_)
+        # If there are multiple timezones, convert them to the specified tz (default 'UTC') and set the type accordingly
         elif all(isinstance(x, datetime.datetime) for x in data_container):
-            # The container_type must convert its values into a UTC datetimes to prepare for the remaining coercion
             container_type = type(data_container)
             tz = self.tz if self.tz else 'UTC'
             unit = self.unit if self.unit else data_container.dtype.unit
