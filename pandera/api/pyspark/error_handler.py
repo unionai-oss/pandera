@@ -14,6 +14,7 @@ class ErrorCategory(Enum):
     DATA = "data-failures"
     SCHEMA = "schema-failures"
     DTYPE_COERCION = "dtype-coercion-failures"
+    UNIQUENESS = "uniqueness-failures"
 
 
 class ErrorHandler:

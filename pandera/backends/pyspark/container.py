@@ -6,7 +6,7 @@ import warnings
 from typing import Any, Dict, List, Optional
 
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, count
 
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.api.pyspark.types import is_table
@@ -71,12 +71,25 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 reason_code=exc.reason_code,
                 schema_error=exc,
             )
+
         # try to coerce datatypes
         check_obj = self.coerce_dtype(
             check_obj,
             schema=schema,
             error_handler=error_handler,
         )
+
+        # uniqueness of values
+        try:
+            check_obj = self.unique(
+                check_obj, schema=schema, error_handler=error_handler
+            )
+        except SchemaError as exc:
+            error_handler.collect_error(
+                type=ErrorCategory.DATA,
+                reason_code=exc.reason_code,
+                schema_error=exc,
+            )
 
         return check_obj
 
@@ -386,8 +399,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         except SchemaErrors as err:
             for schema_error_dict in err.schema_errors:
                 if not error_handler.lazy:
-                    # raise the first error immediately if not doing lazy
-                    # validation
+                    # raise the first error immediately if not doing lazy validation
                     raise schema_error_dict["error"]
                 error_handler.collect_error(
                     ErrorCategory.DTYPE_COERCION,
@@ -490,6 +502,82 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         return obj
 
+    @validate_scope(scope=ValidationScope.DATA)
+    def unique(
+        self,
+        check_obj: DataFrame,
+        *,
+        schema=None,
+        error_handler: ErrorHandler = None,
+    ):
+        """Check uniqueness in the check object."""
+        assert schema is not None, "The `schema` argument must be provided."
+        assert (
+            error_handler is not None
+        ), "The `error_handler` argument must be provided."
+
+        if not schema.unique:
+            return check_obj
+
+        try:
+            check_obj = self._check_uniqueness(
+                check_obj,
+                schema,
+            )
+        except SchemaError as err:
+            if not error_handler.lazy:
+                raise err
+            error_handler.collect_error(
+                ErrorCategory.UNIQUENESS, err.reason_code, err
+            )
+
+        return check_obj
+
+    def _check_uniqueness(
+        self,
+        obj: DataFrame,
+        schema,
+    ) -> DataFrame:
+        """Ensure uniqueness in dataframe columns.
+
+        :param obj: dataframe to check.
+        :param schema: schema object.
+        :returns: dataframe checked.
+        """
+        # Use unique definition of columns as first option
+        # unique_columns = [col.unique for col in schema.columns.values()]
+
+        # Overwrite it, if schemas's Config class has a unique declaration
+        unique_columns = (
+            [schema.unique]
+            if isinstance(schema.unique, str)
+            else schema.unique
+        )
+
+        duplicates_count = (
+            obj.select(*unique_columns)  # ignore other cols
+            .groupby(*unique_columns)
+            .agg(count("*").alias("pandera_duplicate_counts"))
+            .filter(
+                col("pandera_duplicate_counts") > 1
+            )  # long name to avoid colisions
+            .count()
+        )
+
+        if duplicates_count > 0:
+            raise SchemaError(
+                schema=schema,
+                data=obj,
+                message=(
+                    f"Duplicated rows [{duplicates_count}] were found "
+                    f"for columns {unique_columns}"
+                ),
+                check="unique",
+                reason_code=SchemaErrorReason.DUPLICATES,
+            )
+
+        return obj
+
     ##########
     # Checks #
     ##########
@@ -516,8 +604,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 schema=schema,
                 data=check_obj,
                 message=(
-                    "dataframe contains multiple columns with label(s): "
-                    f"{failed}"
+                    f"dataframe contains multiple columns with label(s): {failed}"
                 ),
                 failure_cases=scalar_failure_case(failed),
                 check="dataframe_column_labels_unique",
