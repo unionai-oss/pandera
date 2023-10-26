@@ -91,16 +91,9 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Run the checks related to data validation and uniqueness."""
 
         # uniqueness of values
-        try:
-            check_obj = self.unique(
-                check_obj, schema=schema, error_handler=error_handler
-            )
-        except SchemaError as exc:
-            error_handler.collect_error(
-                type=ErrorCategory.DATA,
-                reason_code=exc.reason_code,
-                schema_error=exc,
-            )
+        check_obj = self.unique(
+            check_obj, schema=schema, error_handler=error_handler
+        )
 
         return check_obj
 
