@@ -344,15 +344,15 @@ We also provided a helper function to extract metadata from a schema as follows:
 
     This feature is available for ``pyspark.sql`` and ``pandas`` both.
 
-Unique support
---------------
+`unique` support
+----------------
 
 *new in 0.17.3*
 
 .. warning::
 
-    The `unique` support in PySpark to define which columns must be tested for
-    unique values may cause a performance hit during validation, given it's distributed
+    The `unique` support for PySpark-based validations to define which columns must be
+    tested for unique values may incur in a performance hit, given Spark's distributed
     nature.
 
     Use with caution.

@@ -224,42 +224,6 @@ def test_pyspark_fields_metadata():
     assert PanderaSchema.get_metadata() == expected
 
 
-# @pytest.fixture
-# def datamodel_unique_single_column() -> pa.DataFrameModel:
-#     """Fixture containing DataFrameModel with optional columns."""
-
-#     class MyDataModel(pa.DataFrameModel):
-#         """Simple DataFrameModel containing a column."""
-
-#         a: T.LongType = pa.Field()
-#         b: T.LongType = pa.Field()
-
-#         class Config:
-#             """Config class."""
-
-#             unique = "a"
-
-#     return MyDataModel
-
-
-# @pytest.fixture
-# def datamodel_unique_multiple_columns() -> pa.DataFrameModel:
-#     """Fixture containing DataFrameModel with optional columns."""
-
-#     class MyDataModel(pa.DataFrameModel):
-#         """Simple DataFrameModel containing a column."""
-
-#         a: T.LongType = pa.Field()
-#         b: T.LongType = pa.Field()
-
-#         class Config:
-#             """Config class."""
-
-#             unique = ["a", "b"]
-
-#     return MyDataModel
-
-
 @pytest.mark.parametrize(
     "data, expectation",
     [
@@ -276,7 +240,7 @@ def test_pyspark_fields_metadata():
             pytest.raises(pa.PysparkSchemaError),
         ),
     ],
-    ids=["no_data", "non_duplicated_data", "duplicated_data"],
+    ids=["no_data", "unique_data", "duplicated_data"],
 )
 def test_dataframe_schema_unique(spark, data, expectation):
     """Test uniqueness checks on pyspark dataframes."""

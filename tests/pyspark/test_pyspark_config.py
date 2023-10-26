@@ -53,7 +53,7 @@ class TestPanderaConfig:
         CONFIG.validation_enabled = True
         CONFIG.validation_depth = ValidationDepth.SCHEMA_ONLY
 
-        pandra_schema = DataFrameSchema(
+        pandera_schema = DataFrameSchema(
             {
                 "product": Column(T.StringType(), Check.str_startswith("B")),
                 "price_val": Column(T.IntegerType()),
@@ -67,7 +67,7 @@ class TestPanderaConfig:
         assert CONFIG.dict() == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
-        output_dataframeschema_df = pandra_schema.validate(input_df)
+        output_dataframeschema_df = pandera_schema.validate(input_df)
         expected_dataframeschema = {
             "SCHEMA": {
                 "COLUMN_NOT_IN_DATAFRAME": [
