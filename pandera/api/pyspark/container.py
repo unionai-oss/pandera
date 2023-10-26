@@ -234,7 +234,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                 regex_dtype.update(
                     {
                         c: column.dtype
-                        for c in column.BACKEND.get_regex_columns(
+                        for c in column.get_backend(
+                            dataframe
+                        ).get_regex_columns(
                             column,
                             dataframe.columns,
                         )

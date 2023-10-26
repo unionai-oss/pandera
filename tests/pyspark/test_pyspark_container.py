@@ -157,3 +157,31 @@ def test_pyspark_sample():
     df_out = schema.validate(df, sample=0.5)
 
     assert isinstance(df_out, DataFrame)
+
+
+def test_pyspark_regex_column():
+    """
+    Test creating a pyspark DataFrameSchema object with regex columns
+    """
+
+    schema = DataFrameSchema(
+        {
+            # Columns with all caps names must have string values
+            "[A-Z]+": Column(T.StringType(), regex=True),
+        }
+    )
+
+    data = [("Neeraj", 35), ("Jask", 30)]
+
+    df = spark.createDataFrame(data=data, schema=["NAME", "AGE"])
+    df_out = schema.validate(df)
+
+    assert df_out.pandera.errors is not None
+
+    data = [("Neeraj", "35"), ("Jask", "a")]
+
+    df2 = spark.createDataFrame(data=data, schema=["NAME", "AGE"])
+
+    df_out = schema.validate(df2)
+
+    assert not df_out.pandera.errors
