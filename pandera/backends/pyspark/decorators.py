@@ -88,10 +88,6 @@ def validate_scope(scope: ValidationScope):
                 Returns:
                     The DataFrame object.
                 """
-                if kwargs:
-                    for value in kwargs.values():
-                        if isinstance(value, pyspark.sql.DataFrame):
-                            return value
                 if args:
                     for value in args:
                         if isinstance(value, pyspark.sql.DataFrame):
@@ -109,7 +105,7 @@ def validate_scope(scope: ValidationScope):
                         stacklevel=2,
                     )
                     # If the function was skip, return the `check_obj` value anyway,
-                    # if it's present as a kwarg or an arg
+                    # given that some return value is expected
                     return _get_check_obj()
 
             elif scope == ValidationScope.DATA:
@@ -124,7 +120,7 @@ def validate_scope(scope: ValidationScope):
                         stacklevel=2,
                     )
                     # If the function was skip, return the `check_obj` value anyway,
-                    # if it's present as a kwarg or an arg
+                    # given that some return value is expected
                     return _get_check_obj()
 
         return wrapper

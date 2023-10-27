@@ -532,10 +532,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         :param schema: schema object.
         :returns: dataframe checked.
         """
-        # Use unique definition of columns as first option
-        # unique_columns = [col.unique for col in schema.columns.values()]
-
-        # Overwrite it, if schemas's Config class has a unique declaration
+        # Determine unique columns based on schema's config
         unique_columns = (
             [schema.unique]
             if isinstance(schema.unique, str)
