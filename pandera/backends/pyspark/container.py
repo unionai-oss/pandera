@@ -91,9 +91,14 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         """Run the checks related to data validation and uniqueness."""
 
         # uniqueness of values
-        check_obj = self.unique(
-            check_obj, schema=schema, error_handler=error_handler
-        )
+        try:
+            check_obj = self.unique(
+                check_obj, schema=schema, error_handler=error_handler
+            )
+        except SchemaError as err:
+            error_handler.collect_error(
+                ErrorCategory.DATA, err.reason_code, err
+            )
 
         return check_obj
 
@@ -213,7 +218,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         check_results = []
         for check_index, check in enumerate(
             schema.checks
-        ):  # schama.checks is null
+        ):  # schema.checks is null
             try:
                 check_results.append(
                     self.run_check(check_obj, schema, check, check_index)
@@ -507,16 +512,41 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         if not schema.unique:
             return check_obj
 
-        try:
-            check_obj = self._check_uniqueness(
-                check_obj,
-                schema,
+        # Determine unique columns based on schema's config
+        unique_columns = (
+            [schema.unique]
+            if isinstance(schema.unique, str)
+            else schema.unique
+        )
+
+        # Check if values belong to the dataframe columns
+        missing_unique_columns = set(unique_columns) - set(check_obj.columns)
+        if missing_unique_columns:
+            raise SchemaDefinitionError(
+                "Specified `unique` columns are missing in the dataframe: "
+                f"{list(missing_unique_columns)}"
             )
-        except SchemaError as err:
-            if not error_handler.lazy:
-                raise err
-            error_handler.collect_error(
-                ErrorCategory.DATA, err.reason_code, err
+
+        duplicates_count = (
+            check_obj.select(*unique_columns)  # ignore other cols
+            .groupby(*unique_columns)
+            .agg(count("*").alias("pandera_duplicate_counts"))
+            .filter(
+                col("pandera_duplicate_counts") > 1
+            )  # long name to avoid colisions
+            .count()
+        )
+
+        if duplicates_count > 0:
+            raise SchemaError(
+                schema=schema,
+                data=check_obj,
+                message=(
+                    f"Duplicated rows [{duplicates_count}] were found "
+                    f"for columns {unique_columns}"
+                ),
+                check="unique",
+                reason_code=SchemaErrorReason.DUPLICATES,
             )
 
         return check_obj
@@ -532,36 +562,6 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         :param schema: schema object.
         :returns: dataframe checked.
         """
-        # Determine unique columns based on schema's config
-        unique_columns = (
-            [schema.unique]
-            if isinstance(schema.unique, str)
-            else schema.unique
-        )
-
-        duplicates_count = (
-            obj.select(*unique_columns)  # ignore other cols
-            .groupby(*unique_columns)
-            .agg(count("*").alias("pandera_duplicate_counts"))
-            .filter(
-                col("pandera_duplicate_counts") > 1
-            )  # long name to avoid colisions
-            .count()
-        )
-
-        if duplicates_count > 0:
-            raise SchemaError(
-                schema=schema,
-                data=obj,
-                message=(
-                    f"Duplicated rows [{duplicates_count}] were found "
-                    f"for columns {unique_columns}"
-                ),
-                check="unique",
-                reason_code=SchemaErrorReason.DUPLICATES,
-            )
-
-        return obj
 
     ##########
     # Checks #
