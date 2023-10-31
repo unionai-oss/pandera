@@ -1,6 +1,7 @@
 """Unit tests for DataFrameModel module."""
 # pylint:disable=abstract-method
 
+from contextlib import nullcontext as does_not_raise
 from typing import Optional
 from pyspark.sql import DataFrame
 import pyspark.sql.types as T
@@ -13,6 +14,9 @@ from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
 from pandera.api.pyspark.model import docstring_substitution
+from pandera.errors import (
+    SchemaDefinitionError,
+)
 
 
 def test_schema_with_bare_types():
@@ -221,6 +225,104 @@ def test_pyspark_fields_metadata():
         }
     }
     assert PanderaSchema.get_metadata() == expected
+
+
+@pytest.mark.parametrize(
+    "data, expectation",
+    [
+        (
+            (),
+            does_not_raise(),
+        ),
+        (
+            ([1, 4], [2, 5], [3, 6]),
+            does_not_raise(),
+        ),
+        (
+            ([0, 0], [0, 0], [3, 6]),
+            pytest.raises(pa.PysparkSchemaError),
+        ),
+    ],
+    ids=["no_data", "unique_data", "duplicated_data"],
+)
+def test_dataframe_schema_unique(spark, data, expectation):
+    """Test uniqueness checks on pyspark dataframes."""
+
+    df = spark.createDataFrame(data, "a: int, b: int")
+
+    # Test `unique` configuration with a single column
+    class UniqueSingleColumn(pa.DataFrameModel):
+        """Simple DataFrameModel containing a column."""
+
+        a: T.IntegerType = pa.Field()
+        b: T.IntegerType = pa.Field()
+
+        class Config:
+            """Config class."""
+
+            unique = "a"
+
+    assert isinstance(UniqueSingleColumn(df), DataFrame)
+
+    with expectation:
+        df_out = UniqueSingleColumn.validate(check_obj=df)
+        if df_out.pandera.errors:
+            print(f"{df_out.pandera.errors=}")
+            raise pa.PysparkSchemaError
+
+    # Test `unique` configuration with multiple columns
+    class UniqueMultipleColumns(pa.DataFrameModel):
+        """Simple DataFrameModel containing two columns."""
+
+        a: T.IntegerType = pa.Field()
+        b: T.IntegerType = pa.Field()
+
+        class Config:
+            """Config class."""
+
+            unique = ["a", "b"]
+
+    assert isinstance(UniqueMultipleColumns(df), DataFrame)
+
+    with expectation:
+        df_out = UniqueMultipleColumns.validate(check_obj=df)
+        if df_out.pandera.errors:
+            print(f"{df_out.pandera.errors=}")
+            raise pa.PysparkSchemaError
+
+
+@pytest.mark.parametrize(
+    "unique_column_name",
+    [
+        "x",
+        ["x", "y"],
+        ["x", ""],
+    ],
+    ids=[
+        "wrong_column",
+        "multiple_wrong_columns",
+        "multiple_wrong_columns_w_empty",
+    ],
+)
+def test_dataframe_schema_unique_wrong_column(spark, unique_column_name):
+    """Test uniqueness checks on pyspark dataframes."""
+
+    df = spark.createDataFrame(([1, 2],), "a: int, b: int")
+
+    # Test `unique` configuration with a single, wrongly named column
+    class UniqueMultipleColumns(pa.DataFrameModel):
+        """Simple DataFrameModel containing two columns."""
+
+        a: T.IntegerType = pa.Field()
+        b: T.IntegerType = pa.Field()
+
+        class Config:
+            """Config class."""
+
+            unique = unique_column_name
+
+    with pytest.raises(SchemaDefinitionError):
+        _ = UniqueMultipleColumns.validate(check_obj=df)
 
 
 def test_dataframe_schema_strict(spark, config_params: PanderaConfig) -> None:

@@ -81,6 +81,18 @@ def validate_scope(scope: ValidationScope):
     def _wrapper(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
+            def _get_check_obj():
+                """
+                Get dataframe object passed as arg to the decorated func.
+
+                Returns:
+                    The DataFrame object.
+                """
+                if args:
+                    for value in args:
+                        if isinstance(value, pyspark.sql.DataFrame):
+                            return value
+
             if scope == ValidationScope.SCHEMA:
                 if CONFIG.validation_depth in (
                     ValidationDepth.SCHEMA_AND_DATA,
@@ -89,17 +101,12 @@ def validate_scope(scope: ValidationScope):
                     return func(self, *args, **kwargs)
                 else:
                     warnings.warn(
-                        "Skipping Execution of function as parameters set to DATA_ONLY ",
+                        f"Skipping execution of function {func.__name__} as validation depth is set to DATA_ONLY ",
                         stacklevel=2,
                     )
-                    if not kwargs:
-                        for value in kwargs.values():
-                            if isinstance(value, pyspark.sql.DataFrame):
-                                return value
-                    if args:
-                        for value in args:
-                            if isinstance(value, pyspark.sql.DataFrame):
-                                return value
+                    # If the function was skip, return the `check_obj` value anyway,
+                    # given that some return value is expected
+                    return _get_check_obj()
 
             elif scope == ValidationScope.DATA:
                 if CONFIG.validation_depth in (
@@ -109,9 +116,12 @@ def validate_scope(scope: ValidationScope):
                     return func(self, *args, **kwargs)
                 else:
                     warnings.warn(
-                        "Skipping Execution of function as parameters set to SCHEMA_ONLY ",
+                        f"Skipping execution of function {func.__name__} as validation depth is set to SCHEMA_ONLY",
                         stacklevel=2,
                     )
+                    # If the function was skip, return the `check_obj` value anyway,
+                    # given that some return value is expected
+                    return _get_check_obj()
 
         return wrapper
 
