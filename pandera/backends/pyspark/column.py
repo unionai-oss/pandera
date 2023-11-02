@@ -125,10 +125,16 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_nullable(self, check_obj: DataFrame, schema):
-        isna = (
-            check_obj.filter(col(schema.name).isNull()).limit(1).count() == 0
-        )
-        passed = schema.nullable or isna
+        # If True, ignore this `nullable` check
+        passed = schema.nullable
+
+        # If False, execute the costly validation
+        if not schema.nullable:
+            passed = (
+                check_obj.filter(col(schema.name).isNull()).limit(1).count()
+                == 0
+            )
+
         return CoreCheckResult(
             check="not_nullable",
             reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
