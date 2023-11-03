@@ -3,7 +3,7 @@
 import copy
 import warnings
 from typing import Any, List, Optional, TypeVar, Union, cast
-
+from pandera.config import CONFIG
 import pandas as pd
 
 from pandera import errors
@@ -426,6 +426,9 @@ class SeriesSchema(ArraySchema):
         dtype: float64
 
         """
+        if not CONFIG.validation_enabled:
+            return check_obj
+
         if self._is_inferred:
             warnings.warn(
                 f"This {type(self)} is an inferred schema that hasn't been "

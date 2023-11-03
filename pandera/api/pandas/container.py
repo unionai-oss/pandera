@@ -347,7 +347,7 @@ class DataFrameSchema(
         5         0.76      dog
         """
         if not CONFIG.validation_enabled:
-            return
+            return check_obj
 
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
