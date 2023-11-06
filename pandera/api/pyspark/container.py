@@ -327,7 +327,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
             [Row(product='Bread', price=9), Row(product='Butter', price=15)]
         """
         if not CONFIG.validation_enabled:
-            return
+            return check_obj
         error_handler = ErrorHandler(lazy)
 
         return self._validate(
