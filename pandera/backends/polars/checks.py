@@ -1,11 +1,11 @@
 """Check backend for pandas."""
 
 from functools import partial
-from typing import Optional, Tuple
+from typing import Optional
 
 import polars as pl
 from polars.lazyframe.group_by import LazyGroupBy
-
+from multimethod import overload
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData
@@ -48,6 +48,14 @@ class PolarsCheckBackend(BaseCheckBackend):
         """Apply the check function to a check object."""
         return self.check_fn(check_obj)
 
+    @overload
+    def postprocess(self, check_obj, check_output):
+        """Postprocesses the result of applying the check function."""
+        raise TypeError(  # pragma: no cover
+            f"output type of check_fn not recognized: {type(check_output)}"
+        )
+
+    @overload  # type: ignore [no-redef]
     def postprocess(
         self,
         check_obj: PolarsData,
@@ -66,6 +74,21 @@ class PolarsCheckBackend(BaseCheckBackend):
             check_passed=passed,
             checked_object=check_obj,
             failure_cases=failure_cases,
+        )
+
+    @overload  # type: ignore [no-redef]
+    def postprocess(
+        self,
+        check_obj: PolarsData,
+        check_output: bool,
+    ) -> CheckResult:
+        """Postprocesses the result of applying the check function."""
+        ldf_output = pl.LazyFrame({CHECK_OUTPUT_KEY: [check_output]})
+        return CheckResult(
+            check_output=ldf_output,
+            check_passed=ldf_output,
+            checked_object=check_obj,
+            failure_cases=None,
         )
 
     def __call__(
