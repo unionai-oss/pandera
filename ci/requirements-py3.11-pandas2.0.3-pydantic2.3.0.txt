@@ -119,7 +119,7 @@ protobuf==4.24.3          # via -r requirements.in, ray
 psutil==5.9.5             # via distributed, modin
 ptyprocess==0.7.0         # via terminado
 py4j==0.10.9.7            # via pyspark
-pyarrow==13.0.0           # via -r requirements.in
+pyarrow==14.0.1           # via -r requirements.in
 pycparser==2.21           # via cffi
 pydantic==2.3.0           # via -r requirements.in, fastapi
 pydantic-core==2.6.3      # via pydantic
