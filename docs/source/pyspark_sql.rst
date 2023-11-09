@@ -246,6 +246,46 @@ By default, validations are enabled and depth is set to ``SCHEMA_AND_DATA`` whic
 can be changed to ``SCHEMA_ONLY`` or ``DATA_ONLY`` as required by the use case.
 
 
+Caching control
+---------------
+
+*new in 0.17.3*
+
+Given Spark's architecture and Pandera's internal implementation of PySpark integration
+that relies on filtering conditions and *count* commands,
+the PySpark DataFrame being validated by a Pandera schema may be reprocessed
+lots of times, as each *count* command triggers a new underlying *Spark action*.
+This processing overhead is directly related to the amount of *schema* and *data* checks
+added to the Pandera schema.
+
+To avoid such reprocessing time, Pandera allows you to cache the PySpark DataFrame
+before validation starts, through the use of two environment variables:
+
+.. code-block:: bash
+
+    export PANDERA_PYSPARK_CACHE=True  # Defaults to False, do not `cache()` by default
+    export PANDERA_PYSPARK_UNPERSIST=False  # Defaults to True, `unpersist()` by default
+
+The first controls if current DataFrame state should be cached in your Spark Session
+before the validation starts. The second controls if such cached state should still be
+kept after the validation ends.
+
+.. note::
+
+    To cache or not is a trade-off analysis: if you have enough memory to keep
+    the dataframe cached, it will speed up the validation timings as the validation
+    process will make use of this cached state.
+
+    Keeping the cached state and opting for not throwing it away when the
+    validation ends is important when the Pandera validation of a dataset is not
+    an individual process, but one step of the pipeline: if you have a pipeline that,
+    in a single Spark session, uses Pandera to evaluate all input dataframes before
+    transforming them in an result that will be written to disk, it may make sense
+    to not throw away the cached states of the inputs. In the end, the already
+    processed states of these dataframes will still be used after the validation ends
+    and storing them in memory may be beneficial.
+
+
 Registering Custom Checks
 -------------------------
 
