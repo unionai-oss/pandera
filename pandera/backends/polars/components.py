@@ -87,7 +87,7 @@ class ColumnBackend(PolarsSchemaBackend):
 
         if schema.dtype is not None:
             obj_dtype = check_obj.schema[schema.name]
-            passed = obj_dtype is schema.dtype
+            passed = obj_dtype.is_(schema.dtype)
 
         if not passed:
             failure_cases = str(obj_dtype)
