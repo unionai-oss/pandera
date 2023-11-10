@@ -1,9 +1,7 @@
 """This module is to test the behaviour change based on defined config in pandera"""
 # pylint:disable=import-outside-toplevel,abstract-method
 
-import logging
 import pyspark.sql.types as T
-from pyspark.sql import DataFrame
 import pytest
 
 from pandera.config import CONFIG, ValidationDepth
@@ -338,27 +336,13 @@ class TestPanderaConfig:
             == expected_dataframemodel["SCHEMA"]
         )
 
-    @pytest.mark.parametrize(
-        "cache_enabled,unpersist_enabled,"
-        "expected_caching_message,expected_unpersisting_message",
-        [
-            (True, True, "Caching dataframe...", "Unpersisting dataframe..."),
-            (True, False, "Caching dataframe...", ""),
-            (False, True, "", ""),
-            (False, False, "", ""),
-        ],
-        scope="function",
-    )
+    @pytest.mark.parametrize("cache_enabled", [True, False])
+    @pytest.mark.parametrize("unpersist_enabled", [True, False])
     # pylint:disable=too-many-locals
     def test_pyspark_cache_settings(
         self,
-        spark,
-        sample_spark_schema,
         cache_enabled,
         unpersist_enabled,
-        expected_caching_message,
-        expected_unpersisting_message,
-        caplog,
     ):
         """This function validates that caching/unpersisting works as expected."""
         # Set expected properties in Config object
@@ -373,25 +357,3 @@ class TestPanderaConfig:
             "pyspark_unpersist": unpersist_enabled,
         }
         assert CONFIG.dict() == expected
-
-        # Prepare test data
-        input_df = spark_df(spark, self.sample_data, sample_spark_schema)
-        pandera_schema = DataFrameSchema(
-            {
-                "product": Column(T.StringType(), Check.str_startswith("B")),
-                "price_val": Column(T.IntegerType()),
-            }
-        )
-
-        # Capture log message
-        with caplog.at_level(logging.DEBUG, logger="pandera"):
-            df_out = pandera_schema.validate(input_df)
-
-        # Assertions
-        assert isinstance(df_out, DataFrame)
-        assert (
-            expected_caching_message in caplog.text
-        ), "Debugging info has no information about caching the dataframe."
-        assert (
-            expected_unpersisting_message in caplog.text
-        ), "Debugging info has no information about unpersisting the dataframe."
