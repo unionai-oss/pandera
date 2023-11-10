@@ -125,10 +125,18 @@ class ColumnSchemaBackend(PysparkSchemaBackend):
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_nullable(self, check_obj: DataFrame, schema):
-        isna = (
-            check_obj.filter(col(schema.name).isNull()).limit(1).count() == 0
-        )
-        passed = schema.nullable or isna
+        passed = True
+
+        # Use schema level information to optimize execution of the `nullable` check:
+        # ignore this check if Pandera Field's `nullable` property is True
+        # (check not necessary) or if df column's `nullable` property is False
+        # (PySpark's nullable ensures the presence of values when creating the df)
+        if (not schema.nullable) and (check_obj.schema[schema.name].nullable):
+            passed = (
+                check_obj.filter(col(schema.name).isNull()).limit(1).count()
+                == 0
+            )
+
         return CoreCheckResult(
             check="not_nullable",
             reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
