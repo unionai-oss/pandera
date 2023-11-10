@@ -10,10 +10,9 @@ from pandera.polars import Column, DataFrameSchema
 
 @pytest.fixture
 def ldf_basic():
-    return (
-        pl.DataFrame({"string_col": ["a", "b", "c"], "int_col": [0, 1, 2]})
-        .lazy()
-    )
+    return pl.DataFrame(
+        {"string_col": ["a", "b", "c"], "int_col": [0, 1, 2]}
+    ).lazy()
 
 
 @pytest.fixture
@@ -108,10 +107,7 @@ def test_basic_polars_lazy_dataframe_check_error(
     # be run by calling `polars.collect_all()` when `pandera.collect` is
     # invoked.
 
-    query = (
-        ldf_basic
-        .pipe(ldf_schema_with_check.validate, lazy=True)
-    )
+    query = ldf_basic.pipe(ldf_schema_with_check.validate, lazy=True)
 
     validated_df = query.collect()
     validated_df == ldf_basic.collect()
