@@ -2,7 +2,7 @@
 
 import warnings
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import polars as pl
 from pandera.api.polars.types import CheckResult
@@ -20,6 +20,31 @@ from pandera.errors import (
 
 
 class PolarsSchemaBackend(BaseSchemaBackend):
+    """Backend for polars LazyFrame schema."""
+
+    def subsample(
+        self,
+        check_obj: pl.LazyFrame,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+    ):
+        obj_subsample = []
+        if head is not None:
+            obj_subsample.append(check_obj.head(head))
+        if tail is not None:
+            obj_subsample.append(check_obj.tail(tail))
+        if sample is not None:
+            obj_subsample.append(
+                check_obj.sample(sample, random_state=random_state)
+            )
+        return (
+            check_obj
+            if not obj_subsample
+            else pl.concat(obj_subsample).unique()
+        )
+
     def run_check(
         self,
         check_obj: pl.LazyFrame,
@@ -44,7 +69,6 @@ class PolarsSchemaBackend(BaseSchemaBackend):
         failure_cases = None
         message = None
 
-        # TODO: this needs to collect the actual values
         if not passed:
             if check_result.failure_cases is None:
                 # encode scalar False values explicitly
