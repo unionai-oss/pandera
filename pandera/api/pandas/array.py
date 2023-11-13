@@ -3,7 +3,6 @@
 import copy
 import warnings
 from typing import Any, List, Optional, TypeVar, Union, cast
-from pandera.config import CONFIG
 import pandas as pd
 
 from pandera import errors
@@ -12,6 +11,7 @@ from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, is_field
+from pandera.config import CONFIG
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine, PYDANTIC_V2
 
