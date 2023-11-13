@@ -47,8 +47,8 @@ class TestPanderaConfig:
         }
 
         assert CONFIG.dict() == expected
-        assert pandera_schema.validate(input_df) is not None
-        assert TestSchema.validate(input_df) is not None
+        assert pandera_schema.validate(input_df)
+        assert TestSchema.validate(input_df)
 
     # pylint:disable=too-many-locals
     def test_schema_only(self, spark, sample_spark_schema):
