@@ -254,7 +254,7 @@ Caching control
 Given Spark's architecture and Pandera's internal implementation of PySpark integration
 that relies on filtering conditions and *count* commands,
 the PySpark DataFrame being validated by a Pandera schema may be reprocessed
-lots of times, as each *count* command triggers a new underlying *Spark action*.
+multiple times, as each *count* command triggers a new underlying *Spark action*.
 This processing overhead is directly related to the amount of *schema* and *data* checks
 added to the Pandera schema.
 

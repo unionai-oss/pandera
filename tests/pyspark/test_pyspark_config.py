@@ -47,8 +47,8 @@ class TestPanderaConfig:
         }
 
         assert CONFIG.dict() == expected
-        assert pandera_schema.validate(input_df) is None
-        assert TestSchema.validate(input_df) is None
+        assert pandera_schema.validate(input_df) is not None
+        assert TestSchema.validate(input_df) is not None
 
     # pylint:disable=too-many-locals
     def test_schema_only(self, spark, sample_spark_schema):
@@ -344,7 +344,7 @@ class TestPanderaConfig:
         cache_enabled,
         unpersist_enabled,
     ):
-        """This function validates that caching/unpersisting works as expected."""
+        """This function validates setter and getters of caching/unpersisting options."""
         # Set expected properties in Config object
         CONFIG.pyspark_cache = cache_enabled
         CONFIG.pyspark_unpersist = unpersist_enabled

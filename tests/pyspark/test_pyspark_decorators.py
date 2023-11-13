@@ -32,8 +32,13 @@ class TestPanderaDecorators:
             """Class that simulates DataFrameSchemaBackend class."""
 
             @cache_check_obj()
-            def func_w_check_obj(self, check_obj: DataFrame):
-                """Right function to use this decorator."""
+            def func_w_check_obj_args(self, check_obj: DataFrame, /):
+                """Right function to use this decorator, check_obj as arg."""
+                return check_obj.columns
+
+            @cache_check_obj()
+            def func_w_check_obj_kwargs(self, *, check_obj: DataFrame = None):
+                """Right function to use this decorator, check_obj as kwarg."""
                 return check_obj.columns
 
             @cache_check_obj()
@@ -41,13 +46,18 @@ class TestPanderaDecorators:
                 """Wrong function to use this decorator."""
                 return message
 
-        # Check for a function that does have a `check_obj`
+        # Check for a function that does have a `check_obj` as arg
         with does_not_raise():
             instance = FakeDataFrameSchemaBackend()
-            _ = instance.func_w_check_obj(check_obj=input_df)
+            _ = instance.func_w_check_obj_args(input_df)
+
+        # Check for a function that does have a `check_obj` as kwarg
+        with does_not_raise():
+            instance = FakeDataFrameSchemaBackend()
+            _ = instance.func_w_check_obj_kwargs(check_obj=input_df)
 
         # Check for a wrong function, that does not have a `check_obj`
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError):
             instance = FakeDataFrameSchemaBackend()
             _ = instance.func_wo_check_obj("wrong")
 
@@ -94,20 +104,23 @@ class TestPanderaDecorators:
 
         # Assertions
         assert isinstance(df_out, DataFrame)
+
+        CACHE_MESSAGE = "Caching dataframe..."
+        UNPERSIST_MESSAGE = "Unpersisting dataframe..."
         if expected_caching_message:
             assert (
-                "Caching dataframe..." in caplog.text
+                CACHE_MESSAGE in caplog.text
             ), "Debugging info has no information about caching the dataframe."
         else:
             assert (
-                "Caching dataframe..." not in caplog.text
+                CACHE_MESSAGE not in caplog.text
             ), "Debugging info has information about caching. It shouldn't."
 
         if expected_unpersisting_message:
             assert (
-                "Unpersisting dataframe..." in caplog.text
+                UNPERSIST_MESSAGE in caplog.text
             ), "Debugging info has no information about unpersisting the dataframe."
         else:
             assert (
-                "Unpersisting dataframe..." not in caplog.text
+                UNPERSIST_MESSAGE not in caplog.text
             ), "Debugging info has information about unpersisting. It shouldn't."
