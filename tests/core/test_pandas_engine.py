@@ -5,6 +5,7 @@ from datetime import date
 import hypothesis
 import hypothesis.extra.pandas as pd_st
 import hypothesis.strategies as st
+import numpy as np
 import pandas as pd
 import pytest
 import pytz
@@ -56,6 +57,35 @@ def test_pandas_data_type_coerce(data_type_cls):
         data_type.try_coerce(pd.Series(["1", "2", "a"]))
     except ParserError as exc:
         assert exc.failure_cases.shape[0] > 0
+
+
+@pytest.mark.parametrize(
+    "data_type_cls", list(pandas_engine.Engine.get_registered_dtypes())
+)
+def test_pandas_data_type_check(data_type_cls):
+    """
+    Test that pandas data type check results can be reduced.
+    """
+    try:
+        data_type = data_type_cls()
+    except TypeError:
+        # don't test data types that require parameters
+        return
+
+    try:
+        data_container = pd.Series([], dtype=data_type.type)
+    except TypeError:
+        # don't test complex data types, e.g. PythonDict, PythonTuple, etc
+        return
+
+    check_result = data_type.check(
+        pandas_engine.Engine.dtype(data_container.dtype),
+        data_container,
+    )
+    assert isinstance(check_result, bool) or isinstance(
+        check_result.all(),
+        (bool, np.bool_),
+    )
 
 
 CATEGORIES = ["A", "B", "C"]
