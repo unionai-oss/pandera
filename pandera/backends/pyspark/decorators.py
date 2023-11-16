@@ -144,7 +144,7 @@ def cache_check_obj():
     entrypoint.
 
     The behavior of the resulting decorator depends on the `PANDERA_PYSPARK_CACHING` and
-    `PANDERA_PYSPARK_UNPERSIST` (optional) environment variables.
+    `PANDERA_PYSPARK_KEEP_CACHE` (optional) environment variables.
 
     Usage:
         @cache_check_obj()
@@ -186,7 +186,7 @@ def cache_check_obj():
 
                 yield  # Execute the decorated function
 
-                if CONFIG.pyspark_unpersist:
+                if not CONFIG.pyspark_keep_cache:
                     # If not cached, `.unpersist()` does nothing
                     logger.debug("Unpersisting dataframe...")
                     check_obj.unpersist()

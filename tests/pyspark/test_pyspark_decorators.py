@@ -62,11 +62,11 @@ class TestPanderaDecorators:
             _ = instance.func_wo_check_obj("wrong")
 
     @pytest.mark.parametrize(
-        "cache_enabled,unpersist_enabled,"
+        "cache_enabled,keep_cache_enabled,"
         "expected_caching_message,expected_unpersisting_message",
         [
-            (True, True, True, True),
-            (True, False, True, None),
+            (True, True, True, None),
+            (True, False, True, True),
             (False, True, None, None),
             (False, False, None, None),
         ],
@@ -79,7 +79,7 @@ class TestPanderaDecorators:
         spark,
         sample_spark_schema,
         cache_enabled,
-        unpersist_enabled,
+        keep_cache_enabled,
         expected_caching_message,
         expected_unpersisting_message,
         caplog,
@@ -87,7 +87,7 @@ class TestPanderaDecorators:
         """This function validates that caching/unpersisting works as expected."""
         # Set expected properties in Config object
         CONFIG.pyspark_cache = cache_enabled
-        CONFIG.pyspark_unpersist = unpersist_enabled
+        CONFIG.pyspark_keep_cache = keep_cache_enabled
 
         # Prepare test data
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)

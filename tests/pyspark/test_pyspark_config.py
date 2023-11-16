@@ -43,7 +43,7 @@ class TestPanderaConfig:
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "pyspark_cache": False,
-            "pyspark_unpersist": True,
+            "pyspark_keep_cache": False,
         }
 
         assert CONFIG.dict() == expected
@@ -67,7 +67,7 @@ class TestPanderaConfig:
             "validation_enabled": True,
             "validation_depth": ValidationDepth.SCHEMA_ONLY,
             "pyspark_cache": False,
-            "pyspark_unpersist": True,
+            "pyspark_keep_cache": False,
         }
         assert CONFIG.dict() == expected
 
@@ -147,7 +147,7 @@ class TestPanderaConfig:
             "validation_enabled": True,
             "validation_depth": ValidationDepth.DATA_ONLY,
             "pyspark_cache": False,
-            "pyspark_unpersist": True,
+            "pyspark_keep_cache": False,
         }
         assert CONFIG.dict() == expected
 
@@ -234,7 +234,7 @@ class TestPanderaConfig:
             "validation_enabled": True,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "pyspark_cache": False,
-            "pyspark_unpersist": True,
+            "pyspark_keep_cache": False,
         }
         assert CONFIG.dict() == expected
 
@@ -337,23 +337,23 @@ class TestPanderaConfig:
         )
 
     @pytest.mark.parametrize("cache_enabled", [True, False])
-    @pytest.mark.parametrize("unpersist_enabled", [True, False])
+    @pytest.mark.parametrize("keep_cache_enabled", [True, False])
     # pylint:disable=too-many-locals
     def test_pyspark_cache_settings(
         self,
         cache_enabled,
-        unpersist_enabled,
+        keep_cache_enabled,
     ):
-        """This function validates setter and getters of caching/unpersisting options."""
+        """This function validates setters and getters for cache/keep_cache options."""
         # Set expected properties in Config object
         CONFIG.pyspark_cache = cache_enabled
-        CONFIG.pyspark_unpersist = unpersist_enabled
+        CONFIG.pyspark_keep_cache = keep_cache_enabled
 
         # Evaluate expected Config
         expected = {
             "validation_enabled": True,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
             "pyspark_cache": cache_enabled,
-            "pyspark_unpersist": unpersist_enabled,
+            "pyspark_keep_cache": keep_cache_enabled,
         }
         assert CONFIG.dict() == expected

@@ -21,13 +21,13 @@ class PanderaConfig(BaseModel):
     export PANDERA_VALIDATION_ENABLED=False
     export PANDERA_VALIDATION_DEPTH=DATA_ONLY
     export PANDERA_PYSPARK_CACHE=True
-    export PANDERA_PYSPARK_UNPERSIST=False
+    export PANDERA_PYSPARK_KEEP_CACHE=True
     """
 
     validation_enabled: bool = True
     validation_depth: ValidationDepth = ValidationDepth.SCHEMA_AND_DATA
     pyspark_cache: bool = False
-    pyspark_unpersist: bool = True
+    pyspark_keep_cache: bool = False
 
 
 # this config variable should be accessible globally
@@ -43,8 +43,8 @@ CONFIG = PanderaConfig(
         "PANDERA_PYSPARK_CACHE",
         False,
     ),
-    pyspark_unpersist=os.environ.get(
-        "PANDERA_PYSPARK_UNPERSIST",
-        True,
+    pyspark_keep_cache=os.environ.get(
+        "PANDERA_PYSPARK_KEEP_CACHE",
+        False,
     ),
 )
