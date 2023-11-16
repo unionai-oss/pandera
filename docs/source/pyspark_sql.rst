@@ -263,8 +263,8 @@ before validation starts, through the use of two environment variables:
 
 .. code-block:: bash
 
-    export PANDERA_PYSPARK_CACHE=True  # Defaults to False, do not `cache()` by default
-    export PANDERA_PYSPARK_UNPERSIST=False  # Defaults to True, `unpersist()` by default
+    export PANDERA_PYSPARK_CACHE=True # Default is False, do not `cache()` by default
+    export PANDERA_PYSPARK_KEEP_CACHE=True # Default is False, `unpersist()` by default
 
 The first controls if current DataFrame state should be cached in your Spark Session
 before the validation starts. The second controls if such cached state should still be
@@ -281,7 +281,7 @@ kept after the validation ends.
     an individual process, but one step of the pipeline: if you have a pipeline that,
     in a single Spark session, uses Pandera to evaluate all input dataframes before
     transforming them in an result that will be written to disk, it may make sense
-    to not throw away the cached states of the inputs. In the end, the already
+    to not throw away the cached states in this session. In the end, the already
     processed states of these dataframes will still be used after the validation ends
     and storing them in memory may be beneficial.
 
