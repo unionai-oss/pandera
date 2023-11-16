@@ -20,8 +20,8 @@ class PanderaConfig(BaseModel):
     This should pick up environment variables automatically, e.g.:
     export PANDERA_VALIDATION_ENABLED=False
     export PANDERA_VALIDATION_DEPTH=DATA_ONLY
-    export PANDERA_PYSPARK_CACHE=True
-    export PANDERA_PYSPARK_KEEP_CACHE=True
+    export PANDERA_CACHE_DATAFRAME=True
+    export PANDERA_KEEP_CACHED_DATAFRAME=True
     """
 
     validation_enabled: bool = True
@@ -40,11 +40,11 @@ CONFIG = PanderaConfig(
         "PANDERA_VALIDATION_DEPTH", ValidationDepth.SCHEMA_AND_DATA
     ),
     pyspark_cache=os.environ.get(
-        "PANDERA_PYSPARK_CACHE",
+        "PANDERA_CACHE_DATAFRAME",
         False,
     ),
     pyspark_keep_cache=os.environ.get(
-        "PANDERA_PYSPARK_KEEP_CACHE",
+        "PANDERA_KEEP_CACHED_DATAFRAME",
         False,
     ),
 )

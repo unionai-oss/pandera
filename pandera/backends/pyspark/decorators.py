@@ -144,7 +144,7 @@ def cache_check_obj():
     entrypoint.
 
     The behavior of the resulting decorator depends on the `PANDERA_PYSPARK_CACHING` and
-    `PANDERA_PYSPARK_KEEP_CACHE` (optional) environment variables.
+    `PANDERA_KEEP_CACHED_DATAFRAME` (optional) environment variables.
 
     Usage:
         @cache_check_obj()
