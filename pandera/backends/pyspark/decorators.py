@@ -1,15 +1,18 @@
 """This module holds the decorators only valid for pyspark"""
 
 import functools
+import logging
 import warnings
+from contextlib import contextmanager
 from enum import Enum
 from typing import List, Type
 
-import pyspark.sql
-
+from pyspark.sql import DataFrame
 from pandera.api.pyspark.types import PysparkDefaultTypes
 from pandera.config import CONFIG, ValidationDepth
 from pandera.errors import SchemaError
+
+logger = logging.getLogger(__name__)
 
 
 class ValidationScope(Enum):
@@ -90,7 +93,7 @@ def validate_scope(scope: ValidationScope):
                 """
                 if args:
                     for value in args:
-                        if isinstance(value, pyspark.sql.DataFrame):
+                        if isinstance(value, DataFrame):
                             return value
 
             if scope == ValidationScope.SCHEMA:
@@ -122,6 +125,74 @@ def validate_scope(scope: ValidationScope):
                     # If the function was skip, return the `check_obj` value anyway,
                     # given that some return value is expected
                     return _get_check_obj()
+
+        return wrapper
+
+    return _wrapper
+
+
+def cache_check_obj():
+    """This decorator evaluates if `check_obj` should be cached before validation.
+
+    As each new data check added to the Pandera schema by the user triggers a new
+    Spark action, Spark reprocesses the `check_obj` DataFrame multiple times.
+    To prevent this waste of processing resources and to reduce validation times in
+    complex scenarios, the decorator created by this factory caches the `check_obj`
+    DataFrame before validation and unpersists it afterwards.
+
+    This decorator is meant to be used primarily in the `validate()` function
+    entrypoint.
+
+    The behavior of the resulting decorator depends on the `PANDERA_PYSPARK_CACHING` and
+    `PANDERA_KEEP_CACHED_DATAFRAME` (optional) environment variables.
+
+    Usage:
+        @cache_check_obj()
+        def validate(check_obj: DataFrame):
+            # ...
+    """
+
+    def _wrapper(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            # Skip if not enabled
+            if CONFIG.pyspark_cache is not True:
+                return func(self, *args, **kwargs)
+
+            check_obj: DataFrame = None
+
+            # Check if decorated function has a dataframe object as an positional arg
+            for arg in args:
+                if isinstance(arg, DataFrame):
+                    check_obj = arg
+                    break
+
+            # If it doesn't exist, fallback to kwargs and search for a `check_obj` key
+            if check_obj is None:
+                check_obj = kwargs.get("check_obj", None)
+
+            if not isinstance(check_obj, DataFrame):
+                raise ValueError(
+                    "Expected to find a DataFrame object in a arg or a `check_obj` "
+                    "kwarg in the decorated function "
+                    f"`{func.__name__}`. Got {args=}/{kwargs=}"
+                )
+
+            @contextmanager
+            def cached_check_obj():
+                """Cache the dataframe and unpersist it after function execution."""
+                logger.debug("Caching dataframe...")
+                check_obj.cache()
+
+                yield  # Execute the decorated function
+
+                if not CONFIG.pyspark_keep_cache:
+                    # If not cached, `.unpersist()` does nothing
+                    logger.debug("Unpersisting dataframe...")
+                    check_obj.unpersist()
+
+            with cached_check_obj():
+                return func(self, *args, **kwargs)
 
         return wrapper
 

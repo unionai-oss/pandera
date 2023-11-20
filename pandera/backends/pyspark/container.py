@@ -11,7 +11,11 @@ from pyspark.sql.functions import col, count
 from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
 from pandera.api.pyspark.types import is_table
 from pandera.backends.pyspark.base import ColumnInfo, PysparkSchemaBackend
-from pandera.backends.pyspark.decorators import ValidationScope, validate_scope
+from pandera.backends.pyspark.decorators import (
+    ValidationScope,
+    validate_scope,
+    cache_check_obj,
+)
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.config import CONFIG
 from pandera.errors import (
@@ -102,6 +106,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
 
         return check_obj
 
+    @cache_check_obj()
     def validate(
         self,
         check_obj: DataFrame,

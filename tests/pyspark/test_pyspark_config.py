@@ -2,6 +2,7 @@
 # pylint:disable=import-outside-toplevel,abstract-method
 
 import pyspark.sql.types as T
+import pytest
 
 from pandera.config import CONFIG, ValidationDepth
 from pandera.pyspark import (
@@ -24,7 +25,7 @@ class TestPanderaConfig:
 
         CONFIG.validation_enabled = False
 
-        pandra_schema = DataFrameSchema(
+        pandera_schema = DataFrameSchema(
             {
                 "product": Column(T.StringType(), Check.str_startswith("B")),
                 "price_val": Column(T.IntegerType()),
@@ -41,10 +42,12 @@ class TestPanderaConfig:
         expected = {
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "pyspark_cache": False,
+            "pyspark_keep_cache": False,
         }
 
         assert CONFIG.dict() == expected
-        assert pandra_schema.validate(input_df)
+        assert pandera_schema.validate(input_df)
         assert TestSchema.validate(input_df)
 
     # pylint:disable=too-many-locals
@@ -63,6 +66,8 @@ class TestPanderaConfig:
         expected = {
             "validation_enabled": True,
             "validation_depth": ValidationDepth.SCHEMA_ONLY,
+            "pyspark_cache": False,
+            "pyspark_keep_cache": False,
         }
         assert CONFIG.dict() == expected
 
@@ -132,7 +137,7 @@ class TestPanderaConfig:
         CONFIG.validation_enabled = True
         CONFIG.validation_depth = ValidationDepth.DATA_ONLY
 
-        pandra_schema = DataFrameSchema(
+        pandera_schema = DataFrameSchema(
             {
                 "product": Column(T.StringType(), Check.str_startswith("B")),
                 "price_val": Column(T.IntegerType()),
@@ -141,11 +146,13 @@ class TestPanderaConfig:
         expected = {
             "validation_enabled": True,
             "validation_depth": ValidationDepth.DATA_ONLY,
+            "pyspark_cache": False,
+            "pyspark_keep_cache": False,
         }
         assert CONFIG.dict() == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
-        output_dataframeschema_df = pandra_schema.validate(input_df)
+        output_dataframeschema_df = pandera_schema.validate(input_df)
         expected_dataframeschema = {
             "DATA": {
                 "DATAFRAME_CHECK": [
@@ -217,7 +224,7 @@ class TestPanderaConfig:
         CONFIG.validation_enabled = True
         CONFIG.validation_depth = ValidationDepth.SCHEMA_AND_DATA
 
-        pandra_schema = DataFrameSchema(
+        pandera_schema = DataFrameSchema(
             {
                 "product": Column(T.StringType(), Check.str_startswith("B")),
                 "price_val": Column(T.IntegerType()),
@@ -226,11 +233,13 @@ class TestPanderaConfig:
         expected = {
             "validation_enabled": True,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "pyspark_cache": False,
+            "pyspark_keep_cache": False,
         }
         assert CONFIG.dict() == expected
 
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
-        output_dataframeschema_df = pandra_schema.validate(input_df)
+        output_dataframeschema_df = pandera_schema.validate(input_df)
         expected_dataframeschema = {
             "DATA": {
                 "DATAFRAME_CHECK": [
@@ -326,3 +335,25 @@ class TestPanderaConfig:
             dict(output_dataframemodel_df.pandera.errors["SCHEMA"])
             == expected_dataframemodel["SCHEMA"]
         )
+
+    @pytest.mark.parametrize("cache_enabled", [True, False])
+    @pytest.mark.parametrize("keep_cache_enabled", [True, False])
+    # pylint:disable=too-many-locals
+    def test_pyspark_cache_settings(
+        self,
+        cache_enabled,
+        keep_cache_enabled,
+    ):
+        """This function validates setters and getters for cache/keep_cache options."""
+        # Set expected properties in Config object
+        CONFIG.pyspark_cache = cache_enabled
+        CONFIG.pyspark_keep_cache = keep_cache_enabled
+
+        # Evaluate expected Config
+        expected = {
+            "validation_enabled": True,
+            "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
+            "pyspark_cache": cache_enabled,
+            "pyspark_keep_cache": keep_cache_enabled,
+        }
+        assert CONFIG.dict() == expected
