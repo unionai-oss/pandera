@@ -587,27 +587,28 @@ def check_types(
         str,
         Iterable[Tuple[Union[SchemaModel, None], Union[AnnotationInfo, None]]],
     ] = {}
-    for arg_name_, annotation in typing.get_type_hints(wrapped).items():
-        annotation_info = AnnotationInfo(annotation)
-        if not annotation_info.is_generic_df:
-            # pylint: disable=comparison-with-callable
-            if annotation_info.origin == Union:
-                annotation_model_pairs = []
-                for annot in annotation_info.args:  # type: ignore[union-attr]
-                    sub_annotation_info = AnnotationInfo(annot)
-                    if not sub_annotation_info.is_generic_df:
-                        continue
 
-                    schema_model = cast(SchemaModel, sub_annotation_info.arg)
-                    annotation_model_pairs.append(
-                        (schema_model, sub_annotation_info)
-                    )
-            else:
-                continue
-        else:
+
+    def recurse_find_annotation_model_pairs(annotation_info: AnnotationInfo):
+        if annotation_info.is_generic_df:
             schema_model = cast(SchemaModel, annotation_info.arg)
-            annotation_model_pairs = [(schema_model, annotation_info)]
+            return [(schema_model, annotation_info)]
 
+        if annotation_info.args is None:
+            return []
+            
+        annotation_model_pairs = []
+        for arg in annotation_info.args:
+            annotation_model_pairs += recurse_find_annotation_model_pairs(
+                AnnotationInfo(arg)
+            )
+
+        return annotation_model_pairs
+        
+    for arg_name_, annotation in typing.get_type_hints(wrapped).items():
+        annotation_model_pairs = recurse_find_annotation_model_pairs(
+            AnnotationInfo(annotation)
+        )
         annotated_schema_models[arg_name_] = annotation_model_pairs
 
     def _check_arg(arg_name: str, arg_value: Any) -> Any:
