@@ -485,6 +485,15 @@ def test_dataframe_strategy(data_type, size, data):
         )
 
 
+def test_dataframe_strategy_empty_localized():
+    """Test DataFrameSchema strategy localizes timezones when empty."""
+    schema = pa.DataFrameSchema(
+        {"localized": pa.Column(pd.DatetimeTZDtype(tz="UTC", unit="ns"))}
+    )
+    example = schema.example(0)
+    schema(example)
+
+
 @pytest.mark.parametrize("size", [None, 0, 1, 3, 5])
 @hypothesis.given(st.data())
 def test_dataframe_strategy_with_check(size, data):
@@ -647,6 +656,7 @@ def test_multiindex_example() -> None:
             pa.Index(data_type, unique=True, name="level_0"),
             pa.Index(data_type, nullable=True),
             pa.Index(data_type),
+            pa.Index(pd.DatetimeTZDtype(tz="UTC", unit="ns")),
         ]
     )
     for _ in range(10):

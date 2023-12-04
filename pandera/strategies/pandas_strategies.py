@@ -259,11 +259,8 @@ def convert_dtype(array: Union[pd.Series, pd.Index], col_dtype: Any):
     return array.astype(col_dtype)
 
 
-def convert_dtypes(df: pd.DataFrame, col_dtypes: Dict[str, Any]):
+def convert_dtypes(df: pd.DataFrame, col_dtypes: Dict[Union[int, str], Any]):
     """Convert datatypes of a dataframe."""
-    if df.empty:
-        return df
-
     for col_name, col_dtype in col_dtypes.items():
         array: pd.Series = df[col_name]  # type: ignore[assignment]
         df[col_name] = convert_dtype(array, col_dtype)
@@ -1237,9 +1234,7 @@ def multiindex_strategy(
         index=pdst.range_indexes(
             min_size=0 if size is None else size, max_size=size
         ),
-    ).map(
-        lambda x: x.astype(index_dtypes)  # type: ignore[arg-type]
-    )
+    ).map(partial(convert_dtypes, col_dtypes=index_dtypes))
 
     # this is a hack to convert np.str_ data values into native python str.
     for name, dtype in index_dtypes.items():
