@@ -54,7 +54,7 @@ The Open-source Framework for Precision Data Testing
     :target: https://pepy.tech/project/pandera
     :alt: Monthly Downloads
 
-.. image:: https://img.shields.io/badge/dynamic/json?style=for-the-badge&label=total%20downloads&query=%24.total_downloads&url=https%3A%2F%2Fapi.pepy.tech%2Fapi%2Fv2%2Fprojects%2Fpandera
+.. image:: https://img.shields.io/pepy/dt/pandera?style=for-the-badge&color=blue
     :target: https://pepy.tech/badge/pandera
     :alt: Total Downloads
 
