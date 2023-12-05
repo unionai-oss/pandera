@@ -2,13 +2,14 @@
 
 from contextlib import nullcontext as does_not_raise
 
-import pandera.errors
-import pandera.pyspark as pa
 import pyspark.sql.types as T
 import pytest
+from pyspark.sql import DataFrame, SparkSession
+
+import pandera.errors
+import pandera.pyspark as pa
 from pandera.config import PanderaConfig, ValidationDepth
 from pandera.pyspark import Column, DataFrameSchema
-from pyspark.sql import DataFrame, SparkSession
 
 spark = SparkSession.builder.getOrCreate()
 

@@ -4,19 +4,17 @@
 from contextlib import nullcontext as does_not_raise
 from typing import Optional
 
+import pyspark.sql.types as T
+import pytest
+from pyspark.sql import DataFrame
+
 import pandera
 import pandera.api.extensions as pax
 import pandera.pyspark as pa
-import pyspark.sql.types as T
-import pytest
 from pandera.api.pyspark.model import docstring_substitution
 from pandera.config import PanderaConfig, ValidationDepth
-from pandera.errors import (
-    SchemaDefinitionError,
-)
+from pandera.errors import SchemaDefinitionError
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
-from pyspark.sql import DataFrame
-
 from tests.pyspark.conftest import spark_df
 
 

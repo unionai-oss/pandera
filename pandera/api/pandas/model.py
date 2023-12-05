@@ -44,8 +44,8 @@ from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 from pandera.typing.common import DataFrameBase
 
 if PYDANTIC_V2:
+    from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic_core import core_schema
-    from pydantic import GetJsonSchemaHandler, GetCoreSchemaHandler
 
 try:
     from typing_extensions import get_type_hints

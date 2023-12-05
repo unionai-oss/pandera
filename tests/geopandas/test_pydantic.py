@@ -1,11 +1,11 @@
 """Tests GeoPandas schema creation and validation from type annotations."""
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 
-import pandas as pd
 import geopandas as gpd
+import pandas as pd
 import pytest
-from shapely.geometry import Point
 from pydantic import BaseModel, ValidationError
+from shapely.geometry import Point
 
 import pandera as pa
 from pandera.typing.geopandas import GeoDataFrame, GeoSeries

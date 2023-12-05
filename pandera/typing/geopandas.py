@@ -8,24 +8,20 @@ from typing import (  # type: ignore[attr-defined]
     Generic,
     TypeVar,
     Union,
-    get_args,
     _type_check,
+    get_args,
 )
 
 import pandas as pd
 
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaError, SchemaInitError
-from pandera.typing.common import (
-    DataFrameBase,
-    DataFrameModel,
-    SeriesBase,
-)
+from pandera.typing.common import DataFrameBase, DataFrameModel, SeriesBase
 from pandera.typing.formats import Formats
 
 if PYDANTIC_V2:
-    from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
+    from pydantic_core import core_schema
 
 try:
     import geopandas as gpd

@@ -4,11 +4,11 @@ from typing import Any
 
 import pyspark
 import pyspark.sql.types as T
+from pyspark.sql import DataFrame
+
 from pandera.backends.pyspark.decorators import ValidationScope, validate_scope
 from pandera.config import PanderaConfig
 from pandera.pyspark import Column, DataFrameSchema
-from pyspark.sql import DataFrame
-
 from tests.pyspark.conftest import spark_df
 
 

@@ -1,19 +1,16 @@
 """This module is to test the behaviour change based on defined config in pandera"""
 # pylint:disable=import-outside-toplevel,abstract-method
 
-from contextlib import nullcontext as does_not_raise
 import logging
+from contextlib import nullcontext as does_not_raise
+
 import pyspark.sql.types as T
-from pyspark.sql import DataFrame
 import pytest
+from pyspark.sql import DataFrame
 
 from pandera.backends.pyspark.decorators import cache_check_obj
 from pandera.config import CONFIG
-from pandera.pyspark import (
-    Check,
-    DataFrameSchema,
-    Column,
-)
+from pandera.pyspark import Check, Column, DataFrameSchema
 from tests.pyspark.conftest import spark_df
 
 

@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 import pandas as pd
 
 from pandera import errors
-from pandera.config import CONFIG
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
@@ -21,12 +20,13 @@ from pandera.api.pandas.types import (
     PandasDtypeInputTypes,
     StrictType,
 )
+from pandera.config import CONFIG
 from pandera.dtypes import DataType, UniqueSettings
-from pandera.engines import pandas_engine, PYDANTIC_V2
+from pandera.engines import PYDANTIC_V2, pandas_engine
 
 if PYDANTIC_V2:
-    from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
+    from pydantic_core import core_schema
 
 N_INDENT_SPACES = 4
 

@@ -1,19 +1,18 @@
 """Unit tests for the geopandas integration."""
+import geopandas as gpd
+import pandas as pd
+import pytest
+from shapely.geometry import Point, Polygon
+
+import pandera as pa
+from pandera.engines.pandas_engine import Geometry
+from pandera.typing import Series
+from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 
 try:  # python 3.9+
     from typing import Annotated  # type: ignore
 except ImportError:
     from typing_extensions import Annotated  # type: ignore
-
-import pandas as pd
-import geopandas as gpd
-import pytest
-from shapely.geometry import Polygon, Point
-
-import pandera as pa
-from pandera.typing import Series
-from pandera.typing.geopandas import GeoDataFrame, GeoSeries
-from pandera.engines.pandas_engine import Geometry
 
 
 def test_dataframe_schema():
