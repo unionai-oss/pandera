@@ -68,9 +68,10 @@ The Open-source Framework for Precision Data Testing
 
 |
 
-``pandera`` provides a flexible and expressive API for performing data
-validation on dataframe-like objects to make data processing pipelines more
-readable and robust.
+``pandera`` is a `Union.ai <https://union.ai/blog-post/pandera-joins-union-ai>`_
+open source project that provides a flexible and expressive API for performing data
+validation on dataframe-like objects to make data processing pipelines more readable
+and robust.
 
 Dataframes contain information that ``pandera`` explicitly validates at runtime.
 This is useful in production-critical data pipelines or reproducible research

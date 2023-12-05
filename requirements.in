@@ -5,7 +5,7 @@ pip
 packaging >= 20.0
 hypothesis >= 5.41.1
 numpy >= 1.19.0
-pandas >= 1.2.0
+pandas
 scipy
 wrapt
 pyyaml >=5.1
@@ -15,7 +15,7 @@ frictionless <= 4.40.8
 pyarrow
 pydantic
 multimethod
-pandas-stubs <= 1.5.2.221213
+pandas-stubs
 pyspark >= 3.2.0
 modin
 protobuf
@@ -26,7 +26,7 @@ shapely
 fastapi
 black >= 22.1.0
 isort >= 5.7.0
-mypy <= 0.982
+mypy
 pylint <= 2.17.3
 pytest
 pytest-cov

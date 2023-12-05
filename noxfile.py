@@ -19,7 +19,7 @@ from pkg_resources import Requirement, parse_requirements
 
 nox.options.sessions = (
     "requirements",
-    "mypy",
+    "ci_requirements",
     "tests",
     "docs",
     "doctests",
@@ -27,12 +27,13 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
-PANDAS_VERSIONS = ["1.2.0", "1.3.5", "latest"]
+PANDAS_VERSIONS = ["1.5.3", "2.0.3"]
+PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
 PACKAGE = "pandera"
 
 SOURCE_PATHS = PACKAGE, "tests", "noxfile.py"
-REQUIREMENT_PATH = "requirements-dev.txt"
+REQUIREMENT_PATH = "requirements.in"
 ALWAYS_USE_PIP = {
     "ray",
     "furo",
@@ -291,6 +292,49 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
         sys.exit(1)
 
 
+@nox.session(python=PYTHON_VERSIONS)
+@nox.parametrize("pandas", PANDAS_VERSIONS)
+@nox.parametrize("pydantic", PYDANTIC_VERSIONS)
+def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
+    """Install pinned dependencies for CI."""
+    session.install("pip-tools")
+    output_file = (
+        "ci/requirements-"
+        f"py{session.python}-"
+        f"pandas{pandas}-"
+        f"pydantic{pydantic}.txt"
+    )
+    session.run(
+        "pip-compile",
+        "requirements.in",
+        "--output-file",
+        output_file,
+        "-v",
+        "--resolver",
+        "backtracking",
+        "--upgrade-package",
+        f"pandas=={pandas}",
+        "--upgrade-package",
+        f"pydantic=={pydantic}",
+    )
+
+
+@nox.session(python=PYTHON_VERSIONS)
+def dev_requirements(session: Session) -> None:
+    """Install pinned dependencies for CI."""
+    session.install("pip-tools")
+    output_file = f"dev/requirements-{session.python}.txt"
+    session.run(
+        "pip-compile",
+        "requirements.in",
+        "--output-file",
+        output_file,
+        "-v",
+        "--resolver",
+        "backtracking",
+    )
+
+
 EXTRA_NAMES = [
     extra
     for extra in REQUIRES
@@ -326,8 +370,6 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         }
         or (python, extra)
         in {
-            ("3.7", "modin-dask"),
-            ("3.7", "modin-ray"),
             ("3.10", "modin-dask"),
             ("3.10", "modin-ray"),
             ("3.10", "pyspark"),
@@ -350,10 +392,7 @@ def tests(session: Session, pandas: str, extra: str) -> None:
         path = f"tests/{extra}/" if extra != "all" else "tests"
         args = []
         if extra == "strategies":
-            # strategies tests runs very slowly in python 3.7:
-            # https://github.com/pandera-dev/pandera/issues/556
-            # as a stop-gap, use the "dev" profile for 3.7
-            profile = "ci" if CI_RUN and session.python != "3.7" else "dev"
+            profile = "ci"
             # enable threading via pytest-xdist
             args = [
                 "-n=auto",

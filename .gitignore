@@ -1,3 +1,4 @@
+*.db
 .vscode
 dask-worker-space
 spark-warehouse
