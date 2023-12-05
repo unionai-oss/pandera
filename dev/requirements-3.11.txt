@@ -353,7 +353,7 @@ ptyprocess==0.7.0
     # via terminado
 py4j==0.10.9.7
     # via pyspark
-pyarrow==13.0.0
+pyarrow==14.0.1
     # via -r requirements.in
 pycparser==2.21
     # via cffi
@@ -597,7 +597,7 @@ tzdata==2023.3
     # via pandas
 uri-template==1.3.0
     # via jsonschema
-urllib3==2.0.5
+urllib3==2.0.7
     # via
     #   distributed
     #   requests

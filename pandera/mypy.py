@@ -133,10 +133,16 @@ class DataFrameModelTransformer:
             x: pa.typing.Series[str]  # mypy assignment error, cannot override types
         """
         for def_ in self.ctx.cls.defs.body:
-            if not hasattr(def_, "type") or def_.type is None:
+            if (
+                not hasattr(def_, "type")
+                or def_.type is None
+                # e.g. UnionType does not have module_name or name
+                or not hasattr(def_.type, "module_name")
+                or not hasattr(def_.type, "name")
+            ):
                 continue
             type_ = def_.type
-            if get_typename(def_.type) in FIELD_GENERICS_FULLNAMES:
+            if str(def_.type) in FIELD_GENERICS_FULLNAMES:
                 type_.args = ()  # erase generic type arg
 
 
@@ -154,7 +160,3 @@ def get_fullname(x: Union[FuncBase, SymbolNode]) -> str:
     if callable(fn):  # pragma: no cover
         return fn()
     return fn
-
-
-def get_typename(x) -> str:
-    return f"{x.type.module_name}.{x.type.name}"

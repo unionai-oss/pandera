@@ -394,8 +394,8 @@ def test_duplicate_columns_dataframe():
     assert not schema.unique_column_names
 
 
-def test_add_missing_columns():
-    """Test that missing columns are added."""
+def test_add_missing_columns_order():
+    """Test that missing columns are added in the correct order."""
     col_labels = ["a", "b", "c"]
 
     # Missing column is first in schema
@@ -474,6 +474,61 @@ def test_add_missing_columns():
         match="column 'a' in .* requires a default value when non-nullable add_missing_columns is enabled",
     ):
         schema_no_default_not_nullable.validate(frame_missing_first)
+
+    # Validate missing column isn't added multiple times when multiple
+    # trailing columns not in the schema exists in the dataframe
+    # https://github.com/unionai-oss/pandera/issues/1370
+    schema = DataFrameSchema(
+        columns={
+            "col_a": Column(str),
+            "col_missing": Column(str, nullable=True),
+        },
+        add_missing_columns=True,
+    )
+    df = pd.DataFrame(
+        {
+            "col_a": ["a", "b", "c"],
+            "col_b": ["d", "e", "f"],
+            "col_c": ["g", "h", "i"],
+        }
+    )
+    validated_frame_trailing = schema.validate(df)
+    assert validated_frame_trailing.columns.equals(
+        pd.Index(["col_a", "col_missing", "col_b", "col_c"])
+    )
+
+
+def test_add_missing_columns_dtype():
+    """Test that missing columns are added with the correct dtype."""
+    ref_df = pd.DataFrame(
+        {
+            "a": pd.Series([2, 5], dtype=np.int64),
+            "b": pd.Series([9, 9], dtype=np.int64),
+            "c": pd.Series([9, 9], dtype=np.int8),
+            "d": pd.Series([np.nan, np.nan], dtype=np.float64),
+            "e": pd.Series(
+                [7, 7], dtype=pd.SparseDtype(dtype=np.int8, fill_value=5)
+            ),
+            "f": pd.Series([pd.NA, pd.NA], dtype=pd.Int32Dtype()),
+        }
+    )
+
+    schema = DataFrameSchema(
+        columns={
+            "a": Column(np.int64),
+            "b": Column(np.int64, default=9),
+            "c": Column(np.int8, default=9),
+            "d": Column(np.float64, default=np.nan, nullable=True),
+            "e": Column(
+                pd.SparseDtype(dtype=np.int8, fill_value=5), default=7
+            ),
+            "f": Column(pd.Int32Dtype(), default=pd.NA, nullable=True),
+        },
+        add_missing_columns=True,
+        coerce=False,
+    )
+    test_df = schema.validate(pd.DataFrame(data={"a": [2, 5]}))
+    pd.testing.assert_frame_equal(ref_df, test_df)
 
 
 def test_series_schema() -> None:

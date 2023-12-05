@@ -98,6 +98,7 @@ __all__ = [
     "Complex64",
     "Complex128",
     "Complex256",
+    "Date",
     "DataType",
     "DateTime",
     "Float",

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 import pandas as pd
 
 from pandera import errors
+from pandera.config import CONFIG
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
@@ -345,6 +346,9 @@ class DataFrameSchema(
         4         0.80      dog
         5         0.76      dog
         """
+        if not CONFIG.validation_enabled:
+            return check_obj
+
         # NOTE: Move this into its own schema-backend variant. This is where
         # the benefits of separating the schema spec from the backend
         # implementation comes in.
