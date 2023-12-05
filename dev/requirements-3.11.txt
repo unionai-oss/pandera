@@ -206,7 +206,7 @@ jupyter-core==5.3.1
     #   nbformat
 jupyter-events==0.7.0
     # via jupyter-server
-jupyter-server==2.7.3
+jupyter-server==2.11.2
     # via
     #   jupyterlab-server
     #   jupyterlite-sphinx
