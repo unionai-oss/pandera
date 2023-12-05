@@ -44,6 +44,8 @@ class TestPandasDataFrameConfig:
             price_val: int = pa.Field()
 
         expected = {
+            "cache_dataframe": False,
+            "keep_cached_dataframe": False,
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
         }
@@ -61,6 +63,8 @@ class TestPandasSeriesConfig:
     def test_disable_validation(self, disable_validation):
         """This function validates that a none object is loaded if validation is disabled"""
         expected = {
+            "cache_dataframe": False,
+            "keep_cached_dataframe": False,
             "validation_enabled": False,
             "validation_depth": ValidationDepth.SCHEMA_AND_DATA,
         }

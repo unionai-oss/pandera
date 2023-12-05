@@ -22,10 +22,10 @@ class TestPanderaDecorators:
 
     sample_data = [("Bread", 9), ("Cutter", 15)]
 
-    def test_pyspark_cache_requirements(self, spark, sample_spark_schema):
+    def test_cache_dataframe_requirements(self, spark, sample_spark_schema):
         """Validates if decorator can only be applied in a proper function."""
         # Set expected properties in Config object
-        CONFIG.pyspark_cache = True
+        CONFIG.cache_dataframe = True
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)
 
         class FakeDataFrameSchemaBackend:
@@ -74,7 +74,7 @@ class TestPanderaDecorators:
     )
 
     # pylint:disable=too-many-locals
-    def test_pyspark_cache_settings(
+    def test_cache_dataframe_settings(
         self,
         spark,
         sample_spark_schema,
@@ -86,8 +86,8 @@ class TestPanderaDecorators:
     ):
         """This function validates that caching/unpersisting works as expected."""
         # Set expected properties in Config object
-        CONFIG.pyspark_cache = cache_enabled
-        CONFIG.pyspark_keep_cache = keep_cache_enabled
+        CONFIG.cache_dataframe = cache_enabled
+        CONFIG.keep_cached_dataframe = keep_cache_enabled
 
         # Prepare test data
         input_df = spark_df(spark, self.sample_data, sample_spark_schema)

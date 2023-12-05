@@ -26,8 +26,8 @@ class PanderaConfig(BaseModel):
 
     validation_enabled: bool = True
     validation_depth: ValidationDepth = ValidationDepth.SCHEMA_AND_DATA
-    pyspark_cache: bool = False
-    pyspark_keep_cache: bool = False
+    cache_dataframe: bool = False
+    keep_cached_dataframe: bool = False
 
 
 # this config variable should be accessible globally
@@ -39,11 +39,11 @@ CONFIG = PanderaConfig(
     validation_depth=os.environ.get(
         "PANDERA_VALIDATION_DEPTH", ValidationDepth.SCHEMA_AND_DATA
     ),
-    pyspark_cache=os.environ.get(
+    cache_dataframe=os.environ.get(
         "PANDERA_CACHE_DATAFRAME",
         False,
     ),
-    pyspark_keep_cache=os.environ.get(
+    keep_cached_dataframe=os.environ.get(
         "PANDERA_KEEP_CACHED_DATAFRAME",
         False,
     ),
