@@ -1,13 +1,14 @@
 """Unit tests for dask_accessor module."""
 from typing import Union
 
-import pandera.pyspark as pa
 import pytest
-from pandera.accessors import pyspark_sql_accessor
-from pandera.config import PanderaConfig, ValidationDepth
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from pyspark.sql.types import FloatType, LongType
+
+import pandera.pyspark as pa
+from pandera.accessors import pyspark_sql_accessor
+from pandera.config import PanderaConfig, ValidationDepth
 
 spark = SparkSession.builder.getOrCreate()
 
