@@ -156,7 +156,7 @@ def cache_check_obj():
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             # Skip if not enabled
-            if CONFIG.pyspark_cache is not True:
+            if CONFIG.cache_dataframe is not True:
                 return func(self, *args, **kwargs)
 
             check_obj: DataFrame = None
@@ -186,7 +186,7 @@ def cache_check_obj():
 
                 yield  # Execute the decorated function
 
-                if not CONFIG.pyspark_keep_cache:
+                if not CONFIG.keep_cached_dataframe:
                     # If not cached, `.unpersist()` does nothing
                     logger.debug("Unpersisting dataframe...")
                     check_obj.unpersist()
