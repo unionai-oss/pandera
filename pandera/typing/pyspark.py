@@ -1,4 +1,4 @@
-"""Pandera type annotations for Dask."""
+"""Pandera type annotations for Pyspark Pandas."""
 import functools
 from typing import TYPE_CHECKING, Generic, TypeVar, Any, get_args
 

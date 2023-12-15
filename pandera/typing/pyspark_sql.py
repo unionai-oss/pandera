@@ -1,4 +1,4 @@
-"""Pandera type annotations for Pyspark."""
+"""Pandera type annotations for Pyspark SQL"""
 from typing import Union, TypeVar
 
 from pandera.typing.common import DataFrameBase
