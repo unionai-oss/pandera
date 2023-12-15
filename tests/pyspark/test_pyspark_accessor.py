@@ -1,4 +1,4 @@
-"""Unit tests for dask_accessor module."""
+"""Unit tests for pyspark_accessor module."""
 from typing import Union
 
 from pyspark.sql import DataFrame, SparkSession
