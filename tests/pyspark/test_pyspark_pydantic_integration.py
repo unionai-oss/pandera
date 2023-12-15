@@ -1,4 +1,6 @@
-"""Tests for the integration between PySpark and Pydantic."""
+"""Tests for integration of Pyspark DataFrames with Pydantic."""
+# pylint:disable=redefined-outer-name,abstract-method
+
 from enum import Enum
 
 import pandas as pd
