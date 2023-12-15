@@ -1,55 +1,101 @@
 """Tests for the integration between PySpark and Pydantic."""
+from enum import Enum
+
+import pandas as pd
 import pytest
 from pydantic import BaseModel, ValidationError
 from pyspark.testing.utils import assertDataFrameEqual
 import pyspark.sql.types as T
 
-import pandera.pyspark as pa
 from pandera.typing.pyspark_sql import DataFrame as PySparkSQLDataFrame
-from pandera.typing.pyspark import DataFrame as PySparkDataFrame
-from pandera.pyspark import DataFrameModel
+from pandera.typing.pyspark import DataFrame as PysparkPandasDataFrame, Series
+from pandera.pyspark import DataFrameModel as PysparkSQLDataFrameModel
+from pandera import DataFrameModel
+
+
+class PysparkAPIs(Enum):
+    PANDAS = "pandas"
+    SQL = "SQL"
+
+
+@pytest.fixture(
+    params=[PysparkAPIs.PANDAS, PysparkAPIs.SQL],
+    ids=["pyspark_pandas", "pyspark_sql"],
+)
+def pyspark_api(request):
+    return request.param
 
 
 @pytest.fixture
-def sample_schema_model():
-    class SampleSchema(DataFrameModel):
-        """
-        Sample schema model with data checks.
-        """
+def sample_data_frame_model_class(pyspark_api):
+    if pyspark_api == PysparkAPIs.SQL:
 
-        product: T.StringType() = pa.Field()
-        price: T.IntegerType() = pa.Field()
+        class SampleSchema(PysparkSQLDataFrameModel):
+            """
+            Sample schema model
+            """
+
+            product: T.StringType()
+            price: T.IntegerType()
+
+    elif pyspark_api == PysparkAPIs.PANDAS:
+
+        class SampleSchema(DataFrameModel):
+            """
+            Sample schema model
+            """
+
+            product: Series[str]
+            price: Series[pd.Int32Dtype]
+
+    else:
+        raise ValueError(f"Unknown data frame library: {pyspark_api}")
 
     return SampleSchema
 
 
-@pytest.fixture(
-    params=[PySparkDataFrame, PySparkSQLDataFrame],
-    ids=["pyspark", "pyspark_sql"],
-)
-def pydantic_container(request, sample_schema_model):
-    TypingClass = request.param
+@pytest.fixture
+def pydantic_container(pyspark_api, sample_data_frame_model_class):
+    if pyspark_api == PysparkAPIs.PANDAS:
 
-    class PydanticContainer(BaseModel):
-        """
-        Pydantic container with a DataFrameModel as a field.
-        """
+        class PydanticContainer(BaseModel):
+            """
+            Pydantic container with a DataFrameModel as a field.
+            """
 
-        data: TypingClass[sample_schema_model]
+            data: PysparkPandasDataFrame[sample_data_frame_model_class]
+
+    elif pyspark_api == PysparkAPIs.SQL:
+
+        class PydanticContainer(BaseModel):
+            """
+            Pydantic container with a DataFrameModel as a field.
+            """
+
+            data: PySparkSQLDataFrame[sample_data_frame_model_class]
+
+    else:
+        raise ValueError(f"Unknown data frame library: {pyspark_api}")
 
     return PydanticContainer
 
 
 @pytest.fixture
-def correct_data(spark, sample_data, sample_spark_schema):
+def correct_data(spark, sample_data, sample_spark_schema, pyspark_api):
     """
     Correct data that should pass validation.
     """
-    return spark.createDataFrame(sample_data, sample_spark_schema)
+    df = spark.createDataFrame(sample_data, sample_spark_schema)
+    if pyspark_api == PysparkAPIs.PANDAS:
+        return df.pandas_api()
+    elif pyspark_api == PysparkAPIs.SQL:
+        return df
+    else:
+        raise ValueError(f"Unknown data frame library: {pyspark_api}")
 
 
 @pytest.fixture
-def incorrect_data(spark):
+def incorrect_data(spark, pyspark_api):
     """
     Incorrect data that should fail validation.
     """
@@ -57,7 +103,13 @@ def incorrect_data(spark):
         (1, "Apples"),
         (2, "Bananas"),
     ]
-    return spark.createDataFrame(data, ["product", "price"])
+    df = spark.createDataFrame(data, ["product", "price"])
+    if pyspark_api == PysparkAPIs.PANDAS:
+        return df.pandas_api()
+    elif pyspark_api == PysparkAPIs.SQL:
+        return df
+    else:
+        raise ValueError(f"Unknown data frame library: {pyspark_api}")
 
 
 def test_pydantic_model_instantiates_with_correct_data(
@@ -71,10 +123,19 @@ def test_pydantic_model_instantiates_with_correct_data(
 
 
 def test_pydantic_model_throws_validation_error_with_incorrect_data(
-    incorrect_data, pydantic_container
+    incorrect_data, pydantic_container, pyspark_api
 ):
     """
     Test that a Pydantic model throws a ValidationError when data is invalid.
     """
-    with pytest.raises(ValidationError):
+    if pyspark_api == PysparkAPIs.PANDAS:
+        expected_error_substring = "expected series 'product' to have type str"
+    elif pyspark_api == PysparkAPIs.SQL:
+        expected_error_substring = (
+            "expected column 'product' to have type StringType()"
+        )
+    else:
+        raise ValueError(f"Unknown data frame library: {pyspark_api}")
+
+    with pytest.raises(ValidationError, match=expected_error_substring):
         pydantic_container(data=incorrect_data)

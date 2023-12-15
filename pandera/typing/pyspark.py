@@ -1,13 +1,12 @@
 """Pandera type annotations for Dask."""
 import functools
-import json
 from typing import TYPE_CHECKING, Generic, TypeVar, Any, get_args
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 
 from pandera.engines import PYDANTIC_V2
-from pandera.errors import SchemaInitError
+from pandera.errors import SchemaInitError, SchemaError
 from pandera.typing.common import (
     DataFrameBase,
     GenericDtype,
@@ -33,17 +32,8 @@ else:
 
 if PYSPARK_INSTALLED:
     # pylint: disable=too-few-public-methods,arguments-renamed
-    class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
-        """
-        Representation of dask.dataframe.DataFrame, only used for type
-        annotation.
-
-        *new in 0.8.0*
-        """
-
-        def __class_getitem__(cls, item):
-            """Define this to override's pyspark.pandas generic type."""
-            return _GenericAlias(cls, item)
+    class _PydanticIntegrationMixIn:
+        """Mixin class for pydantic integration with pyspark DataFrames"""
 
         @classmethod
         def _get_schema_model(cls, field):
@@ -93,16 +83,12 @@ if PYSPARK_INSTALLED:
                     f"\n{exc}"
                 ) from exc
 
-            validated_data = schema.validate(obj)
-            if validated_data.pandera.errors:
-                raise ValueError(
-                    str(
-                        json.dumps(
-                            dict(validated_data.pandera.errors), indent=4
-                        )
-                    )
-                )
-            return validated_data
+            try:
+                valid_data = schema.validate(obj, lazy=False)
+            except SchemaError as exc:
+                raise ValueError(str(exc)) from exc
+
+            return valid_data
 
         @classmethod
         def _pydantic_validate(cls, obj: Any, field) -> ps.DataFrame:
@@ -114,6 +100,20 @@ if PYSPARK_INSTALLED:
             """
             schema_model = cls._get_schema_model(field)
             return cls.pydantic_validate(obj, schema_model)
+
+    class DataFrame(
+        DataFrameBase, _PydanticIntegrationMixIn, ps.DataFrame, Generic[T]
+    ):
+        """
+        Representation of dask.dataframe.DataFrame, only used for type
+        annotation.
+
+        *new in 0.8.0*
+        """
+
+        def __class_getitem__(cls, item):
+            """Define this to override's pyspark.pandas generic type."""
+            return _GenericAlias(cls, item)
 
     # pylint:disable=too-few-public-methods,arguments-renamed
     class Series(SeriesBase, ps.Series, Generic[GenericDtype]):  # type: ignore [misc]  # noqa
