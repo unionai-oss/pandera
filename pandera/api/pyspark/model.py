@@ -1,4 +1,4 @@
-"""Class-based api for pyspark models."""
+"""Class-based API for PySpark models."""
 # pylint:disable=abstract-method
 import copy
 import inspect
@@ -47,6 +47,7 @@ except ImportError:  # pragma: no cover
 
 
 _CONFIG_KEY = "Config"
+
 MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
 GENERIC_SCHEMA_CACHE: Dict[
     Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
@@ -124,7 +125,6 @@ class DataFrameModel(BaseModel):
     """Definition of a :class:`~pandera.api.pyspark.container.DataFrameSchema`.
 
     *new in 0.16.0*
-
 
     See the :ref:`User Guide <dataframe_models>` for more.
     """
