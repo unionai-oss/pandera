@@ -16,6 +16,10 @@ from pandera import DataFrameModel
 
 
 class PysparkAPIs(Enum):
+    """
+    Enum for the different Pyspark APIs.
+    """
+
     PANDAS = "pandas"
     SQL = "SQL"
 
@@ -25,11 +29,17 @@ class PysparkAPIs(Enum):
     ids=["pyspark_pandas", "pyspark_sql"],
 )
 def pyspark_api(request):
+    """
+    Fixture for the different Pyspark APIs.
+    """
     return request.param
 
 
 @pytest.fixture
 def sample_data_frame_model_class(pyspark_api):
+    """
+    Fixture for a sample DataFrameModel class.
+    """
     if pyspark_api == PysparkAPIs.SQL:
 
         class SampleSchema(PysparkSQLDataFrameModel):
@@ -58,6 +68,9 @@ def sample_data_frame_model_class(pyspark_api):
 
 @pytest.fixture
 def pydantic_container(pyspark_api, sample_data_frame_model_class):
+    """
+    Fixture for a Pydantic container with a DataFrameModel as a field.
+    """
     if pyspark_api == PysparkAPIs.PANDAS:
 
         class PydanticContainer(BaseModel):

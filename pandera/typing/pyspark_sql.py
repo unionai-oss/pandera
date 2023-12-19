@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover
     PYSPARK_SQL_INSTALLED = False
 
 if PYSPARK_SQL_INSTALLED:
-    from pandera.engines import pyspark_engine, PYDANTIC_V2
+    from pandera.engines import pyspark_engine
 
     PysparkString = pyspark_engine.String
     PysparkInt = pyspark_engine.Int
