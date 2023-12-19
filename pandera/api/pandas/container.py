@@ -34,7 +34,7 @@ N_INDENT_SPACES = 4
 class DataFrameSchema(
     BaseSchema
 ):  # pylint: disable=too-many-public-methods,too-many-locals
-    """A light-weight pandas DataFrame validator."""
+    """A lightweight pandas DataFrame validator."""
 
     def __init__(
         self,
