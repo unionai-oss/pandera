@@ -1,17 +1,20 @@
 """Class-based API for Ibis models."""
 
 from typing import (
+    Any,
     Callable,
     Dict,
     Tuple,
     Type,
+    TypeVar,
 )
 
+from pandera.api.base.model import BaseModel
 from pandera.api.ibis.container import DataFrameSchema
 
 _CONFIG_KEY = "Config"
 
-MODEL_CACHE: Dict[Type["DataFrameModel"], DataFramSchema] = {}
+MODEL_CACHE: Dict[Type["DataFrameModel"], DataFrameSchema] = {}
 GENERIC_SCHEMA_CACHE: Dict[
     Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
     Type["DataFrameModel"],
@@ -28,5 +31,3 @@ class DataFrameModel(BaseModel):
 
     See the :ref:`User Guide <dataframe_models>` for more.
     """
-
-    ...
