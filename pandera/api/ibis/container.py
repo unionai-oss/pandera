@@ -18,7 +18,7 @@ class DataFrameSchema(_DataFrameSchema):
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
-        inplace: bool = false,
+        inplace: bool = False,
     ) -> ir.Table:
         """Validate an Ibis table against the schema.
 
@@ -50,7 +50,7 @@ class DataFrameSchema(_DataFrameSchema):
         >>>
         >>> df = pd.DataFrame({
         ...     "probability": [0.1, 0.4, 0.52, 0.23, 0.8, 0.76],
-        ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"]
+        ...     "category": ["dog", "dog", "cat", "duck", "dog", "dog"],
         ... })
         >>> t = ibis.memtable(df, name="t")
         >>>
