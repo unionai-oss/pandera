@@ -16,5 +16,3 @@ class DataFrameModel(_DataFrameModel[ir.Table, DataFrameSchema]):
 
     See the :ref:`User Guide <dataframe-models>` for more.
     """
-
-    ...
