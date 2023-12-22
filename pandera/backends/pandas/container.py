@@ -1,4 +1,4 @@
-"""Pandas Parsing, Validation, and Error Reporting Backends."""
+"""Pandas parsing, validation, and error-reporting backends."""
 
 import copy
 import itertools
