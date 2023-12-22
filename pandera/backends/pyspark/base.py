@@ -1,4 +1,4 @@
-"""pyspark Parsing, Validation, and Error Reporting Backends."""
+"""PySpark parsing, validation, and error-reporting backends."""
 
 import warnings
 from typing import (
@@ -47,7 +47,7 @@ T = TypeVar(
 
 
 class PysparkSchemaBackend(BaseSchemaBackend):
-    """Base backend for pyspark schemas."""
+    """Base backend for PySpark schemas."""
 
     def subsample(
         self,
@@ -77,8 +77,7 @@ class PysparkSchemaBackend(BaseSchemaBackend):
         :param schema: schema information of the column in the dataframe that needs to be validated
         :param check: Check object used to validate pyspark object.
         :param check_index: index of check in the schema component check list.
-        :param check: Check object used to validate pyspark object.
-        :param check_args: arguments to pass into check object.
+        :param args: arguments to pass into check object.
         :returns: True if check results pass or check.raise_warning=True, otherwise
             False.
         """
