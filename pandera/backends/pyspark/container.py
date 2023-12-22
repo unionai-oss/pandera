@@ -1,4 +1,4 @@
-"""Pyspark Parsing, Validation, and Error Reporting Backends."""
+"""PySpark parsing, validation, and error-reporting backends."""
 
 import copy
 import traceback
@@ -24,7 +24,7 @@ from pandera.validation_depth import ValidationScope
 
 
 class DataFrameSchemaBackend(PysparkSchemaBackend):
-    """Backend for pyspark DataFrameSchema."""
+    """Backend for PySpark DataFrameSchema."""
 
     def preprocess(self, check_obj: DataFrame, inplace: bool = False):
         """Preprocesses a check object before applying check functions."""
