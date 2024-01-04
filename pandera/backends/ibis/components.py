@@ -8,9 +8,10 @@ import ibis.expr.types as ir
 
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.ibis.base import IbisSchemaBackend
+from pandera.backends.pandas.error_formatters import scalar_failure_case
 from pandera.engines.ibis_engine import Engine
 from pandera.error_handlers import SchemaErrorHandler
-from pandera.errors import SchemaError, SchemaErrors
+from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
 
 if TYPE_CHECKING:
     from pandera.api.ibis.components import Column
@@ -87,3 +88,20 @@ class ColumnBackend(IbisSchemaBackend):
                 Engine.dtype(check_obj.type()),
                 check_obj,
             )
+            if isinstance(dtype_check_results, bool):
+                passed = dtype_check_results
+                failure_cases = scalar_failure_case(str(check_obj.type()))
+                msg = (
+                    f"expected column '{check_obj.get_name()}' to have type "
+                    f"{schema.dtype}, got {check_obj.type()}"
+                )
+            else:
+                raise NotImplementedError
+
+        return CoreCheckResult(
+            passed=passed,
+            check=f"dtype('{schema.dtype}')",
+            reason_code=SchemaErrorReason.WRONG_DATATYPE,
+            message=msg,
+            failure_cases=failure_cases,
+        )
