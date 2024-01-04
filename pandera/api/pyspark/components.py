@@ -1,4 +1,4 @@
-"""Core pyspark schema component specifications."""
+"""Core PySpark schema component specifications."""
 
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 

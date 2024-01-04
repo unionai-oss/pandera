@@ -34,7 +34,7 @@ N_INDENT_SPACES = 4
 class DataFrameSchema(
     BaseSchema
 ):  # pylint: disable=too-many-public-methods,too-many-locals
-    """A light-weight pandas DataFrame validator."""
+    """A lightweight pandas DataFrame validator."""
 
     def __init__(
         self,
@@ -292,7 +292,7 @@ class DataFrameSchema(
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        """Check if all columns in a dataframe have a column in the Schema.
+        """Check if all columns in a dataframe have a column in the schema.
 
         :param pd.DataFrame check_obj: the dataframe to be validated.
         :param head: validate the first n rows. Rows overlapping with `tail` or

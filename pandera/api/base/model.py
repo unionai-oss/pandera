@@ -1,4 +1,4 @@
-"""Base classes for model api."""
+"""Base classes for model API."""
 
 import os
 from typing import (

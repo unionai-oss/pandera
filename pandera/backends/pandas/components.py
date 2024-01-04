@@ -42,7 +42,7 @@ class ColumnBackend(ArraySchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
-        """Validation backend implementation for pandas dataframe columns.."""
+        """Validation backend implementation for pandas dataframe columns."""
         if not inplace:
             check_obj = check_obj.copy()
 
