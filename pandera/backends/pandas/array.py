@@ -148,7 +148,9 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(
-                        result.reason_code, error, original_exc=result.original_exc
+                        result.reason_code,
+                        error,
+                        original_exc=result.original_exc,
                     )
 
         return error_handler

@@ -1,6 +1,8 @@
 """Ibis engine and data types."""
 
 import dataclasses
+import inspect
+import warnings
 from typing import Any, Iterable, Union
 
 import ibis
@@ -32,7 +34,9 @@ class DataType(dtypes.DataType):
 
     def __post_init__(self):
         # this method isn't called if __init__ is defined
-        object.__setattr__(self, "type", ibis.dtype(self.type))  # pragma: no cover
+        object.__setattr__(
+            self, "type", ibis.dtype(self.type)
+        )  # pragma: no cover
 
     def check(
         self,
@@ -62,7 +66,7 @@ class Engine(
             #   once have https://github.com/ibis-project/ibis/pull/7910
             from ibis.formats.numpy import NumpyType
 
-            np_dtype = NumpyFormat.from_dtype(data_type)
+            np_dtype = NumpyType.from_ibis(data_type)
 
         return engine.Engine.dtype(cls, np_dtype)
 
@@ -88,7 +92,13 @@ class Int64(DataType, dtypes.Int64):
 
 
 @Engine.register_dtype(
-    equivalents=[np.float64, dtypes.Float64, dtypes.Float64(), dt.Float64, dt.float64]
+    equivalents=[
+        np.float64,
+        dtypes.Float64,
+        dtypes.Float64(),
+        dt.Float64,
+        dt.float64,
+    ]
 )
 @immutable
 class Float64(DataType, dtypes.Float64):

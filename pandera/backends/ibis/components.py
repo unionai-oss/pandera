@@ -16,6 +16,7 @@ from pandera.errors import SchemaError, SchemaErrorReason, SchemaErrors
 if TYPE_CHECKING:
     from pandera.api.ibis.components import Column
 
+
 class ColumnBackend(IbisSchemaBackend):
     """Backend implementation for Ibis table columns."""
 
@@ -66,7 +67,9 @@ class ColumnBackend(IbisSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(  # Why indent (unlike in container.py)?
-                        result.reason_code, error, original_exc=result.original_exc
+                        result.reason_code,
+                        error,
+                        original_exc=result.original_exc,
                     )
 
         if lazy and error_handler.collected_errors:
@@ -78,7 +81,9 @@ class ColumnBackend(IbisSchemaBackend):
 
         return check_obj
 
-    def check_dtype(self, check_obj: ir.Column, schema: Column) -> CoreCheckResult:
+    def check_dtype(
+        self, check_obj: ir.Column, schema: Column
+    ) -> CoreCheckResult:
         passed = True
         failure_cases = None
         msg = None
