@@ -125,8 +125,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
             (self.run_checks, (check_obj_subsample, schema)),
         ]
 
-        for core_check, args in core_checks:
-            results = core_check(*args)
+        for check, args in core_checks:
+            results = check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
             results = cast(List[CoreCheckResult], results)
@@ -148,9 +148,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(
-                        result.reason_code,
-                        error,
-                        original_exc=result.original_exc,
+                        result.reason_code, error, original_exc=result.original_exc
                     )
 
         return error_handler

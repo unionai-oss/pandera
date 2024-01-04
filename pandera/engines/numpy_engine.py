@@ -40,9 +40,7 @@ class DataType(dtypes.DataType):
 
     def __post_init__(self):
         # this method isn't called if __init__ is defined
-        object.__setattr__(
-            self, "type", np.dtype(self.type)
-        )  # pragma: no cover
+        object.__setattr__(self, "type", np.dtype(self.type))  # pragma: no cover
 
     def coerce(
         self, data_container: Union[PandasObject, np.ndarray]
@@ -145,7 +143,7 @@ def _build_number_equivalents(
                     # e.g.: pandera.dtypes.Int64
                     getattr(dtypes, f"{pandera_name}{bit_width}"),
                     getattr(dtypes, f"{pandera_name}{bit_width}")(),
-                    # e.g.: pandera.dtypes.Int(64)
+                    # e.g.: pandera.dtypes.Int()
                     getattr(dtypes, pandera_name)(),
                 )
             )
@@ -360,7 +358,7 @@ class String(DataType, dtypes.String):
 
     def check(
         self,
-        pandera_dtype: "dtypes.DataType",
+        pandera_dtype: dtypes.DataType,
         data_container: Optional[PandasObject] = None,
     ) -> Union[bool, Iterable[bool]]:
         return isinstance(pandera_dtype, (Object, type(self)))
