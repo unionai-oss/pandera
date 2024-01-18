@@ -98,17 +98,6 @@ of all schemas and schema components gives you the option of doing just this:
                     int_column   dtype('int64')                   [object]                1
                     str_column   equal_to(a)                        [b, d]                2
 
-    Usage Tip
-    ---------
-
-    Directly inspect all errors by catching the exception:
-
-    ```
-    try:
-        schema.validate(dataframe, lazy=True)
-    except SchemaErrors as err:
-        err.failure_cases  # dataframe of schema errors
-        err.data  # invalid dataframe
     ```
 
 As you can see from the output above, a :class:`~pandera.errors.SchemaErrors`

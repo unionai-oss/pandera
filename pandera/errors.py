@@ -113,23 +113,6 @@ class BaseStrategyOnlyError(Exception):
     """Custom error for reporting strategies that must be base strategies."""
 
 
-SCHEMA_ERRORS_SUFFIX = """
-
-Usage Tip
----------
-
-Directly inspect all errors by catching the exception:
-
-```
-try:
-    schema.validate(dataframe, lazy=True)
-except SchemaErrors as err:
-    err.failure_cases  # dataframe of schema errors
-    err.data  # invalid dataframe
-```
-"""
-
-
 class FailureCaseMetadata(NamedTuple):
     """Consolidated failure cases, summary message, and error counts."""
 

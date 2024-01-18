@@ -238,23 +238,6 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
     )
 
 
-SCHEMA_ERRORS_SUFFIX = """
-
-Usage Tip
----------
-
-Directly inspect all errors by catching the exception:
-
-```
-try:
-    schema.validate(dataframe, lazy=True)
-except SchemaErrors as err:
-    err.failure_cases  # dataframe of schema errors
-    err.data  # invalid dataframe
-```
-"""
-
-
 def summarize_failure_cases(
     schema_name: str,
     schema_errors: List[SchemaError],
@@ -311,5 +294,4 @@ def summarize_failure_cases(
     msg += "\n--------------------\n"
     with pd.option_context("display.max_colwidth", 100):
         msg += summarized_failure_cases.to_string()
-    msg += SCHEMA_ERRORS_SUFFIX
     return msg, error_counts
