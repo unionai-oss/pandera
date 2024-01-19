@@ -1,8 +1,8 @@
 """Make schema error messages human-friendly."""
+import textwrap
 
 from collections import defaultdict
 from typing import Dict, List, Tuple, Union
-
 import pandas as pd
 
 from pandera.errors import SchemaError, SchemaErrorReason
@@ -245,53 +245,107 @@ def summarize_failure_cases(
 ) -> Tuple[str, Dict[str, int]]:
     """Format error message."""
 
-    error_counts = defaultdict(int)  # type: ignore
-    for schema_error in schema_errors:
-        reason_code = schema_error.reason_code
-        error_counts[reason_code] += 1
+    if schema_name is None:
+        schema_name = "Nameless Schema"
 
-    msg = (
-        f"Schema {schema_name}: A total of "
-        f"{sum(error_counts.values())} schema errors were found.\n"
-    )
-
-    msg += "\nError Counts"
-    msg += "\n------------\n"
-    for k, v in error_counts.items():
-        msg += f"- {k}: {v}\n"
-
-    def agg_failure_cases(df):
-        # Note: hack to support unhashable types, proper solution that only transforms
-        # when requires https://github.com/unionai-oss/pandera/issues/260
-        df.failure_case = df.failure_case.astype(str)
-        # NOTE: this is a hack to add modin support
-        if type(df).__module__.startswith("modin.pandas"):
-            return (
-                df.groupby(["schema_context", "column", "check"])
-                .agg({"failure_case": "unique"})
-                .failure_case
-            )
-        return df.groupby(
-            ["schema_context", "column", "check"]
-        ).failure_case.unique()
-
-    summarized_failure_cases = (
-        failure_cases.fillna({"column": "<NA>"})
-        .pipe(agg_failure_cases)
-        .rename("failure_cases")
-        .to_frame()
-        .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
-    )
-    index_labels = [
-        summarized_failure_cases.index.names.index(name)
-        for name in ["schema_context", "column"]
-    ]
-    summarized_failure_cases = summarized_failure_cases.sort_index(
-        level=index_labels,
-        ascending=[False, True],
-    )
+    msg = ""
     msg += "\nSchema Error Summary"
     msg += "\n--------------------\n"
-    with pd.option_context("display.max_colwidth", 100):
-        msg += summarized_failure_cases.to_string()
-    return msg, error_counts
+    msg = (
+        f"Schema {schema_name}: A total of "
+        f"{len(failure_cases)} schema errors were found.\n"
+    )
+
+    failure_cases_table = dataframe_to_tabular_formatted_string(
+        failure_cases,
+        column_order=[
+            "index",
+            "column",
+            "check",
+            "failure_case",
+            "schema_context",
+            "check_number",
+        ],
+    )
+    msg += failure_cases_table
+
+    return msg
+
+
+def dataframe_to_tabular_formatted_string(
+    dataframe, limit=10, max_width=20, max_cell_length=200, column_order=None
+):
+    formatted_string = ""
+
+    # Reorder DataFrame columns if column_order is provided
+    if column_order:
+        dataframe = dataframe[column_order]
+
+    limited_df = dataframe.head(limit)
+
+    # Truncate cell contents to max_cell_length and then determine the maximum width for each column
+    truncated_df = limited_df.applymap(
+        lambda x: str(x)[:max_cell_length] if isinstance(x, str) else x
+    )
+    column_widths = {
+        column: min(
+            max(len(column), truncated_df[column].astype(str).map(len).max()),
+            max_width,
+        )
+        for column in truncated_df.columns
+    }
+
+    # Top border
+    formatted_string += (
+        "┌"
+        + "┬".join(["─" * (width + 2) for width in column_widths.values()])
+        + "┐\n"
+    )
+
+    # Headers
+    formatted_string += (
+        "│ "
+        + " ┆ ".join(
+            [column.center(width) for column, width in column_widths.items()]
+        )
+        + " │\n"
+    )
+
+    # Separator
+    formatted_string += (
+        "╞"
+        + "╪".join(["═" * (width + 2) for width in column_widths.values()])
+        + "╡\n"
+    )
+
+    # Each row
+    for _, row in truncated_df.iterrows():
+        wrapped_row = [
+            [line for line in textwrap.wrap(str(value), width)]
+            for value, width in zip(row, column_widths.values())
+        ]
+        max_lines = max(len(wrapped) for wrapped in wrapped_row)
+
+        for line in range(max_lines):
+            line_data = " │ ".join(
+                (
+                    wrapped_row[i][line] if line < len(wrapped_row[i]) else ""
+                ).ljust(column_widths[truncated_df.columns[i]])
+                for i in range(len(truncated_df.columns))
+            )
+            formatted_string += "│ " + line_data + " │\n"
+
+    # Bottom border and additional rows message if applicable
+    if len(dataframe) > limit:
+        formatted_string += (
+            "│ " + " ┆ ".join(["…" for _ in column_widths.values()]) + " │\n"
+        )
+        formatted_string += f"And {len(dataframe) - limit} others"
+    else:
+        formatted_string += (
+            "└"
+            + "┴".join(["─" * (width + 2) for width in column_widths.values()])
+            + "┘\n"
+        )
+
+    return formatted_string
