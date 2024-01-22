@@ -81,11 +81,12 @@ Schema MySchema: A total of 2 schema errors were found.
             ),
             """
 Schema Wide Schema: A total of 1 schema errors were found.
-┌───────┬─────────────┬────────────────────────┬──────────────┬─────────────────┬──────────────┐
-│ index ┆    column   ┆          check         ┆ failure_case ┆  schema_context ┆ check_number │
-╞═══════╪═════════════╪════════════════════════╪══════════════╪═════════════════╪══════════════╡
-│ None  │ Wide Schema │  custom_wide_check     │ False        │ DataFrameSchema │ 0            │
-└───────┴─────────────┴────────────────────────┴──────────────┴─────────────────┴──────────────┘
+┌───────┬─────────────┬──────────────────────┬──────────────┬─────────────────┬──────────────┐
+│ index ┆    column   ┆        check         ┆ failure_case ┆  schema_context ┆ check_number │
+╞═══════╪═════════════╪══════════════════════╪══════════════╪═════════════════╪══════════════╡
+│ None  │ Wide Schema │ _mock_custom_wide_ch │ False        │ DataFrameSchema │ 0            │
+│       │             │ eck                  │              │                 │              │
+└───────┴─────────────┴──────────────────────┴──────────────┴─────────────────┴──────────────┘
 """,
         ),
     ],
