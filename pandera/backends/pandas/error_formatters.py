@@ -269,12 +269,18 @@ def summarize_failure_cases(
     )
     msg += failure_cases_table
 
-    return msg, len(schema_errors)
+    error_counts = defaultdict(int)  # type: ignore
+    for schema_error in schema_errors:
+        reason_code = schema_error.reason_code
+        error_counts[reason_code] += 1
+
+    return msg, error_counts
 
 
 def dataframe_to_tabular_formatted_string(
     dataframe, limit=10, max_width=20, max_cell_length=200, column_order=None
 ):
+    """Produce a string based on a dataframe formatted like a table"""
     formatted_string = ""
 
     # Reorder DataFrame columns if column_order is provided
@@ -321,9 +327,10 @@ def dataframe_to_tabular_formatted_string(
     # Each row
     for _, row in truncated_df.iterrows():
         wrapped_row = [
-            [line for line in textwrap.wrap(str(value), width)]
+            textwrap.wrap(str(value), width)
             for value, width in zip(row, column_widths.values())
         ]
+
         max_lines = max(len(wrapped) for wrapped in wrapped_row)
 
         for line in range(max_lines):
