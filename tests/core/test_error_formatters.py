@@ -1,12 +1,16 @@
+"""Test the error message produced from validating an invalid dataframe is correctly formatted`"""
+
+import pytest
+import pandas as pd
+
 from pandera.api.checks import Check
 from pandera.api.pandas.components import Column
 from pandera.api.pandas.container import DataFrameSchema
-import pytest
 from pandera.errors import SchemaErrors
-import pandas as pd
 
 
-def custom_wide_check(df):
+def _mock_custom_wide_check(df):
+    """Mock check function for us in the spec below"""
     return (df["column_1"] + df["column_2"] >= df["column_3"]).all()
 
 
@@ -66,7 +70,7 @@ Schema MySchema: A total of 2 schema errors were found.
                 },
                 name="Wide Schema",
                 strict=True,
-                checks=[Check(custom_wide_check)],
+                checks=[Check(_mock_custom_wide_check)],
             ),
             pd.DataFrame(
                 {
@@ -87,7 +91,7 @@ Schema Wide Schema: A total of 1 schema errors were found.
     ],
 )
 def test_schema_error_messages(schema, df, error_message):
-    """Test the error message produced from validating an invalid dataframe is correctly formatted`"""
+    """Test the SchemaErrors message produced by schema validation"""
     with pytest.raises(SchemaErrors) as e:
         schema.validate(df, lazy=True)
 
