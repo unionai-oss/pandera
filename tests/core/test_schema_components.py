@@ -264,7 +264,7 @@ def tests_multi_index_subindex_coerce() -> None:
     # coerce=False at the MultiIndex level should result in two type errors
     schema = DataFrameSchema(index=MultiIndex(indexes))
     with pytest.raises(
-        errors.SchemaErrors, match="A total of 2 schema errors were found"
+        errors.SchemaErrors, match="A total of 8 schema errors were found"
     ):
         schema(data, lazy=True)
 

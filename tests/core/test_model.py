@@ -377,7 +377,7 @@ def test_check_single_column() -> None:
 
     df = pd.DataFrame({"a": [101]})
     schema = Schema.to_schema()
-    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
+    err_msg = "│ 0     │ a      │ int_column_lt_100 │ 101          │ Column         │ 0            │"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -395,7 +395,7 @@ def test_check_single_index() -> None:
             return ~idx.str.contains("dog")
 
     df = pd.DataFrame(index=["cat", "dog"])
-    err_msg = r"Index\s*<NA>\s*not_dog\s*\[dog\]\s*"
+    err_msg = "│ 1     │ None   │ not_dog │ dog          │ Index          │ 0            │"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         Schema.validate(df, lazy=True)
 
@@ -453,12 +453,12 @@ def test_multiple_checks() -> None:
     assert len(schema.columns["a"].checks) == 2
 
     df = pd.DataFrame({"a": [0]})
-    err_msg = r"Column\s*a\s*int_column_gt_0\s*\[0\]\s*1"
+    err_msg = "│ 0     │ a      │ int_column_gt_0 │ 0            │ Column         │ 1            │"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
     df = pd.DataFrame({"a": [101]})
-    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
+    err_msg = " 0     │ a      │ int_column_lt_100 │ 101          │ Column         │ 0            │"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -608,7 +608,7 @@ def test_inherit_field_checks() -> None:
     assert len(schema.columns["abc"].checks) == 0
 
     df = pd.DataFrame({"a": [15], "abc": [100]})
-    err_msg = r"Column\s*a\s*a_max\s*\[15\]\s*1"
+    err_msg = "0     │ a      │ a_max │ 15           │ Column         │ 0"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
