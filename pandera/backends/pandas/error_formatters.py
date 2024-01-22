@@ -269,7 +269,7 @@ def summarize_failure_cases(
     )
     msg += failure_cases_table
 
-    return msg
+    return msg, len(schema_errors)
 
 
 def dataframe_to_tabular_formatted_string(
