@@ -89,6 +89,35 @@ Schema Wide Schema: A total of 1 schema errors were found.
 └───────┴─────────────┴──────────────────────┴──────────────┴─────────────────┴──────────────┘
 """,
         ),
+        (
+            DataFrameSchema(
+                {"count": Column(int, checks=[Check.greater_than(1)])}
+            ),
+            pd.DataFrame(
+                {
+                    "count": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                }
+            ),
+            """
+Schema Nameless Schema: A total of 16 schema errors were found.
+┌───────┬────────┬─────────────────┬──────────────┬────────────────┬──────────────┐
+│ index ┆ column ┆      check      ┆ failure_case ┆ schema_context ┆ check_number │
+╞═══════╪════════╪═════════════════╪══════════════╪════════════════╪══════════════╡
+│ 0     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 1     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 2     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 3     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 4     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 5     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 6     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 7     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 8     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ 9     │ count  │ greater_than(1) │ 0            │ Column         │ 0            │
+│ …………… │ ……………… │ ……………………………………… │ ……………………………… │ …………………………………… │ ……………………………… │
+└───────┴────────┴─────────────────┴──────────────┴────────────────┴──────────────┘
+And 6 more rows
+""",
+        ),
     ],
 )
 def test_schema_error_messages(schema, df, error_message):

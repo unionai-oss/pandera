@@ -345,9 +345,18 @@ def dataframe_to_tabular_formatted_string(
     # Bottom border and additional rows message if applicable
     if len(dataframe) > limit:
         formatted_string += (
-            "│ " + " ┆ ".join(["…" for _ in column_widths.values()]) + " │\n"
+            "│"
+            + "│".join(
+                [" " + "…" * (width) + " " for width in column_widths.values()]
+            )
+            + "│\n"
         )
-        formatted_string += f"And {len(dataframe) - limit} others"
+        formatted_string += (
+            "└"
+            + "┴".join(["─" * (width + 2) for width in column_widths.values()])
+            + "┘\n"
+        )
+        formatted_string += f"And {len(dataframe) - limit} more rows\n"
     else:
         formatted_string += (
             "└"
