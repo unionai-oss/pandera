@@ -44,18 +44,13 @@ repos:
         args: ["--disable=import-error"]
         exclude: (^docs/|^scripts)
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.982
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies:
-          - numpy
-          - pandas-stubs
-          - types-click
-          - types-pkg_resources
-          - types-pytz
-          - types-pyyaml
-          - types-requests
+        name: mypy
+        entry: mypy
+        language: python
+        types: [python]
         args: ["pandera", "tests", "scripts"]
         exclude: (^docs/|^tests/mypy/modules/)
         pass_filenames: false
