@@ -692,29 +692,103 @@ def check_types(
 
     sig = inspect.signature(wrapped)
 
-    def validate_args(arguments: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            arg_name: _check_arg(arg_name, arg_value)
-            for arg_name, arg_value in arguments.items()
-        }
+    def validate_args(
+        named_arguments: Dict[str, Any], arguments: Tuple[Any, ...]
+    ) -> List[Any]:
+        """
+        Validates schemas of both explicit and *args-like function arguments.
+
+        :param named_arguments: Bundled function arguments. Organized as key-value pairs of the
+            argument name and value. *args-like arguments are bundled into a single tuple.
+            Example: OrderedDict({'arg1': 1, 'arg2': 2, 'star_args': (3, 4, 5)})
+        :param arguments: Unpacked function arguments, as written in the function call.
+            Example: (1, 2, 3, 4, 5)
+        :return: List of validated function arguments.
+        """
+
+        # Check for an '*args'-like argument
+        if len(arguments) > len(named_arguments):
+            (
+                star_args_name,
+                star_args_values,
+            ) = named_arguments.popitem()  # *args is the last item
+
+            star_args_tuple = (
+                _check_arg(star_args_name, arg_value)
+                for arg_value in star_args_values
+            )
+
+            explicit_args_tuple = (
+                _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_arguments.items()
+            )
+
+            return list((*explicit_args_tuple, *star_args_tuple))
+
+        else:
+            return list(
+                _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_arguments.items()
+            )
+
+    def validate_kwargs(
+        named_kwargs: Dict[str, Any], kwargs: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validates schemas of both explicit and **kwargs-like function arguments.
+
+        :param named_kwargs: Bundled function keyword arguments. Organized as key-value pairs of
+            the keyword argument name and value. **kwargs-like arguments are bundled into a single
+            dictionary.
+            Example: OrderedDict({'kwarg1': 1, 'kwarg2': 2, 'star_kwargs': {'kwarg3': 3, 'kwarg4': 4}})
+        :param kwargs: Unpacked function keyword arguments, as written in the function call.
+            Example: {'kwarg1': 1, 'kwarg2': 2, 'kwarg3': 3, 'kwarg4': 4}
+        :return: list of validated function keyword arguments.
+        """
+
+        # Check for an '**kwargs'-like argument
+        if kwargs.keys() != named_kwargs.keys():
+            (
+                star_kwargs_name,
+                star_kwargs_dict,
+            ) = named_kwargs.popitem()  # **kwargs is the last item
+
+            explicit_kwargs_dict = {
+                arg_name: _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_kwargs.items()
+            }
+
+            star_kwargs_dict = {
+                arg_name: _check_arg(star_kwargs_name, arg_value)
+                for arg_name, arg_value in star_kwargs_dict.items()
+            }
+
+            return {**explicit_kwargs_dict, **star_kwargs_dict}
+
+        else:
+            return {
+                arg_name: _check_arg(arg_name, arg_value)
+                for arg_name, arg_value in named_kwargs.items()
+            }
 
     def validate_inputs(
         instance: Optional[Any],
         args: Tuple[Any, ...],
         kwargs: Dict[str, Any],
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[List[Any], Dict[str, Any]]:
         if instance is not None:
             # If the wrapped function is a method -> add "self" as the first positional arg
             args = (instance, *args)
 
-        validated_pos = validate_args(sig.bind_partial(*args).arguments)
-        validated_kwd = validate_args(sig.bind_partial(**kwargs).arguments)
+        validated_pos = validate_args(sig.bind_partial(*args).arguments, args)
+        validated_kwd = validate_kwargs(
+            sig.bind_partial(**kwargs).arguments, kwargs
+        )
 
         if instance is not None:
             # If the decorated func is a method, "wrapped" is a bound method
             # -> remove "self" before passing positional args through
-            first_pos_arg = list(sig.parameters)[0]
-            del validated_pos[first_pos_arg]
+            del validated_pos[0]
 
         return validated_pos, validated_kwd
 
@@ -733,7 +807,7 @@ def check_types(
                 validated_pos, validated_kwd = validate_inputs(
                     instance, args, kwargs
                 )
-                out = await wrapped_(*validated_pos.values(), **validated_kwd)
+                out = await wrapped_(*validated_pos, **validated_kwd)
             return _check_arg("return", out)
 
     else:
@@ -751,7 +825,7 @@ def check_types(
                 validated_pos, validated_kwd = validate_inputs(
                     instance, args, kwargs
                 )
-                out = wrapped_(*validated_pos.values(), **validated_kwd)
+                out = wrapped_(*validated_pos, **validated_kwd)
             return _check_arg("return", out)
 
     wrapped_fn = _wrapper(wrapped)  # pylint:disable=no-value-for-parameter
