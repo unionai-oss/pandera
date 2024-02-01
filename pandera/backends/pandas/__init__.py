@@ -2,7 +2,8 @@
 
 import pandas as pd
 
-import pandera.typing
+# import pandera.typing
+from pandera.typing import *
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
