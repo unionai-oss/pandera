@@ -118,7 +118,7 @@ doit==0.36.0
     # via jupyterlite-core
 execnet==2.0.2
     # via pytest-xdist
-fastapi==0.103.0
+fastapi==0.109.1
     # via -r requirements.in
 fastjsonschema==2.18.0
     # via nbformat
@@ -533,7 +533,7 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-starlette==0.27.0
+starlette==0.35.1
     # via fastapi
 stringcase==1.2.0
     # via frictionless
@@ -595,7 +595,7 @@ types-requests==2.31.0.2
     # via -r requirements.in
 types-urllib3==1.26.25.14
     # via types-requests
-typing-extensions==4.7.1
+typing-extensions==4.9.0
     # via
     #   -r requirements.in
     #   fastapi
