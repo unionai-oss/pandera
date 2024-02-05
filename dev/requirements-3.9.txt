@@ -116,7 +116,7 @@ exceptiongroup==1.1.3
     #   pytest
 execnet==2.0.2
     # via pytest-xdist
-fastapi==0.103.1
+fastapi==0.109.1
     # via -r requirements.in
 fastjsonschema==2.18.0
     # via nbformat
