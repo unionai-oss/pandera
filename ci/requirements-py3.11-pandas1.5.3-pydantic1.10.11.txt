@@ -40,7 +40,7 @@ distributed==2023.9.2     # via -r requirements.in
 docutils==0.17.1          # via jupyterlite-sphinx, readme-renderer, recommonmark, sphinx, sphinx-panels
 doit==0.36.0              # via jupyterlite-core
 execnet==2.0.2            # via pytest-xdist
-fastapi==0.103.1          # via -r requirements.in
+fastapi==0.109.1          # via -r requirements.in
 fastjsonschema==2.18.0    # via nbformat
 filelock==3.12.4          # via ray, virtualenv
 fiona==1.9.4.post1        # via geopandas
