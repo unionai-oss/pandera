@@ -43,7 +43,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip  # ubuntu location
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
@@ -120,7 +120,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Cache conda
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           # Increase this value to reset cache if etc/environment.yml has not changed
           CACHE_NUMBER: 2
@@ -130,7 +130,7 @@ jobs:
         id: cache
 
       - name: Cache pip
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ matrix.pip-cache }}
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
