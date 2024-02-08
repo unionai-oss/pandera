@@ -526,7 +526,7 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-starlette==0.27.0
+starlette==0.36.2
     # via fastapi
 stringcase==1.2.0
     # via frictionless
