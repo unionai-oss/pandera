@@ -20,7 +20,7 @@ beautifulsoup4==4.12.2    # via furo, nbconvert
 black==23.9.1             # via -r requirements.in
 bleach==6.0.0             # via nbconvert
 certifi==2023.7.22        # via fiona, pyproj, requests
-cffi==1.15.1              # via argon2-cffi-bindings
+cffi==1.15.1              # via argon2-cffi-bindings, cryptography
 cfgv==3.4.0               # via pre-commit
 chardet==5.2.0            # via frictionless
 charset-normalizer==3.2.0  # via requests
@@ -32,6 +32,7 @@ colorama==0.4.6           # via typer
 colorlog==6.7.0           # via nox
 commonmark==0.9.1         # via recommonmark
 coverage[toml]==7.3.1     # via coverage, pytest-cov
+cryptography==42.0.2      # via secretstorage
 dask==2023.5.0            # via -r requirements.in, distributed
 defusedxml==0.7.1         # via nbconvert
 dill==0.3.7               # via pylint
@@ -64,6 +65,7 @@ isodate==0.6.1            # via frictionless
 isoduration==20.11.0      # via jsonschema
 isort==5.12.0             # via -r requirements.in, pylint
 jaraco-classes==3.3.0     # via keyring
+jeepney==0.8.0            # via keyring, secretstorage
 jinja2==3.1.2             # via distributed, frictionless, jupyter-server, jupyterlab-server, nbconvert, sphinx
 json5==0.9.14             # via asv, jupyterlab-server
 jsonpointer==2.4          # via jsonschema
@@ -152,6 +154,7 @@ rfc3986-validator==0.1.1  # via jsonschema, jupyter-events
 rich==13.5.2              # via twine, typer
 rpds-py==0.10.3           # via jsonschema, referencing
 scipy==1.10.1             # via -r requirements.in
+secretstorage==3.3.3      # via keyring
 send2trash==1.8.2         # via jupyter-server
 shapely==2.0.1            # via -r requirements.in, geopandas
 shellingham==1.5.3        # via typer

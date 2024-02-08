@@ -45,7 +45,7 @@ setup(
     packages=find_packages(include=["pandera*"]),
     package_data={"pandera": ["py.typed"]},
     install_requires=[
-        "multimethod",
+        "multimethod <= 1.10.0",
         "numpy >= 1.19.0",
         "packaging >= 20.0",
         "pandas >= 1.2.0",
