@@ -65,7 +65,7 @@ isoduration==20.11.0      # via jsonschema
 isort==5.12.0             # via -r requirements.in, pylint
 jaraco-classes==3.3.0     # via keyring
 jeepney==0.8.0            # via keyring, secretstorage
-jinja2==3.1.2             # via distributed, frictionless, jupyter-server, jupyterlab-server, nbconvert, sphinx
+jinja2==3.1.3             # via distributed, frictionless, jupyter-server, jupyterlab-server, nbconvert, sphinx
 json5==0.9.14             # via asv, jupyterlab-server
 jsonpointer==2.4          # via jsonschema
 jsonschema[format-nongpl]==4.19.0  # via frictionless, jupyter-events, jupyterlab-server, nbformat, ray
