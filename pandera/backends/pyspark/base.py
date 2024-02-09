@@ -116,6 +116,6 @@ class PysparkSchemaBackend(BaseSchemaBackend):
 
         return FailureCaseMetadata(
             failure_cases=None,
-            message=schema_errors,  # type: ignore
+            message=schema_errors,
             error_counts={},
         )

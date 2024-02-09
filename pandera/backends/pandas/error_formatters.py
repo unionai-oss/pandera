@@ -1,11 +1,12 @@
 """Make schema error messages human-friendly."""
 
-from collections import defaultdict
-from typing import Dict, List, Tuple, Union
+from typing import List, Union
 
 import pandas as pd
 
-from pandera.errors import SchemaError, SchemaErrorReason
+from pandera.errors import (
+    SchemaError,
+)
 
 
 def format_generic_error_message(
@@ -159,34 +160,30 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
         "index",
     ]
 
-    for schema_error in schema_errors:
-        err, reason_code = schema_error, schema_error.reason_code
-
+    for err in schema_errors:
         check_identifier = (
             None
             if err.check is None
-            else err.check
-            if isinstance(err.check, str)
-            else err.check.error
-            if err.check.error is not None
-            else err.check.name
-            if err.check.name is not None
-            else str(err.check)
+            else (
+                err.check
+                if isinstance(err.check, str)
+                else (
+                    err.check.error
+                    if err.check.error is not None
+                    else (
+                        err.check.name
+                        if err.check.name is not None
+                        else str(err.check)
+                    )
+                )
+            )
         )
 
         if err.failure_cases is not None:
             if "column" in err.failure_cases:
                 column = err.failure_cases["column"]
             else:
-                column = (
-                    err.schema.name
-                    if reason_code
-                    in {
-                        SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
-                        SchemaErrorReason.DATAFRAME_CHECK,
-                    }
-                    else None
-                )
+                column = err.schema.name
 
             failure_cases = err.failure_cases.assign(
                 schema_context=err.schema.__class__.__name__,
@@ -236,80 +233,3 @@ def consolidate_failure_cases(schema_errors: List[SchemaError]):
         .reset_index(drop=True)
         .sort_values("schema_context", ascending=False)
     )
-
-
-SCHEMA_ERRORS_SUFFIX = """
-
-Usage Tip
----------
-
-Directly inspect all errors by catching the exception:
-
-```
-try:
-    schema.validate(dataframe, lazy=True)
-except SchemaErrors as err:
-    err.failure_cases  # dataframe of schema errors
-    err.data  # invalid dataframe
-```
-"""
-
-
-def summarize_failure_cases(
-    schema_name: str,
-    schema_errors: List[SchemaError],
-    failure_cases: pd.DataFrame,
-) -> Tuple[str, Dict[str, int]]:
-    """Format error message."""
-
-    error_counts = defaultdict(int)  # type: ignore
-    for schema_error in schema_errors:
-        reason_code = schema_error.reason_code
-        error_counts[reason_code] += 1
-
-    msg = (
-        f"Schema {schema_name}: A total of "
-        f"{sum(error_counts.values())} schema errors were found.\n"
-    )
-
-    msg += "\nError Counts"
-    msg += "\n------------\n"
-    for k, v in error_counts.items():
-        msg += f"- {k}: {v}\n"
-
-    def agg_failure_cases(df):
-        # Note: hack to support unhashable types, proper solution that only transforms
-        # when requires https://github.com/unionai-oss/pandera/issues/260
-        df.failure_case = df.failure_case.astype(str)
-        # NOTE: this is a hack to add modin support
-        if type(df).__module__.startswith("modin.pandas"):
-            return (
-                df.groupby(["schema_context", "column", "check"])
-                .agg({"failure_case": "unique"})
-                .failure_case
-            )
-        return df.groupby(
-            ["schema_context", "column", "check"]
-        ).failure_case.unique()
-
-    summarized_failure_cases = (
-        failure_cases.fillna({"column": "<NA>"})
-        .pipe(agg_failure_cases)
-        .rename("failure_cases")
-        .to_frame()
-        .assign(n_failure_cases=lambda df: df.failure_cases.map(len))
-    )
-    index_labels = [
-        summarized_failure_cases.index.names.index(name)
-        for name in ["schema_context", "column"]
-    ]
-    summarized_failure_cases = summarized_failure_cases.sort_index(
-        level=index_labels,
-        ascending=[False, True],
-    )
-    msg += "\nSchema Error Summary"
-    msg += "\n--------------------\n"
-    with pd.option_context("display.max_colwidth", 100):
-        msg += summarized_failure_cases.to_string()
-    msg += SCHEMA_ERRORS_SUFFIX
-    return msg, error_counts

@@ -10,10 +10,12 @@ from typing import (
     TypeVar,
     Union,
 )
+from collections import defaultdict
 
 import pandas as pd
 
 from pandera.api.base.checks import CheckResult
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.pandas.error_formatters import (
     consolidate_failure_cases,
@@ -21,9 +23,7 @@ from pandera.backends.pandas.error_formatters import (
     format_vectorized_error_message,
     reshape_failure_cases,
     scalar_failure_case,
-    summarize_failure_cases,
 )
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     FailureCaseMetadata,
     SchemaError,
@@ -150,18 +150,33 @@ class PandasSchemaBackend(BaseSchemaBackend):
     ) -> FailureCaseMetadata:
         """Create failure cases metadata required for SchemaErrors exception."""
         failure_cases = consolidate_failure_cases(schema_errors)
-        message, error_counts = summarize_failure_cases(
-            schema_name, schema_errors, failure_cases
-        )
+
+        error_handler = ErrorHandler()
+        error_handler.collect_errors(schema_errors)
+        error_dicts = {}
+
+        def defaultdict_to_dict(d):
+            if isinstance(d, defaultdict):
+                d = {k: defaultdict_to_dict(v) for k, v in d.items()}
+            return d
+
+        if error_handler.collected_errors:
+            error_dicts = error_handler.summarize(schema_name=schema_name)
+            error_dicts = defaultdict_to_dict(error_dicts)
+
+        error_counts = defaultdict(int)  # type: ignore
+        for error in error_handler.collected_errors:
+            error_counts[error["reason_code"].name] += 1
+
         return FailureCaseMetadata(
             failure_cases=failure_cases,
-            message=message,
+            message=error_dicts,
             error_counts=error_counts,
         )
 
-    def drop_invalid_rows(self, check_obj, error_handler: SchemaErrorHandler):
+    def drop_invalid_rows(self, check_obj, error_handler: ErrorHandler):
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
-        errors = error_handler.collected_errors
+        errors = error_handler.schema_errors
         for err in errors:
             index_values = err.failure_cases["index"]
             if isinstance(check_obj.index, pd.MultiIndex):

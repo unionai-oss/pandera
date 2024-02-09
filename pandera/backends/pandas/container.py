@@ -9,6 +9,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from pandera.api.pandas.types import is_table
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
@@ -17,7 +18,7 @@ from pandera.backends.pandas.error_formatters import (
 )
 from pandera.backends.pandas.utils import convert_uniquesettings
 from pandera.engines import pandas_engine
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.validation_depth import validation_type
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -61,7 +62,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
 
         check_obj = self.preprocess(check_obj, inplace=inplace)
         if hasattr(check_obj, "pandera"):
@@ -80,9 +81,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             try:
                 check_obj = parser(check_obj, *args)
             except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
+                error_handler.collect_error(
+                    validation_type(exc.reason_code), exc.reason_code, exc
+                )
             except SchemaErrors as exc:
-                error_handler.collect_errors(exc)
+                error_handler.collect_errors(exc.schema_errors)
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info
@@ -114,7 +117,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             else:
                 raise SchemaErrors(
                     schema=schema,
-                    schema_errors=error_handler.collected_errors,
+                    schema_errors=error_handler.schema_errors,
                     data=check_obj,
                 )
 
@@ -170,9 +173,10 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
+                    validation_type(result.reason_code),
                     result.reason_code,
                     error,
-                    original_exc=result.original_exc,
+                    result.original_exc,
                 )
 
         return error_handler
@@ -531,7 +535,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         """Coerces check object to the expected type."""
         assert schema is not None, "The `schema` argument must be provided."
 
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         if not (
             schema.coerce
@@ -545,11 +549,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
+                    validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                     SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     schema_error,
                 )
         except SchemaError as err:
             error_handler.collect_error(
+                validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                 SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                 err,
             )
@@ -559,7 +565,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             # error_handler
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=error_handler.schema_errors,
                 data=check_obj,
             )
 
@@ -576,7 +582,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         :returns: dataframe with coerced dtypes
         """
         # NOTE: clean up the error handling!
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         def _coerce_df_dtype(obj: pd.DataFrame) -> pd.DataFrame:
             if schema.dtype is None:
@@ -591,6 +597,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 raise SchemaError(
                     schema=schema,
                     data=obj,
+                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
                     message=(
                         f"Error while coercing '{schema.name}' to type "
                         f"{schema.dtype}: {exc}\n{exc.failure_cases}"
@@ -604,6 +611,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 return coerce_fn(obj)
             except SchemaError as exc:
                 error_handler.collect_error(
+                    validation_type(SchemaErrorReason.DATATYPE_COERCION),
                     SchemaErrorReason.DATATYPE_COERCION,
                     exc,
                 )
@@ -649,7 +657,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         if error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=error_handler.schema_errors,
                 data=obj,
             )
 

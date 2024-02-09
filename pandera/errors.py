@@ -1,8 +1,8 @@
 """pandera-specific errors."""
 
-import warnings
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple
+import warnings
+from typing import Any, Dict, List, NamedTuple, Union
 
 
 class BackendNotFoundError(Exception):
@@ -11,7 +11,7 @@ class BackendNotFoundError(Exception):
     """
 
 
-class ReducedPickleExceptionBase(Exception):
+class ReducedPickleExceptionBase(BaseException):
     """Base class for Exception with non-conserved state under pickling.
 
     Derived classes define attributes to be transformed to
@@ -27,9 +27,11 @@ class ReducedPickleExceptionBase(Exception):
         representation.
         """
         state = {
-            key: str(val)
-            if key in self.TO_STRING_KEYS and val is not None
-            else val
+            key: (
+                str(val)
+                if key in self.TO_STRING_KEYS and val is not None
+                else val
+            )
             for key, val in self.__dict__.items()
         }
         state["args"] = self.args  # message may not be in __dict__
@@ -113,28 +115,11 @@ class BaseStrategyOnlyError(Exception):
     """Custom error for reporting strategies that must be base strategies."""
 
 
-SCHEMA_ERRORS_SUFFIX = """
-
-Usage Tip
----------
-
-Directly inspect all errors by catching the exception:
-
-```
-try:
-    schema.validate(dataframe, lazy=True)
-except SchemaErrors as err:
-    err.failure_cases  # dataframe of schema errors
-    err.data  # invalid dataframe
-```
-"""
-
-
 class FailureCaseMetadata(NamedTuple):
     """Consolidated failure cases, summary message, and error counts."""
 
     failure_cases: Any
-    message: str
+    message: Dict[str, Any]
     error_counts: Dict[str, int]
 
 
@@ -154,11 +139,11 @@ class SchemaErrorReason(Enum):
     WRONG_FIELD_NAME = "wrong_field_name"
     SERIES_CONTAINS_NULLS = "series_contains_nulls"
     SERIES_CONTAINS_DUPLICATES = "series_contains_duplicates"
-    SERIES_CHECK = "series_check"
     WRONG_DATATYPE = "wrong_dtype"
-    INDEX_CHECK = "index_check"
     NO_ERROR = "no_errors"
     ADD_MISSING_COLUMN_NO_DEFAULT = "add_missing_column_no_default"
+    INVALID_COLUMN_NAME = "invalid_column_name"
+    MISMATCH_INDEX = "mismatch_index"
 
 
 class SchemaErrors(ReducedPickleExceptionBase):
@@ -173,7 +158,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
     def __init__(
         self,
         schema,
-        schema_errors: List[SchemaError],
+        schema_errors: Union[List[SchemaError]],
         data: Any,
     ):
         self.schema = schema
@@ -185,6 +170,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
         ).failure_cases_metadata(schema.name, schema_errors)
         self.error_counts = failure_cases_metadata.error_counts
         self.failure_cases = failure_cases_metadata.failure_cases
+        self.message = failure_cases_metadata.message
         super().__init__(failure_cases_metadata.message)
 
 

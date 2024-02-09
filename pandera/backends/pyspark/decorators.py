@@ -4,22 +4,15 @@ import functools
 import logging
 import warnings
 from contextlib import contextmanager
-from enum import Enum
 from typing import List, Type
 
 from pyspark.sql import DataFrame
 from pandera.api.pyspark.types import PysparkDefaultTypes
 from pandera.config import CONFIG, ValidationDepth
+from pandera.validation_depth import ValidationScope
 from pandera.errors import SchemaError
 
 logger = logging.getLogger(__name__)
-
-
-class ValidationScope(Enum):
-    """Indicates whether a check/validator operates at a schema of data level."""
-
-    SCHEMA = "schema"
-    DATA = "data"
 
 
 def register_input_datatypes(

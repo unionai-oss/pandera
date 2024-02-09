@@ -2,9 +2,10 @@
 
 from collections import defaultdict
 from enum import Enum
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 from pandera.api.checks import Check
+from pandera.validation_depth import validation_type
 from pandera.errors import SchemaError, SchemaErrorReason
 
 
@@ -19,13 +20,15 @@ class ErrorCategory(Enum):
 class ErrorHandler:
     """Handler for Schema & Data level errors during validation."""
 
-    def __init__(self, lazy: bool) -> None:
+    def __init__(self, lazy: bool = True) -> None:
         """Initialize ErrorHandler.
 
         :param lazy: if True, lazily evaluates all checks before raising the exception.
+        Defaults to True.
         """
         self._lazy = lazy
-        self._collected_errors = []  # type: ignore
+        self._collected_errors: List[Dict[str, Any]] = []
+        self._schema_errors: List[SchemaError] = []
         self._summarized_errors = defaultdict(lambda: defaultdict(list))  # type: ignore
 
     @property
@@ -35,14 +38,14 @@ class ErrorHandler:
 
     def collect_error(
         self,
-        type: ErrorCategory,  # pylint:disable=redefined-builtin
+        error_type: ErrorCategory,
         reason_code: SchemaErrorReason,
         schema_error: SchemaError,
-        original_exc: BaseException = None,
+        original_exc: Union[BaseException, None] = None,
     ):
         """Collect schema error, raising exception if lazy is False.
 
-        :param type: type of error
+        :param error_type: type of error
         :param reason_code: string representing reason for error
         :param schema_error: ``SchemaError`` object.
         """
@@ -52,25 +55,63 @@ class ErrorHandler:
         # delete data of validated object from SchemaError object to prevent
         # storing copies of the validated DataFrame/Series for every
         # SchemaError collected.
-        del schema_error.data
+        if hasattr(schema_error, "data"):
+            del schema_error.data
+
         schema_error.data = None
+
+        self._schema_errors.append(schema_error)
+
+        failure_cases_count = len(getattr(schema_error, "failure_cases", []))
 
         self._collected_errors.append(
             {
-                "type": type,
+                "type": error_type,
                 "column": schema_error.schema.name,
                 "check": schema_error.check,
                 "reason_code": reason_code,
                 "error": schema_error,
+                "failure_cases_count": failure_cases_count,
             }
         )
 
+    def collect_errors(
+        self,
+        schema_errors: List[SchemaError],
+        original_exc: Union[BaseException, None] = None,
+    ):
+        """Collect schema errors from a SchemaErrors exception.
+
+        :param reason_code: string representing reason for error.
+        :param schema_error: ``SchemaError`` object.
+        :param original_exc: original exception associated with the SchemaError.
+        """
+        for schema_error in schema_errors:
+            self.collect_error(
+                validation_type(schema_error.reason_code),
+                schema_error.reason_code,
+                schema_error,
+                original_exc or schema_error,
+            )
+
     @property
-    def collected_errors(self) -> List[Dict[str, Union[SchemaError, str]]]:
-        """Retrieve SchemaError objects collected during lazy validation."""
+    def collected_errors(self) -> List[Dict[str, Any]]:
+        """Retrieve error objects collected during lazy validation."""
         return self._collected_errors
 
-    def summarize(self, schema):
+    @collected_errors.setter
+    def collected_errors(self, value: List[Dict[str, Any]]):
+        """Set the list of collected errors."""
+        if not isinstance(value, list):
+            raise ValueError("collected_errors must be a list")
+        self._collected_errors = value
+
+    @property
+    def schema_errors(self) -> List[SchemaError]:
+        """Retrieve SchemaError objects collected during lazy validation."""
+        return self._schema_errors
+
+    def summarize(self, schema_name):
         """Collect schema error, raising exception if lazy is False.
 
         :param schema: schema object
@@ -88,7 +129,7 @@ class ErrorHandler:
 
             self._summarized_errors[category][subcategory].append(
                 {
-                    "schema": schema.name,
+                    "schema": schema_name,
                     "column": e["column"],
                     "check": check,
                     "error": error.__str__(),
