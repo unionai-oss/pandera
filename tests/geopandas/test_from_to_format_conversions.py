@@ -6,11 +6,10 @@ import json
 import tempfile
 from typing import Any
 
-import pandas as pd
 import geopandas as gpd
+import pandas as pd
 import pytest
 from shapely.geometry import Point
-
 
 import pandera as pa
 from pandera.engines import pandas_engine

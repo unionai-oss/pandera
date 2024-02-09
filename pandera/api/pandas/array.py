@@ -3,6 +3,7 @@
 import copy
 import warnings
 from typing import Any, List, Optional, TypeVar, Union, cast
+
 import pandas as pd
 
 from pandera import errors
@@ -13,11 +14,11 @@ from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes, is_field
 from pandera.config import CONFIG
 from pandera.dtypes import DataType, UniqueSettings
-from pandera.engines import pandas_engine, PYDANTIC_V2
+from pandera.engines import PYDANTIC_V2, pandas_engine
 
 if PYDANTIC_V2:
-    from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
+    from pydantic_core import core_schema
 
 
 TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")

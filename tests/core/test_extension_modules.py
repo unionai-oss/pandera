@@ -1,8 +1,7 @@
 """Tests for extension module imports."""
 
-import pytest
-
 import pandas as pd
+import pytest
 
 from pandera.api.hypotheses import Hypothesis
 from pandera.backends.pandas.hypotheses import HAS_SCIPY

@@ -50,7 +50,6 @@ from pandera.typing.common import (
 )
 from pandera.typing.pandas import DataFrame, Index, Series
 
-
 DATAFRAME_TYPES: Set[Type] = {DataFrame}
 SERIES_TYPES: Set[Type] = {Series}
 INDEX_TYPES: Set[Type] = {Index}

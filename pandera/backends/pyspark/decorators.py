@@ -8,6 +8,7 @@ from enum import Enum
 from typing import List, Type
 
 from pyspark.sql import DataFrame
+
 from pandera.api.pyspark.types import PysparkDefaultTypes
 from pandera.config import CONFIG, ValidationDepth
 from pandera.errors import SchemaError

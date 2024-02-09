@@ -13,8 +13,8 @@ from pandera.api.pyspark.types import is_table
 from pandera.backends.pyspark.base import ColumnInfo, PysparkSchemaBackend
 from pandera.backends.pyspark.decorators import (
     ValidationScope,
-    validate_scope,
     cache_check_obj,
+    validate_scope,
 )
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.config import CONFIG
