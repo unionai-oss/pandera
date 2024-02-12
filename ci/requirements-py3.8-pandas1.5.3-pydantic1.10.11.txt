@@ -137,7 +137,7 @@ pytest-cov==4.1.0         # via -r requirements.in
 pytest-xdist==3.3.1       # via -r requirements.in
 python-dateutil==2.8.2    # via arrow, frictionless, jupyter-client, pandas
 python-json-logger==2.0.7  # via jupyter-events
-python-multipart==0.0.6   # via -r requirements.in
+python-multipart==0.0.7   # via -r requirements.in
 python-slugify==8.0.1     # via frictionless
 pytz==2023.3.post1        # via -r requirements.in, babel, pandas
 pyyaml==6.0.1             # via -r requirements.in, asv, dask, distributed, frictionless, jupyter-events, pre-commit, ray
