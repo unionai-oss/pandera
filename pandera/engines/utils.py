@@ -112,7 +112,7 @@ def polars_series_coercible(
             ~series.is_null() & series.cast(type_, strict=False).is_null()
         )
         return ~could_not_coerce
-    except pl.exceptions.ArrowError:
+    except (pl.exceptions.ArrowError, pl.exceptions.InvalidOperationError):
         return pl.Series([False] * len(series))
 
 

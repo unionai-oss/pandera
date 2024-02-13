@@ -243,7 +243,7 @@ class TestEqualToCheck(BaseClass):
                         self.sample_string_data, "binary"
                     ),
                 },
-                {"datatype": Categorical, "data": self.sample_string_data},
+                {"datatype": Categorical(ordering="physical"), "data": self.sample_string_data},
                 {
                     "datatype": Float32,
                     "data": self.convert_data(

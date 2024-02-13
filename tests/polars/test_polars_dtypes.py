@@ -216,7 +216,7 @@ def test_coerce_cast_special(pandera_dtype, data_container):
     ],
 )
 def test_coerce_cast_failed(pl_to_dtype, container):
-    """Test that dtypes fail when not coercible."""
+    """Test that dtypes fail when not data is not coercible."""
     error = None
 
     try:
