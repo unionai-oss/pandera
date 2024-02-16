@@ -260,12 +260,40 @@ def test_try_coerce_cast_failed(_, to_dtype, container):
 @pytest.mark.parametrize("dtype", all_types + special_types)
 def test_check_not_equivalent(dtype):
     """Test that check() rejects non-equivalent dtypes."""
-    if str(pe.Engine.dtype(dtype)) == "object":
+    if str(pe.Engine.dtype(dtype)) == "Object":
         actual_dtype = pe.Engine.dtype(int)
     else:
         actual_dtype = pe.Engine.dtype(object)
     expected_dtype = pe.Engine.dtype(dtype)
     assert actual_dtype.check(expected_dtype) is False
+
+
+@pytest.mark.parametrize("dtype", all_types + special_types)
+def test_check_equivalent(dtype):
+    """Test that check() accepts equivalent dtypes."""
+    actual_dtype = pe.Engine.dtype(dtype)
+    expected_dtype = pe.Engine.dtype(dtype)
+    assert actual_dtype.check(expected_dtype) is True
+
+
+@pytest.mark.parametrize(
+    "first_dtype, second_dtype, equivalent",
+    [
+        (pe.Int8, pe.Int16, False),
+        (pe.Category(categories=["a", "b"]), pe.String, False),
+        (pe.Decimal(precision=2, scale=1), pe.Decimal(precision=3, scale=2), False),
+        (pe.Decimal(precision=2, scale=1), pe.Decimal(precision=2, scale=1), True),
+        (pe.DateTime(), pe.Date, False),
+        (pe.Category(categories=["a", "b"]), pe.Category(categories=["a", "b"]), True),
+        (pe.DateTime(time_unit="s"), pe.DateTime(time_unit="ns"), False),
+        (pe.DateTime(time_unit="s"), pe.DateTime(time_unit="s"), True),
+    ],
+)
+def test_check_equivalent_custom(first_dtype, second_dtype, equivalent):
+    """Test that check() rejects non-equivalent dtypes."""
+    first_engine_dtype = pe.Engine.dtype(first_dtype)
+    second_engine_dtype = pe.Engine.dtype(second_dtype)
+    assert first_engine_dtype.check(second_engine_dtype) is equivalent
 
 
 @pytest.mark.parametrize(

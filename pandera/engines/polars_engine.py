@@ -75,9 +75,13 @@ class DataType(dtypes.DataType):
         data_container: Optional[PolarsObject] = None,
     ) -> Union[bool, Iterable[bool]]:
         try:
-            return self.type == pandera_dtype
-        except TypeError:  # pragma: no cover
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
             return False
+
+        return self.type == pandera_dtype.type and super().check(
+            pandera_dtype
+        )
 
     def __str__(self) -> str:
         return str(self.type)
@@ -100,7 +104,7 @@ class Engine(  # pylint:disable=too-few-public-methods
         except TypeError:
             try:
                 pl_dtype = py_type_to_dtype(data_type)
-            except TypeError:
+            except ValueError:
                 raise TypeError(
                     f"data type '{data_type}' not understood by "
                     f"{cls.__name__}."
@@ -280,6 +284,9 @@ class Decimal(DataType, dtypes.Decimal):
 
         except TypeError:  # pragma: no cover
             return super().check(pandera_dtype)
+
+    def __str__(self) -> str:
+        return f"Decimal(precision={self.precision}, scale={self.scale})"
 
 
 ###############################################################################
@@ -478,6 +485,9 @@ class Category(DataType, dtypes.Category):
                 }
             )
         return belongs_to_categories
+
+    def __str__(self):
+        return f"Category"
 
 
 @Engine.register_dtype(equivalents=["null", pl.Null])
