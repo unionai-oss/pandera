@@ -174,7 +174,7 @@ sphinxcontrib-htmlhelp==2.0.1  # via sphinx
 sphinxcontrib-jsmath==1.0.1  # via sphinx
 sphinxcontrib-qthelp==1.0.3  # via sphinx
 sphinxcontrib-serializinghtml==1.1.5  # via sphinx
-starlette==0.27.0         # via fastapi
+starlette==0.36.2         # via fastapi
 stringcase==1.2.0         # via frictionless
 tabulate==0.9.0           # via asv, frictionless
 tblib==2.0.0              # via distributed
