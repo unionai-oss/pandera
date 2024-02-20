@@ -14,7 +14,7 @@ from typing import (
 
 from pandera import errors
 from pandera.api.base.checks import BaseCheck, CheckResult
-from pandera.strategies import SearchStrategy
+from pandera.strategies.base_strategies import SearchStrategy
 
 T = TypeVar("T")
 

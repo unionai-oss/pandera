@@ -20,7 +20,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generic,
     List,
     Optional,
     Sequence,
@@ -42,28 +41,19 @@ from pandera.dtypes import (
 )
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import BaseStrategyOnlyError, SchemaDefinitionError
-from pandera.strategies.base_strategies import STRATEGY_DISPATCHER
+from pandera.strategies.base_strategies import (
+    STRATEGY_DISPATCHER,
+    HAS_HYPOTHESIS,
+)
 
-try:
+if HAS_HYPOTHESIS:
     import hypothesis
     import hypothesis.extra.numpy as npst
     import hypothesis.extra.pandas as pdst
     import hypothesis.strategies as st
     from hypothesis.strategies import SearchStrategy, composite
-except ImportError:  # pragma: no cover
-    T = TypeVar("T")
-
-    # pylint: disable=too-few-public-methods
-    class SearchStrategy(Generic[T]):  # type: ignore
-        """placeholder type."""
-
-    def composite(fn):  # type: ignore
-        """placeholder composite strategy."""
-        return fn
-
-    HAS_HYPOTHESIS = False
 else:
-    HAS_HYPOTHESIS = True
+    from pandera.strategies.base_strategies import SearchStrategy, composite
 
 
 StrategyFn = Callable[..., SearchStrategy]

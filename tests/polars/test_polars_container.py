@@ -110,5 +110,4 @@ def test_basic_polars_lazy_dataframe_check_error(
     query = ldf_basic.pipe(ldf_schema_with_check.validate, lazy=True)
 
     validated_df = query.collect()
-    validated_df == ldf_basic.collect()
     assert validated_df.frame_equal(ldf_basic.collect())
