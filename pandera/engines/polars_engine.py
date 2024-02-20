@@ -79,9 +79,7 @@ class DataType(dtypes.DataType):
         except TypeError:
             return False
 
-        return self.type == pandera_dtype.type and super().check(
-            pandera_dtype
-        )
+        return self.type == pandera_dtype.type and super().check(pandera_dtype)
 
     def __str__(self) -> str:
         return str(self.type)
@@ -487,7 +485,7 @@ class Category(DataType, dtypes.Category):
         return belongs_to_categories
 
     def __str__(self):
-        return f"Category"
+        return "Category"
 
 
 @Engine.register_dtype(equivalents=["null", pl.Null])

@@ -221,7 +221,7 @@ def test_coerce_cast_failed(pl_to_dtype, container):
 
     try:
         pl_to_dtype.coerce(data_container=container)
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         error = e
 
     assert error is not None
@@ -230,7 +230,7 @@ def test_coerce_cast_failed(pl_to_dtype, container):
 
     try:
         pl_to_dtype.coerce(data_container=container)
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         error = e
 
     assert error is not None
@@ -281,10 +281,22 @@ def test_check_equivalent(dtype):
     [
         (pe.Int8, pe.Int16, False),
         (pe.Category(categories=["a", "b"]), pe.String, False),
-        (pe.Decimal(precision=2, scale=1), pe.Decimal(precision=3, scale=2), False),
-        (pe.Decimal(precision=2, scale=1), pe.Decimal(precision=2, scale=1), True),
+        (
+            pe.Decimal(precision=2, scale=1),
+            pe.Decimal(precision=3, scale=2),
+            False,
+        ),
+        (
+            pe.Decimal(precision=2, scale=1),
+            pe.Decimal(precision=2, scale=1),
+            True,
+        ),
         (pe.DateTime(), pe.Date, False),
-        (pe.Category(categories=["a", "b"]), pe.Category(categories=["a", "b"]), True),
+        (
+            pe.Category(categories=["a", "b"]),
+            pe.Category(categories=["a", "b"]),
+            True,
+        ),
         (pe.DateTime(time_unit="s"), pe.DateTime(time_unit="ns"), False),
         (pe.DateTime(time_unit="s"), pe.DateTime(time_unit="s"), True),
     ],
