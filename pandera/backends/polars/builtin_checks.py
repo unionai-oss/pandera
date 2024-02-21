@@ -1,6 +1,6 @@
 """Built-in checks for polars."""
 
-from typing import Any, TypeVar, Iterable
+from typing import Any, TypeVar, Iterable, Union
 
 import re
 import polars as pl
@@ -206,7 +206,7 @@ def notin(data: PolarsData, forbidden_values: Iterable) -> pl.LazyFrame:
 )
 def str_matches(
     data: PolarsData,
-    pattern: str | re.Pattern,
+    pattern: Union[str, re.Pattern],
 ) -> pl.LazyFrame:
     """Ensure that string values match a regular expression.
 
@@ -290,7 +290,7 @@ def str_length(
     :param min_value: Minimum length of strings (default: no minimum)
     :param max_value: Maximum length of strings (default: no maximum)
     """
-    # TODO: consider using len_bytes (faster but returns != n_chars for non ASCII strings
+    # NOTE: consider using len_bytes (faster but returns != n_chars for non ASCII strings
     n_chars = pl.col("string_col").str.n_chars()
     is_in_min = (
         n_chars.ge(min_value) if min_value is not None else pl.lit(True)

@@ -110,7 +110,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             if isinstance(err.failure_cases, pl.LazyFrame):
                 raise NotImplementedError
 
-            elif isinstance(err.failure_cases, pl.DataFrame):
+            if isinstance(err.failure_cases, pl.DataFrame):
                 err_failure_cases = err.failure_cases.with_columns(
                     schema_context=pl.lit(err.schema.__class__.__name__),
                     column=pl.lit(err.schema.name),
