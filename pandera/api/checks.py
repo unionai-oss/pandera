@@ -502,8 +502,8 @@ class Check(BaseCheck):
     @classmethod
     def str_length(
         cls,
-        min_value: int = None,
-        max_value: int = None,
+        min_value: Optional[int] = None,
+        max_value: Optional[int] = None,
         **kwargs,
     ) -> "Check":
         """Ensure that the length of strings is within a specified range.

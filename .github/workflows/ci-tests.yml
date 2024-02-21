@@ -140,52 +140,49 @@ jobs:
           printenv | sort
 
       - name: Unit Tests - Core
-        run: pytest tests/core ${{ env.PYTEST_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='core', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Hypotheses
-        run: pytest tests/hypotheses ${{ env.PYTEST_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='hypotheses', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - IO
-        run: pytest tests/io ${{ env.PYTEST_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='io', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Mypy
         # mypy tests hang on windows
         if: ${{ matrix.os != 'windows-latest' }}
-        run: pytest -v tests/mypy ${{ env.PYTEST_FLAGS }}
+        run: |
+          nox ${{ env.NOX_FLAGS }} --session tests(extras='mypy', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Strategies
-        run: pytest tests/strategies ${{ env.PYTEST_FLAGS }} ${{ env.HYPOTHESIS_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='strategies', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - FastAPI
         # there's an issue with the fastapi tests in CI that's not reproducible locally
         # when pydantic > v2
-        run: pytest tests/fastapi ${{ env.PYTEST_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='fastapi', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - GeoPandas
-        run: pytest tests/geopandas ${{ env.PYTEST_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='geopandas', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Dask
         if: ${{ matrix.pandas-version != '2.0.3' }}
-        run: pytest tests/dask ${{ env.PYTEST_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Pyspark
         if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
-        run: pytest tests/pyspark ${{ env.PYTEST_FLAGS }}
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='pyspark', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Modin-Dask
         if: ${{ matrix.pandas-version != '2.0.3' }}
-        run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
-        env:
-          CI_MODIN_ENGINES: dask
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='modin-dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Modin-Ray
         # ray CI issues with the following:
         # - windows, python 3.10
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
         if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
-        run: pytest tests/modin ${{ env.PYTEST_FLAGS }}
-        env:
-          CI_MODIN_ENGINES: ray
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='modin-ray', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
