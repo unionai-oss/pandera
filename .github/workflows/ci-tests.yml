@@ -132,7 +132,7 @@ jobs:
 
       - name: Install deps
         run:
-          pip install uvicorn
+          pip install uv
           uv pip install -r ci/requirements-py${{ matrix.python-version }}-pandas${{ matrix.pandas-version }}-pydantic${{ matrix.pydantic-version }}.txt
 
       - run: |
