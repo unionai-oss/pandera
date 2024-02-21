@@ -155,7 +155,9 @@ class BaseClass:
 
         if not skip_fail_case:
             with pytest.raises(SchemaError):
-                df = pl.LazyFrame(fail_case_data, orient="row", schema=polars_schema)
+                df = pl.LazyFrame(
+                    fail_case_data, orient="row", schema=polars_schema
+                )
                 schema.validate(df)
 
 
@@ -243,7 +245,10 @@ class TestEqualToCheck(BaseClass):
                         self.sample_string_data, "binary"
                     ),
                 },
-                {"datatype": Categorical(ordering="physical"), "data": self.sample_string_data},
+                {
+                    "datatype": Categorical(ordering="physical"),
+                    "data": self.sample_string_data,
+                },
                 {
                     "datatype": Float32,
                     "data": self.convert_data(

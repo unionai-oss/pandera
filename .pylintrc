@@ -48,4 +48,9 @@ disable=
     unnecessary-dunder-call,
     use-dict-literal,
     invalid-name,
-    import-outside-toplevel
+    import-outside-toplevel,
+    missing-class-docstring,
+    missing-function-docstring,
+    fixme,
+    too-many-locals,
+    redefined-outer-name
