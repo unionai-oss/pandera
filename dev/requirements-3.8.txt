@@ -33,7 +33,7 @@ colorama==0.4.6           # via typer
 colorlog==6.7.0           # via nox
 commonmark==0.9.1         # via recommonmark
 coverage[toml]==7.3.1     # via coverage, pytest-cov
-cryptography==42.0.2      # via secretstorage
+cryptography==42.0.4      # via secretstorage
 dask==2023.5.0            # via -r requirements.in, distributed
 defusedxml==0.7.1         # via nbconvert
 dill==0.3.7               # via pylint
