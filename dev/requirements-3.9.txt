@@ -129,7 +129,7 @@ furo==2022.9.29
 geopandas==0.14.0
 h11==0.14.0
     # via uvicorn
-hypothesis==6.98.9
+hypothesis==6.98.10
 identify==2.5.29
     # via pre-commit
 idna==3.4
@@ -321,6 +321,7 @@ platformdirs==3.10.0
     #   virtualenv
 pluggy==1.3.0
     # via pytest
+polars==0.20.10
 pre-commit==3.4.0
 prometheus-client==0.17.1
     # via jupyter-server

@@ -5,7 +5,7 @@ from typing import Optional, List
 import polars as pl
 
 from pandera.api.polars.container import DataFrameSchema
-from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
+from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
@@ -28,6 +28,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
+        # pylint: disable=no-member
         error_handler = SchemaErrorHandler(lazy)
         components = [v for k, v in schema.columns.items()]
 
