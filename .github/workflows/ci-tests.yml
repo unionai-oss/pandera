@@ -151,8 +151,7 @@ jobs:
       - name: Unit Tests - Mypy
         # mypy tests hang on windows
         if: ${{ matrix.os != 'windows-latest' }}
-        run: |
-          nox ${{ env.NOX_FLAGS }} --session tests(extras='mypy', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
+        run: nox ${{ env.NOX_FLAGS }} --session tests(extras='mypy', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
 
       - name: Unit Tests - Strategies
         run: nox ${{ env.NOX_FLAGS }} --session tests(extras='strategies', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')
