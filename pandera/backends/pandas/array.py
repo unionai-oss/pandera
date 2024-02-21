@@ -333,7 +333,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         elif not is_field(check_obj) and not isinstance(
             check_obj[schema.name].dtype, pd.SparseDtype
         ):
-            check_obj[schema.name].fillna(schema.default, inplace=True)
+            check_obj.fillna({schema.name: schema.default}, inplace=True)
 
         return check_obj
 

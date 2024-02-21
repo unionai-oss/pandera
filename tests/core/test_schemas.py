@@ -1,4 +1,5 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
+
 # pylint: disable=too-many-lines,redefined-outer-name
 
 import copy
@@ -2233,6 +2234,23 @@ def test_dataframe_default_with_correct_dtype(
     """Test that missing rows are backfilled with the default if missing"""
     validated_dataframe = dataframe_schema.validate(dataframe)
     pd.testing.assert_frame_equal(validated_dataframe, expected_dataframe)
+
+
+def test_dataframe_set_default_warning():
+    """Test that a warning is not emitted when performing an in-place update."""
+    dataframe_schema = DataFrameSchema(
+        columns={
+            "a": Column(pd.Int64Dtype(), default=9),
+            "b": Column(pd.Int64Dtype(), nullable=True),
+        },
+    )
+    dataframe = pd.DataFrame({"a": [0, None], "b": [None, 5]}, dtype="Int64")
+
+    with pd.option_context("mode.copy_on_write", True), pytest.warns(
+        match=r"chained assignment"
+    ) as record:
+        dataframe_schema.validate(dataframe)
+    assert len(record) == 0
 
 
 def test_default_works_correctly_on_schemas_with_multiple_colummns():
