@@ -38,17 +38,14 @@ nox:
 
 NOX_FLAGS ?= "-r"
 
-nox-conda:
-	nox -db conda --envdir .nox-conda ${NOX_FLAGS}
+nox-mamba:
+	nox -db mamba --envdir .nox-mamba ${NOX_FLAGS}
 
 deps-from-conda:
 	python scripts/generate_pip_deps_from_conda.py
 
 nox-ci-requirements: deps-from-conda
-	nox -db mamba --envdir .nox-mamba -s ci_requirements
+	nox -db mamba --envdir .nox-mamba -s ci_requirements ${NOX_FLAGS}
 
 nox-dev-requirements: deps-from-conda
-	nox -db mamba --envdir .nox-mamba -s dev_requirements
-
-requirements-docs.txt: deps-from-conda
-	pip-compile requirements.in --no-emit-index-url --output-file requirements-docs.txt -v --resolver backtracking
+	nox -db mamba --envdir .nox-mamba -s dev_requirements ${NOX_FLAGS}

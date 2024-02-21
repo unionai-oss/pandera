@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 from typing import Dict, List
 
 # setuptools must be imported before distutils !
@@ -27,7 +28,7 @@ nox.options.sessions = (
 
 DEFAULT_PYTHON = "3.8"
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
-PANDAS_VERSIONS = ["1.5.3", "2.0.3"]
+PANDAS_VERSIONS = ["1.5.3", "2.0.3", "2.2.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
 PACKAGE = "pandera"
@@ -297,45 +298,43 @@ def requirements(session: Session) -> None:  # pylint:disable=unused-argument
 @nox.parametrize("pydantic", PYDANTIC_VERSIONS)
 def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     """Install pinned dependencies for CI."""
-    session.install("pip-tools")
+    if session.python == "3.8" and pandas == "2.2.0":
+        session.skip()
+
+    session.install("uv")
     output_file = (
         "ci/requirements-"
         f"py{session.python}-"
         f"pandas{pandas}-"
         f"pydantic{pydantic}.txt"
     )
-    session.run(
-        "pip-compile",
-        "requirements.in",
-        "--no-emit-index-url",
-        "--output-file",
-        output_file,
-        "-v",
-        "--resolver",
-        "backtracking",
-        "--upgrade-package",
-        f"pandas=={pandas}",
-        "--upgrade-package",
-        f"pydantic=={pydantic}",
-        "--annotation-style=line",
-    )
+    with tempfile.NamedTemporaryFile("a") as f:
+        f.writelines([f"pandas=={pandas}\n", f"pydantic=={pydantic}\n"])
+        f.seek(0)
+        session.run(
+            "uv",
+            "pip",
+            "compile",
+            "requirements.in",
+            "--output-file",
+            output_file,
+            "--override",
+            f"{f.name}",
+        )
 
 
 @nox.session(python=PYTHON_VERSIONS)
 def dev_requirements(session: Session) -> None:
     """Install pinned dependencies for CI."""
-    session.install("pip-tools")
+    session.install("uv")
     output_file = f"dev/requirements-{session.python}.txt"
     session.run(
-        "pip-compile",
+        "uv",
+        "pip",
+        "compile",
         "requirements.in",
-        "--no-emit-index-url",
         "--output-file",
         output_file,
-        "-v",
-        "--resolver",
-        "backtracking",
-        "--annotation-style=line",
     )
 
 
