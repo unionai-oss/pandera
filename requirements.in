@@ -3,7 +3,7 @@
 
 pip
 packaging >= 20.0
-hypothesis >= 5.41.1
+hypothesis >= 6.92.7
 numpy >= 1.19.0
 pandas
 scipy
