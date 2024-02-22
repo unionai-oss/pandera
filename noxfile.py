@@ -310,7 +310,7 @@ PYTHON_PANDAS_PARAMETER = [
     (python, pandas)
     for python in PYTHON_VERSIONS
     for pandas in PANDAS_VERSIONS
-    if (python, pandas) not in (("3.8", "2.2.0"),)
+    if (python, pandas) != ("3.8", "2.2.0")
 ]
 
 
