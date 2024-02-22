@@ -2,7 +2,7 @@
 
 import operator
 import re
-from typing import Any, Iterable, TypeVar, Union, cast
+from typing import Any, Iterable, Optional, TypeVar, Union, cast
 
 import pandas as pd
 
@@ -269,8 +269,8 @@ def str_endswith(data: PandasData, string: str) -> PandasData:
 )
 def str_length(
     data: PandasData,
-    min_value: int = None,
-    max_value: int = None,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
 ) -> PandasData:
     """Ensure that the length of strings is within a specified range.
 

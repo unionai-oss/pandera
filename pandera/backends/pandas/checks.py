@@ -69,11 +69,14 @@ class PandasCheckBackend(BaseCheckBackend):
                 f"groups {invalid_groups} provided in `groups` argument not a "
                 f"valid group key. Valid group keys: {group_keys}"
             )
-        return {  # type: ignore[return-value]
-            group_key: group
-            for group_key, group in groupby_obj  # type: ignore [union-attr]
-            if group_key in groups
-        }
+        output = {}
+        for group_key, group in groupby_obj:
+            if isinstance(group_key, tuple) and len(group_key) == 1:
+                group_key = group_key[0]
+            if group_key in groups:
+                output[group_key] = group
+
+        return output  # type: ignore[return-value]
 
     @overload
     def preprocess(self, check_obj, key) -> pd.Series:

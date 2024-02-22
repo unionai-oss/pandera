@@ -70,35 +70,39 @@ make docs
 
 #### Adding New Dependencies
 
-To add new dependencies to the project, make sure to alter the _environment.yml_ file. Then to sync the dependencies from the _environment.yml_ file to the _requirements-dev.txt_ run the following command
+This repo uses [mamba](https://github.com/mamba-org/mamba), which is a faster
+implementation of [miniconda](https://docs.conda.io/en/latest/miniconda.html),
+to run the `nox` test suite. Simply install it via conda-forge:
 
 ```bash
-make requirements-dev.txt
+conda install -c conda-forge mamba
+```
+
+To add new dependencies to the project, first alter the _environment.yml_ file. Then to sync the dependencies from the `environment.yml`` file to the `requirements.in` run the following command
+
+```bash
+make nox-ci-requirements nox-dev-requirements
 ```
 
 This will:
 
 - Invoke `python scripts/generate_pip_deps_from_conda.py` to convert `environment.yml`
   to a `requirements.in` file.
-- Use `pip-compile` to create `requirements-dev.txt` file that has a fully specified
-  set of dependencies.
+- Use `pip-compile` via the `uv` package to create requirements files in the
+  `ci` and `dev` directories. The `ci` requirements files are used by github
+   actions, while those in the `dev` directory should be used to create local
+   development enviornments.
 
-You can use the resulting `requirements-dev.txt` file to install your dependencies
+You can use the resulting `requirements-{3.x}.txt` file to install your dependencies
 with `pip`:
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r dev/requirements-{3.x}.txt  # replace {3.x} with desired python version
 ```
 
 Moreover to add new extra dependencies in setup.py, it is necessary to add it to
 the **_extras_require** dictionary.
 
-When you update dependencies also need to update the `pip-compile`d requirements
-files in the `ci` directory, which are used by the CI/CD process of this repo:
-
-```bash
-make nox-ci-requirements
-```
 
 #### Set up `pre-commit`
 
@@ -148,21 +152,6 @@ make nox-conda
 
 # option 2: if you're working with virtualenv
 make nox
-```
-
-Option 2 assumes that you have python environments for all of the versions
-that pandera supports.
-
-#### Using `mamba` (optional)
-
-You can also use [mamba](https://github.com/mamba-org/mamba), which is a faster
-implementation of [miniconda](https://docs.conda.io/en/latest/miniconda.html),
-to run the `nox` test suite. Simply install it via conda-forge, and
-`make nox-conda` should use it under the hood.
-
-```bash
-conda install -c conda-forge mamba
-make nox-conda
 ```
 
 ### Project Releases
