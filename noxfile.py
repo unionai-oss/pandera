@@ -306,7 +306,7 @@ def _ci_requirement_file_name(
     )
 
 
-PYTHON_PANDAS_PAREMETER = [
+PYTHON_PANDAS_PARAMETER = [
     (python, pandas)
     for python in PYTHON_VERSIONS
     for pandas in PANDAS_VERSIONS
@@ -315,7 +315,7 @@ PYTHON_PANDAS_PAREMETER = [
 
 
 @nox.session
-@nox.parametrize("python,pandas", PYTHON_PANDAS_PAREMETER)
+@nox.parametrize("python,pandas", PYTHON_PANDAS_PARAMETER)
 @nox.parametrize("pydantic", PYDANTIC_VERSIONS)
 def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     """Install pinned dependencies for CI."""
@@ -365,7 +365,7 @@ EXTRA_NAMES = [
 
 
 @nox.session
-@nox.parametrize("python,pandas", PYTHON_PANDAS_PAREMETER)
+@nox.parametrize("python,pandas", PYTHON_PANDAS_PARAMETER)
 @nox.parametrize("pydantic", PYDANTIC_VERSIONS)
 @nox.parametrize("extra", EXTRA_NAMES)
 def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
