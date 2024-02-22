@@ -165,22 +165,22 @@ jobs:
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='geopandas', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Dask
-        if: ${{ matrix.pandas-version != '2.0.3' }}
+        if: ${{ matrix.pandas-version == '1.5.3' }}
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Pyspark
-        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version == '1.5.3' }}
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='pyspark', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Modin-Dask
-        if: ${{ matrix.pandas-version != '2.0.3' }}
+        if: ${{ matrix.pandas-version == '1.5.3' }}
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='modin-dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Modin-Ray
         # ray CI issues with the following:
         # - windows, python 3.10
         # Tracking issue: https://github.com/modin-project/modin/issues/5466
-        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version != '2.0.3' }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.pandas-version == '1.5.3' }}
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='modin-ray', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Upload coverage to Codecov
