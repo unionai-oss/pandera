@@ -371,8 +371,8 @@ EXTRA_NAMES = [
 def tests(session: Session, pandas: str, pydantic: str, extra: str) -> None:
     """Run the test suite."""
 
-    session.install("uv")
     if not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv):
+        session.install("uv")
         session.run(
             "uv",
             "pip",
