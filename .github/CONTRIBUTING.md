@@ -81,7 +81,7 @@ conda install -c conda-forge mamba
 To add new dependencies to the project, first alter the _environment.yml_ file. Then to sync the dependencies from the `environment.yml`` file to the `requirements.in` run the following command
 
 ```bash
-make nox-ci-requirements nox-dev-requirements
+make nox-requirements
 ```
 
 This will:
