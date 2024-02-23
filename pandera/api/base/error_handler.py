@@ -132,7 +132,7 @@ class ErrorHandler:
                     "schema": schema_name,
                     "column": e["column"],
                     "check": check,
-                    "error": error.__str__(),
+                    "error": error.__str__().replace("\n", ""),
                 }
             )
 
