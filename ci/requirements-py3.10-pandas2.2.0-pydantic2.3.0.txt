@@ -294,6 +294,7 @@ pandas==2.2.0
     #   modin
     #   partd
     #   petl
+    #   polars
     #   pyspark
     #   ray
 pandas-stubs==2.2.0.240218
@@ -316,6 +317,7 @@ platformdirs==4.2.0
     #   virtualenv
 pluggy==1.4.0
     # via pytest
+polars==0.20.10
 pre-commit==3.6.2
 prometheus-client==0.20.0
     # via jupyter-server
@@ -335,6 +337,7 @@ pycparser==2.21
 pydantic==2.3.0
     # via
     #   fastapi
+    #   polars
     #   ray
 pydantic-core==2.6.3
     # via pydantic
