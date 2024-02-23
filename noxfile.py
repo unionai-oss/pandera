@@ -335,6 +335,7 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
             _ci_requirement_file_name(session, pandas, pydantic),
             "--override",
             f"{f.name}",
+            "--no-header",
         )
 
 
@@ -350,6 +351,7 @@ def dev_requirements(session: Session) -> None:
         "requirements.in",
         "--output-file",
         output_file,
+        "--no-header",
     )
 
 

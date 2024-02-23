@@ -50,5 +50,7 @@ nox-ci-requirements: deps-from-conda
 nox-dev-requirements: deps-from-conda
 	nox -db mamba --envdir .nox-mamba -s dev_requirements ${NOX_FLAGS}
 
+nox-requirements: nox-ci-requirements nox-dev-requirements
+
 nox-tests:
 	nox -db mamba --envdir .nox-mamba -s tests ${NOX_FLAGS}
