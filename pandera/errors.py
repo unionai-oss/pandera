@@ -11,7 +11,7 @@ class BackendNotFoundError(Exception):
     """
 
 
-class ReducedPickleExceptionBase(BaseException):
+class ReducedPickleExceptionBase(Exception):
     """Base class for Exception with non-conserved state under pickling.
 
     Derived classes define attributes to be transformed to
