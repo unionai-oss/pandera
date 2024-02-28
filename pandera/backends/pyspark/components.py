@@ -117,7 +117,6 @@ class ColumnBackend(ColumnSchemaBackend):
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
         # pylint: disable=fixme
-
         check_obj = check_obj.withColumn(
             schema.name, col(schema.name).cast(schema.dtype)
         )

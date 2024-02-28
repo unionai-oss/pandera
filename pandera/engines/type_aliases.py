@@ -27,4 +27,4 @@ if PYSPARK_INSTALLED:
     PysparkObject = Union[DataFrame]
 
 if POLARS_INSTALLED:
-    PolarsObject = Union[pl.Series, pl.DataFrame]
+    PolarsObject = Union[pl.Series, pl.DataFrame, pl.LazyFrame]

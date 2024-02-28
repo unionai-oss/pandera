@@ -1,6 +1,6 @@
 """Validation backend for polars components."""
 
-from typing import List, Optional, cast
+from typing import Iterable, List, Optional, cast
 
 import polars as pl
 
@@ -10,7 +10,6 @@ from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.backends.polars.constants import FAILURE_CASE_KEY
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
-    ParserError,
     SchemaError,
     SchemaErrors,
     SchemaErrorReason,
@@ -82,6 +81,9 @@ class ColumnBackend(PolarsSchemaBackend):
             )
 
         return check_obj
+
+    def get_regex_columns(self, schema, columns) -> Iterable:
+        raise NotImplementedError
 
     # NOTE: this will replace most of the code in the validate method above.
     def run_checks_and_handle_errors(
@@ -160,26 +162,27 @@ class ColumnBackend(PolarsSchemaBackend):
     ) -> pl.LazyFrame:
         """Coerce type of a pd.Series by type specified in dtype.
 
-        :param pd.Series series: One-dimensional ndarray with axis labels
-            (including time series).
-        :returns: ``Series`` with coerced data type
+        :param check_obj: LazyFrame to coerce
+        :returns: coerced LazyFrame
         """
         assert schema is not None, "The `schema` argument must be provided."
         if schema.dtype is None or not schema.coerce:
             return check_obj
 
         try:
-            # NOTE: need to implement this in the type engines.
-            return check_obj.cast({schema.name: schema.dtype})
-        except ParserError as exc:
+            return (
+                check_obj.cast({schema.name: schema.dtype.type})
+                .collect()
+                .lazy()
+            )
+        except pl.exceptions.ComputeError as exc:
             raise SchemaError(
                 schema=schema,
                 data=check_obj,
                 message=(
                     f"Error while coercing '{schema.name}' to type "
-                    f"{schema.dtype}: {exc}:\n{exc.failure_cases}"
+                    f"{schema.dtype}: {exc}"
                 ),
-                failure_cases=exc.failure_cases,
                 check=f"coerce_dtype('{schema.dtype}')",
             ) from exc
 
@@ -236,7 +239,7 @@ class ColumnBackend(PolarsSchemaBackend):
 
         if schema.dtype is not None:
             obj_dtype = check_obj.schema[schema.name]
-            passed = obj_dtype.is_(schema.dtype)
+            passed = obj_dtype.is_(schema.dtype.type)
 
         if not passed:
             failure_cases = str(obj_dtype)

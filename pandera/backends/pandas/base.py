@@ -2,10 +2,7 @@
 
 import warnings
 from typing import (
-    FrozenSet,
-    Iterable,
     List,
-    NamedTuple,
     Optional,
     TypeVar,
     Union,
@@ -30,16 +27,6 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaWarning,
 )
-
-
-class ColumnInfo(NamedTuple):
-    """Column metadata used during validation."""
-
-    sorted_column_names: Iterable
-    expanded_column_names: FrozenSet
-    destuttered_column_names: List
-    absent_column_names: List
-    regex_match_patterns: List
 
 
 FieldCheckObj = Union[pd.Series, pd.DataFrame]

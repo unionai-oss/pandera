@@ -70,3 +70,62 @@ def test_basic_polars_lazy_dataframe_check_error(
 
     validated_df = query.collect()
     assert validated_df.frame_equal(ldf_basic.collect())
+
+
+def test_coerce_column_dtype(ldf_basic, ldf_schema_basic):
+    """Test coerce dtype via column-level dtype specification."""
+    ldf_schema_basic._coerce = True
+    modified_data = ldf_basic.with_columns(pl.col("int_col").cast(pl.Utf8))
+    query = modified_data.pipe(ldf_schema_basic.validate)
+    coerced_df = query.collect()
+    assert coerced_df.frame_equal(ldf_basic.collect())
+
+
+def test_coerce_column_dtype_error(ldf_basic, ldf_schema_basic):
+    """Test coerce dtype raises error when values cannot be coerced."""
+    ldf_schema_basic._coerce = True
+
+    # change dtype of strong_col to int64, where coercion of values should fail
+    ldf_schema_basic.columns["string_col"].dtype = pl.Int64
+    with pytest.raises(pa.errors.SchemaError):
+        ldf_basic.pipe(ldf_schema_basic.validate)
+
+
+def test_coerce_df_dtype(ldf_basic, ldf_schema_basic):
+    """Test coerce dtype via dataframe-level dtype specification."""
+    ldf_schema_basic._coerce = True
+    ldf_schema_basic.dtype = pl.Utf8
+    ldf_schema_basic.columns["int_col"].dtype = pl.Utf8
+    query = ldf_basic.pipe(ldf_schema_basic.validate)
+    coerced_df = query.collect()
+    assert coerced_df.frame_equal(ldf_basic.cast(pl.Utf8).collect())
+
+
+def test_coerce_df_dtype_error(ldf_basic, ldf_schema_basic):
+    """Test coerce dtype when values cannot be coerced."""
+    ldf_schema_basic._coerce = True
+
+    # change dtype of schema to int64, where string_col value coercion should
+    # fail
+    ldf_schema_basic.dtype = pl.Int64
+    ldf_schema_basic.columns["string_col"].dtype = pl.Int64
+    with pytest.raises(pa.errors.SchemaError):
+        ldf_basic.pipe(ldf_schema_basic.validate)
+
+
+def test_strict_filter(ldf_basic, ldf_schema_basic):
+    """Test strictness and filtering schema logic."""
+    # by default, strict is False, so by default it should pass
+    modified_data = ldf_basic.with_columns(extra_col=pl.lit(1))
+    validated_data = modified_data.pipe(ldf_schema_basic.validate)
+    assert validated_data.collect().frame_equal(modified_data.collect())
+
+    # setting strict to True should raise an error
+    ldf_schema_basic.strict = True
+    with pytest.raises(pa.errors.SchemaError):
+        modified_data.pipe(ldf_schema_basic.validate)
+
+    # setting strict to "filter" should remove the extra column
+    ldf_schema_basic.strict = "filter"
+    filtered_data = modified_data.pipe(ldf_schema_basic.validate)
+    filtered_data.collect().frame_equal(ldf_basic.collect())

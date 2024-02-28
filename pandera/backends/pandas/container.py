@@ -9,8 +9,8 @@ import pandas as pd
 from pydantic import BaseModel
 
 from pandera.api.pandas.types import is_table
-from pandera.backends.base import CoreCheckResult
-from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
+from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
