@@ -363,9 +363,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # Add missing columns to dataframe based on 'add_missing_columns'
         # schema property
 
-        if not (
-            column_info.absent_column_names and schema.add_missing_columns
-        ):
+        if not column_info.absent_column_names and schema.add_missing_columns:
             return check_obj
 
         # Absent columns are required to have a default
@@ -386,12 +384,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
                 )
 
-        # Ascertain order in which missing columns should
-        # be inserted into dataframe. Be careful not to
-        # modify order of existing dataframe columns to
-        # avoid ripple effects in downstream validation
+        # Ascertain order in which missing columns should be inserted into
+        # dataframe. Be careful not to modify order of existing dataframe
+        # columns to avoid ripple effects in downstream validation
         # (e.g., ordered schema).
-        schema_cols_dict: Dict[Any, None] = dict()
+        schema_cols_dict: Dict[Any, None] = {}
         for col_name, col_schema in schema.columns.items():
             if col_name in check_obj.columns or col_schema.required:
                 schema_cols_dict[col_name] = None

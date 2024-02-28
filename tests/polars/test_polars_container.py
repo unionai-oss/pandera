@@ -69,7 +69,7 @@ def test_basic_polars_lazy_dataframe_check_error(
     query = ldf_basic.pipe(ldf_schema_with_check.validate, lazy=True)
 
     validated_df = query.collect()
-    assert validated_df.frame_equal(ldf_basic.collect())
+    assert validated_df.equals(ldf_basic.collect())
 
 
 def test_coerce_column_dtype(ldf_basic, ldf_schema_basic):
@@ -78,7 +78,7 @@ def test_coerce_column_dtype(ldf_basic, ldf_schema_basic):
     modified_data = ldf_basic.with_columns(pl.col("int_col").cast(pl.Utf8))
     query = modified_data.pipe(ldf_schema_basic.validate)
     coerced_df = query.collect()
-    assert coerced_df.frame_equal(ldf_basic.collect())
+    assert coerced_df.equals(ldf_basic.collect())
 
 
 def test_coerce_column_dtype_error(ldf_basic, ldf_schema_basic):
@@ -98,7 +98,7 @@ def test_coerce_df_dtype(ldf_basic, ldf_schema_basic):
     ldf_schema_basic.columns["int_col"].dtype = pl.Utf8
     query = ldf_basic.pipe(ldf_schema_basic.validate)
     coerced_df = query.collect()
-    assert coerced_df.frame_equal(ldf_basic.cast(pl.Utf8).collect())
+    assert coerced_df.equals(ldf_basic.cast(pl.Utf8).collect())
 
 
 def test_coerce_df_dtype_error(ldf_basic, ldf_schema_basic):
@@ -118,7 +118,7 @@ def test_strict_filter(ldf_basic, ldf_schema_basic):
     # by default, strict is False, so by default it should pass
     modified_data = ldf_basic.with_columns(extra_col=pl.lit(1))
     validated_data = modified_data.pipe(ldf_schema_basic.validate)
-    assert validated_data.collect().frame_equal(modified_data.collect())
+    assert validated_data.collect().equals(ldf_basic.collect())
 
     # setting strict to True should raise an error
     ldf_schema_basic.strict = True
@@ -128,4 +128,26 @@ def test_strict_filter(ldf_basic, ldf_schema_basic):
     # setting strict to "filter" should remove the extra column
     ldf_schema_basic.strict = "filter"
     filtered_data = modified_data.pipe(ldf_schema_basic.validate)
-    filtered_data.collect().frame_equal(ldf_basic.collect())
+    filtered_data.collect().equals(ldf_basic.collect())
+
+
+def test_add_missing_columns_with_default(ldf_basic, ldf_schema_basic):
+    """Test add_missing_columns argument with a default value."""
+    ldf_schema_basic.add_missing_columns = True
+    ldf_schema_basic.columns["int_col"].default = 1
+    modified_data = ldf_basic.drop("int_col")
+    validated_data = modified_data.pipe(ldf_schema_basic.validate)
+    assert validated_data.collect().equals(
+        ldf_basic.with_columns(int_col=pl.lit(1)).collect()
+    )
+
+
+def test_add_missing_columns_with_nullable(ldf_basic, ldf_schema_basic):
+    """Test add_missing_columns argument with a nullable value."""
+    ldf_schema_basic.add_missing_columns = True
+    ldf_schema_basic.columns["int_col"].nullable = True
+    modified_data = ldf_basic.drop("int_col")
+    validated_data = modified_data.pipe(ldf_schema_basic.validate)
+    assert validated_data.collect().equals(
+        ldf_basic.with_columns(int_col=pl.lit(None)).collect()
+    )

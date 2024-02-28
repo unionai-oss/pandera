@@ -34,7 +34,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         column_info = self.collect_column_info(check_obj, schema)
 
         core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
-            # ((self.add_missing_columns), (schema, column_info)),  # TODO
+            (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
             (self.coerce_dtype, (schema,)),
         ]
@@ -186,17 +186,54 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         self,
         check_obj: pl.LazyFrame,
         schema,
-        column_info: Any,
+        column_info: ColumnInfo,
     ):
-        """Add missing columns to the dataframe."""
-        raise NotImplementedError
+        """Add columns that aren't in the dataframe."""
+        # Add missing columns to dataframe based on 'add_missing_columns'
+        # schema property
+
+        if not column_info.absent_column_names and schema.add_missing_columns:
+            return check_obj
+
+        # Absent columns are required to have a default value or be nullable
+        for col_name in column_info.absent_column_names:
+            col_schema = schema.columns[col_name]
+            if col_schema.default is None and not col_schema.nullable:
+                raise SchemaError(
+                    schema=schema,
+                    data=check_obj,
+                    message=(
+                        f"column '{col_name}' in {schema.__class__.__name__}"
+                        f" {schema.columns} requires a default value "
+                        f"when non-nullable add_missing_columns is enabled"
+                    ),
+                    failure_cases=col_name,
+                    check="add_missing_has_default",
+                    reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
+                )
+
+        # Create companion dataframe of default values for missing columns
+        missing_cols_schema = {
+            k: v
+            for k, v in schema.columns.items()
+            if k in column_info.absent_column_names
+        }
+
+        # Append missing columns
+        check_obj = check_obj.with_columns(
+            **{k: v.default for k, v in missing_cols_schema.items()}
+        ).cast({k: v.dtype.type for k, v in missing_cols_schema.items()})
+
+        # Set column order
+        check_obj = check_obj.select([*schema.columns])
+        return check_obj
 
     def strict_filter_columns(
         self,
         check_obj: pl.LazyFrame,
         schema,
-        column_info: Any,
-    ):
+        column_info: ColumnInfo,
+    ) -> pl.LazyFrame:
         """Filter columns that aren't specified in the schema."""
         # dataframe strictness check makes sure all columns in the dataframe
         # are specified in the dataframe schema
