@@ -180,7 +180,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             core_checks = SCHEMA_CHECKS + DATA_CHECKS
         elif CONFIG.validation_depth == ValidationDepth.SCHEMA_ONLY:
             core_checks = SCHEMA_CHECKS
-        elif CONFIG.validation_depth == ValidationDepth.SCHEMA_ONLY:
+        elif CONFIG.validation_depth == ValidationDepth.DATA_ONLY:
             core_checks = DATA_CHECKS
         else:
             raise SchemaDefinitionError("Validation depth is not defined")

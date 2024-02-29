@@ -5,7 +5,8 @@ from enum import Enum
 from typing import Any, Dict, List, Union
 
 from pandera.api.checks import Check
-from pandera.validation_depth import validation_type
+from pandera.config import CONFIG, ValidationDepth
+from pandera.validation_depth import ValidationScope, validation_type
 from pandera.errors import SchemaError, SchemaErrorReason
 
 
@@ -122,6 +123,9 @@ class ErrorHandler:
             subcategory = e["reason_code"].name
             error = e["error"]
 
+            if self.invalid_reason_code(category):
+                continue
+
             if isinstance(error.check, Check):
                 check = error.check.error
             else:
@@ -137,3 +141,23 @@ class ErrorHandler:
             )
 
         return self._summarized_errors
+
+    def invalid_reason_code(self, category):
+        """Determine if the check should be included in the error report
+
+        :param category: Enum object
+        """
+        if CONFIG.validation_depth == ValidationDepth.SCHEMA_AND_DATA:
+            return False
+        elif (
+            CONFIG.validation_depth == ValidationDepth.DATA_ONLY
+            and category == ValidationScope.DATA.name
+        ):
+            return False
+        elif (
+            CONFIG.validation_depth == ValidationDepth.SCHEMA_ONLY
+            and category == ValidationScope.SCHEMA.name
+        ):
+            return False
+
+        return True

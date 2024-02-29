@@ -19,6 +19,7 @@ import pandas as pd
 import pytest
 
 from pandera import Check, Column, DataFrameSchema
+from pandera.config import CONFIG, ValidationDepth
 from pandera.engines import pandas_engine, numpy_engine
 from pandera.errors import (
     ParserError,
@@ -331,3 +332,92 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
         schema.validate(pd.DataFrame({"x": unhashables}), lazy=True)
 
     assert e.value.failure_cases.failure_case.to_list() == unhashables
+
+
+@pytest.mark.parametrize(
+    "validation_depth, expected_error",
+    [
+        (
+            ValidationDepth.SCHEMA_AND_DATA,
+            {
+                "SCHEMA": {
+                    "SERIES_CONTAINS_NULLS": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "not_nullable",
+                            "error": "non-nullable series 'id' contains null values:1   NaNName: id, dtype: float64",
+                        }
+                    ],
+                    "WRONG_DATATYPE": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "dtype('int64')",
+                            "error": "expected series 'id' to have type int64, got float64",
+                        }
+                    ],
+                },
+                "DATA": {
+                    "DATAFRAME_CHECK": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "less_than(10)",
+                            "error": "<Schema Column(name=id, type=DataType(int64))> failed element-wise validator 0:<Check less_than: less_than(10)>failure cases:   index  failure_case0      2          30.0",
+                        }
+                    ]
+                },
+            },
+        ),
+        (
+            ValidationDepth.SCHEMA_ONLY,
+            {
+                "SCHEMA": {
+                    "SERIES_CONTAINS_NULLS": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "not_nullable",
+                            "error": "non-nullable series 'id' contains null values:1   NaNName: id, dtype: float64",
+                        }
+                    ],
+                    "WRONG_DATATYPE": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "dtype('int64')",
+                            "error": "expected series 'id' to have type int64, got float64",
+                        }
+                    ],
+                },
+            },
+        ),
+        (
+            ValidationDepth.DATA_ONLY,
+            {
+                "DATA": {
+                    "DATAFRAME_CHECK": [
+                        {
+                            "schema": None,
+                            "column": "id",
+                            "check": "less_than(10)",
+                            "error": "<Schema Column(name=id, type=DataType(int64))> failed element-wise validator 0:<Check less_than: less_than(10)>failure cases:   index  failure_case0      2          30.0",
+                        }
+                    ]
+                },
+            },
+        ),
+    ],
+)
+def test_validation_depth(validation_depth, expected_error):
+    """Test the error report generated is relevant to the CONFIG.validation_depth"""
+    CONFIG.validation_depth = validation_depth
+
+    df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
+    schema = DataFrameSchema({"id": Column(int, Check.lt(10))})
+
+    with pytest.raises(SchemaErrors) as e:
+        schema.validate(df, lazy=True)
+
+    assert e.value.message == expected_error
