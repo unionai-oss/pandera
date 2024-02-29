@@ -135,11 +135,23 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 raise NotImplementedError
 
             if isinstance(err.failure_cases, pl.DataFrame):
-                err_failure_cases = err.failure_cases.with_columns(
+                failure_cases_df = err.failure_cases
+
+                if len(err.failure_cases) > 1:
+                    # for boolean dataframe check results, reduce failure cases
+                    # to a struct column
+                    failure_cases_df = err.failure_cases.with_columns(
+                        failure_case=pl.Series(
+                            err.failure_cases.rows(named=True)
+                        )
+                    ).select(pl.col.failure_case)
+
+                failure_cases_df = failure_cases_df.with_columns(
                     schema_context=pl.lit(err.schema.__class__.__name__),
                     column=pl.lit(err.schema.name),
                     check=pl.lit(check_identifier),
                     check_number=pl.lit(err.check_index),
+                    index=pl.lit(None),
                 )
 
             else:
@@ -152,9 +164,9 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                 scalar_failure_cases["check_number"].append(err.check_index)
                 scalar_failure_cases["failure_case"].append(err.failure_cases)
                 scalar_failure_cases["index"].append(None)
-                err_failure_cases = pl.DataFrame(scalar_failure_cases)
+                failure_cases_df = pl.DataFrame(scalar_failure_cases)
 
-            failure_case_collection.append(err_failure_cases)
+            failure_case_collection.append(failure_cases_df)
 
         failure_cases = pl.concat(failure_case_collection)
 

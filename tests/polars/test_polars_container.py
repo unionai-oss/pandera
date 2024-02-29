@@ -6,6 +6,7 @@ import polars as pl
 import pytest
 import pandera as pa
 from pandera import Check as C
+from pandera.api.polars.types import PolarsData
 from pandera.polars import Column, DataFrameSchema
 
 
@@ -118,7 +119,7 @@ def test_strict_filter(ldf_basic, ldf_schema_basic):
     # by default, strict is False, so by default it should pass
     modified_data = ldf_basic.with_columns(extra_col=pl.lit(1))
     validated_data = modified_data.pipe(ldf_schema_basic.validate)
-    assert validated_data.collect().equals(ldf_basic.collect())
+    assert validated_data.collect().equals(modified_data.collect())
 
     # setting strict to True should raise an error
     ldf_schema_basic.strict = True
@@ -151,3 +152,49 @@ def test_add_missing_columns_with_nullable(ldf_basic, ldf_schema_basic):
     assert validated_data.collect().equals(
         ldf_basic.with_columns(int_col=pl.lit(None)).collect()
     )
+
+
+def test_unique_column_names(ldf_basic, ldf_schema_basic):
+    """Test unique column names."""
+    ldf_schema_basic.unique_column_names = True
+    with pytest.warns():
+        ldf_basic.pipe(ldf_schema_basic.validate).collect()
+
+
+def test_column_absent_error(ldf_basic, ldf_schema_basic):
+    """Test column presence."""
+    with pytest.raises(
+        pa.errors.SchemaError, match="column 'int_col' not in dataframe"
+    ):
+        ldf_basic.drop("int_col").pipe(ldf_schema_basic.validate).collect()
+
+
+def test_column_values_are_unique(ldf_basic, ldf_schema_basic):
+    """Test column values are unique."""
+    ldf_schema_basic.unique = ["string_col", "int_col"]
+    modified_data = ldf_basic.with_columns(
+        string_col=pl.lit("a"), int_col=pl.lit(0)
+    )
+    with pytest.raises(pa.errors.SchemaError):
+        modified_data.pipe(ldf_schema_basic.validate).collect()
+
+
+def test_dataframe_level_checks():
+    def custom_check(data: PolarsData):
+        return data.dataframe.select(pl.col("*").eq(0))
+
+    schema = DataFrameSchema(
+        columns={"a": Column(pl.Int64), "b": Column(pl.Int64)},
+        checks=[
+            pa.Check(custom_check),
+            pa.Check(lambda d: d.dataframe.select(pl.col("*").eq(0))),
+        ],
+    )
+    ldf = pl.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]}).lazy()
+    with pytest.raises(pa.errors.SchemaError):
+        ldf.pipe(schema.validate)
+
+    try:
+        ldf.pipe(schema.validate, lazy=True)
+    except pa.errors.SchemaErrors as err:
+        assert err.failure_cases.shape[0] == 6

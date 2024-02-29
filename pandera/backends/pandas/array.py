@@ -12,7 +12,7 @@ from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.backends.pandas.utils import convert_uniquesettings
+from pandera.backends.utils import convert_uniquesettings
 from pandera.engines.pandas_engine import Engine
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (

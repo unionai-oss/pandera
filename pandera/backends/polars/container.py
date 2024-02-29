@@ -1,6 +1,8 @@
 """Validation backend for polars DataFrameSchema."""
 
 import itertools
+import traceback
+import warnings
 from typing import Any, Optional, List, Callable, Tuple
 
 import polars as pl
@@ -13,6 +15,7 @@ from pandera.errors import (
     SchemaError,
     SchemaErrors,
     SchemaErrorReason,
+    SchemaDefinitionError,
 )
 
 
@@ -29,6 +32,15 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
+        if schema.unique_column_names:
+            warnings.warn(
+                "unique_column_names=True will have no effect on validation "
+                "since polars DataFrames does not support duplicate column "
+                "names."
+            )
+        if inplace:
+            warnings.warn("setting inplace=True will have no effect.")
+
         error_handler = SchemaErrorHandler(lazy)
 
         column_info = self.collect_column_info(check_obj, schema)
@@ -49,16 +61,18 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         components = [v for _, v in schema.columns.items()]
 
+        # subsample the check object if head, tail, or sample are specified
+        sample = self.subsample(check_obj, head, tail, sample, random_state)
+
         core_checks = [
-            # (self.check_column_names_are_unique, (check_obj, schema)),  # TODO
-            # (self.check_column_presence, (check_obj, schema, column_info)),  # TODO
-            # (self.check_column_values_are_unique, (sample, schema)),  # TODO
-            (self.run_schema_component_checks, (check_obj, components, lazy))
-            # (self.run_checks, (sample, schema)),  # TODO
+            (self.check_column_presence, (check_obj, schema, column_info)),
+            (self.check_column_values_are_unique, (sample, schema)),
+            (self.run_schema_component_checks, (sample, components, lazy)),
+            (self.run_checks, (sample, schema)),
         ]
 
         for check, args in core_checks:
-            results = check(*args)
+            results = check(*args)  # type: ignore[operator]
             if isinstance(results, CoreCheckResult):
                 results = [results]
 
@@ -94,6 +108,42 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             )
 
         return check_obj
+
+    def run_checks(
+        self,
+        check_obj: pl.LazyFrame,
+        schema,
+    ) -> List[CoreCheckResult]:
+        """Run a list of checks on the check object."""
+        # dataframe-level checks
+        check_results: List[CoreCheckResult] = []
+        for check_index, check in enumerate(schema.checks):
+            try:
+                check_results.append(
+                    self.run_check(check_obj, schema, check, check_index)
+                )
+            except SchemaDefinitionError:
+                raise
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the check
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing check function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                check_results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check,
+                        check_index=check_index,
+                        reason_code=SchemaErrorReason.CHECK_ERROR,
+                        message=msg,
+                        failure_cases=err_str,
+                        original_exc=err,
+                    )
+                )
+        return check_results
 
     def run_schema_component_checks(
         self,
@@ -192,7 +242,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         # Add missing columns to dataframe based on 'add_missing_columns'
         # schema property
 
-        if not column_info.absent_column_names and schema.add_missing_columns:
+        if not (
+            column_info.absent_column_names and schema.add_missing_columns
+        ):
             return check_obj
 
         # Absent columns are required to have a default value or be nullable
@@ -376,7 +428,22 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         column_info: Any,
     ) -> List[CoreCheckResult]:
         """Check that all columns in the schema are present in the dataframe."""
-        raise NotImplementedError
+        results = []
+        if column_info.absent_column_names and not schema.add_missing_columns:
+            for colname in column_info.absent_column_names:
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check="column_in_dataframe",
+                        reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
+                        message=(
+                            f"column '{colname}' not in dataframe"
+                            f"\n{check_obj.head()}"
+                        ),
+                        failure_cases=colname,
+                    )
+                )
+        return results
 
     def check_column_values_are_unique(
         self,
@@ -384,4 +451,38 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         schema,
     ) -> CoreCheckResult:
         """Check that column values are unique."""
-        raise NotImplementedError
+
+        passed = True
+        message = None
+        failure_cases = None
+
+        if not schema.unique:
+            return CoreCheckResult(
+                passed=passed,
+                check="dataframe_column_labels_unique",
+            )
+
+        # NOTE: fix this pylint error
+        # pylint: disable=not-an-iterable
+        temp_unique: List[List] = (
+            [schema.unique]
+            if all(isinstance(x, str) for x in schema.unique)
+            else schema.unique
+        )
+
+        for lst in temp_unique:
+            subset = [x for x in lst if x in check_obj.columns]
+            duplicates = check_obj.select(subset).collect().is_duplicated()
+            if duplicates.any():
+                failure_cases = check_obj.filter(duplicates)
+
+                passed = False
+                message = f"columns '{*subset,}' not unique:\n{failure_cases}"
+                break
+        return CoreCheckResult(
+            passed=passed,
+            check="multiple_fields_uniqueness",
+            reason_code=SchemaErrorReason.DUPLICATES,
+            message=message,
+            failure_cases=failure_cases,
+        )

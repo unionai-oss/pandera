@@ -208,7 +208,7 @@ class ColumnBackend(PolarsSchemaBackend):
         )
         failure_cases = (
             check_obj.with_context(isna)
-            .filter(pl.col("isna").is_not())
+            .filter(pl.col("isna").not_())
             .rename({schema.name: FAILURE_CASE_KEY})
             .select(FAILURE_CASE_KEY)
             .collect()
