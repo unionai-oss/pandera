@@ -1,4 +1,5 @@
 """Tests schema creation and validation from type annotations."""
+
 # pylint:disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
 import re
 from copy import deepcopy
@@ -377,7 +378,7 @@ def test_check_single_column() -> None:
 
     df = pd.DataFrame({"a": [101]})
     schema = Schema.to_schema()
-    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
+    err_msg = r"Check int_column_lt_100"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -395,7 +396,7 @@ def test_check_single_index() -> None:
             return ~idx.str.contains("dog")
 
     df = pd.DataFrame(index=["cat", "dog"])
-    err_msg = r"Index\s*<NA>\s*not_dog\s*\[dog\]\s*"
+    err_msg = r"Check not_dog"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         Schema.validate(df, lazy=True)
 
@@ -453,12 +454,12 @@ def test_multiple_checks() -> None:
     assert len(schema.columns["a"].checks) == 2
 
     df = pd.DataFrame({"a": [0]})
-    err_msg = r"Column\s*a\s*int_column_gt_0\s*\[0\]\s*1"
+    err_msg = r"int_column_gt_0"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
     df = pd.DataFrame({"a": [101]})
-    err_msg = r"Column\s*a\s*int_column_lt_100\s*\[101\]\s*1"
+    err_msg = r"int_column_lt_100"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -476,10 +477,10 @@ def test_check_multiple_columns() -> None:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "b": [200]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="2 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors) as e:
         Schema.validate(df, lazy=True)
+
+    assert len(e.value.message["DATA"]) == 1
 
 
 def test_check_regex() -> None:
@@ -496,10 +497,10 @@ def test_check_regex() -> None:
             return series < 100
 
     df = pd.DataFrame({"a": [101], "abc": [1], "cba": [200]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="1 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors) as e:
         Schema.validate(df, lazy=True)
+
+    assert len(e.value.message["DATA"]) == 1
 
 
 def test_inherit_dataframemodel_fields() -> None:
@@ -608,7 +609,7 @@ def test_inherit_field_checks() -> None:
     assert len(schema.columns["abc"].checks) == 0
 
     df = pd.DataFrame({"a": [15], "abc": [100]})
-    err_msg = r"Column\s*a\s*a_max\s*\[15\]\s*1"
+    err_msg = r"a_max"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
@@ -640,10 +641,10 @@ def test_dataframe_check() -> None:
     assert len(schema.checks) == 2
 
     df = pd.DataFrame({"a": [101, 1], "b": [1, 0]})
-    with pytest.raises(
-        pa.errors.SchemaErrors, match="2 schema errors were found"
-    ):
+    with pytest.raises(pa.errors.SchemaErrors) as e:
         schema.validate(df, lazy=True)
+
+    assert len(e.value.message["DATA"]) == 1
 
 
 def test_registered_dataframe_checks(

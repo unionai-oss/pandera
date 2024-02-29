@@ -9,10 +9,12 @@ The Exception contains full data and schema. Most Check objects are not picklabl
 DataFrames may be large. The signature of SchemaError needs special unpickling
 behavior.
 """
+
 import io
 import multiprocessing
 import pickle
 from typing import NoReturn, cast
+import re
 
 import numpy as np
 import pandas as pd
@@ -297,17 +299,10 @@ class TestSchemaErrors:
                 "a": Column(int, Check.isin([0, 1])),
             },
         )
-        try:
+        with pytest.raises(SchemaErrors) as e:
             schema.validate(int_dataframe, lazy=True)
-        except SchemaErrors as exc:
-            matched = False
-            for line in io.StringIO(str(exc)):
-                if line.startswith(f"Schema {schema.name}: A total of"):
-                    matched = True
-                    break
-            assert matched
-        else:
-            pytest.fail("SchemaErrors not raised")
+
+        assert schema.name in str(e.value)
 
 
 @pytest.mark.filterwarnings("ignore:Pickling ParserError")
