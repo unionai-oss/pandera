@@ -10,11 +10,9 @@ DataFrames may be large. The signature of SchemaError needs special unpickling
 behavior.
 """
 
-import io
 import multiprocessing
 import pickle
 from typing import NoReturn, cast
-import re
 
 import numpy as np
 import pandas as pd
