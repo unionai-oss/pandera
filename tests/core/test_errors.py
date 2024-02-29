@@ -412,6 +412,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
 )
 def test_validation_depth(validation_depth, expected_error):
     """Test the error report generated is relevant to the CONFIG.validation_depth"""
+    original_value = CONFIG.validation_depth
     CONFIG.validation_depth = validation_depth
 
     df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
@@ -421,3 +422,7 @@ def test_validation_depth(validation_depth, expected_error):
         schema.validate(df, lazy=True)
 
     assert e.value.message == expected_error
+
+    # Ensure there is no interdependencies between specs, both here and in the
+    # wider suite, by resetting this value
+    CONFIG.validation_depth = original_value
