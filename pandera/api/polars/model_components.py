@@ -48,18 +48,7 @@ class FieldInfo(BaseFieldInfo):
         if self.dtype_kwargs:
             dtype = dtype(**self.dtype_kwargs)  # type: ignore
         checks = self.checks + to_checklist(checks)
-        return component(
-            dtype,
-            checks=checks,
-            nullable=self.nullable,
-            unique=self.unique,
-            coerce=self.coerce,
-            regex=self.regex,
-            title=self.title,
-            description=self.description,
-            default=self.default,
-            metadata=self.metadata,
-        )  # type: ignore
+        return component(dtype, checks=checks, **kwargs)  # type: ignore
 
     def to_column(
         self,
@@ -75,6 +64,14 @@ class FieldInfo(BaseFieldInfo):
             required=required,
             name=name,
             checks=checks,
+            regex=self.regex,
+            nullable=self.nullable,
+            unique=self.unique,
+            coerce=self.coerce,
+            title=self.title,
+            description=self.description,
+            default=self.default,
+            metadata=self.metadata,
         )
 
     @property

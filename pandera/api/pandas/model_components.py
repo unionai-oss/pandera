@@ -38,7 +38,6 @@ class FieldInfo(BaseFieldInfo):
     *new in 0.5.0*
     """
 
-    # pylint:disable=unused-argument
     def _to_schema_component(
         self,
         dtype: Any,
@@ -52,14 +51,7 @@ class FieldInfo(BaseFieldInfo):
         return component(
             dtype,
             checks=checks,
-            nullable=self.nullable,
-            unique=self.unique,
-            coerce=self.coerce,
-            regex=self.regex,
-            title=self.title,
-            description=self.description,
-            default=self.default,
-            metadata=self.metadata,
+            **kwargs,
         )  # type: ignore
 
     def to_column(
@@ -76,6 +68,14 @@ class FieldInfo(BaseFieldInfo):
             required=required,
             name=name,
             checks=checks,
+            regex=self.regex,
+            nullable=self.nullable,
+            unique=self.unique,
+            coerce=self.coerce,
+            title=self.title,
+            description=self.description,
+            default=self.default,
+            metadata=self.metadata,
         )
 
     @property
