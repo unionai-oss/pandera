@@ -363,7 +363,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # Add missing columns to dataframe based on 'add_missing_columns'
         # schema property
 
-        if not column_info.absent_column_names and schema.add_missing_columns:
+        if not (
+            column_info.absent_column_names and schema.add_missing_columns
+        ):
             return check_obj
 
         # Absent columns are required to have a default
