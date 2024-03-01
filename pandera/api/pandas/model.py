@@ -271,15 +271,18 @@ class DataFrameModel(BaseModel):
                 "add_missing_columns": cls.__config__.add_missing_columns,
                 "drop_invalid_rows": cls.__config__.drop_invalid_rows,
             }
-        cls.__schema__ = DataFrameSchema(
-            columns,
-            index=index,
-            checks=cls.__root_checks__,  # type: ignore
-            **kwargs,  # type: ignore
-        )
+        cls.__schema__ = cls._construct_schema(columns, index=index, **kwargs)
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore
         return cls.__schema__  # type: ignore
+
+    @classmethod
+    def _construct_schema(cls, *args, **kwargs):
+        return DataFrameSchema(
+            *args,
+            **kwargs,
+            checks=cls.__root_checks__,
+        )
 
     @classmethod
     def to_yaml(cls, stream: Optional[os.PathLike] = None):

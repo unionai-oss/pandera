@@ -38,9 +38,10 @@ class FieldInfo(BaseFieldInfo):
     *new in 0.5.0*
     """
 
+    # pylint:disable=unused-argument
     def _to_schema_component(
         self,
-        dtype: PandasDtypeInputTypes,
+        dtype: Any,
         component: Type[SchemaComponent],
         checks: CheckArg = None,
         **kwargs: Any,
@@ -48,7 +49,18 @@ class FieldInfo(BaseFieldInfo):
         if self.dtype_kwargs:
             dtype = dtype(**self.dtype_kwargs)  # type: ignore
         checks = self.checks + to_checklist(checks)
-        return component(dtype, checks=checks, **kwargs)  # type: ignore
+        return component(
+            dtype,
+            checks=checks,
+            nullable=self.nullable,
+            unique=self.unique,
+            coerce=self.coerce,
+            regex=self.regex,
+            title=self.title,
+            description=self.description,
+            default=self.default,
+            metadata=self.metadata,
+        )  # type: ignore
 
     def to_column(
         self,
@@ -61,17 +73,9 @@ class FieldInfo(BaseFieldInfo):
         return self._to_schema_component(
             dtype,
             Column,
-            nullable=self.nullable,
-            unique=self.unique,
-            coerce=self.coerce,
-            regex=self.regex,
             required=required,
             name=name,
             checks=checks,
-            title=self.title,
-            description=self.description,
-            default=self.default,
-            metadata=self.metadata,
         )
 
     @property

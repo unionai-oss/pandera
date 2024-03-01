@@ -14,7 +14,10 @@ from pandera.polars import Column, DataFrameSchema
 def ldf_basic():
     """Basic polars lazy dataframe fixture."""
     return pl.DataFrame(
-        {"string_col": ["a", "b", "c"], "int_col": [0, 1, 2]}
+        {
+            "string_col": ["a", "b", "c"],
+            "int_col": [0, 1, 2],
+        }
     ).lazy()
 
 
