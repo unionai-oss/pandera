@@ -131,6 +131,8 @@ class ErrorHandler:
             else:
                 check = error.check
 
+            # Include error["failure_cases_count"] on the summary as a future
+            # improvement
             self._summarized_errors[category][subcategory].append(
                 {
                     "schema": schema_name,
