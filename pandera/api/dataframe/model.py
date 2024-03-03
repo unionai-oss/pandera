@@ -36,7 +36,7 @@ from pandera.api.dataframe.model_components import (
 from pandera.api.dataframe.model_config import BaseConfig
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
-from pandera.strategies import pandas_strategies as st
+from pandera.strategies import base_strategies as st
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
 
@@ -80,23 +80,6 @@ def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
 def _is_field(name: str) -> bool:
     """Ignore private and reserved keywords."""
     return not name.startswith("_") and name != _CONFIG_KEY
-
-
-_config_options = [attr for attr in vars(BaseConfig) if _is_field(attr)]
-
-
-def _extract_config_options_and_extras(
-    config: Any,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    config_options, extras = {}, {}
-    for name, value in vars(config).items():
-        if name in _config_options:
-            config_options[name] = value
-        elif _is_field(name):
-            extras[name] = value
-        # drop private/reserved keywords
-
-    return config_options, extras
 
 
 def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
@@ -161,7 +144,7 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
                 else cls.__name__
             )
         else:
-            cls.Config = type("Config", (BaseConfig,), {"name": cls.__name__})
+            cls.Config = type("Config", (cls.Config,), {"name": cls.__name__})
 
         super().__init_subclass__(**kwargs)
         # pylint:disable=no-member
@@ -358,6 +341,24 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
         return fields
 
     @classmethod
+    def _extract_config_options_and_extras(
+        cls,
+        config: Any,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        config_options, extras = {}, {}
+        _config_options = [
+            attr for attr in vars(cls.Config) if _is_field(attr)
+        ]
+        for name, value in vars(config).items():
+            if name in _config_options:
+                config_options[name] = value
+            elif _is_field(name):
+                extras[name] = value
+            # drop private/reserved keywords
+
+        return config_options, extras
+
+    @classmethod
     def _collect_config_and_extras(
         cls,
     ) -> Tuple[Type[BaseConfig], Dict[str, Any]]:
@@ -368,17 +369,19 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
         )
         root_model, *models = reversed(bases)
 
-        options, extras = _extract_config_options_and_extras(root_model.Config)
+        options, extras = cls._extract_config_options_and_extras(
+            root_model.Config
+        )
 
         for model in models:
             config = getattr(model, _CONFIG_KEY, {})
-            base_options, base_extras = _extract_config_options_and_extras(
+            base_options, base_extras = cls._extract_config_options_and_extras(
                 config
             )
             options.update(base_options)
             extras.update(base_extras)
 
-        return type("Config", (BaseConfig,), options), extras
+        return type("Config", (cls.Config,), options), extras
 
     @classmethod
     def _collect_check_infos(cls, key: str) -> List[CheckInfo]:
