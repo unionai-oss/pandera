@@ -13,13 +13,10 @@ from pyspark.sql import DataFrame
 from pandera import errors
 from pandera.config import CONFIG
 from pandera.api.base.schema import BaseSchema
+from pandera.api.base.types import StrictType
 from pandera.api.checks import Check
 from pandera.api.pyspark.error_handler import ErrorHandler
-from pandera.api.pyspark.types import (
-    CheckList,
-    PySparkDtypeInputTypes,
-    StrictType,
-)
+from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
 
@@ -512,14 +509,6 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         import pandera.io
 
         return pandera.io.from_yaml(yaml_schema)
-
-    @overload
-    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
-        ...
-
-    @overload
-    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
-        ...
 
     def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
         """Write DataFrameSchema to yaml file.

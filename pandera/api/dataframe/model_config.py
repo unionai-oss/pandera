@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from pandera.api.base.model_config import BaseModelConfig
 from pandera.api.base.types import StrictType
-from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.typing.formats import Format
 
 
@@ -16,7 +15,7 @@ class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
 
     #: datatype of the dataframe. This overrides the data types specified in
     #: any of the fields.
-    dtype: Optional[PandasDtypeInputTypes] = None
+    dtype: Optional[Any] = None
 
     name: Optional[str] = None  #: name of schema
     title: Optional[str] = None  #: human-readable label for schema

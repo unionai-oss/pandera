@@ -14,13 +14,10 @@ from pandera import errors
 from pandera.config import CONFIG
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
+from pandera.api.base.types import StrictType
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import (
-    CheckList,
-    PandasDtypeInputTypes,
-    StrictType,
-)
+from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine, PYDANTIC_V2
 
@@ -1292,14 +1289,6 @@ class DataFrameSchema(
         import pandera.io
 
         return pandera.io.from_yaml(yaml_schema)
-
-    @overload
-    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
-        ...
-
-    @overload
-    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
-        ...
 
     def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
         """Write DataFrameSchema to yaml file.

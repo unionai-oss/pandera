@@ -15,6 +15,7 @@ from typing import (
 
 from pandera.api.base.model_components import BaseFieldInfo
 from pandera.api.base.model_config import BaseModelConfig
+from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
 from pandera.typing import AnnotationInfo
 
@@ -36,6 +37,7 @@ class BaseModel(metaclass=MetaModel):
 
     Config: Type[BaseModelConfig] = BaseModelConfig
     __extras__: Optional[Dict[str, Any]] = None
+    __schema_type__: Optional[Type[BaseSchema]] = None
     __schema__: Optional[Any] = None
     __config__: Optional[Type[BaseModelConfig]] = None
 
