@@ -1,7 +1,5 @@
 """pandera-specific errors."""
 
-import re
-
 from enum import Enum
 import warnings
 from typing import Any, Dict, List, NamedTuple, Union
@@ -107,19 +105,6 @@ class SchemaError(ReducedPickleExceptionBase):
         self.check_index = check_index
         self.check_output = check_output
         self.reason_code = reason_code
-
-    def __str__(self):
-        pattern = r"<Check\s+([^:>]+):\s*([^>]+)>"
-        matches = re.findall(pattern, str(self.check))
-
-        check_fn = [f"{match[1]}" for match in matches]
-
-        if check_fn:
-            check_fn = check_fn[0]
-        else:
-            check_fn = str(self.check)
-
-        return f"{self.schema.__class__.__name__} '{self.schema.name}' with type {self.schema.dtype.__str__()} failed validation {check_fn}"
 
 
 class SchemaWarning(UserWarning):

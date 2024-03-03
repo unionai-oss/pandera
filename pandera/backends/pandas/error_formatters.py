@@ -1,5 +1,6 @@
 """Make schema error messages human-friendly."""
 
+import re
 from typing import List, Union
 
 import pandas as pd
@@ -41,9 +42,24 @@ def format_vectorized_error_message(
         element-wise or vectorized validator.
 
     """
+
+    pattern = r"<Check\s+([^:>]+):\s*([^>]+)>"
+    matches = re.findall(pattern, str(check))
+
+    check_strs = [f"{match[1]}" for match in matches]
+
+    if check_strs:
+        check_str = check_strs[0]
+    else:
+        check_str = str(check)
+
+    failure_cases_string = ", ".join(
+        reshaped_failure_cases.failure_case.astype(str)
+    )
+
     return (
-        f"{parent_schema} failed element-wise validator {check_index}:\n"
-        f"{check}\nfailure cases:\n{reshaped_failure_cases}"
+        f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed element-wise validator number {check_index}: "
+        f"{check_str} failure cases: {failure_cases_string}"
     )
 
 

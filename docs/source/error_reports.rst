@@ -122,13 +122,13 @@ to be aggregated and raised together as a ``SchemaErrors``.
                     "schema": "PandasSchema",
                     "column": "color",
                     "check": "isin(['red', 'green', 'blue'])",
-                    "error": "Column 'color' with type str failed validation isin(['red', 'green', 'blue'])"
+                    "error": "color failed element-wise validator number 0: isin(['red', 'green', 'blue']) failure cases: purple"
                 },
                 {
                     "schema": "PandasSchema",
                     "column": "length",
                     "check": "greater_than(10)",
-                    "error": "Column 'length' with type int64 failed validation greater_than(10)"
+                    "error": "length failed element-wise validator number 0: greater_than(10) failure cases: 4"
                 }
             ]
         }

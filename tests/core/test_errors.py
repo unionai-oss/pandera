@@ -184,8 +184,8 @@ class TestSchemaError:
         """General validation of Exception content."""
         assert exc is not None
         assert (
-            "Schema Column(name=a, type=DataType(int64))> "
-            "failed element-wise validator 0" in str(exc)
+            "Column 'a' failed element-wise validator number 0: isin([0, 1]) failure cases: -1"
+            in str(exc)
         )
         assert exc.schema == "<Schema Column(name=a, type=DataType(int64))>"
         assert exc.data == str(df)
@@ -364,7 +364,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "schema": None,
                             "column": "id",
                             "check": "less_than(10)",
-                            "error": "<Schema Column(name=id, type=DataType(int64))> failed element-wise validator 0:<Check less_than: less_than(10)>failure cases:   index  failure_case0      2          30.0",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
                         }
                     ]
                 },
@@ -390,7 +390,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "error": "expected series 'id' to have type int64, got float64",
                         }
                     ],
-                },
+                }
             },
         ),
         (
@@ -402,10 +402,10 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "schema": None,
                             "column": "id",
                             "check": "less_than(10)",
-                            "error": "<Schema Column(name=id, type=DataType(int64))> failed element-wise validator 0:<Check less_than: less_than(10)>failure cases:   index  failure_case0      2          30.0",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
                         }
                     ]
-                },
+                }
             },
         ),
     ],
