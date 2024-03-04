@@ -1,7 +1,5 @@
 """Class-based api for pandas models."""
 
-import inspect
-import os
 from typing import (
     Any,
     Dict,
@@ -10,14 +8,13 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
 )
 
 import pandas as pd
 from pandera.api.checks import Check
 from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
-    TDataFrameModel,
+    get_dtype_kwargs,
 )
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
@@ -25,14 +22,12 @@ from pandera.api.pandas.model_components import FieldInfo
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo, INDEX_TYPES, SERIES_TYPES
-from pandera.typing.common import DataFrameBase
-from pandera.utils import docstring_substitution
 
 
 SchemaIndex = Union[Index, MultiIndex]
 
 
-class DataFrameModel(_DataFrameModel):
+class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
     *new in 0.5.0*
@@ -47,13 +42,6 @@ class DataFrameModel(_DataFrameModel):
 
     Config: Type[BaseConfig] = BaseConfig
     __field_info_cls__ = FieldInfo
-
-    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
-    def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
-        """%(validate_doc)s"""
-        return cast(
-            DataFrameBase[TDataFrameModel], cls.validate(*args, **kwargs)
-        )
 
     @classmethod
     def build_schema_(cls, **kwargs):
@@ -98,7 +86,7 @@ class DataFrameModel(_DataFrameModel):
                         + f"for {annotation.raw_annotation}."
                         + "\n Usage Tip: Drop 'typing.Annotated'."
                     )
-                dtype_kwargs = _get_dtype_kwargs(annotation)
+                dtype_kwargs = get_dtype_kwargs(annotation)
                 dtype = annotation.arg(**dtype_kwargs)  # type: ignore
             elif annotation.default_dtype:
                 dtype = annotation.default_dtype
@@ -153,33 +141,6 @@ class DataFrameModel(_DataFrameModel):
                 )
 
         return columns, _build_schema_index(indices, **multiindex_kwargs)
-
-    @classmethod
-    def to_yaml(cls, stream: Optional[os.PathLike] = None):
-        """
-        Convert `Schema` to yaml using `io.to_yaml`.
-        """
-        return cls.to_schema().to_yaml(stream)
-
-    @classmethod
-    @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
-    def validate(
-        cls: Type[TDataFrameModel],
-        check_obj: pd.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> DataFrameBase[TDataFrameModel]:
-        """%(validate_doc)s"""
-        return cast(
-            DataFrameBase[TDataFrameModel],
-            cls.to_schema().validate(
-                check_obj, head, tail, sample, random_state, lazy, inplace
-            ),
-        )
 
     @classmethod
     def to_json_schema(cls):
@@ -237,14 +198,3 @@ def _build_schema_index(
         else:
             index = MultiIndex(indices, **multiindex_kwargs)
     return index
-
-
-def _get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
-    sig = inspect.signature(annotation.arg)  # type: ignore
-    dtype_arg_names = list(sig.parameters.keys())
-    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
-        raise TypeError(
-            f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
-            + f"all positional arguments {dtype_arg_names}."
-        )
-    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore

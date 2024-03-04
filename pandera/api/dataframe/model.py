@@ -61,6 +61,17 @@ GENERIC_SCHEMA_CACHE: Dict[
 ] = {}
 
 
+def get_dtype_kwargs(annotation: AnnotationInfo) -> Dict[str, Any]:
+    sig = inspect.signature(annotation.arg)  # type: ignore
+    dtype_arg_names = list(sig.parameters.keys())
+    if len(annotation.metadata) != len(dtype_arg_names):  # type: ignore
+        raise TypeError(
+            f"Annotation '{annotation.arg.__name__}' requires "  # type: ignore
+            + f"all positional arguments {dtype_arg_names}."
+        )
+    return dict(zip(dtype_arg_names, annotation.metadata))  # type: ignore
+
+
 def _is_field(name: str) -> bool:
     """Ignore private and reserved keywords."""
     return not name.startswith("_") and name != _CONFIG_KEY
