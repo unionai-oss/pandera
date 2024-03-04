@@ -7,7 +7,6 @@ import re
 import typing
 from typing import (
     Any,
-    Callable,
     Dict,
     Iterable,
     Generic,
@@ -29,7 +28,7 @@ from pandera.api.dataframe.model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     CheckInfo,
-    Field,
+    _field,
     FieldCheckInfo,
     FieldInfo,
 )
@@ -50,7 +49,6 @@ except ImportError:  # pragma: no cover
     from typing import get_type_hints  # type: ignore
 
 
-F = TypeVar("F", bound=Callable)
 TDataFrame = TypeVar("TDataFrame")
 TDataFrameModel = TypeVar("TDataFrameModel", bound="DataFrameModel")
 TSchema = TypeVar("TSchema", bound=BaseSchema)
@@ -61,20 +59,6 @@ GENERIC_SCHEMA_CACHE: Dict[
     Tuple[Type["DataFrameModel"], Tuple[Type[Any], ...]],
     Type["DataFrameModel"],
 ] = {}
-
-
-def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
-    """Typed wrapper around pandas.util.Substitution."""
-
-    def decorator(func: F) -> F:
-        if args is not None:
-            _doc = func.__doc__ % tuple(args)  # type: ignore[operator]
-        elif kwargs:
-            _doc = func.__doc__ % kwargs
-        func.__doc__ = _doc
-        return func
-
-    return decorator
 
 
 def _is_field(name: str) -> bool:
@@ -103,12 +87,15 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
             args, kwargs = (value,), {}
 
         # dispatch directly to getattr to raise the correct exception
-        checks.append(Check.__getattr__(name)(*args, **kwargs))
+        checks.append(getattr(Check, name)(*args, **kwargs))
 
     return checks
 
 
-class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
+_CONFIG_OPTIONS = [attr for attr in vars(BaseConfig) if _is_field(attr)]
+
+
+class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     """Definition of a generic DataFrame model.
 
     .. important::
@@ -120,6 +107,7 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
     """
 
     Config: Type[BaseConfig] = BaseConfig
+    __field_info_cls__: Type[FieldInfo] = FieldInfo
     __extras__: Optional[Dict[str, Any]] = None
     __schema__: Optional[TSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
@@ -152,7 +140,7 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
         for field_name in subclass_annotations.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
                 # Field omitted
-                field = Field()
+                field = _field(cls.__field_info_cls__)
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 
@@ -160,7 +148,7 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
 
     def __class_getitem__(
         cls: Type[TDataFrameModel],
-        params: Union[Type[Any], Tuple[Type[Any], ...]],
+        item: Union[Type[Any], Tuple[Type[Any], ...]],
     ) -> Type[TDataFrameModel]:
         """Parameterize the class's generic arguments with the specified types"""
         if not hasattr(cls, "__parameters__"):
@@ -170,20 +158,18 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
         # pylint: disable=no-member
         __parameters__: Tuple[TypeVar, ...] = cls.__parameters__  # type: ignore
 
-        if not isinstance(params, tuple):
-            params = (params,)
-        if len(params) != len(__parameters__):
+        if not isinstance(item, tuple):
+            item = (item,)
+        if len(item) != len(__parameters__):
             raise ValueError(
-                f"Expected {len(__parameters__)} generic arguments but found {len(params)}"
+                f"Expected {len(__parameters__)} generic arguments but found {len(item)}"
             )
-        if (cls, params) in GENERIC_SCHEMA_CACHE:
+        if (cls, item) in GENERIC_SCHEMA_CACHE:
             return typing.cast(
-                Type[TDataFrameModel], GENERIC_SCHEMA_CACHE[(cls, params)]
+                Type[TDataFrameModel], GENERIC_SCHEMA_CACHE[(cls, item)]
             )
 
-        param_dict: Dict[TypeVar, Type[Any]] = dict(
-            zip(__parameters__, params)
-        )
+        param_dict: Dict[TypeVar, Type[Any]] = dict(zip(__parameters__, item))
         extra: Dict[str, Any] = {"__annotations__": {}}
         for field, (annot_info, field_info) in cls._collect_fields().items():
             if isinstance(annot_info.arg, TypeVar):
@@ -195,14 +181,14 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
                     extra[field] = copy.deepcopy(field_info)
 
         parameterized_name = (
-            f"{cls.__name__}[{', '.join(p.__name__ for p in params)}]"
+            f"{cls.__name__}[{', '.join(p.__name__ for p in item)}]"
         )
         parameterized_cls = type(parameterized_name, (cls,), extra)
-        GENERIC_SCHEMA_CACHE[(cls, params)] = parameterized_cls
+        GENERIC_SCHEMA_CACHE[(cls, item)] = parameterized_cls
         return parameterized_cls
 
     @classmethod
-    def _build_schema(cls, **kwargs) -> TSchema:
+    def build_schema_(cls, **kwargs) -> TSchema:
         raise NotImplementedError
 
     @classmethod
@@ -246,7 +232,7 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
                 "add_missing_columns": cls.__config__.add_missing_columns,
                 "drop_invalid_rows": cls.__config__.drop_invalid_rows,
             }
-        cls.__schema__ = cls._build_schema(**kwargs)
+        cls.__schema__ = cls.build_schema_(**kwargs)
         if cls not in MODEL_CACHE:
             MODEL_CACHE[cls] = cls.__schema__  # type: ignore
         return cls.__schema__  # type: ignore
@@ -277,12 +263,14 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
             ),
         )
 
+    # TODO: add docstring_substitution using generic class
     @classmethod
     @st.strategy_import_error
     def strategy(cls: Type[TDataFrameModel], **kwargs):
         """%(strategy_doc)s"""
         return cls.to_schema().strategy(**kwargs)
 
+    # TODO: add docstring_substitution using generic class
     @classmethod
     @st.strategy_import_error
     def example(
@@ -346,11 +334,8 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
         config: Any,
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         config_options, extras = {}, {}
-        _config_options = [
-            attr for attr in vars(cls.Config) if _is_field(attr)
-        ]
         for name, value in vars(config).items():
-            if name in _config_options:
+            if name in _CONFIG_OPTIONS:
                 config_options[name] = value
             elif _is_field(name):
                 extras[name] = value
@@ -486,7 +471,7 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
         return cast("DataFrameModel", schema_model)
 
     @classmethod
-    def _to_json_schema(cls):
+    def to_json_schema(cls):
         """Serialize schema metadata into json-schema format."""
         raise NotImplementedError
 
@@ -509,14 +494,14 @@ class DataFrameModel(BaseModel, Generic[TDataFrame, TSchema]):
             """Update pydantic field schema."""
             json_schema = _handler(_core_schema)
             json_schema = _handler.resolve_ref_schema(json_schema)
-            json_schema.update(cls._to_json_schema())
+            json_schema.update(cls.to_json_schema())
 
     else:
 
         @classmethod
         def __modify_schema__(cls, field_schema):
             """Update pydantic field schema."""
-            field_schema.update(cls._to_json_schema())
+            field_schema.update(cls.to_json_schema())
 
         @classmethod
         def __get_validators__(cls):

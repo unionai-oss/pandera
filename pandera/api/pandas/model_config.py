@@ -2,13 +2,13 @@
 
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from pandera.api.base.model_config import BaseModelConfig
+from pandera.api.dataframe.model_config import BaseConfig as _BaseConfig
 from pandera.api.base.types import StrictType
 from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.typing.formats import Format
 
 
-class BaseConfig(BaseModelConfig):  # pylint:disable=R0903
+class BaseConfig(_BaseConfig):  # pylint:disable=R0903
     """Define DataFrameSchema-wide options.
 
     *new in 0.5.0*

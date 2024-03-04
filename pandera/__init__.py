@@ -6,12 +6,13 @@ from pandera import errors, external_config, typing
 from pandera.accessors import pandas_accessor
 from pandera.api import extensions
 from pandera.api.checks import Check
+from pandera.api.dataframe.model_components import check, dataframe_check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.model import DataFrameModel, SchemaModel
-from pandera.api.pandas.model_components import Field, check, dataframe_check
+from pandera.api.pandas.model_components import Field
 from pandera.decorators import check_input, check_io, check_output, check_types
 from pandera.dtypes import (
     Bool,

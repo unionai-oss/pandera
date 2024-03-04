@@ -28,9 +28,8 @@ if PYDANTIC_V2:
 N_INDENT_SPACES = 4
 
 
-class DataFrameSchema(
-    BaseSchema
-):  # pylint: disable=too-many-public-methods,too-many-locals
+# pylint: disable=too-many-public-methods,too-many-locals
+class DataFrameSchema(BaseSchema):
     """A light-weight pandas DataFrame validator."""
 
     def __init__(
