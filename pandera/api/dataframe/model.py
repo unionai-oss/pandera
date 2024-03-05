@@ -11,7 +11,6 @@ from typing import (
     Iterable,
     Generic,
     List,
-    Mapping,
     Optional,
     Set,
     Tuple,
@@ -28,7 +27,7 @@ from pandera.api.dataframe.model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
     CheckInfo,
-    _field,
+    Field,
     FieldCheckInfo,
     FieldInfo,
 )
@@ -109,22 +108,16 @@ _CONFIG_OPTIONS = [attr for attr in vars(BaseConfig) if _is_field(attr)]
 class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     """Definition of a generic DataFrame model.
 
-    .. important::
-
-        This class is the new name for ``SchemaModel``, which will be deprecated
-        in pandera version ``0.20.0``.
-
     See the :ref:`User Guide <dataframe_models>` for more.
     """
 
     Config: Type[BaseConfig] = BaseConfig
-    __field_info_cls__: Type[FieldInfo] = FieldInfo
     __extras__: Optional[Dict[str, Any]] = None
     __schema__: Optional[TSchema] = None
     __config__: Optional[Type[BaseConfig]] = None
 
     #: Key according to `FieldInfo.name`
-    __fields__: Mapping[str, Tuple[AnnotationInfo, FieldInfo]] = {}
+    __fields__: Dict[str, Tuple[AnnotationInfo, FieldInfo]] = {}
     __checks__: Dict[str, List[Check]] = {}
     __root_checks__: List[Check] = []
 
@@ -151,7 +144,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         for field_name in subclass_annotations.keys():
             if _is_field(field_name) and field_name not in cls.__dict__:
                 # Field omitted
-                field = _field(cls.__field_info_cls__)
+                field = Field()
                 field.__set_name__(cls, field_name)
                 setattr(cls, field_name, field)
 

@@ -16,9 +16,9 @@ from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
     get_dtype_kwargs,
 )
+from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
-from pandera.api.pandas.model_components import FieldInfo
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo, INDEX_TYPES, SERIES_TYPES
@@ -41,10 +41,9 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
     """
 
     Config: Type[BaseConfig] = BaseConfig
-    __field_info_cls__ = FieldInfo
 
     @classmethod
-    def build_schema_(cls, **kwargs):
+    def build_schema_(cls, **kwargs) -> DataFrameSchema:
         multiindex_kwargs = {
             name[len("multiindex_") :]: value
             for name, value in vars(cls.__config__).items()
@@ -100,19 +99,23 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 or annotation.origin in SERIES_TYPES
                 or annotation.raw_annotation in SERIES_TYPES
             ):
-                col_constructor = field.to_column if field else Column
-
                 if check_name is False:
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."
                     )
 
-                columns[field_name] = col_constructor(  # type: ignore
-                    dtype,
-                    required=not annotation.optional,
-                    checks=field_checks,
-                    name=field_name,
+                column_kwargs = (
+                    field.column_properties(
+                        dtype,
+                        required=not annotation.optional,
+                        checks=field_checks,
+                        name=field_name,
+                    )
+                    if field
+                    else {}
                 )
+                columns[field_name] = Column(**column_kwargs)
+
             elif (
                 annotation.origin in INDEX_TYPES
                 or annotation.raw_annotation in INDEX_TYPES
@@ -129,10 +132,16 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 ):
                     field_name = None  # type:ignore
 
-                index_constructor = field.to_index if field else Index
-                index = index_constructor(  # type: ignore
-                    dtype, checks=field_checks, name=field_name
+                index_kwargs = (
+                    field.index_properties(
+                        dtype,
+                        checks=field_checks,
+                        name=field_name,
+                    )
+                    if field
+                    else {}
                 )
+                index = Index(**index_kwargs)
                 indices.append(index)
             else:
                 raise SchemaInitError(

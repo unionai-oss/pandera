@@ -1,15 +1,13 @@
 """DataFrameModel components"""
-from functools import partial
+
 from typing import (
     Any,
     Callable,
     Dict,
-    Generic,
     Iterable,
     Optional,
     Set,
     Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -32,75 +30,66 @@ CHECK_KEY = "__check_config__"
 DATAFRAME_CHECK_KEY = "__dataframe_check_config__"
 
 
-class FieldInfo(BaseFieldInfo, Generic[TColumn, TIndex]):
+class FieldInfo(BaseFieldInfo):
     """Captures extra information about a field.
 
     *new in 0.5.0*
     """
 
-    __column_cls__: Type[TColumn]
-    __index_cls__: Optional[Type[TIndex]]
-
-    def _to_schema_component(
+    def _get_schema_properties(
         self,
         dtype: Any,
-        component: Union[Type[TColumn], Optional[Type[TIndex]]],
         checks: CheckArg = None,
         **kwargs: Any,
-    ) -> Union[TColumn, TIndex]:
+    ) -> Dict[str, Any]:
         if self.dtype_kwargs:
             dtype = dtype(**self.dtype_kwargs)  # type: ignore
-        checks = self.checks + to_checklist(checks)
-        return component(dtype, checks=checks, **kwargs)  # type: ignore
+        return {
+            "dtype": dtype,
+            "checks": self.checks + to_checklist(checks),
+            **kwargs,
+        }
 
-    def to_column(
+    def column_properties(
         self,
         dtype: Any,
         checks: CheckArg = None,
         required: bool = True,
         name: str = None,
-    ) -> TColumn:
+    ) -> Dict[str, Any]:
         """Create a schema_components.Column from a field."""
-        return cast(
-            TColumn,
-            self._to_schema_component(
-                dtype,
-                self.__column_cls__,
-                nullable=self.nullable,
-                unique=self.unique,
-                coerce=self.coerce,
-                regex=self.regex,
-                required=required,
-                name=name,
-                checks=checks,
-                title=self.title,
-                description=self.description,
-                default=self.default,
-                metadata=self.metadata,
-            ),
+        return self._get_schema_properties(
+            dtype,
+            nullable=self.nullable,
+            unique=self.unique,
+            coerce=self.coerce,
+            regex=self.regex,
+            required=required,
+            name=name,
+            checks=checks,
+            title=self.title,
+            description=self.description,
+            default=self.default,
+            metadata=self.metadata,
         )
 
-    def to_index(
+    def index_properties(
         self,
         dtype: Any,
         checks: CheckArg = None,
         name: str = None,
-    ) -> TIndex:
+    ) -> Dict[str, Any]:
         """Create a schema_components.Index from a field."""
-        return cast(
-            TIndex,
-            self._to_schema_component(
-                dtype,
-                self.__index_cls__,
-                nullable=self.nullable,
-                unique=self.unique,
-                coerce=self.coerce,
-                name=name,
-                checks=checks,
-                title=self.title,
-                description=self.description,
-                default=self.default,
-            ),
+        return self._get_schema_properties(
+            dtype,
+            nullable=self.nullable,
+            unique=self.unique,
+            coerce=self.coerce,
+            name=name,
+            checks=checks,
+            title=self.title,
+            description=self.description,
+            default=self.default,
         )
 
     @property
@@ -119,8 +108,7 @@ class FieldInfo(BaseFieldInfo, Generic[TColumn, TIndex]):
         }
 
 
-def _field(
-    field_cls,
+def Field(
     *,
     eq: Any = None,
     ne: Any = None,
@@ -211,7 +199,7 @@ def _field(
             check_ = check_constructor(arg_value, **check_kwargs)
         checks.append(check_)
 
-    return field_cls(
+    return FieldInfo(
         checks=checks or None,
         nullable=nullable,
         unique=unique,
@@ -225,9 +213,6 @@ def _field(
         dtype_kwargs=dtype_kwargs,
         metadata=metadata,
     )
-
-
-Field = partial(_field, FieldInfo)
 
 
 def _check_dispatch():

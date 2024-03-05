@@ -15,9 +15,9 @@ from pandera.api.dataframe.model import (
     DataFrameModel as _DataFrameModel,
     get_dtype_kwargs,
 )
+from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.components import Column
-from pandera.api.polars.model_components import FieldInfo
 from pandera.api.polars.model_config import BaseConfig
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
@@ -26,18 +26,10 @@ from pandera.typing import AnnotationInfo
 class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
-    *new in 0.5.0*
-
-    .. important::
-
-        This class is the new name for ``SchemaModel``, which will be deprecated
-        in pandera version ``0.20.0``.
-
     See the :ref:`User Guide <dataframe_models>` for more.
     """
 
     Config: Type[BaseConfig] = BaseConfig
-    __field_info_cls__ = FieldInfo
 
     @classmethod
     def build_schema_(cls, **kwargs):
@@ -77,19 +69,23 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             dtype = None if dtype is Any else dtype
 
             if annotation.origin is None:
-                col_constructor = field.to_column if field else Column
-
                 if check_name is False:
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."
                     )
 
-                columns[field_name] = col_constructor(  # type: ignore
-                    dtype,
-                    required=not annotation.optional,
-                    checks=field_checks,
-                    name=field_name,
+                column_kwargs = (
+                    field.column_properties(
+                        dtype,
+                        required=not annotation.optional,
+                        checks=field_checks,
+                        name=field_name,
+                    )
+                    if field
+                    else {}
                 )
+                columns[field_name] = Column(**column_kwargs)
+
             else:
                 raise SchemaInitError(
                     f"Invalid annotation '{field_name}: "
