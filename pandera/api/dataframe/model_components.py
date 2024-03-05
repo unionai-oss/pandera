@@ -8,7 +8,6 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    TypeVar,
     Union,
     cast,
 )
@@ -23,8 +22,6 @@ from pandera.api.checks import Check
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]
-TColumn = TypeVar("TColumn")
-TIndex = TypeVar("TIndex")
 
 CHECK_KEY = "__check_config__"
 DATAFRAME_CHECK_KEY = "__dataframe_check_config__"
