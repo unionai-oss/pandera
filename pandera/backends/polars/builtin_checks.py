@@ -1,6 +1,6 @@
 """Built-in checks for polars."""
 
-from typing import Any, TypeVar, Iterable, Union
+from typing import Any, TypeVar, Iterable, Union, Optional
 
 import re
 import polars as pl
@@ -8,7 +8,6 @@ import polars as pl
 
 from pandera.api.extensions import register_builtin_check
 from pandera.api.polars.types import PolarsData
-from pandera.backends.polars.constants import CHECK_OUTPUT_KEY
 
 T = TypeVar("T")
 
@@ -181,30 +180,11 @@ def notin(data: PolarsData, forbidden_values: Iterable) -> pl.LazyFrame:
 
 
 @register_builtin_check(
-    error="str_matches('{pattern}')",
-)
-def str_matches(
-    data: PolarsData,
-    pattern: Union[str, re.Pattern],
-) -> pl.LazyFrame:
-    """Ensure that string values match a regular expression.
-
-    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The keys
-                to access the dataframe is "dataframe" and column name using "key".
-    :param pattern: Regular expression pattern to use for matching
-    """
-
-    return data.dataframe.select(
-        pl.col(data.key).str.contains(pattern=pattern).alias(CHECK_OUTPUT_KEY)
-    )
-
-
-@register_builtin_check(
     error="str_contains('{pattern}')",
 )
 def str_contains(
     data: PolarsData,
-    pattern: str,
+    pattern: re.Pattern,
 ) -> pl.LazyFrame:
     """Ensure that a pattern can be found within each row.
 
@@ -212,10 +192,11 @@ def str_contains(
                 to access the dataframe is "dataframe" and column name using "key".
     :param pattern: Regular expression pattern to use for searching
     """
+
     return data.dataframe.select(
-        pl.col(data.key)
-        .str.contains(pattern=pattern, literal=True)
-        .alias(CHECK_OUTPUT_KEY)
+        pl.col(data.key).str.contains(
+            pattern=f"{pattern.pattern}", literal=False
+        )
     )
 
 
@@ -249,18 +230,18 @@ def str_endswith(data: PolarsData, string: str) -> pl.LazyFrame:
 )
 def str_length(
     data: PolarsData,
-    min_value: int = None,
-    max_value: int = None,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
 ) -> pl.LazyFrame:
     """Ensure that the length of strings is within a specified range.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The keys
                 to access the dataframe is "dataframe" and column name using "key".
-    :param min_value: Minimum length of strings (default: no minimum)
-    :param max_value: Maximum length of strings (default: no maximum)
+    :param min_value: Minimum length of strings (including) (default: no minimum)
+    :param max_value: Maximum length of strings (including) (default: no maximum)
     """
     # NOTE: consider using len_bytes (faster but returns != n_chars for non ASCII strings
-    n_chars = pl.col("string_col").str.n_chars()
+    n_chars = pl.col(data.key).str.n_chars()
     is_in_min = (
         n_chars.ge(min_value) if min_value is not None else pl.lit(True)
     )
@@ -268,7 +249,7 @@ def str_length(
         n_chars.le(max_value) if max_value is not None else pl.lit(True)
     )
 
-    return data.dataframe.select(is_in_min.and_(is_in_max))
+    return data.dataframe.select(is_in_min.and_(is_in_max).alias(data.key))
 
 
 @register_builtin_check(
