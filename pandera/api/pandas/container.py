@@ -14,10 +14,10 @@ from pandera import errors
 from pandera.config import CONFIG
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
-from pandera.api.base.types import StrictType
+from pandera.api.base.types import StrictType, CheckList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
+from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine, PYDANTIC_V2
 
@@ -246,16 +246,12 @@ class DataFrameSchema(BaseSchema):
         """
         regex_dtype = {}
         for _, column in self.columns.items():
+            backend = column.get_backend(dataframe)
             if column.regex:
                 regex_dtype.update(
                     {
                         c: column.dtype
-                        for c in column.get_backend(
-                            dataframe
-                        ).get_regex_columns(
-                            column,
-                            dataframe.columns,
-                        )
+                        for c in backend.get_regex_columns(column, dataframe)
                     }
                 )
         return {

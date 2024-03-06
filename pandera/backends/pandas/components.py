@@ -89,7 +89,7 @@ class ColumnBackend(ArraySchemaBackend):
                 error_handler.collect_error(err.reason_code, err)
 
         column_keys_to_check = (
-            self.get_regex_columns(schema, check_obj.columns)
+            self.get_regex_columns(schema, check_obj)
             if schema.regex
             else [schema.name]
         )
@@ -127,15 +127,14 @@ class ColumnBackend(ArraySchemaBackend):
 
         return check_obj
 
-    def get_regex_columns(
-        self, schema, columns: Union[pd.Index, pd.MultiIndex]
-    ) -> Iterable:
+    def get_regex_columns(self, schema, check_obj) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
         :param schema: schema specification to use
         :param columns: columns to regex pattern match
         :returns: matchin columns
         """
+        columns = check_obj.columns
         if isinstance(schema.name, tuple):
             # handle MultiIndex case
             if len(schema.name) != columns.nlevels:

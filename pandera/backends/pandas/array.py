@@ -70,16 +70,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
             error_handler,
             schema,
             check_obj,
-            head,
-            tail,
-            sample,
-            random_state,
+            head=head,
+            tail=tail,
+            sample=sample,
+            random_state=random_state,
         )
 
         if lazy and error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
                 check_obj = self.drop_invalid_rows(check_obj, error_handler)
-                return check_obj
             else:
                 raise SchemaErrors(
                     schema=schema,
@@ -90,32 +89,16 @@ class ArraySchemaBackend(PandasSchemaBackend):
         return check_obj
 
     def run_checks_and_handle_errors(
-        self,
-        error_handler,
-        schema,
-        check_obj,
-        head,
-        tail,
-        sample,
-        random_state,
+        self, error_handler, schema, check_obj, **subsample_kwargs
     ):
         """Run checks on schema"""
         # pylint: disable=too-many-locals
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],
-            head,
-            tail,
-            sample,
-            random_state,
+            **subsample_kwargs,
         )
 
-        check_obj_subsample = self.subsample(
-            check_obj,
-            head,
-            tail,
-            sample,
-            random_state,
-        )
+        check_obj_subsample = self.subsample(check_obj, **subsample_kwargs)
 
         core_checks = [
             (self.check_name, (field_obj_subsample, schema)),

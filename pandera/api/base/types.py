@@ -1,6 +1,8 @@
 """Base type definitions for pandera."""
 
-from typing import Union
+from typing import List, Union
+from pandera.api.checks import Check
+from pandera.api.hypotheses import Hypothesis
 
 try:
     # python 3.8+
@@ -10,3 +12,4 @@ except ImportError:  # pragma: no cover
 
 
 StrictType = Union[bool, Literal["filter"]]
+CheckList = Union[Check, List[Union[Check, Hypothesis]]]

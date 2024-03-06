@@ -11,12 +11,21 @@ from pandera.backends.pandas.error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
 )
+from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     SchemaError,
     FailureCaseMetadata,
     SchemaErrorReason,
     SchemaWarning,
 )
+
+
+def is_float_dtype(check_obj: pl.LazyFrame, name):
+    """Check if a column/selector is a float."""
+    return all(
+        dtype in pl.FLOAT_DTYPES
+        for dtype in check_obj.select(pl.col(name)).schema.values()
+    )
 
 
 class PolarsSchemaBackend(BaseSchemaBackend):
@@ -179,6 +188,25 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             ),
             error_counts=error_counts,
         )
+
+    def drop_invalid_rows(
+        self,
+        check_obj: pl.LazyFrame,
+        error_handler: SchemaErrorHandler,
+    ) -> pl.LazyFrame:
+        """Remove invalid elements in a check obj according to failures in caught by the error handler."""
+        errors = error_handler.collected_errors
+        check_outputs = pl.DataFrame(
+            {str(i): err.check_output for i, err in enumerate(errors)}
+        )
+        valid_rows = check_outputs.select(
+            valid_rows=pl.fold(
+                acc=pl.lit(True),
+                function=lambda acc, x: acc & x,
+                exprs=pl.col(pl.Boolean),
+            )
+        )["valid_rows"]
+        return check_obj.filter(valid_rows)
 
 
 FAILURE_CASE_TEMPLATE = """

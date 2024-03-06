@@ -235,7 +235,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
                             dataframe
                         ).get_regex_columns(
                             column,
-                            dataframe.columns,
+                            dataframe,
                         )
                     }
                 )

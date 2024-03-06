@@ -1,17 +1,13 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import List, NamedTuple, Tuple, Type, Union
+from typing import NamedTuple, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
 
-from pandera.api.checks import Check
-from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
 
-
-CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 
 PandasDtypeInputTypes = Union[
     str,

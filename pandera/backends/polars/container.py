@@ -1,6 +1,5 @@
 """Validation backend for polars DataFrameSchema."""
 
-import itertools
 import traceback
 import warnings
 from typing import Any, Optional, List, Callable, Tuple
@@ -17,9 +16,11 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaDefinitionError,
 )
+from pandera.utils import is_regex
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
+    # pylint: disable=too-many-branches
     def validate(
         self,
         check_obj: pl.LazyFrame,
@@ -45,10 +46,16 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         column_info = self.collect_column_info(check_obj, schema)
 
+        if getattr(schema, "drop_invalid_rows", False) and not lazy:
+            raise SchemaDefinitionError(
+                "When drop_invalid_rows is True, lazy must be set to True."
+            )
+
         core_parsers: List[Tuple[Callable[..., Any], Tuple[Any, ...]]] = [
             (self.add_missing_columns, (schema, column_info)),
             (self.strict_filter_columns, (schema, column_info)),
             (self.coerce_dtype, (schema,)),
+            (self.set_default, (schema,)),
         ]
 
         for parser, args in core_parsers:
@@ -101,11 +108,14 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
 
         if error_handler.collected_errors:
-            raise SchemaErrors(
-                schema=schema,
-                schema_errors=error_handler.collected_errors,
-                data=check_obj,
-            )
+            if getattr(schema, "drop_invalid_rows", False):
+                check_obj = self.drop_invalid_rows(check_obj, error_handler)
+            else:
+                raise SchemaErrors(
+                    schema=schema,
+                    schema_errors=error_handler.collected_errors,
+                    data=check_obj,
+                )
 
         return check_obj
 
@@ -201,10 +211,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
             if col_schema.regex:
                 try:
-                    # TODO: implement get_regex_columns
                     column_names.extend(
                         col_schema.get_backend(check_obj).get_regex_columns(
-                            col_schema, check_obj.columns
+                            col_schema, check_obj
                         )
                     )
                     regex_match_patterns.append(col_schema.name)
@@ -215,10 +224,6 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         # drop adjacent duplicated column names
         destuttered_column_names = [*check_obj.columns]
-        if len(check_obj.columns) != len(set(check_obj.columns)):
-            destuttered_column_names = [
-                k for k, _ in itertools.groupby(check_obj.columns)
-            ]
 
         return ColumnInfo(
             sorted_column_names=dict.fromkeys(column_names),
@@ -409,6 +414,19 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         return obj
 
+    def set_default(self, check_obj: pl.LazyFrame, schema) -> pl.LazyFrame:
+        """Set default values for columns with missing values."""
+
+        for col_schema in [
+            s
+            for s in schema.columns.values()
+            if hasattr(s, "default") and s.default is not None
+        ]:
+            backend = col_schema.get_backend(check_obj)
+            check_obj = backend.set_default(check_obj, col_schema)
+
+        return check_obj
+
     ##########
     # Checks #
     ##########
@@ -419,7 +437,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         schema,
     ) -> CoreCheckResult:
         """Check that column names are unique."""
-        raise NotImplementedError
+        raise NotImplementedError(
+            "polars does not support duplicate column names"
+        )
 
     def check_column_presence(
         self,
@@ -431,6 +451,13 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         results = []
         if column_info.absent_column_names and not schema.add_missing_columns:
             for colname in column_info.absent_column_names:
+                if (
+                    is_regex(colname)
+                    and check_obj.select(pl.col(colname)).columns
+                ):
+                    # don't raise an error if the column schema name is a
+                    # regex pattern
+                    continue
                 results.append(
                     CoreCheckResult(
                         passed=False,

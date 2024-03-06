@@ -55,19 +55,34 @@ def test_model_schema_equivalency(
     assert ldf_model_basic.to_schema() == ldf_schema_basic
 
 
-def test_basic_model(ldf_model_basic: DataFrameModel, ldf_basic: pl.LazyFrame):
+@pytest.mark.parametrize(
+    "column_mod,exception_cls",
+    [
+        # this modification will cause a ComputeError since casting the values
+        # in ldf_basic will cause the error outside of pandera validation
+        ({"string_col": pl.Int64}, pl.exceptions.ComputeError),
+        # this modification will cause a SchemaError since schema validation
+        # can actually catch the type mismatch
+        ({"int_col": pl.Utf8}, SchemaError),
+        ({"int_col": pl.Float64}, SchemaError),
+    ],
+)
+def test_basic_model(
+    column_mod,
+    exception_cls,
+    ldf_model_basic: DataFrameModel,
+    ldf_basic: pl.LazyFrame,
+):
     """Test basic polars lazy dataframe."""
     query = ldf_basic.pipe(ldf_model_basic.validate)
     df = query.collect()
     assert isinstance(query, pl.LazyFrame)
     assert isinstance(df, pl.DataFrame)
 
-    invalid_string_type_df = ldf_basic.cast({"string_col": pl.Int64})
-    invalid_int_type_df = ldf_basic.cast({"int_col": pl.Utf8})
+    invalid_df = ldf_basic.cast(column_mod)
 
-    for invalid_df in (invalid_string_type_df, invalid_int_type_df):
-        with pytest.raises(SchemaError):
-            invalid_df.pipe(ldf_model_basic.validate).collect()
+    with pytest.raises(exception_cls):
+        invalid_df.pipe(ldf_model_basic.validate).collect()
 
 
 def test_model_with_fields(ldf_model_with_fields, ldf_basic):

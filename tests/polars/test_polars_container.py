@@ -37,8 +37,34 @@ def ldf_schema_with_check():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            "string_col": Column(pl.Utf8),
+            "string_col": Column(pl.Utf8, C.isin([*"abc"])),
             "int_col": Column(pl.Int64, C.ge(0)),
+        }
+    )
+
+
+@pytest.fixture
+def ldf_for_regex_match():
+    """Basic polars lazy dataframe fixture."""
+    return pl.DataFrame(
+        {
+            "string_col_0": ["a", "b", "c"],
+            "string_col_1": ["a", "b", "c"],
+            "string_col_2": ["a", "b", "c"],
+            "int_col_0": [0, 1, 2],
+            "int_col_1": [0, 1, 2],
+            "int_col_2": [0, 1, 2],
+        }
+    ).lazy()
+
+
+@pytest.fixture
+def ldf_schema_with_regex():
+    """Polars lazyframe schema with checks."""
+    return DataFrameSchema(
+        {
+            r"^string_col_\d+$": Column(pl.Utf8, C.isin([*"abc"])),
+            r"^int_col_\d+$": Column(pl.Int64, C.ge(0)),
         }
     )
 
@@ -201,3 +227,77 @@ def test_dataframe_level_checks():
         ldf.pipe(schema.validate, lazy=True)
     except pa.errors.SchemaErrors as err:
         assert err.failure_cases.shape[0] == 6
+
+
+@pytest.mark.parametrize(
+    "column_mod,filter_expr",
+    [
+        ({"int_col": pl.Series([-1, 1, 1])}, pl.col("int_col").ge(0)),
+        ({"string_col": pl.Series([*"abd"])}, pl.col("string_col").ne("d")),
+        (
+            {
+                "int_col": pl.Series([-1, 1, 1]),
+                "string_col": pl.Series([*"abd"]),
+            },
+            pl.col("int_col").ge(0) & pl.col("string_col").ne("d"),
+        ),
+        ({"int_col": pl.lit(-1)}, pl.col("int_col").ge(0)),
+        ({"int_col": pl.lit("d")}, pl.col("string_col").ne("d")),
+    ],
+)
+@pytest.mark.parametrize("lazy", [False, True])
+def test_drop_invalid_rows(
+    column_mod,
+    filter_expr,
+    lazy,
+    ldf_basic,
+    ldf_schema_with_check,
+):
+    ldf_schema_with_check.drop_invalid_rows = True
+    modified_data = ldf_basic.with_columns(column_mod)
+    if lazy:
+        validated_data = modified_data.pipe(
+            ldf_schema_with_check.validate,
+            lazy=lazy,
+        )
+        expected_valid_data = modified_data.filter(filter_expr)
+        assert validated_data.collect().equals(expected_valid_data.collect())
+    else:
+        with pytest.raises(pa.errors.SchemaDefinitionError):
+            modified_data.pipe(
+                ldf_schema_with_check.validate,
+                lazy=lazy,
+            )
+
+
+def test_set_defaults(ldf_basic, ldf_schema_basic):
+    ldf_schema_basic.columns["int_col"].default = 1
+    ldf_schema_basic.columns["string_col"].default = "a"
+
+    modified_data = ldf_basic.with_columns(
+        int_col=pl.lit(None),
+        string_col=pl.lit(None),
+    )
+    expected_data = ldf_basic.with_columns(
+        int_col=pl.lit(1),
+        string_col=pl.lit("a"),
+    )
+
+    validated_data = modified_data.pipe(ldf_schema_basic.validate).collect()
+    assert validated_data.equals(expected_data.collect())
+
+
+def test_regex_selector(
+    ldf_for_regex_match: pl.LazyFrame,
+    ldf_schema_with_regex: DataFrameSchema,
+):
+    result = ldf_for_regex_match.pipe(ldf_schema_with_regex.validate).collect()
+    assert result.equals(ldf_for_regex_match.collect())
+
+    for column in ldf_for_regex_match.columns:
+        # this should raise an error since columns are not nullable by default
+        modified_data = ldf_for_regex_match.with_columns(
+            **{column: pl.lit(None)}
+        )
+        with pytest.raises(pa.errors.SchemaError):
+            modified_data.pipe(ldf_schema_with_regex.validate).collect()

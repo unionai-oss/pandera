@@ -18,3 +18,11 @@ def docstring_substitution(*args: Any, **kwargs: Any) -> Callable[[F], F]:
         return func
 
     return decorator
+
+
+def is_regex(name: str):
+    """
+    Checks whether a string is a regex pattern, as defined as starting with
+    '^' and ending with '$'.
+    """
+    return name.startswith("^") and name.endswith("$")
