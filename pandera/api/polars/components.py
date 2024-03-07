@@ -104,7 +104,7 @@ class Column(_Column):
 
     @property
     def selector(self):
-        if not is_regex(self.name) and self.regex:
+        if self.name is not None and not is_regex(self.name) and self.regex:
             return f"^{self.name}$"
         return self.name
 

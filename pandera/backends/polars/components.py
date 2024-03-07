@@ -42,6 +42,11 @@ class ColumnBackend(PolarsSchemaBackend):
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
+        if schema.name is None:
+            raise SchemaDefinitionError(
+                "Column schema must have a name specified."
+            )
+
         error_handler = SchemaErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
@@ -146,7 +151,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 .collect()
                 .lazy()
             )
-        except pl.exceptions.ComputeError as exc:
+        except (pl.ComputeError, pl.InvalidOperationError) as exc:
             raise SchemaError(
                 schema=schema,
                 data=check_obj,
@@ -188,9 +193,9 @@ class ColumnBackend(PolarsSchemaBackend):
                 continue
             failure_cases = (
                 check_obj.with_context(
-                    isna.select(pl.col(column).alias("isna"))
+                    isna.select(pl.col(column).alias("_isna"))
                 )
-                .filter(pl.col("isna").not_())
+                .filter(pl.col("_isna").not_())
                 .select(column)
                 .collect()
             )
@@ -208,29 +213,53 @@ class ColumnBackend(PolarsSchemaBackend):
             )
         return results
 
-    def check_unique(self, check_obj, schema) -> CoreCheckResult:
-        passed = True
-        failure_cases = None
-        message = None
+    def check_unique(
+        self,
+        check_obj: pl.LazyFrame,
+        schema,
+    ) -> List[CoreCheckResult]:
+        check_name = "field_uniqueness"
+        if not schema.unique:
+            return [
+                CoreCheckResult(
+                    passed=True,
+                    check=check_name,
+                    reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+                )
+            ]
 
-        if schema.unique:
-            duplicates = (
-                check_obj.select(schema.selector).collect().is_duplicated()
-            )
-            if duplicates.any():
-                failure_cases = check_obj.filter(duplicates)
-                passed = False
-                message = (
-                    f"column '{schema.selector}' not unique:\n{failure_cases}"
+        results = []
+        duplicates = (
+            check_obj.select(schema.selector)
+            .collect()
+            .select(pl.col("*").is_duplicated())
+        )
+        for column in duplicates.columns:
+            if duplicates.select(pl.col(column).any()).item():
+                failure_cases = (
+                    check_obj.with_context(
+                        duplicates.select(
+                            pl.col(column).alias("_duplicated")
+                        ).lazy()
+                    )
+                    .filter(pl.col("_duplicated"))
+                    .select(column)
+                    .collect()
+                )
+                results.append(
+                    CoreCheckResult(
+                        passed=False,
+                        check=check_name,
+                        reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
+                        message=(
+                            f"column '{schema.selector}' "
+                            f"not unique:\n{failure_cases}"
+                        ),
+                        failure_cases=failure_cases,
+                    )
                 )
 
-        return CoreCheckResult(
-            passed=passed,
-            check="field_uniqueness",
-            reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
-            message=message,
-            failure_cases=failure_cases,
-        )
+        return results
 
     def check_dtype(
         self,
@@ -275,7 +304,6 @@ class ColumnBackend(PolarsSchemaBackend):
     def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
         check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
-            check_args = [schema.selector]  # pass in column key
             try:
                 check_results.append(
                     self.run_check(
@@ -283,7 +311,7 @@ class ColumnBackend(PolarsSchemaBackend):
                         schema,
                         check,
                         check_index,
-                        *check_args,
+                        schema.selector,
                     )
                 )
             except Exception as err:  # pylint: disable=broad-except

@@ -198,13 +198,12 @@ def test_add_missing_columns_with_nullable(ldf_basic, ldf_schema_basic):
     )
 
 
-def test_unique_column_names(ldf_basic, ldf_schema_basic):
+def test_unique_column_names():
     """Test unique column names."""
-    ldf_schema_basic.unique_column_names = True
     with pytest.warns(
         match="unique_column_names=True will have no effect on validation"
     ):
-        ldf_basic.pipe(ldf_schema_basic.validate).collect()
+        DataFrameSchema(unique_column_names=True)
 
 
 def test_column_absent_error(ldf_basic, ldf_schema_basic):
