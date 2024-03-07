@@ -1,6 +1,8 @@
 # pylint: disable=redefined-outer-name
 """Unit tests for polars container."""
 
+from typing import Optional
+
 import polars as pl
 
 import pytest
@@ -15,7 +17,7 @@ def ldf_basic():
     """Basic polars lazy dataframe fixture."""
     return pl.DataFrame(
         {
-            "string_col": ["a", "b", "c"],
+            "string_col": ["0", "1", "2"],
             "int_col": [0, 1, 2],
         }
     ).lazy()
@@ -37,7 +39,7 @@ def ldf_schema_with_check():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            "string_col": Column(pl.Utf8, C.isin([*"abc"])),
+            "string_col": Column(pl.Utf8, C.isin([*"012"])),
             "int_col": Column(pl.Int64, C.ge(0)),
         }
     )
@@ -48,9 +50,9 @@ def ldf_for_regex_match():
     """Basic polars lazy dataframe fixture."""
     return pl.DataFrame(
         {
-            "string_col_0": ["a", "b", "c"],
-            "string_col_1": ["a", "b", "c"],
-            "string_col_2": ["a", "b", "c"],
+            "string_col_0": [*"012"],
+            "string_col_1": [*"012"],
+            "string_col_2": [*"012"],
             "int_col_0": [0, 1, 2],
             "int_col_1": [0, 1, 2],
             "int_col_2": [0, 1, 2],
@@ -59,12 +61,23 @@ def ldf_for_regex_match():
 
 
 @pytest.fixture
-def ldf_schema_with_regex():
+def ldf_schema_with_regex_name():
     """Polars lazyframe schema with checks."""
     return DataFrameSchema(
         {
-            r"^string_col_\d+$": Column(pl.Utf8, C.isin([*"abc"])),
+            r"^string_col_\d+$": Column(pl.Utf8, C.isin([*"012"])),
             r"^int_col_\d+$": Column(pl.Int64, C.ge(0)),
+        }
+    )
+
+
+@pytest.fixture
+def ldf_schema_with_regex_option():
+    """Polars lazyframe schema with checks."""
+    return DataFrameSchema(
+        {
+            r"string_col_\d+": Column(pl.Utf8, C.isin([*"012"]), regex=True),
+            r"int_col_\d+": Column(pl.Int64, C.ge(0), regex=True),
         }
     )
 
@@ -116,9 +129,10 @@ def test_coerce_column_dtype_error(ldf_basic, ldf_schema_basic):
     ldf_schema_basic._coerce = True
 
     # change dtype of strong_col to int64, where coercion of values should fail
+    modified_ldf = ldf_basic.with_columns(string_col=pl.lit("a"))
     ldf_schema_basic.columns["string_col"].dtype = pl.Int64
     with pytest.raises(pa.errors.SchemaError):
-        ldf_basic.pipe(ldf_schema_basic.validate)
+        modified_ldf.pipe(ldf_schema_basic.validate)
 
 
 def test_coerce_df_dtype(ldf_basic, ldf_schema_basic):
@@ -139,8 +153,9 @@ def test_coerce_df_dtype_error(ldf_basic, ldf_schema_basic):
     # fail
     ldf_schema_basic.dtype = pl.Int64
     ldf_schema_basic.columns["string_col"].dtype = pl.Int64
+    modified_ldf = ldf_basic.with_columns(string_col=pl.lit("a"))
     with pytest.raises(pa.errors.SchemaError):
-        ldf_basic.pipe(ldf_schema_basic.validate)
+        modified_ldf.pipe(ldf_schema_basic.validate)
 
 
 def test_strict_filter(ldf_basic, ldf_schema_basic):
@@ -186,7 +201,9 @@ def test_add_missing_columns_with_nullable(ldf_basic, ldf_schema_basic):
 def test_unique_column_names(ldf_basic, ldf_schema_basic):
     """Test unique column names."""
     ldf_schema_basic.unique_column_names = True
-    with pytest.warns():
+    with pytest.warns(
+        match="unique_column_names=True will have no effect on validation"
+    ):
         ldf_basic.pipe(ldf_schema_basic.validate).collect()
 
 
@@ -233,11 +250,11 @@ def test_dataframe_level_checks():
     "column_mod,filter_expr",
     [
         ({"int_col": pl.Series([-1, 1, 1])}, pl.col("int_col").ge(0)),
-        ({"string_col": pl.Series([*"abd"])}, pl.col("string_col").ne("d")),
+        ({"string_col": pl.Series([*"013"])}, pl.col("string_col").ne("d")),
         (
             {
                 "int_col": pl.Series([-1, 1, 1]),
-                "string_col": pl.Series([*"abd"]),
+                "string_col": pl.Series([*"013"]),
             },
             pl.col("int_col").ge(0) & pl.col("string_col").ne("d"),
         ),
@@ -287,17 +304,91 @@ def test_set_defaults(ldf_basic, ldf_schema_basic):
     assert validated_data.equals(expected_data.collect())
 
 
-def test_regex_selector(
-    ldf_for_regex_match: pl.LazyFrame,
-    ldf_schema_with_regex: DataFrameSchema,
-):
-    result = ldf_for_regex_match.pipe(ldf_schema_with_regex.validate).collect()
-    assert result.equals(ldf_for_regex_match.collect())
+def _failure_value(column: str, dtype: Optional[pl.DataType] = None):
+    if column.startswith("string"):
+        return pl.lit("9", dtype=dtype or pl.Utf8)
+    elif column.startswith("int"):
+        return pl.lit(-1, dtype=dtype or pl.Int64)
+    raise ValueError(f"unexpected column name: {column}")
 
-    for column in ldf_for_regex_match.columns:
-        # this should raise an error since columns are not nullable by default
-        modified_data = ldf_for_regex_match.with_columns(
-            **{column: pl.lit(None)}
-        )
+
+def _failure_type(column: str):
+    if column.startswith("string"):
+        return _failure_value(column, dtype=pl.Int64)
+    elif column.startswith("int"):
+        return _failure_value(column, dtype=pl.Utf8)
+    raise ValueError(f"unexpected column name: {column}")
+
+
+@pytest.mark.parametrize(
+    "transform_fn,exception_msg",
+    [
+        [
+            lambda ldf, col: ldf.with_columns(**{col: pl.lit(None)}),
+            None,
+        ],
+        [
+            lambda ldf, col: ldf.with_columns(**{col: _failure_value(col)}),
+            ".+ failed element-wise validator 0",
+        ],
+        [
+            lambda ldf, col: ldf.with_columns(**{col: _failure_type(col)}),
+            "expected column '.+' to have type",
+        ],
+    ],
+)
+def test_regex_selector(
+    transform_fn,
+    exception_msg,
+    ldf_for_regex_match: pl.LazyFrame,
+    ldf_schema_with_regex_name: DataFrameSchema,
+    ldf_schema_with_regex_option: DataFrameSchema,
+):
+    for schema in (
+        ldf_schema_with_regex_name,
+        ldf_schema_with_regex_option,
+    ):
+        result = ldf_for_regex_match.pipe(schema.validate).collect()
+
+        assert result.equals(ldf_for_regex_match.collect())
+
+        for column in ldf_for_regex_match.columns:
+            # this should raise an error since columns are not nullable by default
+            modified_data = transform_fn(ldf_for_regex_match, column)
+            with pytest.raises(pa.errors.SchemaError, match=exception_msg):
+                modified_data.pipe(schema.validate).collect()
+
+        # dropping all columns should fail
+        modified_data = ldf_for_regex_match.drop(ldf_for_regex_match.columns)
         with pytest.raises(pa.errors.SchemaError):
-            modified_data.pipe(ldf_schema_with_regex.validate).collect()
+            modified_data.pipe(schema.validate).collect()
+
+
+def test_regex_coerce(
+    ldf_for_regex_match: pl.LazyFrame,
+    ldf_schema_with_regex_name: DataFrameSchema,
+):
+    for _, column in ldf_schema_with_regex_name.columns.items():
+        column.coerce = True
+
+    ldf_for_regex_match.pipe(ldf_schema_with_regex_name.validate).collect()
+
+
+def test_ordered(ldf_basic, ldf_schema_basic):
+    ldf_schema_basic.ordered = True
+    ldf_basic.pipe(ldf_schema_basic.validate).collect()
+
+    invalid_order = ldf_basic.select(["int_col", "string_col"])
+    with pytest.raises(pa.errors.SchemaError):
+        invalid_order.pipe(ldf_schema_basic.validate).collect()
+
+
+@pytest.mark.parametrize("arg", ["exclude_first", "exclude_last"])
+def test_report_duplicates(arg):
+    with pytest.warns(
+        match=(
+            "Setting report_duplicates to 'exclude_first' or 'exclude_last' "
+            "will have no effect on validation."
+        )
+    ):
+        DataFrameSchema(report_duplicates=arg)

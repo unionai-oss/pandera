@@ -1,5 +1,6 @@
 """DataFrame Schema for Polars."""
 
+import warnings
 from typing import Optional
 
 import polars as pl
@@ -10,6 +11,23 @@ from pandera.engines import polars_engine
 
 
 class DataFrameSchema(_DataFrameSchema):
+    def _validate_attributes(self):
+        super()._validate_attributes()
+
+        if self.unique_column_names:
+            warnings.warn(
+                "unique_column_names=True will have no effect on validation "
+                "since polars DataFrames does not support duplicate column "
+                "names."
+            )
+
+        if self.report_duplicates != "all":
+            warnings.warn(
+                "Setting report_duplicates to 'exclude_first' or "
+                "'exclude_last' will have no effect on validation. With the "
+                "polars backend, all duplicate values will be reported."
+            )
+
     def validate(
         self,
         check_obj: pl.LazyFrame,

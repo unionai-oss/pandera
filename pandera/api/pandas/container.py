@@ -147,16 +147,6 @@ class DataFrameSchema(BaseSchema):
             {} if columns is None else columns
         )
 
-        if strict not in (
-            False,
-            True,
-            "filter",
-        ):
-            raise errors.SchemaInitError(
-                "strict parameter must equal either `True`, `False`, "
-                "or `'filter'`."
-            )
-
         self.index = index
         self.strict: Union[bool, str] = strict
         self._coerce = coerce
@@ -171,6 +161,15 @@ class DataFrameSchema(BaseSchema):
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
         self.metadata = metadata
+
+        self._validate_attributes()
+
+    def _validate_attributes(self):
+        if self.strict not in (False, True, "filter"):
+            raise errors.SchemaInitError(
+                "strict parameter must equal either `True`, `False`, "
+                "or `'filter'`."
+            )
 
     @property
     def coerce(self) -> bool:
@@ -237,7 +236,7 @@ class DataFrameSchema(BaseSchema):
         meta[self.name] = res
         return meta
 
-    def get_dtypes(self, dataframe: pd.DataFrame) -> Dict[str, DataType]:
+    def get_dtypes(self, check_obj) -> Dict[str, DataType]:
         """
         Same as the ``dtype`` property, but expands columns where
         ``regex == True`` based on the supplied dataframe.
@@ -246,12 +245,12 @@ class DataFrameSchema(BaseSchema):
         """
         regex_dtype = {}
         for _, column in self.columns.items():
-            backend = column.get_backend(dataframe)
+            backend = column.get_backend(check_obj)
             if column.regex:
                 regex_dtype.update(
                     {
                         c: column.dtype
-                        for c in backend.get_regex_columns(column, dataframe)
+                        for c in backend.get_regex_columns(column, check_obj)
                     }
                 )
         return {

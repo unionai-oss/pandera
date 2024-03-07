@@ -33,12 +33,6 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ):
-        if schema.unique_column_names:
-            warnings.warn(
-                "unique_column_names=True will have no effect on validation "
-                "since polars DataFrames does not support duplicate column "
-                "names."
-            )
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
@@ -167,9 +161,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         # schema-component-level checks
         for schema_component in schema_components:
             try:
-                result = schema_component.validate(
-                    check_obj, lazy=lazy, inplace=True
-                )
+                result = schema_component.validate(check_obj, lazy=lazy)
                 check_passed.append(isinstance(result, pl.LazyFrame))
             except SchemaError as err:
                 check_results.append(
@@ -216,7 +208,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                             col_schema, check_obj
                         )
                     )
-                    regex_match_patterns.append(col_schema.name)
+                    regex_match_patterns.append(col_schema.selector)
                 except SchemaError:
                     pass
             elif col_name in check_obj.columns:
@@ -386,8 +378,9 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         if schema.dtype is not None:
             obj = obj.cast(schema.dtype.type)
         else:
-            # TODO: support coercion of regex columns
-            obj = obj.cast({k: v.type for k, v in schema.dtypes.items()})
+            obj = obj.cast(
+                {k: v.dtype.type for k, v in schema.columns.items()}
+            )
 
         try:
             obj = obj.collect().lazy()

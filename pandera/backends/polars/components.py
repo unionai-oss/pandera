@@ -1,5 +1,6 @@
 """Validation backend for polars components."""
 
+import warnings
 from typing import Iterable, List, Optional, cast
 
 import polars as pl
@@ -38,6 +39,9 @@ class ColumnBackend(PolarsSchemaBackend):
         inplace: bool = False,
     ) -> pl.LazyFrame:
 
+        if inplace:
+            warnings.warn("setting inplace=True will have no effect.")
+
         error_handler = SchemaErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
@@ -71,7 +75,7 @@ class ColumnBackend(PolarsSchemaBackend):
         return check_obj
 
     def get_regex_columns(self, schema, check_obj) -> Iterable:
-        return check_obj.select(pl.col(schema.name)).columns
+        return check_obj.select(pl.col(schema.selector)).columns
 
     def run_checks_and_handle_errors(
         self,
@@ -138,7 +142,7 @@ class ColumnBackend(PolarsSchemaBackend):
 
         try:
             return (
-                check_obj.cast({schema.name: schema.dtype.type})
+                check_obj.cast({schema.selector: schema.dtype.type})
                 .collect()
                 .lazy()
             )
@@ -147,7 +151,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 schema=schema,
                 data=check_obj,
                 message=(
-                    f"Error while coercing '{schema.name}' to type "
+                    f"Error while coercing '{schema.selector}' to type "
                     f"{schema.dtype}: {exc}"
                 ),
                 check=f"coerce_dtype('{schema.dtype}')",
@@ -171,10 +175,10 @@ class ColumnBackend(PolarsSchemaBackend):
                 )
             ]
 
-        if is_float_dtype(check_obj, schema.name):
-            expr = pl.col(schema.name).is_not_nan()
+        if is_float_dtype(check_obj, schema.selector):
+            expr = pl.col(schema.selector).is_not_nan()
         else:
-            expr = pl.col(schema.name).is_not_null()
+            expr = pl.col(schema.selector).is_not_null()
 
         isna = check_obj.select(expr)
         passed = isna.select([pl.col("*").all()]).collect()
@@ -196,7 +200,7 @@ class ColumnBackend(PolarsSchemaBackend):
                     check="not_nullable",
                     reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
                     message=(
-                        f"non-nullable column '{schema.name}' contains "
+                        f"non-nullable column '{schema.selector}' contains "
                         f"null values"
                     ),
                     failure_cases=failure_cases,
@@ -211,13 +215,13 @@ class ColumnBackend(PolarsSchemaBackend):
 
         if schema.unique:
             duplicates = (
-                check_obj.select(schema.name).collect().is_duplicated()
+                check_obj.select(schema.selector).collect().is_duplicated()
             )
             if duplicates.any():
                 failure_cases = check_obj.filter(duplicates)
                 passed = False
                 message = (
-                    f"column '{schema.name}' not unique:\n{failure_cases}"
+                    f"column '{schema.selector}' not unique:\n{failure_cases}"
                 )
 
         return CoreCheckResult(
@@ -250,7 +254,7 @@ class ColumnBackend(PolarsSchemaBackend):
             ]
 
         results = []
-        check_obj_subset = check_obj.select(schema.name)
+        check_obj_subset = check_obj.select(schema.selector)
         for column in check_obj_subset.columns:
             obj_dtype = check_obj_subset.schema[column]
             results.append(
@@ -271,7 +275,7 @@ class ColumnBackend(PolarsSchemaBackend):
     def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
         check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
-            check_args = [schema.name]  # pass in column key
+            check_args = [schema.selector]  # pass in column key
             try:
                 check_results.append(
                     self.run_check(
@@ -305,9 +309,10 @@ class ColumnBackend(PolarsSchemaBackend):
             return check_obj
 
         default_value = pl.lit(schema.default, dtype=schema.dtype.type)
-        if is_float_dtype(check_obj, schema.name):
-            expr = pl.col(schema.name).fill_nan(default_value)
+        expr = pl.col(schema.selector)
+        if is_float_dtype(check_obj, schema.selector):
+            expr = expr.fill_nan(default_value)
         else:
-            expr = pl.col(schema.name).fill_null(default_value)
+            expr = expr.fill_null(default_value)
 
         return check_obj.with_columns(expr)

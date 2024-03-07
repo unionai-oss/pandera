@@ -20,11 +20,11 @@ from pandera.errors import (
 )
 
 
-def is_float_dtype(check_obj: pl.LazyFrame, name):
+def is_float_dtype(check_obj: pl.LazyFrame, selector):
     """Check if a column/selector is a float."""
     return all(
         dtype in pl.FLOAT_DTYPES
-        for dtype in check_obj.select(pl.col(name)).schema.values()
+        for dtype in check_obj.select(pl.col(selector)).schema.values()
     )
 
 
