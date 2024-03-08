@@ -229,7 +229,6 @@ class BaseClass:
         fail_case_data,
         data_types,
         function_args,
-        skip_fail_case=False,
     ):
         """
         This function does performs the actual validation
@@ -255,14 +254,14 @@ class BaseClass:
         if df_out.pandera.errors:
             print(df_out.pandera.errors)
             raise PysparkSchemaError
-        if not skip_fail_case:
-            with pytest.raises(PysparkSchemaError):
-                df_fail = spark.createDataFrame(
-                    data=fail_case_data, schema=spark_schema
-                )
-                df_out = schema.validate(df_fail)
-                if df_out.pandera.errors:
-                    raise PysparkSchemaError
+
+        with pytest.raises(PysparkSchemaError):
+            df_fail = spark.createDataFrame(
+                data=fail_case_data, schema=spark_schema
+            )
+            df_out = schema.validate(df_fail)
+            if df_out.pandera.errors:
+                raise PysparkSchemaError
 
 
 class TestEqualToCheck(BaseClass):
