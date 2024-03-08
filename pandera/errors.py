@@ -1,9 +1,9 @@
 """pandera-specific errors."""
 
-from enum import Enum
+import json
 import warnings
+from enum import Enum
 from typing import Any, Dict, List, NamedTuple, Union
-import pprint
 
 
 class BackendNotFoundError(Exception):
@@ -175,7 +175,7 @@ class SchemaErrors(ReducedPickleExceptionBase):
         super().__init__(failure_cases_metadata.message)
 
     def __str__(self):
-        return pprint.pformat(self.message)
+        return json.dumps(self.message, indent=4)
 
 
 class PysparkSchemaError(ReducedPickleExceptionBase):

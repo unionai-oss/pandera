@@ -151,7 +151,7 @@ You can print the validation results as follows:
                     "schema": "PanderaSchema",
                     "column": "PanderaSchema",
                     "check": "column_in_dataframe",
-                    "error": "column 'product_name' not in dataframe\nRow(id=5, product='Bread', price=Decimal('44.40000'), description=['description of product'], meta={'product_category': 'dairy'})"
+                    "error": "column 'product_name' not in dataframe Row(id=5, product='Bread', price=Decimal('44.40000'), description=['description of product'], meta={'product_category': 'dairy'})"
                 }
             ],
             "WRONG_DATATYPE": [

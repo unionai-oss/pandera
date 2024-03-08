@@ -1,5 +1,9 @@
+.. _error_report:
+
 Error Reports
 =========================
+
+*new in 0.19.0*
 
 The pandera error report is a generalised machine-readable summary of failures
 which occured during schema validation. It is available for both `pysparksql` and
@@ -28,12 +32,67 @@ before running the ``pandera`` process as:
 This will be picked up by ``pandera`` to only enforce SCHEMA level validations.
 
 
-Error reports with `pysparksql`
+Error reports with ``pandas``
 ------------------------------
+To create an error report with pandas, you must specify ``lazy=True`` to allow all errors
+to be aggregated and raised together as a ``SchemaErrors``.
+
+.. testcode:: error_report_with_pandas
+
+    import pandas as pd
+    import pandera as pa
+    import json
+
+    pandas_schema = pa.DataFrameSchema(
+        {
+            "color": pa.Column(str, pa.Check.isin(["red", "green", "blue"])),
+            "length": pa.Column(int, pa.Check.gt(10)),
+        }
+    )
+    data = [("red", 4), ("blue", 11), ("purple", 15), ("green", 39)]
+
+    df = pd.DataFrame(
+        {
+            "color": ["red", "blue", "purple", "green"],
+            "length": [4, 11, 15, 39],
+        }
+    )
+
+    try:
+        pandas_schema.validate(df, lazy=True)
+    except pa.errors.SchemaErrors as e:
+        print(json.dumps(e.message, indent=4))
+
+.. testoutput:: error_report_with_pandas
+
+    {
+        "DATA": {
+            "DATAFRAME_CHECK": [
+                {
+                    "schema": null,
+                    "column": "color",
+                    "check": "isin(['red', 'green', 'blue'])",
+                    "error": "Column 'color' failed element-wise validator number 0: isin(['red', 'green', 'blue']) failure cases: purple"
+                },
+                {
+                    "schema": null,
+                    "column": "length",
+                    "check": "greater_than(10)",
+                    "error": "Column 'length' failed element-wise validator number 0: greater_than(10) failure cases: 4"
+                }
+            ]
+        }
+    }
+
+
+
+Error reports with ``pyspark.sql``
+----------------------------------
 Accessing the error report on a validated ``pyspark`` dataframe can be done via the
 ``errors`` attribute on the ``pandera`` accessor.
 
 .. testcode:: error_report_pyspark_sql
+
     import pandera.pyspark as pa
     import pyspark.sql.types as T
     import json
@@ -78,60 +137,6 @@ Accessing the error report on a validated ``pyspark`` dataframe can be done via 
                     "column": "length",
                     "check": "greater_than(10)",
                     "error": "column 'length' with type IntegerType() failed validation greater_than(10)"
-                }
-            ]
-        }
-    }
-
-
-
-Error reports with `pandas`
-------------------------------
-To create an error report with pandas, you must specify ``lazy=True`` to allow all errors
-to be aggregated and raised together as a ``SchemaErrors``.
-
-.. testcode:: error_report_with_pandas
-
-    import pandas as pd
-    import pandera as pa
-    import json
-
-    pandas_schema = pa.DataFrameSchema(
-        {
-            "color": pa.Column(str, pa.Check.isin(["red", "green", "blue"])),
-            "length": pa.Column(int, pa.Check.gt(10)),
-        }
-    )
-    data = [("red", 4), ("blue", 11), ("purple", 15), ("green", 39)]
-
-    df = pd.DataFrame(
-        {
-            "color": ["red", "blue", "purple", "green"],
-            "length": [4, 11, 15, 39],
-        }
-    )
-
-    try:
-        pandas_schema.validate(df, lazy=True)
-    except pa.errors.SchemaErrors as e:
-        print(json.dumps(e.message, indent=4))
-
-.. testoutput:: error_report_with_pandas
-
-    {
-        "DATA": {
-            "DATAFRAME_CHECK": [
-                {
-                    "schema": "PandasSchema",
-                    "column": "color",
-                    "check": "isin(['red', 'green', 'blue'])",
-                    "error": "color failed element-wise validator number 0: isin(['red', 'green', 'blue']) failure cases: purple"
-                },
-                {
-                    "schema": "PandasSchema",
-                    "column": "length",
-                    "check": "greater_than(10)",
-                    "error": "length failed element-wise validator number 0: greater_than(10) failure cases: 4"
                 }
             ]
         }
