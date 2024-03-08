@@ -129,11 +129,17 @@ class BaseClass:
         fail_case_data,
         data_types,
         function_args,
-        skip_fail_case=False,
+        fail_on_init=False,
+        init_exception_cls=None,
     ):
         """
         This function does performs the actual validation
         """
+        if fail_on_init:
+            with pytest.raises(init_exception_cls):
+                check_fn(*function_args)
+            return
+
         schema = DataFrameSchema(
             {
                 "product": Column(Utf8()),
@@ -149,12 +155,11 @@ class BaseClass:
         df = pl.LazyFrame(pass_case_data, orient="row", schema=polars_schema)
         schema.validate(df)
 
-        if not skip_fail_case:
-            with pytest.raises(SchemaError):
-                df = pl.LazyFrame(
-                    fail_case_data, schema=polars_schema, orient="row"
-                )
-                schema.validate(df)
+        with pytest.raises(SchemaError):
+            df = pl.LazyFrame(
+                fail_case_data, schema=polars_schema, orient="row"
+            )
+            schema.validate(df)
 
 
 class TestEqualToCheck(BaseClass):
@@ -1171,6 +1176,17 @@ class TestStringType(BaseClass):
         )
 
     @pytest.mark.parametrize("check_value", ["Ba", r"Ba+"])
+    def test_str_matches_check(self, check_value) -> None:
+        """Test the Check to see if any value is not in the specified value"""
+        check_func = pa.Check.str_matches
+
+        pass_data = [("Bal", "Bat!"), ("Bal", "Bat78")]
+        fail_data = [("Bal", "fooBar"), ("Bal", "Bam!")]
+        BaseClass.check_function(
+            check_func, pass_data, fail_data, Utf8(), check_value
+        )
+
+    @pytest.mark.parametrize("check_value", ["Ba", r"Ba+"])
     def test_str_contains_check(self, check_value) -> None:
         """Test the Check to see if any value is not in the specified value"""
         check_func = pa.Check.str_contains
@@ -1182,17 +1198,31 @@ class TestStringType(BaseClass):
         )
 
     @pytest.mark.parametrize(
-        "check_value", [(3, None), (None, 4), (3, 7), (1, 4), (3, 4)]
+        "check_value",
+        [(3, None), (None, 4), (3, 7), (1, 4), (3, 4), (None, None)],
     )
-    def test_str_length(self, check_value) -> None:
+    def test_str_length_check(self, check_value) -> None:
         """Test the Check to see if length of strings is within a specified range."""
         check_func = pa.Check.str_length
 
         pass_data = [("Bal", "Bat"), ("Bal", "Batt")]
         fail_data = [("Bal", "Cs"), ("Bal", "BamBam")]
 
+        if check_value == (None, None):
+            fail_on_init = True
+            init_exception_cls = ValueError
+        else:
+            fail_on_init = False
+            init_exception_cls = None
+
         self.check_function(
-            check_func, pass_data, fail_data, Utf8(), check_value
+            check_func,
+            pass_data,
+            fail_data,
+            Utf8(),
+            check_value,
+            fail_on_init=fail_on_init,
+            init_exception_cls=init_exception_cls,
         )
 
 

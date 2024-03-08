@@ -180,23 +180,43 @@ def notin(data: PolarsData, forbidden_values: Iterable) -> pl.LazyFrame:
 
 
 @register_builtin_check(
+    error="str_matches('{pattern}')",
+)
+def str_matches(
+    data: PolarsData,
+    pattern: Union[str, re.Pattern],
+) -> pl.LazyFrame:
+    """Ensure that string starts with a match of a regular expression pattern.
+
+    :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The keys
+                to access the dataframe is "dataframe" and column name using "key".
+    :param pattern: Regular expression pattern to use for matching
+    """
+    pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
+    if not pattern.startswith("^"):
+        pattern = f"^{pattern}"
+    return data.dataframe.select(
+        pl.col(data.key).str.contains(pattern=pattern)
+    )
+
+
+@register_builtin_check(
     error="str_contains('{pattern}')",
 )
 def str_contains(
     data: PolarsData,
     pattern: re.Pattern,
 ) -> pl.LazyFrame:
-    """Ensure that a pattern can be found within each row.
+    """Ensure that a pattern can be found in the string.
 
     :param data: NamedTuple PolarsData contains the dataframe and column name for the check. The keys
                 to access the dataframe is "dataframe" and column name using "key".
     :param pattern: Regular expression pattern to use for searching
     """
 
+    pattern = pattern.pattern if isinstance(pattern, re.Pattern) else pattern
     return data.dataframe.select(
-        pl.col(data.key).str.contains(
-            pattern=f"{pattern.pattern}", literal=False
-        )
+        pl.col(data.key).str.contains(pattern=pattern, literal=False)
     )
 
 
@@ -240,16 +260,20 @@ def str_length(
     :param min_value: Minimum length of strings (including) (default: no minimum)
     :param max_value: Maximum length of strings (including) (default: no maximum)
     """
-    # NOTE: consider using len_bytes (faster but returns != n_chars for non ASCII strings
-    n_chars = pl.col(data.key).str.n_chars()
-    is_in_min = (
-        n_chars.ge(min_value) if min_value is not None else pl.lit(True)
-    )
-    is_in_max = (
-        n_chars.le(max_value) if max_value is not None else pl.lit(True)
-    )
+    if min_value is None and max_value is None:
+        raise ValueError(
+            "Must provide at least on of 'min_value' and 'max_value'"
+        )
 
-    return data.dataframe.select(is_in_min.and_(is_in_max).alias(data.key))
+    n_chars = pl.col(data.key).str.n_chars()
+    if min_value is None:
+        expr = n_chars.le(max_value)
+    elif max_value is None:
+        expr = n_chars.ge(min_value)
+    else:
+        expr = n_chars.is_between(min_value, max_value)
+
+    return data.dataframe.select(expr)
 
 
 @register_builtin_check(
