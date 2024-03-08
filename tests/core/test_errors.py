@@ -341,6 +341,14 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
             ValidationDepth.SCHEMA_AND_DATA,
             {
                 "SCHEMA": {
+                    "COLUMN_NOT_IN_SCHEMA": [
+                        {
+                            "schema": None,
+                            "column": None,
+                            "check": "column_in_schema",
+                            "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}",
+                        }
+                    ],
                     "SERIES_CONTAINS_NULLS": [
                         {
                             "schema": None,
@@ -374,6 +382,14 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
             ValidationDepth.SCHEMA_ONLY,
             {
                 "SCHEMA": {
+                    "COLUMN_NOT_IN_SCHEMA": [
+                        {
+                            "schema": None,
+                            "column": None,
+                            "check": "column_in_schema",
+                            "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}",
+                        }
+                    ],
                     "SERIES_CONTAINS_NULLS": [
                         {
                             "schema": None,
@@ -390,7 +406,7 @@ def test_unhashable_types_rendered_on_failing_checks_with_lazy_validation():
                             "error": "expected series 'id' to have type int64, got float64",
                         }
                     ],
-                }
+                },
             },
         ),
         (
@@ -416,7 +432,7 @@ def test_validation_depth(validation_depth, expected_error):
     CONFIG.validation_depth = validation_depth
 
     df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
-    schema = DataFrameSchema({"id": Column(int, Check.lt(10))})
+    schema = DataFrameSchema({"id": Column(int, Check.lt(10))}, strict=True)
 
     with pytest.raises(SchemaErrors) as e:
         schema.validate(df, lazy=True)

@@ -84,11 +84,9 @@ Basic Usage
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaError: <Schema Column: 'year' type=DataType(int64)> failed element-wise validator 0:
-    <Check greater_than: greater_than(2000)>
-    failure cases:
-       index  failure_case
-    0      2          1999
+    pandera.errors.SchemaError: error in check_types decorator of function
+    'transform': Column 'year' failed element-wise validator number 0:
+    greater_than(2000) failure cases: 1999
 
 
 As you can see in the examples above, you can define a schema by sub-classing
@@ -745,8 +743,7 @@ Column/Index checks
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaError: <Schema Column: 'value' type=DataType(int64)> failed series validator 1:
-    <Check check_means>
+    pandera.errors.SchemaError: Column 'value' failed series or dataframe validator 1: <Check check_means>
 
 .. _schema_model_dataframe_check:
 
@@ -825,13 +822,7 @@ The custom checks are inherited and therefore can be overwritten by the subclass
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaError: <Schema Column: 'a' type=DataType(int64)> failed element-wise validator 0:
-    <Check foobar>
-    failure cases:
-        index  failure_case
-    0      0             1
-    1      1             2
-    2      2             3
+    pandera.errors.SchemaError: Column 'a' failed element-wise validator number 0: <Check foobar> failure cases: 1, 2, 3
 
 .. _schema_model_alias:
 

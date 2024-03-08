@@ -281,12 +281,7 @@ In the case that a validation ``Check`` is violated:
 
     Traceback (most recent call last):
     ...
-    SchemaError: <Schema Column: 'column1' type=<class 'int'>> failed element-wise validator 0:
-    <Check <lambda>: range checker [0, 10]>
-    failure cases:
-       index  failure_case
-    0      0           -20
-    1      3            30
+    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column(name=column1, type=DataType(int64))>}
 
 
 And in the case of a mis-specified column name:
@@ -313,6 +308,66 @@ And in the case of a mis-specified column name:
     2  bar    1
     3  bar    1
     4  bar    1
+
+Error Reports
+--------------
+
+If the dataframe is validated lazily with ``lazy=True``, errors will be aggregated
+into an error report. The error report groups ``DATA`` and ``SCHEMA`` errors to
+to give an overview of error sources within a dataframe.
+
+.. testcode:: error_reports
+    schema = DataFrameSchema({"id": Column(int, Check.lt(10))}, name="MySchema", strict=True)
+
+    df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
+
+Validating the above dataframe will result in data level errors, namely the ``id``
+column having a value which fails a check, as well as schema errors, such as the
+extra column and the ``None`` value.
+
+.. testoutput:: error_reports
+    pandera.errors.SchemaErrors: {
+                "SCHEMA": {
+                    "COLUMN_NOT_IN_SCHEMA": [
+                        {
+                            "schema": "MySchema",
+                            "column": None,
+                            "check": "column_in_schema",
+                            "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}",
+                        }
+                    ],
+                    "SERIES_CONTAINS_NULLS": [
+                        {
+                            "schema": "MySchema",
+                            "column": "id",
+                            "check": "not_nullable",
+                            "error": "non-nullable series 'id' contains null values:1   NaNName: id, dtype: float64",
+                        }
+                    ],
+                    "WRONG_DATATYPE": [
+                        {
+                            "schema": "MySchema",
+                            "column": "id",
+                            "check": "dtype('int64')",
+                            "error": "expected series 'id' to have type int64, got float64",
+                        }
+                    ],
+                },
+                "DATA": {
+                    "DATAFRAME_CHECK": [
+                        {
+                            "schema": "MySchema",
+                            "column": "id",
+                            "check": "less_than(10)",
+                            "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0",
+                        }
+                    ]
+                },
+            }
+
+This error report can be useful for debugging, with each item in the various
+lists corresponding to a ``SchemaError``
+
 
 Contributing
 ------------
