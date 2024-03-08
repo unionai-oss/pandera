@@ -716,7 +716,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                         reason_code=SchemaErrorReason.COLUMN_NOT_IN_DATAFRAME,
                         message=(
                             f"column '{colname}' not in dataframe"
-                            f"\n{check_obj.head()}"
+                            f" {check_obj.head()}"
                         ),
                         failure_cases=scalar_failure_case(colname),
                     )

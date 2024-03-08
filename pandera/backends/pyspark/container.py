@@ -618,7 +618,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                             data=check_obj,
                             message=(
                                 f"column '{colname}' not in dataframe"
-                                f"\n{check_obj.head()}"
+                                f" {check_obj.head()}"
                             ),
                             failure_cases=scalar_failure_case(colname),
                             check="column_in_dataframe",
