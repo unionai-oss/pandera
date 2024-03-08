@@ -2,6 +2,7 @@
 # pylint:disable=abstract-method
 import datetime
 import decimal
+import re
 from operator import methodcaller
 import polars as pl
 
@@ -1175,7 +1176,10 @@ class TestStringType(BaseClass):
             check_func, pass_data, fail_data, Utf8(), check_value
         )
 
-    @pytest.mark.parametrize("check_value", ["Ba", r"Ba+"])
+    @pytest.mark.parametrize(
+        "check_value",
+        ["Ba", r"Ba+", re.compile("Ba"), re.compile(r"Ba+")],
+    )
     def test_str_matches_check(self, check_value) -> None:
         """Test the Check to see if any value is not in the specified value"""
         check_func = pa.Check.str_matches
@@ -1186,7 +1190,10 @@ class TestStringType(BaseClass):
             check_func, pass_data, fail_data, Utf8(), check_value
         )
 
-    @pytest.mark.parametrize("check_value", ["Ba", r"Ba+"])
+    @pytest.mark.parametrize(
+        "check_value",
+        ["Ba", r"Ba+", re.compile("Ba"), re.compile(r"Ba+")],
+    )
     def test_str_contains_check(self, check_value) -> None:
         """Test the Check to see if any value is not in the specified value"""
         check_func = pa.Check.str_contains
