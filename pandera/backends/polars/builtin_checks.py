@@ -25,9 +25,7 @@ def equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
     :param value: values in this polars data structure must be
         equal to this value.
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).eq(value).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).eq(value))
 
 
 @register_builtin_check(
@@ -41,9 +39,7 @@ def not_equal_to(data: PolarsData, value: Any) -> pl.LazyFrame:
                 to access the dataframe is "dataframe" and column name using "key".
     :param value: This value must not occur in the checked
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).ne(value).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).ne(value))
 
 
 @register_builtin_check(
@@ -60,9 +56,7 @@ def greater_than(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     :param min_value: Lower bound to be exceeded. Must be
             a type comparable to the dtype of the series datatype of Polars
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).gt(min_value).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).gt(min_value))
 
 
 @register_builtin_check(
@@ -77,9 +71,7 @@ def greater_than_or_equal_to(data: PolarsData, min_value: Any) -> pl.LazyFrame:
     :param min_value: Allowed minimum value for values of a series. Must be
             a type comparable to the dtype of the series datatype of Polars
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).ge(min_value).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).ge(min_value))
 
 
 @register_builtin_check(
@@ -94,9 +86,7 @@ def less_than(data: PolarsData, max_value: Any) -> pl.LazyFrame:
     :param max_value: All elements of a series must be strictly smaller
         than this. Must be a type comparable to the dtype of the series datatype of Polars
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).lt(max_value).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).lt(max_value))
 
 
 @register_builtin_check(
@@ -111,9 +101,7 @@ def less_than_or_equal_to(data: PolarsData, max_value: Any) -> pl.LazyFrame:
     :param max_value: Upper bound not to be exceeded. Must be a type comparable to the dtype of the
     series datatype of Polars
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).le(max_value).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).le(max_value))
 
 
 @register_builtin_check(
@@ -148,9 +136,7 @@ def in_range(
     is_in_min = col.ge(min_value) if include_min else col.gt(min_value)
     is_in_max = col.le(max_value) if include_max else col.lt(max_value)
 
-    return data.dataframe.with_columns(
-        [is_in_min.and_(is_in_max).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(is_in_min.and_(is_in_max))
 
 
 @register_builtin_check(
@@ -170,9 +156,7 @@ def isin(data: PolarsData, allowed_values: Iterable) -> pl.LazyFrame:
                 to access the dataframe is "dataframe" and column name using "key".
     :param allowed_values: The set of allowed values. May be any iterable.
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).is_in(allowed_values).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).is_in(allowed_values))
 
 
 @register_builtin_check(
@@ -191,13 +175,8 @@ def notin(data: PolarsData, forbidden_values: Iterable) -> pl.LazyFrame:
     :param forbidden_values: The set of values which should not occur. May
         be any iterable.
     """
-    return data.dataframe.with_columns(
-        [
-            pl.col(data.key)
-            .is_in(forbidden_values)
-            .is_not()
-            .alias(CHECK_OUTPUT_KEY)
-        ]
+    return data.dataframe.select(
+        pl.col(data.key).is_in(forbidden_values).not_()
     )
 
 
@@ -215,12 +194,8 @@ def str_matches(
     :param pattern: Regular expression pattern to use for matching
     """
 
-    return data.dataframe.with_columns(
-        [
-            pl.col(data.key)
-            .str.contains(pattern=pattern)
-            .alias(CHECK_OUTPUT_KEY)
-        ]
+    return data.dataframe.select(
+        pl.col(data.key).str.contains(pattern=pattern).alias(CHECK_OUTPUT_KEY)
     )
 
 
@@ -237,12 +212,10 @@ def str_contains(
                 to access the dataframe is "dataframe" and column name using "key".
     :param pattern: Regular expression pattern to use for searching
     """
-    return data.dataframe.with_columns(
-        [
-            pl.col(data.key)
-            .str.contains(pattern=pattern, literal=True)
-            .alias(CHECK_OUTPUT_KEY)
-        ]
+    return data.dataframe.select(
+        pl.col(data.key)
+        .str.contains(pattern=pattern, literal=True)
+        .alias(CHECK_OUTPUT_KEY)
     )
 
 
@@ -257,9 +230,7 @@ def str_startswith(data: PolarsData, string: str) -> pl.LazyFrame:
     :param string: String all values should start with
     """
 
-    return data.dataframe.with_columns(
-        [pl.col(data.key).str.starts_with(string).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).str.starts_with(string))
 
 
 @register_builtin_check(error="str_endswith('{string}')")
@@ -270,9 +241,7 @@ def str_endswith(data: PolarsData, string: str) -> pl.LazyFrame:
                 to access the dataframe is "dataframe" and column name using "key".
     :param string: String all values should end with
     """
-    return data.dataframe.with_columns(
-        [pl.col(data.key).str.ends_with(string).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(pl.col(data.key).str.ends_with(string))
 
 
 @register_builtin_check(
@@ -299,9 +268,7 @@ def str_length(
         n_chars.le(max_value) if max_value is not None else pl.lit(True)
     )
 
-    return data.dataframe.with_columns(
-        [is_in_min.and_(is_in_max).alias(CHECK_OUTPUT_KEY)]
-    )
+    return data.dataframe.select(is_in_min.and_(is_in_max))
 
 
 @register_builtin_check(

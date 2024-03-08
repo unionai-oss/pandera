@@ -285,7 +285,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
                 try:
                     column_names.extend(
                         col_schema.get_backend(check_obj).get_regex_columns(
-                            col_schema, check_obj.columns
+                            col_schema, check_obj
                         )
                     )
                 except SchemaError:

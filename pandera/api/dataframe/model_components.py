@@ -1,4 +1,5 @@
 """DataFrameModel components"""
+
 from typing import (
     Any,
     Callable,
@@ -7,8 +8,6 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Type,
-    TypeVar,
     Union,
     cast,
 )
@@ -20,13 +19,9 @@ from pandera.api.base.model_components import (
     to_checklist,
 )
 from pandera.api.checks import Check
-from pandera.api.pandas.array import ArraySchema
-from pandera.api.pandas.components import Column, Index
-from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.errors import SchemaInitError
 
 AnyCallable = Callable[..., Any]
-SchemaComponent = TypeVar("SchemaComponent", bound=ArraySchema)
 
 CHECK_KEY = "__check_config__"
 DATAFRAME_CHECK_KEY = "__dataframe_check_config__"
@@ -38,29 +33,30 @@ class FieldInfo(BaseFieldInfo):
     *new in 0.5.0*
     """
 
-    def _to_schema_component(
+    def _get_schema_properties(
         self,
-        dtype: PandasDtypeInputTypes,
-        component: Type[SchemaComponent],
+        dtype: Any,
         checks: CheckArg = None,
         **kwargs: Any,
-    ) -> SchemaComponent:
+    ) -> Dict[str, Any]:
         if self.dtype_kwargs:
             dtype = dtype(**self.dtype_kwargs)  # type: ignore
-        checks = self.checks + to_checklist(checks)
-        return component(dtype, checks=checks, **kwargs)  # type: ignore
+        return {
+            "dtype": dtype,
+            "checks": self.checks + to_checklist(checks),
+            **kwargs,
+        }
 
-    def to_column(
+    def column_properties(
         self,
-        dtype: PandasDtypeInputTypes,
+        dtype: Any,
         checks: CheckArg = None,
         required: bool = True,
         name: str = None,
-    ) -> Column:
+    ) -> Dict[str, Any]:
         """Create a schema_components.Column from a field."""
-        return self._to_schema_component(
+        return self._get_schema_properties(
             dtype,
-            Column,
             nullable=self.nullable,
             unique=self.unique,
             coerce=self.coerce,
@@ -74,10 +70,28 @@ class FieldInfo(BaseFieldInfo):
             metadata=self.metadata,
         )
 
+    def index_properties(
+        self,
+        dtype: Any,
+        checks: CheckArg = None,
+        name: str = None,
+    ) -> Dict[str, Any]:
+        """Create a schema_components.Index from a field."""
+        return self._get_schema_properties(
+            dtype,
+            nullable=self.nullable,
+            unique=self.unique,
+            coerce=self.coerce,
+            name=name,
+            checks=checks,
+            title=self.title,
+            description=self.description,
+            default=self.default,
+        )
+
     @property
     def properties(self) -> Dict[str, Any]:
         """Get column properties."""
-
         return {
             "dtype": self.dtype_kwargs,
             "checks": self.checks,
@@ -89,26 +103,6 @@ class FieldInfo(BaseFieldInfo):
             "description": self.description,
             "metadata": self.metadata,
         }
-
-    def to_index(
-        self,
-        dtype: PandasDtypeInputTypes,
-        checks: CheckArg = None,
-        name: str = None,
-    ) -> Index:
-        """Create a schema_components.Index from a field."""
-        return self._to_schema_component(
-            dtype,
-            Index,
-            nullable=self.nullable,
-            unique=self.unique,
-            coerce=self.coerce,
-            name=name,
-            checks=checks,
-            title=self.title,
-            description=self.description,
-            default=self.default,
-        )
 
 
 def Field(

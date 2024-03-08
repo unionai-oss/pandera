@@ -10,13 +10,13 @@ from pydantic import BaseModel
 
 from pandera.api.pandas.types import is_table
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.backends.base import CoreCheckResult
-from pandera.backends.pandas.base import ColumnInfo, PandasSchemaBackend
+from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
-from pandera.backends.pandas.utils import convert_uniquesettings
+from pandera.backends.utils import convert_uniquesettings
 from pandera.engines import pandas_engine
 from pandera.validation_depth import validation_type
 from pandera.errors import (
@@ -279,7 +279,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     column_names.extend(
                         col_schema.get_backend(check_obj).get_regex_columns(
-                            col_schema, check_obj.columns
+                            col_schema, check_obj
                         )
                     )
                     regex_match_patterns.append(col_schema.name)
@@ -390,12 +390,11 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     reason_code=SchemaErrorReason.ADD_MISSING_COLUMN_NO_DEFAULT,
                 )
 
-        # Ascertain order in which missing columns should
-        # be inserted into dataframe. Be careful not to
-        # modify order of existing dataframe columns to
-        # avoid ripple effects in downstream validation
+        # Ascertain order in which missing columns should be inserted into
+        # dataframe. Be careful not to modify order of existing dataframe
+        # columns to avoid ripple effects in downstream validation
         # (e.g., ordered schema).
-        schema_cols_dict: Dict[Any, None] = dict()
+        schema_cols_dict: Dict[Any, None] = {}
         for col_name, col_schema in schema.columns.items():
             if col_name in check_obj.columns or col_schema.required:
                 schema_cols_dict[col_name] = None
@@ -622,7 +621,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 try:
                     matched_columns = col_schema.get_backend(
                         obj
-                    ).get_regex_columns(col_schema, obj.columns)
+                    ).get_regex_columns(col_schema, obj)
                 except SchemaError:
                     matched_columns = pd.Index([])
 

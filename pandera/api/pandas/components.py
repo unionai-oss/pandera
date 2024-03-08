@@ -7,9 +7,10 @@ import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
+from pandera.api.base.types import CheckList
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.types import CheckList, PandasDtypeInputTypes
+from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 
 
@@ -104,7 +105,6 @@ class Column(ArraySchema):
         self.required = required
         self.name = name
         self.regex = regex
-        self.metadata = metadata
 
     @property
     def _allow_groupby(self) -> bool:
@@ -177,9 +177,7 @@ class Column(ArraySchema):
             inplace=inplace,
         )
 
-    def get_regex_columns(
-        self, columns: Union[pd.Index, pd.MultiIndex]
-    ) -> Iterable:
+    def get_regex_columns(self, check_obj) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
         :param columns: columns to regex pattern match
@@ -190,7 +188,7 @@ class Column(ArraySchema):
 
         return cast(
             ColumnBackend, self.get_backend(check_type=pd.DataFrame)
-        ).get_regex_columns(self, columns)
+        ).get_regex_columns(self, check_obj)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
