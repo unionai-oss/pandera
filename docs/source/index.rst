@@ -257,15 +257,11 @@ useful error messages. An ``error`` argument can also be supplied to
 
 In the case that a validation ``Check`` is violated:
 
-.. testcode:: informative_errors
+.. testcode:: quick_start
 
-    import pandas as pd
-
-    from pandera import Column, DataFrameSchema, Int, Check
-
-    simple_schema = DataFrameSchema({
-        "column1": Column(
-            Int, Check(lambda x: 0 <= x <= 10, element_wise=True,
+    simple_schema = pa.DataFrameSchema({
+        "column1": pa.Column(
+            int, pa.Check(lambda x: 0 <= x <= 10, element_wise=True,
                        error="range checker [0, 10]"))
     })
 
@@ -277,21 +273,16 @@ In the case that a validation ``Check`` is violated:
     simple_schema(fail_check_df)
 
 
-.. testoutput:: informative_errors
+.. testoutput:: quick_start
 
     Traceback (most recent call last):
     ...
-    SchemaError: <Schema Column: 'column1' type=<class 'int'>> failed element-wise validator 0:
-    <Check <lambda>: range checker [0, 10]>
-    failure cases:
-       index  failure_case
-    0      0           -20
-    1      3            30
+    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column(name=column1, type=DataType(int64))>}
 
 
 And in the case of a mis-specified column name:
 
-.. testcode:: informative_errors
+.. testcode:: quick_start
 
     # column name mis-specified
     wrong_column_df = pd.DataFrame({
@@ -302,7 +293,7 @@ And in the case of a mis-specified column name:
     simple_schema.validate(wrong_column_df)
 
 
-.. testoutput:: informative_errors
+.. testoutput:: quick_start
 
     Traceback (most recent call last):
     ...
@@ -313,6 +304,72 @@ And in the case of a mis-specified column name:
     2  bar    1
     3  bar    1
     4  bar    1
+
+Error Reports
+--------------
+
+If the dataframe is validated lazily with ``lazy=True``, errors will be aggregated
+into an error report. The error report groups ``DATA`` and ``SCHEMA`` errors to
+to give an overview of error sources within a dataframe. Take the following schema
+and dataframe:
+
+.. testcode:: quick_start
+
+    schema = pa.DataFrameSchema({"id": pa.Column(int, pa.Check.lt(10))}, name="MySchema", strict=True)
+    df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
+    schema.validate(df, lazy=True)
+
+Validating the above dataframe will result in data level errors, namely the ``id``
+column having a value which fails a check, as well as schema level errors, such as the
+extra column and the ``None`` value.
+
+.. testoutput:: quick_start
+
+    Traceback (most recent call last):
+    ...
+    SchemaErrors: {
+        "SCHEMA": {
+            "COLUMN_NOT_IN_SCHEMA": [
+                {
+                    "schema": "MySchema",
+                    "column": "MySchema",
+                    "check": "column_in_schema",
+                    "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}"
+                }
+            ],
+            "SERIES_CONTAINS_NULLS": [
+                {
+                    "schema": "MySchema",
+                    "column": "id",
+                    "check": "not_nullable",
+                    "error": "non-nullable series 'id' contains null values:1   NaNName: id, dtype: float64"
+                }
+            ],
+            "WRONG_DATATYPE": [
+                {
+                    "schema": "MySchema",
+                    "column": "id",
+                    "check": "dtype('int64')",
+                    "error": "expected series 'id' to have type int64, got float64"
+                }
+            ]
+        },
+        "DATA": {
+            "DATAFRAME_CHECK": [
+                {
+                    "schema": "MySchema",
+                    "column": "id",
+                    "check": "less_than(10)",
+                    "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0"
+                }
+            ]
+        }
+    }
+
+
+This error report can be useful for debugging, with each item in the various
+lists corresponding to a ``SchemaError``
+
 
 Contributing
 ------------
@@ -364,6 +421,7 @@ page or reach out to the maintainers and pandera community on
    drop_invalid_rows
    schema_inference
    lazy_validation
+   error_report
    data_synthesis_strategies
    extensions
    data_format_conversion

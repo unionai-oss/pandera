@@ -1,4 +1,5 @@
 """Decorators for integrating pandera into existing data pipelines."""
+
 import functools
 import inspect
 import sys
@@ -19,6 +20,7 @@ from typing import (
     cast,
     overload,
 )
+import pandas as pd
 
 import wrapt
 from pydantic import validate_arguments
@@ -26,8 +28,9 @@ from pydantic import validate_arguments
 from pandera import errors
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.model import SchemaModel
-from pandera.error_handlers import SchemaErrorHandler
+from pandera.validation_depth import validation_type
 from pandera.inspection_utils import (
     is_classmethod_from_meta,
     is_decorated_classmethod,
@@ -95,7 +98,12 @@ def _handle_schema_error(
         checks.
     """
     raise _parse_schema_error(
-        decorator_name, fn, schema, data_obj, schema_error
+        decorator_name,
+        fn,
+        schema,
+        data_obj,
+        schema_error,
+        schema_error.reason_code,
     ) from schema_error
 
 
@@ -105,6 +113,7 @@ def _parse_schema_error(
     schema: Union[DataFrameSchema, SeriesSchema],
     data_obj: Any,
     schema_error: errors.SchemaError,
+    reason_code: errors.SchemaErrorReason,
 ) -> NoReturn:
     """Parse schema validation error with decorator context.
 
@@ -112,6 +121,7 @@ def _parse_schema_error(
     :param schema: dataframe/series schema object
     :param arg_df: dataframe/series we are validating.
     :param schema_error: original exception.
+    :param reason_code: SchemaErrorReason associated with the error.
     :raises SchemaError: when ``DataFrame`` violates built-in or custom
         checks.
     """
@@ -126,6 +136,7 @@ def _parse_schema_error(
         failure_cases=schema_error.failure_cases,
         check=schema_error.check,
         check_index=schema_error.check_index,
+        reason_code=reason_code,
     )
 
 
@@ -622,7 +633,7 @@ def check_types(
         if not annotation_model_pairs:
             return arg_value
 
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
         for schema_model, annotation_info in annotation_model_pairs:
             if schema_model is None:
                 return arg_value
@@ -667,9 +678,17 @@ def check_types(
                         )
                     except errors.SchemaError as e:
                         error_handler.collect_error(
+                            validation_type(
+                                errors.SchemaErrorReason.INVALID_TYPE
+                            ),
                             errors.SchemaErrorReason.INVALID_TYPE,
                             _parse_schema_error(
-                                "check_types", wrapped, schema, arg_value, e
+                                "check_types",
+                                wrapped,
+                                schema,
+                                arg_value,
+                                e,
+                                errors.SchemaErrorReason.INVALID_TYPE,
                             ),
                         )
                         continue
@@ -681,12 +700,17 @@ def check_types(
 
                 return arg_value
 
-        if error_handler.collected_errors:
-            if len(error_handler.collected_errors) == 1:
-                raise error_handler.collected_errors[0]  # type: ignore[misc]
+        if error_handler.schema_errors:
+            if len(error_handler.schema_errors) == 1:
+                raise error_handler.schema_errors[0]
+
             raise errors.SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=(
+                    error_handler.schema_errors
+                    if isinstance(arg_value, pd.DataFrame)
+                    else error_handler.collect_errors  # type: ignore
+                ),
                 data=arg_value,
             )
 

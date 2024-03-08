@@ -1,4 +1,5 @@
 """This module is to test the behaviour change based on defined config in pandera"""
+
 # pylint:disable=import-outside-toplevel,abstract-method
 
 import pyspark.sql.types as T
@@ -81,7 +82,7 @@ class TestPanderaConfig:
                         "column": None,
                         "error": "column "
                         "'price_val' not "
-                        "in dataframe\n"
+                        "in dataframe "
                         "Row(product='Bread', "
                         "price=9)",
                         "schema": None,
@@ -114,7 +115,7 @@ class TestPanderaConfig:
                         "column": "TestSchema",
                         "error": "column "
                         "'price_val' not "
-                        "in dataframe\n"
+                        "in dataframe "
                         "Row(product='Bread', "
                         "price=9)",
                         "schema": "TestSchema",
@@ -266,7 +267,7 @@ class TestPanderaConfig:
                         "'price_val' "
                         "not "
                         "in "
-                        "dataframe\n"
+                        "dataframe "
                         "Row(product='Bread', "
                         "price=9)",
                         "schema": None,
@@ -318,7 +319,7 @@ class TestPanderaConfig:
                         "'price_val' "
                         "not "
                         "in "
-                        "dataframe\n"
+                        "dataframe "
                         "Row(product='Bread', "
                         "price=9)",
                         "schema": "TestSchema",

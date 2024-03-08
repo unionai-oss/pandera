@@ -1,4 +1,5 @@
 """Test pandera on pyspark data structures."""
+
 import re
 import typing
 from unittest.mock import MagicMock

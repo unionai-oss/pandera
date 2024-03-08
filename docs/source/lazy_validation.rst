@@ -80,41 +80,63 @@ of all schemas and schema components gives you the option of doing just this:
 
     Traceback (most recent call last):
     ...
-    pandera.errors.SchemaErrors: A total of 5 schema errors were found.
 
-    Error Counts
-    ------------
-    - column_not_in_schema: 1
-    - column_not_in_dataframe: 1
-    - schema_component_check: 3
-
-    Schema Error Summary
-    --------------------
-                                                             failure_cases  n_failure_cases
-    schema_context  column       check
-    DataFrameSchema <NA>         column_in_dataframe         [date_column]                1
-                                 column_in_schema         [unknown_column]                1
-    Column          float_column dtype('float64')                  [int64]                1
-                    int_column   dtype('int64')                   [object]                1
-                    str_column   equal_to(a)                        [b, d]                2
-
-    Usage Tip
-    ---------
-
-    Directly inspect all errors by catching the exception:
-
-    ```
-    try:
-        schema.validate(dataframe, lazy=True)
-    except SchemaErrors as err:
-        err.failure_cases  # dataframe of schema errors
-        err.data  # invalid dataframe
-    ```
+    SchemaErrors: {
+        "SCHEMA": {
+            "COLUMN_NOT_IN_SCHEMA": [
+                {
+                    "schema": null,
+                    "column": null,
+                    "check": "column_in_schema",
+                    "error": "column 'unknown_column' not in DataFrameSchema {'int_column': <Schema Column(name=int_column, type=DataType(int64))>, 'float_column': <Schema Column(name=float_column, type=DataType(float64))>, 'str_column': <Schema Column(name=str_column, type=DataType(str))>, 'date_column': <Schema Column(name=date_column, type=DataType(datetime64[ns]))>}"
+                }
+            ],
+            "COLUMN_NOT_IN_DATAFRAME": [
+                {
+                    "schema": null,
+                    "column": null,
+                    "check": "column_in_dataframe",
+                    "error": "column 'date_column' not in dataframe. Columns in dataframe: ['int_column', 'float_column', 'str_column', 'unknown_column']"
+                }
+            ],
+            "WRONG_DATATYPE": [
+                {
+                    "schema": null,
+                    "column": "int_column",
+                    "check": "dtype('int64')",
+                    "error": "expected series 'int_column' to have type int64, got object"
+                },
+                {
+                    "schema": null,
+                    "column": "float_column",
+                    "check": "dtype('float64')",
+                    "error": "expected series 'float_column' to have type float64, got int64"
+                }
+            ]
+        },
+        "DATA": {
+            "DATAFRAME_CHECK": [
+                {
+                    "schema": null,
+                    "column": "float_column",
+                    "check": "greater_than(0)",
+                    "error": "Column 'float_column' failed element-wise validator number 0: greater_than(0) failure cases: 0"
+                },
+                {
+                    "schema": null,
+                    "column": "str_column",
+                    "check": "equal_to(a)",
+                    "error": "Column 'str_column' failed element-wise validator number 0: equal_to(a) failure cases: b, d"
+                }
+            ]
+        }
+    }
 
 As you can see from the output above, a :class:`~pandera.errors.SchemaErrors`
 exception is raised with a summary of the error counts and failure cases
-caught by the schema. You can also see from the **Usage Tip** that you can
-catch these errors and inspect the failure cases in a more granular form:
+caught by the schema. This summary is called an :ref:`error_report`.
+
+You can also inspect the failure cases in a more granular form:
 
 
 .. testcode:: lazy_validation

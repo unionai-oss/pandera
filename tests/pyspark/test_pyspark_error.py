@@ -1,4 +1,5 @@
 """Unit tests for dask_accessor module."""
+
 # pylint:disable=redefined-outer-name,abstract-method
 
 from typing import Union
@@ -10,7 +11,7 @@ from pyspark.sql.types import StringType
 import pytest
 
 from pandera.errors import SchemaError, SchemaErrorReason
-from pandera.api.pyspark import error_handler
+from pandera.api.base import error_handler
 import pandera.pyspark as pa
 from pandera.pyspark import DataFrameSchema, Column, DataFrameModel, Field
 from tests.pyspark.conftest import spark_df
@@ -321,6 +322,7 @@ def test_pyspark__error_handler_lazy_validation():
             "type": error_handler.ErrorCategory.SCHEMA,
             "column": "Test",
             "check": None,
+            "failure_cases_count": 0,
             "reason_code": SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
             "error": test_error,
         }

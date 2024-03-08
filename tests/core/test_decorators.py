@@ -1,4 +1,5 @@
 """Testing the Decorators that check a functions input or output."""
+
 import typing
 from asyncio import AbstractEventLoop
 
@@ -557,7 +558,7 @@ def test_check_types_arguments() -> None:
     ) -> DataFrame[OnlyZeroesSchema]:
         return pd.DataFrame({"a": [1, 1]})  # type: ignore
 
-    with pytest.raises(errors.SchemaErrors, match="Usage Tip"):
+    with pytest.raises(errors.SchemaErrors, match=r"DATA"):
         transform_lazy(df)  # type: ignore
 
 

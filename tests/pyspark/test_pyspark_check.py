@@ -1,4 +1,5 @@
 """Unit tests for pyspark container."""
+
 # pylint:disable=abstract-method
 import datetime
 import decimal
@@ -23,11 +24,12 @@ from pyspark.sql.types import (
 )
 
 import pytest
+from pandera.validation_depth import ValidationScope
 
 import pandera.extensions
 import pandera.pyspark as pa
 from pandera.pyspark import DataFrameModel, Field
-from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
+from pandera.backends.pyspark.decorators import validate_scope
 from pandera.pyspark import DataFrameSchema, Column
 from pandera.errors import PysparkSchemaError
 
@@ -82,29 +84,11 @@ class TestDecorator:
                     {
                         "check": None,
                         "column": None,
-                        "error": "The check "
-                        "with name "
-                        '"str_startswith" '
-                        "was expected "
-                        "to be run "
-                        "for \n"
-                        "string but "
-                        "got integer "
-                        "instead from "
-                        "the input. \n"
-                        " This error "
-                        "is usually "
-                        "caused by "
-                        "schema "
-                        "mismatch the "
-                        "value is "
-                        "different "
-                        "from schema "
-                        "defined in "
-                        "pandera "
-                        "schema and "
-                        "one in the "
-                        "dataframe",
+                        "error": 'The check with name "str_startswith" '
+                        "was expected to be run for string but got integer "
+                        "instead from the input. This error is usually caused "
+                        "by schema mismatch the value is different from schema "
+                        "defined in pandera schema and one in the dataframe",
                         "schema": None,
                     }
                 ]
@@ -253,9 +237,11 @@ class BaseClass:
         schema = DataFrameSchema(
             {
                 "product": Column(StringType()),
-                "code": Column(data_types, check_fn(*function_args))
-                if isinstance(function_args, tuple)
-                else Column(data_types, check_fn(function_args)),
+                "code": (
+                    Column(data_types, check_fn(*function_args))
+                    if isinstance(function_args, tuple)
+                    else Column(data_types, check_fn(function_args))
+                ),
             }
         )
         spark_schema = StructType(

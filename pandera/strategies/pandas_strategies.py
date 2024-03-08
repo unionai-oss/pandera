@@ -1119,9 +1119,9 @@ def dataframe_strategy(
         # override the column datatype with dataframe-level datatype if
         # specified
         col_dtypes = {
-            col_name: str(col.dtype)
-            if pandera_dtype is None
-            else str(pandera_dtype)
+            col_name: (
+                str(col.dtype) if pandera_dtype is None else str(pandera_dtype)
+            )
             for col_name, col in expanded_columns.items()
         }
         nullable_columns = {

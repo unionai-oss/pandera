@@ -8,10 +8,11 @@ from typing import Iterable, Optional
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-from pandera.api.pyspark.error_handler import ErrorCategory, ErrorHandler
+from pandera.api.base.error_handler import ErrorCategory, ErrorHandler
 from pandera.backends.pyspark.column import ColumnSchemaBackend
-from pandera.backends.pyspark.decorators import validate_scope, ValidationScope
+from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
+from pandera.validation_depth import ValidationScope
 from pandera.errors import SchemaError, SchemaErrorReason
 
 
@@ -137,7 +138,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 )
             except SchemaError as err:
                 error_handler.collect_error(
-                    type=ErrorCategory.DATA,
+                    error_type=ErrorCategory.DATA,
                     reason_code=SchemaErrorReason.DATAFRAME_CHECK,
                     schema_error=err,
                 )
@@ -149,7 +150,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 err_str = f"{err.__class__.__name__}({ err_msg})"
 
                 error_handler.collect_error(
-                    type=ErrorCategory.DATA,
+                    error_type=ErrorCategory.DATA,
                     reason_code=SchemaErrorReason.CHECK_ERROR,
                     schema_error=SchemaError(
                         schema=schema,

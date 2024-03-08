@@ -14,7 +14,7 @@ from pandera import errors
 from pandera.config import CONFIG
 from pandera.api.base.schema import BaseSchema
 from pandera.api.checks import Check
-from pandera.api.pyspark.error_handler import ErrorHandler
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.types import (
     CheckList,
     PySparkDtypeInputTypes,

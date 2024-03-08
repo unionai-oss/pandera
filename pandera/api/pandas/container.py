@@ -1076,9 +1076,11 @@ class DataFrameSchema(
         ind_list: List = (
             []
             if new_schema.index is None or not append
-            else list(new_schema.index.indexes)
-            if isinstance(new_schema.index, MultiIndex) and append
-            else [new_schema.index]
+            else (
+                list(new_schema.index.indexes)
+                if isinstance(new_schema.index, MultiIndex) and append
+                else [new_schema.index]
+            )
         )
 
         for col in keys_temp:
@@ -1207,10 +1209,12 @@ class DataFrameSchema(
         level_not_in_index: Union[List[Any], List[str], None] = (
             [x for x in level_temp if x not in new_schema.index.names]
             if isinstance(new_schema.index, MultiIndex) and level_temp
-            else []
-            if isinstance(new_schema.index, Index)
-            and (level_temp == [new_schema.index.name])
-            else level_temp
+            else (
+                []
+                if isinstance(new_schema.index, Index)
+                and (level_temp == [new_schema.index.name])
+                else level_temp
+            )
         )
         if level_not_in_index:
             raise errors.SchemaInitError(
@@ -1225,20 +1229,32 @@ class DataFrameSchema(
         new_index = (
             new_index
             if new_index is None
-            else Index(
-                dtype=new_index.columns[list(new_index.columns)[0]].dtype,
-                checks=new_index.columns[list(new_index.columns)[0]].checks,
-                nullable=new_index.columns[
-                    list(new_index.columns)[0]
-                ].nullable,
-                unique=new_index.columns[list(new_index.columns)[0]].unique,
-                coerce=new_index.columns[list(new_index.columns)[0]].coerce,
-                name=new_index.columns[list(new_index.columns)[0]].name,
+            else (
+                Index(
+                    dtype=new_index.columns[list(new_index.columns)[0]].dtype,
+                    checks=new_index.columns[
+                        list(new_index.columns)[0]
+                    ].checks,
+                    nullable=new_index.columns[
+                        list(new_index.columns)[0]
+                    ].nullable,
+                    unique=new_index.columns[
+                        list(new_index.columns)[0]
+                    ].unique,
+                    coerce=new_index.columns[
+                        list(new_index.columns)[0]
+                    ].coerce,
+                    name=new_index.columns[list(new_index.columns)[0]].name,
+                )
+                if (len(list(new_index.columns)) == 1)
+                and (new_index is not None)
+                else (
+                    None
+                    if (len(list(new_index.columns)) == 0)
+                    and (new_index is not None)
+                    else new_index
+                )
             )
-            if (len(list(new_index.columns)) == 1) and (new_index is not None)
-            else None
-            if (len(list(new_index.columns)) == 0) and (new_index is not None)
-            else new_index
         )
 
         if not drop:

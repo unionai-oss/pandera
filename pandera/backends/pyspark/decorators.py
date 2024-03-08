@@ -4,22 +4,15 @@ import functools
 import logging
 import warnings
 from contextlib import contextmanager
-from enum import Enum
 from typing import List, Type
 
 from pyspark.sql import DataFrame
 from pandera.api.pyspark.types import PysparkDefaultTypes
 from pandera.config import CONFIG, ValidationDepth
+from pandera.validation_depth import ValidationScope
 from pandera.errors import SchemaError
 
 logger = logging.getLogger(__name__)
-
-
-class ValidationScope(Enum):
-    """Indicates whether a check/validator operates at a schema of data level."""
-
-    SCHEMA = "schema"
-    DATA = "data"
 
 
 def register_input_datatypes(
@@ -56,8 +49,8 @@ def register_input_datatypes(
                     data=validation_df,
                     message=f'The check with name "{func.__name__}" was expected to be run for \n'
                     f"{pandera_schema_datatype()} but got {current_datatype()} instead from the input. \n"
-                    f" This error is usually caused by schema mismatch the value is different from schema defined in"
-                    f" pandera schema and one in the dataframe",
+                    f"This error is usually caused by schema mismatch the value is different from schema defined in "
+                    f"pandera schema and one in the dataframe",
                 )
             if current_datatype in valid_datatypes:
                 return func(*args, **kwargs)

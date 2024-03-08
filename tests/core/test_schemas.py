@@ -1,4 +1,5 @@
 """Testing creation and manipulation of DataFrameSchema objects."""
+
 # pylint: disable=too-many-lines,redefined-outer-name
 
 import copy
@@ -353,9 +354,7 @@ def test_ordered_dataframe(
         columns=["b", "a"],
         index=pd.MultiIndex.from_arrays([[1], [2]], names=["b", "a"]),
     )
-    with pytest.raises(
-        errors.SchemaErrors, match="A total of 1 schema errors"
-    ):
+    with pytest.raises(errors.SchemaErrors, match=r"out-of-order"):
         schema.validate(df, lazy=True)
 
     # test out-of-order duplicates
@@ -366,9 +365,7 @@ def test_ordered_dataframe(
             [[1], [2], [3], [4]], names=["a", "b", "c", "a"]
         ),
     )
-    with pytest.raises(
-        errors.SchemaErrors, match="A total of 1 schema errors"
-    ):
+    with pytest.raises(errors.SchemaErrors, match=r"out-of-order"):
         schema.validate(df, lazy=True)
 
 
@@ -840,7 +837,7 @@ def test_required() -> None:
 
     df_not_ok = pd.DataFrame({"col1": [1, 2]})
 
-    with pytest.raises(Exception):
+    with pytest.raises(errors.SchemaError):
         schema.validate(df_not_ok)
 
 
@@ -1274,10 +1271,10 @@ def test_lazy_dataframe_validation_error() -> None:
         },
     }
 
-    with pytest.raises(
-        errors.SchemaErrors, match="A total of .+ schema errors were found"
-    ):
+    with pytest.raises(errors.SchemaErrors) as e:
         schema.validate(dataframe, lazy=True)
+
+    assert len(e.value.message["SCHEMA"]) == 3
 
     try:
         schema.validate(dataframe, lazy=True)
