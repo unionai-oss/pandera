@@ -317,7 +317,7 @@ into an error report. The error report groups ``DATA`` and ``SCHEMA`` errors to
 to give an overview of error sources within a dataframe. Take the following schema
 and dataframe:
 
-.. testcode:: error_reports
+.. testcode:: error_report
 
     schema = DataFrameSchema({"id": Column(int, Check.lt(10))}, name="MySchema", strict=True)
     df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
@@ -326,7 +326,7 @@ Validating the above dataframe will result in data level errors, namely the ``id
 column having a value which fails a check, as well as schema level errors, such as the
 extra column and the ``None`` value.
 
-.. testoutput:: error_reports
+.. testoutput:: error_report
 
     Traceback (most recent call last):
     ...
@@ -423,6 +423,7 @@ page or reach out to the maintainers and pandera community on
    drop_invalid_rows
    schema_inference
    lazy_validation
+   error_report
    data_synthesis_strategies
    extensions
    data_format_conversion

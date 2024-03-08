@@ -136,7 +136,9 @@ of all schemas and schema components gives you the option of doing just this:
 
 As you can see from the output above, a :class:`~pandera.errors.SchemaErrors`
 exception is raised with a summary of the error counts and failure cases
-caught by the schema. You can also inspect the failure cases in a more granular form:
+caught by the schema. This summary is called an :ref:`error_report`.
+
+You can also inspect the failure cases in a more granular form:
 
 
 .. testcode:: lazy_validation

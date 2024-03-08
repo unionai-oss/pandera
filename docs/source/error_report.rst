@@ -33,7 +33,7 @@ Error reports with `pysparksql`
 Accessing the error report on a validated ``pyspark`` dataframe can be done via the
 ``errors`` attribute on the ``pandera`` accessor.
 
-.. testcode:: error_reports_pyspark_sql
+.. testcode:: error_report_pyspark_sql
     import pandera.pyspark as pa
     import pyspark.sql.types as T
     import json
@@ -62,7 +62,8 @@ Accessing the error report on a validated ``pyspark`` dataframe can be done via 
 
     print(json.dumps(dict(df_out.pandera.errors), indent=4))
 
-.. testoutput:: error_reports_pyspark_sql
+.. testoutput:: error_report_pyspark_sql
+
     {
         "DATA": {
             "DATAFRAME_CHECK": [
@@ -89,7 +90,8 @@ Error reports with `pandas`
 To create an error report with pandas, you must specify ``lazy=True`` to allow all errors
 to be aggregated and raised together as a ``SchemaErrors``.
 
-..testcode:: error_reports_with_pandas
+.. testcode:: error_report_with_pandas
+
     import pandas as pd
     import pandera as pa
     import json
@@ -114,7 +116,8 @@ to be aggregated and raised together as a ``SchemaErrors``.
     except pa.errors.SchemaErrors as e:
         print(json.dumps(e.message, indent=4))
 
-..testoutput:: error_reports_with_pandas
+.. testoutput:: error_report_with_pandas
+
     {
         "DATA": {
             "DATAFRAME_CHECK": [
@@ -133,9 +136,3 @@ to be aggregated and raised together as a ``SchemaErrors``.
             ]
         }
     }
-
-
-
-# general structure of the error report
-# pyspark example
-# pandas example
