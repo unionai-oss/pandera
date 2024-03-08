@@ -322,6 +322,7 @@ def test_pyspark__error_handler_lazy_validation():
             "type": error_handler.ErrorCategory.SCHEMA,
             "column": "Test",
             "check": None,
+            "failure_cases_count": 0,
             "reason_code": SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
             "error": test_error,
         }

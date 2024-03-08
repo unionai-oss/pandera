@@ -49,8 +49,8 @@ def register_input_datatypes(
                     data=validation_df,
                     message=f'The check with name "{func.__name__}" was expected to be run for \n'
                     f"{pandera_schema_datatype()} but got {current_datatype()} instead from the input. \n"
-                    f" This error is usually caused by schema mismatch the value is different from schema defined in"
-                    f" pandera schema and one in the dataframe",
+                    f"This error is usually caused by schema mismatch the value is different from schema defined in "
+                    f"pandera schema and one in the dataframe",
                 )
             if current_datatype in valid_datatypes:
                 return func(*args, **kwargs)

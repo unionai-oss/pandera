@@ -63,7 +63,11 @@ class ErrorHandler:
 
         self._schema_errors.append(schema_error)
 
-        failure_cases_count = len(getattr(schema_error, "failure_cases", []))
+        failure_cases_count = (
+            0
+            if schema_error.failure_cases is None
+            else len(schema_error.failure_cases)
+        )
 
         self._collected_errors.append(
             {

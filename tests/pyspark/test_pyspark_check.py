@@ -84,29 +84,11 @@ class TestDecorator:
                     {
                         "check": None,
                         "column": None,
-                        "error": "The check "
-                        "with name "
-                        '"str_startswith" '
-                        "was expected "
-                        "to be run "
-                        "for \n"
-                        "string but "
-                        "got integer "
-                        "instead from "
-                        "the input. \n"
-                        " This error "
-                        "is usually "
-                        "caused by "
-                        "schema "
-                        "mismatch the "
-                        "value is "
-                        "different "
-                        "from schema "
-                        "defined in "
-                        "pandera "
-                        "schema and "
-                        "one in the "
-                        "dataframe",
+                        "error": 'The check with name "str_startswith" '
+                        "was expected to be run for string but got integer "
+                        "instead from the input. This error is usually caused "
+                        "by schema mismatch the value is different from schema "
+                        "defined in pandera schema and one in the dataframe",
                         "schema": None,
                     }
                 ]
