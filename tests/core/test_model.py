@@ -378,7 +378,7 @@ def test_check_single_column() -> None:
 
     df = pd.DataFrame({"a": [101]})
     schema = Schema.to_schema()
-    err_msg = r"Check int_column_lt_100"
+    err_msg = r"int_column_lt_100"
     with pytest.raises(pa.errors.SchemaErrors, match=err_msg):
         schema.validate(df, lazy=True)
 
