@@ -428,7 +428,7 @@ class Check(BaseCheck):
 
     @classmethod
     def str_matches(cls, pattern: Union[str, re.Pattern], **kwargs) -> "Check":
-        """Ensure that string values match a regular expression.
+        """Ensure that strings start with regular expression match.
 
         :param pattern: Regular expression pattern to use for matching
         :param kwargs: key-word arguments passed into the `Check` initializer.
