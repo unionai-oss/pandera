@@ -6,7 +6,7 @@ together to implement the pandera schema specification.
 """
 
 from abc import ABC
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, FrozenSet, Iterable, List, NamedTuple, Optional, Union
 
 # from pandera.api.base.checks import BaseCheck
 from pandera.errors import SchemaError, SchemaErrorReason
@@ -24,6 +24,16 @@ class CoreCheckResult(NamedTuple):
     failure_cases: Optional[Any] = None
     schema_error: Optional[SchemaError] = None
     original_exc: Optional[Exception] = None
+
+
+class ColumnInfo(NamedTuple):
+    """Column metadata used during validation."""
+
+    sorted_column_names: Iterable
+    expanded_column_names: FrozenSet
+    destuttered_column_names: List
+    absent_column_names: List
+    regex_match_patterns: List
 
 
 class CoreParserResult(NamedTuple):

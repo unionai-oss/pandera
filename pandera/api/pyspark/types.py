@@ -9,12 +9,6 @@ from pyspark.sql import DataFrame
 from pandera.api.checks import Check
 from pandera.dtypes import DataType
 
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[misc]
-
 
 CheckList = Union[Check, List[Check]]
 
@@ -54,8 +48,6 @@ PySparkDtypeInputTypes = Union[
     pst.LongType,
     pst.BinaryType,
 ]
-
-StrictType = Union[bool, Literal["filter"]]
 
 SupportedTypes = NamedTuple(
     "SupportedTypes",

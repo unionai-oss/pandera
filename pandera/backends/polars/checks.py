@@ -46,7 +46,25 @@ class PolarsCheckBackend(BaseCheckBackend):
 
     def apply(self, check_obj: PolarsData):
         """Apply the check function to a check object."""
-        return self.check_fn(check_obj)
+        out = self.check_fn(check_obj)
+
+        if isinstance(out, bool):
+            return out
+
+        if len(out.columns) > 1:
+            # for checks that return a boolean dataframe, reduce to a single
+            # boolean column
+            out = out.select(
+                pl.fold(
+                    acc=pl.lit(True),
+                    function=lambda acc, x: acc & x,
+                    exprs=pl.col(pl.Boolean),
+                ).alias(CHECK_OUTPUT_KEY)
+            )
+        else:
+            out = out.select(pl.col(out.columns[0]).alias(CHECK_OUTPUT_KEY))
+
+        return out
 
     @overload
     def postprocess(self, check_obj, check_output):
@@ -63,12 +81,15 @@ class PolarsCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         passed = check_output.select([pl.col(CHECK_OUTPUT_KEY).all()])
-        failure_cases = (
-            check_obj.dataframe.with_context(check_output)
-            .filter(pl.col(CHECK_OUTPUT_KEY).is_not())
-            .rename({check_obj.key: FAILURE_CASE_KEY})
-            .select(FAILURE_CASE_KEY)
+        failure_cases = check_obj.dataframe.with_context(check_output).filter(
+            pl.col(CHECK_OUTPUT_KEY).not_()
         )
+
+        if len(failure_cases.columns) == 1 and check_obj.key is not None:
+            failure_cases = failure_cases.rename(
+                {check_obj.key: FAILURE_CASE_KEY}
+            ).select(FAILURE_CASE_KEY)
+
         return CheckResult(
             check_output=check_output,
             check_passed=passed,

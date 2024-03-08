@@ -1,6 +1,10 @@
 """Base module for `hypothesis`-based strategies for data synthesis."""
 
-from typing import Callable, Dict, Generic, Tuple, Type, TypeVar
+from functools import wraps
+from typing import Callable, Dict, Generic, Tuple, Type, TypeVar, cast
+
+
+F = TypeVar("F", bound=Callable)
 
 
 try:
@@ -25,3 +29,20 @@ else:
 # This strategy registry maps (check_name, data_type) -> strategy_function
 # For example: ("greater_than", pd.DataFrame) -> (<function gt_strategy>)
 STRATEGY_DISPATCHER: Dict[Tuple[str, Type], Callable] = {}
+
+
+def strategy_import_error(fn: F) -> F:
+    """Decorator to generate input error if dependency is missing."""
+
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        if not HAS_HYPOTHESIS:  # pragma: no cover
+            raise ImportError(
+                'Strategies for generating data requires "hypothesis" to be \n'
+                "installed. You can install pandera together with the strategies \n"
+                "dependencies with:\n"
+                "pip install pandera[strategies]"
+            )
+        return fn(*args, **kwargs)
+
+    return cast(F, _wrapper)

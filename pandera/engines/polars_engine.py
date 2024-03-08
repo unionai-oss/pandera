@@ -328,7 +328,9 @@ class DateTime(DataType, dtypes.DateTime):
         time_zone: Optional[str] = None,
         time_unit: Optional[str] = None,
     ) -> None:
-        object.__setattr__(self, "type", pl.Datetime(time_zone, time_unit))
+        object.__setattr__(
+            self, "type", pl.Datetime(time_zone=time_zone, time_unit=time_unit)
+        )
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Datetime):
