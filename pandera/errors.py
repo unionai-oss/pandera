@@ -3,6 +3,7 @@
 from enum import Enum
 import warnings
 from typing import Any, Dict, List, NamedTuple, Union
+import pprint
 
 
 class BackendNotFoundError(Exception):
@@ -172,6 +173,9 @@ class SchemaErrors(ReducedPickleExceptionBase):
         self.failure_cases = failure_cases_metadata.failure_cases
         self.message = failure_cases_metadata.message
         super().__init__(failure_cases_metadata.message)
+
+    def __str__(self):
+        return pprint.pformat(self.message)
 
 
 class PysparkSchemaError(ReducedPickleExceptionBase):
