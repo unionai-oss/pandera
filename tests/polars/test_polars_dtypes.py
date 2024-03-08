@@ -297,8 +297,8 @@ def test_check_equivalent(dtype):
             pe.Category(categories=["a", "b"]),
             True,
         ),
-        (pe.DateTime(time_unit="s"), pe.DateTime(time_unit="ns"), False),
-        (pe.DateTime(time_unit="s"), pe.DateTime(time_unit="s"), True),
+        (pe.DateTime(time_unit="us"), pe.DateTime(time_unit="ns"), False),
+        (pe.DateTime(time_unit="us"), pe.DateTime(time_unit="us"), True),
     ],
 )
 def test_check_equivalent_custom(first_dtype, second_dtype, equivalent):

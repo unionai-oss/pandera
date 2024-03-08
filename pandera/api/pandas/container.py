@@ -14,13 +14,10 @@ from pandera import errors
 from pandera.config import CONFIG
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
+from pandera.api.base.types import StrictType, CheckList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
-from pandera.api.pandas.types import (
-    CheckList,
-    PandasDtypeInputTypes,
-    StrictType,
-)
+from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine, PYDANTIC_V2
 
@@ -31,9 +28,8 @@ if PYDANTIC_V2:
 N_INDENT_SPACES = 4
 
 
-class DataFrameSchema(
-    BaseSchema
-):  # pylint: disable=too-many-public-methods,too-many-locals
+# pylint: disable=too-many-public-methods,too-many-locals
+class DataFrameSchema(BaseSchema):
     """A light-weight pandas DataFrame validator."""
 
     def __init__(
@@ -151,16 +147,6 @@ class DataFrameSchema(
             {} if columns is None else columns
         )
 
-        if strict not in (
-            False,
-            True,
-            "filter",
-        ):
-            raise errors.SchemaInitError(
-                "strict parameter must equal either `True`, `False`, "
-                "or `'filter'`."
-            )
-
         self.index = index
         self.strict: Union[bool, str] = strict
         self._coerce = coerce
@@ -175,6 +161,15 @@ class DataFrameSchema(
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
         self.metadata = metadata
+
+        self._validate_attributes()
+
+    def _validate_attributes(self):
+        if self.strict not in (False, True, "filter"):
+            raise errors.SchemaInitError(
+                "strict parameter must equal either `True`, `False`, "
+                "or `'filter'`."
+            )
 
     @property
     def coerce(self) -> bool:
@@ -241,7 +236,7 @@ class DataFrameSchema(
         meta[self.name] = res
         return meta
 
-    def get_dtypes(self, dataframe: pd.DataFrame) -> Dict[str, DataType]:
+    def get_dtypes(self, check_obj) -> Dict[str, DataType]:
         """
         Same as the ``dtype`` property, but expands columns where
         ``regex == True`` based on the supplied dataframe.
@@ -250,16 +245,12 @@ class DataFrameSchema(
         """
         regex_dtype = {}
         for _, column in self.columns.items():
+            backend = column.get_backend(check_obj)
             if column.regex:
                 regex_dtype.update(
                     {
                         c: column.dtype
-                        for c in column.get_backend(
-                            dataframe
-                        ).get_regex_columns(
-                            column,
-                            dataframe.columns,
-                        )
+                        for c in backend.get_regex_columns(column, check_obj)
                     }
                 )
         return {
@@ -1292,14 +1283,6 @@ class DataFrameSchema(
         import pandera.io
 
         return pandera.io.from_yaml(yaml_schema)
-
-    @overload
-    def to_yaml(self, stream: None = None) -> str:  # pragma: no cover
-        ...
-
-    @overload
-    def to_yaml(self, stream: os.PathLike) -> None:  # pragma: no cover
-        ...
 
     def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
         """Write DataFrameSchema to yaml file.

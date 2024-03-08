@@ -53,4 +53,5 @@ disable=
     missing-function-docstring,
     fixme,
     too-many-locals,
-    redefined-outer-name
+    redefined-outer-name,
+    logging-fstring-interpolation

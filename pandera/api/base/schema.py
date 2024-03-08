@@ -6,6 +6,7 @@ together to implement the pandera schema specification.
 """
 
 import inspect
+import os
 from abc import ABC
 from functools import wraps
 from typing import Any, Dict, Tuple, Type, Optional, Union
@@ -60,6 +61,10 @@ class BaseSchema(ABC):
 
     def coerce_dtype(self, check_obj):
         """Coerce object to the expected type."""
+        raise NotImplementedError
+
+    def to_yaml(self, stream: Optional[os.PathLike] = None) -> Optional[str]:
+        """Write DataFrameSchema to yaml file."""
         raise NotImplementedError
 
     @property

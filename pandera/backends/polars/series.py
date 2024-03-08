@@ -1,4 +1,4 @@
-"""Pandera array backends."""
+"""Pandera array-like backends for polars."""
 
 from typing import cast, List, Optional
 
@@ -7,7 +7,7 @@ from multimethod import DispatchError
 
 from pandera.backends.base import CoreCheckResult
 from pandera.api.pandas.types import is_field
-from pandera.backends.pandas.base import PandasSchemaBackend
+from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
@@ -24,7 +24,7 @@ from pandera.errors import (
 )
 
 
-class ArraySchemaBackend(PandasSchemaBackend):
+class ArraySchemaBackend(PolarsSchemaBackend):
     """Backend for pandas arrays."""
 
     def preprocess(self, check_obj, inplace: bool = False):
@@ -52,7 +52,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
 
         # fill nans with `default` if it's present
-        if hasattr(schema, "default") and schema.default is not None:
+        if hasattr(schema, "default") and pd.notna(schema.default):
             check_obj = self.set_default(check_obj, schema)
 
         try:
@@ -70,15 +70,16 @@ class ArraySchemaBackend(PandasSchemaBackend):
             error_handler,
             schema,
             check_obj,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
+            head,
+            tail,
+            sample,
+            random_state,
         )
 
         if lazy and error_handler.collected_errors:
             if getattr(schema, "drop_invalid_rows", False):
                 check_obj = self.drop_invalid_rows(check_obj, error_handler)
+                return check_obj
             else:
                 raise SchemaErrors(
                     schema=schema,
@@ -89,16 +90,32 @@ class ArraySchemaBackend(PandasSchemaBackend):
         return check_obj
 
     def run_checks_and_handle_errors(
-        self, error_handler, schema, check_obj, **subsample_kwargs
+        self,
+        error_handler,
+        schema,
+        check_obj,
+        head,
+        tail,
+        sample,
+        random_state,
     ):
         """Run checks on schema"""
         # pylint: disable=too-many-locals
         field_obj_subsample = self.subsample(
             check_obj if is_field(check_obj) else check_obj[schema.name],
-            **subsample_kwargs,
+            head,
+            tail,
+            sample,
+            random_state,
         )
 
-        check_obj_subsample = self.subsample(check_obj, **subsample_kwargs)
+        check_obj_subsample = self.subsample(
+            check_obj,
+            head,
+            tail,
+            sample,
+            random_state,
+        )
 
         core_checks = [
             (self.check_name, (field_obj_subsample, schema)),
@@ -155,6 +172,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             return check_obj
 
         try:
+            # NOTE: implement polars engine
             return schema.dtype.try_coerce(check_obj)
         except ParserError as exc:
             raise SchemaError(
@@ -181,6 +199,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         )
 
     def check_nullable(self, check_obj: pd.Series, schema) -> CoreCheckResult:
+        # NOTE: implement polars version of the below pandas code:
         isna = check_obj.isna()
         passed = schema.nullable or not isna.any()
         return CoreCheckResult(
@@ -201,6 +220,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         failure_cases = None
         message = None
 
+        # NOTE: implement polars version of the below pandas code:
         if schema.unique:
             keep_argument = convert_uniquesettings(schema.report_duplicates)
             if type(check_obj).__module__.startswith("pyspark.pandas"):
@@ -239,6 +259,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         failure_cases = None
         msg = None
 
+        # NOTE: implement polars type engine
         if schema.dtype is not None:
             dtype_check_results = schema.dtype.check(
                 Engine.dtype(check_obj.dtype),
@@ -246,12 +267,14 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
             if isinstance(dtype_check_results, bool):
                 passed = dtype_check_results
+                # NOTE: implement polars version of the below pandas code:
                 failure_cases = scalar_failure_case(str(check_obj.dtype))
                 msg = (
                     f"expected series '{check_obj.name}' to have type "
                     f"{schema.dtype}, got {check_obj.dtype}"
                 )
             else:
+                # NOTE: implement polars version of the below pandas code:
                 passed = dtype_check_results.all()
                 failure_cases = reshape_failure_cases(
                     check_obj[~dtype_check_results.astype(bool)],
@@ -272,6 +295,8 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
     # pylint: disable=unused-argument
     def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
+        # NOTE: this should be the same as the pandas ArraySchemaBackend
+        # implementation. This should maybe go into a mixin class.
         check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):
             check_args = [None] if is_field(check_obj) else [schema.name]
@@ -308,17 +333,11 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
     def set_default(self, check_obj, schema):
         """Sets the ``schema.default`` value on the ``check_obj``"""
-        # Ignore sparse dtype as it can't assign default value directly
-        if is_field(check_obj) and not isinstance(
-            check_obj.dtype, pd.SparseDtype
-        ):
-            check_obj = check_obj.fillna(schema.default)
-        elif not is_field(check_obj) and not isinstance(
-            check_obj[schema.name].dtype, pd.SparseDtype
-        ):
-            check_obj[schema.name] = check_obj[schema.name].fillna(
-                schema.default
-            )
+        # NOTE: implement polars version of the below pandas code:
+        if is_field(check_obj):
+            check_obj.fillna(schema.default, inplace=True)
+        else:
+            check_obj[schema.name].fillna(schema.default, inplace=True)
 
         return check_obj
 

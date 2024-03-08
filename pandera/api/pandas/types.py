@@ -1,23 +1,13 @@
 """Utility functions for pandas validation."""
 
 from functools import lru_cache
-from typing import List, NamedTuple, Tuple, Type, Union
+from typing import NamedTuple, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
 
-from pandera.api.checks import Check
-from pandera.api.hypotheses import Hypothesis
 from pandera.dtypes import DataType
 
-try:
-    # python 3.8+
-    from typing import Literal  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[misc]
-
-
-CheckList = Union[Check, List[Union[Check, Hypothesis]]]
 
 PandasDtypeInputTypes = Union[
     str,
@@ -27,8 +17,6 @@ PandasDtypeInputTypes = Union[
     pd.core.dtypes.base.ExtensionDtype,
     np.dtype,
 ]
-
-StrictType = Union[bool, Literal["filter"]]
 
 SupportedTypes = NamedTuple(
     "SupportedTypes",

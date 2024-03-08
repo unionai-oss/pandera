@@ -63,7 +63,7 @@ class ColumnBackend(ColumnSchemaBackend):
                 )
 
         column_keys_to_check = (
-            self.get_regex_columns(schema, check_obj.columns)
+            self.get_regex_columns(schema, check_obj)
             if schema.regex
             else [schema.name]
         )
@@ -81,13 +81,14 @@ class ColumnBackend(ColumnSchemaBackend):
 
         return check_obj
 
-    def get_regex_columns(self, schema, columns) -> Iterable:
+    def get_regex_columns(self, schema, check_obj) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
         :param schema: schema specification to use
         :param columns: columns to regex pattern match
         :returns: matchin columns
         """
+        columns = check_obj.columns
         pattern = re.compile(schema.name)
         column_keys_to_check = [
             col_name for col_name in columns if pattern.match(col_name)
@@ -117,7 +118,6 @@ class ColumnBackend(ColumnSchemaBackend):
         """Coerce dtype of a column, handling duplicate column names."""
         # pylint: disable=super-with-arguments
         # pylint: disable=fixme
-
         check_obj = check_obj.withColumn(
             schema.name, col(schema.name).cast(schema.dtype)
         )
