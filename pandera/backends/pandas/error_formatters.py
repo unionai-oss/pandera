@@ -53,9 +53,14 @@ def format_vectorized_error_message(
     else:
         check_str = str(check)
 
-    failure_cases_string = ", ".join(
-        reshaped_failure_cases.failure_case.astype(str)
-    )
+    if type(reshaped_failure_cases.failure_case).__module__.startswith(
+        "pyspark.pandas"
+    ):
+        failure_cases = reshaped_failure_cases.failure_case.to_numpy()
+    else:
+        failure_cases = reshaped_failure_cases.failure_case
+
+    failure_cases_string = ", ".join(failure_cases.astype(str))
 
     return (
         f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed element-wise validator number {check_index}: "
