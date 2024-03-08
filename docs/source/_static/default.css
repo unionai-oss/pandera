@@ -85,6 +85,11 @@ div.sponsorship {
   border-color: #78ac1b;
 }
 
+iframe.jupyterlite_sphinx_raw_iframe {
+  border: none !important;
+  box-shadow: 0 0.2rem 0.2rem #dedede !important;
+}
+
 
 @media (max-width: 67em) {
   .sidebar-drawer {
