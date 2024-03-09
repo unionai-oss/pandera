@@ -141,11 +141,6 @@ and ``bool`` will be handled in the same way that ``polars`` handles them:
     assert pl.Series([*"abc"], dtype=str).dtype == pl.Utf8
     assert pl.Series([1.0, 2.0, 3.0], dtype=float).dtype == pl.Float64
 
-.. testoutput:: polars
-
-    Int64
-    String
-
 So the following schemas are equivalent:
 
 .. testcode:: polars
@@ -180,8 +175,18 @@ on the data values contained in the ``LazyFrame``. Therefore, calling the
 operations depending on the schema specification.
 
 The ``schema.validate()`` method is effectively an eager operation that converts
-the validated data into a ``polars.LazyFrame`` before returning the output. In
-the context of a lazy computation pipeline, this means that you can use schemas
+the validated data back into a ``polars.LazyFrame`` before returning the output.
+At a high level, this is what happens:
+
+- Apply parsers: add missing columns, coerce the datatypes if ``coerce=True``,
+  filter columns, and set defaults. This results in multiple ``.collect()``.
+  operations.
+- Apply checks: run all core, built-in, and custom checks on the data. Checks
+  on metadata are done without ``.collect()`` operations, but checks that inspect
+  data values do.
+- Convert back to ``LazyFrame`` before returning the validated data.
+
+In the context of a lazy computation pipeline, this means that you can use schemas
 as eager checkpoints that validate the data. Pandera is designed such that you
 can continue to use the ``LazyFrame`` API after the schema validation step.
 
@@ -235,7 +240,7 @@ present in the data.
 
 .. testcode:: polars
 
-    class Model(pa.DataFrameModel):
+    class MyModel(pa.DataFrameModel):
         a: int
         b: str = pa.Field(isin=[*"abc"])
         c: float = pa.Field(ge=0.0, le=1.0)
@@ -245,22 +250,23 @@ present in the data.
         "b": ["d", "e", "f"],
         "c": [0.0, 1.1, -0.1],
     })
-    Model.validate(invalid_lf, lazy=True)
+    MyModel.validate(invalid_lf, lazy=True)
 
 .. testoutput:: polars
 
-    pandera.errors.SchemaErrors: Schema Model: A total of 4 errors were found.
-
-    shape: (6, 5)
-    ┌──────────────┬────────────────┬────────┬───────────────────────────────┬──────────────┐
-    │ failure_case ┆ schema_context ┆ column ┆ check                         ┆ check_number │
-    │ ---          ┆ ---            ┆ ---    ┆ ---                           ┆ ---          │
-    │ str          ┆ str            ┆ str    ┆ str                           ┆ i32          │
-    ╞══════════════╪════════════════╪════════╪═══════════════════════════════╪══════════════╡
-    │ String       ┆ Column         ┆ a      ┆ dtype('Int64')                ┆ null         │
-    │ d            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            │
-    │ e            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            │
-    │ f            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            │
-    │ -0.1         ┆ Column         ┆ c      ┆ greater_than_or_equal_to(0.0) ┆ 0            │
-    │ 1.1          ┆ Column         ┆ c      ┆ less_than_or_equal_to(1.0)    ┆ 1            │
-    └──────────────┴────────────────┴────────┴───────────────────────────────┴──────────────┘
+    Traceback (most recent call last):
+    ...
+    pandera.errors.SchemaErrors: Schema 'MyModel': 4 errors types were found with a total of 6 failures.
+    shape: (6, 6)
+    ┌──────────────┬────────────────┬────────┬───────────────────────────────┬──────────────┬───────┐
+    │ failure_case ┆ schema_context ┆ column ┆ check                         ┆ check_number ┆ index │
+    │ ---          ┆ ---            ┆ ---    ┆ ---                           ┆ ---          ┆ ---   │
+    │ str          ┆ str            ┆ str    ┆ str                           ┆ i32          ┆ i32   │
+    ╞══════════════╪════════════════╪════════╪═══════════════════════════════╪══════════════╪═══════╡
+    │ String       ┆ Column         ┆ a      ┆ dtype('Int64')                ┆ null         ┆ null  │
+    │ d            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            ┆ 0     │
+    │ e            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            ┆ 1     │
+    │ f            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            ┆ 2     │
+    │ -0.1         ┆ Column         ┆ c      ┆ greater_than_or_equal_to(0.0) ┆ 0            ┆ 2     │
+    │ 1.1          ┆ Column         ┆ c      ┆ less_than_or_equal_to(1.0)    ┆ 1            ┆ 1     │
+    └──────────────┴────────────────┴────────┴───────────────────────────────┴──────────────┴───────┘

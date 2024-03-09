@@ -192,7 +192,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
         message = ""
         if schema_name is not None:
-            message += f"Schema {schema_name}: "
+            message += f"Schema '{schema_name}': "
 
         n_error_types = sum(error_counts.values())
         message += f"{n_error_types} errors types were found "
