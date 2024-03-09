@@ -6,6 +6,7 @@ from typing import Optional
 import polars as pl
 
 from pandera.api.pandas.container import DataFrameSchema as _DataFrameSchema
+from pandera.api.polars.types import PolarsCheckObjects
 from pandera.dtypes import DataType
 from pandera.engines import polars_engine
 
@@ -30,17 +31,21 @@ class DataFrameSchema(_DataFrameSchema):
 
     def validate(
         self,
-        check_obj: pl.LazyFrame,
+        check_obj: PolarsCheckObjects,
         head: Optional[int] = None,
         tail: Optional[int] = None,
         sample: Optional[int] = None,
         random_state: Optional[int] = None,
         lazy: bool = False,
         inplace: bool = False,
-    ) -> pl.LazyFrame:
+    ) -> PolarsCheckObjects:
         """Validate a polars DataFrame against the schema."""
+        is_dataframe = isinstance(check_obj, pl.DataFrame)
 
-        return self.get_backend(check_obj).validate(
+        if is_dataframe:
+            check_obj = check_obj.lazy()
+
+        output = self.get_backend(check_obj).validate(
             check_obj=check_obj,
             schema=self,
             head=head,
@@ -50,6 +55,11 @@ class DataFrameSchema(_DataFrameSchema):
             lazy=lazy,
             inplace=inplace,
         )
+
+        if is_dataframe:
+            output = output.collect()
+
+        return output
 
     @property
     def dtype(

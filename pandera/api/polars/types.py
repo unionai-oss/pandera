@@ -19,6 +19,9 @@ class CheckResult(NamedTuple):
     failure_cases: pl.LazyFrame
 
 
+PolarsCheckObjects = Union[pl.LazyFrame, pl.DataFrame]
+
+
 PolarsDtypeInputTypes = Union[
     str,
     type,

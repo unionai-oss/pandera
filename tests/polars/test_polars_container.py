@@ -14,13 +14,19 @@ from pandera.polars import Column, DataFrameSchema
 
 @pytest.fixture
 def ldf_basic():
-    """Basic polars lazy dataframe fixture."""
+    """Basic polars LazyFrame fixture."""
     return pl.DataFrame(
         {
             "string_col": ["0", "1", "2"],
             "int_col": [0, 1, 2],
         }
     ).lazy()
+
+
+@pytest.fixture
+def df_basic(ldf_basic):
+    """Basic polars DataFrame fixture."""
+    return ldf_basic.collect()
 
 
 @pytest.fixture
@@ -82,18 +88,20 @@ def ldf_schema_with_regex_option():
     )
 
 
-def test_basic_polars_lazy_dataframe(ldf_basic, ldf_schema_basic):
+def test_basic_polars_lazyframe(ldf_basic, ldf_schema_basic):
     """Test basic polars lazy dataframe."""
     query = ldf_basic.pipe(ldf_schema_basic.validate)
-    df = query.collect()
+    validated_df = query.collect()
     assert isinstance(query, pl.LazyFrame)
-    assert isinstance(df, pl.DataFrame)
+    assert isinstance(validated_df, pl.DataFrame)
+
+    df = ldf_basic.collect()
+    validated_df = df.pipe(ldf_schema_basic.validate)
+    assert isinstance(validated_df, pl.DataFrame)
 
 
 @pytest.mark.parametrize("lazy", [False, True])
-def test_basic_polars_lazy_dataframe_dtype_error(
-    lazy, ldf_basic, ldf_schema_basic
-):
+def test_basic_polars_lazyframe_dtype_error(lazy, ldf_basic, ldf_schema_basic):
     """Test basic polars lazy dataframe."""
     query = ldf_basic.with_columns(pl.col("int_col").cast(pl.Int32))
 
@@ -103,7 +111,7 @@ def test_basic_polars_lazy_dataframe_dtype_error(
         query.pipe(ldf_schema_basic.validate, lazy=lazy)
 
 
-def test_basic_polars_lazy_dataframe_check_error(
+def test_basic_polars_lazyframe_check_error(
     ldf_basic,
     ldf_schema_with_check,
 ):
