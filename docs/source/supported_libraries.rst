@@ -31,8 +31,8 @@ container types specific to these libraries.
     GeoPandas <geopandas>
 
 
-Scaling Up Data Validation
---------------------------
+Accelerated Data Validation
+----------------------------
 
 Pandera provides multiple ways of scaling up data validation to dataframes
 that don't fit into memory. Fortunately, pandera doesn't have to re-invent
@@ -47,14 +47,14 @@ dataframes.
      - Apply pandera schemas to Dask dataframe partitions.
    * - :ref:`Fugue <scaling_fugue>`
      - Apply pandera schemas to distributed dataframe partitions with Fugue.
-   * - :ref:`Koalas <scaling_koalas>` *[Deprecated]*
-     - A pandas drop-in replacement, distributed using a Spark backend.
+   * - :ref:`Modin <scaling_modin>`
+     - A pandas drop-in replacement, distributed using a Ray or Dask backend.
+   * - :ref:`Polars <polars>`
+     - Validate Polars dataframes, the blazingly fast dataframe library
    * - :ref:`Pyspark Pandas <scaling_pyspark>`
      - Exposes a ``pyspark.pandas`` module, distributed using a Spark backend.
    * - :ref:`Pyspark SQL <native_pyspark>`
      - A data processing library for large-scale data.
-   * - :ref:`Modin <scaling_modin>`
-     - A pandas drop-in replacement, distributed using a Ray or Dask backend.
 
 .. toctree::
     :maxdepth: 1
@@ -62,10 +62,10 @@ dataframes.
 
     Dask <dask>
     Fugue <fugue>
-    Koalas <koalas>
-    Pyspark Pandas <pyspark>
-    Pyspark SQL ⭐️ (New) <pyspark_sql>
     Modin <modin>
+    Polars <polars>
+    Pyspark Pandas <pyspark>
+    Pyspark SQL <pyspark_sql>
 
 
 .. note::

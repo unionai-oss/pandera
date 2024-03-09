@@ -26,7 +26,7 @@ from pydantic import validate_arguments
 from pandera import errors
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.model import SchemaModel
+from pandera.api.pandas.model import DataFrameModel
 from pandera.error_handlers import SchemaErrorHandler
 from pandera.inspection_utils import (
     is_classmethod_from_meta,
@@ -585,7 +585,9 @@ def check_types(
     # Front-load annotation parsing
     annotated_schema_models: Dict[
         str,
-        Iterable[Tuple[Union[SchemaModel, None], Union[AnnotationInfo, None]]],
+        Iterable[
+            Tuple[Union[DataFrameModel, None], Union[AnnotationInfo, None]]
+        ],
     ] = {}
     for arg_name_, annotation in typing.get_type_hints(wrapped).items():
         annotation_info = AnnotationInfo(annotation)
@@ -598,14 +600,16 @@ def check_types(
                     if not sub_annotation_info.is_generic_df:
                         continue
 
-                    schema_model = cast(SchemaModel, sub_annotation_info.arg)
+                    schema_model = cast(
+                        DataFrameModel, sub_annotation_info.arg
+                    )
                     annotation_model_pairs.append(
                         (schema_model, sub_annotation_info)
                     )
             else:
                 continue
         else:
-            schema_model = cast(SchemaModel, annotation_info.arg)
+            schema_model = cast(DataFrameModel, annotation_info.arg)
             annotation_model_pairs = [(schema_model, annotation_info)]
 
         annotated_schema_models[arg_name_] = annotation_model_pairs
@@ -650,9 +654,10 @@ def check_types(
                     return arg_value
 
                 if (
-                    arg_value.pandera.schema is None
-                    # don't re-validate a dataframe that contains the same exact
-                    # schema
+                    not hasattr(arg_value, "pandera")
+                    or arg_value.pandera.schema is None
+                    # don't re-validate a dataframe that contains the same
+                    # exact schema
                     or arg_value.pandera.schema != schema
                 ):
                     try:

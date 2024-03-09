@@ -128,7 +128,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         )
 
     def __init_subclass__(cls, **kwargs):
-        """Ensure :class:`~pandera.api.pandas.model_components.FieldInfo` instances."""
+        """Ensure :class:`~pandera.api.dataframe.model_components.FieldInfo` instances."""
         if "Config" in cls.__dict__:
             cls.Config.name = (
                 cls.Config.name

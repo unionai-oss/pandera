@@ -78,7 +78,7 @@ This is useful in production-critical data pipelines or reproducible research
 settings. With ``pandera``, you can:
 
 #. Define a schema once and use it to validate :ref:`different dataframe types <supported-dataframe-libraries>`
-   including `pandas <http://pandas.pydata.org>`_, `dask <https://dask.org/>`_,
+   including `pandas <http://pandas.pydata.org>`_, `polars <https://docs.pola.rs/>`, `dask <https://dask.org/>`_,
    `modin <https://modin.readthedocs.io/>`_, and
    `pyspark.pandas <https://spark.apache.org/docs/3.2.0/api/python/user_guide/pandas_on_spark/index.html>`_.
 #. :ref:`Check<checks>` the types and properties of columns in a

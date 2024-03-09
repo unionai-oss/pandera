@@ -96,7 +96,7 @@ As you can see in the examples above, you can define a schema by sub-classing
 The :func:`~pandera.decorators.check_types` decorator is required to perform validation of the dataframe at
 run-time.
 
-Note that :class:`~pandera.api.pandas.model_components.Field` s apply to both
+Note that :class:`~pandera.api.dataframe.model_components.Field` s apply to both
 :class:`~pandera.api.pandas.components.Column` and :class:`~pandera.api.pandas.components.Index`
 objects, exposing the built-in :class:`Check` s via key-word arguments.
 
@@ -716,7 +716,7 @@ Column/Index checks
     * Similarly to ``pydantic``, :func:`classmethod` decorator is added behind the scenes
       if omitted.
     * You still may need to add the ``@classmethod`` decorator *after* the
-      :func:`~pandera.api.pandas.model_components.check` decorator if your static-type checker or
+      :func:`~pandera.api.dataframe.model_components.check` decorator if your static-type checker or
       linter complains.
     * Since ``checks`` are class methods, the first argument value they receive is a
       DataFrameModel subclass, not an instance of a model.
@@ -839,7 +839,7 @@ Aliases
 -------
 
 :class:`~pandera.api.pandas.model.DataFrameModel` supports columns which are not valid python variable names via the argument
-`alias` of :class:`~pandera.api.pandas.model_components.Field`.
+`alias` of :class:`~pandera.api.dataframe.model_components.Field`.
 
 Checks must reference the aliased names.
 
@@ -887,7 +887,7 @@ the class scope, and it will respect the alias.
 .. note::
 
     To access a variable from the class scope, you need to make it a class attribute,
-    and therefore assign it a default :class:`~pandera.api.pandas.model_components.Field`.
+    and therefore assign it a default :class:`~pandera.api.dataframe.model_components.Field`.
 
 .. testcode:: dataframe_schema_model
 

@@ -2,8 +2,8 @@
 
 .. _native_pyspark:
 
-Data Validation with Pyspark SQL ⭐️ (New)
-==========================================
+Data Validation with Pyspark SQL
+================================
 
 *new in 0.16.0*
 

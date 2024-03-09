@@ -19,9 +19,9 @@ Model Components
 .. autosummary::
    :toctree: generated
 
-   pandera.api.pandas.model_components.Field
-   pandera.api.pandas.model_components.check
-   pandera.api.pandas.model_components.dataframe_check
+   pandera.api.dataframe.model_components.Field
+   pandera.api.dataframe.model_components.check
+   pandera.api.dataframe.model_components.dataframe_check
 
 Typing
 ------

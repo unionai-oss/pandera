@@ -123,7 +123,7 @@ express this same type with the class-based API, we need to use an
         dt: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
 
 Or alternatively, you can pass in the ``dtype_kwargs`` into
-:py:func:`~pandera.api.pandas.model_components.Field`:
+:py:func:`~pandera.api.dataframe.model_components.Field`:
 
 .. testcode:: dtype_validation
 
