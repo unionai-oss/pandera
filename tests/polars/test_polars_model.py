@@ -4,7 +4,15 @@ import pytest
 
 import polars as pl
 from pandera.errors import SchemaError
-from pandera.polars import DataFrameModel, DataFrameSchema, Column, Field
+from pandera.polars import (
+    DataFrameModel,
+    DataFrameSchema,
+    Column,
+    PolarsData,
+    Field,
+    check,
+    dataframe_check,
+)
 
 
 @pytest.fixture
@@ -17,6 +25,16 @@ def ldf_model_basic():
 
 
 @pytest.fixture
+def ldf_schema_basic():
+    return DataFrameSchema(
+        {
+            "string_col": Column(pl.Utf8),
+            "int_col": Column(pl.Int64),
+        },
+    )
+
+
+@pytest.fixture
 def ldf_model_with_fields():
     class ModelWithFields(DataFrameModel):
         string_col: str = Field(isin=[*"abc"])
@@ -26,13 +44,36 @@ def ldf_model_with_fields():
 
 
 @pytest.fixture
-def ldf_schema_basic():
-    return DataFrameSchema(
-        {
-            "string_col": Column(pl.Utf8),
-            "int_col": Column(pl.Int64),
-        },
-    )
+def ldf_model_with_custom_column_checks():
+    class ModelWithCustomColumnChecks(DataFrameModel):
+        string_col: str
+        int_col: int
+
+        @check("string_col")
+        @classmethod
+        def custom_isin(cls, data: PolarsData) -> pl.LazyFrame:
+            return data.lazyframe.select(pl.col(data.key).is_in([*"abc"]))
+
+        @check("int_col")
+        @classmethod
+        def custom_ge(cls, data: PolarsData) -> pl.LazyFrame:
+            return data.lazyframe.select(pl.col(data.key).ge(0))
+
+    return ModelWithCustomColumnChecks
+
+
+@pytest.fixture
+def ldf_model_with_custom_dataframe_checks():
+    class ModelWithCustomDataFrameChecks(DataFrameModel):
+        string_col: str
+        int_col: int
+
+        @dataframe_check
+        @classmethod
+        def not_empty(cls, data: PolarsData) -> pl.LazyFrame:
+            return data.lazyframe.select(pl.count().gt(0))
+
+    return ModelWithCustomDataFrameChecks
 
 
 @pytest.fixture
@@ -96,3 +137,36 @@ def test_model_with_fields(ldf_model_with_fields, ldf_basic):
     )
     with pytest.raises(SchemaError):
         invalid_df.pipe(ldf_model_with_fields.validate).collect()
+
+
+def test_model_with_custom_column_checks(
+    ldf_model_with_custom_column_checks,
+    ldf_basic,
+):
+    query = ldf_basic.pipe(ldf_model_with_custom_column_checks.validate)
+    df = query.collect()
+    assert isinstance(query, pl.LazyFrame)
+    assert isinstance(df, pl.DataFrame)
+
+    invalid_df = ldf_basic.with_columns(
+        string_col=pl.lit("x"), int_col=pl.lit(-1)
+    )
+    with pytest.raises(SchemaError):
+        invalid_df.pipe(ldf_model_with_custom_column_checks.validate).collect()
+
+
+def test_model_with_custom_dataframe_checks(
+    ldf_model_with_custom_dataframe_checks,
+    ldf_basic,
+):
+    query = ldf_basic.pipe(ldf_model_with_custom_dataframe_checks.validate)
+    df = query.collect()
+    assert isinstance(query, pl.LazyFrame)
+    assert isinstance(df, pl.DataFrame)
+
+    # remove all rows
+    invalid_df = ldf_basic.filter(pl.lit(False))
+    with pytest.raises(SchemaError):
+        invalid_df.pipe(
+            ldf_model_with_custom_dataframe_checks.validate
+        ).collect()

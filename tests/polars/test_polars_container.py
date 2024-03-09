@@ -234,13 +234,13 @@ def test_column_values_are_unique(ldf_basic, ldf_schema_basic):
 
 def test_dataframe_level_checks():
     def custom_check(data: PolarsData):
-        return data.dataframe.select(pl.col("*").eq(0))
+        return data.lazyframe.select(pl.col("*").eq(0))
 
     schema = DataFrameSchema(
         columns={"a": Column(pl.Int64), "b": Column(pl.Int64)},
         checks=[
             pa.Check(custom_check),
-            pa.Check(lambda d: d.dataframe.select(pl.col("*").eq(0))),
+            pa.Check(lambda d: d.lazyframe.select(pl.col("*").eq(0))),
         ],
     )
     ldf = pl.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]}).lazy()
@@ -399,3 +399,27 @@ def test_report_duplicates(arg):
         )
     ):
         DataFrameSchema(report_duplicates=arg)
+
+
+def test_lazy_validation_errors():
+
+    schema = DataFrameSchema(
+        {
+            "a": Column(int),
+            "b": Column(str, C.isin([*"abc"])),
+            "c": Column(float, [C.ge(0.0), C.le(1.0)]),
+        }
+    )
+
+    invalid_lf = pl.LazyFrame(
+        {
+            "a": pl.Series(["1", "2", "3"], dtype=pl.Utf8),  # 1 dtype error
+            "b": ["d", "e", "f"],  # 3 value errors
+            "c": [0.0, 1.1, -0.1],  # 2 value errors
+        }
+    )
+
+    try:
+        schema.validate(invalid_lf, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == 6

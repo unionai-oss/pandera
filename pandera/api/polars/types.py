@@ -6,7 +6,7 @@ import polars as pl
 
 
 class PolarsData(NamedTuple):
-    dataframe: pl.LazyFrame
+    lazyframe: pl.LazyFrame
     key: Optional[str] = None
 
 

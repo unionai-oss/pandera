@@ -10,10 +10,7 @@ from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData
 from pandera.backends.base import BaseCheckBackend
-from pandera.backends.polars.constants import (
-    CHECK_OUTPUT_KEY,
-    FAILURE_CASE_KEY,
-)
+from pandera.backends.polars.constants import CHECK_OUTPUT_KEY
 
 
 class PolarsCheckBackend(BaseCheckBackend):
@@ -81,14 +78,12 @@ class PolarsCheckBackend(BaseCheckBackend):
     ) -> CheckResult:
         """Postprocesses the result of applying the check function."""
         passed = check_output.select([pl.col(CHECK_OUTPUT_KEY).all()])
-        failure_cases = check_obj.dataframe.with_context(check_output).filter(
+        failure_cases = check_obj.lazyframe.with_context(check_output).filter(
             pl.col(CHECK_OUTPUT_KEY).not_()
         )
 
-        if len(failure_cases.columns) == 1 and check_obj.key is not None:
-            failure_cases = failure_cases.rename(
-                {check_obj.key: FAILURE_CASE_KEY}
-            ).select(FAILURE_CASE_KEY)
+        if check_obj.key is not None:
+            failure_cases = failure_cases.select(check_obj.key)
 
         return CheckResult(
             check_output=check_output,

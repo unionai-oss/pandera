@@ -127,7 +127,140 @@ And of course, you can use the object-based API to validate dask dataframes:
     │ CA    ┆ San Diego     ┆ 18    │
     └───────┴───────────────┴───────┘
 
+What data types are supported?
+------------------------------
+
+``pandera`` currently supports all the `scalar data types <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`__
+`Nested data types <https://docs.pola.rs/py-polars/html/reference/datatypes.html#nested>`__
+are not yet supported. Built-in python types like ``str``, ``int``, ``float``,
+and ``bool`` will be handled in the same way that ``polars`` handles them:
+
+.. testcode:: polars
+
+    assert pl.Series([1,2,3], dtype=int).dtype == pl.Int64
+    assert pl.Series([*"abc"], dtype=str).dtype == pl.Utf8
+    assert pl.Series([1.0, 2.0, 3.0], dtype=float).dtype == pl.Float64
+
+.. testoutput:: polars
+
+    Int64
+    String
+
+So the following schemas are equivalent:
+
+.. testcode:: polars
+
+    schema1 = pa.DataFrameSchema({
+        "a": pa.Column(int),
+        "b": pa.Column(str),
+        "c": pa.Column(float),
+    })
+
+    schema2 = pa.DataFrameSchema({
+        "a": pa.Column(pl.Int64),
+        "b": pa.Column(pl.Utf8),
+        "c": pa.Column(pl.Float64),
+    })
+
+    assert schema1 == schema2
+
+
 What's different?
 ------------------
 
-Compared to the way
+Compared to the way ``pandera`` handles ``pandas`` dataframes, ``pandera``
+attempts to leverage the ``polars`` lazy API as much as possible to leverage
+its performance optimization benefits (read more about it
+[here](https://docs.pola.rs/user-guide/lazy/using/)).
+
+Because ``pandera`` is a run-time validator, it will need to ``.collect()`` the
+data values at certain points of the validation pipeline that require operating
+on the data values contained in the ``LazyFrame``. Therefore, calling the
+``.validate()`` method on a ``LazyFrame`` will trigger multiple ``.collect()``
+operations depending on the schema specification.
+
+The ``schema.validate()`` method is effectively an eager operation that converts
+the validated data into a ``polars.LazyFrame`` before returning the output. In
+the context of a lazy computation pipeline, this means that you can use schemas
+as eager checkpoints that validate the data. Pandera is designed such that you
+can continue to use the ``LazyFrame`` API after the schema validation step.
+
+.. testcode:: polars
+
+    class SimpleModel(pa.DataFrameModel):
+        a: int
+
+    df = (
+        pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+        .cast({"a": pl.Int64})
+        .pipe(SimpleModel.validate) # this calls .collect() on the LazyFrame
+                                    # and calls .lazy() before returning
+                                    # the output
+        .with_columns(b=pl.lit("a"))
+        # do more lazy operations
+        .collect()
+    )
+    print(df)
+
+.. testoutput:: polars
+
+    shape: (3, 2)
+    ┌─────┬─────┐
+    │ a   ┆ b   │
+    │ --- ┆ --- │
+    │ i64 ┆ str │
+    ╞═════╪═════╡
+    │ 1   ┆ a   │
+    │ 2   ┆ a   │
+    │ 3   ┆ a   │
+    └─────┴─────┘
+
+In the event of a validation error, ``pandera`` will raise a ``SchemaError``
+eagerly.
+
+.. testcode:: polars
+
+    invalid_lf = pl.LazyFrame({"a": pl.Series(["1", "2", "3"], dtype=pl.Utf8)})
+    SimpleModel.validate(invalid_lf)
+
+.. testoutput:: polars
+
+    Traceback (most recent call last):
+    ...
+    SchemaError: expected column 'a' to have type Int64, got String
+
+And if you use lazy validation ``pandera`` will raise a ``SchemaErrors`` exception.
+This is particularly useful when you want to collect all of the validation errors
+present in the data.
+
+.. testcode:: polars
+
+    class Model(pa.DataFrameModel):
+        a: int
+        b: str = pa.Field(isin=[*"abc"])
+        c: float = pa.Field(ge=0.0, le=1.0)
+
+    invalid_lf = pl.LazyFrame({
+        "a": pl.Series(["1", "2", "3"], dtype=pl.Utf8),
+        "b": ["d", "e", "f"],
+        "c": [0.0, 1.1, -0.1],
+    })
+    Model.validate(invalid_lf, lazy=True)
+
+.. testoutput:: polars
+
+    pandera.errors.SchemaErrors: Schema Model: A total of 4 errors were found.
+
+    shape: (6, 5)
+    ┌──────────────┬────────────────┬────────┬───────────────────────────────┬──────────────┐
+    │ failure_case ┆ schema_context ┆ column ┆ check                         ┆ check_number │
+    │ ---          ┆ ---            ┆ ---    ┆ ---                           ┆ ---          │
+    │ str          ┆ str            ┆ str    ┆ str                           ┆ i32          │
+    ╞══════════════╪════════════════╪════════╪═══════════════════════════════╪══════════════╡
+    │ String       ┆ Column         ┆ a      ┆ dtype('Int64')                ┆ null         │
+    │ d            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            │
+    │ e            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            │
+    │ f            ┆ Column         ┆ b      ┆ isin(['a', 'b', 'c'])         ┆ 0            │
+    │ -0.1         ┆ Column         ┆ c      ┆ greater_than_or_equal_to(0.0) ┆ 0            │
+    │ 1.1          ┆ Column         ┆ c      ┆ less_than_or_equal_to(1.0)    ┆ 1            │
+    └──────────────┴────────────────┴────────┴───────────────────────────────┴──────────────┘
