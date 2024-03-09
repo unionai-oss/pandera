@@ -122,7 +122,7 @@ conda install -c conda-forge pandera-modin       # validate modin dataframes
 conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
 conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
 conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
-conda install -c conda-forge pandera-polars      # validate polars geodataframes
+conda install -c conda-forge pandera-polars      # validate polars dataframes
 ```
 
 </details>
