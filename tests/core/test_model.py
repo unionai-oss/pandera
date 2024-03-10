@@ -1427,3 +1427,85 @@ def test_pandas_fields_metadata():
         }
     }
     assert PanderaSchema.get_metadata() == expected
+
+
+def test_iter_fieldnames():
+    """
+    Test we can iterate over the `DataFrameModel` to get the field names.
+    """
+
+    class PanderaSchema(pa.DataFrameModel):
+        id: Series[int]
+        product_name: Series[str]
+        price: Series[float]
+
+    expected = [
+        PanderaSchema.id,
+        PanderaSchema.product_name,
+        PanderaSchema.price,
+    ]
+    assert list(PanderaSchema) == expected
+
+
+def test_iter_fieldnames_inheritance():
+    """
+    Test iterating over the fieldnames respects the order of inheritance.
+    """
+
+    class PanderaSchema1(pa.DataFrameModel):
+        id: Series[int]
+        product_name: Series[str]
+        price: Series[float]
+
+    # Note: order of definition differs from order of inheritance
+    class PanderaSchema3(pa.DataFrameModel):
+        quality: Series[str]
+
+    class PanderaSchema2(pa.DataFrameModel):
+        quantity: Series[int]
+
+    class CombinedSchema(PanderaSchema1, PanderaSchema2, PanderaSchema3):
+        pass
+
+    expected = [
+        PanderaSchema1.id,
+        PanderaSchema1.product_name,
+        PanderaSchema1.price,
+        PanderaSchema2.quantity,
+        PanderaSchema3.quality,
+    ]
+    assert list(CombinedSchema) == expected
+
+
+def test_iter_fieldnames_df_index():
+    """
+    Test iterating over the fieldnames as a way to index all columns of a dataframe.
+    """
+
+    class PanderaSchema(pa.DataFrameModel):
+        id: Series[int]
+        product_name: Series[str]
+        price: Series[float]
+
+        class Config:
+            order = True
+
+    df = pd.DataFrame(
+        {
+            PanderaSchema.price: [1.0, 2.0, 3.0],
+            PanderaSchema.id: [1, 2, 3],
+            PanderaSchema.product_name: ["A", "B", "C"],
+        }
+    )
+    assert df.columns == [
+        PanderaSchema.price,
+        PanderaSchema.id,
+        PanderaSchema.product_name,
+    ]
+    df = df[list(PanderaSchema)].copy()
+    assert df.columns == [
+        PanderaSchema.id,
+        PanderaSchema.product_name,
+        PanderaSchema.price,
+    ]
+    PanderaSchema.validate(df)
