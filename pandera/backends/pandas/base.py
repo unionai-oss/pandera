@@ -12,6 +12,7 @@ from typing import (
 )
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 
 from pandera.api.base.checks import CheckResult
@@ -40,6 +41,13 @@ class ColumnInfo(NamedTuple):
     destuttered_column_names: List
     absent_column_names: List
     regex_match_patterns: List
+
+
+_MULTIINDEX_HANDLED_TYPES = {
+    "Timestamp": pd.Timestamp,
+    "NaT": pd.NaT,
+    "nan": np.nan,
+}
 
 
 FieldCheckObj = Union[pd.Series, pd.DataFrame]
@@ -182,7 +190,14 @@ class PandasSchemaBackend(BaseSchemaBackend):
             if isinstance(check_obj.index, pd.MultiIndex):
                 # MultiIndex values are saved on the error as strings so need to be cast back
                 # to their original types
-                index_tuples = err.failure_cases["index"].apply(eval)
+                index_tuples = (
+                    err.failure_cases["index"]
+                    .astype(str)
+                    .apply(lambda i: eval(i, _MULTIINDEX_HANDLED_TYPES))
+                )
+                # type check on a column of index.
+                if len(index_tuples) == 1 and index_tuples[0] is None:
+                    continue
                 index_values = pd.MultiIndex.from_tuples(index_tuples)
 
             mask = ~check_obj.index.isin(index_values)
