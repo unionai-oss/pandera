@@ -470,7 +470,7 @@ class SeriesSchema(ArraySchema):
             inplace=inplace,
         )
         if self.index is not None:
-            validated_obj.index = self.index.validate(
+            validated_obj = self.index.validate(
                 check_obj,
                 head=head,
                 tail=tail,

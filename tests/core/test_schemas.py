@@ -1643,9 +1643,9 @@ def test_lazy_dataframe_unique() -> None:
             Index(str, checks=Check.isin(["a", "b", "c"])),
             pd.DataFrame({"col": [1, 2, 3]}, index=["a", "b", "d"]),
             {
-                # expect that the data in the SchemaError is the pd.Index cast
-                # into a Series
-                "data": pd.Series(["a", "b", "d"]),
+                "data": pd.DataFrame(
+                    {"col": [1, 2, 3]}, index=["a", "b", "d"]
+                ),
                 "schema_errors": {
                     "Index": {"isin(['a', 'b', 'c'])": ["d"]},
                 },
@@ -1666,8 +1666,6 @@ def test_lazy_dataframe_unique() -> None:
                 ),
             ),
             {
-                # expect that the data in the SchemaError is the pd.MultiIndex
-                # cast into a DataFrame
                 "data": pd.DataFrame(
                     {"column": [1, 2, 3]},
                     index=pd.MultiIndex.from_arrays(
@@ -1745,12 +1743,12 @@ def test_capture_check_errors() -> None:
 @pytest.mark.parametrize(
     "from_dtype,to_dtype",
     [
-        # [float, int],
-        # [int, float],
-        # [object, int],
-        # [object, float],
+        [float, int],
+        [int, float],
+        [object, int],
+        [object, float],
         [int, object],
-        # [float, object],
+        [float, object],
     ],
 )
 def test_schema_coerce_inplace_validation(

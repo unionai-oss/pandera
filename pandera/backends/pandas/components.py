@@ -275,19 +275,21 @@ class IndexBackend(ArraySchemaBackend):
                 reason_code=SchemaErrorReason.MISMATCH_INDEX,
             )
 
-        if schema.coerce:
-            check_obj.index = schema.coerce_dtype(check_obj.index)
-            obj_to_validate = schema.dtype.coerce(
-                check_obj.index.to_series().reset_index(drop=True)
-            )
-        else:
-            obj_to_validate = check_obj.index.to_series().reset_index(
-                drop=True
-            )
+        error_handler = ErrorHandler(lazy)
 
-        assert is_field(
-            super().validate(
-                obj_to_validate,
+        if schema.coerce:
+            try:
+                check_obj.index = schema.coerce_dtype(check_obj.index)
+            except SchemaError as exc:
+                error_handler.collect_error(
+                    validation_type(exc.reason_code),
+                    exc.reason_code,
+                    exc,
+                )
+
+        try:
+            _validated_obj = super().validate(
+                check_obj.index.to_series().reset_index(drop=True),
                 schema,
                 head=head,
                 tail=tail,
@@ -295,8 +297,24 @@ class IndexBackend(ArraySchemaBackend):
                 random_state=random_state,
                 lazy=lazy,
                 inplace=inplace,
-            ),
-        )
+            )
+            assert is_field(_validated_obj)
+        except SchemaError as exc:
+            error_handler.collect_error(
+                validation_type(exc.reason_code),
+                exc.reason_code,
+                exc,
+            )
+        except SchemaErrors as exc:
+            error_handler.collect_errors(exc.schema_errors, exc)
+
+        if lazy and error_handler.collected_errors:
+            raise SchemaErrors(
+                schema=schema,
+                schema_errors=error_handler.schema_errors,
+                data=check_obj,
+            )
+
         return check_obj
 
 
