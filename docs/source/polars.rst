@@ -130,6 +130,13 @@ And of course, you can use the object-based API to validate dask dataframes:
     │ CA    ┆ San Diego     ┆ 18    │
     └───────┴───────────────┴───────┘
 
+.. note::
+
+    The :ref:`data synthesis strategies` functionality is not yet supported in
+    the polars integration. At this time you can use the polars-native
+    `parametric testing <https://docs.pola.rs/py-polars/html/reference/testing.html#parametric-testing>`__
+    functions to generate test data for polars.
+
 How it works
 ------------
 
@@ -165,7 +172,7 @@ can continue to use the ``LazyFrame`` API after the schema validation step.
 
    .. testcode:: polars
 
-       schema = pa.DataFrameSchema({"a": pa.Column(int))
+       schema = pa.DataFrameSchema({"a": pa.Column(int)})
 
        df = (
            pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
