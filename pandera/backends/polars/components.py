@@ -5,16 +5,17 @@ from typing import Iterable, List, Optional, cast
 
 import polars as pl
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     SchemaDefinitionError,
     SchemaError,
     SchemaErrors,
     SchemaErrorReason,
 )
+from pandera.validation_depth import validation_type
 
 
 class ColumnBackend(PolarsSchemaBackend):
@@ -47,7 +48,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 "Column schema must have a name specified."
             )
 
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
         check_obj = self.preprocess(check_obj, inplace)
 
         if getattr(schema, "drop_invalid_rows", False) and not lazy:
@@ -73,7 +74,7 @@ class ColumnBackend(PolarsSchemaBackend):
             else:
                 raise SchemaErrors(
                     schema=schema,
-                    schema_errors=error_handler.collected_errors,
+                    schema_errors=error_handler.schema_errors,
                     data=check_obj,
                 )
 
@@ -84,7 +85,7 @@ class ColumnBackend(PolarsSchemaBackend):
 
     def run_checks_and_handle_errors(
         self,
-        error_handler,
+        error_handler: ErrorHandler,
         schema,
         check_obj: pl.LazyFrame,
         **subsample_kwargs,
@@ -112,6 +113,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 if result.schema_error is not None:
                     error = result.schema_error
                 else:
+                    assert result.reason_code is not None
                     error = SchemaError(
                         schema=schema,
                         data=check_obj,
@@ -123,6 +125,7 @@ class ColumnBackend(PolarsSchemaBackend):
                         reason_code=result.reason_code,
                     )
                     error_handler.collect_error(
+                        validation_type(result.reason_code),
                         result.reason_code,
                         error,
                         original_exc=result.original_exc,
@@ -160,6 +163,7 @@ class ColumnBackend(PolarsSchemaBackend):
                     f"{schema.dtype}: {exc}"
                 ),
                 check=f"coerce_dtype('{schema.dtype}')",
+                reason_code=SchemaErrorReason.DATATYPE_COERCION,
             ) from exc
 
     def check_nullable(
