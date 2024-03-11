@@ -21,10 +21,10 @@ requirements:
 	pip install -r requirements-dev.txt
 
 docs-clean:
-	rm -rf docs/**/generated docs/**/methods docs/_build docs/source/_contents
+	rm -rf docs/source/reference/generated docs/**/generated docs/**/methods docs/_build docs/source/_contents
 
 docs: docs-clean
-	python -m sphinx -E "docs/source" "docs/_build" && make -C docs doctest
+	python -m sphinx -W -E "docs/source" "docs/_build" && make -C docs doctest
 
 quick-docs:
 	python -m sphinx -E "docs/source" "docs/_build" -W && \

@@ -6,7 +6,7 @@ import polars as pl
 
 
 class PolarsData(NamedTuple):
-    dataframe: pl.LazyFrame
+    lazyframe: pl.LazyFrame
     key: Optional[str] = None
 
 
@@ -17,6 +17,9 @@ class CheckResult(NamedTuple):
     check_passed: pl.LazyFrame
     checked_object: pl.LazyFrame
     failure_cases: pl.LazyFrame
+
+
+PolarsCheckObjects = Union[pl.LazyFrame, pl.DataFrame]
 
 
 PolarsDtypeInputTypes = Union[
