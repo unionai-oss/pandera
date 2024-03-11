@@ -75,7 +75,7 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
 
 
 You can also use the :py:func:`~pandera.check_types` decorator to validate
-modin dataframes at runtime:
+polars LazyFrames at runtime:
 
 
 .. testcode:: polars
@@ -130,14 +130,14 @@ And of course, you can use the object-based API to validate dask dataframes:
     │ CA    ┆ San Diego     ┆ 18    │
     └───────┴───────────────┴───────┘
 
-What's different?
-------------------
+How it works
+------------
 
 Compared to the way ``pandera`` handles ``pandas`` dataframes, ``pandera``
 attempts to leverage the ``polars`` `lazy API <https://docs.pola.rs/user-guide/lazy/using/>`__
 as much as possible to leverage its performance optimization benefits. However,
-because ``pandera`` is a run-time validator, it will need to ``.collect()`` the
-data values at certain points of the validation pipeline that require operating
+because ``pandera`` is a run-time validator, it still needs to ``.collect()`` the
+data values at certain points of the validation process that require operating
 on the data values contained in the ``LazyFrame``. Therefore, calling the
 ``.validate()`` method on a ``LazyFrame`` will trigger multiple ``.collect()``
 operations depending on the schema specification.
@@ -159,35 +159,70 @@ In the context of a lazy computation pipeline, this means that you can use schem
 as eager checkpoints that validate the data. Pandera is designed such that you
 can continue to use the ``LazyFrame`` API after the schema validation step.
 
-.. testcode:: polars
 
-    class SimpleModel(pa.DataFrameModel):
-        a: int
 
-    df = (
-        pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
-        .cast({"a": pl.Int64})
-        .pipe(SimpleModel.validate) # this calls .collect() on the LazyFrame
-                                    # and calls .lazy() before returning
-                                    # the output
-        .with_columns(b=pl.lit("a"))
-        # do more lazy operations
-        .collect()
-    )
-    print(df)
+.. tabbed:: DataFrameSchema
 
-.. testoutput:: polars
+   .. testcode:: polars
 
-    shape: (3, 2)
-    ┌─────┬─────┐
-    │ a   ┆ b   │
-    │ --- ┆ --- │
-    │ i64 ┆ str │
-    ╞═════╪═════╡
-    │ 1   ┆ a   │
-    │ 2   ┆ a   │
-    │ 3   ┆ a   │
-    └─────┴─────┘
+       schema = pa.DataFrameSchema({"a": pa.Column(int))
+
+       df = (
+           pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+           .cast({"a": pl.Int64})
+           .pipe(schema.validate) # this calls .collect() on the LazyFrame
+                                  # and calls .lazy() before returning
+                                  # the output
+           .with_columns(b=pl.lit("a"))
+           # do more lazy operations
+           .collect()
+       )
+       print(df)
+
+   .. testoutput:: polars
+
+       shape: (3, 2)
+       ┌─────┬─────┐
+       │ a   ┆ b   │
+       │ --- ┆ --- │
+       │ i64 ┆ str │
+       ╞═════╪═════╡
+       │ 1   ┆ a   │
+       │ 2   ┆ a   │
+       │ 3   ┆ a   │
+       └─────┴─────┘
+
+.. tabbed:: DataFrameModel
+
+   .. testcode:: polars
+
+       class SimpleModel(pa.DataFrameModel):
+           a: int
+
+       df = (
+           pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+           .cast({"a": pl.Int64})
+           .pipe(SimpleModel.validate) # this calls .collect() on the LazyFrame
+                                       # and calls .lazy() before returning
+                                       # the output
+           .with_columns(b=pl.lit("a"))
+           # do more lazy operations
+           .collect()
+       )
+       print(df)
+
+   .. testoutput:: polars
+
+       shape: (3, 2)
+       ┌─────┬─────┐
+       │ a   ┆ b   │
+       │ --- ┆ --- │
+       │ i64 ┆ str │
+       ╞═════╪═════╡
+       │ 1   ┆ a   │
+       │ 2   ┆ a   │
+       │ 3   ┆ a   │
+       └─────┴─────┘
 
 In the event of a validation error, ``pandera`` will raise a ``SchemaError``
 eagerly.
@@ -206,6 +241,16 @@ eagerly.
 And if you use lazy validation, ``pandera`` will raise a ``SchemaErrors`` exception.
 This is particularly useful when you want to collect all of the validation errors
 present in the data.
+
+.. note::
+
+    :ref:`Lazy validation <lazy_validation>` in pandera is different from the
+    lazy API in polars, which is an unfortunate name collision. Lazy validation
+    means that all parsers and checks are applied to the data before raising
+    a `:py:class:~pandera.errors.SchemaErrors` exception. The lazy API
+    in polars allows you to build a computation graph without actually
+    executing it in-line, where you call ``.collect()`` to actually execute
+    the computation.
 
 .. testcode:: polars
 
@@ -241,8 +286,8 @@ present in the data.
     └──────────────┴────────────────┴────────┴───────────────────────────────┴──────────────┴───────┘
 
 
-What data types are supported?
-------------------------------
+Supported Data Types
+--------------------
 
 ``pandera`` currently supports all the `scalar data types <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`__.
 `Nested data types <https://docs.pola.rs/py-polars/html/reference/datatypes.html#nested>`__
@@ -285,7 +330,18 @@ contains two attributes:
 
 - A ``lazyframe`` attribute, which contains the ``pl.LazyFrame`` object you want
   to validate.
-- A ``key`` attribute, which contains the column name you want to validate.
+- A ``key`` attribute, which contains the column name you want to validate. This
+  will be ``None`` for dataframe-level checks.
+
+Element-wise checks are also supported by setting ``element_wise=True``. This
+will require a function that takes in a single element of the column/dataframe
+and returns a boolean scalar indicating whether the value passed.
+
+.. warning::
+
+    Under the hood, element-wise checks use the
+    `map_elements <https://docs.pola.rs/py-polars/html/reference/expressions/api/polars.Expr.map_elements.html>`__
+    function, which is slower than the native polars expressions API.
 
 Column-level Checks
 ^^^^^^^^^^^^^^^^^^^
@@ -298,6 +354,7 @@ Here's an example of a column-level custom check:
 
        from pandera.polars import PolarsData
 
+
        def is_positive_vector(data: PolarsData) -> pl.LazyFrame:
            """Return a LazyFrame with a single boolean column."""
            return data.lazyframe.select(pl.col(data.key).gt(0))
@@ -306,12 +363,17 @@ Here's an example of a column-level custom check:
            """Return a LazyFrame with a single boolean scalar."""
            return data.lazyframe.select(pl.col(data.key).gt(0).all())
 
+       def is_positive_element_wise(x: int) -> bool:
+           """Take a single value and return a boolean scalar."""
+           return x > 0
+
        schema_with_custom_checks = pa.DataFrameSchema({
            "a": pa.Column(
                int,
                checks=[
                    pa.Check(is_positive_vector),
                    pa.Check(is_positive_scalar),
+                   pa.Check(is_positive_element_wise, element_wise=True),
                ]
            )
        })
@@ -339,6 +401,7 @@ Here's an example of a column-level custom check:
 
        from pandera.polars import PolarsData
 
+
        class ModelWithCustomChecks(pa.DataFrameModel):
            a: int
 
@@ -351,6 +414,11 @@ Here's an example of a column-level custom check:
            def is_positive_scalar(cls, data: PolarsData) -> pl.LazyFrame:
                """Return a LazyFrame with a single boolean scalar."""
                return data.lazyframe.select(pl.col(data.key).gt(0).all())
+
+           @pa.check("a", element_wise=True)
+           def is_positive_element_wise(cls, x: int) -> bool:
+               """Take a single value and return a boolean scalar."""
+               return x > 0
 
        validated_df = ModelWithCustomChecks.validate(lf).collect()
        print(validated_df)
@@ -391,6 +459,10 @@ multiple boolean columns, a single boolean column, or a scalar boolean.
           """Return a LazyFrame with multiple boolean columns."""
           return data.lazyframe.select(pl.col("*").gt(0).all())
 
+      def is_positive_element_wise(x: int) -> bool:
+           """Take a single value and return a boolean scalar."""
+           return x > 0
+
       schema_with_df_checks = pa.DataFrameSchema(
           columns={
               "a": pa.Column(int),
@@ -399,6 +471,7 @@ multiple boolean columns, a single boolean column, or a scalar boolean.
           checks=[
               pa.Check(col1_gt_col2, col1="a", col2="b"),
               pa.Check(is_positive_df),
+              pa.Check(is_positive_element_wise, element_wise=True),
           ]
       )
 
@@ -437,6 +510,11 @@ multiple boolean columns, a single boolean column, or a scalar boolean.
            def is_positive_df(cls, data: PolarsData) -> pl.LazyFrame:
                """Return a LazyFrame with multiple boolean columns."""
                return data.lazyframe.select(pl.col("*").gt(0).all())
+
+           @pa.dataframe_check(element_wise=True)
+           def is_positive_element_wise(cls, x: int) -> bool:
+               """Take a single value and return a boolean scalar."""
+               return x > 0
 
        validated_df = ModelWithDFChecks.validate(lf).collect()
        print(validated_df)

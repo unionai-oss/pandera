@@ -132,7 +132,7 @@ html_theme = "furo"
 # documentation.
 
 announcement = """
-📢 Pandera 0.20.0 now supports <a href="polars.html">Polars</a> 🎉.
+📢 Pandera 0.19.0 now supports <a href="/polars.html">Polars</a> 🎉.
 If you like this project, <a href='https://github.com/unionai-oss/pandera' target='_blank'>give us a star ⭐️! </a>
 """
 
