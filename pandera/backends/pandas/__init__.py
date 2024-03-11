@@ -72,6 +72,7 @@ for t in dataframe_datatypes:
 for t in series_datatypes:
     SeriesSchema.register_backend(t, SeriesSchemaBackend)
     Column.register_backend(t, ColumnBackend)
+    MultiIndex.register_backend(t, MultiIndexBackend)
     Index.register_backend(t, IndexBackend)
 
 for t in index_datatypes:

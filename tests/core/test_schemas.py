@@ -667,6 +667,27 @@ def test_series_schema_with_index(coerce: bool) -> None:
     assert (validated_series_multiindex.index == multi_index).all()
 
 
+def test_series_schema_with_index_errors() -> None:
+    """Test that SeriesSchema raises errors for invalid index."""
+    schema_with_index = SeriesSchema(dtype=int, index=Index(int))
+    data = pd.Series([1, 2, 3], index=[1.0, 2.0, 3.0])
+    with pytest.raises(errors.SchemaError):
+        schema_with_index(data)
+
+    schema_with_index_check = SeriesSchema(
+        dtype=int, index=Index(float, Check(lambda x: x == 1.0))
+    )
+    with pytest.raises(errors.SchemaError):
+        schema_with_index_check(data)
+
+    schema_with_index_coerce = SeriesSchema(
+        dtype=int, index=Index(int, coerce=True)
+    )
+    expected = pd.Series([1, 2, 3], index=[1, 2, 3])
+    schema_with_index_coerce(data)
+    assert schema_with_index_coerce(data).equals(expected)
+
+
 class SeriesGreaterCheck:
     # pylint: disable=too-few-public-methods
     """Class creating callable objects to check if series elements exceed a
@@ -1622,9 +1643,9 @@ def test_lazy_dataframe_unique() -> None:
             Index(str, checks=Check.isin(["a", "b", "c"])),
             pd.DataFrame({"col": [1, 2, 3]}, index=["a", "b", "d"]),
             {
-                # expect that the data in the SchemaError is the pd.Index cast
-                # into a Series
-                "data": pd.Series(["a", "b", "d"]),
+                "data": pd.DataFrame(
+                    {"col": [1, 2, 3]}, index=["a", "b", "d"]
+                ),
                 "schema_errors": {
                     "Index": {"isin(['a', 'b', 'c'])": ["d"]},
                 },
@@ -1645,8 +1666,6 @@ def test_lazy_dataframe_unique() -> None:
                 ),
             ),
             {
-                # expect that the data in the SchemaError is the pd.MultiIndex
-                # cast into a DataFrame
                 "data": pd.DataFrame(
                     {"column": [1, 2, 3]},
                     index=pd.MultiIndex.from_arrays(
@@ -1724,12 +1743,12 @@ def test_capture_check_errors() -> None:
 @pytest.mark.parametrize(
     "from_dtype,to_dtype",
     [
-        # [float, int],
-        # [int, float],
-        # [object, int],
-        # [object, float],
+        [float, int],
+        [int, float],
+        [object, int],
+        [object, float],
         [int, object],
-        # [float, object],
+        [float, object],
     ],
 )
 def test_schema_coerce_inplace_validation(

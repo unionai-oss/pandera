@@ -469,6 +469,16 @@ class SeriesSchema(ArraySchema):
             lazy=lazy,
             inplace=inplace,
         )
+        if self.index is not None:
+            validated_obj = self.index.validate(
+                check_obj,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+            )
         return cast(pd.Series, validated_obj)
 
     def example(self, size=None) -> pd.Series:
