@@ -7,6 +7,7 @@ from typing import List, Dict, Optional
 import polars as pl
 from pandera.api.polars.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
+from pandera.backends.polars.constants import CHECK_OUTPUT_KEY
 from pandera.backends.pandas.error_formatters import (
     format_generic_error_message,
     format_vectorized_error_message,
@@ -146,7 +147,11 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             if isinstance(err.failure_cases, pl.DataFrame):
                 failure_cases_df = err.failure_cases
 
-                if len(err.failure_cases) > 1:
+                # get row number of the failure cases
+                index = err.check_output.with_row_count("index").filter(
+                    pl.col(CHECK_OUTPUT_KEY).eq(False)
+                )["index"]
+                if len(err.failure_cases.columns) > 1:
                     # for boolean dataframe check results, reduce failure cases
                     # to a struct column
                     failure_cases_df = err.failure_cases.with_columns(
@@ -154,38 +159,49 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                             err.failure_cases.rows(named=True)
                         )
                     ).select(pl.col.failure_case)
+                else:
+                    failure_cases_df = err.failure_cases.rename(
+                        {err.failure_cases.columns[0]: "failure_case"}
+                    )
 
                 failure_cases_df = failure_cases_df.with_columns(
                     schema_context=pl.lit(err.schema.__class__.__name__),
                     column=pl.lit(err.schema.name),
                     check=pl.lit(check_identifier),
                     check_number=pl.lit(err.check_index),
-                    index=pl.lit(None),
-                )
+                    index=index,
+                ).cast({"failure_case": pl.Utf8, "index": pl.Int32})
 
             else:
                 scalar_failure_cases = defaultdict(list)
+                scalar_failure_cases["failure_case"].append(err.failure_cases)
                 scalar_failure_cases["schema_context"].append(
                     err.schema.__class__.__name__
                 )
                 scalar_failure_cases["column"].append(err.schema.name)
                 scalar_failure_cases["check"].append(check_identifier)
                 scalar_failure_cases["check_number"].append(err.check_index)
-                scalar_failure_cases["failure_case"].append(err.failure_cases)
                 scalar_failure_cases["index"].append(None)
-                failure_cases_df = pl.DataFrame(scalar_failure_cases)
+                failure_cases_df = pl.DataFrame(scalar_failure_cases).cast(
+                    {"check_number": pl.Int32, "index": pl.Int32}
+                )
 
             failure_case_collection.append(failure_cases_df)
 
         failure_cases = pl.concat(failure_case_collection)
 
+        message = ""
+        if schema_name is not None:
+            message += f"Schema '{schema_name}': "
+
+        n_error_types = sum(error_counts.values())
+        message += f"{n_error_types} errors types were found "
+        message += f"with a total of {len(failure_cases)} failures."
+        message += f"\n{failure_cases}"
+
         return FailureCaseMetadata(
             failure_cases=failure_cases,
-            message=FAILURE_CASE_TEMPLATE.format(
-                schema_name=schema_name,
-                error_count=sum(error_counts.values()),
-                failure_cases=str(failure_cases),
-            ),
+            message=message,
             error_counts=error_counts,
         )
 
@@ -207,10 +223,3 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             )
         )["valid_rows"]
         return check_obj.filter(valid_rows)
-
-
-FAILURE_CASE_TEMPLATE = """
-Schema {schema_name}: A total of {error_count} errors were found.
-
-{failure_cases}
-""".strip()

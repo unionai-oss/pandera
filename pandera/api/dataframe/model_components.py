@@ -221,6 +221,7 @@ def _check_dispatch():
         "lt": Check.less_than,
         "le": Check.less_than_or_equal_to,
         "in_range": Check.in_range,
+        "between": Check.between,
         "isin": Check.isin,
         "notin": Check.notin,
         "str_contains": Check.str_contains,

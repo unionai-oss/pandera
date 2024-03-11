@@ -128,3 +128,43 @@ class Column(_Column):
         self.name = name
         self.set_regex()
         return self
+
+    def strategy(self, *, size=None):
+        """Create a ``hypothesis`` strategy for generating a Column.
+
+        :param size: number of elements to generate
+        :returns: a dataframe strategy for a single column.
+
+        .. warning::
+
+           This method is not implemented in the polars backend.
+        """
+        raise NotImplementedError(
+            "Data synthesis is not supported in with polars schemas."
+        )
+
+    def strategy_component(self):
+        """Generate column data object for use by DataFrame strategy.
+
+        .. warning::
+
+           This method is not implemented in the polars backend.
+        """
+        raise NotImplementedError(
+            "Data synthesis is not supported in with polars schemas."
+        )
+
+    def example(self, size=None):
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated Index.
+        :returns: pandas DataFrame object.
+
+        .. warning::
+
+           This method is not implemented in the polars backend.
+        """
+        # pylint: disable=import-outside-toplevel,cyclic-import,import-error
+        raise NotImplementedError(
+            "Data synthesis is not supported in with polars schemas."
+        )

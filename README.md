@@ -42,8 +42,9 @@ This is useful in production-critical or reproducible research settings. With
 
 1. Define a schema once and use it to validate
    [different dataframe types](https://pandera.readthedocs.io/en/stable/supported_libraries.html)
-   including [pandas](http://pandas.pydata.org), [dask](https://dask.org),
-   [modin](https://modin.readthedocs.io/), and [pyspark](https://spark.apache.org/docs/3.2.0/api/python/user_guide/pandas_on_spark/index.html).
+   including [pandas](http://pandas.pydata.org), [polars](https://docs.pola.rs/),
+   [dask](https://dask.org), [modin](https://modin.readthedocs.io/),
+   and [pyspark](https://spark.apache.org/docs/3.2.0/api/python/user_guide/pandas_on_spark/index.html).
 1. [Check](https://pandera.readthedocs.io/en/stable/checks.html) the types and
    properties of columns in a `DataFrame` or values in a `Series`.
 1. Perform more complex statistical validation like
@@ -100,6 +101,7 @@ pip install pandera[modin]       # validate modin dataframes
 pip install pandera[modin-ray]   # validate modin dataframes with ray
 pip install pandera[modin-dask]  # validate modin dataframes with dask
 pip install pandera[geopandas]   # validate geopandas geodataframes
+pip install pandera[polars]      # validate polars dataframes
 ```
 
 </details>
@@ -120,6 +122,7 @@ conda install -c conda-forge pandera-modin       # validate modin dataframes
 conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
 conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
 conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
+conda install -c conda-forge pandera-polars      # validate polars dataframes
 ```
 
 </details>
