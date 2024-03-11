@@ -21,7 +21,7 @@ dataframes in Python. First, install ``pandera`` with the ``polars`` extra:
 
    pip install pandera[polars]
 
-Then you can use pandera schemas to validate modin dataframes. In the example
+Then you can use pandera schemas to validate polars dataframes. In the example
 below we'll use the :ref:`class-based API <dataframe_models>` to define a
 :py:class:`~pandera.api.polars.model.LazyFrame` for validation.
 
@@ -30,8 +30,6 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
     import pandera.polars as pa
     import polars as pl
 
-    from pandera.typing.polars import LazyFrame
-
 
     class Schema(pa.DataFrameModel):
         state: str
@@ -39,8 +37,7 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
         price: int = pa.Field(in_range={"min_value": 5, "max_value": 20})
 
 
-    # create a modin dataframe that's validated on object initialization
-    lf = LazyFrame[Schema](
+    lf = pl.LazyFrame(
         {
             'state': ['FL','FL','FL','CA','CA','CA'],
             'city': [
@@ -54,7 +51,7 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
             'price': [8, 12, 10, 16, 20, 18],
         }
     )
-    print(lf.collect())
+    print(Schema.validate(lf).collect())
 
 
 .. testoutput:: polars
@@ -79,6 +76,8 @@ polars LazyFrames at runtime:
 
 
 .. testcode:: polars
+
+    from pandera.typing.polars import LazyFrame
 
     @pa.check_types
     def function(lf: LazyFrame[Schema]) -> LazyFrame[Schema]:
@@ -113,6 +112,31 @@ And of course, you can use the object-based API to validate dask dataframes:
     })
     print(schema(lf).collect())
 
+
+.. testoutput:: polars
+
+    shape: (6, 3)
+    ┌───────┬───────────────┬───────┐
+    │ state ┆ city          ┆ price │
+    │ ---   ┆ ---           ┆ ---   │
+    │ str   ┆ str           ┆ i64   │
+    ╞═══════╪═══════════════╪═══════╡
+    │ FL    ┆ Orlando       ┆ 8     │
+    │ FL    ┆ Miami         ┆ 12    │
+    │ FL    ┆ Tampa         ┆ 10    │
+    │ CA    ┆ San Francisco ┆ 16    │
+    │ CA    ┆ Los Angeles   ┆ 20    │
+    │ CA    ┆ San Diego     ┆ 18    │
+    └───────┴───────────────┴───────┘
+
+You can also validate ``pl.DataFrame`` objects, which are objects where
+computations are eagerly executed. Under the hood, ``pandera`` will convert
+the ``pl.DataFrame`` to a ``pl.LazyFrame`` before validating it:
+
+.. testcode:: polars
+
+    df = lf.collect()
+    print(schema(df))
 
 .. testoutput:: polars
 
