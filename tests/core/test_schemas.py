@@ -667,6 +667,27 @@ def test_series_schema_with_index(coerce: bool) -> None:
     assert (validated_series_multiindex.index == multi_index).all()
 
 
+def test_series_schema_with_index_errors() -> None:
+    """Test that SeriesSchema raises errors for invalid index."""
+    schema_with_index = SeriesSchema(dtype=int, index=Index(int))
+    data = pd.Series([1, 2, 3], index=[1.0, 2.0, 3.0])
+    with pytest.raises(errors.SchemaError):
+        schema_with_index(data)
+
+    schema_with_index_check = SeriesSchema(
+        dtype=int, index=Index(float, Check(lambda x: x == 1.0))
+    )
+    with pytest.raises(errors.SchemaError):
+        schema_with_index_check(data)
+
+    schema_with_index_coerce = SeriesSchema(
+        dtype=int, index=Index(int, coerce=True)
+    )
+    expected = pd.Series([1, 2, 3], index=[1, 2, 3])
+    schema_with_index_coerce(data)
+    assert schema_with_index_coerce(data).equals(expected)
+
+
 class SeriesGreaterCheck:
     # pylint: disable=too-few-public-methods
     """Class creating callable objects to check if series elements exceed a
