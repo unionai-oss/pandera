@@ -72,3 +72,34 @@ class DataFrameSchema(_DataFrameSchema):
     def dtype(self, value) -> None:
         """Set the pandas dtype property."""
         self._dtype = polars_engine.Engine.dtype(value) if value else None
+
+    def strategy(
+        self, *, size: Optional[int] = None, n_regex_columns: int = 1
+    ):
+        """Create a ``hypothesis`` strategy for generating a DataFrame.
+
+        :param size: number of elements to generate
+        :param n_regex_columns: number of regex columns to generate.
+        :returns: a strategy that generates pandas DataFrame objects.
+
+        .. warning::
+
+           This method is not implemented in the polars backend.
+        """
+        raise NotImplementedError(
+            "Data synthesis is not supported in with polars schemas."
+        )
+
+    def example(self, size: Optional[int] = None, n_regex_columns: int = 1):
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated DataFrame.
+        :returns: pandas DataFrame object.
+
+        .. warning::
+
+           This method is not implemented in polars backend.
+        """
+        raise NotImplementedError(
+            "Data synthesis is not supported in with polars schemas."
+        )
