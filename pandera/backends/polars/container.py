@@ -6,10 +6,10 @@ from typing import Any, Optional, List, Callable, Tuple
 
 import polars as pl
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.polars.base import PolarsSchemaBackend
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     SchemaError,
     SchemaErrors,
@@ -17,6 +17,7 @@ from pandera.errors import (
     SchemaDefinitionError,
 )
 from pandera.utils import is_regex
+from pandera.validation_depth import validation_type
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
@@ -36,7 +37,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         if inplace:
             warnings.warn("setting inplace=True will have no effect.")
 
-        error_handler = SchemaErrorHandler(lazy)
+        error_handler = ErrorHandler(lazy)
 
         column_info = self.collect_column_info(check_obj, schema)
 
@@ -56,9 +57,13 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             try:
                 check_obj = parser(check_obj, *args)
             except SchemaError as exc:
-                error_handler.collect_error(exc.reason_code, exc)
+                error_handler.collect_error(
+                    validation_type(exc.reason_code),
+                    exc.reason_code,
+                    exc,
+                )
             except SchemaErrors as exc:
-                error_handler.collect_errors(exc)
+                error_handler.collect_errors(exc.schema_errors)
 
         components = [v for _, v in schema.columns.items()]
 
@@ -96,6 +101,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                         reason_code=result.reason_code,
                     )
                 error_handler.collect_error(
+                    validation_type(result.reason_code),
                     result.reason_code,
                     error,
                     original_exc=result.original_exc,
@@ -107,7 +113,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             else:
                 raise SchemaErrors(
                     schema=schema,
-                    schema_errors=error_handler.collected_errors,
+                    schema_errors=error_handler.schema_errors,
                     data=check_obj,
                 )
 
@@ -331,7 +337,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         """Coerce dataframe columns to the correct dtype."""
         assert schema is not None, "The `schema` argument must be provided."
 
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         if not (
             schema.coerce or any(col.coerce for col in schema.columns.values())
@@ -343,11 +349,13 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         except SchemaErrors as err:
             for schema_error in err.schema_errors:
                 error_handler.collect_error(
+                    validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                     SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                     schema_error,
                 )
         except SchemaError as err:
             error_handler.collect_error(
+                validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
                 SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
                 err,
             )
@@ -357,7 +365,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             # error_handler
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=error_handler.schema_errors,
                 data=check_obj,
             )
 
@@ -373,7 +381,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         :param obj: dataframe to coerce.
         :returns: dataframe with coerced dtypes
         """
-        error_handler = SchemaErrorHandler(lazy=True)
+        error_handler = ErrorHandler(lazy=True)
 
         if schema.dtype is not None:
             obj = obj.cast(schema.dtype.type)
@@ -386,6 +394,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             obj = obj.collect().lazy()
         except pl.exceptions.ComputeError as exc:
             error_handler.collect_error(
+                validation_type(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
                 SchemaError(
                     schema=schema,
@@ -395,13 +404,14 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                         f"{schema.dtype}: {exc}"
                     ),
                     check=f"coerce_dtype('{schema.dtypes}')",
+                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
                 ),
             )
 
         if error_handler.collected_errors:
             raise SchemaErrors(
                 schema=schema,
-                schema_errors=error_handler.collected_errors,
+                schema_errors=error_handler.schema_errors,
                 data=obj,
             )
 

@@ -5,14 +5,10 @@ from collections import defaultdict
 from typing import List, Dict, Optional
 
 import polars as pl
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.backends.polars.constants import CHECK_OUTPUT_KEY
-from pandera.backends.pandas.error_formatters import (
-    format_generic_error_message,
-    format_vectorized_error_message,
-)
-from pandera.error_handlers import SchemaErrorHandler
 from pandera.errors import (
     SchemaError,
     FailureCaseMetadata,
@@ -83,14 +79,17 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             if check_result.failure_cases is None:
                 # encode scalar False values explicitly
                 failure_cases = passed
-                message = format_generic_error_message(
-                    schema, check, check_index
+                message = (
+                    f"{schema.__class__.__name__} '{schema.name}' failed "
+                    f"{check_index}: {check}"
                 )
             else:
                 # use check_result
                 failure_cases = check_result.failure_cases.collect()
-                message = format_vectorized_error_message(
-                    schema, check, check_index, failure_cases
+                message = (
+                    f"{schema.__class__.__name__} '{schema.name}' failed "
+                    f"validator number {check_index}: "
+                    f"{check} failure cases: {failure_cases}"
                 )
 
             # raise a warning without exiting if the check is specified to do so
@@ -190,28 +189,36 @@ class PolarsSchemaBackend(BaseSchemaBackend):
 
         failure_cases = pl.concat(failure_case_collection)
 
-        message = ""
-        if schema_name is not None:
-            message += f"Schema '{schema_name}': "
+        error_handler = ErrorHandler()
+        error_handler.collect_errors(schema_errors)
+        error_dicts = {}
 
-        n_error_types = sum(error_counts.values())
-        message += f"{n_error_types} errors types were found "
-        message += f"with a total of {len(failure_cases)} failures."
-        message += f"\n{failure_cases}"
+        def defaultdict_to_dict(d):
+            if isinstance(d, defaultdict):
+                d = {k: defaultdict_to_dict(v) for k, v in d.items()}
+            return d
+
+        if error_handler.collected_errors:
+            error_dicts = error_handler.summarize(schema_name=schema_name)
+            error_dicts = defaultdict_to_dict(error_dicts)
+
+        error_counts = defaultdict(int)  # type: ignore
+        for error in error_handler.collected_errors:
+            error_counts[error["reason_code"].name] += 1
 
         return FailureCaseMetadata(
             failure_cases=failure_cases,
-            message=message,
+            message=error_dicts,
             error_counts=error_counts,
         )
 
     def drop_invalid_rows(
         self,
         check_obj: pl.LazyFrame,
-        error_handler: SchemaErrorHandler,
+        error_handler: ErrorHandler,
     ) -> pl.LazyFrame:
         """Remove invalid elements in a check obj according to failures in caught by the error handler."""
-        errors = error_handler.collected_errors
+        errors = error_handler.schema_errors
         check_outputs = pl.DataFrame(
             {str(i): err.check_output for i, err in enumerate(errors)}
         )

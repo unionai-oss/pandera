@@ -336,7 +336,7 @@ def _failure_type(column: str):
         ],
         [
             lambda ldf, col: ldf.with_columns(**{col: _failure_value(col)}),
-            ".+ failed element-wise validator 0",
+            "Column '.+' failed validator number",
         ],
         [
             lambda ldf, col: ldf.with_columns(**{col: _failure_type(col)}),
