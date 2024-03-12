@@ -677,6 +677,7 @@ def test_registered_dataframe_checks(
 
         class Config:
             no_param_check = ()
+            no_param_check_ellipsis = ...
             base_check = check_vals["one_arg"]
 
     class Child(Base):
@@ -692,11 +693,13 @@ def test_registered_dataframe_checks(
 
     expected_stats_base = {
         "no_param_check": {},
+        "no_param_check_ellipsis": {},
         "base_check": {"one_arg": check_vals["one_arg"]},
     }
 
     expected_stats_child = {
         "no_param_check": {},
+        "no_param_check_ellipsis": {},
         "base_check": {"one_arg": check_vals["one_arg_prime"]},
         "child_check": {
             "one_arg": check_vals["one_arg"],

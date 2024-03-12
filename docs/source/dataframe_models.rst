@@ -582,6 +582,7 @@ class.
             strict = True
             coerce = True
             foo = "bar"  # Interpreted as dataframe check
+            baz = ...    # Interpreted as a dataframe check with no additional arguments
 
 It is not required for the ``Config`` to subclass :class:`~pandera.api.pandas.model_config.BaseConfig` but
 it **must** be named '**Config**'.
@@ -942,6 +943,7 @@ get rid of them like this:
         d: pa.typing.Series[int]
 
     class Baz(Foo, Bar):
+
         @classmethod
         def to_schema(cls) -> pa.DataFrameSchema:
             schema = super().to_schema()
@@ -958,9 +960,10 @@ get rid of them like this:
 .. note::
 
     There are drawbacks to manipulating schema shape in this way:
-     - Static code analysis has no way to figure out what fields have been removed/updated from
-       the class definitions and inheritance hierarchy.
-     - Any children of classes which have overriden ``to_schema`` might experience
-       surprising behavior -- if a child of ``Baz`` tries to define a field ``b`` or ``c`` again,
-       it will lose it in its ``to_schema`` call because ``Baz``'s ``to_schema`` will always
-       be executed after any child's class body has already been fully assembled.
+
+    - Static code analysis has no way to figure out what fields have been removed/updated from
+      the class definitions and inheritance hierarchy.
+    - Any children of classes which have overriden ``to_schema`` might experience
+      surprising behavior -- if a child of ``Baz`` tries to define a field ``b`` or ``c`` again,
+      it will lose it in its ``to_schema`` call because ``Baz``'s ``to_schema`` will always
+      be executed after any child's class body has already been fully assembled.
