@@ -93,7 +93,7 @@ modin dataframes at runtime:
     5    CA      San Diego     18
 
 
-And of course, you can use the object-based API to validate dask dataframes:
+And of course, you can use the object-based API to validate modin dataframes:
 
 
 .. testcode:: scaling_modin

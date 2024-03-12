@@ -24,7 +24,7 @@ from pandera.typing import AnnotationInfo
 
 
 class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
-    """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
+    """Model of a polars :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
     See the :ref:`User Guide <dataframe_models>` for more.
     """

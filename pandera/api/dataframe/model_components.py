@@ -137,7 +137,7 @@ def Field(
     metadata: Optional[dict] = None,
     **kwargs,
 ) -> Any:
-    """Used to provide extra information about a field of a DataFrameModel.
+    """Column or index field specification of a DataFrameModel.
 
     *new in 0.5.0*
 
@@ -267,7 +267,7 @@ ClassCheck = Callable[[Union[classmethod, AnyCallable]], classmethod]
 
 
 def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
-    """Decorator to make DataFrameModel method a column/index check function.
+    """Defines DataFrameModel check methods for columns/indexes.
 
     *new in 0.5.0*
 
@@ -294,7 +294,7 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
 
 
 def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
-    """Decorator to make DataFrameModel method a dataframe-wide check function.
+    """Defines DataFrameModel check methods for dataframes.
 
     *new in 0.5.0*
 

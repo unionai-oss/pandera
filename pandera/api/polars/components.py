@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class Column(_Column):
+    """Polars column scheme component."""
+
     def __init__(
         self,
         dtype: PolarsDtypeInputTypes = None,

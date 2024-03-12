@@ -305,7 +305,7 @@ class ArraySchema(BaseSchema):
 
 
 class SeriesSchema(ArraySchema):
-    """Series validator."""
+    """A pandas Series validator."""
 
     def __init__(
         self,

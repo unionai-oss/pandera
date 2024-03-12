@@ -12,6 +12,8 @@ from pandera.engines import polars_engine
 
 
 class DataFrameSchema(_DataFrameSchema):
+    """A polars LazyFrame or DataFrame validator."""
+
     def _validate_attributes(self):
         super()._validate_attributes()
 

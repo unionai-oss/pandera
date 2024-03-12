@@ -37,6 +37,7 @@ from pandera.errors import SchemaInitError
 from pandera.strategies import base_strategies as st
 from pandera.typing import AnnotationInfo
 from pandera.typing.common import DataFrameBase
+from pandera.utils import docstring_substitution
 
 if PYDANTIC_V2:
     from pydantic_core import core_schema
@@ -121,6 +122,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     __checks__: Dict[str, List[Check]] = {}
     __root_checks__: List[Check] = []
 
+    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
         """%(validate_doc)s"""
         return cast(
@@ -249,6 +251,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         return cls.to_schema().to_yaml(stream)
 
     @classmethod
+    @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def validate(
         cls: Type[TDataFrameModel],
         check_obj: TDataFrame,
@@ -271,7 +274,12 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     @st.strategy_import_error
     def strategy(cls: Type[TDataFrameModel], **kwargs):
-        """%(strategy_doc)s"""
+        """Create a ``hypothesis`` strategy for generating a DataFrame.
+
+        :param size: number of elements to generate
+        :param n_regex_columns: number of regex columns to generate.
+        :returns: a strategy that generates DataFrame objects.
+        """
         return cls.to_schema().strategy(**kwargs)
 
     # TODO: add docstring_substitution using generic class
@@ -281,7 +289,11 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         cls: Type[TDataFrameModel],
         **kwargs,
     ) -> DataFrameBase[TDataFrameModel]:
-        """%(example_doc)s"""
+        """Generate an example of a particular size.
+
+        :param size: number of elements in the generated DataFrame.
+        :returns: DataFrame object.
+        """
         return cast(
             DataFrameBase[TDataFrameModel], cls.to_schema().example(**kwargs)
         )
