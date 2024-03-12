@@ -94,6 +94,8 @@ def _convert_extras_to_checks(extras: Dict[str, Any]) -> List[Check]:
             args, kwargs = value, {}
         elif isinstance(value, dict):
             args, kwargs = (), value
+        elif value is Ellipsis:
+            args, kwargs = (), {}
         else:
             args, kwargs = (value,), {}
 
