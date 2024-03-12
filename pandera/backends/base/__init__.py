@@ -16,7 +16,7 @@ class CoreCheckResult(NamedTuple):
     """Namedtuple for holding results of core checks."""
 
     passed: bool
-    check: Union[str, "BaseCheck"]  # type: ignore
+    check: Optional[Union[str, "BaseCheck"]] = None  # type: ignore
     check_index: Optional[int] = None
     check_output: Optional[Any] = None
     reason_code: Optional[SchemaErrorReason] = None

@@ -278,7 +278,7 @@ present in the data.
     :ref:`Lazy validation <lazy_validation>` in pandera is different from the
     lazy API in polars, which is an unfortunate name collision. Lazy validation
     means that all parsers and checks are applied to the data before raising
-    a `:py:class:~pandera.errors.SchemaErrors` exception. The lazy API
+    a :py:class:`~pandera.errors.SchemaErrors` exception. The lazy API
     in polars allows you to build a computation graph without actually
     executing it in-line, where you call ``.collect()`` to actually execute
     the computation.

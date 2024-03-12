@@ -1,15 +1,14 @@
 """Map reason_code to ValidationScope depth type"""
 
-from enum import Enum
+import functools
+import logging
 
+from pandera.backends.base import CoreCheckResult
+from pandera.config import ValidationDepth, ValidationScope, CONFIG
 from pandera.errors import SchemaErrorReason
 
 
-class ValidationScope(Enum):
-    """Indicates whether a check/validator operates at a schema of data level."""
-
-    SCHEMA = "schema"
-    DATA = "data"
+logger = logging.getLogger(__name__)
 
 
 VALIDATION_DEPTH_ERROR_CODE_MAP = {
@@ -41,3 +40,44 @@ def validation_type(schema_error_reason):
     :returns ValidationScope: validation depth enum
     """
     return VALIDATION_DEPTH_ERROR_CODE_MAP[schema_error_reason]
+
+
+def validate_scope(scope: ValidationScope):
+    """This decorator decides if a function needs to be run or skipped based on params
+
+    :param params: The configuration parameters to which define how pandera has
+        to be used
+    :param scope: the scope for which the function is valid. i.e. "DATA" scope
+        function only works to validate the data values, "SCHEMA"  scope runs for
+        checks at the schema/metadata level.
+    """
+
+    def _wrapper(func):
+        @functools.wraps(func)
+        def wrapper(self, check_obj, *args, **kwargs):
+
+            if scope == ValidationScope.SCHEMA:
+                if CONFIG.validation_depth == ValidationDepth.DATA_ONLY:
+                    logger.info(
+                        f"Skipping execution of check {func.__name__} since "
+                        "validation depth is set to DATA_ONLY.",
+                        stacklevel=2,
+                    )
+                    return CoreCheckResult(passed=True)
+                return func(self, check_obj, *args, **kwargs)
+
+            elif scope == ValidationScope.DATA:
+                if CONFIG.validation_depth == ValidationDepth.SCHEMA_ONLY:
+                    logger.info(
+                        f"Skipping execution of check {func.__name__} since "
+                        "validation depth is set to SCHEMA_ONLY",
+                        stacklevel=2,
+                    )
+                    return CoreCheckResult(passed=True)
+                return func(self, check_obj, *args, **kwargs)
+
+            raise ValueError(f"Invalid scope {scope}")
+
+        return wrapper
+
+    return _wrapper

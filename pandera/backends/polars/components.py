@@ -9,13 +9,17 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
+from pandera.config import ValidationScope
 from pandera.errors import (
     SchemaDefinitionError,
     SchemaError,
     SchemaErrors,
     SchemaErrorReason,
 )
-from pandera.validation_depth import validation_type
+from pandera.validation_depth import (
+    validation_type,
+    validate_scope,
+)
 
 
 class ColumnBackend(PolarsSchemaBackend):
@@ -166,6 +170,7 @@ class ColumnBackend(PolarsSchemaBackend):
                 reason_code=SchemaErrorReason.DATATYPE_COERCION,
             ) from exc
 
+    @validate_scope(scope=ValidationScope.DATA)
     def check_nullable(
         self,
         check_obj: pl.LazyFrame,
@@ -217,6 +222,7 @@ class ColumnBackend(PolarsSchemaBackend):
             )
         return results
 
+    @validate_scope(scope=ValidationScope.DATA)
     def check_unique(
         self,
         check_obj: pl.LazyFrame,
@@ -265,6 +271,7 @@ class ColumnBackend(PolarsSchemaBackend):
 
         return results
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(
         self,
         check_obj: pl.LazyFrame,
@@ -305,6 +312,7 @@ class ColumnBackend(PolarsSchemaBackend):
         return results
 
     # pylint: disable=unused-argument
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
         check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):

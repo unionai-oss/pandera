@@ -6,18 +6,16 @@ import pandas as pd
 from multimethod import DispatchError
 from pandera.api.base.error_handler import ErrorHandler
 
-from pandera.backends.base import CoreCheckResult
 from pandera.api.pandas.types import is_field
+from pandera.backends.base import CoreCheckResult
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
     scalar_failure_case,
 )
 from pandera.backends.utils import convert_uniquesettings
+from pandera.config import ValidationScope
 from pandera.engines.pandas_engine import Engine
-from pandera.validation_depth import (
-    validation_type,
-)
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -25,7 +23,10 @@ from pandera.errors import (
     SchemaErrors,
     SchemaDefinitionError,
 )
-from pandera.config import CONFIG, ValidationDepth
+from pandera.validation_depth import (
+    validation_type,
+    validate_scope,
+)
 
 
 class ArraySchemaBackend(PandasSchemaBackend):
@@ -108,9 +109,15 @@ class ArraySchemaBackend(PandasSchemaBackend):
 
         check_obj_subsample = self.subsample(check_obj, **subsample_kwargs)
 
-        for core_check, args in self.core_checks(
-            field_obj_subsample, check_obj_subsample, schema
-        ):
+        core_checks = [
+            (self.check_name, (field_obj_subsample, schema)),
+            (self.check_nullable, (field_obj_subsample, schema)),
+            (self.check_unique, (field_obj_subsample, schema)),
+            (self.check_dtype, (field_obj_subsample, schema)),
+            (self.run_checks, (check_obj_subsample, schema)),
+        ]
+
+        for core_check, args in core_checks:
             results = core_check(*args)
             if isinstance(results, CoreCheckResult):
                 results = [results]
@@ -140,35 +147,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
                     )
 
         return error_handler
-
-    def core_checks(self, field_obj_subsample, check_obj_subsample, schema):
-        """Determine which checks are to be run based on ValidationDepth
-
-        :param field_obj_subsample: columnar data type to run SCHEMA checks on
-        :param check_obj_subsample: tabular data type to run DATA checks on
-        :param schema: dataframe/series we are validating.
-        :raises SchemaDefinitionError: when `ValidationDepth` is not set
-        :returns: a `list` of :class:`Check`
-        """
-        SCHEMA_CHECKS = [
-            (self.check_name, (field_obj_subsample, schema)),
-            (self.check_nullable, (field_obj_subsample, schema)),
-            (self.check_unique, (field_obj_subsample, schema)),
-            (self.check_dtype, (field_obj_subsample, schema)),
-        ]
-
-        DATA_CHECKS = [(self.run_checks, (check_obj_subsample, schema))]
-
-        if CONFIG.validation_depth == ValidationDepth.SCHEMA_AND_DATA:
-            core_checks = SCHEMA_CHECKS + DATA_CHECKS
-        elif CONFIG.validation_depth == ValidationDepth.SCHEMA_ONLY:
-            core_checks = SCHEMA_CHECKS
-        elif CONFIG.validation_depth == ValidationDepth.DATA_ONLY:
-            core_checks = DATA_CHECKS
-        else:
-            raise SchemaDefinitionError("Validation depth is not defined")
-
-        return core_checks
 
     def coerce_dtype(
         self,
@@ -201,6 +179,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 reason_code=SchemaErrorReason.DATATYPE_COERCION,
             ) from exc
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_name(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         return CoreCheckResult(
             passed=schema.name is None or check_obj.name == schema.name,
@@ -213,6 +192,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failure_cases=scalar_failure_case(check_obj.name),
         )
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_nullable(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         isna = check_obj.isna()
         passed = schema.nullable or not isna.any()
@@ -229,6 +209,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             ),
         )
 
+    @validate_scope(scope=ValidationScope.DATA)
     def check_unique(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         passed = True
         failure_cases = None
@@ -267,6 +248,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failure_cases=failure_cases,
         )
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_dtype(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         passed = True
         failure_cases = None
@@ -303,7 +285,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    # pylint: disable=unused-argument
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(self, check_obj, schema) -> List[CoreCheckResult]:
         check_results: List[CoreCheckResult] = []
         for check_index, check in enumerate(schema.checks):

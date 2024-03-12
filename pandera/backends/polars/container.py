@@ -10,6 +10,7 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.polars.base import PolarsSchemaBackend
+from pandera.config import ValidationScope
 from pandera.errors import (
     SchemaError,
     SchemaErrors,
@@ -17,7 +18,10 @@ from pandera.errors import (
     SchemaDefinitionError,
 )
 from pandera.utils import is_regex
-from pandera.validation_depth import validation_type
+from pandera.validation_depth import (
+    validation_type,
+    validate_scope,
+)
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):
@@ -119,6 +123,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
 
         return check_obj
 
+    @validate_scope(scope=ValidationScope.DATA)
     def run_checks(
         self,
         check_obj: pl.LazyFrame,
@@ -444,6 +449,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             "polars does not support duplicate column names"
         )
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self,
         check_obj: pl.LazyFrame,
@@ -475,6 +481,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 )
         return results
 
+    @validate_scope(scope=ValidationScope.DATA)
     def check_column_values_are_unique(
         self,
         check_obj: pl.LazyFrame,

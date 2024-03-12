@@ -17,8 +17,12 @@ from pandera.backends.pandas.error_formatters import (
     scalar_failure_case,
 )
 from pandera.backends.utils import convert_uniquesettings
+from pandera.config import ValidationScope
 from pandera.engines import pandas_engine
-from pandera.validation_depth import validation_type
+from pandera.validation_depth import (
+    validation_type,
+    validate_scope,
+)
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -666,6 +670,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
     # Checks #
     ##########
 
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_names_are_unique(
         self,
         check_obj: pd.DataFrame,
@@ -700,7 +705,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             failure_cases=failure_cases,
         )
 
-    # pylint: disable=unused-argument
+    @validate_scope(scope=ValidationScope.SCHEMA)
     def check_column_presence(
         self, check_obj: pd.DataFrame, schema, column_info: ColumnInfo
     ) -> List[CoreCheckResult]:
@@ -722,6 +727,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
         return results
 
+    @validate_scope(scope=ValidationScope.DATA)
     def check_column_values_are_unique(
         self, check_obj: pd.DataFrame, schema
     ) -> CoreCheckResult:
