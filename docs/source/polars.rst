@@ -9,7 +9,7 @@ Data Validation with Polars
 
 `Polars <https://docs.pola.rs/>`__ is a blazingly fast DataFrame library for
 manipulating structured data. Since the core is written in Rust, you get the
-performance of C/C++ with SDKs available for Python, R, and NodeJS.
+performance of C/C++ while providing SDKs in other languages like Python.
 
 Usage
 -----
@@ -23,7 +23,8 @@ dataframes in Python. First, install ``pandera`` with the ``polars`` extra:
 
 Then you can use pandera schemas to validate polars dataframes. In the example
 below we'll use the :ref:`class-based API <dataframe_models>` to define a
-:py:class:`~pandera.api.polars.model.LazyFrame` for validation.
+:py:class:`~pandera.api.polars.model.DataFrameModel`, which we then use to
+validate a :py:class:`polars.LazyFrame` object.
 
 .. testcode:: polars
 
@@ -71,8 +72,8 @@ below we'll use the :ref:`class-based API <dataframe_models>` to define a
     └───────┴───────────────┴───────┘
 
 
-You can also use the :py:func:`~pandera.check_types` decorator to validate
-polars LazyFrames at runtime:
+You can also use the :py:func:`~pandera.decorators.check_types` decorator to
+validate polars LazyFrame function annotations at runtime:
 
 
 .. testcode:: polars
@@ -100,7 +101,8 @@ polars LazyFrames at runtime:
     └───────┴───────────────┴───────┘
 
 
-And of course, you can use the object-based API to validate dask dataframes:
+And of course, you can use the object-based API to define a
+:py:class:`~pandera.api.polars.container.DataFrameSchema`:
 
 
 .. testcode:: polars
@@ -129,9 +131,9 @@ And of course, you can use the object-based API to validate dask dataframes:
     │ CA    ┆ San Diego     ┆ 18    │
     └───────┴───────────────┴───────┘
 
-You can also validate ``pl.DataFrame`` objects, which are objects where
-computations are eagerly executed. Under the hood, ``pandera`` will convert
-the ``pl.DataFrame`` to a ``pl.LazyFrame`` before validating it:
+You can also validate :py:class:`polars.DataFrame` objects, which are objects that
+execute computations eagerly. Under the hood, ``pandera`` will convert
+the ``polars.DataFrame`` to a ``polars.LazyFrame`` before validating it:
 
 .. testcode:: polars
 
@@ -188,7 +190,7 @@ At a high level, this is what happens:
 
 In the context of a lazy computation pipeline, this means that you can use schemas
 as eager checkpoints that validate the data. Pandera is designed such that you
-can continue to use the ``LazyFrame`` API after the schema validation step.
+can continue to use the polars lazy API after the schema validation step.
 
 
 
@@ -255,7 +257,7 @@ can continue to use the ``LazyFrame`` API after the schema validation step.
        │ 3   ┆ a   │
        └─────┴─────┘
 
-In the event of a validation error, ``pandera`` will raise a ``SchemaError``
+In the event of a validation error, ``pandera`` will raise a :py:class:`~pandera.errors.SchemaError`
 eagerly.
 
 .. testcode:: polars
@@ -269,8 +271,8 @@ eagerly.
     ...
     SchemaError: expected column 'a' to have type Int64, got String
 
-And if you use lazy validation, ``pandera`` will raise a ``SchemaErrors`` exception.
-This is particularly useful when you want to collect all of the validation errors
+And if you use lazy validation, ``pandera`` will raise a :py:class:`~pandera.errors.SchemaErrors`
+exception. This is particularly useful when you want to collect all of the validation errors
 present in the data.
 
 .. note::
@@ -352,14 +354,14 @@ So the following schemas are equivalent:
 Custom checks
 -------------
 
-All of the built-in :py:class:`~pandera.api.checks.Check` checks are supported
+All of the built-in :py:class:`~pandera.api.checks.Check` methods are supported
 in the polars integration.
 
-To create custom checks, you can create functions that take a ``PolarsData``
-named tuple as input and produces a ``pl.LazyFrame`` as output. ``PolarsData``
+To create custom checks, you can create functions that take a :py:class:`~pandera.api.polars.types.PolarsData`
+named tuple as input and produces a ``polars.LazyFrame`` as output. :py:class:`~pandera.api.polars.types.PolarsData`
 contains two attributes:
 
-- A ``lazyframe`` attribute, which contains the ``pl.LazyFrame`` object you want
+- A ``lazyframe`` attribute, which contains the ``polars.LazyFrame`` object you want
   to validate.
 - A ``key`` attribute, which contains the column name you want to validate. This
   will be ``None`` for dataframe-level checks.
@@ -468,14 +470,14 @@ Here's an example of a column-level custom check:
        └─────┘
 
 For column-level checks, the custom check function should return a
-``pl.LazyFrame`` containing a single boolean column or a single boolean scalar.
+``polars.LazyFrame`` containing a single boolean column or a single boolean scalar.
 
 
 DataFrame-level Checks
 ^^^^^^^^^^^^^^^^^^^^^^
 
 If you need to validate values on an entire dataframe, you can specify at check
-at the dataframe level. The expected output is a ``pl.LazyFrame`` containing
+at the dataframe level. The expected output is a ``polars.LazyFrame`` containing
 multiple boolean columns, a single boolean column, or a scalar boolean.
 
 .. tabbed:: DataFrameSchema
@@ -488,7 +490,7 @@ multiple boolean columns, a single boolean column, or a scalar boolean.
 
       def is_positive_df(data: PolarsData) -> pl.LazyFrame:
           """Return a LazyFrame with multiple boolean columns."""
-          return data.lazyframe.select(pl.col("*").gt(0).all())
+          return data.lazyframe.select(pl.col("*").gt(0))
 
       def is_positive_element_wise(x: int) -> bool:
            """Take a single value and return a boolean scalar."""
@@ -540,7 +542,7 @@ multiple boolean columns, a single boolean column, or a scalar boolean.
            @pa.dataframe_check
            def is_positive_df(cls, data: PolarsData) -> pl.LazyFrame:
                """Return a LazyFrame with multiple boolean columns."""
-               return data.lazyframe.select(pl.col("*").gt(0).all())
+               return data.lazyframe.select(pl.col("*").gt(0))
 
            @pa.dataframe_check(element_wise=True)
            def is_positive_element_wise(cls, x: int) -> bool:

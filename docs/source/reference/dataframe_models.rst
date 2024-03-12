@@ -10,8 +10,9 @@ DataFrame Model
    :toctree: generated
    :template: class.rst
 
-   pandera.api.pandas.model.SchemaModel
    pandera.api.pandas.model.DataFrameModel
+   pandera.api.polars.model.DataFrameModel
+   pandera.api.pyspark.model.DataFrameModel
 
 Model Components
 ----------------
@@ -42,3 +43,5 @@ Config
    :nosignatures:
 
    pandera.api.pandas.model_config.BaseConfig
+   pandera.api.polars.model_config.BaseConfig
+   pandera.api.pyspark.model_config.BaseConfig

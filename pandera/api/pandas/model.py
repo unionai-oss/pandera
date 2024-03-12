@@ -28,7 +28,7 @@ SchemaIndex = Union[Index, MultiIndex]
 
 
 class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
-    """Definition of a :class:`~pandera.api.pandas.container.DataFrameSchema`.
+    """Model of a pandas :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
     *new in 0.5.0*
 

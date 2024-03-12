@@ -7,7 +7,7 @@ from pandera.api.polars.types import PolarsDtypeInputTypes
 
 
 class BaseConfig(_BaseConfig):  # pylint:disable=R0903
-    """Define DataFrameSchema-wide options."""
+    """Define polars DataFrameSchema-wide options."""
 
     #: datatype of the dataframe. This overrides the data types specified in
     #: any of the fields.

@@ -187,6 +187,7 @@ intersphinx_mapping = {
     "dask": ("https://docs.dask.org/en/latest/", None),
     "pyspark": ("https://spark.apache.org/docs/latest/api/python/", None),
     "modin": ("https://modin.readthedocs.io/en/latest/", None),
+    "polars": ("https://docs.pola.rs/py-polars/html/", None),
 }
 
 # strip prompts
@@ -214,6 +215,10 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
                     '"pandera.api.pandas.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.typing.DataFrame.style"',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.api.polars.container.DataFrameSchema',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.api.pyspark.container.DataFrameSchema',
                 )
             )
         )

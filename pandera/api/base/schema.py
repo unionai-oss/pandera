@@ -56,7 +56,26 @@ class BaseSchema(ABC):
         lazy=False,
         inplace=False,
     ):
-        """Validate method to be implemented by subclass."""
+        """Validate a DataFrame based on the schema specification.
+
+        :param pd.DataFrame check_obj: the dataframe to be validated.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated ``DataFrame``
+
+        :raises SchemaError: when ``DataFrame`` violates built-in or custom
+            checks.
+        """
         raise NotImplementedError
 
     def coerce_dtype(self, check_obj):

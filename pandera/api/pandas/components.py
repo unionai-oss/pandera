@@ -15,7 +15,7 @@ from pandera.dtypes import UniqueSettings
 
 
 class Column(ArraySchema):
-    """Validate types and properties of DataFrame columns."""
+    """Validate types and properties of pandas DataFrame columns."""
 
     def __init__(
         self,
@@ -249,7 +249,7 @@ class Column(ArraySchema):
 
 
 class Index(ArraySchema):
-    """Validate types and properties of a DataFrame Index."""
+    """Validate types and properties of a pandas DataFrame Index."""
 
     @property
     def names(self):
@@ -350,7 +350,7 @@ class Index(ArraySchema):
 
 
 class MultiIndex(DataFrameSchema):
-    """Validate types and properties of a DataFrame MultiIndex.
+    """Validate types and properties of a pandas DataFrame MultiIndex.
 
     This class inherits from :class:`~pandera.api.pandas.container.DataFrameSchema` to
     leverage its validation logic.
