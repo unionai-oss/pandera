@@ -14,6 +14,13 @@ class ValidationDepth(Enum):
     SCHEMA_AND_DATA = "SCHEMA_AND_DATA"
 
 
+class ValidationScope(Enum):
+    """Indicates whether a check/validator operates at a schema of data level."""
+
+    SCHEMA = "schema"
+    DATA = "data"
+
+
 class PanderaConfig(BaseModel):
     """Pandera config base class.
 
