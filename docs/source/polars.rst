@@ -370,7 +370,7 @@ object-based and class-based APIs:
             },
         )
 
-.. tabbed:: DataFrameModel (Annotated Type)
+.. tabbed:: DataFrameModel (Annotated)
 
    .. testcode:: polars
 
@@ -379,7 +379,7 @@ object-based and class-based APIs:
             array_col: Annotated[pl.Array, pl.Int64(), 3]
             struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
 
-.. tabbed:: DataFrameModel (``dtype_kwargs``)
+.. tabbed:: DataFrameModel (Field)
 
    .. testcode:: polars
 
