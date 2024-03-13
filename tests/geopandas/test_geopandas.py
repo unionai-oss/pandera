@@ -175,7 +175,7 @@ def test_schema_parametrized_crs():
 
     class Schema2(pa.DataFrameModel):
         # pylint: disable=missing-class-docstring
-        geometry: Annotated[GeoSeries, "EPSG:4326"]
+        geometry: Annotated[Geometry, "EPSG:4326"]
 
     assert isinstance(GeoDataFrame[Schema2](gdf), gpd.GeoDataFrame)
 

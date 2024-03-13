@@ -241,6 +241,7 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         """
         self.raw_annotation = raw_annotation
         self.origin = self.arg = None
+        self.is_annotated_type = False
 
         self.optional = typing_inspect.is_optional_type(raw_annotation)
         if self.optional and typing_inspect.is_union_type(raw_annotation):
@@ -254,12 +255,18 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.args = args
         self.arg = args[0] if args else args
 
-        self.metadata = getattr(raw_annotation, "__metadata__", None)
+        metadata = getattr(raw_annotation, "__metadata__", None)
+        if metadata:
+            self.is_annotated_type = True
+        else:
+            metadata = getattr(self.arg, "__metadata__", None)
+
+        self.metadata = metadata
         self.literal = typing_inspect.is_literal_type(self.arg)
 
         if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
-        elif self.origin is None:
+        elif self.origin is None and self.metadata is None:
             if isinstance(raw_annotation, type) and issubclass(
                 raw_annotation, SeriesBase
             ):

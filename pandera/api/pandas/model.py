@@ -95,7 +95,8 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             dtype = None if dtype is Any else dtype
 
             if (
-                annotation.origin is None
+                annotation.is_annotated_type
+                or annotation.origin is None
                 or annotation.origin in SERIES_TYPES
                 or annotation.raw_annotation in SERIES_TYPES
             ):
