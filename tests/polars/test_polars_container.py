@@ -1,7 +1,12 @@
 # pylint: disable=redefined-outer-name
 """Unit tests for polars container."""
 
-from typing import Annotated, Optional
+from typing import Optional
+
+try:
+    from typing import Annotated  # type: ignore
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
 
 import polars as pl
 
