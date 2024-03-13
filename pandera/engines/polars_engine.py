@@ -512,7 +512,7 @@ class Struct(DataType):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        fields: Optional[Sequence[pl.Field] | SchemaDict] = None,
+        fields: Optional[Union[Sequence[pl.Field], SchemaDict]] = None,
     ) -> None:
         if fields:
             object.__setattr__(self, "type", pl.Struct(fields=fields))
