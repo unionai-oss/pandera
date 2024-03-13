@@ -322,10 +322,10 @@ present in the data.
 Supported Data Types
 --------------------
 
-``pandera`` currently supports all the `scalar data types <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`__.
-`Nested data types <https://docs.pola.rs/py-polars/html/reference/datatypes.html#nested>`__
-are not yet supported. Built-in python types like ``str``, ``int``, ``float``,
-and ``bool`` will be handled in the same way that ``polars`` handles them:
+``pandera`` currently supports all of the
+`polars data types <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`__.
+Built-in python types like ``str``, ``int``, ``float``, and ``bool`` will be
+handled in the same way that ``polars`` handles them:
 
 .. testcode:: polars
 
@@ -350,6 +350,44 @@ So the following schemas are equivalent:
     })
 
     assert schema1 == schema2
+
+Nested Types
+^^^^^^^^^^^^
+
+Polars nested datetypes are also supported via :ref:`parameterized data types <parameterized dtypes>`.
+See the examples below for the different ways to specify this through the
+object-based and class-based APIs:
+
+.. tabbed:: DataFrameSchema
+
+   .. testcode:: polars
+
+        schema = DataFrameSchema(
+            {
+                "list_col": Column(pl.List(pl.Int64())),
+                "array_col": Column(pl.Array(pl.Int64(), 3)),
+                "struct_col": Column(pl.Struct({"a": pl.Utf8(), "b": pl.Float64()})),
+            },
+        )
+
+.. tabbed:: DataFrameModel (Annotated Type)
+
+   .. testcode:: polars
+
+        class ModelWithAnnotated(DataFrameModel):
+            list_col: Annotated[pl.List, pl.Int64()]
+            array_col: Annotated[pl.Array, pl.Int64(), 3]
+            struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
+
+.. tabbed:: DataFrameModel (``dtype_kwargs``)
+
+   .. testcode:: polars
+
+        class ModelWithDtypeKwargs(DataFrameModel):
+            list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
+            array_col: pl.Array = pa.Field(dtype_kwargs={"inner": pl.Int64(), "width": 3})
+            struct_col: pl.Struct = pa.Field(dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}})
+
 
 Custom checks
 -------------

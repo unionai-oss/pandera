@@ -254,11 +254,10 @@ class AnnotationInfo:  # pylint:disable=too-few-public-methods
         self.args = args
         self.arg = args[0] if args else args
 
-        self.metadata = getattr(self.arg, "__metadata__", None)
+        self.metadata = getattr(raw_annotation, "__metadata__", None)
         self.literal = typing_inspect.is_literal_type(self.arg)
-        if self.metadata:
-            self.arg = typing_inspect.get_args(self.arg)[0]
-        elif self.literal:
+
+        if self.literal:
             self.arg = typing_inspect.get_args(self.arg)[0]
         elif self.origin is None:
             if isinstance(raw_annotation, type) and issubclass(
