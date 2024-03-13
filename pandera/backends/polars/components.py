@@ -11,6 +11,7 @@ from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
 from pandera.config import ValidationScope
 from pandera.errors import (
+    ParserError,
     SchemaDefinitionError,
     SchemaError,
     SchemaErrors,
@@ -153,12 +154,8 @@ class ColumnBackend(PolarsSchemaBackend):
             return check_obj
 
         try:
-            return (
-                check_obj.cast({schema.selector: schema.dtype.type})
-                .collect()
-                .lazy()
-            )
-        except (pl.ComputeError, pl.InvalidOperationError) as exc:
+            return schema.dtype.try_coerce(check_obj)
+        except ParserError as exc:
             raise SchemaError(
                 schema=schema,
                 data=check_obj,
@@ -299,7 +296,7 @@ class ColumnBackend(PolarsSchemaBackend):
             obj_dtype = check_obj_subset.schema[column]
             results.append(
                 CoreCheckResult(
-                    passed=obj_dtype.is_(schema.dtype.type),
+                    passed=schema.dtype.check(obj_dtype),
                     check=f"dtype('{schema.dtype}')",
                     reason_code=SchemaErrorReason.WRONG_DATATYPE,
                     message=(

@@ -20,6 +20,12 @@ from pandera.engines import engine
 
 PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
 COERCIBLE_KEY = "_is_coercible"
+COERCION_ERRORS = (
+    TypeError,
+    pl.ArrowError,
+    pl.InvalidOperationError,
+    pl.ComputeError,
+)
 
 
 def polars_object_coercible(
@@ -57,12 +63,7 @@ def polars_coerce_failure_cases(
         failure_cases = polars_failure_cases_from_coercible(
             data_container, is_coercible
         ).collect()
-    except (
-        TypeError,
-        pl.ArrowError,
-        pl.InvalidOperationError,
-        pl.ComputeError,
-    ):
+    except COERCION_ERRORS:
         # If coercion fails, all of the relevant rows are failure cases
         failure_cases = data_container.lazyframe.select(
             data_container.key or "*"
@@ -121,7 +122,7 @@ class DataType(dtypes.DataType):
             lf = self.coerce(data_container)
             lf.collect()
             return lf
-        except Exception as exc:  # pylint:disable=broad-except
+        except COERCION_ERRORS as exc:  # pylint:disable=broad-except
             raise errors.ParserError(
                 f"Could not coerce {type(data_container.lazyframe)} "
                 f"data_container into type {self.type}",
