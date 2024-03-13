@@ -9,7 +9,7 @@ from typing import Any, Union, Optional, Iterable, Literal, Sequence
 
 
 import polars as pl
-from polars.datatypes import py_type_to_dtype
+from polars.datatypes import py_type_to_dtype, DataTypeClass
 from polars.type_aliases import SchemaDict
 
 from pandera import dtypes, errors
@@ -19,6 +19,8 @@ from pandera.engines import engine
 
 
 PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
+PolarsDataType = Union[DataTypeClass, pl.DataType]
+
 COERCIBLE_KEY = "_is_coercible"
 COERCION_ERRORS = (
     TypeError,
@@ -29,7 +31,7 @@ COERCION_ERRORS = (
 
 
 def polars_object_coercible(
-    data_container: PolarsData, type_: pl.datatypes.DataTypeClass
+    data_container: PolarsData, type_: PolarsDataType
 ) -> pl.LazyFrame:
     """Checks whether a polars object is coercible with respect to a type."""
     key = data_container.key or "*"
@@ -300,6 +302,9 @@ class Decimal(DataType, dtypes.Decimal):
 
     type = pl.Decimal
 
+    # polars Decimal doesn't have a rounding attribute
+    rounding = None
+
     def __init__(  # pylint:disable=super-init-not-called
         self,
         precision: int = dtypes.DEFAULT_PYTHON_PREC,
@@ -461,13 +466,13 @@ class Timedelta(DataType, dtypes.Timedelta):
 @Engine.register_dtype(equivalents=[pl.Array])
 @immutable(init=True)
 class Array(DataType):
-    """Polars datetime data type."""
+    """Polars Array nested type."""
 
     type = pl.Array
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        inner: Optional[pl.PolarsDataType] = None,
+        inner: Optional[PolarsDataType] = None,
         width: Optional[int] = None,
     ) -> None:
         if inner or width:
@@ -477,36 +482,32 @@ class Array(DataType):
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Array):
-        """Convert a :class:`polars.Decimal` to
-        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
         return cls(inner=polars_dtype.inner, width=polars_dtype.width)
 
 
 @Engine.register_dtype(equivalents=[pl.List])
 @immutable(init=True)
 class List(DataType):
-    """Polars datetime data type."""
+    """Polars List nested type."""
 
     type = pl.List
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
-        inner: Optional[pl.PolarsDataType] = None,
+        inner: Optional[PolarsDataType] = None,
     ) -> None:
         if inner:
             object.__setattr__(self, "type", pl.List(inner=inner))
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.List):
-        """Convert a :class:`polars.Decimal` to
-        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
         return cls(inner=polars_dtype.inner)
 
 
 @Engine.register_dtype(equivalents=[pl.Struct])
 @immutable(init=True)
 class Struct(DataType):
-    """Polars datetime data type."""
+    """Polars Struct nested type."""
 
     type = pl.Struct
 
@@ -519,8 +520,6 @@ class Struct(DataType):
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Struct):
-        """Convert a :class:`polars.Decimal` to
-        a Pandera :class:`pandera.engines.polars_engine.Decimal`."""
         return cls(fields=polars_dtype.fields)
 
 

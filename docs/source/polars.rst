@@ -362,11 +362,11 @@ object-based and class-based APIs:
 
    .. testcode:: polars
 
-        schema = DataFrameSchema(
+        schema = pa.DataFrameSchema(
             {
-                "list_col": Column(pl.List(pl.Int64())),
-                "array_col": Column(pl.Array(pl.Int64(), 3)),
-                "struct_col": Column(pl.Struct({"a": pl.Utf8(), "b": pl.Float64()})),
+                "list_col": pa.Column(pl.List(pl.Int64())),
+                "array_col": pa.Column(pl.Array(pl.Int64(), 3)),
+                "struct_col": pa.Column(pl.Struct({"a": pl.Utf8(), "b": pl.Float64()})),
             },
         )
 
@@ -374,7 +374,12 @@ object-based and class-based APIs:
 
    .. testcode:: polars
 
-        class ModelWithAnnotated(DataFrameModel):
+        try:
+            from typing import Annotated  # python 3.9+
+        except ImportError:
+            from typing_extensions import Annotated
+
+        class ModelWithAnnotated(pa.DataFrameModel):
             list_col: Annotated[pl.List, pl.Int64()]
             array_col: Annotated[pl.Array, pl.Int64(), 3]
             struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
@@ -383,7 +388,7 @@ object-based and class-based APIs:
 
    .. testcode:: polars
 
-        class ModelWithDtypeKwargs(DataFrameModel):
+        class ModelWithDtypeKwargs(pa.DataFrameModel):
             list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
             array_col: pl.Array = pa.Field(dtype_kwargs={"inner": pl.Int64(), "width": 3})
             struct_col: pl.Struct = pa.Field(dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}})
