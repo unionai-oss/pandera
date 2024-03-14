@@ -413,7 +413,7 @@ class Decimal(_Number):
     """The number of digits after the decimal point."""
 
     # pylint: disable=line-too-long
-    rounding: str = dataclasses.field(
+    rounding: Optional[str] = dataclasses.field(
         default_factory=lambda: decimal.getcontext().rounding
     )
     """
