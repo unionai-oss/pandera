@@ -199,7 +199,7 @@ copybutton_prompt_is_regexp = True
 
 # this is a workaround to filter out forward reference issue in
 # sphinx_autodoc_typehints
-class FilterPandasTypeAnnotationWarning(pylogging.Filter):
+class FilterTypeAnnotationWarnings(pylogging.Filter):
     def filter(self, record: pylogging.LogRecord) -> bool:
         # You probably should make this check more specific by checking
         # that dataclass name is in the message, so that you don't filter out
@@ -225,7 +225,7 @@ class FilterPandasTypeAnnotationWarning(pylogging.Filter):
 
 
 logging.getLogger("sphinx_autodoc_typehints").logger.addFilter(
-    FilterPandasTypeAnnotationWarning()
+    FilterTypeAnnotationWarnings()
 )
 
 

@@ -3,23 +3,15 @@ from typing import Any, Union
 
 import numpy as np
 import pandas as pd
-import polars as pl
-import pydantic
 from packaging import version
 
-from pandera.engines.type_aliases import PandasObject, PolarsObject
+from pandera.engines.type_aliases import PandasObject
 
 
 def pandas_version():
     """Return the pandas version."""
 
     return version.parse(pd.__version__)
-
-
-def pydantic_version():
-    """Return the pydantic version."""
-
-    return version.parse(pydantic.__version__)
 
 
 def numpy_pandas_coercible(series: pd.Series, type_: Any) -> pd.Series:
@@ -101,87 +93,3 @@ def numpy_pandas_coerce_failure_cases(
     return error_formatters.reshape_failure_cases(
         failure_cases, ignore_na=False
     )
-
-
-def polars_series_coercible(
-    series: pl.Series, type_: pl.DataType
-) -> pl.Series:
-    """Checks whether a polars series is coercible with respect to a type."""
-    try:
-        could_not_coerce = (
-            ~series.is_null() & series.cast(type_, strict=False).is_null()
-        )
-        return ~could_not_coerce
-    except (pl.exceptions.ArrowError, pl.exceptions.InvalidOperationError):
-        return pl.Series([False] * len(series))
-
-
-def polars_object_coercible(
-    data_container: PolarsObject, type_: Any
-) -> PolarsObject:
-    """Checks whether a polars object is coercible with respect to a type."""
-    # pylint: disable=import-outside-toplevel,cyclic-import
-    from pandera.engines import polars_engine
-
-    polars_type = polars_engine.Engine.dtype(type_).type
-
-    if isinstance(data_container, pl.DataFrame):
-        check_output = pl.DataFrame(
-            {
-                column: polars_series_coercible(
-                    data_container[column], polars_type
-                )
-                for column in data_container.columns
-            }
-        )
-    elif isinstance(data_container, pl.Series):
-        check_output = polars_series_coercible(data_container, polars_type)
-    else:
-        raise TypeError(
-            f"type of data_container {type(data_container)} not understood. "
-            "Must be a polars Series or DataFrame."
-        )
-
-    return check_output
-
-
-def polars_failure_cases_from_coercible(
-    data_container: PolarsObject,
-    is_coercible: PolarsObject,
-) -> PolarsObject:
-    """Get the failure cases resulting from trying to coerce a polars object."""
-
-    from pandera.backends.polars.checks import PolarsCheckBackend
-    from pandera.api.checks import Check
-
-    stub_backend = PolarsCheckBackend(Check(lambda _: _, ignore_na=False))
-
-    return stub_backend.postprocess(
-        data_container,  # type: ignore[arg-type]
-        is_coercible,
-    ).failure_cases
-
-
-def polars_coerce_failure_cases(
-    data_container: PolarsObject,
-    type_: Any,
-) -> PolarsObject:
-    """
-    Get the failure cases resulting from trying to coerce a polars object
-    into particular data type.
-    """
-    is_coercible = polars_object_coercible(data_container, type_)
-    return polars_failure_cases_from_coercible(data_container, is_coercible)
-
-
-def check_polars_container_all_true(
-    data_container: PolarsObject,
-) -> bool:
-    """Check if a polars container contains all True values."""
-    if isinstance(data_container, pl.Series):
-        if data_container.all():
-            return True
-    elif isinstance(data_container, pl.DataFrame):
-        if data_container.melt()["value"].all():
-            return True
-    return False

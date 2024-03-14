@@ -7,7 +7,7 @@ import pytest
 
 import pandera as pa
 from pandera.typing import DataFrame, Series
-from pandera.engines.utils import pydantic_version
+from pandera.engines import pydantic_version
 
 try:
     from pydantic import BaseModel, ValidationError

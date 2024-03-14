@@ -68,7 +68,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
 
             dtype = None if dtype is Any else dtype
 
-            if annotation.origin is None:
+            if annotation.origin is None or isinstance(
+                annotation.origin, pl.datatypes.DataTypeClass
+            ):
                 if check_name is False:
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."

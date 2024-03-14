@@ -3,13 +3,18 @@
 
 from typing import Optional
 
+try:
+    from typing import Annotated  # type: ignore
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
+
 import polars as pl
 
 import pytest
 import pandera as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
-from pandera.polars import Column, DataFrameSchema
+from pandera.polars import Column, DataFrameSchema, DataFrameModel
 
 
 @pytest.fixture
@@ -423,3 +428,63 @@ def test_lazy_validation_errors():
         schema.validate(invalid_lf, lazy=True)
     except pa.errors.SchemaErrors as exc:
         assert exc.failure_cases.shape[0] == 6
+
+
+@pytest.fixture
+def lf_with_nested_types():
+    return pl.LazyFrame(
+        {
+            "list_col": [[1, 2], [4, 5, 6, 5]],
+            "array_col": [[1, 2, 3], [4, 5, 6]],
+            "struct_col": [{"a": "a", "b": 1.0}, {"a": "b", "b": 2.0}],
+        }
+    )
+
+
+def test_dataframe_schema_with_nested_types(lf_with_nested_types):
+
+    schema = DataFrameSchema(
+        {
+            "list_col": Column(pl.List(pl.Int64())),
+            "array_col": Column(pl.Array(pl.Int64(), 3)),
+            "struct_col": Column(
+                pl.Struct({"a": pl.Utf8(), "b": pl.Float64()})
+            ),
+        },
+        coerce=True,
+    )
+
+    validated_lf = schema.validate(lf_with_nested_types, lazy=True)
+    assert validated_lf.collect().equals(lf_with_nested_types.collect())
+
+
+def test_dataframe_model_with_annotated_nested_types(lf_with_nested_types):
+    class ModelWithAnnotated(DataFrameModel):
+        list_col: Annotated[pl.List, pl.Int64()]
+        array_col: Annotated[pl.Array, pl.Int64(), 3]
+        struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
+
+        class Config:
+            coerce = True
+
+    validated_lf = ModelWithAnnotated.validate(lf_with_nested_types, lazy=True)
+    assert validated_lf.collect().equals(validated_lf.collect())
+
+
+def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
+    class ModelWithDtypeKwargs(DataFrameModel):
+        list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
+        array_col: pl.Array = pa.Field(
+            dtype_kwargs={"inner": pl.Int64(), "width": 3}
+        )
+        struct_col: pl.Struct = pa.Field(
+            dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}}
+        )
+
+        class Config:
+            coerce = True
+
+    validated_lf = ModelWithDtypeKwargs.validate(
+        lf_with_nested_types, lazy=True
+    )
+    assert validated_lf.collect().equals(validated_lf.collect())

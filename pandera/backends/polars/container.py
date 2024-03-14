@@ -8,10 +8,12 @@ import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
+from pandera.api.polars.types import PolarsData
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.polars.base import PolarsSchemaBackend
 from pandera.config import ValidationScope
 from pandera.errors import (
+    ParserError,
     SchemaError,
     SchemaErrors,
     SchemaErrorReason,
@@ -388,16 +390,15 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         """
         error_handler = ErrorHandler(lazy=True)
 
-        if schema.dtype is not None:
-            obj = obj.cast(schema.dtype.type)
-        else:
-            obj = obj.cast(
-                {k: v.dtype.type for k, v in schema.columns.items()}
-            )
-
         try:
-            obj = obj.collect().lazy()
-        except pl.exceptions.ComputeError as exc:
+            if schema.dtype is not None:
+                obj = schema.dtype.try_coerce(obj)
+            else:
+                for col_schema in schema.columns.values():
+                    obj = col_schema.dtype.try_coerce(
+                        PolarsData(obj, col_schema.selector)
+                    )
+        except (ParserError, pl.ComputeError) as exc:
             error_handler.collect_error(
                 validation_type(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,
