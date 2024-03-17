@@ -196,6 +196,11 @@ class ArraySchemaBackend(PandasSchemaBackend):
     def check_nullable(self, check_obj: pd.Series, schema) -> CoreCheckResult:
         isna = check_obj.isna()
         passed = schema.nullable or not isna.any()
+        failure_cases = (
+            reshape_failure_cases(check_obj[isna], ignore_na=False)
+            if not passed
+            else pd.DataFrame()
+        )
         return CoreCheckResult(
             passed=cast(bool, passed),
             check="not_nullable",
@@ -204,9 +209,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 f"non-nullable series '{check_obj.name}' contains "
                 f"null values:\n{check_obj[isna]}"
             ),
-            failure_cases=reshape_failure_cases(
-                check_obj[isna], ignore_na=False
-            ),
+            failure_cases=failure_cases,
         )
 
     @validate_scope(scope=ValidationScope.DATA)
