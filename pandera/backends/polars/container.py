@@ -256,7 +256,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         if not schema.columns and schema.dtype is not None:
             # set schema components to dataframe dtype if columns are not
             # specified by the dataframe-level dtype is specified.
-            from pandera.api.pandas.components import Column
+            from pandera.api.polars.components import Column
 
             columns = {}
             for col in check_obj.columns:
