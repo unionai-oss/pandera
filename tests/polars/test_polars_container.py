@@ -211,6 +211,20 @@ def test_add_missing_columns_with_nullable(ldf_basic, ldf_schema_basic):
     )
 
 
+def test_required_columns():
+    """Test required columns."""
+    schema = DataFrameSchema(
+        {
+            "a": Column(pl.Int64, required=True),
+            "b": Column(pl.Utf8, required=False),
+        }
+    )
+    ldf = pl.LazyFrame({"a": [1, 2, 3]})
+    assert ldf.pipe(schema.validate).collect().equals(ldf.collect())
+    with pytest.raises(pa.errors.SchemaError):
+        ldf.drop("a").pipe(schema.validate).collect()
+
+
 def test_unique_column_names():
     """Test unique column names."""
     with pytest.warns(
