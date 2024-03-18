@@ -1,7 +1,10 @@
 """Pandera configuration."""
 
+
 import os
+from contextlib import contextmanager
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -55,3 +58,29 @@ CONFIG = PanderaConfig(
         False,
     ),
 )
+
+
+@contextmanager
+def config_context(
+    validation_enabled: Optional[bool] = None,
+    validation_depth: Optional[ValidationDepth] = None,
+    cache_dataframe: Optional[bool] = None,
+    keep_cached_dataframe: Optional[bool] = None,
+):
+    """Temporarily set pandera config options to custom settings."""
+    global CONFIG
+
+    original_config = CONFIG.model_copy()
+
+    # if validation_enabled is not None:
+    #     CONFIG.validation_enabled = validation_enabled
+    # if validation_depth is not None:
+    #     CONFIG.validation_depth = validation_depth
+    # if cache_dataframe is not None:
+    #     CONFIG.cache_dataframe = cache_dataframe
+    # if keep_cached_dataframe is not None:
+    #     CONFIG.keep_cached_dataframe = keep_cached_dataframe
+
+    yield
+
+    CONFIG = original_config
