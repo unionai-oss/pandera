@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 from pyspark.sql import DataFrame
 
 from pandera import errors
-from pandera.config import CONFIG
+from pandera.config import get_config_context
 from pandera.api.base.schema import BaseSchema
 from pandera.api.base.types import StrictType
 from pandera.api.checks import Check
@@ -323,7 +323,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         >>> schema_withchecks.validate(df).take(2)
             [Row(product='Bread', price=9), Row(product='Butter', price=15)]
         """
-        if not CONFIG.validation_enabled:
+        if not get_config_context().validation_enabled:
             return check_obj
         error_handler = ErrorHandler(lazy)
 

@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 import pandas as pd
 
 from pandera import errors
-from pandera.config import CONFIG
+from pandera.config import get_config_context
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.base.types import StrictType, CheckList
@@ -337,7 +337,7 @@ class DataFrameSchema(BaseSchema):
         4         0.80      dog
         5         0.76      dog
         """
-        if not CONFIG.validation_enabled:
+        if not get_config_context().validation_enabled:
             return check_obj
 
         # NOTE: Move this into its own schema-backend variant. This is where

@@ -12,7 +12,7 @@ from pandera.api.base.types import CheckList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
-from pandera.config import CONFIG
+from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine, PYDANTIC_V2
 
@@ -426,7 +426,7 @@ class SeriesSchema(ArraySchema):
         dtype: float64
 
         """
-        if not CONFIG.validation_enabled:
+        if not get_config_context().validation_enabled:
             return check_obj
 
         if self._is_inferred:

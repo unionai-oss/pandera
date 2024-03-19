@@ -35,7 +35,11 @@ class PanderaConfig(BaseModel):
     """
 
     validation_enabled: bool = True
-    validation_depth: ValidationDepth = ValidationDepth.SCHEMA_AND_DATA
+    # None is interpreted as "SCHEMA_AND_DATA". None is used as a valid value
+    # to support the use case where a pandera validation engine needs to
+    # establish default validation depth behavior if the user doesn't explicitly
+    # specify the environment variable.
+    validation_depth: Optional[ValidationDepth] = None
     cache_dataframe: bool = False
     keep_cached_dataframe: bool = False
 
@@ -47,7 +51,8 @@ CONFIG = PanderaConfig(
         True,
     ),
     validation_depth=os.environ.get(
-        "PANDERA_VALIDATION_DEPTH", ValidationDepth.SCHEMA_AND_DATA
+        "PANDERA_VALIDATION_DEPTH",
+        None,
     ),
     cache_dataframe=os.environ.get(
         "PANDERA_CACHE_DATAFRAME",
@@ -59,6 +64,8 @@ CONFIG = PanderaConfig(
     ),
 )
 
+_CONTEXT_CONFIG = CONFIG.model_copy()
+
 
 @contextmanager
 def config_context(
@@ -68,19 +75,40 @@ def config_context(
     keep_cached_dataframe: Optional[bool] = None,
 ):
     """Temporarily set pandera config options to custom settings."""
-    global CONFIG
+    # pylint: disable=global-statement
+    global _CONTEXT_CONFIG
 
-    original_config = CONFIG.model_copy()
+    if CONFIG != _CONTEXT_CONFIG:
+        _CONTEXT_CONFIG = CONFIG.model_copy()
 
-    # if validation_enabled is not None:
-    #     CONFIG.validation_enabled = validation_enabled
-    # if validation_depth is not None:
-    #     CONFIG.validation_depth = validation_depth
-    # if cache_dataframe is not None:
-    #     CONFIG.cache_dataframe = cache_dataframe
-    # if keep_cached_dataframe is not None:
-    #     CONFIG.keep_cached_dataframe = keep_cached_dataframe
+    if CONFIG == _CONTEXT_CONFIG:
+        if validation_enabled is not None:
+            _CONTEXT_CONFIG.validation_enabled = validation_enabled
+        if validation_depth is not None:
+            _CONTEXT_CONFIG.validation_depth = validation_depth
+        if cache_dataframe is not None:
+            _CONTEXT_CONFIG.cache_dataframe = cache_dataframe
+        if keep_cached_dataframe is not None:
+            _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
 
     yield
 
-    CONFIG = original_config
+    _CONTEXT_CONFIG = CONFIG.model_copy()
+
+
+def get_config_global() -> PanderaConfig:
+    """Get the global configuration."""
+    return CONFIG
+
+
+def get_config_context() -> PanderaConfig:
+    """Gets the configuration context.
+
+    :param raw: if True, return the configuration context unmodified. Otherwise,
+        set the validation_depth to SCHEMA_AND_DATA if it is None.
+    """
+    config = _CONTEXT_CONFIG.model_copy()
+    if config.validation_depth is None:
+        config.validation_depth = ValidationDepth.SCHEMA_AND_DATA
+
+    return config
