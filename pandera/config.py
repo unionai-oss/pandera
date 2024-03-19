@@ -2,6 +2,7 @@
 
 
 import os
+from copy import deepcopy
 from contextlib import contextmanager
 from enum import Enum
 from typing import Optional
@@ -64,7 +65,7 @@ CONFIG = PanderaConfig(
     ),
 )
 
-_CONTEXT_CONFIG = CONFIG.model_copy()
+_CONTEXT_CONFIG = deepcopy(CONFIG)
 
 
 @contextmanager
@@ -79,7 +80,7 @@ def config_context(
     global _CONTEXT_CONFIG
 
     if CONFIG != _CONTEXT_CONFIG:
-        _CONTEXT_CONFIG = CONFIG.model_copy()
+        _CONTEXT_CONFIG = deepcopy(CONFIG)
 
     if CONFIG == _CONTEXT_CONFIG:
         if validation_enabled is not None:
@@ -93,7 +94,7 @@ def config_context(
 
     yield
 
-    _CONTEXT_CONFIG = CONFIG.model_copy()
+    _CONTEXT_CONFIG = deepcopy(CONFIG)
 
 
 def get_config_global() -> PanderaConfig:
@@ -107,7 +108,7 @@ def get_config_context() -> PanderaConfig:
     :param raw: if True, return the configuration context unmodified. Otherwise,
         set the validation_depth to SCHEMA_AND_DATA if it is None.
     """
-    config = _CONTEXT_CONFIG.model_copy()
+    config = deepcopy(_CONTEXT_CONFIG)
     if config.validation_depth is None:
         config.validation_depth = ValidationDepth.SCHEMA_AND_DATA
 

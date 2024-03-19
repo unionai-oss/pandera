@@ -8,13 +8,23 @@ import pandera.polars as pa
 from pandera.config import CONFIG
 
 
+@pytest.fixture(scope="function", autouse=True)
+def set_validation_depth():
+    """
+    These tests ensure that the validation depth is set to 'None'
+    for unit tests.
+    """
+    _validation_depth = CONFIG.validation_depth
+    CONFIG.validation_depth = None
+    yield
+    CONFIG.validation_depth = _validation_depth
+
+
 def test_lazyframe_validation_default():
     """
     Test that with default configuration setting for validation depth (None),
     schema validation with LazyFrames is performed only on the schema.
     """
-    CONFIG.validation_depth = None
-
     schema = pa.DataFrameSchema({"a": pa.Column(pl.Int64, pa.Check.gt(0))})
 
     valid = pl.LazyFrame({"a": [1, 2, 3]})
