@@ -199,7 +199,7 @@ class ArraySchemaBackend(PandasSchemaBackend):
         failure_cases = (
             reshape_failure_cases(check_obj[isna], ignore_na=False)
             if not passed
-            else pd.DataFrame()
+            else None
         )
         return CoreCheckResult(
             passed=cast(bool, passed),
