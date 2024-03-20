@@ -35,7 +35,7 @@ beautifulsoup4==4.12.3
     # via
     #   furo
     #   nbconvert
-black==24.2.0
+black==24.3.0
 bleach==6.1.0
     # via nbconvert
 certifi==2024.2.2
