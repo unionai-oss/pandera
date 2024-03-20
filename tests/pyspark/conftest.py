@@ -12,7 +12,7 @@ def spark() -> SparkSession:
     """
     creates spark session
     """
-    return SparkSession.builder.getOrCreate()
+    yield SparkSession.builder.appName("Pandera Pyspark Testing").getOrCreate()
 
 
 @pytest.fixture(scope="session")

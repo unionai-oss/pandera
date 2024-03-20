@@ -1,7 +1,9 @@
-"""Pandera type annotations for Pyspark."""
+"""Pandera type annotations for Pyspark SQL"""
 from typing import Union, TypeVar
+
 from pandera.typing.common import DataFrameBase
 from pandera.typing.pandas import DataFrameModel, _GenericAlias
+from pandera.typing.pyspark import _PydanticIntegrationMixIn
 
 try:
     import pyspark.sql as ps
@@ -51,7 +53,9 @@ if PYSPARK_SQL_INSTALLED:
 
     if PYSPARK_SQL_INSTALLED:
         # pylint: disable=too-few-public-methods,arguments-renamed
-        class DataFrame(DataFrameBase, ps.DataFrame, Generic[T]):
+        class DataFrame(
+            DataFrameBase, _PydanticIntegrationMixIn, ps.DataFrame, Generic[T]
+        ):
             """
             Representation of dask.dataframe.DataFrame, only used for type
             annotation.
