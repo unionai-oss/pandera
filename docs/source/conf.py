@@ -48,6 +48,7 @@ extensions = [
     "sphinx_copybutton",
     "recommonmark",
     "sphinx_panels",
+    "sphinx_design",
     "jupyterlite_sphinx",
 ]
 
