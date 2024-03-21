@@ -8,7 +8,7 @@ import polars as pl
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
-from pandera.backends.polars.constants import CHECK_OUTPUT_KEY
+from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
     SchemaError,
     FailureCaseMetadata,

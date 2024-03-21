@@ -12,10 +12,10 @@ import polars as pl
 
 import pandera.errors
 from pandera.api.polars.types import PolarsData
+from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines import polars_engine as pe
 from pandera.engines.polars_engine import (
     polars_object_coercible,
-    COERCIBLE_KEY,
 )
 
 
@@ -249,7 +249,7 @@ def test_check_equivalent_custom(first_dtype, second_dtype, equivalent):
                 data={"0": [1000, 100, 200], "1": [1000, 100, 200]},
                 schema={"0": pl.Int32, "1": pl.Int32},
             ),
-            pl.LazyFrame({COERCIBLE_KEY: [True, True, True]}),
+            pl.LazyFrame({CHECK_OUTPUT_KEY: [True, True, True]}),
         ),
         (
             pl.Int64,
@@ -257,7 +257,7 @@ def test_check_equivalent_custom(first_dtype, second_dtype, equivalent):
                 data={"0": [1000, 100, 200]},
                 schema={"0": pl.Int32},
             ),
-            pl.LazyFrame({COERCIBLE_KEY: [True, True, True]}),
+            pl.LazyFrame({CHECK_OUTPUT_KEY: [True, True, True]}),
         ),
         (
             pl.UInt32,
@@ -265,12 +265,12 @@ def test_check_equivalent_custom(first_dtype, second_dtype, equivalent):
                 data={"0": ["1000", "a", "200"], "1": ["1000", "100", "c"]},
                 schema={"0": pl.Utf8, "1": pl.Utf8},
             ),
-            pl.LazyFrame({COERCIBLE_KEY: [True, False, False]}),
+            pl.LazyFrame({CHECK_OUTPUT_KEY: [True, False, False]}),
         ),
         (
             pl.Int64,
             pl.LazyFrame(data={"0": ["d", "100", "200"]}),
-            pl.LazyFrame({COERCIBLE_KEY: [False, True, True]}),
+            pl.LazyFrame({CHECK_OUTPUT_KEY: [False, True, True]}),
         ),
     ],
 )

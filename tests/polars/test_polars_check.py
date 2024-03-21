@@ -4,7 +4,7 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
-from pandera.backends.polars.constants import CHECK_OUTPUT_KEY
+from pandera.constants import CHECK_OUTPUT_KEY
 
 
 @pytest.fixture

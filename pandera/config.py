@@ -79,10 +79,7 @@ def config_context(
     # pylint: disable=global-statement
     global _CONTEXT_CONFIG
 
-    if CONFIG != _CONTEXT_CONFIG:
-        _CONTEXT_CONFIG = deepcopy(CONFIG)
-
-    if CONFIG == _CONTEXT_CONFIG:
+    try:
         if validation_enabled is not None:
             _CONTEXT_CONFIG.validation_enabled = validation_enabled
         if validation_depth is not None:
@@ -92,9 +89,9 @@ def config_context(
         if keep_cached_dataframe is not None:
             _CONTEXT_CONFIG.keep_cached_dataframe = keep_cached_dataframe
 
-    yield
-
-    _CONTEXT_CONFIG = deepcopy(CONFIG)
+        yield
+    finally:
+        _CONTEXT_CONFIG = deepcopy(CONFIG)
 
 
 def get_config_global() -> PanderaConfig:
@@ -103,13 +100,11 @@ def get_config_global() -> PanderaConfig:
 
 
 def get_config_context() -> PanderaConfig:
-    """Gets the configuration context.
-
-    :param raw: if True, return the configuration context unmodified. Otherwise,
-        set the validation_depth to SCHEMA_AND_DATA if it is None.
-    """
+    """Gets the configuration context."""
     config = deepcopy(_CONTEXT_CONFIG)
+
     if config.validation_depth is None:
+        # if validation depth is not set, default to using SCHEMA_AND_DATA
         config.validation_depth = ValidationDepth.SCHEMA_AND_DATA
 
     return config

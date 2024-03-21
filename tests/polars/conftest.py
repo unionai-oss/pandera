@@ -6,7 +6,7 @@ from pandera.config import CONFIG, ValidationDepth
 
 
 @pytest.fixture(scope="function", autouse=True)
-def set_validation_depth():
+def validation_depth_schema_and_data():
     """
     These tests ensure that the validation depth is set to SCHEMA_AND_DATA
     for unit tests.
