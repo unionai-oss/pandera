@@ -86,10 +86,11 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             else:
                 # use check_result
                 failure_cases = check_result.failure_cases.collect()
+                failure_cases_msg = failure_cases.head().rows(named=True)
                 message = (
                     f"{schema.__class__.__name__} '{schema.name}' failed "
                     f"validator number {check_index}: "
-                    f"{check} failure cases: {failure_cases}"
+                    f"{check} failure case examples: {failure_cases_msg}"
                 )
 
             # raise a warning without exiting if the check is specified to do so

@@ -433,7 +433,7 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         """
         error_handler = ErrorHandler(lazy=True)
 
-        config_ctx = get_config_context()
+        config_ctx = get_config_context(validation_depth_default=None)
         coerce_fn: str = (
             "try_coerce"
             if config_ctx.validation_depth

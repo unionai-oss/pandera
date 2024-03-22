@@ -131,8 +131,9 @@ class Column(_Column):
         if is_dataframe:
             check_obj = check_obj.lazy()
 
-        config_from_ctx = get_config_context()
-        with config_context(validation_depth=config_from_ctx.validation_depth):
+        config_ctx = get_config_context(validation_depth_default=None)
+        validation_depth = config_ctx.validation_depth
+        with config_context(validation_depth=validation_depth):
             output = self.get_backend(check_obj).validate(
                 check_obj,
                 self,

@@ -168,7 +168,7 @@ class ColumnBackend(PolarsSchemaBackend):
         if schema.dtype is None or not schema.coerce:
             return check_obj
 
-        config_ctx = get_config_context()
+        config_ctx = get_config_context(validation_depth_default=None)
         coerce_fn: Callable[[pl.LazyFrame], pl.LazyFrame] = (
             schema.dtype.coerce
             if config_ctx.validation_depth == ValidationDepth.SCHEMA_ONLY

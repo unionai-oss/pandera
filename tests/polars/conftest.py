@@ -2,7 +2,7 @@
 
 import pytest
 
-from pandera.config import CONFIG, ValidationDepth
+from pandera.config import CONFIG, reset_config_context, ValidationDepth
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -13,5 +13,8 @@ def validation_depth_schema_and_data():
     """
     _validation_depth = CONFIG.validation_depth
     CONFIG.validation_depth = ValidationDepth.SCHEMA_AND_DATA
-    yield
-    CONFIG.validation_depth = _validation_depth
+    try:
+        yield
+    finally:
+        CONFIG.validation_depth = _validation_depth
+        reset_config_context()

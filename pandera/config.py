@@ -77,8 +77,6 @@ def config_context(
 ):
     """Temporarily set pandera config options to custom settings."""
     # pylint: disable=global-statement
-    global _CONTEXT_CONFIG
-
     try:
         if validation_enabled is not None:
             _CONTEXT_CONFIG.validation_enabled = validation_enabled
@@ -91,7 +89,14 @@ def config_context(
 
         yield
     finally:
-        _CONTEXT_CONFIG = deepcopy(CONFIG)
+        reset_config_context()
+
+
+def reset_config_context():
+    """Reset the context configuration to the global configuration."""
+    # pylint: disable=global-statement
+    global _CONTEXT_CONFIG
+    _CONTEXT_CONFIG = deepcopy(CONFIG)
 
 
 def get_config_global() -> PanderaConfig:
@@ -99,12 +104,15 @@ def get_config_global() -> PanderaConfig:
     return CONFIG
 
 
-def get_config_context() -> PanderaConfig:
+def get_config_context(
+    validation_depth_default: Optional[
+        ValidationDepth
+    ] = ValidationDepth.SCHEMA_AND_DATA,
+) -> PanderaConfig:
     """Gets the configuration context."""
     config = deepcopy(_CONTEXT_CONFIG)
 
-    if config.validation_depth is None:
-        # if validation depth is not set, default to using SCHEMA_AND_DATA
-        config.validation_depth = ValidationDepth.SCHEMA_AND_DATA
+    if config.validation_depth is None and validation_depth_default:
+        config.validation_depth = validation_depth_default
 
     return config
