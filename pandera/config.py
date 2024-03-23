@@ -77,6 +77,8 @@ def config_context(
 ):
     """Temporarily set pandera config options to custom settings."""
     # pylint: disable=global-statement
+    _outer_config_ctx = get_config_context(validation_depth_default=None)
+
     try:
         if validation_enabled is not None:
             _CONTEXT_CONFIG.validation_enabled = validation_enabled
@@ -89,14 +91,14 @@ def config_context(
 
         yield
     finally:
-        reset_config_context()
+        reset_config_context(_outer_config_ctx)
 
 
-def reset_config_context():
+def reset_config_context(conf: Optional[PanderaConfig] = None):
     """Reset the context configuration to the global configuration."""
     # pylint: disable=global-statement
     global _CONTEXT_CONFIG
-    _CONTEXT_CONFIG = deepcopy(CONFIG)
+    _CONTEXT_CONFIG = deepcopy(conf or CONFIG)
 
 
 def get_config_global() -> PanderaConfig:
