@@ -1,7 +1,7 @@
 """Validation backend for polars components."""
 
 import warnings
-from typing import Iterable, List, Optional, cast
+from typing import Any, Callable, Iterable, List, Optional, cast
 
 import polars as pl
 
@@ -9,7 +9,7 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
-from pandera.config import ValidationScope
+from pandera.config import ValidationScope, ValidationDepth, get_config_context
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -61,7 +61,22 @@ class ColumnBackend(PolarsSchemaBackend):
                 "When drop_invalid_rows is True, lazy must be set to True."
             )
 
-        check_obj = self.set_default(check_obj, schema)
+        core_parsers: List[Callable[..., Any]] = [
+            self.coerce_dtype,
+            self.set_default,
+        ]
+
+        for parser in core_parsers:
+            try:
+                check_obj = parser(check_obj, schema)
+            except SchemaError as exc:
+                error_handler.collect_error(
+                    validation_type(exc.reason_code),
+                    exc.reason_code,
+                    exc,
+                )
+            except SchemaErrors as exc:
+                error_handler.collect_errors(exc.schema_errors)
 
         error_handler = self.run_checks_and_handle_errors(
             error_handler,
@@ -153,8 +168,15 @@ class ColumnBackend(PolarsSchemaBackend):
         if schema.dtype is None or not schema.coerce:
             return check_obj
 
+        config_ctx = get_config_context(validation_depth_default=None)
+        coerce_fn: Callable[[pl.LazyFrame], pl.LazyFrame] = (
+            schema.dtype.coerce
+            if config_ctx.validation_depth == ValidationDepth.SCHEMA_ONLY
+            else schema.dtype.try_coerce
+        )
+
         try:
-            return schema.dtype.try_coerce(check_obj)
+            return coerce_fn(check_obj)
         except ParserError as exc:
             raise SchemaError(
                 schema=schema,

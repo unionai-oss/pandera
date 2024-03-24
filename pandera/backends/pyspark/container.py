@@ -16,7 +16,7 @@ from pandera.backends.pyspark.decorators import (
     cache_check_obj,
 )
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
-from pandera.config import CONFIG
+from pandera.config import get_config_context
 from pandera.validation_depth import ValidationScope
 from pandera.errors import (
     SchemaDefinitionError,
@@ -127,7 +127,7 @@ class DataFrameSchemaBackend(PysparkSchemaBackend):
         assert (
             error_handler is not None
         ), "The `error_handler` argument must be provided."
-        if not CONFIG.validation_enabled:
+        if not get_config_context().validation_enabled:
             warnings.warn(
                 "Skipping the validation checks as validation is disabled"
             )

@@ -7,6 +7,8 @@ import polars as pl
 
 from pandera.api.pandas.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.polars.types import PolarsCheckObjects
+from pandera.api.polars.utils import get_validation_depth
+from pandera.config import config_context
 from pandera.dtypes import DataType
 from pandera.engines import polars_engine
 
@@ -42,21 +44,23 @@ class DataFrameSchema(_DataFrameSchema):
         inplace: bool = False,
     ) -> PolarsCheckObjects:
         """Validate a polars DataFrame against the schema."""
+
         is_dataframe = isinstance(check_obj, pl.DataFrame)
+        with config_context(validation_depth=get_validation_depth(check_obj)):
+            if is_dataframe:
+                # if validating a polars DataFrame, use the global config setting
+                check_obj = check_obj.lazy()
 
-        if is_dataframe:
-            check_obj = check_obj.lazy()
-
-        output = self.get_backend(check_obj).validate(
-            check_obj=check_obj,
-            schema=self,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
+            output = self.get_backend(check_obj).validate(
+                check_obj=check_obj,
+                schema=self,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+            )
 
         if is_dataframe:
             output = output.collect()

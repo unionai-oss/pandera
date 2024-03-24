@@ -4,7 +4,7 @@ import functools
 import logging
 
 from pandera.backends.base import CoreCheckResult
-from pandera.config import ValidationDepth, ValidationScope, CONFIG
+from pandera.config import ValidationDepth, ValidationScope, get_config_context
 from pandera.errors import SchemaErrorReason
 
 
@@ -56,9 +56,11 @@ def validate_scope(scope: ValidationScope):
         @functools.wraps(func)
         def wrapper(self, check_obj, *args, **kwargs):
 
+            config = get_config_context()
+
             if scope == ValidationScope.SCHEMA:
-                if CONFIG.validation_depth == ValidationDepth.DATA_ONLY:
-                    logger.info(
+                if config.validation_depth == ValidationDepth.DATA_ONLY:
+                    logger.debug(
                         f"Skipping execution of check {func.__name__} since "
                         "validation depth is set to DATA_ONLY.",
                         stacklevel=2,
@@ -67,16 +69,14 @@ def validate_scope(scope: ValidationScope):
                 return func(self, check_obj, *args, **kwargs)
 
             elif scope == ValidationScope.DATA:
-                if CONFIG.validation_depth == ValidationDepth.SCHEMA_ONLY:
-                    logger.info(
+                if config.validation_depth == ValidationDepth.SCHEMA_ONLY:
+                    logger.debug(
                         f"Skipping execution of check {func.__name__} since "
                         "validation depth is set to SCHEMA_ONLY",
                         stacklevel=2,
                     )
                     return CoreCheckResult(passed=True)
                 return func(self, check_obj, *args, **kwargs)
-
-            raise ValueError(f"Invalid scope {scope}")
 
         return wrapper
 

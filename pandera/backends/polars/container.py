@@ -1,5 +1,6 @@
 """Validation backend for polars DataFrameSchema."""
 
+import copy
 import traceback
 import warnings
 from typing import Any, Optional, List, Callable, Tuple
@@ -11,7 +12,7 @@ from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.polars.base import PolarsSchemaBackend
-from pandera.config import ValidationScope
+from pandera.config import ValidationScope, ValidationDepth, get_config_context
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -71,7 +72,11 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
 
-        components = [v for _, v in schema.columns.items()]
+        components = self.collect_schema_components(
+            check_obj,
+            schema,
+            column_info,
+        )
 
         # subsample the check object if head, tail, or sample are specified
         sample = self.subsample(check_obj, head, tail, sample, random_state)
@@ -238,6 +243,44 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
             regex_match_patterns=regex_match_patterns,
         )
 
+    def collect_schema_components(
+        self,
+        check_obj: pl.LazyFrame,
+        schema,
+        column_info: ColumnInfo,
+    ):
+        """Collects all schema components to use for validation."""
+
+        columns = schema.columns
+
+        if not schema.columns and schema.dtype is not None:
+            # set schema components to dataframe dtype if columns are not
+            # specified by the dataframe-level dtype is specified.
+            from pandera.api.polars.components import Column
+
+            columns = {}
+            for col in check_obj.columns:
+                columns[col] = Column(schema.dtype, name=str(col))
+
+        schema_components = []
+        for col_name, col in columns.items():
+            if (
+                col.required  # type: ignore
+                or col_name in check_obj
+                or col_name in column_info.regex_match_patterns
+            ) and col_name not in column_info.absent_column_names:
+                col = copy.deepcopy(col)
+                if schema.dtype is not None:
+                    # override column dtype with dataframe dtype
+                    col.dtype = schema.dtype  # type: ignore
+
+                # disable coercion at the schema component level since the
+                # dataframe-level schema already coerced it.
+                col.coerce = False  # type: ignore
+                schema_components.append(col)
+
+        return schema_components
+
     ###########
     # Parsers #
     ###########
@@ -390,15 +433,40 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         """
         error_handler = ErrorHandler(lazy=True)
 
+        config_ctx = get_config_context(validation_depth_default=None)
+        coerce_fn: str = (
+            "try_coerce"
+            if config_ctx.validation_depth
+            in (
+                ValidationDepth.SCHEMA_AND_DATA,
+                ValidationDepth.DATA_ONLY,
+            )
+            else "coerce"
+        )
+
         try:
             if schema.dtype is not None:
-                obj = schema.dtype.try_coerce(obj)
+                obj = getattr(schema.dtype, coerce_fn)(obj)
             else:
                 for col_schema in schema.columns.values():
-                    obj = col_schema.dtype.try_coerce(
+                    obj = getattr(col_schema.dtype, coerce_fn)(
                         PolarsData(obj, col_schema.selector)
                     )
-        except (ParserError, pl.ComputeError) as exc:
+        except ParserError as exc:
+            error_handler.collect_error(
+                validation_type(SchemaErrorReason.DATATYPE_COERCION),
+                SchemaErrorReason.DATATYPE_COERCION,
+                SchemaError(
+                    schema=schema,
+                    data=obj,
+                    message=exc.args[0],
+                    check=f"coerce_dtype('{schema.dtypes}')",
+                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                    failure_cases=exc.failure_cases,
+                    check_output=exc.parser_output,
+                ),
+            )
+        except pl.ComputeError as exc:
             error_handler.collect_error(
                 validation_type(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,

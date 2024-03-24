@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Dict, List, Union
 
 from pandera.api.checks import Check
-from pandera.config import CONFIG, ValidationDepth
+from pandera.config import get_config_context, ValidationDepth
 from pandera.validation_depth import ValidationScope, validation_type
 from pandera.errors import SchemaError, SchemaErrorReason
 
@@ -153,15 +153,16 @@ class ErrorHandler:
 
         :param category: Enum object
         """
-        if CONFIG.validation_depth == ValidationDepth.SCHEMA_AND_DATA:
+        config = get_config_context()
+        if config.validation_depth == ValidationDepth.SCHEMA_AND_DATA:
             return False
         elif (
-            CONFIG.validation_depth == ValidationDepth.DATA_ONLY
+            config.validation_depth == ValidationDepth.DATA_ONLY
             and category == ValidationScope.DATA.name
         ):
             return False
         elif (
-            CONFIG.validation_depth == ValidationDepth.SCHEMA_ONLY
+            config.validation_depth == ValidationDepth.SCHEMA_ONLY
             and category == ValidationScope.SCHEMA.name
         ):
             return False

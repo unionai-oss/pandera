@@ -1,5 +1,7 @@
 """Unit tests for polars dataframe model."""
 
+from typing import Optional
+
 import pytest
 
 import polars as pl
@@ -94,6 +96,21 @@ def test_model_schema_equivalency(
     """Test that polars DataFrameModel and DataFrameSchema are equivalent."""
     ldf_schema_basic.name = "BasicModel"
     assert ldf_model_basic.to_schema() == ldf_schema_basic
+
+
+def test_model_schema_equivalency_with_optional():
+    class ModelWithOptional(DataFrameModel):
+        string_col: Optional[str]
+        int_col: int
+
+    schema = DataFrameSchema(
+        name="ModelWithOptional",
+        columns={
+            "string_col": Column(pl.Utf8, required=False),
+            "int_col": Column(pl.Int64),
+        },
+    )
+    assert ModelWithOptional.to_schema() == schema
 
 
 @pytest.mark.parametrize(

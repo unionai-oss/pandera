@@ -210,3 +210,7 @@ def test_set_default(data, dtype, default):
     backend = ColumnBackend()
     validated_data = backend.set_default(data, column_schema).collect()
     assert validated_data.select(pl.col("column").eq(default).any()).item()
+
+
+def test_column_schema_on_lazyframe_coerce():
+    ...

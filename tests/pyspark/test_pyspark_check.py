@@ -1637,8 +1637,8 @@ class TestCustomCheck(BaseClass):
         class Schema(DataFrameModel):
             """Test Schema"""
 
-            product: StringType()
-            code: IntegerType() = Field(
+            product: StringType
+            code: IntegerType = Field(
                 new_pyspark_check={
                     "max_value": self.sample_numeric_data["test_expression"]
                 }

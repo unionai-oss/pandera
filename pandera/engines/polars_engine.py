@@ -5,7 +5,7 @@ import datetime
 import decimal
 import inspect
 import warnings
-from typing import Any, Union, Optional, Iterable, Literal, Sequence
+from typing import Any, Union, Optional, Iterable, Literal, Sequence, Tuple
 
 
 import polars as pl
@@ -14,6 +14,7 @@ from polars.type_aliases import SchemaDict
 
 from pandera import dtypes, errors
 from pandera.api.polars.types import PolarsData
+from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import engine
 
@@ -21,7 +22,6 @@ from pandera.engines import engine
 PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
 PolarsDataType = Union[DataTypeClass, pl.DataType]
 
-COERCIBLE_KEY = "_is_coercible"
 COERCION_ERRORS = (
     TypeError,
     pl.ArrowError,
@@ -39,7 +39,7 @@ def polars_object_coercible(
         {key: type_}, strict=False
     ).select(pl.col(key).is_not_null())
     # reduce to a single boolean column
-    return coercible.select(pl.all_horizontal(key).alias(COERCIBLE_KEY))
+    return coercible.select(pl.all_horizontal(key).alias(CHECK_OUTPUT_KEY))
 
 
 def polars_failure_cases_from_coercible(
@@ -48,29 +48,43 @@ def polars_failure_cases_from_coercible(
 ) -> pl.LazyFrame:
     """Get the failure cases resulting from trying to coerce a polars object."""
     return data_container.lazyframe.with_context(is_coercible).filter(
-        pl.col(COERCIBLE_KEY).not_()
+        pl.col(CHECK_OUTPUT_KEY).not_()
     )
 
 
 def polars_coerce_failure_cases(
     data_container: PolarsData,
     type_: Any,
-) -> pl.DataFrame:
+) -> Tuple[pl.DataFrame, pl.DataFrame]:
     """
     Get the failure cases resulting from trying to coerce a polars object
     into particular data type.
     """
     try:
         is_coercible = polars_object_coercible(data_container, type_)
+    except (TypeError, pl.InvalidOperationError):
+        is_coercible = data_container.lazyframe.with_columns(
+            **{CHECK_OUTPUT_KEY: pl.lit(False)}
+        ).select(CHECK_OUTPUT_KEY)
+
+    try:
         failure_cases = polars_failure_cases_from_coercible(
             data_container, is_coercible
         ).collect()
+        is_coercible = is_coercible.collect()
     except COERCION_ERRORS:
         # If coercion fails, all of the relevant rows are failure cases
         failure_cases = data_container.lazyframe.select(
             data_container.key or "*"
         ).collect()
-    return failure_cases
+
+        is_coercible = (
+            data_container.lazyframe.with_columns(
+                **{CHECK_OUTPUT_KEY: pl.lit(False)}
+            ).select(CHECK_OUTPUT_KEY)
+        ).collect()
+
+    return is_coercible, failure_cases
 
 
 @immutable(init=True)
@@ -125,12 +139,20 @@ class DataType(dtypes.DataType):
             lf.collect()
             return lf
         except COERCION_ERRORS as exc:  # pylint:disable=broad-except
+            _key = (
+                ""
+                if data_container.key is None
+                else f"'{data_container.key}' in"
+            )
+            is_coercible, failure_cases = polars_coerce_failure_cases(
+                data_container=data_container, type_=self.type
+            )
             raise errors.ParserError(
-                f"Could not coerce {type(data_container.lazyframe)} "
-                f"data_container into type {self.type}",
-                failure_cases=polars_coerce_failure_cases(
-                    data_container=data_container, type_=self.type
-                ),
+                f"Could not coerce {_key} LazyFrame with schema "
+                f"{data_container.lazyframe.schema} "
+                f"into type {self.type}",
+                failure_cases=failure_cases,
+                parser_output=is_coercible,
             ) from exc
 
     def check(
