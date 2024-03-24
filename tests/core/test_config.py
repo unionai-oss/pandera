@@ -63,3 +63,58 @@ def test_config_context(
     config_gbl = get_config_global()
     assert getattr(config_ctx, setting) == post_ctx_value
     assert getattr(config_gbl, setting) == post_global_value
+
+
+@pytest.mark.parametrize(
+    "setting, outer_value, inner_value",
+    [
+        ("validation_enabled", True, False),
+        ("validation_enabled", False, True),
+        (
+            "validation_depth",
+            ValidationDepth.SCHEMA_AND_DATA,
+            ValidationDepth.SCHEMA_ONLY,
+        ),
+        (
+            "validation_depth",
+            ValidationDepth.SCHEMA_AND_DATA,
+            ValidationDepth.DATA_ONLY,
+        ),
+        (
+            "validation_depth",
+            ValidationDepth.SCHEMA_ONLY,
+            ValidationDepth.DATA_ONLY,
+        ),
+        (
+            "validation_depth",
+            ValidationDepth.SCHEMA_ONLY,
+            ValidationDepth.SCHEMA_AND_DATA,
+        ),
+        (
+            "validation_depth",
+            ValidationDepth.DATA_ONLY,
+            ValidationDepth.SCHEMA_AND_DATA,
+        ),
+        (
+            "validation_depth",
+            ValidationDepth.DATA_ONLY,
+            ValidationDepth.SCHEMA_ONLY,
+        ),
+        ("cache_dataframe", False, True),
+        ("cache_dataframe", True, False),
+        ("keep_cached_dataframe", False, True),
+        ("keep_cached_dataframe", True, False),
+    ],
+)
+def test_nested_config_context(setting, outer_value, inner_value):
+
+    with config_context(**{setting: outer_value}):
+        outer_config = get_config_context()
+        assert getattr(outer_config, setting) == outer_value
+
+        with config_context(**{setting: inner_value}):
+            inner_config = get_config_context()
+            assert getattr(inner_config, setting) == inner_value
+
+        outer_config = get_config_context()
+        assert getattr(outer_config, setting) == outer_value

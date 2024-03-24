@@ -76,7 +76,6 @@ def config_context(
     keep_cached_dataframe: Optional[bool] = None,
 ):
     """Temporarily set pandera config options to custom settings."""
-    # pylint: disable=global-statement
     _outer_config_ctx = get_config_context(validation_depth_default=None)
 
     try:
