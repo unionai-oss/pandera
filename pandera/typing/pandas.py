@@ -126,7 +126,7 @@ class DataFrame(DataFrameBase, pd.DataFrame, Generic[T]):
             reader = config.from_format
         else:
             reader = {
-                Formats.dict: pd.DataFrame,
+                Formats.dict: pd.DataFrame.from_dict,
                 Formats.csv: pd.read_csv,
                 Formats.json: pd.read_json,
                 Formats.feather: pd.read_feather,

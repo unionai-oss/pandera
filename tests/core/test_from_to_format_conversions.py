@@ -31,6 +31,10 @@ class InSchemaDict(InSchema):
     class Config:
         from_format = "dict"
 
+class InSchemaDictKwargs(InSchema):
+    class Config:
+        from_format = "dict"
+        from_format_kwargs = {"orient": "index"}
 
 class InSchemaJson(InSchema):
     class Config:
@@ -177,6 +181,7 @@ def _needs_pyarrow(schema) -> bool:
             io.StringIO,
         ],
         [InSchemaDict, lambda df: df.to_dict(orient="records"), None],
+        [InSchemaDictKwargs, lambda df: df.to_dict(orient="index"), None],
         [
             InSchemaJson,
             lambda df, x: df.to_json(x, orient="records"),
