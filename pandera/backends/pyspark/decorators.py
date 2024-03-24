@@ -8,7 +8,7 @@ from typing import List, Type
 
 from pyspark.sql import DataFrame
 from pandera.api.pyspark.types import PysparkDefaultTypes
-from pandera.config import CONFIG, ValidationDepth
+from pandera.config import get_config_context, ValidationDepth
 from pandera.validation_depth import ValidationScope
 from pandera.errors import SchemaError
 
@@ -89,8 +89,9 @@ def validate_scope(scope: ValidationScope):
                         if isinstance(value, DataFrame):
                             return value
 
+            config = get_config_context()
             if scope == ValidationScope.SCHEMA:
-                if CONFIG.validation_depth in (
+                if config.validation_depth in (
                     ValidationDepth.SCHEMA_AND_DATA,
                     ValidationDepth.SCHEMA_ONLY,
                 ):
@@ -105,7 +106,7 @@ def validate_scope(scope: ValidationScope):
                     return _get_check_obj()
 
             elif scope == ValidationScope.DATA:
-                if CONFIG.validation_depth in (
+                if config.validation_depth in (
                     ValidationDepth.SCHEMA_AND_DATA,
                     ValidationDepth.DATA_ONLY,
                 ):
@@ -149,7 +150,7 @@ def cache_check_obj():
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             # Skip if not enabled
-            if CONFIG.cache_dataframe is not True:
+            if get_config_context().cache_dataframe is not True:
                 return func(self, *args, **kwargs)
 
             check_obj: DataFrame = None
@@ -179,7 +180,7 @@ def cache_check_obj():
 
                 yield  # Execute the decorated function
 
-                if not CONFIG.keep_cached_dataframe:
+                if not get_config_context().keep_cached_dataframe:
                     # If not cached, `.unpersist()` does nothing
                     logger.debug("Unpersisting dataframe...")
                     check_obj.unpersist()

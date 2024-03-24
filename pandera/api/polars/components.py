@@ -3,9 +3,12 @@
 import logging
 from typing import Any, Optional
 
+import polars as pl
+
 from pandera.api.base.types import CheckList
 from pandera.api.pandas.components import Column as _Column
-from pandera.api.polars.types import PolarsDtypeInputTypes
+from pandera.api.polars.types import PolarsDtypeInputTypes, PolarsCheckObjects
+from pandera.config import config_context, get_config_context
 from pandera.engines import polars_engine
 from pandera.utils import is_regex
 
@@ -14,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class Column(_Column):
-    """Polars column scheme component."""
+    """Polars column schema component."""
 
     def __init__(
         self,
@@ -95,6 +98,53 @@ class Column(_Column):
             drop_invalid_rows=drop_invalid_rows,
         )
         self.set_regex()
+
+    def validate(
+        self,
+        check_obj: PolarsCheckObjects,
+        head: Optional[int] = None,
+        tail: Optional[int] = None,
+        sample: Optional[int] = None,
+        random_state: Optional[int] = None,
+        lazy: bool = False,
+        inplace: bool = False,
+    ) -> PolarsCheckObjects:
+        """Validate a Column in a DataFrame object.
+
+        :param check_obj: polars LazyFrame to validate.
+        :param head: validate the first n rows. Rows overlapping with `tail` or
+            `sample` are de-duplicated.
+        :param tail: validate the last n rows. Rows overlapping with `head` or
+            `sample` are de-duplicated.
+        :param sample: validate a random sample of n rows. Rows overlapping
+            with `head` or `tail` are de-duplicated.
+        :param random_state: random seed for the ``sample`` argument.
+        :param lazy: if True, lazily evaluates dataframe against all validation
+            checks and raises a ``SchemaErrors``. Otherwise, raise
+            ``SchemaError`` as soon as one occurs.
+        :param inplace: if True, applies coercion to the object of validation,
+            otherwise creates a copy of the data.
+        :returns: validated DataFrame.
+        """
+        is_dataframe = isinstance(check_obj, pl.DataFrame)
+
+        if is_dataframe:
+            check_obj = check_obj.lazy()
+
+        config_ctx = get_config_context(validation_depth_default=None)
+        validation_depth = config_ctx.validation_depth
+        with config_context(validation_depth=validation_depth):
+            output = self.get_backend(check_obj).validate(
+                check_obj,
+                self,
+                head=head,
+                tail=tail,
+                sample=sample,
+                random_state=random_state,
+                lazy=lazy,
+                inplace=inplace,
+            )
+        return output
 
     @property
     def dtype(self):

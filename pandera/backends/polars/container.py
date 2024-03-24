@@ -12,7 +12,7 @@ from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData
 from pandera.backends.base import CoreCheckResult, ColumnInfo
 from pandera.backends.polars.base import PolarsSchemaBackend
-from pandera.config import ValidationScope
+from pandera.config import ValidationScope, ValidationDepth, get_config_context
 from pandera.errors import (
     ParserError,
     SchemaError,
@@ -433,15 +433,40 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         """
         error_handler = ErrorHandler(lazy=True)
 
+        config_ctx = get_config_context(validation_depth_default=None)
+        coerce_fn: str = (
+            "try_coerce"
+            if config_ctx.validation_depth
+            in (
+                ValidationDepth.SCHEMA_AND_DATA,
+                ValidationDepth.DATA_ONLY,
+            )
+            else "coerce"
+        )
+
         try:
             if schema.dtype is not None:
-                obj = schema.dtype.try_coerce(obj)
+                obj = getattr(schema.dtype, coerce_fn)(obj)
             else:
                 for col_schema in schema.columns.values():
-                    obj = col_schema.dtype.try_coerce(
+                    obj = getattr(col_schema.dtype, coerce_fn)(
                         PolarsData(obj, col_schema.selector)
                     )
-        except (ParserError, pl.ComputeError) as exc:
+        except ParserError as exc:
+            error_handler.collect_error(
+                validation_type(SchemaErrorReason.DATATYPE_COERCION),
+                SchemaErrorReason.DATATYPE_COERCION,
+                SchemaError(
+                    schema=schema,
+                    data=obj,
+                    message=exc.args[0],
+                    check=f"coerce_dtype('{schema.dtypes}')",
+                    reason_code=SchemaErrorReason.DATATYPE_COERCION,
+                    failure_cases=exc.failure_cases,
+                    check_output=exc.parser_output,
+                ),
+            )
+        except pl.ComputeError as exc:
             error_handler.collect_error(
                 validation_type(SchemaErrorReason.DATATYPE_COERCION),
                 SchemaErrorReason.DATATYPE_COERCION,

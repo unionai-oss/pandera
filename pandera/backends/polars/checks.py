@@ -10,7 +10,7 @@ from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData
 from pandera.backends.base import BaseCheckBackend
-from pandera.backends.polars.constants import CHECK_OUTPUT_KEY
+from pandera.constants import CHECK_OUTPUT_KEY
 
 
 class PolarsCheckBackend(BaseCheckBackend):

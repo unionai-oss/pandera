@@ -22,7 +22,8 @@ def format_generic_error_message(
     :param check_index: The validator that failed.
     """
     return (
-        f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed series or dataframe validator "
+        f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
+        "series or dataframe validator "
         f"{check_index}: {check}"
     )
 
@@ -63,7 +64,8 @@ def format_vectorized_error_message(
     failure_cases_string = ", ".join(failure_cases.astype(str))
 
     return (
-        f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed element-wise validator number {check_index}: "
+        f"{parent_schema.__class__.__name__} '{parent_schema.name}' failed "
+        f"element-wise validator number {check_index}: "
         f"{check_str} failure cases: {failure_cases_string}"
     )
 

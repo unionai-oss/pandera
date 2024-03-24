@@ -3,7 +3,7 @@
 import pytest
 
 from pandera.backends.base import CoreCheckResult
-from pandera.config import CONFIG, ValidationDepth, ValidationScope
+from pandera.config import config_context, ValidationDepth, ValidationScope
 from pandera.validation_depth import validate_scope
 
 
@@ -33,14 +33,14 @@ def custom_backend():
         [ValidationDepth.SCHEMA_ONLY, [False, True]],
         [ValidationDepth.DATA_ONLY, [True, False]],
         [ValidationDepth.SCHEMA_AND_DATA, [False, False]],
+        [None, [False, False]],
     ],
 )
 def test_validate_scope(validation_depth, expected):
 
-    CONFIG.validation_depth = validation_depth
-
-    backend = custom_backend()
-    schema_result = backend.check_schema("foo")
-    data_result = backend.check_data("foo")
-    results = [schema_result.passed, data_result.passed]
-    assert results == expected
+    with config_context(validation_depth=validation_depth):
+        backend = custom_backend()
+        schema_result = backend.check_schema("foo")
+        data_result = backend.check_data("foo")
+        results = [schema_result.passed, data_result.passed]
+        assert results == expected

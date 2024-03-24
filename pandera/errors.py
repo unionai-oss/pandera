@@ -60,11 +60,12 @@ class ReducedPickleExceptionBase(Exception):
 class ParserError(ReducedPickleExceptionBase):
     """Raised when data cannot be parsed from the raw into its clean form."""
 
-    TO_STRING_KEYS = ["failure_cases"]
+    TO_STRING_KEYS = ["failure_cases", "parser_output"]
 
-    def __init__(self, message, failure_cases):
+    def __init__(self, message, failure_cases, parser_output=None):
         super().__init__(message)
         self.failure_cases = failure_cases
+        self.parser_output = parser_output
 
 
 class SchemaInitError(Exception):
