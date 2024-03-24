@@ -31,10 +31,12 @@ class InSchemaDict(InSchema):
     class Config:
         from_format = "dict"
 
+
 class InSchemaDictKwargs(InSchema):
     class Config:
         from_format = "dict"
         from_format_kwargs = {"orient": "index"}
+
 
 class InSchemaJson(InSchema):
     class Config:
