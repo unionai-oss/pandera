@@ -21,14 +21,15 @@ DtypeInputTypes = Union[str, type, DataType, Type]
 class BaseSchema(ABC):
     """Core schema specification."""
 
-    BACKEND_REGISTRY: Dict[
-        Tuple[Type, Type], Type[BaseSchemaBackend]
-    ] = {}  # noqa
+    BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseSchemaBackend]] = (
+        {}
+    )  # noqa
 
     def __init__(
         self,
         dtype=None,
         checks=None,
+        parsers=None,
         coerce=False,
         name=None,
         title=None,
@@ -40,6 +41,7 @@ class BaseSchema(ABC):
         self.dtype = dtype
         self.checks = checks
         self.coerce = coerce
+        self.parsers = parsers
         self.name = name
         self.title = title
         self.description = description

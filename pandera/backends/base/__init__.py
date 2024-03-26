@@ -39,6 +39,16 @@ class ColumnInfo(NamedTuple):
 class CoreParserResult(NamedTuple):
     """Namedtuple for holding core parser results."""
 
+    passed: bool
+    parser: Optional[Union[str, "BaseParser"]] = None  # type: ignore
+    parser_index: Optional[int] = None
+    parser_output: Optional[Any] = None
+    reason_code: Optional[SchemaErrorReason] = None
+    message: Optional[str] = None
+    failure_cases: Optional[Any] = None
+    schema_error: Optional[SchemaError] = None
+    original_exc: Optional[Exception] = None
+
 
 class BaseSchemaBackend(ABC):
     """Abstract base class for a schema backend implementation."""
@@ -178,4 +188,18 @@ class BaseCheckBackend(ABC):
 
     def strategy(self):
         """Return a data generation strategy."""
+        raise NotImplementedError
+
+
+class BaseParserBackend(ABC):
+    """Abstract base class for a parser backend implementation."""
+
+    def __init__(self, parser):  # pylint: disable=unused-argument
+        """Initializes a parser backend object."""
+
+    def __call__(self, parse_obj, key=None):
+        raise NotImplementedError
+
+    def apply(self, parse_obj):
+        """Apply the parser function to a parse object."""
         raise NotImplementedError

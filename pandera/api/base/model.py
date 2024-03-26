@@ -16,6 +16,7 @@ from typing import (
 from pandera.api.base.model_components import BaseFieldInfo
 from pandera.api.base.model_config import BaseModelConfig
 from pandera.api.checks import Check
+from pandera.api.parsers import Parser
 from pandera.typing import AnnotationInfo
 
 TBaseModel = TypeVar("TBaseModel", bound="BaseModel")
@@ -42,6 +43,7 @@ class BaseModel(metaclass=MetaModel):
     #: Key according to `FieldInfo.name`
     __fields__: Mapping[str, Tuple[AnnotationInfo, BaseFieldInfo]] = {}
     __checks__: Dict[str, List[Check]] = {}
+    __parsers__: Dict[str, List[Parser]] = {}
     __root_checks__: List[Check] = []
 
     # This is syntantic sugar that delegates to the validate method

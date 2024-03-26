@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 import polars as pl
 
-from pandera.api.base.types import CheckList
+from pandera.api.base.types import CheckList, ParserList
 from pandera.api.pandas.components import Column as _Column
 from pandera.api.polars.types import PolarsDtypeInputTypes, PolarsCheckObjects
 from pandera.config import config_context, get_config_context
@@ -23,6 +23,7 @@ class Column(_Column):
         self,
         dtype: PolarsDtypeInputTypes = None,
         checks: Optional[CheckList] = None,
+        parsers: Optional[ParserList] = None,
         nullable: bool = False,
         unique: bool = False,
         coerce: bool = False,

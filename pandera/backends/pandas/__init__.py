@@ -2,6 +2,8 @@
 
 import pandas as pd
 
+from pandera.api.parsers import Parser
+from pandera.backends.pandas.parsers import PandasParserBackend
 import pandera.typing
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
@@ -61,6 +63,7 @@ for t in [
     *index_datatypes,
 ]:
     Check.register_backend(t, PandasCheckBackend)
+    Parser.register_backend(t, PandasParserBackend)
     Hypothesis.register_backend(t, PandasHypothesisBackend)
 
 for t in dataframe_datatypes:

@@ -108,6 +108,22 @@ class ColumnBackend(ArraySchemaBackend):
                 except SchemaErrors as exc:
                     error_handler.collect_errors(exc.schema_errors)
 
+            if schema.parsers:
+                for parser_index, parser in enumerate(schema.parsers):
+                    try:
+                        check_obj[column_name] = self.run_parser(
+                            check_obj[column_name],
+                            schema,
+                            parser,
+                            parser_index,
+                        ).parser_output
+                    except SchemaError as err:
+                        error_handler.collect_error(
+                            validation_type(err.reason_code),
+                            err.reason_code,
+                            err,
+                        )
+
             if is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):
                     validate_column(

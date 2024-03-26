@@ -2,6 +2,7 @@
 
 from typing import List, Union
 from pandera.api.checks import Check
+from pandera.api.parsers import Parser
 from pandera.api.hypotheses import Hypothesis
 
 try:
@@ -13,3 +14,4 @@ except ImportError:  # pragma: no cover
 
 StrictType = Union[bool, Literal["filter"]]
 CheckList = Union[Check, List[Union[Check, Hypothesis]]]
+ParserList = Union[Parser, List[Parser]]
