@@ -111,7 +111,7 @@ _CONFIG_OPTIONS = [attr for attr in vars(BaseConfig) if _is_field(attr)]
 class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     """Definition of a generic DataFrame model.
 
-    See the :ref:`User Guide <dataframe_models>` for more.
+    See the :ref:`User Guide <dataframe-models>` for more.
     """
 
     Config: Type[BaseConfig] = BaseConfig

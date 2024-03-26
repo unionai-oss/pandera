@@ -101,7 +101,7 @@ class Check(BaseCheck):
             are serialized and represent the constraints of the checks.
         :param strategy: A hypothesis strategy, used for implementing data
             synthesis strategies for this check. See the
-            :ref:`User Guide <custom_strategies>` for more details.
+            :ref:`User Guide <custom-strategies>` for more details.
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:

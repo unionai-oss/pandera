@@ -29,8 +29,8 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 
 project = "pandera"
-copyright = "2019, Niels Bantilan, Nigel Markey, Jean-Francois Zinque"
-author = "Niels Bantilan, Nigel Markey, Jean-Francois Zinque"
+copyright = "2019, Pandera developers"
+author = "Pandera developers"
 
 
 # -- General configuration ---------------------------------------------------
@@ -46,9 +46,9 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
-    "recommonmark",
     "sphinx_panels",
     "jupyterlite_sphinx",
+    "myst_parser",
 ]
 
 doctest_global_setup = """
@@ -90,7 +90,6 @@ doctest_default_flags = (
 
 source_suffix = {
     ".rst": "restructuredtext",
-    ".md": "markdown",
 }
 
 # copy CONTRIBUTING.md docs into source directory
@@ -284,3 +283,7 @@ def linkcode_resolve(domain, info):
 # jupyterlite config
 jupyterlite_contents = ["notebooks/try_pandera.ipynb"]
 jupyterlite_bind_ipynb_suffix = False
+
+myst_enable_extensions = [
+    "colon_fence",
+]

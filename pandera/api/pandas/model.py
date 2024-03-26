@@ -37,7 +37,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         This class is the new name for ``SchemaModel``, which will be deprecated
         in pandera version ``0.20.0``.
 
-    See the :ref:`User Guide <dataframe_models>` for more.
+    See the :ref:`User Guide <dataframe-models>` for more.
     """
 
     Config: Type[BaseConfig] = BaseConfig

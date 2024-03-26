@@ -105,6 +105,10 @@ iframe.jupyterlite_sphinx_raw_iframe {
 }
 
 /* autosummary table text */
+table.autosummary {
+  width: 100%;
+}
+
 article .align-center, article .align-default {
   text-align: left;
 }
