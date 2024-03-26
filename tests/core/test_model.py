@@ -1235,13 +1235,11 @@ def test_generic_model_single_generic_field() -> None:
     with pytest.raises(SchemaInitError):
         GenericModel.to_schema()
 
-    class IntModel(GenericModel[int]):
-        ...
+    class IntModel(GenericModel[int]): ...
 
     IntModel.to_schema()
 
-    class FloatModel(GenericModel[float]):
-        ...
+    class FloatModel(GenericModel[float]): ...
 
     FloatModel.to_schema()
 
@@ -1261,8 +1259,7 @@ def test_generic_optional_field() -> None:
         x: Series[int]
         y: Optional[Series[T]]
 
-    class IntYModel(GenericModel[int]):
-        ...
+    class IntYModel(GenericModel[int]): ...
 
     IntYModel.validate(pd.DataFrame({"x": [1, 2, 3]}))
     IntYModel.validate(pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}))
@@ -1271,8 +1268,7 @@ def test_generic_optional_field() -> None:
             pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]})
         )
 
-    class FloatYModel(GenericModel[float]):
-        ...
+    class FloatYModel(GenericModel[float]): ...
 
     FloatYModel.validate(pd.DataFrame({"x": [1, 2, 3]}))
     with pytest.raises(SchemaError):
@@ -1290,8 +1286,7 @@ def test_generic_model_multiple_inheritance() -> None:
     class GenericZModel(pa.DataFrameModel, Generic[T]):
         z: Series[T]
 
-    class IntYFloatZModel(GenericYModel[int], GenericZModel[float]):
-        ...
+    class IntYFloatZModel(GenericYModel[int], GenericZModel[float]): ...
 
     IntYFloatZModel.to_schema()
     IntYFloatZModel.validate(
@@ -1310,8 +1305,7 @@ def test_generic_model_multiple_inheritance() -> None:
             )
         )
 
-    class FloatYIntZModel(GenericYModel[float], GenericZModel[int]):
-        ...
+    class FloatYIntZModel(GenericYModel[float], GenericZModel[int]): ...
 
     FloatYIntZModel.to_schema()
     with pytest.raises(SchemaError):
@@ -1340,8 +1334,7 @@ def test_multiple_generic() -> None:
         y: Series[T1]
         z: Series[T2]
 
-    class IntYFloatZModel(GenericModel[int, float]):
-        ...
+    class IntYFloatZModel(GenericModel[int, float]): ...
 
     IntYFloatZModel.to_schema()
     IntYFloatZModel.to_schema()
@@ -1353,8 +1346,7 @@ def test_multiple_generic() -> None:
             pd.DataFrame({"y": [4.0, 5.0, 6.0], "z": [1, 2, 3]})
         )
 
-    class FloatYIntZModel(GenericModel[float, int]):
-        ...
+    class FloatYIntZModel(GenericModel[float, int]): ...
 
     FloatYIntZModel.to_schema()
     with pytest.raises(SchemaError):
@@ -1376,14 +1368,12 @@ def test_repeated_generic() -> None:
         y: Series[T1]
         z: Series[T2]
 
-    class IntYGenericZModel(GenericYZModel[int, T3], Generic[T3]):
-        ...
+    class IntYGenericZModel(GenericYZModel[int, T3], Generic[T3]): ...
 
     with pytest.raises(SchemaInitError):
         IntYGenericZModel.to_schema()
 
-    class IntYFloatZModel(IntYGenericZModel[float]):
-        ...
+    class IntYFloatZModel(IntYGenericZModel[float]): ...
 
     IntYFloatZModel.validate(
         pd.DataFrame({"y": [4, 5, 6], "z": [1.0, 2.0, 3.0]})
@@ -1430,3 +1420,65 @@ def test_pandas_fields_metadata():
         }
     }
     assert PanderaSchema.get_metadata() == expected
+
+
+def test_parse_single_column():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parse("col1")
+        def sqrt(cls, series):
+            return series.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 4.0, 9.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 4, 9]}).astype(float)
+    )
+
+
+def test_parse_dataframe():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the dataframe level
+        @pa.dataframe_parse
+        def dataframe_sqrt(cls, df):
+            return df.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 4.0, 9.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 2, 3]}).astype(float)
+    )
+
+
+def test_parse_both_dataframe_and_column():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parse("col1")
+        def sqrt(cls, series):
+            return series.transform("sqrt")
+
+        # parsers at the dataframe level
+        @pa.dataframe_parse
+        def dataframe_sqrt(cls, df):
+            return df.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 16.0, 81.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 2, 3]}).astype(float)
+    )
