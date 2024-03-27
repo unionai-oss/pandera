@@ -44,6 +44,7 @@ class ColumnBackend(ArraySchemaBackend):
         lazy: bool = False,
         inplace: bool = False,
     ) -> pd.DataFrame:
+        # pylint: disable=too-many-branches
         """Validation backend implementation for pandas dataframe columns.."""
         if not inplace:
             check_obj = check_obj.copy()
@@ -113,7 +114,6 @@ class ColumnBackend(ArraySchemaBackend):
                     try:
                         check_obj[column_name] = self.run_parser(
                             check_obj[column_name],
-                            schema,
                             parser,
                             parser_index,
                         ).parser_output

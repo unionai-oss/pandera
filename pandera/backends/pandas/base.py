@@ -76,7 +76,6 @@ class PandasSchemaBackend(BaseSchemaBackend):
     def run_parser(
         self,
         check_obj,
-        schema,
         parser: Parser,
         parser_index: int,
         *args,

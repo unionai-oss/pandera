@@ -196,7 +196,6 @@ class ArraySchemaBackend(PandasSchemaBackend):
             try:
                 result = self.run_parser(
                     check_obj,
-                    schema,
                     parser,
                     parser_index,
                     *parser_args,
