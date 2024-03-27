@@ -1,7 +1,12 @@
+---
+file_format: mystnb
+kernelspec:
+  name: python3
+---
+
 % pandera documentation for DataFrameSchemas
 
-```{eval-rst}
-.. currentmodule:: pandera
+```{currentmodule} pandera
 ```
 
 (dataframeschemas)=
@@ -13,27 +18,25 @@ that verifies the columns and index of a pandas `DataFrame` object.
 
 The {class}`~pandera.api.pandas.container.DataFrameSchema` object consists of `Column`s and an `Index` (if applicable).
 
-```{eval-rst}
-.. testcode:: dataframe_schemas
+```{code-cell} python
+import pandera as pa
 
-    import pandera as pa
+from pandera import Column, DataFrameSchema, Check, Index
 
-    from pandera import Column, DataFrameSchema, Check, Index
-
-    schema = DataFrameSchema(
-        {
-            "column1": Column(int),
-            "column2": Column(float, Check(lambda s: s < -1.2)),
-            # you can provide a list of validators
-            "column3": Column(str, [
-               Check(lambda s: s.str.startswith("value")),
-               Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-            ]),
-        },
-        index=Index(int),
-        strict=True,
-        coerce=True,
-    )
+schema = DataFrameSchema(
+    {
+        "column1": Column(int),
+        "column2": Column(float, Check(lambda s: s < -1.2)),
+        # you can provide a list of validators
+        "column3": Column(str, [
+            Check(lambda s: s.str.startswith("value")),
+            Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
+        ]),
+    },
+    index=Index(int),
+    strict=True,
+    coerce=True,
+)
 ```
 
 You can refer to {ref}`dataframe-models` to see how to define dataframe schemas
@@ -84,50 +87,33 @@ By default, SeriesSchema/Column objects assume that values are not
 nullable. In order to accept null values, you need to explicitly specify
 `nullable=True`, or else you’ll get an error.
 
-```{eval-rst}
-.. testcode:: null_values_in_columns
+```{code-cell} python
+import numpy as np
+import pandas as pd
+import pandera as pa
 
-   import numpy as np
-   import pandas as pd
-   import pandera as pa
+from pandera import Check, Column, DataFrameSchema
 
-   from pandera import Check, Column, DataFrameSchema
+df = pd.DataFrame({"column1": [5, 1, np.nan]})
 
-   df = pd.DataFrame({"column1": [5, 1, np.nan]})
+non_null_schema = DataFrameSchema({
+    "column1": Column(float, Check(lambda x: x > 0))
+})
 
-   non_null_schema = DataFrameSchema({
-       "column1": Column(float, Check(lambda x: x > 0))
-   })
-
-   non_null_schema.validate(df)
+try:
+    non_null_schema.validate(df)
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
-```{eval-rst}
-.. testoutput:: null_values_in_columns
+Setting `nullable=True` allows for null values in the corresponding column.
 
-    Traceback (most recent call last):
-    ...
-    SchemaError: non-nullable series contains null values: {2: nan}
+```{code-cell} python
+null_schema = DataFrameSchema({
+    "column1": Column(float, Check(lambda x: x > 0), nullable=True)
+})
 
-```
-
-```{eval-rst}
-.. testcode:: null_values_in_columns
-
-   null_schema = DataFrameSchema({
-       "column1": Column(float, Check(lambda x: x > 0), nullable=True)
-   })
-
-   print(null_schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: null_values_in_columns
-
-       column1
-    0      5.0
-    1      1.0
-    2      NaN
+null_schema.validate(df)
 ```
 
 To learn more about how the nullable check interacts with data type checks,
@@ -142,19 +128,17 @@ DataFrameSchema definition, calling `schema.validate` will first
 coerce the column into the specified `dtype` before applying validation
 checks.
 
-```{eval-rst}
-.. testcode:: coercing_types_on_columns
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+from pandera import Column, DataFrameSchema
 
-    from pandera import Column, DataFrameSchema
+df = pd.DataFrame({"column1": [1, 2, 3]})
+schema = DataFrameSchema({"column1": Column(str, coerce=True)})
 
-    df = pd.DataFrame({"column1": [1, 2, 3]})
-    schema = DataFrameSchema({"column1": Column(str, coerce=True)})
-
-    validated_df = schema.validate(df)
-    assert isinstance(validated_df.column1.iloc[0], str)
+validated_df = schema.validate(df)
+assert isinstance(validated_df.column1.iloc[0], str)
 ```
 
 :::{note}
@@ -163,50 +147,31 @@ values. In this case, `schema.validate` will complain if `coerce == True`
 and null values are allowed in the column.
 :::
 
-```{eval-rst}
-.. testcode:: coercing_types_on_columns
+```{code-cell} python
+df = pd.DataFrame({"column1": [1., 2., 3, np.nan]})
+schema = DataFrameSchema({
+    "column1": Column(int, coerce=True, nullable=True)
+})
 
-    df = pd.DataFrame({"column1": [1., 2., 3, np.nan]})
-    schema = DataFrameSchema({
-        "column1": Column(int, coerce=True, nullable=True)
-    })
-
-    validated_df = schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: coercing_types_on_columns
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaError: Error while coercing 'column1' to type int64: Cannot convert non-finite values (NA or inf) to integer
-
+try:
+    schema.validate(df)
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 The best way to handle this case is to simply specify the column as a
 `Float` or `Object`.
 
-```{eval-rst}
-.. testcode:: coercing_types_on_columns
+```{code-cell} python
+schema_object = DataFrameSchema({
+    "column1": Column(object, coerce=True, nullable=True)
+})
+schema_float = DataFrameSchema({
+    "column1": Column(float, coerce=True, nullable=True)
+})
 
-    schema_object = DataFrameSchema({
-        "column1": Column(object, coerce=True, nullable=True)
-    })
-    schema_float = DataFrameSchema({
-        "column1": Column(float, coerce=True, nullable=True)
-    })
-
-    print(schema_object.validate(df).dtypes)
-    print(schema_float.validate(df).dtypes)
-```
-
-```{eval-rst}
-.. testoutput:: coercing_types_on_columns
-
-    column1    object
-    dtype: object
-    column1    float64
-    dtype: object
+print(schema_object.validate(df).dtypes)
+print(schema_float.validate(df).dtypes)
 ```
 
 If you want to coerce all of the columns specified in the
@@ -224,56 +189,33 @@ that if a column is missing in the input DataFrame an exception will be
 thrown. If you want to make a column optional, specify `required=False`
 in the column constructor:
 
-```{eval-rst}
-.. testcode:: required_columns
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-   import pandas as pd
-   import pandera as pa
+from pandera import Column, DataFrameSchema
 
-   from pandera import Column, DataFrameSchema
+df = pd.DataFrame({"column2": ["hello", "pandera"]})
+schema = DataFrameSchema({
+    "column1": Column(int, required=False),
+    "column2": Column(str)
+})
 
-   df = pd.DataFrame({"column2": ["hello", "pandera"]})
-   schema = DataFrameSchema({
-       "column1": Column(int, required=False),
-       "column2": Column(str)
-   })
-
-   validated_df = schema.validate(df)
-   print(validated_df)
-```
-
-```{eval-rst}
-.. testoutput:: required_columns
-
-       column2
-    0    hello
-    1  pandera
-
+schema.validate(df)
 ```
 
 Since `required=True` by default, missing columns would raise an error:
 
-```{eval-rst}
-.. testcode:: required_columns
+```{code-cell} python
+schema = DataFrameSchema({
+    "column1": Column(int),
+    "column2": Column(str),
+})
 
-    schema = DataFrameSchema({
-        "column1": Column(int),
-        "column2": Column(str),
-    })
-
+try:
     schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: required_columns
-
-    Traceback (most recent call last):
-    ...
-    pandera.SchemaError: column 'column1' not in dataframe
-       column2
-    0    hello
-    1  pandera
-
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 (column-validation-1)=
@@ -283,36 +225,33 @@ Since `required=True` by default, missing columns would raise an error:
 In addition to being used in the context of a `DataFrameSchema`, `Column`
 objects can also be used to validate columns in a dataframe on its own:
 
-```{eval-rst}
-.. testcode:: dataframe_schemas
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+df = pd.DataFrame({
+    "column1": [1, 2, 3],
+    "column2": ["a", "b", "c"],
+})
 
-    df = pd.DataFrame({
-        "column1": [1, 2, 3],
-        "column2": ["a", "b", "c"],
-    })
+column1_schema = pa.Column(int, name="column1")
+column2_schema = pa.Column(str, name="column2")
 
-    column1_schema = pa.Column(int, name="column1")
-    column2_schema = pa.Column(str, name="column2")
+# pass the dataframe as an argument to the Column object callable
+df = column1_schema(df)
+validated_df = column2_schema(df)
 
-    # pass the dataframe as an argument to the Column object callable
-    df = column1_schema(df)
-    validated_df = column2_schema(df)
+# or explicitly use the validate method
+df = column1_schema.validate(df)
+validated_df = column2_schema.validate(df)
 
-    # or explicitly use the validate method
-    df = column1_schema.validate(df)
-    validated_df = column2_schema.validate(df)
-
-    # use the DataFrame.pipe method to validate two columns
-    validated_df = df.pipe(column1_schema).pipe(column2_schema)
-
+# use the DataFrame.pipe method to validate two columns
+df.pipe(column1_schema).pipe(column2_schema)
 ```
 
-For multi-column use cases, the {class}`~pandera.api.pandas.container.DataFrameSchema` is still recommended, but
-if you have one or a small number of columns to verify, using `Column`
-objects by themselves is appropriate.
+For multi-column use cases, the {class}`~pandera.api.pandas.container.DataFrameSchema`
+is still recommended, but if you have one or a small number of columns to verify,
+using `Column` objects by themselves is appropriate.
 
 (column-name-regex)=
 
@@ -322,94 +261,66 @@ In the case that your dataframe has multiple columns that share common
 statistical properties, you might want to specify a regex pattern that matches
 a set of meaningfully grouped columns that have `str` names.
 
-```{eval-rst}
-.. testcode:: column_regex
+```{code-cell} python
+import numpy as np
+import pandas as pd
+import pandera as pa
 
-    import numpy as np
-    import pandas as pd
-    import pandera as pa
+categories = ["A", "B", "C"]
 
-    categories = ["A", "B", "C"]
+np.random.seed(100)
 
-    np.random.seed(100)
+dataframe = pd.DataFrame({
+    "cat_var_1": np.random.choice(categories, size=100),
+    "cat_var_2": np.random.choice(categories, size=100),
+    "num_var_1": np.random.uniform(0, 10, size=100),
+    "num_var_2": np.random.uniform(20, 30, size=100),
+})
 
-    dataframe = pd.DataFrame({
-        "cat_var_1": np.random.choice(categories, size=100),
-        "cat_var_2": np.random.choice(categories, size=100),
-        "num_var_1": np.random.uniform(0, 10, size=100),
-        "num_var_2": np.random.uniform(20, 30, size=100),
-    })
+schema = pa.DataFrameSchema({
+    "num_var_.+": pa.Column(
+        float,
+        checks=pa.Check.greater_than_or_equal_to(0),
+        regex=True,
+    ),
+    "cat_var_.+": pa.Column(
+        pa.Category,
+        checks=pa.Check.isin(categories),
+        coerce=True,
+        regex=True,
+    ),
+})
 
-    schema = pa.DataFrameSchema({
-        "num_var_.+": pa.Column(
-            float,
-            checks=pa.Check.greater_than_or_equal_to(0),
-            regex=True,
-        ),
-        "cat_var_.+": pa.Column(
-            pa.Category,
-            checks=pa.Check.isin(categories),
-            coerce=True,
-            regex=True,
-        ),
-    })
-
-    print(schema.validate(dataframe).head())
-```
-
-```{eval-rst}
-.. testoutput:: column_regex
-
-      cat_var_1 cat_var_2  num_var_1  num_var_2
-    0         A         A   6.804147  24.743304
-    1         A         C   3.684308  22.774633
-    2         A         C   5.911288  28.416588
-    3         C         A   4.790627  21.951250
-    4         C         B   4.504166  28.563142
+schema.validate(dataframe).head()
 ```
 
 You can also regex pattern match on `pd.MultiIndex` columns:
 
-```{eval-rst}
-.. testcode:: column_regex
+```{code-cell} python
+np.random.seed(100)
 
-    np.random.seed(100)
+dataframe = pd.DataFrame({
+    ("cat_var_1", "y1"): np.random.choice(categories, size=100),
+    ("cat_var_2", "y2"): np.random.choice(categories, size=100),
+    ("num_var_1", "x1"): np.random.uniform(0, 10, size=100),
+    ("num_var_2", "x2"): np.random.uniform(0, 10, size=100),
+})
 
-    dataframe = pd.DataFrame({
-        ("cat_var_1", "y1"): np.random.choice(categories, size=100),
-        ("cat_var_2", "y2"): np.random.choice(categories, size=100),
-        ("num_var_1", "x1"): np.random.uniform(0, 10, size=100),
-        ("num_var_2", "x2"): np.random.uniform(0, 10, size=100),
-    })
+schema = pa.DataFrameSchema({
+    ("num_var_.+", "x.+"): pa.Column(
+        float,
+        checks=pa.Check.greater_than_or_equal_to(0),
+        regex=True,
+    ),
+    ("cat_var_.+", "y.+"): pa.Column(
+        pa.Category,
+        checks=pa.Check.isin(categories),
+        coerce=True,
+        regex=True,
+    ),
+})
 
-    schema = pa.DataFrameSchema({
-        ("num_var_.+", "x.+"): pa.Column(
-            float,
-            checks=pa.Check.greater_than_or_equal_to(0),
-            regex=True,
-        ),
-        ("cat_var_.+", "y.+"): pa.Column(
-            pa.Category,
-            checks=pa.Check.isin(categories),
-            coerce=True,
-            regex=True,
-        ),
-    })
-
-    print(schema.validate(dataframe).head())
-```
-
-```{eval-rst}
-.. testoutput:: column_regex
-
-      cat_var_1 cat_var_2 num_var_1 num_var_2
-             y1        y2        x1        x2
-    0         A         A  6.804147  4.743304
-    1         A         C  3.684308  2.774633
-    2         A         C  5.911288  8.416588
-    3         C         A  4.790627  1.951250
-    4         C         B  4.504166  8.563142
-
+schema.validate(dataframe).head()
 ```
 
 (strict)=
@@ -420,57 +331,38 @@ By default, columns that aren’t specified in the schema aren’t checked.
 If you want to check that the DataFrame *only* contains columns in the
 schema, specify `strict=True`:
 
-```{eval-rst}
-.. testcode:: handling_columns_not_in_schema
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+from pandera import Column, DataFrameSchema
 
-    from pandera import Column, DataFrameSchema
+schema = DataFrameSchema(
+    {"column1": Column(int)},
+    strict=True)
 
-    schema = DataFrameSchema(
-        {"column1": Column(int)},
-        strict=True)
+df = pd.DataFrame({"column2": [1, 2, 3]})
 
-    df = pd.DataFrame({"column2": [1, 2, 3]})
-
+try:
     schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: handling_columns_not_in_schema
-
-    Traceback (most recent call last):
-    ...
-    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column: 'None' type=DataType(int64)>}
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 Alternatively, if your DataFrame contains columns that are not in the schema,
 and you would like these to be dropped on validation,
 you can specify `strict='filter'`.
 
-```{eval-rst}
-.. testcode:: handling_columns_not_in_schema_filter
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-   import pandas as pd
-   import pandera as pa
+from pandera import Column, DataFrameSchema
 
-   from pandera import Column, DataFrameSchema
+df = pd.DataFrame({"column1": ["drop", "me"],"column2": ["keep", "me"]})
+schema = DataFrameSchema({"column2": Column(str)}, strict='filter')
 
-   df = pd.DataFrame({"column1": ["drop", "me"],"column2": ["keep", "me"]})
-   schema = DataFrameSchema({"column2": Column(str)}, strict='filter')
-
-   validated_df = schema.validate(df)
-   print(validated_df)
-```
-
-```{eval-rst}
-.. testoutput:: handling_columns_not_in_schema_filter
-
-       column2
-    0     keep
-    1       me
-
+schema.validate(df)
 ```
 
 (ordered)=
@@ -488,25 +380,19 @@ For some applications the order of the columns is important. For example:
 
 To validate the order of the Dataframe columns, specify `ordered=True`:
 
-```{eval-rst}
-.. testcode:: columns_ordered
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+schema = pa.DataFrameSchema(
+    columns={"a": pa.Column(int), "b": pa.Column(int)}, ordered=True
+)
+df = pd.DataFrame({"b": [1], "a": [1]})
 
-    schema = pa.DataFrameSchema(
-        columns={"a": pa.Column(int), "b": pa.Column(int)}, ordered=True
-    )
-    df = pd.DataFrame({"b": [1], "a": [1]})
-    print(schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: columns_ordered
-
-    Traceback (most recent call last):
-    ...
-    SchemaError: column 'b' out-of-order
+try:
+    schema.validate(df)
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 (index)=
@@ -515,34 +401,22 @@ To validate the order of the Dataframe columns, specify `ordered=True`:
 
 In some cases you might want to ensure that a group of columns are unique:
 
-```{eval-rst}
-.. testcode:: joint_column_uniqueness
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
-
-    schema = pa.DataFrameSchema(
-        columns={col: pa.Column(int) for col in ["a", "b", "c"]},
-        unique=["a", "c"],
-    )
-    df = pd.DataFrame.from_records([
-        {"a": 1, "b": 2, "c": 3},
-        {"a": 1, "b": 2, "c": 3},
-    ])
+schema = pa.DataFrameSchema(
+    columns={col: pa.Column(int) for col in ["a", "b", "c"]},
+    unique=["a", "c"],
+)
+df = pd.DataFrame.from_records([
+    {"a": 1, "b": 2, "c": 3},
+    {"a": 1, "b": 2, "c": 3},
+])
+try:
     schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: joint_column_uniqueness
-
-    Traceback (most recent call last):
-    ...
-    SchemaError: columns '('a', 'c')' not unique:
-    column  index  failure_case
-    0      a      0             1
-    1      a      1             1
-    2      c      0             3
-    3      c      1             3
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 To control how unique errors are reported, the `report_duplicates` argument accepts:
@@ -550,34 +424,24 @@ To control how unique errors are reported, the `report_duplicates` argument acce
   - `exclude_last`: report all duplicates except last occurence
   - `all`: report all duplicates
 
-```{eval-rst}
-.. testcode:: joint_column_uniqueness
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+schema = pa.DataFrameSchema(
+    columns={col: pa.Column(int) for col in ["a", "b", "c"]},
+    unique=["a", "c"],
+    report_duplicates = "exclude_first",
+)
+df = pd.DataFrame.from_records([
+    {"a": 1, "b": 2, "c": 3},
+    {"a": 1, "b": 2, "c": 3},
+])
 
-    schema = pa.DataFrameSchema(
-        columns={col: pa.Column(int) for col in ["a", "b", "c"]},
-        unique=["a", "c"],
-        report_duplicates = "exclude_first",
-    )
-    df = pd.DataFrame.from_records([
-        {"a": 1, "b": 2, "c": 3},
-        {"a": 1, "b": 2, "c": 3},
-    ])
+try:
     schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: joint_column_uniqueness
-
-    Traceback (most recent call last):
-    ...
-    SchemaError: columns '('a', 'c')' not unique:
-    column  index  failure_case
-    0      a      1             1
-    1      c      1             3
-
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 ### Adding missing columns
@@ -591,95 +455,58 @@ When you call `schema.validate(data)`, the schema will add any missing columns
 to the dataframe, defaulting to the `default` value if supplied at the column-level,
 or to `NaN` if the column is nullable.
 
-```{eval-rst}
-.. testcode:: add_missing_columns
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
-
-    schema = pa.DataFrameSchema(
-        columns={
-            "a": pa.Column(int),
-            "b": pa.Column(int, default=1),
-            "c": pa.Column(float, nullable=True),
-        },
-        add_missing_columns=True,
-        coerce=True,
-    )
-    df = pd.DataFrame({"a": [1, 2, 3]})
-    print(schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: add_missing_columns
-
-       a  b   c
-    0  1  1 NaN
-    1  2  1 NaN
-    2  3  1 NaN
-
+schema = pa.DataFrameSchema(
+    columns={
+        "a": pa.Column(int),
+        "b": pa.Column(int, default=1),
+        "c": pa.Column(float, nullable=True),
+    },
+    add_missing_columns=True,
+    coerce=True,
+)
+df = pd.DataFrame({"a": [1, 2, 3]})
+schema.validate(df)
 ```
 
 ## Index Validation
 
 You can also specify an {class}`~pandera.api.pandas.components.Index` in the {class}`~pandera.api.pandas.container.DataFrameSchema`.
 
-```{eval-rst}
-.. testcode:: index_validation
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+from pandera import Column, DataFrameSchema, Index, Check
 
-    from pandera import Column, DataFrameSchema, Index, Check
+schema = DataFrameSchema(
+    columns={"a": Column(int)},
+    index=Index(
+        str,
+        Check(lambda x: x.str.startswith("index_"))))
 
-    schema = DataFrameSchema(
-       columns={"a": Column(int)},
-       index=Index(
-           str,
-           Check(lambda x: x.str.startswith("index_"))))
+df = pd.DataFrame(
+    data={"a": [1, 2, 3]},
+    index=["index_1", "index_2", "index_3"])
 
-    df = pd.DataFrame(
-        data={"a": [1, 2, 3]},
-        index=["index_1", "index_2", "index_3"])
-
-    print(schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: index_validation
-
-             a
-    index_1  1
-    index_2  2
-    index_3  3
-
+schema.validate(df)
 ```
 
 In the case that the DataFrame index doesn't pass the `Check`.
 
-```{eval-rst}
-.. testcode:: index_validation
+```{code-cell} python
+df = pd.DataFrame(
+    data={"a": [1, 2, 3]},
+    index=["foo1", "foo2", "foo3"]
+)
 
-    df = pd.DataFrame(
-        data={"a": [1, 2, 3]},
-        index=["foo1", "foo2", "foo3"])
-
+try:
     schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: index_validation
-
-    Traceback (most recent call last):
-    ...
-    SchemaError: <Schema Index> failed element-wise validator 0:
-    <lambda>
-    failure cases:
-                 index  count
-    failure_case
-    foo1           [0]      1
-    foo2           [1]      1
-    foo3           [2]      1
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 ## MultiIndex Validation
@@ -691,36 +518,23 @@ In the case that the DataFrame index doesn't pass the `Check`.
 Specifying multi-index columns follows the `pandas` syntax of specifying
 tuples for each level in the index hierarchy:
 
-```{eval-rst}
-.. testcode:: multiindex_columns
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+from pandera import Column, DataFrameSchema, Index
 
-    from pandera import Column, DataFrameSchema, Index
+schema = DataFrameSchema({
+    ("foo", "bar"): Column(int),
+    ("foo", "baz"): Column(str)
+})
 
-    schema = DataFrameSchema({
-        ("foo", "bar"): Column(int),
-        ("foo", "baz"): Column(str)
-    })
+df = pd.DataFrame({
+    ("foo", "bar"): [1, 2, 3],
+    ("foo", "baz"): ["a", "b", "c"],
+})
 
-    df = pd.DataFrame({
-        ("foo", "bar"): [1, 2, 3],
-        ("foo", "baz"): ["a", "b", "c"],
-    })
-
-    print(schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: multiindex_columns
-    :options: +NORMALIZE_WHITESPACE
-
-      foo
-      bar baz
-    0   1   a
-    1   2   b
-    2   3   c
+schema.validate(df)
 ```
 
 (multiindex)=
@@ -730,45 +544,29 @@ tuples for each level in the index hierarchy:
 The {class}`~pandera.api.pandas.components.MultiIndex` class allows you to define multi-index
 indexes by composing a list of `pandera.Index` objects.
 
-```{eval-rst}
-.. testcode:: multiindex_indexes
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-  import pandas as pd
-  import pandera as pa
+schema = pa.DataFrameSchema(
+    columns={"column1": pa.Column(int)},
+    index=pa.MultiIndex([
+        pa.Index(str,
+            pa.Check(lambda s: s.isin(["foo", "bar"])),
+            name="index0"),
+        pa.Index(int, name="index1"),
+    ])
+)
 
-  from pandera import Column, DataFrameSchema, Index, MultiIndex, Check
+df = pd.DataFrame(
+    data={"column1": [1, 2, 3]},
+    index=pd.MultiIndex.from_arrays(
+        [["foo", "bar", "foo"], [0, 1,2 ]],
+        names=["index0", "index1"]
+    )
+)
 
-  schema = DataFrameSchema(
-      columns={"column1": Column(int)},
-      index=MultiIndex([
-          Index(str,
-                Check(lambda s: s.isin(["foo", "bar"])),
-                name="index0"),
-          Index(int, name="index1"),
-      ])
-  )
-
-  df = pd.DataFrame(
-      data={"column1": [1, 2, 3]},
-      index=pd.MultiIndex.from_arrays(
-          [["foo", "bar", "foo"], [0, 1,2 ]],
-          names=["index0", "index1"]
-      )
-  )
-
-  print(schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: multiindex_indexes
-    :options: +NORMALIZE_WHITESPACE
-
-                   column1
-    index0 index1
-    foo    0             1
-    bar    1             2
-    foo    2             3
-
+schema.validate(df)
 ```
 
 ## Get Pandas Data Types
@@ -783,43 +581,31 @@ Some examples of where this can be provided to pandas are:
 - <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html>
 - <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.astype.html>
 
-```{eval-rst}
-.. testcode:: dataframe_dtype
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-  import pandas as pd
-  import pandera as pa
+schema = pa.DataFrameSchema(
+    columns={
+    "column1": pa.Column(int),
+    "column2": pa.Column(pa.Category),
+    "column3": pa.Column(bool)
+    },
+)
 
-  schema = pa.DataFrameSchema(
-      columns={
-        "column1": pa.Column(int),
-        "column2": pa.Column(pa.Category),
-        "column3": pa.Column(bool)
-      },
-  )
+df = (
+    pd.DataFrame.from_dict(
+        {
+            "a": {"column1": 1, "column2": "valueA", "column3": True},
+            "b": {"column1": 1, "column2": "valueB", "column3": True},
+        },
+        orient="index",
+    )
+    .astype({col: str(dtype) for col, dtype in schema.dtypes.items()})
+    .sort_index(axis=1)
+)
 
-  df = (
-      pd.DataFrame.from_dict(
-          {
-              "a": {"column1": 1, "column2": "valueA", "column3": True},
-              "b": {"column1": 1, "column2": "valueB", "column3": True},
-          },
-          orient="index",
-      )
-      .astype({col: str(dtype) for col, dtype in schema.dtypes.items()})
-      .sort_index(axis=1)
-  )
-
-  print(schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_dtype
-    :options: +NORMALIZE_WHITESPACE
-
-       column1 column2  column3
-    a        1  valueA     True
-    b        1  valueB     True
-
+schema.validate(df)
 ```
 
 (dataframe-schema-transformations)=
@@ -834,87 +620,47 @@ This is useful for re-using schema objects in a data pipeline when additional
 computation has been done on a dataframe, where the column objects may have
 changed or perhaps where additional checks may be required.
 
-```{eval-rst}
-.. testcode:: add_columns
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+data = pd.DataFrame({"col1": range(1, 6)})
 
-    data = pd.DataFrame({"col1": range(1, 6)})
+schema = pa.DataFrameSchema(
+    columns={"col1": pa.Column(int, pa.Check(lambda s: s >= 0))},
+    strict=True)
 
-    schema = pa.DataFrameSchema(
-        columns={"col1": pa.Column(int, pa.Check(lambda s: s >= 0))},
-        strict=True)
+transformed_schema = schema.add_columns({
+    "col2": pa.Column(str, pa.Check(lambda s: s == "value")),
+    "col3": pa.Column(float, pa.Check(lambda x: x == 0.0)),
+})
 
-    transformed_schema = schema.add_columns({
-        "col2": pa.Column(str, pa.Check(lambda s: s == "value")),
-        "col3": pa.Column(float, pa.Check(lambda x: x == 0.0)),
-    })
+# validate original data
+data = schema.validate(data)
 
-    # validate original data
-    data = schema.validate(data)
+# transformation
+transformed_data = data.assign(col2="value", col3=0.0)
 
-    # transformation
-    transformed_data = data.assign(col2="value", col3=0.0)
-
-    # validate transformed data
-    print(transformed_schema.validate(transformed_data))
-
-```
-
-```{eval-rst}
-.. testoutput:: add_columns
-    :options: +NORMALIZE_WHITESPACE
-
-       col1   col2  col3
-    0     1  value   0.0
-    1     2  value   0.0
-    2     3  value   0.0
-    3     4  value   0.0
-    4     5  value   0.0
-
+# validate transformed data
+transformed_schema.validate(transformed_data)
 ```
 
 Similarly, if you want dropped columns to be explicitly validated in a
 data pipeline:
 
-```{eval-rst}
-.. testcode:: remove_columns
+```{code-cell} python
+import pandera as pa
 
-    import pandera as pa
+schema = pa.DataFrameSchema(
+    columns={
+        "col1": pa.Column(int, pa.Check(lambda s: s >= 0)),
+        "col2": pa.Column(str, pa.Check(lambda x: x <= 0)),
+        "col3": pa.Column(object, pa.Check(lambda x: x == 0)),
+    },
+    strict=True,
+)
 
-    schema = pa.DataFrameSchema(
-        columns={
-            "col1": pa.Column(int, pa.Check(lambda s: s >= 0)),
-            "col2": pa.Column(str, pa.Check(lambda x: x <= 0)),
-            "col3": pa.Column(object, pa.Check(lambda x: x == 0)),
-        },
-        strict=True,
-    )
-
-    new_schema = schema.remove_columns(["col2", "col3"])
-    print(new_schema)
-```
-
-```{eval-rst}
-.. testoutput:: remove_columns
-    :options: +NORMALIZE_WHITESPACE
-
-    <Schema DataFrameSchema(
-        columns={
-            'col1': <Schema Column(name=col1, type=DataType(int64))>
-        },
-        checks=[],
-        coerce=False,
-        dtype=None,
-        index=None,
-        strict=True,
-        name=None,
-        ordered=False,
-        unique_column_names=False,
-        metadata=None,
-        add_missing_columns=False
-    )>
+schema.remove_columns(["col2", "col3"])
 ```
 
 If during the course of a data pipeline one of your columns is moved into the
@@ -922,54 +668,21 @@ index, you can simply update the initial input schema using the
 {func}`~pandera.api.pandas.container.DataFrameSchema.set_index` method to create a schema for
 the pipeline output.
 
-```{eval-rst}
-.. testcode:: set_index
+```{code-cell} python
+import pandera as pa
 
-    import pandera as pa
+from pandera import Column, DataFrameSchema, Check, Index
 
-    from pandera import Column, DataFrameSchema, Check, Index
-
-    schema = DataFrameSchema(
-        {
-            "column1": Column(int),
-            "column2": Column(float)
-        },
-        index=Index(int, name = "column3"),
-        strict=True,
-        coerce=True,
-    )
-    print(schema.set_index(["column1"], append = True))
-```
-
-```{eval-rst}
-.. testoutput:: set_index
-    :options: +NORMALIZE_WHITESPACE
-
-    <Schema DataFrameSchema(
-        columns={
-            'column2': <Schema Column(name=column2, type=DataType(float64))>
-        },
-        checks=[],
-        coerce=True,
-        dtype=None,
-        index=<Schema MultiIndex(
-            indexes=[
-                <Schema Index(name=column3, type=DataType(int64))>
-                <Schema Index(name=column1, type=DataType(int64))>
-            ]
-            coerce=False,
-            strict=False,
-            name=None,
-            ordered=True
-        )>,
-        strict=True,
-        name=None,
-        ordered=False,
-        unique_column_names=False,
-        metadata=None,
-        add_missing_columns=False
-    )>
-
+schema = DataFrameSchema(
+    {
+        "column1": Column(int),
+        "column2": Column(float)
+    },
+    index=Index(int, name = "column3"),
+    strict=True,
+    coerce=True,
+)
+schema.set_index(["column1"], append = True)
 ```
 
 The available methods for altering the schema are:

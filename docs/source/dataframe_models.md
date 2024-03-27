@@ -1,7 +1,12 @@
+---
+file_format: mystnb
+kernelspec:
+  name: python3
+---
+
 % pandera documentation for class-based API.
 
-```{eval-rst}
-.. currentmodule:: pandera
+```{currentmodule} pandera
 ```
 
 (dataframe-models)=
@@ -43,53 +48,43 @@ See the {ref}`Mypy Integration <mypy-integration>` for more details.
 
 ## Basic Usage
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import Index, DataFrame, Series
+```{code-cell} python
+import pandas as pd
+import pandera as pa
+from pandera.typing import Index, DataFrame, Series
 
 
-    class InputSchema(pa.DataFrameModel):
-        year: Series[int] = pa.Field(gt=2000, coerce=True)
-        month: Series[int] = pa.Field(ge=1, le=12, coerce=True)
-        day: Series[int] = pa.Field(ge=0, le=365, coerce=True)
+class InputSchema(pa.DataFrameModel):
+    year: Series[int] = pa.Field(gt=2000, coerce=True)
+    month: Series[int] = pa.Field(ge=1, le=12, coerce=True)
+    day: Series[int] = pa.Field(ge=0, le=365, coerce=True)
 
-    class OutputSchema(InputSchema):
-        revenue: Series[float]
+class OutputSchema(InputSchema):
+    revenue: Series[float]
 
-    @pa.check_types
-    def transform(df: DataFrame[InputSchema]) -> DataFrame[OutputSchema]:
-        return df.assign(revenue=100.0)
+@pa.check_types
+def transform(df: DataFrame[InputSchema]) -> DataFrame[OutputSchema]:
+    return df.assign(revenue=100.0)
 
 
-    df = pd.DataFrame({
-        "year": ["2001", "2002", "2003"],
-        "month": ["3", "6", "12"],
-        "day": ["200", "156", "365"],
-    })
+df = pd.DataFrame({
+    "year": ["2001", "2002", "2003"],
+    "month": ["3", "6", "12"],
+    "day": ["200", "156", "365"],
+})
 
-    transform(df)
+transform(df)
 
-    invalid_df = pd.DataFrame({
-        "year": ["2001", "2002", "1999"],
-        "month": ["3", "6", "12"],
-        "day": ["200", "156", "365"],
-    })
+invalid_df = pd.DataFrame({
+    "year": ["2001", "2002", "1999"],
+    "month": ["3", "6", "12"],
+    "day": ["200", "156", "365"],
+})
+
+try:
     transform(invalid_df)
-
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaError: error in check_types decorator of function
-    'transform': Column 'year' failed element-wise validator number 0:
-    greater_than(2000) failure cases: 1999
-
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 As you can see in the examples above, you can define a schema by sub-classing
@@ -105,23 +100,9 @@ objects, exposing the built-in {class}`Check` s via key-word arguments.
 it will return the name of the column used in the validated `pd.DataFrame`.
 In the example above, this will simply be the string `"year"`.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    print(f"Column name for 'year' is {InputSchema.year}\n")
-    print(df.loc[:, [InputSchema.year, "day"]])
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    Column name for 'year' is year
-
-       year  day
-    0  2001  200
-    1  2002  156
-    2  2003  365
-
+```{code-cell} python
+print(f"Column name for 'year' is {InputSchema.year}\n")
+print(df.loc[:, [InputSchema.year, "day"]])
 ```
 
 ## Using Data Types directly for Column Type Annotations
@@ -133,14 +114,11 @@ the {py:class}`~pandera.typing.Series` generic. This class attributes will be
 interpreted as {py:class}`~pandera.api.pandas.components.Column` objects
 under the hood.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    class InputSchema(pa.DataFrameModel):
-        year: int = pa.Field(gt=2000, coerce=True)
-        month: int = pa.Field(ge=1, le=12, coerce=True)
-        day: int = pa.Field(ge=0, le=365, coerce=True)
-
+```{code-cell} python
+class InputSchema(pa.DataFrameModel):
+    year: int = pa.Field(gt=2000, coerce=True)
+    month: int = pa.Field(ge=1, le=12, coerce=True)
+    day: int = pa.Field(ge=0, le=365, coerce=True)
 ```
 
 ## Validate on Initialization
@@ -152,40 +130,25 @@ This API uses the {py:class}`pandera.typing.pandas.DataFrame` generic type
 to validated against the {py:class}`~pandera.api.pandas.model.DataFrameModel` type variable
 on initialization:
 
-```{eval-rst}
-.. testcode:: validate_on_init
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
-
-    from pandera.typing import DataFrame, Series
+from pandera.typing import DataFrame, Series
 
 
-    class Schema(pa.DataFrameModel):
-        state: Series[str]
-        city: Series[str]
-        price: Series[int] = pa.Field(in_range={"min_value": 5, "max_value": 20})
+class Schema(pa.DataFrameModel):
+    state: Series[str]
+    city: Series[str]
+    price: Series[int] = pa.Field(in_range={"min_value": 5, "max_value": 20})
 
-    df = DataFrame[Schema](
-        {
-            'state': ['NY','FL','GA','CA'],
-            'city': ['New York', 'Miami', 'Atlanta', 'San Francisco'],
-            'price': [8, 12, 10, 16],
-        }
-    )
-    print(df)
-
-```
-
-```{eval-rst}
-.. testoutput:: validate_on_init
-
-      state           city  price
-    0    NY       New York      8
-    1    FL          Miami     12
-    2    GA        Atlanta     10
-    3    CA  San Francisco     16
-
+DataFrame[Schema](
+    {
+        'state': ['NY','FL','GA','CA'],
+        'city': ['New York', 'Miami', 'Atlanta', 'San Francisco'],
+        'price': [8, 12, 10, 16],
+    }
+)
 ```
 
 Refer to {ref}`supported-dataframe-libraries` to see how this syntax applies
@@ -196,70 +159,23 @@ to other supported dataframe types.
 You can easily convert a {class}`~pandera.api.pandas.model.DataFrameModel` class into a
 {class}`~pandera.api.pandas.container.DataFrameSchema`:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    print(InputSchema.to_schema())
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    <Schema DataFrameSchema(
-        columns={
-            'year': <Schema Column(name=year, type=DataType(int64))>
-            'month': <Schema Column(name=month, type=DataType(int64))>
-            'day': <Schema Column(name=day, type=DataType(int64))>
-        },
-        checks=[],
-        coerce=False,
-        dtype=None,
-        index=None,
-        strict=False,
-        name=InputSchema,
-        ordered=False,
-        unique_column_names=False,
-        metadata=None,
-        add_missing_columns=False
-    )>
+```{code-cell} python
+print(InputSchema.to_schema())
 ```
 
 You can also use the {meth}`~pandera.api.pandas.model.DataFrameModel.validate` method to
 validate dataframes:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    print(InputSchema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-       year  month  day
-    0  2001      3  200
-    1  2002      6  156
-    2  2003     12  365
+```{code-cell} python
+print(InputSchema.validate(df))
 ```
 
 Or you can use the {meth}`~pandera.api.pandas.model.DataFrameModel` class directly to
 validate dataframes, which is syntactic sugar that simply delegates to the
 {meth}`~pandera.api.pandas.model.DataFrameModel.validate` method.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    print(InputSchema(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-       year  month  day
-    0  2001      3  200
-    1  2002      6  156
-    2  2003     12  365
-
+```{code-cell} python
+print(InputSchema(df))
 ```
 
 ## Validate Against Multiple Schemas
@@ -268,104 +184,78 @@ validate dataframes, which is syntactic sugar that simply delegates to the
 
 The built-in {class}`typing.Union` type is supported for multiple `DataFrame` schemas.
 
-```{eval-rst}
-.. testcode:: union_dataframe_schema_models
+```{code-cell} python
+from typing import Union
+import pandas as pd
+import pandera as pa
+from pandera.typing import DataFrame, Series
 
-    from typing import Union
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import DataFrame, Series
+class OnlyZeroesSchema(pa.DataFrameModel):
+    a: Series[int] = pa.Field(eq=0)
 
-    class OnlyZeroesSchema(pa.DataFrameModel):
-        a: Series[int] = pa.Field(eq=0)
+class OnlyOnesSchema(pa.DataFrameModel):
+    a: Series[int] = pa.Field(eq=1)
 
-    class OnlyOnesSchema(pa.DataFrameModel):
-        a: Series[int] = pa.Field(eq=1)
+@pa.check_types
+def return_zeros_or_ones(
+    df: Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]
+) -> Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
+    return df
 
-    @pa.check_types
-    def return_zeros_or_ones(
-        df: Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]
-    ) -> Union[DataFrame[OnlyZeroesSchema], DataFrame[OnlyOnesSchema]]:
-        return df
+# passes
+return_zeros_or_ones(pd.DataFrame({"a": [0, 0]}))
+return_zeros_or_ones(pd.DataFrame({"a": [1, 1]}))
 
-    return_zeros_or_ones(pd.DataFrame({"a": [0, 0]}))
-    return_zeros_or_ones(pd.DataFrame({"a": [1, 1]}))
+# fails
+try:
     return_zeros_or_ones(pd.DataFrame({"a": [0, 2]}))
-```
-
-```{eval-rst}
-.. testoutput:: union_dataframe_schema_models
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaErrors: Schema OnlyOnesSchema: A total of 2 schema errors were found.
-
-    Error Counts
-    ------------
-    - invalid_type: 2
-
-    Schema Error Summary
-    --------------------
-                                        failure_cases  n_failure_cases
-    schema_context  column check
-    DataFrameSchema <NA>   equal_to(0)            [2]                1
-                           equal_to(1)         [0, 2]                2
-
+except pa.errors.SchemaErrors as exc:
+    print(exc)
 ```
 
 Note that mixtures of `DataFrame` schemas and built-in types will ignore checking built-in types
 with pandera. Pydantic should be used to check and/or coerce any built-in types.
 
-```{eval-rst}
-.. testcode:: union_dataframe_built_in_types
+```{code-cell} python
+import pandas as pd
+from typing import Union
+import pandera as pa
+from pandera.typing import DataFrame, Series
 
-    from typing import Union
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import DataFrame, Series
-
-
-    class OnlyZeroesSchema(pa.DataFrameModel):
-        a: Series[int] = pa.Field(eq=0)
+class OnlyZeroesSchema(pa.DataFrameModel):
+    a: Series[int] = pa.Field(eq=0)
 
 
-    @pa.check_types
-    def df_and_int_types(
-        val: Union[DataFrame[OnlyZeroesSchema], int]
-    ) -> Union[DataFrame[OnlyZeroesSchema], int]:
-        return val
+@pa.check_types
+def df_and_int_types(
+
+    val: Union[DataFrame[OnlyZeroesSchema], int]
+) -> Union[DataFrame[OnlyZeroesSchema], int]:
+    return val
 
 
-    df_and_int_types(pd.DataFrame({"a": [0, 0]}))
-    int_val = df_and_int_types(5)
-    str_val = df_and_int_types("5")
+df_and_int_types(pd.DataFrame({"a": [0, 0]}))
+int_val = df_and_int_types(5)
+str_val = df_and_int_types("5")
 
-    no_pydantic_report = f"No Pydantic: {isinstance(int_val, int)}, {isinstance(str_val, int)}"
-
-
-    @pa.check_types(with_pydantic=True)
-    def df_and_int_types_with_pydantic(
-        val: Union[DataFrame[OnlyZeroesSchema], int]
-    ) -> Union[DataFrame[OnlyZeroesSchema], int]:
-        return val
+no_pydantic_report = f"No Pydantic: {isinstance(int_val, int)}, {isinstance(str_val, int)}"
 
 
-    df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 0]}))
-    int_val_w_pyd = df_and_int_types_with_pydantic(5)
-    str_val_w_pyd = df_and_int_types_with_pydantic("5")
+@pa.check_types(with_pydantic=True)
+def df_and_int_types_with_pydantic(
+    val: Union[DataFrame[OnlyZeroesSchema], int]
+) -> Union[DataFrame[OnlyZeroesSchema], int]:
+    return val
 
-    pydantic_report = f"With Pydantic: {isinstance(int_val_w_pyd, int)}, {isinstance(str_val_w_pyd, int)}"
 
-    print(no_pydantic_report)
-    print(pydantic_report)
-```
+df_and_int_types_with_pydantic(pd.DataFrame({"a": [0, 0]}))
+int_val_w_pyd = df_and_int_types_with_pydantic(5)
+str_val_w_pyd = df_and_int_types_with_pydantic("5")
 
-```{eval-rst}
-.. testoutput:: union_dataframe_built_in_types
+pydantic_report = f"With Pydantic: {isinstance(int_val_w_pyd, int)}, {isinstance(str_val_w_pyd, int)}"
 
-    No Pydantic: True, False
-    With Pydantic: True, True
-
+print(no_pydantic_report)
+print(pydantic_report)
 ```
 
 ## Excluded attributes
@@ -401,14 +291,11 @@ You must give a **type**, not an **instance**.
 
 ✅ Good:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-    :skipif: SKIP_PANDAS_LT_V1
+```{code-cell} python
+import pandas as pd
 
-    import pandas as pd
-
-    class Schema(pa.DataFrameModel):
-        a: Series[pd.StringDtype]
+class Schema(pa.DataFrameModel):
+    a: Series[pd.StringDtype]
 ```
 
 ❌ Bad:
@@ -418,22 +305,13 @@ This is only applicable for pandas versions \< 2.0.0. In pandas > 2.0.0,
 pd.StringDtype() will produce a type.
 :::
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-    :skipif: SKIP_SCHEMA_MODEL
+```{code-cell} python
+:tags: [raises-exception]
 
-    class Schema(pa.DataFrameModel):
-        a: Series[pd.StringDtype()]
+class Schema(pa.DataFrameModel):
+    a: Series[pd.StringDtype()]
 ```
 
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-    :skipif: SKIP_SCHEMA_MODEL
-
-    Traceback (most recent call last):
-    ...
-    TypeError: Parameters to generic types must be types. Got string[python].
-```
 
 (parameterized-dtypes)=
 
@@ -458,17 +336,14 @@ to python 3.6.
 
 ✅ Good:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-    :skipif: PY36
+```{code-cell} python
+try:
+    from typing import Annotated  # python 3.9+
+except ImportError:
+    from typing_extensions import Annotated
 
-    try:
-        from typing import Annotated  # python 3.9+
-    except ImportError:
-        from typing_extensions import Annotated
-
-    class Schema(pa.DataFrameModel):
-        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
+class Schema(pa.DataFrameModel):
+    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]]
 ```
 
 Furthermore, you must pass all parameters in the order defined in the dtype's
@@ -476,58 +351,39 @@ constructor (see {ref}`table <parameterized-dtypes>`).
 
 ❌ Bad:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-    :skipif: PY36
+```{code-cell} python
+:tags: [raises-exception]
 
-    class Schema(pa.DataFrameModel):
-        col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
+class Schema(pa.DataFrameModel):
+    col: Series[Annotated[pd.DatetimeTZDtype, "utc"]]
 
-    Schema.to_schema()
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-    :skipif: PY36
-
-    Traceback (most recent call last):
-    ...
-    TypeError: Annotation 'DatetimeTZDtype' requires all positional arguments ['unit', 'tz'].
+Schema.to_schema()
 ```
 
 #### Field
 
 ✅ Good:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
-        col: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
+```{code-cell} python
+class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
+    col: Series[pd.DatetimeTZDtype] = pa.Field(
+        dtype_kwargs={"unit": "ns", "tz": "EST"}
+    )
 ```
 
 You cannot use both {data}`typing.Annotated` and `dtype_kwargs`.
 
 ❌ Bad:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-    :skipif: PY36
+```{code-cell} python
+:tags: [raises-exception]
 
-    class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
-        col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "EST"})
+class SchemaFieldDatetimeTZDtype(pa.DataFrameModel):
+    col: Series[Annotated[pd.DatetimeTZDtype, "ns", "est"]] = pa.Field(
+        dtype_kwargs={"unit": "ns", "tz": "EST"}
+    )
 
-    Schema.to_schema()
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-    :skipif: PY36
-
-    Traceback (most recent call last):
-    ...
-    TypeError: Cannot specify redundant 'dtype_kwargs' for pandera.typing.Series[typing_extensions.Annotated[pandas.core.dtypes.dtypes.DatetimeTZDtype, 'ns', 'est']].
-    Usage Tip: Drop 'typing.Annotated'.
+Schema.to_schema()
 ```
 
 ## Required Columns
@@ -536,64 +392,48 @@ By default all columns specified in the schema are {ref}`required<required>`, me
 that if a column is missing in the input DataFrame an exception will be
 thrown. If you want to make a column optional, annotate it with {data}`typing.Optional`.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-    :skipif: PY36
+```{code-cell} python
+from typing import Optional
 
-    from typing import Optional
-
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import Series
+import pandas as pd
+import pandera as pa
+from pandera.typing import Series
 
 
-    class Schema(pa.DataFrameModel):
-        a: Series[str]
-        b: Optional[Series[int]]
+class Schema(pa.DataFrameModel):
+    a: Series[str]
+    b: Optional[Series[int]]
 
-
-    df = pd.DataFrame({"a": ["2001", "2002", "2003"]})
-    Schema.validate(df)
-
+df = pd.DataFrame({"a": ["2001", "2002", "2003"]})
+Schema.validate(df)
 ```
 
 ## Schema Inheritance
 
 You can also use inheritance to build schemas on top of a base schema.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+class BaseSchema(pa.DataFrameModel):
+    year: Series[str]
 
-    class BaseSchema(pa.DataFrameModel):
-        year: Series[str]
+class FinalSchema(BaseSchema):
+    year: Series[int] = pa.Field(ge=2000, coerce=True)  # overwrite the base type
+    passengers: Series[int]
+    idx: Index[int] = pa.Field(ge=0)
 
-    class FinalSchema(BaseSchema):
-        year: Series[int] = pa.Field(ge=2000, coerce=True)  # overwrite the base type
-        passengers: Series[int]
-        idx: Index[int] = pa.Field(ge=0)
+df = pd.DataFrame({
+    "year": ["2000", "2001", "2002"],
+})
 
-    df = pd.DataFrame({
-        "year": ["2000", "2001", "2002"],
-    })
+@pa.check_types
+def transform(df: DataFrame[BaseSchema]) -> DataFrame[FinalSchema]:
+    return (
+        df.assign(passengers=[61000, 50000, 45000])
+        .set_index(pd.Index([1, 2, 3]))
+        .astype({"year": int})
+    )
 
-    @pa.check_types
-    def transform(df: DataFrame[BaseSchema]) -> DataFrame[FinalSchema]:
-        return (
-            df.assign(passengers=[61000, 50000, 45000])
-            .set_index(pd.Index([1, 2, 3]))
-            .astype({"year": int})
-        )
-
-    print(transform(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-       year  passengers
-    1  2000       61000
-    2  2001       50000
-    3  2002       45000
+transform(df)
 ```
 
 (schema-model-config)=
@@ -604,24 +444,23 @@ Schema-wide options can be controlled via the `Config` class on the `DataFrameMo
 subclass. The full set of options can be found in the {class}`~pandera.api.pandas.model_config.BaseConfig`
 class.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+class Schema(pa.DataFrameModel):
 
-    class Schema(pa.DataFrameModel):
+    year: Series[int] = pa.Field(gt=2000, coerce=True)
+    month: Series[int] = pa.Field(ge=1, le=12, coerce=True)
+    day: Series[int] = pa.Field(ge=0, le=365, coerce=True)
 
-        year: Series[int] = pa.Field(gt=2000, coerce=True)
-        month: Series[int] = pa.Field(ge=1, le=12, coerce=True)
-        day: Series[int] = pa.Field(ge=0, le=365, coerce=True)
-
-        class Config:
-            name = "BaseSchema"
-            strict = True
-            coerce = True
-            foo = "bar"  # Interpreted as dataframe check
-            baz = ...    # Interpreted as a dataframe check with no additional arguments
+    class Config:
+        name = "BaseSchema"
+        strict = True
+        coerce = True
+        foo = "bar"  # Interpreted as dataframe check
+        baz = ...    # Interpreted as a dataframe check with no additional arguments
 ```
 
-It is not required for the `Config` to subclass {class}`~pandera.api.pandas.model_config.BaseConfig` but
+It is not required for the `Config` to subclass
+{class}`~pandera.api.pandas.model_config.BaseConfig` but
 it **must** be named '**Config**'.
 
 See {ref}`class-based-api-dataframe-checks` for details on using registered dataframe checks.
@@ -631,57 +470,30 @@ See {ref}`class-based-api-dataframe-checks` for details on using registered data
 The {class}`~pandera.api.pandas.components.MultiIndex` capabilities are also supported with
 the class-based API:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandera as pa
+from pandera.typing import Index, Series
 
-    import pandera as pa
-    from pandera.typing import Index, Series
+class MultiIndexSchema(pa.DataFrameModel):
 
-    class MultiIndexSchema(pa.DataFrameModel):
+    year: Index[int] = pa.Field(gt=2000, coerce=True)
+    month: Index[int] = pa.Field(ge=1, le=12, coerce=True)
+    passengers: Series[int]
 
-        year: Index[int] = pa.Field(gt=2000, coerce=True)
-        month: Index[int] = pa.Field(ge=1, le=12, coerce=True)
-        passengers: Series[int]
+    class Config:
+        # provide multi index options in the config
+        multiindex_name = "time"
+        multiindex_strict = True
+        multiindex_coerce = True
 
-        class Config:
-            # provide multi index options in the config
-            multiindex_name = "time"
-            multiindex_strict = True
-            multiindex_coerce = True
-
-    index = MultiIndexSchema.to_schema().index
-    print(index)
+index = MultiIndexSchema.to_schema().index
+print(index)
 ```
 
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
+```{code-cell} python
+from pprint import pprint
 
-    <Schema MultiIndex(
-        indexes=[
-            <Schema Index(name=year, type=DataType(int64))>
-            <Schema Index(name=month, type=DataType(int64))>
-        ]
-        coerce=True,
-        strict=True,
-        name=time,
-        ordered=True
-    )>
-```
-
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    from pprint import pprint
-
-    pprint({name: col.checks for name, col in index.columns.items()})
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    {'month': [<Check greater_than_or_equal_to: greater_than_or_equal_to(1)>,
-            <Check less_than_or_equal_to: less_than_or_equal_to(12)>],
-    'year': [<Check greater_than: greater_than(2000)>]}
+pprint({name: col.checks for name, col in index.columns.items()})
 ```
 
 Multiple {class}`~pandera.typing.Index` annotations are automatically converted into a
@@ -692,32 +504,25 @@ Multiple {class}`~pandera.typing.Index` annotations are automatically converted 
 
 Use `check_name` to validate the index name of a single-index dataframe:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandas as pd
+import pandera as pa
+from pandera.typing import Index, Series
 
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import Index, Series
+class Schema(pa.DataFrameModel):
+    year: Series[int] = pa.Field(gt=2000, coerce=True)
+    passengers: Series[int]
+    idx: Index[int] = pa.Field(ge=0, check_name=True)
 
-    class Schema(pa.DataFrameModel):
-        year: Series[int] = pa.Field(gt=2000, coerce=True)
-        passengers: Series[int]
-        idx: Index[int] = pa.Field(ge=0, check_name=True)
+df = pd.DataFrame({
+    "year": [2001, 2002, 2003],
+    "passengers": [61000, 50000, 45000],
+})
 
-    df = pd.DataFrame({
-        "year": [2001, 2002, 2003],
-        "passengers": [61000, 50000, 45000],
-    })
-
+try:
     Schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaError: Expected <class 'pandera.api.pandas.components.Index'> to have name 'idx', found 'None'
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 `check_name` default value of `None` translates to `True` for columns and multi-index.
@@ -730,29 +535,27 @@ Unlike the object-based API, custom checks can be specified as class methods.
 
 ### Column/Index checks
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandera as pa
+from pandera.typing import Index, Series
 
-    import pandera as pa
-    from pandera.typing import Index, Series
+class CustomCheckSchema(pa.DataFrameModel):
 
-    class CustomCheckSchema(pa.DataFrameModel):
+    a: Series[int] = pa.Field(gt=0, coerce=True)
+    abc: Series[int]
+    idx: Index[str]
 
-        a: Series[int] = pa.Field(gt=0, coerce=True)
-        abc: Series[int]
-        idx: Index[str]
+    @pa.check("a", name="foobar")
+    def custom_check(cls, a: Series[int]) -> Series[bool]:
+        return a < 100
 
-        @pa.check("a", name="foobar")
-        def custom_check(cls, a: Series[int]) -> Series[bool]:
-            return a < 100
+    @pa.check("^a", regex=True, name="foobar")
+    def custom_check_regex(cls, a: Series[int]) -> Series[bool]:
+        return a > 0
 
-        @pa.check("^a", regex=True, name="foobar")
-        def custom_check_regex(cls, a: Series[int]) -> Series[bool]:
-            return a > 0
-
-        @pa.check("idx")
-        def check_idx(cls, idx: Index[int]) -> Series[bool]:
-            return idx.str.contains("dog")
+    @pa.check("idx")
+    def check_idx(cls, idx: Index[int]) -> Series[bool]:
+        return idx.str.contains("dog")
 ```
 
 :::{note}
@@ -767,34 +570,27 @@ Unlike the object-based API, custom checks can be specified as class methods.
   DataFrameModel subclass, not an instance of a model.
 :::
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+from typing import Dict
 
-    from typing import Dict
+class GroupbyCheckSchema(pa.DataFrameModel):
 
-    class GroupbyCheckSchema(pa.DataFrameModel):
+    value: Series[int] = pa.Field(gt=0, coerce=True)
+    group: Series[str] = pa.Field(isin=["A", "B"])
 
-        value: Series[int] = pa.Field(gt=0, coerce=True)
-        group: Series[str] = pa.Field(isin=["A", "B"])
+    @pa.check("value", groupby="group", regex=True, name="check_means")
+    def check_groupby(cls, grouped_value: Dict[str, Series[int]]) -> bool:
+        return grouped_value["A"].mean() < grouped_value["B"].mean()
 
-        @pa.check("value", groupby="group", regex=True, name="check_means")
-        def check_groupby(cls, grouped_value: Dict[str, Series[int]]) -> bool:
-            return grouped_value["A"].mean() < grouped_value["B"].mean()
+df = pd.DataFrame({
+    "value": [100, 110, 120, 10, 11, 12],
+    "group": list("AAABBB"),
+})
 
-    df = pd.DataFrame({
-        "value": [100, 110, 120, 10, 11, 12],
-        "group": list("AAABBB"),
-    })
-
+try:
     print(GroupbyCheckSchema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaError: Column 'value' failed series or dataframe validator 1: <Check check_means>
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 (schema-model-dataframe-check)=
@@ -805,83 +601,67 @@ You can also define dataframe-level checks, similar to the
 {ref}`object-based API <wide-checks>`, using the
 {func}`~pandera.api.pandas.components.dataframe_check` decorator:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandas as pd
+import pandera as pa
+from pandera.typing import Index, Series
 
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import Index, Series
+class DataFrameCheckSchema(pa.DataFrameModel):
 
-    class DataFrameCheckSchema(pa.DataFrameModel):
+    col1: Series[int] = pa.Field(gt=0, coerce=True)
+    col2: Series[float] = pa.Field(gt=0, coerce=True)
+    col3: Series[float] = pa.Field(lt=0, coerce=True)
 
-        col1: Series[int] = pa.Field(gt=0, coerce=True)
-        col2: Series[float] = pa.Field(gt=0, coerce=True)
-        col3: Series[float] = pa.Field(lt=0, coerce=True)
+    @pa.dataframe_check
+    def product_is_negative(cls, df: pd.DataFrame) -> Series[bool]:
+        return df["col1"] * df["col2"] * df["col3"] < 0
 
-        @pa.dataframe_check
-        def product_is_negative(cls, df: pd.DataFrame) -> Series[bool]:
-            return df["col1"] * df["col2"] * df["col3"] < 0
+df = pd.DataFrame({
+    "col1": [1, 2, 3],
+    "col2": [5, 6, 7],
+    "col3": [-1, -2, -3],
+})
 
-    df = pd.DataFrame({
-        "col1": [1, 2, 3],
-        "col2": [5, 6, 7],
-        "col3": [-1, -2, -3],
-    })
-
-    DataFrameCheckSchema.validate(df)
+DataFrameCheckSchema.validate(df)
 ```
 
 ### Inheritance
 
 The custom checks are inherited and therefore can be overwritten by the subclass.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandas as pd
+import pandera as pa
+from pandera.typing import Index, Series
 
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import Index, Series
+class Parent(pa.DataFrameModel):
 
-    class Parent(pa.DataFrameModel):
+    a: Series[int] = pa.Field(coerce=True)
 
-        a: Series[int] = pa.Field(coerce=True)
-
-        @pa.check("a", name="foobar")
-        def check_a(cls, a: Series[int]) -> Series[bool]:
-            return a < 100
+    @pa.check("a", name="foobar")
+    def check_a(cls, a: Series[int]) -> Series[bool]:
+        return a < 100
 
 
-    class Child(Parent):
+class Child(Parent):
 
-        a: Series[int] = pa.Field(coerce=False)
+    a: Series[int] = pa.Field(coerce=False)
 
-        @pa.check("a", name="foobar")
-        def check_a(cls, a: Series[int]) -> Series[bool]:
-            return a > 100
+    @pa.check("a", name="foobar")
+    def check_a(cls, a: Series[int]) -> Series[bool]:
+        return a > 100
 
-    is_a_coerce = Child.to_schema().columns["a"].coerce
-    print(f"coerce: {is_a_coerce}")
+is_a_coerce = Child.to_schema().columns["a"].coerce
+print(f"coerce: {is_a_coerce}")
 ```
 
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
+```{code-cell} python
+df = pd.DataFrame({"a": [1, 2, 3]})
 
-    coerce: False
-```
-
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    df = pd.DataFrame({"a": [1, 2, 3]})
-    print(Child.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaError: Column 'a' failed element-wise validator number 0: <Check foobar> failure cases: 1, 2, 3
+try:
+    Child.validate(df)
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 (schema-model-alias)=
@@ -893,50 +673,30 @@ The custom checks are inherited and therefore can be overwritten by the subclass
 
 Checks must reference the aliased names.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandera as pa
+import pandas as pd
 
-    import pandera as pa
-    import pandas as pd
+class Schema(pa.DataFrameModel):
+    col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
+    idx: pa.typing.Index[int] = pa.Field(alias="_idx", check_name=True)
 
-    class Schema(pa.DataFrameModel):
-        col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
-        idx: pa.typing.Index[int] = pa.Field(alias="_idx", check_name=True)
-
-        @pa.check(2020)
-        def int_column_lt_100(cls, series):
-            return series < 100
+    @pa.check(2020)
+    def int_column_lt_100(cls, series):
+        return series < 100
 
 
-    df = pd.DataFrame({2020: [99]}, index=[0])
-    df.index.name = "_idx"
+df = pd.DataFrame({2020: [99]}, index=[0])
+df.index.name = "_idx"
 
-    print(Schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-          2020
-    _idx
-    0       99
-
+print(Schema.validate(df))
 ```
 
 *(New in 0.6.2)* The `alias` is respected when using the class attribute to get the underlying
 `pd.DataFrame` column name or index level name.
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
-
-    print(Schema.col_2020)
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-    2020
-
+```{code-cell} python
+print(Schema.col_2020)
 ```
 
 Very similar to the example above, you can also use the variable name directly within
@@ -947,35 +707,25 @@ To access a variable from the class scope, you need to make it a class attribute
 and therefore assign it a default {class}`~pandera.api.dataframe.model_components.Field`.
 :::
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandera as pa
+import pandas as pd
 
-    import pandera as pa
-    import pandas as pd
+class Schema(pa.DataFrameModel):
+    a: pa.typing.Series[int] = pa.Field()
+    col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
 
-    class Schema(pa.DataFrameModel):
-        a: pa.typing.Series[int] = pa.Field()
-        col_2020: pa.typing.Series[int] = pa.Field(alias=2020)
+    @pa.check(col_2020)
+    def int_column_lt_100(cls, series):
+        return series < 100
 
-        @pa.check(col_2020)
-        def int_column_lt_100(cls, series):
-            return series < 100
-
-        @pa.check(a)
-        def int_column_gt_100(cls, series):
-            return series > 100
+    @pa.check(a)
+    def int_column_gt_100(cls, series):
+        return series > 100
 
 
-    df = pd.DataFrame({2020: [99], "a": [101]})
-    print(Schema.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-          2020    a
-    0       99  101
-
+df = pd.DataFrame({2020: [99], "a": [101]})
+print(Schema.validate(df))
 ```
 
 ## Manipulating DataFrame Models post-definition
@@ -998,36 +748,27 @@ As an example, the following class hierarchy can not remove the fields `b` and `
 `Baz` into a base-class without completely convoluting the inheritance tree. So, we can
 get rid of them like this:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+import pandera as pa
+import pandas as pd
 
-    import pandera as pa
-    import pandas as pd
+class Foo(pa.DataFrameModel):
+    a: pa.typing.Series[int]
+    b: pa.typing.Series[int]
 
-    class Foo(pa.DataFrameModel):
-        a: pa.typing.Series[int]
-        b: pa.typing.Series[int]
+class Bar(pa.DataFrameModel):
+    c: pa.typing.Series[int]
+    d: pa.typing.Series[int]
 
-    class Bar(pa.DataFrameModel):
-        c: pa.typing.Series[int]
-        d: pa.typing.Series[int]
+class Baz(Foo, Bar):
 
-    class Baz(Foo, Bar):
+    @classmethod
+    def to_schema(cls) -> pa.DataFrameSchema:
+        schema = super().to_schema()
+        return schema.remove_columns(["b", "c"])
 
-        @classmethod
-        def to_schema(cls) -> pa.DataFrameSchema:
-            schema = super().to_schema()
-            return schema.remove_columns(["b", "c"])
-
-    df = pd.DataFrame({"a": [99], "d": [101]})
-    print(Baz.validate(df))
-```
-
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
-
-        a    d
-    0  99  101
+df = pd.DataFrame({"a": [99], "d": [101]})
+print(Baz.validate(df))
 ```
 
 :::{note}

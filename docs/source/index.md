@@ -1,3 +1,9 @@
+---
+file_format: mystnb
+kernelspec:
+  name: python3
+---
+
 % pandera documentation entrypoint
 
 # The Open-source Framework for Precision Data Testing
@@ -134,18 +140,18 @@ Installing additional functionality:
 
    .. code:: bash
 
-      pip install pandera[hypotheses]  # hypothesis checks
-      pip install pandera[io]          # yaml/script schema io utilities
-      pip install pandera[strategies]  # data synthesis strategies
-      pip install pandera[mypy]        # enable static type-linting of pandas
-      pip install pandera[fastapi]     # fastapi integration
-      pip install pandera[dask]        # validate dask dataframes
-      pip install pandera[pyspark]     # validate pyspark dataframes
-      pip install pandera[modin]       # validate modin dataframes
-      pip install pandera[modin-ray]   # validate modin dataframes with ray
-      pip install pandera[modin-dask]  # validate modin dataframes with dask
-      pip install pandera[geopandas]   # validate geopandas geodataframes
-      pip install pandera[polars]      # validate polars dataframes
+      pip install 'pandera[hypotheses]'  # hypothesis checks
+      pip install 'pandera[io]'          # yaml/script schema io utilities
+      pip install 'pandera[strategies]'  # data synthesis strategies
+      pip install 'pandera[mypy]'        # enable static type-linting of pandas
+      pip install 'pandera[fastapi]'     # fastapi integration
+      pip install 'pandera[dask]'        # validate dask dataframes
+      pip install 'pandera[pyspark]'     # validate pyspark dataframes
+      pip install 'pandera[modin]'       # validate modin dataframes
+      pip install 'pandera[modin-ray']   # validate modin dataframes with ray
+      pip install 'pandera[modin-dask']  # validate modin dataframes with dask
+      pip install 'pandera[geopandas]'   # validate geopandas geodataframes
+      pip install 'pandera[polars]'      # validate polars dataframes
 ```
 
 ```{eval-rst}
@@ -169,44 +175,31 @@ Installing additional functionality:
 
 ## Quick Start
 
-```{eval-rst}
-.. testcode:: quick_start
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+# data to validate
+df = pd.DataFrame({
+    "column1": [1, 4, 0, 10, 9],
+    "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
+    "column3": ["value_1", "value_2", "value_3", "value_2", "value_1"],
+})
 
-    # data to validate
-    df = pd.DataFrame({
-        "column1": [1, 4, 0, 10, 9],
-        "column2": [-1.3, -1.4, -2.9, -10.1, -20.4],
-        "column3": ["value_1", "value_2", "value_3", "value_2", "value_1"],
-    })
+# define schema
+schema = pa.DataFrameSchema({
+    "column1": pa.Column(int, checks=pa.Check.le(10)),
+    "column2": pa.Column(float, checks=pa.Check.lt(-1.2)),
+    "column3": pa.Column(str, checks=[
+        pa.Check.str_startswith("value_"),
+        # define custom checks as functions that take a series as input and
+        # outputs a boolean or boolean Series
+        pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
+    ]),
+})
 
-    # define schema
-    schema = pa.DataFrameSchema({
-        "column1": pa.Column(int, checks=pa.Check.le(10)),
-        "column2": pa.Column(float, checks=pa.Check.lt(-1.2)),
-        "column3": pa.Column(str, checks=[
-            pa.Check.str_startswith("value_"),
-            # define custom checks as functions that take a series as input and
-            # outputs a boolean or boolean Series
-            pa.Check(lambda s: s.str.split("_", expand=True).shape[1] == 2)
-        ]),
-    })
-
-    validated_df = schema(df)
-    print(validated_df)
-```
-
-```{eval-rst}
-.. testoutput:: quick_start
-
-       column1  column2  column3
-    0        1     -1.3  value_1
-    1        4     -1.4  value_2
-    2        0     -2.9  value_3
-    3       10    -10.1  value_2
-    4        9    -20.4  value_1
+validated_df = schema(df)
+print(validated_df)
 ```
 
 You can pass the built-in python types that are supported by
@@ -214,26 +207,24 @@ pandas, or strings representing the
 [legal pandas datatypes](https://pandas.pydata.org/docs/user_guide/basics.html#dtypes),
 or pandera's `DataType`:
 
-```{eval-rst}
-.. testcode:: quick_start
+```{code-cell} python
+schema = pa.DataFrameSchema({
+    # built-in python types
+    "int_column": pa.Column(int),
+    "float_column": pa.Column(float),
+    "str_column": pa.Column(str),
 
-    schema = pa.DataFrameSchema({
-        # built-in python types
-        "int_column": pa.Column(int),
-        "float_column": pa.Column(float),
-        "str_column": pa.Column(str),
+    # pandas dtype string aliases
+    "int_column2": pa.Column("int64"),
+    "float_column2": pa.Column("float64"),
+    # pandas > 1.0.0 support native "string" type
+    "str_column2": pa.Column("str"),
 
-        # pandas dtype string aliases
-        "int_column2": pa.Column("int64"),
-        "float_column2": pa.Column("float64"),
-        # pandas > 1.0.0 support native "string" type
-        "str_column2": pa.Column("str"),
-
-        # pandera DataType
-        "int_column3": pa.Column(pa.Int),
-        "float_column3": pa.Column(pa.Float),
-        "str_column3": pa.Column(pa.String),
-    })
+    # pandera DataType
+    "int_column3": pa.Column(pa.Int),
+    "float_column3": pa.Column(pa.Float),
+    "str_column3": pa.Column(pa.String),
+})
 ```
 
 For more details on data types, see {class}`~pandera.dtypes.DataType`
@@ -246,24 +237,21 @@ by [dataclasses](https://docs.python.org/3/library/dataclasses.html) and
 {class}`~pandera.api.pandas.model.DataFrameModel` for the above
 {class}`~pandera.scheams.DataFrameSchema` would be:
 
-```{eval-rst}
-.. testcode:: quick_start
+```{code-cell} python
+from pandera.typing import Series
 
-   from pandera.typing import Series
+class Schema(pa.DataFrameModel):
 
-   class Schema(pa.DataFrameModel):
+    column1: int = pa.Field(le=10)
+    column2: float = pa.Field(lt=-1.2)
+    column3: str = pa.Field(str_startswith="value_")
 
-       column1: int = pa.Field(le=10)
-       column2: float = pa.Field(lt=-1.2)
-       column3: str = pa.Field(str_startswith="value_")
+    @pa.check("column3")
+    def column_3_check(cls, series: Series[str]) -> Series[bool]:
+        """Check that column3 values have two elements after being split with '_'"""
+        return series.str.split("_", expand=True).shape[1] == 2
 
-       @pa.check("column3")
-       def column_3_check(cls, series: Series[str]) -> Series[bool]:
-           """Check that column3 values have two elements after being split with '_'"""
-           return series.str.split("_", expand=True).shape[1] == 2
-
-   Schema.validate(df)
-
+Schema.validate(df)
 ```
 
 ## Informative Errors
@@ -274,60 +262,42 @@ useful error messages. An `error` argument can also be supplied to
 
 In the case that a validation `Check` is violated:
 
-```{eval-rst}
-.. testcode:: quick_start
+```{code-cell} python
+:tags: [raises-exception]
 
-    simple_schema = pa.DataFrameSchema({
-        "column1": pa.Column(
-            int, pa.Check(lambda x: 0 <= x <= 10, element_wise=True,
-                       error="range checker [0, 10]"))
-    })
+simple_schema = pa.DataFrameSchema({
+    "column1": pa.Column(
+        int, pa.Check(lambda x: 0 <= x <= 10, element_wise=True,
+                    error="range checker [0, 10]"))
+})
 
-    # validation rule violated
-    fail_check_df = pd.DataFrame({
-        "column1": [-20, 5, 10, 30],
-    })
+# validation rule violated
+fail_check_df = pd.DataFrame({
+    "column1": [-20, 5, 10, 30],
+})
 
+try:
     simple_schema(fail_check_df)
-
-```
-
-```{eval-rst}
-.. testoutput:: quick_start
-
-    Traceback (most recent call last):
-    ...
-    SchemaError: column 'column2' not in DataFrameSchema {'column1': <Schema Column(name=column1, type=DataType(int64))>}
-
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 And in the case of a mis-specified column name:
 
-```{eval-rst}
-.. testcode:: quick_start
+```{code-cell} python
+:tags: [raises-exception]
 
-    # column name mis-specified
-    wrong_column_df = pd.DataFrame({
-       "foo": ["bar"] * 10,
-       "baz": [1] * 10
-    })
+# column name mis-specified
+wrong_column_df = pd.DataFrame({
+    "foo": ["bar"] * 10,
+    "baz": [1] * 10
+})
 
-    simple_schema.validate(wrong_column_df)
 
-```
-
-```{eval-rst}
-.. testoutput:: quick_start
-
-    Traceback (most recent call last):
-    ...
-    pandera.SchemaError: column 'column1' not in dataframe
-       foo  baz
-    0  bar    1
-    1  bar    1
-    2  bar    1
-    3  bar    1
-    4  bar    1
+try:
+    simple_schema(wrong_column_df)
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 ## Error Reports
@@ -337,63 +307,22 @@ into an error report. The error report groups `DATA` and `SCHEMA` errors to
 to give an overview of error sources within a dataframe. Take the following schema
 and dataframe:
 
-```{eval-rst}
-.. testcode:: quick_start
+```{code-cell} python
+:tags: [raises-exception]
 
-    schema = pa.DataFrameSchema({"id": pa.Column(int, pa.Check.lt(10))}, name="MySchema", strict=True)
-    df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
+schema = pa.DataFrameSchema({"id": pa.Column(int, pa.Check.lt(10))}, name="MySchema", strict=True)
+df = pd.DataFrame({"id": [1, None, 30], "extra_column": [1, 2, 3]})
+
+try:
     schema.validate(df, lazy=True)
+except pa.errors.SchemaErrors as exc:
+    print(exc)
 ```
 
 Validating the above dataframe will result in data level errors, namely the `id`
 column having a value which fails a check, as well as schema level errors, such as the
 extra column and the `None` value.
 
-```{eval-rst}
-.. testoutput:: quick_start
-
-    Traceback (most recent call last):
-    ...
-    SchemaErrors: {
-        "SCHEMA": {
-            "COLUMN_NOT_IN_SCHEMA": [
-                {
-                    "schema": "MySchema",
-                    "column": "MySchema",
-                    "check": "column_in_schema",
-                    "error": "column 'extra_column' not in DataFrameSchema {'id': <Schema Column(name=id, type=DataType(int64))>}"
-                }
-            ],
-            "SERIES_CONTAINS_NULLS": [
-                {
-                    "schema": "MySchema",
-                    "column": "id",
-                    "check": "not_nullable",
-                    "error": "non-nullable series 'id' contains null values:1   NaNName: id, dtype: float64"
-                }
-            ],
-            "WRONG_DATATYPE": [
-                {
-                    "schema": "MySchema",
-                    "column": "id",
-                    "check": "dtype('int64')",
-                    "error": "expected series 'id' to have type int64, got float64"
-                }
-            ]
-        },
-        "DATA": {
-            "DATAFRAME_CHECK": [
-                {
-                    "schema": "MySchema",
-                    "column": "id",
-                    "check": "less_than(10)",
-                    "error": "Column 'id' failed element-wise validator number 0: less_than(10) failure cases: 30.0"
-                }
-            ]
-        }
-    }
-
-```
 
 This error report can be useful for debugging, with each item in the various
 lists corresponding to a `SchemaError`

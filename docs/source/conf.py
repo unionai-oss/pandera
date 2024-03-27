@@ -48,7 +48,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_panels",
     "jupyterlite_sphinx",
-    "myst_parser",
+    "myst_nb",
 ]
 
 doctest_global_setup = """
@@ -90,6 +90,7 @@ doctest_default_flags = (
 
 source_suffix = {
     ".rst": "restructuredtext",
+    ".md": "myst-nb",
 }
 
 # copy CONTRIBUTING.md docs into source directory
@@ -174,6 +175,7 @@ rst_prolog = """
 """
 
 autosummary_generate = True
+autosummary_generate_overwrite = False
 autosummary_filename_map = {
     "pandera.Check": "pandera.Check",
     "pandera.check": "pandera.check_decorator",
@@ -284,6 +286,10 @@ def linkcode_resolve(domain, info):
 jupyterlite_contents = ["notebooks/try_pandera.ipynb"]
 jupyterlite_bind_ipynb_suffix = False
 
+# myst-nb configuration
 myst_enable_extensions = [
     "colon_fence",
 ]
+
+nb_execution_mode = "auto"
+nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]

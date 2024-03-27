@@ -117,3 +117,22 @@ article .align-center, article .align-default {
 section[id^=pandera-]:not([id=pandera-data-types]) h1  {
   font-size: 1.75em;
 }
+
+/* dataframe table style */
+div.cell_output thead {
+  color: var(--color-foreground-primary);
+}
+
+div.cell_output tbody tr {
+  color: var(--color-content-foreground);
+}
+
+div.cell_output tbody tr:nth-child(odd) {
+  background: var(--color-background-secondary);
+}
+
+
+/* code cell output style */
+div.cell details.below-input>summary {
+  background-color: var(--color-background-secondary);
+}
