@@ -72,6 +72,7 @@ dependencies:
   - sphinx-autodoc-typehints <= 1.14.1
   - sphinx-copybutton
   - recommonmark
+  - myst-nb
 
   # packaging
   - twine
