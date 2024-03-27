@@ -498,7 +498,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     @classmethod
     def _extract_parsers(
         cls, parser_infos: List[FieldParserInfo], field_names: List[str]
-    ) -> Dict[str, List[Check]]:
+    ) -> Dict[str, List[Parser]]:
         """Collect field annotations from bases in mro reverse order."""
         parsers: Dict[str, List[Parser]] = {}
         for parser_info in parser_infos:
