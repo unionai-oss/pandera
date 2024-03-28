@@ -654,7 +654,7 @@ shape: (3, 2)
 ::::
 
 
-::::`tabbed` DataFrameModel
+::::{tabbed} DataFrameModel
 
 ```{testcode} polars
 class ModelWithDFChecks(pa.DataFrameModel):
