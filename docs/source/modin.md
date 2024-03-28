@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera
 ```
 
 (scaling-modin)=
@@ -15,115 +18,92 @@ and {py:func}`~modin.pandas.Series` objects directly. First, install
 `pandera` with the `dask` extra:
 
 ```bash
-pip install pandera[modin]       # installs both ray and dask backends
-pip install pandera[modin-ray]   # only ray backend
-pip install pandera[modin-dask]  # only dask backend
+pip install 'pandera[modin]'       # installs both ray and dask backends
+pip install 'pandera[modin-ray]'   # only ray backend
+pip install 'pandera[modin-dask]'  # only dask backend
 ```
 
 Then you can use pandera schemas to validate modin dataframes. In the example
 below we'll use the {ref}`class-based API <dataframe-models>` to define a
 {py:class}`~pandera.api.model.pandas.DataFrameModel` for validation.
 
-```{eval-rst}
-.. testcode:: scaling_modin
-    :skipif: SKIP_MODIN
+```python
+import modin.pandas as pd
+import pandas as pd
+import pandera as pa
 
-    import modin.pandas as pd
-    import pandas as pd
-    import pandera as pa
-
-    from pandera.typing.modin import DataFrame, Series
+from pandera.typing.modin import DataFrame, Series
 
 
-    class Schema(pa.DataFrameModel):
-        state: Series[str]
-        city: Series[str]
-        price: Series[int] = pa.Field(in_range={"min_value": 5, "max_value": 20})
+class Schema(pa.DataFrameModel):
+    state: Series[str]
+    city: Series[str]
+    price: Series[int] = pa.Field(in_range={"min_value": 5, "max_value": 20})
 
 
-    # create a modin dataframe that's validated on object initialization
-    df = DataFrame[Schema](
-        {
-            'state': ['FL','FL','FL','CA','CA','CA'],
-            'city': [
-                'Orlando',
-                'Miami',
-                'Tampa',
-                'San Francisco',
-                'Los Angeles',
-                'San Diego',
-            ],
-            'price': [8, 12, 10, 16, 20, 18],
-        }
-    )
-    print(df)
-
+# create a modin dataframe that's validated on object initialization
+df = DataFrame[Schema](
+    {
+        'state': ['FL','FL','FL','CA','CA','CA'],
+        'city': [
+            'Orlando',
+            'Miami',
+            'Tampa',
+            'San Francisco',
+            'Los Angeles',
+            'San Diego',
+        ],
+        'price': [8, 12, 10, 16, 20, 18],
+    }
+)
+print(df)
 ```
 
-```{eval-rst}
-.. testoutput:: scaling_modin
-    :skipif: SKIP_MODIN
-
-      state           city  price
-    0    FL        Orlando      8
-    1    FL          Miami     12
-    2    FL          Tampa     10
-    3    CA  San Francisco     16
-    4    CA    Los Angeles     20
-    5    CA      San Diego     18
-
+```
+  state           city  price
+0    FL        Orlando      8
+1    FL          Miami     12
+2    FL          Tampa     10
+3    CA  San Francisco     16
+4    CA    Los Angeles     20
+5    CA      San Diego     18
 ```
 
 You can also use the {py:func}`~pandera.check_types` decorator to validate
 modin dataframes at runtime:
 
-```{eval-rst}
-.. testcode:: scaling_modin
-    :skipif: SKIP_MODIN
+```python
+@pa.check_types
+def function(df: DataFrame[Schema]) -> DataFrame[Schema]:
+    return df[df["state"] == "CA"]
 
-    @pa.check_types
-    def function(df: DataFrame[Schema]) -> DataFrame[Schema]:
-        return df[df["state"] == "CA"]
-
-    print(function(df))
-
+function(df)
 ```
 
-```{eval-rst}
-.. testoutput:: scaling_modin
-    :skipif: SKIP_MODIN
-
-      state           city  price
-    3    CA  San Francisco     16
-    4    CA    Los Angeles     20
-    5    CA      San Diego     18
-
+```
+  state           city  price
+3    CA  San Francisco     16
+4    CA    Los Angeles     20
+5    CA      San Diego     18
 ```
 
 And of course, you can use the object-based API to validate modin dataframes:
 
-```{eval-rst}
-.. testcode:: scaling_modin
-    :skipif: SKIP_MODIN
-
-    schema = pa.DataFrameSchema({
-        "state": pa.Column(str),
-        "city": pa.Column(str),
-        "price": pa.Column(int, pa.Check.in_range(min_value=5, max_value=20))
-    })
-    print(schema(df))
-
+```python
+schema = pa.DataFrameSchema({
+    "state": pa.Column(str),
+    "city": pa.Column(str),
+    "price": pa.Column(int, pa.Check.in_range(min_value=5, max_value=20))
+})
+schema(df)
 ```
 
-```{eval-rst}
-.. testoutput:: scaling_modin
-    :skipif: SKIP_MODIN
-
-      state           city  price
-    0    FL        Orlando      8
-    1    FL          Miami     12
-    2    FL          Tampa     10
-    3    CA  San Francisco     16
-    4    CA    Los Angeles     20
-    5    CA      San Diego     18
+```
+  state           city  price
+0    FL        Orlando      8
+1    FL          Miami     12
+2    FL          Tampa     10
+3    CA  San Francisco     16
+4    CA    Los Angeles     20
+5    CA      San Diego     18
 ```

@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera
 ```
 
 (data-format-conversion)=
@@ -19,23 +22,20 @@ type that supports this feature.
 
 Consider this simple example:
 
-```{eval-rst}
-.. testcode:: format_serialization
+```{code-cell} python
+import pandera as pa
+from pandera.typing import DataFrame, Series
 
-    import pandera as pa
-    from pandera.typing import DataFrame, Series
+class InSchema(pa.DataFrameModel):
+    str_col: Series[str] = pa.Field(unique=True, isin=[*"abcd"])
+    int_col: Series[int]
 
-    class InSchema(pa.DataFrameModel):
-        str_col: Series[str] = pa.Field(unique=True, isin=[*"abcd"])
-        int_col: Series[int]
+class OutSchema(InSchema):
+    float_col: pa.typing.Series[float]
 
-    class OutSchema(InSchema):
-        float_col: pa.typing.Series[float]
-
-    @pa.check_types
-    def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
-        return df.assign(float_col=1.1)
-
+@pa.check_types
+def transform(df: DataFrame[InSchema]) -> DataFrame[OutSchema]:
+    return df.assign(float_col=1.1)
 ```
 
 With the schema type annotations and
@@ -55,25 +55,21 @@ read/write logic by hand, or you can configure schemas to do so. We can first
 define a subclass of `InSchema` with additional configuration so that our
 `transform` function can read data directly from parquet files or buffers:
 
-```{eval-rst}
-.. testcode:: format_serialization
-
-    class InSchemaParquet(InSchema):
-        class Config:
-            from_format = "parquet"
+```{code-cell} python
+class InSchemaParquet(InSchema):
+    class Config:
+        from_format = "parquet"
 ```
 
 Then, we define subclass of `OutSchema` to specify that `transform`
 should output a list of dictionaries representing the rows of the output
 dataframe.
 
-```{eval-rst}
-.. testcode:: format_serialization
-
-    class OutSchemaDict(OutSchema):
-        class Config:
-            to_format = "dict"
-            to_format_kwargs = {"orient": "records"}
+```{code-cell} python
+class OutSchemaDict(OutSchema):
+    class Config:
+        to_format = "dict"
+        to_format_kwargs = {"orient": "records"}
 ```
 
 Note that the `{to/from}_format_kwargs` configuration option should be
@@ -82,13 +78,10 @@ respective pandas `{to/from}_format` method.
 
 Finally, we redefine our `transform` function:
 
-```{eval-rst}
-.. testcode:: format_serialization
-
-    @pa.check_types
-    def transform(df: DataFrame[InSchemaParquet]) -> DataFrame[OutSchemaDict]:
-        return df.assign(float_col=1.1)
-
+```{code-cell} python
+@pa.check_types
+def transform(df: DataFrame[InSchemaParquet]) -> DataFrame[OutSchemaDict]:
+    return df.assign(float_col=1.1)
 ```
 
 We can test this out using a buffer to store the parquet file.
@@ -98,41 +91,17 @@ A string or path-like object representing the filepath to a parquet file
 would also be a valid input to `transform`.
 :::
 
-```{eval-rst}
-.. testcode:: format_serialization
+```{code-cell} python
+import io
+import json
 
-    import io
-    import json
+buffer = io.BytesIO()
+data = pd.DataFrame({"str_col": [*"abc"], "int_col": range(3)})
+data.to_parquet(buffer)
+buffer.seek(0)
 
-    buffer = io.BytesIO()
-    data = pd.DataFrame({"str_col": [*"abc"], "int_col": range(3)})
-    data.to_parquet(buffer)
-    buffer.seek(0)
-
-    dict_output = transform(buffer)
-    print(json.dumps(dict_output, indent=4))
-```
-
-```{eval-rst}
-.. testoutput:: format_serialization
-
-    [
-        {
-            "str_col": "a",
-            "int_col": 0,
-            "float_col": 1.1
-        },
-        {
-            "str_col": "b",
-            "int_col": 1,
-            "float_col": 1.1
-        },
-        {
-            "str_col": "c",
-            "int_col": 2,
-            "float_col": 1.1
-        }
-    ]
+dict_output = transform(buffer)
+print(json.dumps(dict_output, indent=2))
 ```
 
 ## Custom Converters with Callables
@@ -149,25 +118,23 @@ methods, such as `pd.to_pickle`, have a required path argument, that must be
 either a string file path or a bytes object. An example for writing data to a
 pickle file would be:
 
-```{eval-rst}
-.. testcode:: format_serialization
+```{code-cell} python
+import tempfile
 
-    import tempfile
+def custom_to_pickle(data, *args, **kwargs):
+    return data.to_pickle(*args, **kwargs)
 
-    def custom_to_pickle(data, *args, **kwargs):
-        return data.to_pickle(*args, **kwargs)
+def custom_to_pickle_buffer():
+    """Create a named temporary file handle to write the pickle file."""
+    return tempfile.NamedTemporaryFile()
 
-    def custom_to_pickle_buffer():
-        """Create a named temporary file handle to write the pickle file."""
-        return tempfile.NamedTemporaryFile()
+class OutSchemaPickleCallable(OutSchema):
+    class Config:
+        to_format = custom_to_pickle
 
-    class OutSchemaPickleCallable(OutSchema):
-        class Config:
-            to_format = custom_to_pickle
-
-            # If provided, the output of this function will be supplied as
-            # the first positional argument to the ``to_format`` function.
-            to_format_buffer = custom_to_pickle_buffer
+        # If provided, the output of this function will be supplied as
+        # the first positional argument to the ``to_format`` function.
+        to_format_buffer = custom_to_pickle_buffer
 ```
 
 In this example, we use a `custom_to_pickle_buffer` function as the

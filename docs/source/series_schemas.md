@@ -1,7 +1,10 @@
+---
+file_format: mystnb
+---
+
 % pandera documentation for seriesschemas
 
-```{eval-rst}
-.. currentmodule:: pandera
+```{currentmodule} pandera
 ```
 
 (seriesschemas)=
@@ -12,35 +15,24 @@ The {class}`~pandera.api.pandas.array.SeriesSchema` class allows for the validat
 `Series` objects, and are very similar to {ref}`columns<column>` and
 {ref}`indexes<index>` described in {ref}`DataFrameSchemas<DataFrameSchemas>`.
 
-```{eval-rst}
-.. testcode:: series_validation
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+schema = pa.SeriesSchema(
+    str,
+    checks=[
+        pa.Check(lambda s: s.str.startswith("foo")),
+        pa.Check(lambda s: s.str.endswith("bar")),
+        pa.Check(lambda x: len(x) > 3, element_wise=True)
+    ],
+    nullable=False,
+    unique=False,
+    name="my_series")
 
+validated_series = schema.validate(
+    pd.Series(["foobar", "foobar", "foobar"], name="my_series")
+)
 
-    # specify multiple validators
-    schema = pa.SeriesSchema(
-        str,
-        checks=[
-            pa.Check(lambda s: s.str.startswith("foo")),
-            pa.Check(lambda s: s.str.endswith("bar")),
-            pa.Check(lambda x: len(x) > 3, element_wise=True)
-        ],
-        nullable=False,
-        unique=False,
-        name="my_series")
-
-    validated_series = schema.validate(
-        pd.Series(["foobar", "foobar", "foobar"], name="my_series"))
-    print(validated_series)
-```
-
-```{eval-rst}
-.. testoutput:: series_validation
-
-    0    foobar
-    1    foobar
-    2    foobar
-    Name: my_series, dtype: object
+validated_series
 ```

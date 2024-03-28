@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera
 ```
 
 (drop-invalid-rows)=
@@ -24,89 +27,81 @@ If the index is not unique on the dataframe, this could result in incorrect rows
 
 Dropping invalid rows with {class}`~pandera.api.pandas.container.DataFrameSchema`:
 
-```{eval-rst}
-.. testcode:: drop_invalid_rows_data_frame_schema
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-   import pandas as pd
-   import pandera as pa
+from pandera import Check, Column, DataFrameSchema
 
-   from pandera import Check, Column, DataFrameSchema
+df = pd.DataFrame({"counter": ["1", "2", "3"]})
+schema = DataFrameSchema(
+    {"counter": Column(int, checks=[Check(lambda x: x >= 3)])},
+    drop_invalid_rows=True,
+)
 
-   df = pd.DataFrame({"counter": ["1", "2", "3"]})
-   schema = DataFrameSchema(
-       {"counter": Column(int, checks=[Check(lambda x: x >= 3)])},
-       drop_invalid_rows=True,
-   )
-
-   schema.validate(df, lazy=True)
+schema.validate(df, lazy=True)
 ```
 
 Dropping invalid rows with {class}`~pandera.api.pandas.array.SeriesSchema`:
 
-```{eval-rst}
-.. testcode:: drop_invalid_rows_series_schema
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-   import pandas as pd
-   import pandera as pa
+from pandera import Check, SeriesSchema
 
-   from pandera import Check, SeriesSchema
+series = pd.Series(["1", "2", "3"])
+schema = SeriesSchema(
+    int,
+    checks=[Check(lambda x: x >= 3)],
+    drop_invalid_rows=True,
+)
 
-   series = pd.Series(["1", "2", "3"])
-   schema = SeriesSchema(
-       int,
-       checks=[Check(lambda x: x >= 3)],
-       drop_invalid_rows=True,
-   )
-
-   schema.validate(series, lazy=True)
+schema.validate(series, lazy=True)
 ```
 
 Dropping invalid rows with {class}`~pandera.api.pandas.components.Column`:
 
-```{eval-rst}
-.. testcode:: drop_invalid_rows_column
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-   import pandas as pd
-   import pandera as pa
+from pandera import Check, Column
 
-   from pandera import Check, Column
+df = pd.DataFrame({"counter": ["1", "2", "3"]})
+schema = Column(
+    int,
+    name="counter",
+    drop_invalid_rows=True,
+    checks=[Check(lambda x: x >= 3)]
+)
 
-   df = pd.DataFrame({"counter": ["1", "2", "3"]})
-   schema = Column(
-       int,
-       name="counter",
-       drop_invalid_rows=True,
-       checks=[Check(lambda x: x >= 3)]
-   )
-
-   schema.validate(df, lazy=True)
+schema.validate(df, lazy=True)
 ```
 
 Dropping invalid rows with {class}`~pandera.api.pandas.model.DataFrameModel`:
 
-```{eval-rst}
-.. testcode:: drop_invalid_rows_data_frame_model
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+from pandera import Check, DataFrameModel, Field
 
-    from pandera import Check, DataFrameModel, Field
+class MySchema(DataFrameModel):
+    counter: int = Field(in_range={"min_value": 3, "max_value": 5})
 
-    class MySchema(DataFrameModel):
-        counter: int = Field(in_range={"min_value": 3, "max_value": 5})
-
-        class Config:
-            drop_invalid_rows = True
+    class Config:
+        drop_invalid_rows = True
 
 
-    MySchema.validate(
-        pd.DataFrame({"counter": [1, 2, 3, 4, 5, 6]}), lazy=True
-    )
+MySchema.validate(
+    pd.DataFrame({"counter": [1, 2, 3, 4, 5, 6]}), lazy=True
+)
 ```
 
-:::{note}
+```{note}
 In order to use `drop_invalid_rows=True`, `lazy=True` must
 be passed to the `schema.validate()`. {ref}`lazy-validation` enables all schema
 errors to be collected and raised together, meaning all invalid rows can be dropped together.
 This provides clear API for ensuring the validated dataframe contains only valid data.
-:::
+```

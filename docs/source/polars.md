@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera.polars
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera.polars
 ```
 
 (polars)=
@@ -18,11 +21,11 @@ With the polars integration, you can define pandera schemas to validate polars
 dataframes in Python. First, install `pandera` with the `polars` extra:
 
 ```bash
-pip install pandera[polars]
+pip install 'pandera[polars]'
 ```
 
 :::{important}
-If you're on an Apple M1/M2 machine, you'll need to install polars via
+If you're on an Apple Silicon machine, you'll need to install polars via
 `pip install polars-lts-cpu`.
 :::
 
@@ -31,148 +34,66 @@ below we'll use the {ref}`class-based API <dataframe-models>` to define a
 {py:class}`~pandera.api.polars.model.DataFrameModel`, which we then use to
 validate a {py:class}`polars.LazyFrame` object.
 
-```{eval-rst}
-.. testcode:: polars
-
-    import pandera.polars as pa
-    import polars as pl
+```{code-cell} python
+import pandera.polars as pa
+import polars as pl
 
 
-    class Schema(pa.DataFrameModel):
-        state: str
-        city: str
-        price: int = pa.Field(in_range={"min_value": 5, "max_value": 20})
+class Schema(pa.DataFrameModel):
+    state: str
+    city: str
+    price: int = pa.Field(in_range={"min_value": 5, "max_value": 20})
 
 
-    lf = pl.LazyFrame(
-        {
-            'state': ['FL','FL','FL','CA','CA','CA'],
-            'city': [
-                'Orlando',
-                'Miami',
-                'Tampa',
-                'San Francisco',
-                'Los Angeles',
-                'San Diego',
-            ],
-            'price': [8, 12, 10, 16, 20, 18],
-        }
-    )
-    print(Schema.validate(lf).collect())
-
-```
-
-```{eval-rst}
-.. testoutput:: polars
-
-    shape: (6, 3)
-    ┌───────┬───────────────┬───────┐
-    │ state ┆ city          ┆ price │
-    │ ---   ┆ ---           ┆ ---   │
-    │ str   ┆ str           ┆ i64   │
-    ╞═══════╪═══════════════╪═══════╡
-    │ FL    ┆ Orlando       ┆ 8     │
-    │ FL    ┆ Miami         ┆ 12    │
-    │ FL    ┆ Tampa         ┆ 10    │
-    │ CA    ┆ San Francisco ┆ 16    │
-    │ CA    ┆ Los Angeles   ┆ 20    │
-    │ CA    ┆ San Diego     ┆ 18    │
-    └───────┴───────────────┴───────┘
-
+lf = pl.LazyFrame(
+    {
+        'state': ['FL','FL','FL','CA','CA','CA'],
+        'city': [
+            'Orlando',
+            'Miami',
+            'Tampa',
+            'San Francisco',
+            'Los Angeles',
+            'San Diego',
+        ],
+        'price': [8, 12, 10, 16, 20, 18],
+    }
+)
+Schema.validate(lf).collect()
 ```
 
 You can also use the {py:func}`~pandera.decorators.check_types` decorator to
 validate polars LazyFrame function annotations at runtime:
 
-```{eval-rst}
-.. testcode:: polars
+```{code-cell} python
+from pandera.typing.polars import LazyFrame
 
-    from pandera.typing.polars import LazyFrame
+@pa.check_types
+def function(lf: LazyFrame[Schema]) -> LazyFrame[Schema]:
+    return lf.filter(pl.col("state").eq("CA"))
 
-    @pa.check_types
-    def function(lf: LazyFrame[Schema]) -> LazyFrame[Schema]:
-        return lf.filter(pl.col("state").eq("CA"))
-
-    print(function(lf).collect())
-
-```
-
-```{eval-rst}
-.. testoutput:: polars
-
-    shape: (3, 3)
-    ┌───────┬───────────────┬───────┐
-    │ state ┆ city          ┆ price │
-    │ ---   ┆ ---           ┆ ---   │
-    │ str   ┆ str           ┆ i64   │
-    ╞═══════╪═══════════════╪═══════╡
-    │ CA    ┆ San Francisco ┆ 16    │
-    │ CA    ┆ Los Angeles   ┆ 20    │
-    │ CA    ┆ San Diego     ┆ 18    │
-    └───────┴───────────────┴───────┘
-
+function(lf).collect()
 ```
 
 And of course, you can use the object-based API to define a
 {py:class}`~pandera.api.polars.container.DataFrameSchema`:
 
-```{eval-rst}
-.. testcode:: polars
-
-    schema = pa.DataFrameSchema({
-        "state": pa.Column(str),
-        "city": pa.Column(str),
-        "price": pa.Column(int, pa.Check.in_range(min_value=5, max_value=20))
-    })
-    print(schema(lf).collect())
-
-```
-
-```{eval-rst}
-.. testoutput:: polars
-
-    shape: (6, 3)
-    ┌───────┬───────────────┬───────┐
-    │ state ┆ city          ┆ price │
-    │ ---   ┆ ---           ┆ ---   │
-    │ str   ┆ str           ┆ i64   │
-    ╞═══════╪═══════════════╪═══════╡
-    │ FL    ┆ Orlando       ┆ 8     │
-    │ FL    ┆ Miami         ┆ 12    │
-    │ FL    ┆ Tampa         ┆ 10    │
-    │ CA    ┆ San Francisco ┆ 16    │
-    │ CA    ┆ Los Angeles   ┆ 20    │
-    │ CA    ┆ San Diego     ┆ 18    │
-    └───────┴───────────────┴───────┘
+```{code-cell} python
+schema = pa.DataFrameSchema({
+    "state": pa.Column(str),
+    "city": pa.Column(str),
+    "price": pa.Column(int, pa.Check.in_range(min_value=5, max_value=20))
+})
+schema.validate(lf).collect()
 ```
 
 You can also validate {py:class}`polars.DataFrame` objects, which are objects that
 execute computations eagerly. Under the hood, `pandera` will convert
 the `polars.DataFrame` to a `polars.LazyFrame` before validating it:
 
-```{eval-rst}
-.. testcode:: polars
-
-    df = lf.collect()
-    print(schema(df))
-```
-
-```{eval-rst}
-.. testoutput:: polars
-
-    shape: (6, 3)
-    ┌───────┬───────────────┬───────┐
-    │ state ┆ city          ┆ price │
-    │ ---   ┆ ---           ┆ ---   │
-    │ str   ┆ str           ┆ i64   │
-    ╞═══════╪═══════════════╪═══════╡
-    │ FL    ┆ Orlando       ┆ 8     │
-    │ FL    ┆ Miami         ┆ 12    │
-    │ FL    ┆ Tampa         ┆ 10    │
-    │ CA    ┆ San Francisco ┆ 16    │
-    │ CA    ┆ Los Angeles   ┆ 20    │
-    │ CA    ┆ San Diego     ┆ 18    │
-    └───────┴───────────────┴───────┘
+```{code-cell} python
+df = lf.collect()
+schema.validate(df)
 ```
 
 :::{note}
@@ -227,150 +148,148 @@ ground-work for future performance improvements.
 
 ### `LazyFrame` Method Chain
 
-```{eval-rst}
-.. tabbed:: DataFrameSchema
+::::{tabbed} DataFrameSchema
 
-   .. testcode:: polars
+```{testcode} polars
+import pandera.polars as pa
+import polars as pl
 
-       schema = pa.DataFrameSchema({"a": pa.Column(int)})
+schema = pa.DataFrameSchema({"a": pa.Column(int)})
 
-       df = (
-           pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
-           .cast({"a": pl.Int64})
-           .pipe(schema.validate) # this only validates schema-level properties
-           .with_columns(b=pl.lit("a"))
-           # do more lazy operations
-           .collect()
-       )
-       print(df)
-
-   .. testoutput:: polars
-
-       shape: (3, 2)
-       ┌─────┬─────┐
-       │ a   ┆ b   │
-       │ --- ┆ --- │
-       │ i64 ┆ str │
-       ╞═════╪═════╡
-       │ 1   ┆ a   │
-       │ 2   ┆ a   │
-       │ 3   ┆ a   │
-       └─────┴─────┘
+df = (
+    pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+    .cast({"a": pl.Int64})
+    .pipe(schema.validate) # this only validates schema-level properties
+    .with_columns(b=pl.lit("a"))
+    # do more lazy operations
+    .collect()
+)
+print(df)
 ```
 
-```{eval-rst}
-.. tabbed:: DataFrameModel
-
-   .. testcode:: polars
-
-       class SimpleModel(pa.DataFrameModel):
-           a: int
-
-       df = (
-           pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
-           .cast({"a": pl.Int64})
-           .pipe(SimpleModel.validate) # this only validates schema-level properties
-           .with_columns(b=pl.lit("a"))
-           # do more lazy operations
-           .collect()
-       )
-       print(df)
-
-   .. testoutput:: polars
-
-       shape: (3, 2)
-       ┌─────┬─────┐
-       │ a   ┆ b   │
-       │ --- ┆ --- │
-       │ i64 ┆ str │
-       ╞═════╪═════╡
-       │ 1   ┆ a   │
-       │ 2   ┆ a   │
-       │ 3   ┆ a   │
-       └─────┴─────┘
+```{testoutput} polars
+shape: (3, 2)
+┌─────┬─────┐
+│ a   ┆ b   │
+│ --- ┆ --- │
+│ i64 ┆ str │
+╞═════╪═════╡
+│ 1   ┆ a   │
+│ 2   ┆ a   │
+│ 3   ┆ a   │
+└─────┴─────┘
 ```
+::::
+
+::::{tabbed} DataFrameModel
+
+```{testcode} polars
+import pandera.polars as pa
+import polars as pl
+
+class SimpleModel(pa.DataFrameModel):
+    a: int
+
+df = (
+    pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+    .cast({"a": pl.Int64})
+    .pipe(SimpleModel.validate) # this only validates schema-level properties
+    .with_columns(b=pl.lit("a"))
+    # do more lazy operations
+    .collect()
+)
+print(df)
+```
+
+```{testoutput} polars
+shape: (3, 2)
+┌─────┬─────┐
+│ a   ┆ b   │
+│ --- ┆ --- │
+│ i64 ┆ str │
+╞═════╪═════╡
+│ 1   ┆ a   │
+│ 2   ┆ a   │
+│ 3   ┆ a   │
+└─────┴─────┘
+```
+::::
 
 ### `DataFrame` Method Chain
 
-```{eval-rst}
-.. tabbed:: DataFrameSchema
+::::{tabbed} DataFrameSchema
 
-   .. testcode:: polars
+```{testcode} polars
+schema = pa.DataFrameSchema({"a": pa.Column(int)})
 
-       schema = pa.DataFrameSchema({"a": pa.Column(int)})
-
-       df = (
-           pl.DataFrame({"a": [1.0, 2.0, 3.0]})
-           .cast({"a": pl.Int64})
-           .pipe(schema.validate) # this validates schema- and data- level properties
-           .with_columns(b=pl.lit("a"))
-           # do more eager operations
-       )
-       print(df)
-
-   .. testoutput:: polars
-
-       shape: (3, 2)
-       ┌─────┬─────┐
-       │ a   ┆ b   │
-       │ --- ┆ --- │
-       │ i64 ┆ str │
-       ╞═════╪═════╡
-       │ 1   ┆ a   │
-       │ 2   ┆ a   │
-       │ 3   ┆ a   │
-       └─────┴─────┘
+df = (
+    pl.DataFrame({"a": [1.0, 2.0, 3.0]})
+    .cast({"a": pl.Int64})
+    .pipe(schema.validate) # this validates schema- and data- level properties
+    .with_columns(b=pl.lit("a"))
+    # do more eager operations
+)
+print(df)
 ```
 
-```{eval-rst}
-.. tabbed:: DataFrameModel
-
-   .. testcode:: polars
-
-       class SimpleModel(pa.DataFrameModel):
-           a: int
-
-       df = (
-           pl.DataFrame({"a": [1.0, 2.0, 3.0]})
-           .cast({"a": pl.Int64})
-           .pipe(SimpleModel.validate) # this validates schema- and data- level properties
-           .with_columns(b=pl.lit("a"))
-           # do more eager operations
-       )
-       print(df)
-
-   .. testoutput:: polars
-
-       shape: (3, 2)
-       ┌─────┬─────┐
-       │ a   ┆ b   │
-       │ --- ┆ --- │
-       │ i64 ┆ str │
-       ╞═════╪═════╡
-       │ 1   ┆ a   │
-       │ 2   ┆ a   │
-       │ 3   ┆ a   │
-       └─────┴─────┘
+```{testoutput} polars
+shape: (3, 2)
+┌─────┬─────┐
+│ a   ┆ b   │
+│ --- ┆ --- │
+│ i64 ┆ str │
+╞═════╪═════╡
+│ 1   ┆ a   │
+│ 2   ┆ a   │
+│ 3   ┆ a   │
+└─────┴─────┘
 ```
+::::
+
+::::{tabbed} DataFrameModel
+
+```{testcode} polars
+class SimpleModel(pa.DataFrameModel):
+    a: int
+
+df = (
+    pl.DataFrame({"a": [1.0, 2.0, 3.0]})
+    .cast({"a": pl.Int64})
+    .pipe(SimpleModel.validate) # this validates schema- and data- level properties
+    .with_columns(b=pl.lit("a"))
+    # do more eager operations
+)
+print(df)
+```
+
+```{testoutput} polars
+shape: (3, 2)
+┌─────┬─────┐
+│ a   ┆ b   │
+│ --- ┆ --- │
+│ i64 ┆ str │
+╞═════╪═════╡
+│ 1   ┆ a   │
+│ 2   ┆ a   │
+│ 3   ┆ a   │
+└─────┴─────┘
+```
+::::
 
 ## Error Reporting
 
 In the event of a validation error, `pandera` will raise a {py:class}`~pandera.errors.SchemaError`
 eagerly.
 
-```{eval-rst}
-.. testcode:: polars
+```{code-cell} python
+class SimpleModel(pa.DataFrameModel):
+    a: int
 
-    invalid_lf = pl.LazyFrame({"a": pl.Series(["1", "2", "3"], dtype=pl.Utf8)})
+invalid_lf = pl.LazyFrame({"a": pl.Series(["1", "2", "3"], dtype=pl.Utf8)})
+try:
     SimpleModel.validate(invalid_lf)
-```
-
-```{eval-rst}
-.. testoutput:: polars
-
-    Traceback (most recent call last):
-    ...
-    SchemaError: expected column 'a' to have type Int64, got String
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 And if you use lazy validation, `pandera` will raise a {py:class}`~pandera.errors.SchemaErrors`
@@ -387,103 +306,100 @@ executing it in-line, where you call `.collect()` to actually execute
 the computation.
 :::
 
-```{eval-rst}
-.. tabbed:: LazyFrame validation
+::::{tabbed} LazyFrame validation
 
-    By default, ``pl.LazyFrame`` validation will only validate schema-level properties:
+By default, ``pl.LazyFrame`` validation will only validate schema-level properties:
 
-   .. testcode:: polars
+```{testcode} polars
+class ModelWithChecks(pa.DataFrameModel):
+    a: int
+    b: str = pa.Field(isin=[*"abc"])
+    c: float = pa.Field(ge=0.0, le=1.0)
 
-       class ModelWithChecks(pa.DataFrameModel):
-           a: int
-           b: str = pa.Field(isin=[*"abc"])
-           c: float = pa.Field(ge=0.0, le=1.0)
-
-       invalid_lf = pl.LazyFrame({
-           "a": pl.Series(["1", "2", "3"], dtype=pl.Utf8),
-           "b": ["d", "e", "f"],
-           "c": [0.0, 1.1, -0.1],
-       })
-       ModelWithChecks.validate(invalid_lf, lazy=True)
-
-   .. testoutput:: polars
-
-       Traceback (most recent call last):
-       ...
-       pandera.errors.SchemaErrors: {
-           "SCHEMA": {
-               "WRONG_DATATYPE": [
-                   {
-                       "schema": "ModelWithChecks",
-                       "column": "a",
-                       "check": "dtype('Int64')",
-                       "error": "expected column 'a' to have type Int64, got String"
-                   }
-               ]
-           }
-       }
+invalid_lf = pl.LazyFrame({
+    "a": pl.Series(["1", "2", "3"], dtype=pl.Utf8),
+    "b": ["d", "e", "f"],
+    "c": [0.0, 1.1, -0.1],
+})
+ModelWithChecks.validate(invalid_lf, lazy=True)
 ```
 
-```{eval-rst}
-.. tabbed:: DataFrame validation
-
-    By default, ``pl.DataFrame`` validation will validate both schema-level
-    and data-level properties:
-
-   .. testcode:: polars
-
-       class ModelWithChecks(pa.DataFrameModel):
-           a: int
-           b: str = pa.Field(isin=[*"abc"])
-           c: float = pa.Field(ge=0.0, le=1.0)
-
-       invalid_lf = pl.DataFrame({
-           "a": pl.Series(["1", "2", "3"], dtype=pl.Utf8),
-           "b": ["d", "e", "f"],
-           "c": [0.0, 1.1, -0.1],
-       })
-       ModelWithChecks.validate(invalid_lf, lazy=True)
-
-   .. testoutput:: polars
-
-       Traceback (most recent call last):
-       ...
-       pandera.errors.SchemaErrors: {
-           "SCHEMA": {
-               "WRONG_DATATYPE": [
-                   {
-                       "schema": "ModelWithChecks",
-                       "column": "a",
-                       "check": "dtype('Int64')",
-                       "error": "expected column 'a' to have type Int64, got String"
-                   }
-               ]
-           },
-           "DATA": {
-               "DATAFRAME_CHECK": [
-                   {
-                       "schema": "ModelWithChecks",
-                       "column": "b",
-                       "check": "isin(['a', 'b', 'c'])",
-                       "error": "Column 'b' failed validator number 0: <Check isin: isin(['a', 'b', 'c'])> failure case examples: [{'b': 'd'}, {'b': 'e'}, {'b': 'f'}]"
-                   },
-                   {
-                       "schema": "ModelWithChecks",
-                       "column": "c",
-                       "check": "greater_than_or_equal_to(0.0)",
-                       "error": "Column 'c' failed validator number 0: <Check greater_than_or_equal_to: greater_than_or_equal_to(0.0)> failure case examples: [{'c': -0.1}]"
-                   },
-                   {
-                       "schema": "ModelWithChecks",
-                       "column": "c",
-                       "check": "less_than_or_equal_to(1.0)",
-                       "error": "Column 'c' failed validator number 1: <Check less_than_or_equal_to: less_than_or_equal_to(1.0)> failure case examples: [{'c': 1.1}]"
-                   }
-               ]
-           }
-       }
-
+```{testoutput} polars
+Traceback (most recent call last):
+...
+pandera.errors.SchemaErrors: {
+    "SCHEMA": {
+        "WRONG_DATATYPE": [
+            {
+                "schema": "ModelWithChecks",
+                "column": "a",
+                "check": "dtype('Int64')",
+                "error": "expected column 'a' to have type Int64, got String"
+            }
+        ]
+    }
+}
 ```
+::::
+
+::::{tabbed} DataFrame validation
+
+By default, ``pl.DataFrame`` validation will validate both schema-level
+and data-level properties:
+
+```{testcode} polars
+class ModelWithChecks(pa.DataFrameModel):
+    a: int
+    b: str = pa.Field(isin=[*"abc"])
+    c: float = pa.Field(ge=0.0, le=1.0)
+
+invalid_lf = pl.DataFrame({
+    "a": pl.Series(["1", "2", "3"], dtype=pl.Utf8),
+    "b": ["d", "e", "f"],
+    "c": [0.0, 1.1, -0.1],
+})
+ModelWithChecks.validate(invalid_lf, lazy=True)
+```
+
+```{testoutput} polars
+Traceback (most recent call last):
+...
+pandera.errors.SchemaErrors: {
+    "SCHEMA": {
+        "WRONG_DATATYPE": [
+            {
+                "schema": "ModelWithChecks",
+                "column": "a",
+                "check": "dtype('Int64')",
+                "error": "expected column 'a' to have type Int64, got String"
+            }
+        ]
+    },
+    "DATA": {
+        "DATAFRAME_CHECK": [
+            {
+                "schema": "ModelWithChecks",
+                "column": "b",
+                "check": "isin(['a', 'b', 'c'])",
+                "error": "Column 'b' failed validator number 0: <Check isin: isin(['a', 'b', 'c'])> failure case examples: [{'b': 'd'}, {'b': 'e'}, {'b': 'f'}]"
+            },
+            {
+                "schema": "ModelWithChecks",
+                "column": "c",
+                "check": "greater_than_or_equal_to(0.0)",
+                "error": "Column 'c' failed validator number 0: <Check greater_than_or_equal_to: greater_than_or_equal_to(0.0)> failure case examples: [{'c': -0.1}]"
+            },
+            {
+                "schema": "ModelWithChecks",
+                "column": "c",
+                "check": "less_than_or_equal_to(1.0)",
+                "error": "Column 'c' failed validator number 1: <Check less_than_or_equal_to: less_than_or_equal_to(1.0)> failure case examples: [{'c': 1.1}]"
+            }
+        ]
+    }
+}
+```
+::::
 
 ## Supported Data Types
 
@@ -492,32 +408,28 @@ the computation.
 Built-in python types like `str`, `int`, `float`, and `bool` will be
 handled in the same way that `polars` handles them:
 
-```{eval-rst}
-.. testcode:: polars
-
-    assert pl.Series([1,2,3], dtype=int).dtype == pl.Int64
-    assert pl.Series([*"abc"], dtype=str).dtype == pl.Utf8
-    assert pl.Series([1.0, 2.0, 3.0], dtype=float).dtype == pl.Float64
+```{code-cell} python
+assert pl.Series([1,2,3], dtype=int).dtype == pl.Int64
+assert pl.Series([*"abc"], dtype=str).dtype == pl.Utf8
+assert pl.Series([1.0, 2.0, 3.0], dtype=float).dtype == pl.Float64
 ```
 
 So the following schemas are equivalent:
 
-```{eval-rst}
-.. testcode:: polars
+```{code-cell} python
+schema1 = pa.DataFrameSchema({
+    "a": pa.Column(int),
+    "b": pa.Column(str),
+    "c": pa.Column(float),
+})
 
-    schema1 = pa.DataFrameSchema({
-        "a": pa.Column(int),
-        "b": pa.Column(str),
-        "c": pa.Column(float),
-    })
+schema2 = pa.DataFrameSchema({
+    "a": pa.Column(pl.Int64),
+    "b": pa.Column(pl.Utf8),
+    "c": pa.Column(pl.Float64),
+})
 
-    schema2 = pa.DataFrameSchema({
-        "a": pa.Column(pl.Int64),
-        "b": pa.Column(pl.Utf8),
-        "c": pa.Column(pl.Float64),
-    })
-
-    assert schema1 == schema2
+assert schema1 == schema2
 ```
 
 ### Nested Types
@@ -526,47 +438,46 @@ Polars nested datetypes are also supported via {ref}`parameterized data types <p
 See the examples below for the different ways to specify this through the
 object-based and class-based APIs:
 
-```{eval-rst}
-.. tabbed:: DataFrameSchema
+::::{tabbed} DataFrameSchema
 
-   .. testcode:: polars
+```{testcode} polars
+schema = pa.DataFrameSchema(
+    {
+        "list_col": pa.Column(pl.List(pl.Int64())),
+        "array_col": pa.Column(pl.Array(pl.Int64(), 3)),
+        "struct_col": pa.Column(pl.Struct({"a": pl.Utf8(), "b": pl.Float64()})),
+    },
+)
+```
+::::
 
-        schema = pa.DataFrameSchema(
-            {
-                "list_col": pa.Column(pl.List(pl.Int64())),
-                "array_col": pa.Column(pl.Array(pl.Int64(), 3)),
-                "struct_col": pa.Column(pl.Struct({"a": pl.Utf8(), "b": pl.Float64()})),
-            },
-        )
+
+::::{tabbed} DataFrameModel (Annotated)
+
+```{testcode} polars
+try:
+    from typing import Annotated  # python 3.9+
+except ImportError:
+    from typing_extensions import Annotated
+
+class ModelWithAnnotated(pa.DataFrameModel):
+    list_col: Annotated[pl.List, pl.Int64()]
+    array_col: Annotated[pl.Array, pl.Int64(), 3]
+    struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
+```
+::::
+
+
+::::{tabbed} DataFrameModel (Field)
+
+```{testcode} polars
+class ModelWithDtypeKwargs(pa.DataFrameModel):
+    list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
+    array_col: pl.Array = pa.Field(dtype_kwargs={"inner": pl.Int64(), "width": 3})
+    struct_col: pl.Struct = pa.Field(dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}})
 ```
 
-```{eval-rst}
-.. tabbed:: DataFrameModel (Annotated)
-
-   .. testcode:: polars
-
-        try:
-            from typing import Annotated  # python 3.9+
-        except ImportError:
-            from typing_extensions import Annotated
-
-        class ModelWithAnnotated(pa.DataFrameModel):
-            list_col: Annotated[pl.List, pl.Int64()]
-            array_col: Annotated[pl.Array, pl.Int64(), 3]
-            struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
-```
-
-```{eval-rst}
-.. tabbed:: DataFrameModel (Field)
-
-   .. testcode:: polars
-
-        class ModelWithDtypeKwargs(pa.DataFrameModel):
-            list_col: pl.List = pa.Field(dtype_kwargs={"inner": pl.Int64()})
-            array_col: pl.Array = pa.Field(dtype_kwargs={"inner": pl.Int64(), "width": 3})
-            struct_col: pl.Struct = pa.Field(dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}})
-
-```
+::::
 
 ## Custom checks
 
@@ -596,97 +507,96 @@ function, which is slower than the native polars expressions API.
 
 Here's an example of a column-level custom check:
 
-```{eval-rst}
-.. tabbed:: DataFrameSchema
+::::{tabbed} DataFrameSchema
 
-   .. testcode:: polars
-
-       from pandera.polars import PolarsData
+```{testcode} polars
+from pandera.polars import PolarsData
 
 
-       def is_positive_vector(data: PolarsData) -> pl.LazyFrame:
-           """Return a LazyFrame with a single boolean column."""
-           return data.lazyframe.select(pl.col(data.key).gt(0))
+def is_positive_vector(data: PolarsData) -> pl.LazyFrame:
+    """Return a LazyFrame with a single boolean column."""
+    return data.lazyframe.select(pl.col(data.key).gt(0))
 
-       def is_positive_scalar(data: PolarsData) -> pl.LazyFrame:
-           """Return a LazyFrame with a single boolean scalar."""
-           return data.lazyframe.select(pl.col(data.key).gt(0).all())
+def is_positive_scalar(data: PolarsData) -> pl.LazyFrame:
+    """Return a LazyFrame with a single boolean scalar."""
+    return data.lazyframe.select(pl.col(data.key).gt(0).all())
 
-       def is_positive_element_wise(x: int) -> bool:
-           """Take a single value and return a boolean scalar."""
-           return x > 0
+def is_positive_element_wise(x: int) -> bool:
+    """Take a single value and return a boolean scalar."""
+    return x > 0
 
-       schema_with_custom_checks = pa.DataFrameSchema({
-           "a": pa.Column(
-               int,
-               checks=[
-                   pa.Check(is_positive_vector),
-                   pa.Check(is_positive_scalar),
-                   pa.Check(is_positive_element_wise, element_wise=True),
-               ]
-           )
-       })
+schema_with_custom_checks = pa.DataFrameSchema({
+    "a": pa.Column(
+        int,
+        checks=[
+            pa.Check(is_positive_vector),
+            pa.Check(is_positive_scalar),
+            pa.Check(is_positive_element_wise, element_wise=True),
+        ]
+    )
+})
 
-       lf = pl.LazyFrame({"a": [1, 2, 3]})
-       validated_df = lf.collect().pipe(schema_with_custom_checks.validate)
-       print(validated_df)
-
-   .. testoutput:: polars
-
-       shape: (3, 1)
-       ┌─────┐
-       │ a   │
-       │ --- │
-       │ i64 │
-       ╞═════╡
-       │ 1   │
-       │ 2   │
-       │ 3   │
-       └─────┘
+lf = pl.LazyFrame({"a": [1, 2, 3]})
+validated_df = lf.collect().pipe(schema_with_custom_checks.validate)
+print(validated_df)
 ```
 
-```{eval-rst}
-.. tabbed:: DataFrameModel
-
-   .. testcode:: polars
-
-       from pandera.polars import PolarsData
-
-
-       class ModelWithCustomChecks(pa.DataFrameModel):
-           a: int
-
-           @pa.check("a")
-           def is_positive_vector(cls, data: PolarsData) -> pl.LazyFrame:
-               """Return a LazyFrame with a single boolean column."""
-               return data.lazyframe.select(pl.col(data.key).gt(0))
-
-           @pa.check("a")
-           def is_positive_scalar(cls, data: PolarsData) -> pl.LazyFrame:
-               """Return a LazyFrame with a single boolean scalar."""
-               return data.lazyframe.select(pl.col(data.key).gt(0).all())
-
-           @pa.check("a", element_wise=True)
-           def is_positive_element_wise(cls, x: int) -> bool:
-               """Take a single value and return a boolean scalar."""
-               return x > 0
-
-       validated_df = lf.collect().pipe(ModelWithCustomChecks.validate)
-       print(validated_df)
-
-   .. testoutput:: polars
-
-       shape: (3, 1)
-       ┌─────┐
-       │ a   │
-       │ --- │
-       │ i64 │
-       ╞═════╡
-       │ 1   │
-       │ 2   │
-       │ 3   │
-       └─────┘
+```{testoutput} polars
+shape: (3, 1)
+┌─────┐
+│ a   │
+│ --- │
+│ i64 │
+╞═════╡
+│ 1   │
+│ 2   │
+│ 3   │
+└─────┘
 ```
+::::
+
+::::{tabbed} DataFrameModel
+
+```{testcode} polars
+from pandera.polars import PolarsData
+
+
+class ModelWithCustomChecks(pa.DataFrameModel):
+    a: int
+
+    @pa.check("a")
+    def is_positive_vector(cls, data: PolarsData) -> pl.LazyFrame:
+        """Return a LazyFrame with a single boolean column."""
+        return data.lazyframe.select(pl.col(data.key).gt(0))
+
+    @pa.check("a")
+    def is_positive_scalar(cls, data: PolarsData) -> pl.LazyFrame:
+        """Return a LazyFrame with a single boolean scalar."""
+        return data.lazyframe.select(pl.col(data.key).gt(0).all())
+
+    @pa.check("a", element_wise=True)
+    def is_positive_element_wise(cls, x: int) -> bool:
+        """Take a single value and return a boolean scalar."""
+        return x > 0
+
+validated_df = lf.collect().pipe(ModelWithCustomChecks.validate)
+print(validated_df)
+```
+
+```{testoutput} polars
+shape: (3, 1)
+┌─────┐
+│ a   │
+│ --- │
+│ i64 │
+╞═════╡
+│ 1   │
+│ 2   │
+│ 3   │
+└─────┘
+```
+::::
+
 
 For column-level checks, the custom check function should return a
 `polars.LazyFrame` containing a single boolean column or a single boolean scalar.
@@ -697,95 +607,92 @@ If you need to validate values on an entire dataframe, you can specify at check
 at the dataframe level. The expected output is a `polars.LazyFrame` containing
 multiple boolean columns, a single boolean column, or a scalar boolean.
 
-```{eval-rst}
-.. tabbed:: DataFrameSchema
+::::{tabbed} DataFrameSchema
 
-   .. testcode:: polars
+```{testcode} polars
+def col1_gt_col2(data: PolarsData, col1: str, col2: str) -> pl.LazyFrame:
+    """Return a LazyFrame with a single boolean column."""
+    return data.lazyframe.select(pl.col(col1).gt(pl.col(col2)))
 
-      def col1_gt_col2(data: PolarsData, col1: str, col2: str) -> pl.LazyFrame:
-          """Return a LazyFrame with a single boolean column."""
-          return data.lazyframe.select(pl.col(col1).gt(pl.col(col2)))
+def is_positive_df(data: PolarsData) -> pl.LazyFrame:
+    """Return a LazyFrame with multiple boolean columns."""
+    return data.lazyframe.select(pl.col("*").gt(0))
 
-      def is_positive_df(data: PolarsData) -> pl.LazyFrame:
-          """Return a LazyFrame with multiple boolean columns."""
-          return data.lazyframe.select(pl.col("*").gt(0))
+def is_positive_element_wise(x: int) -> bool:
+    """Take a single value and return a boolean scalar."""
+    return x > 0
 
-      def is_positive_element_wise(x: int) -> bool:
-           """Take a single value and return a boolean scalar."""
-           return x > 0
+schema_with_df_checks = pa.DataFrameSchema(
+    columns={
+        "a": pa.Column(int),
+        "b": pa.Column(int),
+    },
+    checks=[
+        pa.Check(col1_gt_col2, col1="a", col2="b"),
+        pa.Check(is_positive_df),
+        pa.Check(is_positive_element_wise, element_wise=True),
+    ]
+)
 
-      schema_with_df_checks = pa.DataFrameSchema(
-          columns={
-              "a": pa.Column(int),
-              "b": pa.Column(int),
-          },
-          checks=[
-              pa.Check(col1_gt_col2, col1="a", col2="b"),
-              pa.Check(is_positive_df),
-              pa.Check(is_positive_element_wise, element_wise=True),
-          ]
-      )
-
-      lf = pl.LazyFrame({"a": [2, 3, 4], "b": [1, 2, 3]})
-      validated_df = lf.collect().pipe(schema_with_df_checks.validate)
-      print(validated_df)
-
-
-   .. testoutput:: polars
-
-      shape: (3, 2)
-      ┌─────┬─────┐
-      │ a   ┆ b   │
-      │ --- ┆ --- │
-      │ i64 ┆ i64 │
-      ╞═════╪═════╡
-      │ 2   ┆ 1   │
-      │ 3   ┆ 2   │
-      │ 4   ┆ 3   │
-      └─────┴─────┘
+lf = pl.LazyFrame({"a": [2, 3, 4], "b": [1, 2, 3]})
+validated_df = lf.collect().pipe(schema_with_df_checks.validate)
+print(validated_df)
 ```
 
-```{eval-rst}
-.. tabbed:: DataFrameModel
-
-   .. testcode:: polars
-
-       class ModelWithDFChecks(pa.DataFrameModel):
-           a: int
-           b: int
-
-           @pa.dataframe_check
-           def cola_gt_colb(cls, data: PolarsData) -> pl.LazyFrame:
-               """Return a LazyFrame with a single boolean column."""
-               return data.lazyframe.select(pl.col("a").gt(pl.col("b")))
-
-           @pa.dataframe_check
-           def is_positive_df(cls, data: PolarsData) -> pl.LazyFrame:
-               """Return a LazyFrame with multiple boolean columns."""
-               return data.lazyframe.select(pl.col("*").gt(0))
-
-           @pa.dataframe_check(element_wise=True)
-           def is_positive_element_wise(cls, x: int) -> bool:
-               """Take a single value and return a boolean scalar."""
-               return x > 0
-
-       validated_df = lf.collect().pipe(ModelWithDFChecks.validate)
-       print(validated_df)
-
-   .. testoutput:: polars
-
-      shape: (3, 2)
-      ┌─────┬─────┐
-      │ a   ┆ b   │
-      │ --- ┆ --- │
-      │ i64 ┆ i64 │
-      ╞═════╪═════╡
-      │ 2   ┆ 1   │
-      │ 3   ┆ 2   │
-      │ 4   ┆ 3   │
-      └─────┴─────┘
-
+```{testoutput} polars
+shape: (3, 2)
+┌─────┬─────┐
+│ a   ┆ b   │
+│ --- ┆ --- │
+│ i64 ┆ i64 │
+╞═════╪═════╡
+│ 2   ┆ 1   │
+│ 3   ┆ 2   │
+│ 4   ┆ 3   │
+└─────┴─────┘
 ```
+::::
+
+
+::::`tabbed` DataFrameModel
+
+```{testcode} polars
+class ModelWithDFChecks(pa.DataFrameModel):
+    a: int
+    b: int
+
+    @pa.dataframe_check
+    def cola_gt_colb(cls, data: PolarsData) -> pl.LazyFrame:
+        """Return a LazyFrame with a single boolean column."""
+        return data.lazyframe.select(pl.col("a").gt(pl.col("b")))
+
+    @pa.dataframe_check
+    def is_positive_df(cls, data: PolarsData) -> pl.LazyFrame:
+        """Return a LazyFrame with multiple boolean columns."""
+        return data.lazyframe.select(pl.col("*").gt(0))
+
+    @pa.dataframe_check(element_wise=True)
+    def is_positive_element_wise(cls, x: int) -> bool:
+        """Take a single value and return a boolean scalar."""
+        return x > 0
+
+validated_df = lf.collect().pipe(ModelWithDFChecks.validate)
+print(validated_df)
+```
+
+```{testoutput} polars
+shape: (3, 2)
+┌─────┬─────┐
+│ a   ┆ b   │
+│ --- ┆ --- │
+│ i64 ┆ i64 │
+╞═════╪═════╡
+│ 2   ┆ 1   │
+│ 3   ┆ 2   │
+│ 4   ┆ 3   │
+└─────┴─────┘
+```
+::::
 
 ## Data-level Validation with LazyFrames
 
@@ -794,20 +701,18 @@ a `pl.LazyFrame` will only perform schema-level validation checks. If you want
 to validate data-level properties on a `pl.LazyFrame`, the recommended way
 would be to first call `.collect()`:
 
-```{eval-rst}
-.. testcode:: polars
+```{code-cell} python
+class SimpleModel(pa.DataFrameModel):
+        a: int
 
-    class SimpleModel(pa.DataFrameModel):
-           a: int
-
-    lf: pl.LazyFrame = (
-        pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
-        .cast({"a": pl.Int64})
-        .collect()  # convert to pl.DataFrame
-        .pipe(SimpleModel.validate)
-        .lazy()     # convert back to pl.LazyFrame
-        # do more lazy operations
-    )
+lf: pl.LazyFrame = (
+    pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+    .cast({"a": pl.Int64})
+    .collect()  # convert to pl.DataFrame
+    .pipe(SimpleModel.validate)
+    .lazy()     # convert back to pl.LazyFrame
+    # do more lazy operations
+)
 ```
 
 This syntax is nice because it's clear what's happening just from reading the
@@ -823,15 +728,13 @@ to the explicit code above:
 export PANDERA_VALIDATION_DEPTH=SCHEMA_AND_DATA
 ```
 
-```{eval-rst}
-.. testcode:: polars
-
-    lf: pl.LazyFrame = (
-        pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
-        .cast({"a": pl.Int64})
-        .pipe(SimpleModel.validate)  # this will validate schema- and data-level properties
-        # do more lazy operations
-    )
+```{code-cell} python
+lf: pl.LazyFrame = (
+    pl.LazyFrame({"a": [1.0, 2.0, 3.0]})
+    .cast({"a": pl.Int64})
+    .pipe(SimpleModel.validate)  # this will validate schema- and data-level properties
+    # do more lazy operations
+)
 ```
 
 Under the hood, the validation process will make `.collect()` calls on the

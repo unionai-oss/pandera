@@ -1,7 +1,10 @@
+---
+file_format: mystnb
+---
+
 % pandera documentation for check_input and check_output decorators
 
-```{eval-rst}
-.. currentmodule:: pandera
+```{currentmodule} pandera
 ```
 
 (dtypes)=
@@ -78,39 +81,31 @@ is supported.
 Let's extend {class}`pandas.BooleanDtype` coercion to handle the string
 literals `"True"` and `"False"`.
 
-```{eval-rst}
-.. testcode:: dtypes
-
-    import pandas as pd
-    import pandera as pa
-    from pandera import dtypes
-    from pandera.engines import pandas_engine
+```{code-cell} python
+import pandas as pd
+import pandera as pa
+from pandera import dtypes
+from pandera.engines import pandas_engine
 
 
-    @pandas_engine.Engine.register_dtype  # step 1
-    @dtypes.immutable  # step 2
-    class LiteralBool(pandas_engine.BOOL):  # step 3
-        def coerce(self, series: pd.Series) -> pd.Series:
-            """Coerce a pandas.Series to boolean types."""
-            if pd.api.types.is_string_dtype(series):
-                series = series.replace({"True": 1, "False": 0})
-            return series.astype("boolean")
+@pandas_engine.Engine.register_dtype  # step 1
+@dtypes.immutable  # step 2
+class LiteralBool(pandas_engine.BOOL):  # step 3
+    def coerce(self, series: pd.Series) -> pd.Series:
+        """Coerce a pandas.Series to boolean types."""
+        if pd.api.types.is_string_dtype(series):
+            series = series.replace({"True": 1, "False": 0})
+        return series.astype("boolean")
 
 
-    data = pd.Series(["True", "False"], name="literal_bools")
+data = pd.Series(["True", "False"], name="literal_bools")
 
-    # step 4
-    print(
-        pa.SeriesSchema(LiteralBool(), coerce=True, name="literal_bools")
-        .validate(data)
-        .dtype
-    )
-```
-
-```{eval-rst}
-.. testoutput:: dtypes
-
-   boolean
+# step 4
+print(
+    pa.SeriesSchema(LiteralBool(), coerce=True, name="literal_bools")
+    .validate(data)
+    .dtype
+)
 ```
 
 The example above performs the following steps:
@@ -126,21 +121,13 @@ The example above performs the following steps:
 
 So far we did not override the default behavior:
 
-```{eval-rst}
-.. testcode:: dtypes
+```{code-cell} python
+import pandera as pa
 
-    import pandera as pa
-
+try:
     pa.SeriesSchema("boolean", coerce=True).validate(data)
-
-```
-
-```{eval-rst}
-.. testoutput:: dtypes
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaError: Error while coercing 'literal_bools' to type boolean: Need to pass bool-like values
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 To completely replace the default {class}`~pandera.engines.pandas_engine.BOOL`,
@@ -149,35 +136,25 @@ we need to supply all the equivalent representations to
 `pa.SeriesSchema("boolean")` is called the corresponding pandera data type
 is looked up using {meth}`pandera.engines.engine.Engine.dtype`.
 
-```{eval-rst}
-.. testcode:: dtypes
+```{code-cell} python
+print(f"before: {pandas_engine.Engine.dtype('boolean').__class__}")
 
-    print(f"before: {pandas_engine.Engine.dtype('boolean').__class__}")
-
-
-    @pandas_engine.Engine.register_dtype(
-        equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()],
-    )
-    @dtypes.immutable
-    class LiteralBool(pandas_engine.BOOL):
-        def coerce(self, series: pd.Series) -> pd.Series:
-            """Coerce a pandas.Series to boolean types."""
-            if pd.api.types.is_string_dtype(series):
-                series = series.replace({"True": 1, "False": 0})
-            return series.astype("boolean")
+@pandas_engine.Engine.register_dtype(
+    equivalents=["boolean", pd.BooleanDtype, pd.BooleanDtype()],
+)
+@dtypes.immutable
+class LiteralBool(pandas_engine.BOOL):
+    def coerce(self, series: pd.Series) -> pd.Series:
+        """Coerce a pandas.Series to boolean types."""
+        if pd.api.types.is_string_dtype(series):
+            series = series.replace({"True": 1, "False": 0})
+        return series.astype("boolean")
 
 
-    print(f"after: {pandas_engine.Engine.dtype('boolean').__class__}")
+print(f"after: {pandas_engine.Engine.dtype('boolean').__class__}")
 
-    for dtype in ["boolean", pd.BooleanDtype, pd.BooleanDtype()]:
-        pa.SeriesSchema(dtype, coerce=True).validate(data)
-```
-
-```{eval-rst}
-.. testoutput:: dtypes
-
-    before: <class 'pandera.engines.pandas_engine.BOOL'>
-    after: <class 'LiteralBool'>
+for dtype in ["boolean", pd.BooleanDtype, pd.BooleanDtype()]:
+    pa.SeriesSchema(dtype, coerce=True).validate(data)
 ```
 
 :::{note}
@@ -272,50 +249,41 @@ For example, you can create an `IPAddress` datatype that inherits from the numpy
 physical type, thereby storing the values as strings, and checks whether the values actually
 match an IP address regular expression.
 
-```{eval-rst}
-.. testcode:: dtypes
+```{code-cell} python
+import re
+from typing import Optional, Iterable, Union
 
-    import re
-    from typing import Optional, Iterable, Union
+@pandas_engine.Engine.register_dtype
+@dtypes.immutable
+class IPAddress(pandas_engine.NpString):
 
-    @pandas_engine.Engine.register_dtype
-    @dtypes.immutable
-    class IPAddress(pandas_engine.NpString):
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[pd.Series] = None,
+    ) -> Union[bool, Iterable[bool]]:
 
-        def check(
-            self,
-            pandera_dtype: dtypes.DataType,
-            data_container: Optional[pd.Series] = None,
-        ) -> Union[bool, Iterable[bool]]:
+        # ensure that the data container's data type is a string,
+        # using the parent class's check implementation
+        correct_type = super().check(pandera_dtype)
+        if not correct_type:
+            return correct_type
 
-            # ensure that the data container's data type is a string,
-            # using the parent class's check implementation
-            correct_type = super().check(pandera_dtype)
-            if not correct_type:
-                return correct_type
+        # ensure the filepaths actually exist locally
+        exp = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
+        return data_container.map(lambda x: exp.match(x) is not None)
 
-            # ensure the filepaths actually exist locally
-            exp = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
-            return data_container.map(lambda x: exp.match(x) is not None)
+    def __str__(self) -> str:
+        return str(self.__class__.__name__)
 
-        def __str__(self) -> str:
-            return str(self.__class__.__name__)
-
-        def __repr__(self) -> str:
-            return f"DataType({self})"
+    def __repr__(self) -> str:
+        return f"DataType({self})"
 
 
-    schema = pa.DataFrameSchema(columns={"ips": pa.Column(IPAddress)})
+schema = pa.DataFrameSchema(columns={"ips": pa.Column(IPAddress)})
+
+try:
     schema.validate(pd.DataFrame({"ips": ["0.0.0.0", "0.0.0.1", "0.0.0.a"]}))
-```
-
-```{eval-rst}
-.. testoutput:: dtypes
-
-    Traceback (most recent call last):
-    ...
-    pandera.errors.SchemaError: expected series 'ips' to have type IPAddress:
-    failure cases:
-    index failure_case
-    0      2      0.0.0.a
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```

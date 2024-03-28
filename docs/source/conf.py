@@ -168,12 +168,6 @@ html_css_files = [
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
 ]
 
-
-rst_prolog = """
-.. role:: red
-.. role:: green
-"""
-
 autosummary_generate = True
 autosummary_generate_overwrite = False
 autosummary_filename_map = {

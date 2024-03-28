@@ -1,19 +1,16 @@
-```{eval-rst}
-.. currentmodule:: pandera
-```
-
 (configuration)=
 
 # Configuration
 
 *New in version 0.17.3*
+
 `pandera` provides a global config `~pandera.config.PanderaConfig`.
 
 This configuration can also be set using environment variables. For instance:
 
 ```
 export PANDERA_VALIDATION_ENABLED=False
-export PANDERA_VALIDATION_DEPTH=DATA_ONLY
+export PANDERA_VALIDATION_DEPTH=DATA_ONLY  # SCHEMA_AND_DATA, SCHEMA_ONLY, DATA_ONLY
 ```
 
 Runtime data validation incurs a performance overhead. To mitigate this, you have

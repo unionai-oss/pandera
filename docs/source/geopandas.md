@@ -1,3 +1,7 @@
+---
+file_format: mystnb
+---
+
 ```{eval-rst}
 .. currentmodule:: pandera
 ```
@@ -14,93 +18,69 @@ and {py:func}`~geopandas.GeoSeries` objects directly. First, install
 `pandera` with the `geopandas` extra:
 
 ```bash
-pip install pandera[geopandas]
+pip install 'pandera[geopandas]'
 ```
 
 Then you can use pandera schemas to validate geodataframes. In the example
 below we'll use the {ref}`class-based API <dataframe-models>` to define a
 {py:class}`~pandera.api.pandas.model.DataFrameModel` for validation.
 
-```{eval-rst}
-.. testcode:: geopandas
+```{code-cell} python
+import geopandas as gpd
+import pandas as pd
+import pandera as pa
+from shapely.geometry import Polygon
 
-    import geopandas as gpd
-    import pandas as pd
-    import pandera as pa
-    from shapely.geometry import Polygon
+geo_schema = pa.DataFrameSchema({
+    "geometry": pa.Column("geometry"),
+    "region": pa.Column(str),
+})
 
-    geo_schema = pa.DataFrameSchema({
-        "geometry": pa.Column("geometry"),
-        "region": pa.Column(str),
-    })
+geo_df = gpd.GeoDataFrame({
+    "geometry": [
+        Polygon(((0, 0), (0, 1), (1, 1), (1, 0))),
+        Polygon(((0, 0), (0, -1), (-1, -1), (-1, 0)))
+    ],
+    "region": ["NA", "SA"]
+})
 
-    geo_df = gpd.GeoDataFrame({
-        "geometry": [
-            Polygon(((0, 0), (0, 1), (1, 1), (1, 0))),
-            Polygon(((0, 0), (0, -1), (-1, -1), (-1, 0)))
-        ],
-        "region": ["NA", "SA"]
-    })
-
-    print(geo_schema.validate(geo_df))
-```
-
-```{eval-rst}
-.. testoutput:: geopandas
-
-                                                geometry region
-    0  POLYGON ((0.00000 0.00000, 0.00000 1.00000, 1....     NA
-    1  POLYGON ((0.00000 0.00000, 0.00000 -1.00000, -...     SA
-
+geo_schema.validate(geo_df)
 ```
 
 You can also use the `GeometryDtype` data type in either instantiated or
 un-instantiated form:
 
-```{eval-rst}
-.. testcode:: geopandas
-
-    geo_schema = pa.DataFrameSchema({
-        "geometry": pa.Column(gpd.array.GeometryDtype),
-        # or
-        "geometry": pa.Column(gpd.array.GeometryDtype()),
-    })
+```{code-cell} python
+geo_schema = pa.DataFrameSchema({
+    "geometry": pa.Column(gpd.array.GeometryDtype),
+    # or
+    "geometry": pa.Column(gpd.array.GeometryDtype()),
+})
 ```
 
 If you want to validate-on-instantiation, you can use the
 {py:class}`~pandera.typing.geopangas.GeoDataFrame` generic type with the
 dataframe model defined above:
 
-```{eval-rst}
-.. testcode:: geopandas
-
-    from pandera.typing import Series
-    from pandera.typing.geopandas import GeoDataFrame, GeoSeries
+```{code-cell} python
+from pandera.typing import Series
+from pandera.typing.geopandas import GeoDataFrame, GeoSeries
 
 
-    class Schema(pa.DataFrameModel):
-        geometry: GeoSeries
-        region: Series[str]
+class Schema(pa.DataFrameModel):
+    geometry: GeoSeries
+    region: Series[str]
 
 
-    # create a geodataframe that's validated on object initialization
-    df = GeoDataFrame[Schema](
-        {
-            'geometry': [
-                Polygon(((0, 0), (0, 1), (1, 1), (1, 0))),
-                Polygon(((0, 0), (0, -1), (-1, -1), (-1, 0)))
-            ],
-            'region': ['NA','SA']
-        }
-    )
-    print(df)
-
-```
-
-```{eval-rst}
-.. testoutput:: geopandas
-
-                                                geometry region
-    0  POLYGON ((0.00000 0.00000, 0.00000 1.00000, 1....     NA
-    1  POLYGON ((0.00000 0.00000, 0.00000 -1.00000, -...     SA
+# create a geodataframe that's validated on object initialization
+df = GeoDataFrame[Schema](
+    {
+        'geometry': [
+            Polygon(((0, 0), (0, 1), (1, 1), (1, 0))),
+            Polygon(((0, 0), (0, -1), (-1, -1), (-1, 0)))
+        ],
+        'region': ['NA','SA']
+    }
+)
+df
 ```

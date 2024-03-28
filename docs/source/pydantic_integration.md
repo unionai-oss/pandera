@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera
 ```
 
 (pydantic-integration)=
@@ -15,41 +18,29 @@
 a {class}`~pandera.api.pandas.model.DataFrameModel` in a pydantic `BaseModel` as you would
 any other field:
 
-```{eval-rst}
-.. testcode:: dataframe_schema_model
+```{code-cell} python
+:tags: [raises-exception]
 
-    import pandas as pd
-    import pandera as pa
-    from pandera.typing import DataFrame, Series
-    import pydantic
-
-
-    class SimpleSchema(pa.DataFrameModel):
-        str_col: Series[str] = pa.Field(unique=True)
+import pandas as pd
+import pandera as pa
+from pandera.typing import DataFrame, Series
+import pydantic
 
 
-    class PydanticModel(pydantic.BaseModel):
-        x: int
-        df: DataFrame[SimpleSchema]
+class SimpleSchema(pa.DataFrameModel):
+    str_col: Series[str] = pa.Field(unique=True)
 
 
-    valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
-    PydanticModel(x=1, df=valid_df)
+class PydanticModel(pydantic.BaseModel):
+    x: int
+    df: DataFrame[SimpleSchema]
 
-    invalid_df = pd.DataFrame({"str_col": ["hello", "hello"]})
-    PydanticModel(x=1, df=invalid_df)
-```
 
-```{eval-rst}
-.. testoutput:: dataframe_schema_model
+valid_df = pd.DataFrame({"str_col": ["hello", "world"]})
+PydanticModel(x=1, df=valid_df)
 
-    Traceback (most recent call last):
-    ...
-    ValidationError: 1 validation error for PydanticModel
-    df
-    series 'str_col' contains duplicate values:
-    1    hello
-    Name: str_col, dtype: object (type=value_error)
+invalid_df = pd.DataFrame({"str_col": ["hello", "hello"]})
+PydanticModel(x=1, df=invalid_df)
 ```
 
 Other pandera components are also compatible with pydantic:
@@ -74,39 +65,34 @@ validates the type of a schema object, e.g. if your pydantic
 You can also use a pydantic `BaseModel` in a pandera schema. Suppose you had
 a `Record` model:
 
-```{eval-rst}
-.. testcode:: pydantic_model_in_schema
+```{code-cell} python
+from pydantic import BaseModel
 
-    from pydantic import BaseModel
-
-    import pandera as pa
+import pandera as pa
 
 
-    class Record(BaseModel):
-        name: str
-        xcoord: int
-        ycoord: int
-
+class Record(BaseModel):
+    name: str
+    xcoord: int
+    ycoord: int
 ```
 
 The {class}`~pandera.pandas_engine.PydanticModel` datatype enables you to
 specify the `Record` model as a row-wise type.
 
-```{eval-rst}
-.. testcode:: pydantic_model_in_schema
-
-    import pandas as pd
-    from pandera.engines.pandas_engine import PydanticModel
+```{code-cell} python
+import pandas as pd
+from pandera.engines.pandas_engine import PydanticModel
 
 
-    class PydanticSchema(pa.DataFrameModel):
-        """Pandera schema using the pydantic model."""
+class PydanticSchema(pa.DataFrameModel):
+    """Pandera schema using the pydantic model."""
 
-        class Config:
-            """Config with dataframe-level data type."""
+    class Config:
+        """Config with dataframe-level data type."""
 
-            dtype = PydanticModel(Record)
-            coerce = True  # this is required, otherwise a SchemaInitError is raised
+        dtype = PydanticModel(Record)
+        coerce = True  # this is required, otherwise a SchemaInitError is raised
 ```
 
 :::{note}
@@ -117,15 +103,13 @@ converting the model back to a dictionary with the `BaseModel.dict()` method.
 
 The equivalent pandera schema would look like this:
 
-```{eval-rst}
-.. testcode:: pydantic_model_in_schema
+```{code-cell} python
+class PanderaSchema(pa.DataFrameModel):
+    """Pandera schema that's equivalent to PydanticSchema."""
 
-    class PanderaSchema(pa.DataFrameModel):
-        """Pandera schema that's equivalent to PydanticSchema."""
-
-        name: pa.typing.Series[str]
-        xcoord: pa.typing.Series[int]
-        ycoord: pa.typing.Series[int]
+    name: pa.typing.Series[str]
+    xcoord: pa.typing.Series[int]
+    ycoord: pa.typing.Series[int]
 ```
 
 :::{note}

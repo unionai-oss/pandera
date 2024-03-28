@@ -1,7 +1,5 @@
 ---
 file_format: mystnb
-kernelspec:
-  name: python3
 ---
 
 % pandera documentation for DataFrameSchemas

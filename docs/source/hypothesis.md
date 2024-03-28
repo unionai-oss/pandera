@@ -1,7 +1,10 @@
+---
+file_format: mystnb
+---
+
 % pandera documentation for Hypothesis Testing
 
-```{eval-rst}
-.. currentmodule:: pandera
+```{currentmodule} pandera
 ```
 
 (hypothesis)=
@@ -21,47 +24,39 @@ more details.
 The {class}`~pandera.api.hypotheses.Hypothesis` class defines built in methods,
 which can be called as in this example of a two-sample t-test:
 
-```{eval-rst}
-.. testcode:: hypothesis_testing
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+from pandera import Column, DataFrameSchema, Check, Hypothesis
 
-    from pandera import Column, DataFrameSchema, Check, Hypothesis
+from scipy import stats
 
-    from scipy import stats
-
-    df = (
-        pd.DataFrame({
-            "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
-            "sex": ["M", "M", "F", "F", "F"]
-        })
-    )
-
-    schema = DataFrameSchema({
-        "height_in_feet": Column(
-            float, [
-                Hypothesis.two_sample_ttest(
-                    sample1="M",
-                    sample2="F",
-                    groupby="sex",
-                    relationship="greater_than",
-                    alpha=0.05,
-                    equal_var=True),
-        ]),
-        "sex": Column(str)
+df = (
+    pd.DataFrame({
+        "height_in_feet": [6.5, 7, 6.1, 5.1, 4],
+        "sex": ["M", "M", "F", "F", "F"]
     })
+)
 
+schema = DataFrameSchema({
+    "height_in_feet": Column(
+        float, [
+            Hypothesis.two_sample_ttest(
+                sample1="M",
+                sample2="F",
+                groupby="sex",
+                relationship="greater_than",
+                alpha=0.05,
+                equal_var=True),
+    ]),
+    "sex": Column(str)
+})
+
+try:
     schema.validate(df)
-```
-
-```{eval-rst}
-.. testoutput:: hypothesis_testing
-
-    Traceback (most recent call last):
-    ...
-    pandera.SchemaError: <Schema Column: 'height_in_feet' type=float64> failed series validator 0: hypothesis_check: failed two sample ttest between 'M' and 'F'
-
+except pa.errors.SchemaError as exc:
+    print(exc)
 ```
 
 You can also define custom hypotheses by passing in functions to the
@@ -79,36 +74,33 @@ positional arguments, in addition to key-word arguments supplied by the
 Here's an implementation of the two-sample t-test that uses the
 [scipy implementation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html):
 
-```{eval-rst}
-.. testcode:: hypothesis_testing
-
-    def two_sample_ttest(array1, array2):
-        # the "height_in_feet" series is first grouped by "sex" and then
-        # passed into the custom `test` function as two separate arrays in the
-        # order specified in the `samples` argument.
-        return stats.ttest_ind(array1, array2)
+```{code-cell} python
+def two_sample_ttest(array1, array2):
+    # the "height_in_feet" series is first grouped by "sex" and then
+    # passed into the custom `test` function as two separate arrays in the
+    # order specified in the `samples` argument.
+    return stats.ttest_ind(array1, array2)
 
 
-    def null_relationship(stat, pvalue, alpha=0.01):
-        return pvalue / 2 >= alpha
+def null_relationship(stat, pvalue, alpha=0.01):
+    return pvalue / 2 >= alpha
 
 
-    schema = DataFrameSchema({
-        "height_in_feet": Column(
-            float, [
-                Hypothesis(
-                    test=two_sample_ttest,
-                    samples=["M", "F"],
-                    groupby="sex",
-                    relationship=null_relationship,
-                    relationship_kwargs={"alpha": 0.05}
-                )
-        ]),
-        "sex": Column(str, checks=Check.isin(["M", "F"]))
-    })
+schema = DataFrameSchema({
+    "height_in_feet": Column(
+        float, [
+            Hypothesis(
+                test=two_sample_ttest,
+                samples=["M", "F"],
+                groupby="sex",
+                relationship=null_relationship,
+                relationship_kwargs={"alpha": 0.05}
+            )
+    ]),
+    "sex": Column(str, checks=Check.isin(["M", "F"]))
+})
 
-    schema.validate(df)
-
+schema.validate(df)
 ```
 
 ## Wide Hypotheses
@@ -123,38 +115,35 @@ operate across columns in a `DataFrame`.
 For example, if you want to make assertions about `height` across two groups,
 the tidy dataset and schema might look like this:
 
-```{eval-rst}
-.. testcode:: wide_hypothesis
+```{code-cell} python
+import pandas as pd
+import pandera as pa
 
-    import pandas as pd
-    import pandera as pa
+from pandera import Check, DataFrameSchema, Column, Hypothesis
 
-    from pandera import Check, DataFrameSchema, Column, Hypothesis
+df = pd.DataFrame({
+    "height": [5.6, 7.5, 4.0, 7.9],
+    "group": ["A", "B", "A", "B"],
+})
 
-    df = pd.DataFrame({
-        "height": [5.6, 7.5, 4.0, 7.9],
-        "group": ["A", "B", "A", "B"],
-    })
+schema = DataFrameSchema({
+    "height": Column(
+        float, Hypothesis.two_sample_ttest(
+            "A", "B",
+            groupby="group",
+            relationship="less_than",
+            alpha=0.05
+        )
+    ),
+    "group": Column(str, Check(lambda s: s.isin(["A", "B"])))
+})
 
-    schema = DataFrameSchema({
-        "height": Column(
-            float, Hypothesis.two_sample_ttest(
-                "A", "B",
-                groupby="group",
-                relationship="less_than",
-                alpha=0.05
-            )
-        ),
-        "group": Column(str, Check(lambda s: s.isin(["A", "B"])))
-    })
-
-    schema.validate(df)
-
+schema.validate(df)
 ```
 
 The equivalent wide-form schema would look like this:
 
-```python
+```{code-cell} python
 import pandas as pd
 import pandera as pa
 
@@ -167,8 +156,8 @@ df = pd.DataFrame({
 
 schema = DataFrameSchema(
     columns={
-        "height_A": Column(Float),
-        "height_B": Column(Float),
+        "height_A": Column(float),
+        "height_B": Column(float),
     },
     # define checks at the DataFrameSchema-level
     checks=Hypothesis.two_sample_ttest(

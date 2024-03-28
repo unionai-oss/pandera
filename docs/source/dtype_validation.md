@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera
 ```
 
 (dtype-validation)=
@@ -17,45 +20,39 @@ clean data for them to be valid.
 With pandera schemas, there are multiple ways of specifying the data types of
 columns, indexes, or even whole dataframes.
 
-```{eval-rst}
-.. testcode:: dtype_validation
+```{code-cell} python
+import pandera as pa
+import pandas as pd
 
-    import pandera as pa
-    import pandas as pd
+# schema with datatypes at the column and index level
+schema_field_dtypes = pa.DataFrameSchema(
+    {
+        "column1": pa.Column(int),
+        "column2": pa.Column(float),
+        "column3": pa.Column(str),
+    },
+    index = pa.Index(int),
+)
 
-    # schema with datatypes at the column and index level
-    schema_field_dtypes = pa.DataFrameSchema(
-        {
-            "column1": pa.Column(int),
-            "column2": pa.Column(float),
-            "column3": pa.Column(str),
-        },
-        index = pa.Index(int),
-    )
-
-    # schema with datatypes at the dataframe level, if all columns are the
-    # same data type
-    schema_df_dtypes = pa.DataFrameSchema(dtype=int)
-
+# schema with datatypes at the dataframe level, if all columns are the
+# same data type
+schema_df_dtypes = pa.DataFrameSchema(dtype=int)
 ```
 
 The equivalent {py:class}`~pandera.api.pandas.model.DataFrameModel` would be:
 
-```{eval-rst}
-.. testcode:: dtype_validation
+```{code-cell} python
+from pandera.typing import Series, Index
 
-    from pandera.typing import Series, Index
+class ModelFieldDtypes(pa.DataFrameModel):
+    column1: Series[int]
+    column2: Series[float]
+    column3: Series[str]
+    index: Index[int]
 
-    class ModelFieldDtypes(pa.DataFrameModel):
-        column1: Series[int]
-        column2: Series[float]
-        column3: Series[str]
-        index: Index[int]
-
-    class ModelDFDtypes(pa.DataFrameModel):
-        class Config:
-            dtype = int
-
+class ModelDFDtypes(pa.DataFrameModel):
+    class Config:
+        dtype = int
 ```
 
 ## Supported pandas datatypes
@@ -77,21 +74,19 @@ if you want.
 For example, the following schema expresses the equivalent integer types in
 six different ways:
 
-```{eval-rst}
-.. testcode:: dtype_validation
+```{code-cell} python
+import numpy as np
 
-    import numpy as np
-
-    integer_schema = pa.DataFrameSchema(
-        {
-            "builtin_python": pa.Column(int),
-            "builtin_python": pa.Column("int"),
-            "string_alias": pa.Column("int64"),
-            "numpy_dtype": pa.Column(np.int64),
-            "pandera_dtype": pa.Column(pa.Int),
-            "pandera_dtype": pa.Column(pa.Int64),
-        },
-    )
+integer_schema = pa.DataFrameSchema(
+    {
+        "builtin_python": pa.Column(int),
+        "builtin_python": pa.Column("int"),
+        "string_alias": pa.Column("int64"),
+        "numpy_dtype": pa.Column(np.int64),
+        "pandera_dtype": pa.Column(pa.Int),
+        "pandera_dtype": pa.Column(pa.Int64),
+    },
+)
 ```
 
 :::{note}
@@ -106,38 +101,32 @@ the case of pandas, are actually instances of special classes defined by pandas.
 For example, using the object-based API, we can easily define a column as a
 timezone-aware datatype:
 
-```{eval-rst}
-.. testcode:: dtype_validation
-
-    datetimeschema = pa.DataFrameSchema({
-        "dt": pa.Column(pd.DatetimeTZDtype(unit="ns", tz="UTC"))
-    })
+```{code-cell} python
+datetimeschema = pa.DataFrameSchema({
+    "dt": pa.Column(pd.DatetimeTZDtype(unit="ns", tz="UTC"))
+})
 ```
 
 However, since python's type annotations require types and not objects, to
 express this same type with the class-based API, we need to use an
 {py:class}`~typing.Annotated` type:
 
-```{eval-rst}
-.. testcode:: dtype_validation
+```{code-cell} python
+try:
+    from typing import Annotated  # python 3.9+
+except ImportError:
+    from typing_extensions import Annotated
 
-    try:
-        from typing import Annotated  # python 3.9+
-    except ImportError:
-        from typing_extensions import Annotated
-
-    class DateTimeModel(pa.DataFrameModel):
-        dt: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
+class DateTimeModel(pa.DataFrameModel):
+    dt: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
 ```
 
 Or alternatively, you can pass in the `dtype_kwargs` into
 {py:func}`~pandera.api.dataframe.model_components.Field`:
 
-```{eval-rst}
-.. testcode:: dtype_validation
-
-    class DateTimeModel(pa.DataFrameModel):
-        dt: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "UTC"})
+```{code-cell} python
+class DateTimeModel(pa.DataFrameModel):
+    dt: Series[pd.DatetimeTZDtype] = pa.Field(dtype_kwargs={"unit": "ns", "tz": "UTC"})
 ```
 
 You can read more about the supported parameterized data types
@@ -183,8 +172,8 @@ to apply to the data.
 
 *new in 0.15.0*
 
-Pandera also supports a limited set of generic and special types {py:mod}`typing`
-for you to validate columns containing `object` values:
+Pandera also supports a limited set of generic and special types in the
+{py:mod}`typing` module for you to validate columns containing `object` values:
 
 - `typing.Dict[K, V]`
 - `typing.List[T]`
@@ -194,57 +183,56 @@ for you to validate columns containing `object` values:
 
 For example:
 
-```{eval-rst}
-.. testcode:: dtype_validation
+```{code-cell} python
+import sys
+from typing import Dict, List, Tuple, NamedTuple
 
-    from typing import Dict, List, Tuple, NamedTuple
-
-    if sys.version_info >= (3, 12):
-        from typing import TypedDict
-        # use typing_extensions.TypedDict for python < 3.9 in order to support
-        # run-time availability of optional/required fields
-    else:
-        from typing_extensions import TypedDict
+if sys.version_info >= (3, 12):
+    from typing import TypedDict
+    # use typing_extensions.TypedDict for python < 3.9 in order to support
+    # run-time availability of optional/required fields
+else:
+    from typing_extensions import TypedDict
 
 
-    class PointDict(TypedDict):
-        x: float
-        y: float
+class PointDict(TypedDict):
+    x: float
+    y: float
 
-    class PointTuple(NamedTuple):
-        x: float
-        y: float
+class PointTuple(NamedTuple):
+    x: float
+    y: float
 
-    schema = pa.DataFrameSchema(
-        {
-            "dict_column": pa.Column(Dict[str, int]),
-            "list_column": pa.Column(List[float]),
-            "tuple_column": pa.Column(Tuple[int, str, float]),
-            "typeddict_column": pa.Column(PointDict),
-            "namedtuple_column": pa.Column(PointTuple),
-        },
-    )
+schema = pa.DataFrameSchema(
+    {
+        "dict_column": pa.Column(Dict[str, int]),
+        "list_column": pa.Column(List[float]),
+        "tuple_column": pa.Column(Tuple[int, str, float]),
+        "typeddict_column": pa.Column(PointDict),
+        "namedtuple_column": pa.Column(PointTuple),
+    },
+)
 
-    data = pd.DataFrame({
-        "dict_column": [{"foo": 1, "bar": 2}],
-        "list_column": [[1.0]],
-        "tuple_column": [(1, "bar", 1.0)],
-        "typeddict_column": [PointDict(x=2.1, y=4.8)],
-        "namedtuple_column": [PointTuple(x=9.2, y=1.6)],
-    })
+data = pd.DataFrame({
+    "dict_column": [{"foo": 1, "bar": 2}],
+    "list_column": [[1.0]],
+    "tuple_column": [(1, "bar", 1.0)],
+    "typeddict_column": [PointDict(x=2.1, y=4.8)],
+    "namedtuple_column": [PointTuple(x=9.2, y=1.6)],
+})
 
-    schema.validate(data)
+schema.validate(data)
 ```
 
 Pandera uses [typeguard](https://typeguard.readthedocs.io/en/latest/) for
-data type validation and `pydantic <https://docs.pydantic.dev/latest/>` for
+data type validation and [pydantic](https://docs.pydantic.dev/latest/) for
 data value coercion, in the case that you've specified `coerce=True` at the
 column-, index-, or dataframe-level.
 
-:::{note}
+```{note}
 For certain types like `List[T]`, `typeguard` will only check the type
 of the first value, e.g. if you specify `List[int]`, a data value of
 `[1, "foo", 1.0]` will still pass. Checking all values will be
 configurable in future  versions of pandera when `typeguard > 4.*.*` is
 supported.
-:::
+```

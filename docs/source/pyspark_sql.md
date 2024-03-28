@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera.pyspark
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera.pyspark
 ```
 
 (native-pyspark)=
@@ -20,7 +23,7 @@ You can use pandera to validate `pyspark.sql.DataFrame` objects directly. First,
 install `pandera` with the `pyspark` extra:
 
 ```bash
-pip install pandera[pyspark]
+pip install 'pandera[pyspark]'
 ```
 
 ## What's different?
@@ -61,56 +64,42 @@ users have when working with pyspark SQL dataframes:
 In this section, lets look at an end to end example of how pandera would work in
 a native pyspark implementation.
 
-```{eval-rst}
-.. testcode:: native_pyspark
+```{code-cell} python
+import pandera.pyspark as pa
+import pyspark.sql.types as T
 
-    import pandera.pyspark as pa
-    import pyspark.sql.types as T
+from decimal import Decimal
+from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame
+from pandera.pyspark import DataFrameModel
 
-    from decimal import Decimal
-    from pyspark.sql import SparkSession
-    from pyspark.sql import DataFrame
-    from pandera.pyspark import DataFrameModel
+spark = SparkSession.builder.getOrCreate()
 
-    spark = SparkSession.builder.getOrCreate()
+class PanderaSchema(DataFrameModel):
+    id: T.IntegerType() = pa.Field(gt=5)
+    product_name: T.StringType() = pa.Field(str_startswith="B")
+    price: T.DecimalType(20, 5) = pa.Field()
+    description: T.ArrayType(T.StringType()) = pa.Field()
+    meta: T.MapType(T.StringType(), T.StringType()) = pa.Field()
 
-    class PanderaSchema(DataFrameModel):
-        id: T.IntegerType() = pa.Field(gt=5)
-        product_name: T.StringType() = pa.Field(str_startswith="B")
-        price: T.DecimalType(20, 5) = pa.Field()
-        description: T.ArrayType(T.StringType()) = pa.Field()
-        meta: T.MapType(T.StringType(), T.StringType()) = pa.Field()
+data = [
+    (5, "Bread", Decimal(44.4), ["description of product"], {"product_category": "dairy"}),
+    (15, "Butter", Decimal(99.0), ["more details here"], {"product_category": "bakery"}),
+]
 
-    data = [
-        (5, "Bread", Decimal(44.4), ["description of product"], {"product_category": "dairy"}),
-        (15, "Butter", Decimal(99.0), ["more details here"], {"product_category": "bakery"}),
-    ]
-
-    spark_schema = T.StructType(
-        [
-            T.StructField("id", T.IntegerType(), False),
-            T.StructField("product", T.StringType(), False),
-            T.StructField("price", T.DecimalType(20, 5), False),
-            T.StructField("description", T.ArrayType(T.StringType(), False), False),
-            T.StructField(
-                "meta", T.MapType(T.StringType(), T.StringType(), False), False
-            ),
-        ],
-    )
-    df = spark.createDataFrame(data, spark_schema)
-    df.show()
-
-```
-
-```{eval-rst}
-.. testoutput:: native_pyspark
-
-    +---+-------+--------+--------------------+--------------------+
-    | id|product|   price|         description|                meta|
-    +---+-------+--------+--------------------+--------------------+
-    |  5|  Bread|44.40000|[description of p...|{product_category...|
-    | 15| Butter|99.00000| [more details here]|{product_category...|
-    +---+-------+--------+--------------------+--------------------+
+spark_schema = T.StructType(
+    [
+        T.StructField("id", T.IntegerType(), False),
+        T.StructField("product", T.StringType(), False),
+        T.StructField("price", T.DecimalType(20, 5), False),
+        T.StructField("description", T.ArrayType(T.StringType(), False), False),
+        T.StructField(
+            "meta", T.MapType(T.StringType(), T.StringType(), False), False
+        ),
+    ],
+)
+df = spark.createDataFrame(data, spark_schema)
+df.show()
 ```
 
 In example above, the `PanderaSchema` class inherits from the `DataFrameModel` base
@@ -123,10 +112,9 @@ schema `spark_schema` and enforced it on our dataframe `df`.
 Next, you can use the {py:func}`~PanderaSchema.validate` function to validate
 pyspark sql dataframes at runtime.
 
-```{eval-rst}
-.. testcode:: native_pyspark
-
-    df_out = PanderaSchema.validate(check_obj=df)
+```{code-cell} python
+df_out = PanderaSchema.validate(check_obj=df)
+df_out
 ```
 
 After running {py:func}`~PanderaSchema.validate`, the returned object `df_out`
@@ -139,54 +127,11 @@ a `pandera` attribute.
 
 You can print the validation results as follows:
 
-```{eval-rst}
-.. testcode:: native_pyspark
+```{code-cell} python
+import json
 
-    import json
-
-    df_out_errors = df_out.pandera.errors
-    print(json.dumps(dict(df_out_errors), indent=4))
-```
-
-```{eval-rst}
-.. testoutput:: native_pyspark
-
-    {
-        "SCHEMA": {
-            "COLUMN_NOT_IN_DATAFRAME": [
-                {
-                    "schema": "PanderaSchema",
-                    "column": "PanderaSchema",
-                    "check": "column_in_dataframe",
-                    "error": "column 'product_name' not in dataframe Row(id=5, product='Bread', price=Decimal('44.40000'), description=['description of product'], meta={'product_category': 'dairy'})"
-                }
-            ],
-            "WRONG_DATATYPE": [
-                {
-                    "schema": "PanderaSchema",
-                    "column": "description",
-                    "check": "dtype('ArrayType(StringType(), True)')",
-                    "error": "expected column 'description' to have type ArrayType(StringType(), True), got ArrayType(StringType(), False)"
-                },
-                {
-                    "schema": "PanderaSchema",
-                    "column": "meta",
-                    "check": "dtype('MapType(StringType(), StringType(), True)')",
-                    "error": "expected column 'meta' to have type MapType(StringType(), StringType(), True), got MapType(StringType(), StringType(), False)"
-                }
-            ]
-        },
-        "DATA": {
-            "DATAFRAME_CHECK": [
-                {
-                    "schema": "PanderaSchema",
-                    "column": "id",
-                    "check": "greater_than(5)",
-                    "error": "column 'id' with type IntegerType() failed validation greater_than(5)"
-                }
-            ]
-        }
-    }
+df_out_errors = df_out.pandera.errors
+print(json.dumps(dict(df_out_errors), indent=4))
 ```
 
 As seen above, the error report is aggregated on 2 levels in a python `dict` object:
@@ -301,31 +246,29 @@ Note: The output of the function should be a boolean value `True` for passed and
 `False` for failure. Unlike the Pandas version which expect it to be a series
 of boolean values.
 
-```{eval-rst}
-.. testcode:: native_pyspark
+```{code-cell} python
+from pandera.extensions import register_check_method
+import pyspark.sql.types as T
 
-    from pandera.extensions import register_check_method
-    import pyspark.sql.types as T
+@register_check_method
+def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
+    """Ensure values of the data are strictly below a maximum value.
+    :param max_value: Upper bound not to be exceeded. Must be
+        a type comparable to the dtype of the column datatype of pyspark
+    """
 
-    @register_check_method
-    def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
-        """Ensure values of the data are strictly below a maximum value.
-        :param max_value: Upper bound not to be exceeded. Must be
-            a type comparable to the dtype of the column datatype of pyspark
-        """
+    cond = col(pyspark_obj.column_name) <= max_value
+    return pyspark_obj.dataframe.filter(~cond).limit(1).count() == 0
 
-        cond = col(pyspark_obj.column_name) <= max_value
-        return pyspark_obj.dataframe.filter(~cond).limit(1).count() == 0
+class Schema(DataFrameModel):
+    """Schema"""
 
-    class Schema(DataFrameModel):
-            """Schema"""
-
-            product: T.StringType()
-            code: T.IntegerType() = pa.Field(
-                new_pyspark_check={
-                    "max_value": 30
-                }
-            )
+    product: T.StringType()
+    code: T.IntegerType() = pa.Field(
+        new_pyspark_check={
+            "max_value": 30
+        }
+    )
 ```
 
 ## Adding Metadata at the Dataframe and Field level
@@ -343,31 +286,28 @@ and use the data correctly. Similarly, by storing information about which column
 of a schema are needed for a specific use case, developers can optimize data
 processing pipelines, reduce storage costs, and improve query performance.
 
-```{eval-rst}
-.. testcode:: native_pyspark
+```{code-cell} python
+import pyspark.sql.types as T
 
-    import pyspark.sql.types as T
+class PanderaSchema(DataFrameModel):
+    """Pandera Schema Class"""
 
-    class PanderaSchema(DataFrameModel):
-        """Pandera Schema Class"""
+    product_id: T.IntegerType() = pa.Field()
+    product_class: T.StringType() = pa.Field(
+        metadata={
+            "search_filter": "product_pricing",
+        },
+    )
+    product_name: T.StringType() = pa.Field()
+    price: T.DecimalType(20, 5) = pa.Field()
 
-        product_id: T.IntegerType() = pa.Field()
-        product_class: T.StringType() = pa.Field(
-            metadata={
-                "search_filter": "product_pricing",
-            },
-        )
-        product_name: T.StringType() = pa.Field()
-        price: T.DecimalType(20, 5) = pa.Field()
+    class Config:
+        """Config of pandera class"""
 
-        class Config:
-            """Config of pandera class"""
-
-            name = "product_info"
-            strict = True
-            coerce = True
-            metadata = {"category": "product-details"}
-
+        name = "product_info"
+        strict = True
+        coerce = True
+        metadata = {"category": "product-details"}
 ```
 
 As seen in above example, `product_class` field has additional embedded information
@@ -379,10 +319,8 @@ metadata at `Field` and `` `DataFrame` `` levels.
 
 We also provided a helper function to extract metadata from a schema as follows:
 
-```{eval-rst}
-.. testcode:: native_pyspark
-
-    PanderaSchema.get_metadata()
+```{code-cell} python
+PanderaSchema.get_metadata()
 ```
 
 :::{note}

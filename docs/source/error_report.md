@@ -1,3 +1,7 @@
+---
+file_format: mystnb
+---
+
 (error-report)=
 
 # Error Reports
@@ -35,57 +39,30 @@ This will be picked up by `pandera` to only enforce SCHEMA level validations.
 To create an error report with pandas, you must specify `lazy=True` to allow all errors
 to be aggregated and raised together as a `SchemaErrors`.
 
-```{eval-rst}
-.. testcode:: error_report_with_pandas
+```{code-cell} python
+import pandas as pd
+import pandera as pa
+import json
 
-    import pandas as pd
-    import pandera as pa
-    import json
-
-    pandas_schema = pa.DataFrameSchema(
-        {
-            "color": pa.Column(str, pa.Check.isin(["red", "green", "blue"])),
-            "length": pa.Column(int, pa.Check.gt(10)),
-        }
-    )
-    data = [("red", 4), ("blue", 11), ("purple", 15), ("green", 39)]
-
-    df = pd.DataFrame(
-        {
-            "color": ["red", "blue", "purple", "green"],
-            "length": [4, 11, 15, 39],
-        }
-    )
-
-    try:
-        pandas_schema.validate(df, lazy=True)
-    except pa.errors.SchemaErrors as e:
-        print(json.dumps(e.message, indent=4))
-```
-
-```{eval-rst}
-.. testoutput:: error_report_with_pandas
-
+pandas_schema = pa.DataFrameSchema(
     {
-        "DATA": {
-            "DATAFRAME_CHECK": [
-                {
-                    "schema": null,
-                    "column": "color",
-                    "check": "isin(['red', 'green', 'blue'])",
-                    "error": "Column 'color' failed element-wise validator number 0: isin(['red', 'green', 'blue']) failure cases: purple"
-                },
-                {
-                    "schema": null,
-                    "column": "length",
-                    "check": "greater_than(10)",
-                    "error": "Column 'length' failed element-wise validator number 0: greater_than(10) failure cases: 4"
-                }
-            ]
-        }
+        "color": pa.Column(str, pa.Check.isin(["red", "green", "blue"])),
+        "length": pa.Column(int, pa.Check.gt(10)),
     }
+)
+data = [("red", 4), ("blue", 11), ("purple", 15), ("green", 39)]
 
+df = pd.DataFrame(
+    {
+        "color": ["red", "blue", "purple", "green"],
+        "length": [4, 11, 15, 39],
+    }
+)
 
+try:
+    pandas_schema.validate(df, lazy=True)
+except pa.errors.SchemaErrors as e:
+    print(json.dumps(e.message, indent=2))
 ```
 
 ## Error reports with `pyspark.sql`
@@ -93,57 +70,32 @@ to be aggregated and raised together as a `SchemaErrors`.
 Accessing the error report on a validated `pyspark` dataframe can be done via the
 `errors` attribute on the `pandera` accessor.
 
-```{eval-rst}
-.. testcode:: error_report_pyspark_sql
+```{code-cell} python
+import pandera.pyspark as pa
+import pyspark.sql.types as T
+import json
 
-    import pandera.pyspark as pa
-    import pyspark.sql.types as T
-    import json
+from decimal import Decimal
+from pyspark.sql import SparkSession
+from pandera.pyspark import DataFrameModel
 
-    from decimal import Decimal
-    from pyspark.sql import SparkSession
-    from pandera.pyspark import DataFrameModel
+spark = SparkSession.builder.getOrCreate()
 
-    spark = SparkSession.builder.getOrCreate()
+class PysparkPanderSchema(DataFrameModel):
+    color: T.StringType() = pa.Field(isin=["red", "green", "blue"])
+    length: T.IntegerType() = pa.Field(gt=10)
 
-    class PysparkPanderSchema(DataFrameModel):
-        color: T.StringType() = pa.Field(isin=["red", "green", "blue"])
-        length: T.IntegerType() = pa.Field(gt=10)
+data = [("red", 4), ("blue", 11), ("purple", 15), ("green", 39)]
 
-    data = [("red", 4), ("blue", 11), ("purple", 15), ("green", 39)]
+spark_schema = T.StructType(
+    [
+        T.StructField("color", T.StringType(), False),
+        T.StructField("length", T.IntegerType(), False),
+    ],
+)
 
-    spark_schema = T.StructType(
-        [
-            T.StructField("color", T.StringType(), False),
-            T.StructField("length", T.IntegerType(), False),
-        ],
-    )
+df = spark.createDataFrame(data, spark_schema)
+df_out = PysparkPanderSchema.validate(check_obj=df)
 
-    df = spark.createDataFrame(data, spark_schema)
-    df_out = PysparkPanderSchema.validate(check_obj=df)
-
-    print(json.dumps(dict(df_out.pandera.errors), indent=4))
-```
-
-```{eval-rst}
-.. testoutput:: error_report_pyspark_sql
-
-    {
-        "DATA": {
-            "DATAFRAME_CHECK": [
-                {
-                    "schema": "PysparkPanderSchema",
-                    "column": "color",
-                    "check": "isin(['red', 'green', 'blue'])",
-                    "error": "column 'color' with type StringType() failed validation isin(['red', 'green', 'blue'])"
-                },
-                {
-                    "schema": "PysparkPanderSchema",
-                    "column": "length",
-                    "check": "greater_than(10)",
-                    "error": "column 'length' with type IntegerType() failed validation greater_than(10)"
-                }
-            ]
-        }
-    }
+print(json.dumps(dict(df_out.pandera.errors), indent=4))
 ```

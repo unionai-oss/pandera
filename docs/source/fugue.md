@@ -1,5 +1,8 @@
-```{eval-rst}
-.. currentmodule:: pandera
+---
+file_format: mystnb
+---
+
+```{currentmodule} pandera
 ```
 
 (scaling-fugue)=
@@ -27,7 +30,7 @@ existing `Python` code can be scaled to a distributed setting without significan
 To run the example, `Fugue` needs to installed separately. Using pip:
 
 ```bash
-pip install fugue[spark]
+pip install 'fugue[spark]'
 ```
 
 This will also install `PySpark` because of the `spark` extra. `Dask` is available
@@ -39,50 +42,33 @@ In this example, a pandas `DataFrame` is created with `state`, `city` and `price
 columns. `Pandera` will be used to validate that the `price` column values are within
 a certain range.
 
-```{eval-rst}
-.. testcode:: scaling_fugue
+```{code-cell} python
+import pandas as pd
 
-    import pandas as pd
-
-    data = pd.DataFrame(
-        {
-            'state': ['FL','FL','FL','CA','CA','CA'],
-            'city': [
-                'Orlando', 'Miami', 'Tampa', 'San Francisco', 'Los Angeles', 'San Diego'
-            ],
-            'price': [8, 12, 10, 16, 20, 18],
-        }
-    )
-    print(data)
-```
-
-```{eval-rst}
-.. testoutput:: scaling_fugue
-
-      state           city  price
-    0    FL        Orlando      8
-    1    FL          Miami     12
-    2    FL          Tampa     10
-    3    CA  San Francisco     16
-    4    CA    Los Angeles     20
-    5    CA      San Diego     18
-
+data = pd.DataFrame(
+    {
+        'state': ['FL','FL','FL','CA','CA','CA'],
+        'city': [
+            'Orlando', 'Miami', 'Tampa', 'San Francisco', 'Los Angeles', 'San Diego'
+        ],
+        'price': [8, 12, 10, 16, 20, 18],
+    }
+)
+data
 ```
 
 Validation is then applied using pandera. A `price_validation` function is
 created that runs the validation. None of this will be new.
 
-```{eval-rst}
-.. testcode:: scaling_fugue
+```{code-cell} python
+from pandera import Column, DataFrameSchema, Check
 
-    from pandera import Column, DataFrameSchema, Check
+price_check = DataFrameSchema(
+    {"price": Column(int, Check.in_range(min_value=5,max_value=20))}
+)
 
-    price_check = DataFrameSchema(
-        {"price": Column(int, Check.in_range(min_value=5,max_value=20))}
-    )
-
-    def price_validation(data:pd.DataFrame) -> pd.DataFrame:
-        return price_check.validate(data)
+def price_validation(data: pd.DataFrame) -> pd.DataFrame:
+    return price_check.validate(data)
 ```
 
 The `transform` function in `Fugue` is the easiest way to use `Fugue` with existing `Python`
@@ -95,33 +81,26 @@ is used to run the code on top of `Spark`. For Dask, users can pass a string `"d
 can pass a Dask Client. Passing nothing uses the default pandas-based engine. Because we
 passed a SparkSession in this example, the output is a Spark DataFrame.
 
-```{eval-rst}
-.. testcode:: scaling_fugue
-    :skipif: SKIP_SCALING
+```python
+from fugue import transform
+from pyspark.sql import SparkSession
 
-    from fugue import transform
-    from pyspark.sql import SparkSession
-
-    spark = SparkSession.builder.getOrCreate()
-    spark_df = transform(data, price_validation, schema="*", engine=spark)
-    spark_df.show()
+spark = SparkSession.builder.getOrCreate()
+spark_df = transform(data, price_validation, schema="*", engine=spark)
+spark_df.show()
 ```
 
-```{eval-rst}
-.. testoutput:: scaling_fugue
-    :skipif: SKIP_SCALING
-
-    +-----+-------------+-----+
-    |state|         city|price|
-    +-----+-------------+-----+
-    |   FL|      Orlando|    8|
-    |   FL|        Miami|   12|
-    |   FL|        Tampa|   10|
-    |   CA|San Francisco|   16|
-    |   CA|  Los Angeles|   20|
-    |   CA|    San Diego|   18|
-    +-----+-------------+-----+
-
+```
++-----+-------------+-----+
+|state|         city|price|
++-----+-------------+-----+
+|   FL|      Orlando|    8|
+|   FL|        Miami|   12|
+|   FL|        Tampa|   10|
+|   CA|San Francisco|   16|
+|   CA|  Los Angeles|   20|
+|   CA|    San Diego|   18|
++-----+-------------+-----+
 ```
 
 ## Validation by Partition
@@ -132,18 +111,16 @@ price range for the records with `state` FL is lower than the range for the `sta
 Two {class}`~pandera.api.pandas.container.DataFrameSchema` will be created to reflect this. Notice their ranges
 for the {class}`~pandera.api.checks.Check` differ.
 
-```{eval-rst}
-.. testcode:: scaling_fugue
+```{code-cell} python
+price_check_FL = DataFrameSchema({
+    "price": Column(int, Check.in_range(min_value=7,max_value=13)),
+})
 
-    price_check_FL = DataFrameSchema({
-        "price": Column(int, Check.in_range(min_value=7,max_value=13)),
-    })
+price_check_CA = DataFrameSchema({
+    "price": Column(int, Check.in_range(min_value=15,max_value=21)),
+})
 
-    price_check_CA = DataFrameSchema({
-        "price": Column(int, Check.in_range(min_value=15,max_value=21)),
-    })
-
-    price_checks = {'CA': price_check_CA, 'FL': price_check_FL}
+price_checks = {'CA': price_check_CA, 'FL': price_check_FL}
 ```
 
 A slight modification is needed to our `price_validation` function. `Fugue` will partition
@@ -155,39 +132,33 @@ To partition our data by `state`, all we need to do is pass it into the `transfo
 through the `partition` argument. This splits up the data across different workers before they
 each run the `price_validation` function. Again, this is like a groupby-validation.
 
-```{eval-rst}
-.. testcode:: scaling_fugue
-    :skipif: SKIP_SCALING
+```python
+def price_validation(df:pd.DataFrame) -> pd.DataFrame:
+    location = df['state'].iloc[0]
+    check = price_checks[location]
+    check.validate(df)
+    return df
 
-    def price_validation(df:pd.DataFrame) -> pd.DataFrame:
-        location = df['state'].iloc[0]
-        check = price_checks[location]
-        check.validate(df)
-        return df
+spark_df = transform(data,
+            price_validation,
+            schema="*",
+            partition=dict(by="state"),
+            engine=spark)
 
-    spark_df = transform(data,
-              price_validation,
-              schema="*",
-              partition=dict(by="state"),
-              engine=spark)
-
-    spark_df.show()
+spark_df.show()
 ```
 
-```{eval-rst}
-.. testoutput:: scaling_fugue
-    :skipif: SKIP_SCALING
-
-    SparkDataFrame
-    state:str|city:str                                                 |price:long
-    ---------+---------------------------------------------------------+----------
-    CA       |San Francisco                                            |16
-    CA       |Los Angeles                                              |20
-    CA       |San Diego                                                |18
-    FL       |Orlando                                                  |8
-    FL       |Miami                                                    |12
-    FL       |Tampa                                                    |10
-    Total count: 6
+```
+SparkDataFrame
+state:str|city:str                                                 |price:long
+---------+---------------------------------------------------------+----------
+CA       |San Francisco                                            |16
+CA       |Los Angeles                                              |20
+CA       |San Diego                                                |18
+FL       |Orlando                                                  |8
+FL       |Miami                                                    |12
+FL       |Tampa                                                    |10
+Total count: 6
 ```
 
 :::{note}
@@ -208,40 +179,34 @@ there are no errors in the data, it will just return an empty DataFrame.
 To keep the errors for each partition, you can attach the partition key as a column in
 the returned DataFrame.
 
-```{eval-rst}
-.. testcode:: scaling_fugue
-    :skipif: SKIP_SCALING
+```python
+from pandera.errors import SchemaErrors
 
-    from pandera.errors import SchemaErrors
+out_schema = "schema_context:str, column:str, check:str, \
+check_number:int, failure_case:str, index:int"
 
-    out_schema = "schema_context:str, column:str, check:str, \
-    check_number:int, failure_case:str, index:int"
+out_columns = ["schema_context", "column", "check",
+"check_number", "failure_case", "index"]
 
-    out_columns = ["schema_context", "column", "check",
-    "check_number", "failure_case", "index"]
+price_check = DataFrameSchema(
+    {"price": Column(int, Check.in_range(min_value=12,max_value=20))}
+)
 
-    price_check = DataFrameSchema(
-        {"price": Column(int, Check.in_range(min_value=12,max_value=20))}
-    )
+def price_validation(data:pd.DataFrame) -> pd.DataFrame:
+    try:
+        price_check.validate(data, lazy=True)
+        return pd.DataFrame(columns=out_columns)
+    except SchemaErrors as err:
+        return err.failure_cases
 
-    def price_validation(data:pd.DataFrame) -> pd.DataFrame:
-        try:
-            price_check.validate(data, lazy=True)
-            return pd.DataFrame(columns=out_columns)
-        except SchemaErrors as err:
-            return err.failure_cases
-
-    transform(data, price_validation, schema=out_schema, engine=spark).show()
+transform(data, price_validation, schema=out_schema, engine=spark).show()
 ```
 
-```{eval-rst}
-.. testoutput:: scaling_fugue
-    :skipif: SKIP_SCALING
-
-    +--------------+------+----------------+------------+------------+-----+
-    |schema_context|column|           check|check_number|failure_case|index|
-    +--------------+------+----------------+------------+------------+-----+
-    |        Column| price|in_range(12, 20)|           0|           8|    0|
-    |        Column| price|in_range(12, 20)|           0|          10|    0|
-    +--------------+------+----------------+------------+------------+-----+
+```
++--------------+------+----------------+------------+------------+-----+
+|schema_context|column|           check|check_number|failure_case|index|
++--------------+------+----------------+------------+------------+-----+
+|        Column| price|in_range(12, 20)|           0|           8|    0|
+|        Column| price|in_range(12, 20)|           0|          10|    0|
++--------------+------+----------------+------------+------------+-----+
 ```
