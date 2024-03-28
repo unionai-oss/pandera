@@ -29,6 +29,7 @@ class BaseSchema(ABC):
         self,
         dtype=None,
         checks=None,
+        parsers=None,
         coerce=False,
         name=None,
         title=None,
@@ -40,6 +41,7 @@ class BaseSchema(ABC):
         self.dtype = dtype
         self.checks = checks
         self.coerce = coerce
+        self.parsers = parsers
         self.name = name
         self.title = title
         self.description = description

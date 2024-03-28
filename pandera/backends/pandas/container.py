@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from pandera.api.pandas.types import is_table
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.base import CoreCheckResult, ColumnInfo, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
@@ -100,6 +100,15 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             check_obj, schema, column_info
         )
 
+        # run custom parsers
+        try:
+            return_check_obj = self.run_parsers_and_handle_error(
+                error_handler, schema, check_obj.copy(), components
+            )
+
+        except SchemaErrors as exc:
+            error_handler.collect_errors(exc.schema_errors)
+
         # run the checks
         error_handler = self.run_checks_and_handle_errors(
             error_handler,
@@ -125,7 +134,7 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     data=check_obj,
                 )
 
-        return check_obj
+        return return_check_obj
 
     def run_checks_and_handle_errors(
         self,
@@ -144,7 +153,9 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
         # pylint: disable=too-many-locals
 
         # subsample the check object if head, tail, or sample are specified
-        sample = self.subsample(check_obj, head, tail, sample, random_state)
+        sample = self.subsample(
+            check_obj, head, tail, sample, random_state
+        ).copy()
 
         # check the container metadata, e.g. field names
         core_checks = [
@@ -665,6 +676,53 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         return obj
+
+    def run_parsers_and_handle_error(
+        self, error_handler, schema, check_obj, schema_components
+    ):
+        """Run parsers and handle errors."""
+        parser_results: List[CoreParserResult] = []
+        for parser_index, parser in enumerate(schema.parsers):
+            try:
+                result = self.run_parser(
+                    check_obj,
+                    parser,
+                    parser_index,
+                )
+                check_obj = result.parser_output
+                parser_results.append(result)
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the parser
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing parser function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                error_handler.collect_error(
+                    validation_type(SchemaErrorReason.PARSER_ERROR),
+                    SchemaErrorReason.PARSER_ERROR,
+                    SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=msg,
+                        failure_cases=scalar_failure_case(err_str),
+                        parser=parser,
+                    ),
+                )
+
+        for schema_component in schema_components:
+            try:
+                check_obj = schema_component.validate(
+                    check_obj, lazy=True, inplace=True
+                )
+            except SchemaError as err:
+                error_handler.collect_error(
+                    validation_type(SchemaErrorReason.SCHEMA_COMPONENT_CHECK),
+                    SchemaErrorReason.SCHEMA_COMPONENT_CHECK,
+                    err,
+                )
+        return check_obj
 
     ##########
     # Checks #
