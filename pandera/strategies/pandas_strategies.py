@@ -8,7 +8,7 @@ constraints specified in a ``pandera`` schema. It's built on top of the
 `hypothesis <https://hypothesis.readthedocs.io/en/latest/index.html>`_ package
 to compose strategies given multiple checks specified in a schema.
 
-See the :ref:`user guide<data synthesis strategies>` for more details.
+See the :ref:`user guide <data-synthesis-strategies>` for more details.
 """
 import operator
 import re

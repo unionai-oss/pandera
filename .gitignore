@@ -3,6 +3,7 @@
 dask-worker-space
 spark-warehouse
 docs/source/_contents
+docs/jupyter_execute
 **.DS_Store
 
 # Byte-compiled / optimized / DLL files

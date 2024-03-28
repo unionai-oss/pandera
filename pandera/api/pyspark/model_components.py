@@ -125,7 +125,7 @@ def Field(
     *new in 0.16.0*
 
     Some arguments apply only to numeric dtypes and some apply only to ``str``.
-    See the :ref:`User Guide <dataframe_models>` for more information.
+    See the :ref:`User Guide <dataframe-models>` for more information.
 
     The keyword-only arguments from ``eq`` to ``str_startswith`` are dispatched
     to the built-in :py:class:`~pandera.api.checks.Check` methods.
@@ -255,7 +255,7 @@ def check(*fields, regex: bool = False, **check_kwargs) -> ClassCheck:
     This indicates that the decorated method should be used to validate a field
     (column). The method will be converted to a classmethod. Therefore
     its signature must start with `cls` followed by regular check arguments.
-    See the :ref:`User Guide <schema_model_custom_check>` for more.
+    See the :ref:`User Guide <schema-model-custom-check>` for more.
 
     :param _fn: Method to decorate.
     :param check_kwargs: Keywords arguments forwarded to Check.
@@ -282,7 +282,7 @@ def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
     Decorate a method on the DataFrameModel indicating that it should be used to
     validate the DataFrame. The method will be converted to a classmethod.
     Therefore its signature must start with `cls` followed by regular check
-    arguments. See the :ref:`User Guide <schema_model_dataframe_check>` for
+    arguments. See the :ref:`User Guide <schema-model-dataframe-check>` for
     more.
 
     :param check_kwargs: Keywords arguments forwarded to Check.

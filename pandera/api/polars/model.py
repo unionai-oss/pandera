@@ -26,7 +26,7 @@ from pandera.typing import AnnotationInfo
 class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
     """Model of a polars :class:`~pandera.api.pandas.container.DataFrameSchema`.
 
-    See the :ref:`User Guide <dataframe_models>` for more.
+    See the :ref:`User Guide <dataframe-models>` for more.
     """
 
     Config: Type[BaseConfig] = BaseConfig

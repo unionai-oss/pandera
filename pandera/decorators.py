@@ -562,7 +562,7 @@ def check_types(
     # pylint: disable=too-many-statements
     """Validate function inputs and output based on type annotations.
 
-    See the :ref:`User Guide <dataframe_models>` for more.
+    See the :ref:`User Guide <dataframe-models>` for more.
 
     :param wrapped: the function to decorate.
     :param with_pydantic: use ``pydantic.validate_arguments`` to validate

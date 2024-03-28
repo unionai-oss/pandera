@@ -45,6 +45,7 @@ sphinx-panels
 sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
 recommonmark
+myst-nb
 twine
 asv >= 0.5.1
 pre_commit

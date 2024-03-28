@@ -126,7 +126,7 @@ class DataFrameModel(BaseModel):
     *new in 0.16.0*
 
 
-    See the :ref:`User Guide <dataframe_models>` for more.
+    See the :ref:`User Guide <dataframe-models>` for more.
     """
 
     Config: Type[BaseConfig] = BaseConfig
