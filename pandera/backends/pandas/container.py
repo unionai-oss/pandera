@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from pandera.api.pandas.types import is_table
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.base import CoreCheckResult, ColumnInfo, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
@@ -90,6 +90,14 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                 )
             except SchemaErrors as exc:
                 error_handler.collect_errors(exc.schema_errors)
+
+        # run custom parsers
+        try:
+            check_obj = self.run_parsers_and_handle_error(
+                error_handler, schema, check_obj
+            )
+        except SchemaErrors as exc:
+            error_handler.collect_errors(exc.schema_errors)
 
         # We may have modified columns, for example by
         # add_missing_columns, so regenerate column info
@@ -665,6 +673,39 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
             )
 
         return obj
+
+    def run_parsers_and_handle_error(self, error_handler, schema, check_obj):
+        """Run parsers and handle errors."""
+        parser_results: List[CoreParserResult] = []
+        for parser_index, parser in enumerate(schema.parsers):
+            try:
+                result = self.run_parser(
+                    check_obj,
+                    parser,
+                    parser_index,
+                )
+                check_obj = result.parser_output
+                parser_results.append(result)
+            except Exception as err:  # pylint: disable=broad-except
+                # catch other exceptions that may occur when executing the parser
+                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
+                err_str = f"{err.__class__.__name__}({ err_msg})"
+                msg = (
+                    f"Error while executing parser function: {err_str}\n"
+                    + traceback.format_exc()
+                )
+                error_handler.collect_error(
+                    validation_type(SchemaErrorReason.PARSER_ERROR),
+                    SchemaErrorReason.PARSER_ERROR,
+                    SchemaError(
+                        schema=schema,
+                        data=check_obj,
+                        message=msg,
+                        failure_cases=scalar_failure_case(err_str),
+                        parser=parser,
+                    ),
+                )
+        return check_obj
 
     ##########
     # Checks #

@@ -20,6 +20,7 @@ from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.model_config import BaseConfig
+from pandera.api.parsers import Parser
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo, INDEX_TYPES, SERIES_TYPES
@@ -51,12 +52,16 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             if name.startswith("multiindex_")
         }
         columns, index = cls._build_columns_index(
-            cls.__fields__, cls.__checks__, **multiindex_kwargs
+            cls.__fields__,
+            cls.__checks__,
+            cls.__parsers__,
+            **multiindex_kwargs,
         )
         return DataFrameSchema(
             columns,
             index=index,
             checks=cls.__root_checks__,
+            parsers=cls.__root_parsers__,
             **kwargs,
         )
 
@@ -65,6 +70,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         cls,
         fields: Dict[str, Tuple[AnnotationInfo, FieldInfo]],
         checks: Dict[str, List[Check]],
+        parsers: Dict[str, List[Parser]],
         **multiindex_kwargs: Any,
     ) -> Tuple[Dict[str, Column], Optional[Union[Index, MultiIndex]],]:
         index_count = sum(
@@ -76,8 +82,10 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         indices: List[Index] = []
         for field_name, (annotation, field) in fields.items():
             field_checks = checks.get(field_name, [])
+            field_parsers = parsers.get(field_name, [])
             field_name = field.name
             check_name = getattr(field, "check_name", None)
+            parser_name = getattr(field, "parser_name", None)
 
             use_raw_annotation = False
             if annotation.metadata:
@@ -115,11 +123,17 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                         f"'check_name' is not supported for {field_name}."
                     )
 
+                if parser_name is False:
+                    raise SchemaInitError(
+                        f"'parser_name' is not supported for {field_name}."
+                    )
+
                 column_kwargs = (
                     field.column_properties(
                         dtype,
                         required=not annotation.optional,
                         checks=field_checks,
+                        parsers=field_parsers,
                         name=field_name,
                     )
                     if field
