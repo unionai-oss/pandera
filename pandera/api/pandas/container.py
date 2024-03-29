@@ -163,6 +163,7 @@ class DataFrameSchema(BaseSchema):
         self.metadata = metadata
 
         self._validate_attributes()
+        self._register_default_backend()
 
     def _validate_attributes(self):
         if self.strict not in (False, True, "filter"):
@@ -170,6 +171,9 @@ class DataFrameSchema(BaseSchema):
                 "strict parameter must equal either `True`, `False`, "
                 "or `'filter'`."
             )
+
+    def _register_default_backend(self):
+        ...
 
     @property
     def coerce(self) -> bool:

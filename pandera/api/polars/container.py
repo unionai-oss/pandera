@@ -33,6 +33,9 @@ class DataFrameSchema(_DataFrameSchema):
                 "polars backend, all duplicate values will be reported."
             )
 
+    def _register_default_backend(self):
+        import pandera.backends.polars
+
     def validate(
         self,
         check_obj: PolarsCheckObjects,
