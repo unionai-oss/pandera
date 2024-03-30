@@ -183,7 +183,8 @@ class BaseCheck(metaclass=MetaCheck):
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseCheckBackend]):
         """Register a backend for the specified type."""
-        cls.BACKEND_REGISTRY[(cls, type_)] = backend
+        if (cls, type_) not in cls.BACKEND_REGISTRY:
+            cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
     def get_backend(cls, check_obj: Any) -> Type[BaseCheckBackend]:

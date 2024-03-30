@@ -18,6 +18,7 @@ from pandera.api.base.types import StrictType, CheckList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import PandasDtypeInputTypes
+from pandera.backends.pandas.register import register_pandas_backends
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine, PYDANTIC_V2
 
@@ -163,7 +164,6 @@ class DataFrameSchema(BaseSchema):
         self.metadata = metadata
 
         self._validate_attributes()
-        self._register_default_backend()
 
     def _validate_attributes(self):
         if self.strict not in (False, True, "filter"):
@@ -172,8 +172,8 @@ class DataFrameSchema(BaseSchema):
                 "or `'filter'`."
             )
 
-    def _register_default_backend(self):
-        ...
+    def _register_default_backends(self):
+        register_pandas_backends()
 
     @property
     def coerce(self) -> bool:

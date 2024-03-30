@@ -177,7 +177,7 @@ from pandera.typing import Series
 
 class Schema(pa.DataFrameModel):
 
-	column1: int = pa.Field(le=10)
+    column1: int = pa.Field(le=10)
     column2: float = pa.Field(lt=-1.2)
     column3: str = pa.Field(str_startswith="value_")
 
