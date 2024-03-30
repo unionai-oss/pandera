@@ -98,7 +98,7 @@ class Column(_Column):
             default=default,
             metadata=metadata,
             drop_invalid_rows=drop_invalid_rows,
-            **column_kwargs
+            **column_kwargs,
         )
         self.set_regex()
 

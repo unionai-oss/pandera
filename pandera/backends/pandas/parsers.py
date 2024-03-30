@@ -27,7 +27,7 @@ class PandasParserBackend(BaseParserBackend):
 
     @overload
     def prerprocess(
-        self, parse_obj, key
+        self, parse_obj, key  # pylint:disable=unused-argument
     ) -> pd.Series:  # pylint:disable=unused-argument
         """Preprocesses a parser object before applying the parse function."""
         return parse_obj

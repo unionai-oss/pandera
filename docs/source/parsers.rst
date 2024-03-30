@@ -12,7 +12,7 @@ Both dataframe-level and component-level parsers are available and dataframe-lev
 Parsing column properties
 -------------------------
 
-:class:`~pandera.api.parsers.Parser` objects accept a function as a required argument, which is 
+:class:`~pandera.api.parsers.Parser` objects accept a function as a required argument, which is
 expected to take a ``pa.Series`` input and output a parsed ``Series``, for example:
 
 
