@@ -921,8 +921,8 @@ def test_python_std_list_dict_error():
     )
 
     class Model(pa.DataFrameModel):
-        dict_column: dict[str, int]
-        list_column: list[float]
+        dict_column: Dict[str, int]
+        list_column: List[float]
 
     data = pd.DataFrame(
         {
