@@ -79,6 +79,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             field_name = field.name
             check_name = getattr(field, "check_name", None)
 
+            use_raw_annotation = False
             if annotation.metadata:
                 if field.dtype_kwargs:
                     raise TypeError(
@@ -91,18 +92,16 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             elif annotation.default_dtype:
                 dtype = annotation.default_dtype
             else:
-                dtype = annotation.arg
+                try:
+                    # if the raw annotation is accepted by the engine, use it as
+                    # the dtype
+                    Engine.dtype(annotation.raw_annotation)
+                    dtype = annotation.raw_annotation
+                    use_raw_annotation = True
+                except TypeError:
+                    dtype = annotation.arg
 
             dtype = None if dtype is Any else dtype
-
-            try:
-                # if the raw annotation is accepted by the engine, use it as
-                # the dtype
-                Engine.dtype(annotation.raw_annotation)
-                dtype = annotation.raw_annotation
-                use_raw_annotation = True
-            except TypeError:
-                use_raw_annotation = False
 
             if (
                 annotation.is_annotated_type
