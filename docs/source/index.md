@@ -146,8 +146,8 @@ Installing additional functionality:
       pip install 'pandera[dask]'        # validate dask dataframes
       pip install 'pandera[pyspark]'     # validate pyspark dataframes
       pip install 'pandera[modin]'       # validate modin dataframes
-      pip install 'pandera[modin-ray']   # validate modin dataframes with ray
-      pip install 'pandera[modin-dask']  # validate modin dataframes with dask
+      pip install 'pandera[modin-ray]'   # validate modin dataframes with ray
+      pip install 'pandera[modin-dask]'  # validate modin dataframes with dask
       pip install 'pandera[geopandas]'   # validate geopandas geodataframes
       pip install 'pandera[polars]'      # validate polars dataframes
 ```
