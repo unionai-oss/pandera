@@ -11,12 +11,13 @@ from typing import Any, Dict, List, Optional, Union, cast, overload
 from pyspark.sql import DataFrame
 
 from pandera import errors
-from pandera.config import get_config_context
 from pandera.api.base.schema import BaseSchema
 from pandera.api.base.types import StrictType
 from pandera.api.checks import Check
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
+from pandera.backends.pyspark.register import register_pyspark_backends
+from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pyspark_engine
 
@@ -152,6 +153,9 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         # set to True in the case that a schema is created by infer_schema.
         self._IS_INFERRED = False
         self.metadata = metadata
+
+    def _register_default_backends(self):
+        register_pyspark_backends()
 
     @property
     def coerce(self) -> bool:
