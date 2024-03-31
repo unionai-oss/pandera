@@ -749,6 +749,13 @@ def test_python_typing_dtypes():
         },
     )
 
+    class Model(pa.DataFrameModel):
+        Dict_column: Dict[str, int]
+        List_column: List[float]
+        Tuple_column: Tuple[int, str, float]
+        typeddict_column: PointDict
+        namedtuple_column: PointTuple
+
     data = pd.DataFrame(
         {
             "Dict_column": [{"foo": 1, "bar": 2}],
@@ -760,6 +767,7 @@ def test_python_typing_dtypes():
     )
 
     schema.validate(data)
+    Model.validate(data)
 
 
 @pytest.mark.skipif(
@@ -775,6 +783,12 @@ def test_python_std_list_dict_generics():
             "tuple_column": pa.Column(tuple[int, str, float]),
         },
     )
+
+    class Model(pa.DataFrameModel):
+        dict_column: dict[str, int]
+        list_column: list[float]
+        tuple_column: tuple[int, str, float]
+
     data = pd.DataFrame(
         {
             "dict_column": [{"foo": 1, "bar": 2}],
@@ -783,6 +797,7 @@ def test_python_std_list_dict_generics():
         }
     )
     schema.validate(data)
+    Model.validate(data)
 
 
 @pytest.mark.parametrize("nullable", [True, False])
@@ -812,6 +827,13 @@ def test_python_typing_handle_empty_list_dict_and_none(nullable, data_dict):
         coerce=True,
     )
 
+    class Model(pa.DataFrameModel):
+        dict_column: Dict[str, int] = pa.Field(nullable=nullable)
+        list_column: List[float] = pa.Field(nullable=nullable)
+
+        class Config:
+            coerce = True
+
     data = pd.DataFrame(data_dict)
 
     expected = pd.DataFrame(
@@ -822,11 +844,13 @@ def test_python_typing_handle_empty_list_dict_and_none(nullable, data_dict):
     )
 
     if nullable:
-        validated_data = schema.validate(data)
-        assert validated_data.equals(expected)
+        assert schema.validate(data).equals(expected)
+        assert Model.validate(data).equals(expected)
     else:
         with pytest.raises(pa.errors.SchemaError):
             schema.validate(data)
+        with pytest.raises(pa.errors.SchemaError):
+            Model.validate(data)
 
 
 @pytest.mark.skipif(
@@ -861,6 +885,13 @@ def test_python_std_list_dict_empty_and_none(nullable, data_dict):
         coerce=True,
     )
 
+    class Model(pa.DataFrameModel):
+        dict_column: dict[str, int] = pa.Field(nullable=nullable)
+        list_column: list[float] = pa.Field(nullable=nullable)
+
+        class Config:
+            coerce = True
+
     data = pd.DataFrame(data_dict)
 
     expected = pd.DataFrame(
@@ -871,11 +902,13 @@ def test_python_std_list_dict_empty_and_none(nullable, data_dict):
     )
 
     if nullable:
-        validated_data = schema.validate(data)
-        assert validated_data.equals(expected)
+        assert schema.validate(data).equals(expected)
+        assert Model.validate(data).equals(expected)
     else:
         with pytest.raises(pa.errors.SchemaError):
             schema.validate(data)
+        with pytest.raises(pa.errors.SchemaError):
+            Model.validate(data)
 
 
 def test_python_std_list_dict_error():
@@ -887,6 +920,10 @@ def test_python_std_list_dict_error():
         },
     )
 
+    class Model(pa.DataFrameModel):
+        dict_column: Dict[str, int]
+        list_column: List[float]
+
     data = pd.DataFrame(
         {
             "dict_column": [{"foo": 1}, {"foo": 1, "bar": "2"}, {}],
@@ -894,11 +931,12 @@ def test_python_std_list_dict_error():
         }
     )
 
-    try:
-        schema.validate(data, lazy=True)
-    except pa.errors.SchemaErrors as exc:
-        assert exc.failure_cases["failure_case"].iloc[0] == {
-            "foo": 1,
-            "bar": "2",
-        }
-        assert exc.failure_cases["failure_case"].iloc[1] == ["1.0", 2.0]
+    for validator in (schema, Model):
+        try:
+            validator.validate(data, lazy=True)
+        except pa.errors.SchemaErrors as exc:
+            assert exc.failure_cases["failure_case"].iloc[0] == {
+                "foo": 1,
+                "bar": "2",
+            }
+            assert exc.failure_cases["failure_case"].iloc[1] == ["1.0", 2.0]

@@ -20,6 +20,7 @@ from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
 from pandera.api.pandas.model_config import BaseConfig
+from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo, INDEX_TYPES, SERIES_TYPES
 
@@ -78,6 +79,7 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             field_name = field.name
             check_name = getattr(field, "check_name", None)
 
+            use_raw_annotation = False
             if annotation.metadata:
                 if field.dtype_kwargs:
                     raise TypeError(
@@ -90,13 +92,21 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             elif annotation.default_dtype:
                 dtype = annotation.default_dtype
             else:
-                dtype = annotation.arg
+                try:
+                    # if the raw annotation is accepted by the engine, use it as
+                    # the dtype
+                    Engine.dtype(annotation.raw_annotation)
+                    dtype = annotation.raw_annotation
+                    use_raw_annotation = True
+                except TypeError:
+                    dtype = annotation.arg
 
             dtype = None if dtype is Any else dtype
 
             if (
                 annotation.is_annotated_type
                 or annotation.origin is None
+                or use_raw_annotation
                 or annotation.origin in SERIES_TYPES
                 or annotation.raw_annotation in SERIES_TYPES
             ):
