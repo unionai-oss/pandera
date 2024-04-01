@@ -45,6 +45,7 @@ class BaseSchema(ABC):
         self.description = description
         self.metadata = metadata
         self.drop_invalid_rows = drop_invalid_rows
+        self._register_default_backends()
 
     def validate(
         self,
@@ -94,7 +95,8 @@ class BaseSchema(ABC):
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseSchemaBackend]):
         """Register a schema backend for this class."""
-        cls.BACKEND_REGISTRY[(cls, type_)] = backend
+        if (cls, type_) not in cls.BACKEND_REGISTRY:
+            cls.BACKEND_REGISTRY[(cls, type_)] = backend
 
     @classmethod
     def get_backend(
@@ -121,6 +123,14 @@ class BaseSchema(ABC):
             f"Backend not found for backend, class: {(cls, check_obj_cls)}. "
             f"Looked up the following base classes: {classes}"
         )
+
+    def _register_default_backends(self):
+        """Register default backends.
+
+        This method is invoked in the `__init__` method for subclasses that
+        implement the API for a specific dataframe object, and should be
+        overridden in those subclasses.
+        """
 
 
 def inferred_schema_guard(method):

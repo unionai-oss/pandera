@@ -12,6 +12,7 @@ from pandera.api.base.types import CheckList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
+from pandera.backends.pandas.register import register_pandas_backends
 from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
 from pandera.engines import pandas_engine, PYDANTIC_V2
@@ -110,6 +111,9 @@ class ArraySchema(BaseSchema):
                 "PydanticModel dtype can only be specified as a "
                 "DataFrameSchema dtype."
             )
+
+    def _register_default_backends(self):
+        register_pandas_backends()
 
     # the _is_inferred getter and setter methods are not public
     @property

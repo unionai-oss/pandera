@@ -8,6 +8,7 @@ import polars as pl
 from pandera.api.pandas.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.polars.types import PolarsCheckObjects
 from pandera.api.polars.utils import get_validation_depth
+from pandera.backends.polars.register import register_polars_backends
 from pandera.config import config_context
 from pandera.dtypes import DataType
 from pandera.engines import polars_engine
@@ -32,6 +33,9 @@ class DataFrameSchema(_DataFrameSchema):
                 "'exclude_last' will have no effect on validation. With the "
                 "polars backend, all duplicate values will be reported."
             )
+
+    def _register_default_backends(self):
+        register_polars_backends()
 
     def validate(
         self,
