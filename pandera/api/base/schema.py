@@ -132,6 +132,10 @@ class BaseSchema(ABC):
         overridden in those subclasses.
         """
 
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._register_default_backends()
+
 
 def inferred_schema_guard(method):
     """
