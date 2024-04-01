@@ -368,6 +368,7 @@ series_schemas
 dtype_validation
 checks
 hypothesis
+parsers
 dtypes
 decorators
 drop_invalid_rows

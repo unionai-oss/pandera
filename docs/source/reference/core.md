@@ -41,6 +41,7 @@
 
    pandera.api.checks.Check
    pandera.api.hypotheses.Hypothesis
+   pandera.api.parsers.Parser
 ```
 
 ## Data Objects

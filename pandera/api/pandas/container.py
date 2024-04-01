@@ -655,6 +655,7 @@ class DataFrameSchema(BaseSchema):
                 'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -719,6 +720,7 @@ class DataFrameSchema(BaseSchema):
                 'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -784,6 +786,7 @@ class DataFrameSchema(BaseSchema):
                 'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -868,6 +871,7 @@ class DataFrameSchema(BaseSchema):
                 'probabilities': <Schema Column(name=probabilities, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -1047,6 +1051,7 @@ class DataFrameSchema(BaseSchema):
                 'column1': <Schema Column(name=column1, type=DataType(str))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=<Schema MultiIndex(
