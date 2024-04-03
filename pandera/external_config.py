@@ -16,6 +16,8 @@ try:
         os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
 
     import pyspark.pandas
-except ImportError:
+finally:
+    # TODO: these pops should probably only happen if ^ above code modifies them
+    # otherwise risk undoing user defined values?
     os.environ.pop("SPARK_LOCAL_IP")
     os.environ.pop("PYARROW_IGNORE_TIMEZONE")
