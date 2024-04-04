@@ -2,7 +2,7 @@
 # pylint:disable=abstract-method,too-many-ancestors,invalid-name
 
 import inspect
-from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union, List, Dict, Tuple, NamedTuple, TypedDict
 
 import pandas as pd
 import typing_inspect
@@ -59,6 +59,10 @@ if GEOPANDAS_INSTALLED:
             int,
             str,
             float,
+            List[Any],
+            Dict[Any, Any],
+            Tuple[Any],
+            NamedTuple,
             pd.core.dtypes.base.ExtensionDtype,
             Bool,
             Date,
@@ -101,6 +105,10 @@ else:
             int,
             str,
             float,
+            List[Any],
+            Dict[Any, Any],
+            Tuple[Any],
+            NamedTuple,
             pd.core.dtypes.base.ExtensionDtype,
             Bool,
             Date,
