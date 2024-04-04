@@ -1,8 +1,21 @@
 """Common typing functionality."""
+
 # pylint:disable=abstract-method,too-many-ancestors,invalid-name
 
 import inspect
-from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar, Union, List, Dict, Tuple, NamedTuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    List,
+    Dict,
+    Tuple,
+    NamedTuple,
+)
 
 import pandas as pd
 import typing_inspect
