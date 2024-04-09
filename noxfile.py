@@ -322,6 +322,10 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     if session.python == "3.8" and pandas == "2.2.0":
         session.skip()
 
+    additional_args = []
+    if session.python == "3.11":
+        additional_args.extend(["--upgrade-package", "dask"])
+
     session.install("uv")
     with tempfile.NamedTemporaryFile("a") as f:
         f.writelines([f"pandas=={pandas}\n", f"pydantic=={pydantic}\n"])
@@ -336,6 +340,7 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
             "--override",
             f"{f.name}",
             "--no-header",
+            *additional_args,
         )
 
 
