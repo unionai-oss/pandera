@@ -86,6 +86,7 @@ dependencies:
 
   - pip:
       - furo
+      - grpcio
       - ray
       - typeguard >= 3.0.2
       - types-click

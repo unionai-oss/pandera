@@ -140,6 +140,7 @@ furo==2024.1.29
 geopandas==0.14.3
 greenlet==3.0.3
     # via sqlalchemy
+grpcio==1.62.1
 h11==0.14.0
     # via uvicorn
 hypothesis==6.100.1
