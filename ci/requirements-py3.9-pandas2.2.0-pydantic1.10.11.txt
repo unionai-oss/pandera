@@ -346,19 +346,8 @@ packaging==23.2
     #   sphinx
 pandas==2.2.0
     # via
-    #   dask
-    #   frictionless
     #   geopandas
-    #   hypothesis
-    #   ipython
-    #   jupyter-cache
     #   modin
-    #   myst-nb
-    #   partd
-    #   petl
-    #   polars
-    #   pyspark
-    #   ray
 pandas-stubs==2.2.0.240218
 pandocfilters==1.5.1
     # via nbconvert
@@ -408,10 +397,7 @@ pyarrow==15.0.0
 pycparser==2.21
     # via cffi
 pydantic==1.10.11
-    # via
-    #   fastapi
-    #   polars
-    #   ray
+    # via fastapi
 pygments==2.17.2
     # via
     #   furo

@@ -327,18 +327,27 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
         additional_args.extend(["--upgrade-package", "dask"])
 
     session.install("uv")
+
+    requirements = []
+    with open("requirements.in") as f:
+        for line in f.readlines():
+            _line = line.strip()
+            if _line == "pandas":
+                line = f"pandas=={pandas}\n"
+            if _line == "pydantic":
+                line = f"pydantic=={pydantic}\n"
+            requirements.append(line)
+
     with tempfile.NamedTemporaryFile("a") as f:
-        f.writelines([f"pandas=={pandas}\n", f"pydantic=={pydantic}\n"])
+        f.writelines(requirements)
         f.seek(0)
         session.run(
             "uv",
             "pip",
             "compile",
-            "requirements.in",
+            f"{f.name}",
             "--output-file",
             _ci_requirement_file_name(session, pandas, pydantic),
-            "--override",
-            f"{f.name}",
             "--no-header",
             *additional_args,
         )
