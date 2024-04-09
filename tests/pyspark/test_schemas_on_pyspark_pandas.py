@@ -344,7 +344,7 @@ def test_nullable(
             # pylint: disable=no-member
             exc_msg = exc.message if len(exc.args) == 0 else exc.args[0]
             match = re.search(
-                r"can not accept object ?`(<NA>|NaT)?` in type", exc_msg
+                r"can not accept object `?(<NA>|NaT)`? in type", exc_msg
             )
             if match is None:
                 raise
