@@ -51,6 +51,7 @@ twine
 asv >= 0.5.1
 pre_commit
 furo
+grpcio
 ray
 typeguard >= 3.0.2
 types-click

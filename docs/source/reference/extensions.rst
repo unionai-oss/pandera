@@ -1,12 +1,11 @@
-(api-extensions)=
+.. _api-extensions:
 
-# Extensions
+Extensions
+==========
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: module.rst
    :nosignatures:
 
    pandera.extensions
-```

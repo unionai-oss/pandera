@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11.8"]  # python 3.11.9 causes issues with unit tests
     defaults:
       run:
         shell: bash -l {0}
@@ -101,7 +101,7 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11.8"]  # python 3.11.9 causes issues with unit tests
         pandas-version: ["1.5.3", "2.0.3", "2.2.0"]
         pydantic-version: ["1.10.11", "2.3.0"]
         include:

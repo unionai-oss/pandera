@@ -87,7 +87,7 @@ commonmark==0.9.1
     # via recommonmark
 coverage==7.4.2
     # via pytest-cov
-dask==2024.2.0
+dask==2024.4.1
     # via distributed
 debugpy==1.8.1
     # via ipykernel
@@ -99,7 +99,7 @@ dill==0.3.8
     # via pylint
 distlib==0.3.8
     # via virtualenv
-distributed==2024.2.0
+distributed==2024.4.1
 docutils==0.17.1
     # via
     #   jupyterlite-sphinx

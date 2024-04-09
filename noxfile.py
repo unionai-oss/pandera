@@ -27,7 +27,7 @@ nox.options.sessions = (
 )
 
 DEFAULT_PYTHON = "3.8"
-PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
+PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11.8"]
 PANDAS_VERSIONS = ["1.5.3", "2.0.3", "2.2.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
@@ -322,20 +322,34 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     if session.python == "3.8" and pandas == "2.2.0":
         session.skip()
 
+    additional_args = []
+    if session.python == "3.11":
+        additional_args.extend(["--upgrade-package", "dask"])
+
     session.install("uv")
+
+    requirements = []
+    with open("requirements.in") as f:
+        for line in f.readlines():
+            _line = line.strip()
+            if _line == "pandas":
+                line = f"pandas=={pandas}\n"
+            if _line == "pydantic":
+                line = f"pydantic=={pydantic}\n"
+            requirements.append(line)
+
     with tempfile.NamedTemporaryFile("a") as f:
-        f.writelines([f"pandas=={pandas}\n", f"pydantic=={pydantic}\n"])
+        f.writelines(requirements)
         f.seek(0)
         session.run(
             "uv",
             "pip",
             "compile",
-            "requirements.in",
+            f"{f.name}",
             "--output-file",
             _ci_requirement_file_name(session, pandas, pydantic),
-            "--override",
-            f"{f.name}",
             "--no-header",
+            *additional_args,
         )
 
 

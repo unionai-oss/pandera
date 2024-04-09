@@ -1,8 +1,8 @@
-(api-errors)=
+.. _api-errors:
 
-# Errors
+Errors
+======
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -12,4 +12,3 @@
    pandera.errors.SchemaErrors
    pandera.errors.SchemaInitError
    pandera.errors.SchemaDefinitionError
-```
