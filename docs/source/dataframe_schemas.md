@@ -442,6 +442,8 @@ except pa.errors.SchemaError as exc:
     print(exc)
 ```
 
+(adding-missing-columns)=
+
 ### Adding missing columns
 
 When loading raw data into a form that's ready for data processing, it's often

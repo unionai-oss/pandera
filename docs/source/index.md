@@ -101,15 +101,17 @@ settings. With `pandera`, you can:
    `pd.DataFrame` or values in a `pd.Series`.
 3. Perform more complex statistical validation like
    {ref}`hypothesis testing<hypothesis>`.
-4. Seamlessly integrate with existing data analysis/processing pipelines
+4. {ref}`Parse<parsers>` data to standardize the preprocessing steps needed to
+   produce valid data.
+5. Seamlessly integrate with existing data analysis/processing pipelines
    via {ref}`function decorators<decorators>`.
-5. Define dataframe models with the {ref}`class-based API <dataframe-models>` with
+6. Define dataframe models with the {ref}`class-based API <dataframe-models>` with
    pydantic-style syntax and validate dataframes using the typing syntax.
-6. {ref}`Synthesize data <data-synthesis-strategies>` from schema objects for
+7. {ref}`Synthesize data <data-synthesis-strategies>` from schema objects for
    property-based testing with pandas data structures.
-7. {ref}`Lazily Validate <lazy-validation>` dataframes so that all validation
+8. {ref}`Lazily Validate <lazy-validation>` dataframes so that all validation
    rules are executed before raising an error.
-8. {ref}`Integrate <integrations>` with a rich ecosystem of python tools like
+9. {ref}`Integrate <integrations>` with a rich ecosystem of python tools like
    [pydantic](https://pydantic-docs.helpmanual.io/),
    [fastapi](https://fastapi.tiangolo.com/) and [mypy](http://mypy-lang.org/).
 

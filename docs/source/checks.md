@@ -9,7 +9,7 @@ file_format: mystnb
 
 (checks)=
 
-# Checks
+# Validating with Checks
 
 Checks are one of the fundamental constructs of pandera. They allow you to
 specify properties about dataframes, columns, indexes, and series objects, which

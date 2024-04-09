@@ -9,13 +9,42 @@ file_format: mystnb
 
 (parsers)=
 
-# Parsers
+# Preprocessing with Parsers
 
 *new in 0.19.0*
 
 Parsers allow you to do some custom preprocessing on dataframes, columns, and
-series objects. This is useful when you want to normalize, clip, or clean
-data values before applying validation checks.
+series objects before running the validation checks. This is useful when you want
+to normalize, clip, or otherwise clean data values before applying validation
+checks.
+
+## Parsing versus validation
+
+Pandera distinguishes between data validation and parsing. Validation is the act
+of verifying whether data follows some set of contraints, whereas parsing transforms
+raw data into some desired set of constraints.
+
+Pandera ships with a few core parsers that you may already be familiar with:
+
+- `coerce=True` will convert the datatypes of the incoming data to validate.
+  This option is available in both {class}`~pandera.api.pandas.container.DataFrameSchema`
+  and {class}`~pandera.api.pandas.components.Column` objects. See {ref}`here <coerced>`
+  for more details.
+- `strict="filter"` will remove columns in the data that are not specified in
+  the {class}`~pandera.api.pandas.container.DataFrameSchema`. See {ref}`here <strict>`
+  for more details.
+- `add_missing_columns=True` will add missing columns to the data if the
+  {class}`~pandera.api.pandas.components.Column` is nullable or specifies a
+   default value. See {ref}`here <adding-missing-columns>`.
+
+The {class}`~pandera.api.parsers.Parser` abstraction allows you to specify any
+arbitrary transform that occurs before validation so that you can codify
+and standardize the preprocessing steps needed to get your raw data into a valid
+state.
+
+```{important}
+This feature is currently only supported with the `pandas` validation backend.
+```
 
 With parsers, you can codify and reuse preprocessing logic as part of the schema.
 Note that this feature is optional, meaning that you can always do preprocessing
@@ -48,13 +77,10 @@ data = pd.DataFrame({"a": [1, 2, -1]})
 schema.validate(data)
 ```
 
-```{important}
-This feature is only supported with the `pandas` validation backend.
-```
-
-You can specify both dataframe-level and column-level parsers are available, where
-dataframe-level parsers are performed before column-level parsers. With parsers
-and checks, the validation process consists of the following steps:
+You can specify both dataframe- and column-level parsers, where
+dataframe-level parsers are performed before column-level parsers. Assuming
+that a schema contains parsers and checks, the validation process consists of
+the following steps:
 
 1. dataframe-level parsing
 2. column-level parsing
@@ -122,10 +148,16 @@ data = pd.DataFrame({
 schema.validate(data)
 ```
 
+```{note}
+Similar to the column-level parsers, you can also provide a list of `Parser`s
+at the dataframe level.
+```
+
 ## Parsers in `DataFrameModel`
 
 We can write a `DataFrameModel` that's equivalent to the schema above with the
-`@parse` and `@dataframe_parse`  decorators:
+{py:func}`~pandera.api.dataframe.model_components.parse` and
+{py:func}`~pandera.api.dataframe.model_components.dataframe_parse`  decorators:
 
 ```{code-cell} python
 class DFModel(pa.DataFrameModel):
