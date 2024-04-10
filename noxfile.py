@@ -27,7 +27,7 @@ nox.options.sessions = (
 )
 
 DEFAULT_PYTHON = "3.8"
-PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11.8"]
+PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
 PANDAS_VERSIONS = ["1.5.3", "2.0.3", "2.2.0"]
 PYDANTIC_VERSIONS = ["1.10.11", "2.3.0"]
 
