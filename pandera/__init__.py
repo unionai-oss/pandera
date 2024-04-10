@@ -11,8 +11,8 @@ from pandera.api.parsers import Parser
 from pandera.api.dataframe.model_components import (
     check,
     dataframe_check,
-    parse,
-    dataframe_parse,
+    parser,
+    dataframe_parser,
 )
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.dataframe.model_components import Field
@@ -164,8 +164,8 @@ __all__ = [
     "Field",
     "check",
     "dataframe_check",
-    "parse",
-    "dataframe_parse",
+    "parser",
+    "dataframe_parser",
     # schema_components
     "Column",
     "Index",

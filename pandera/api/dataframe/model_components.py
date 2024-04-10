@@ -354,34 +354,34 @@ def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
 ClassParser = Callable[[Union[classmethod, AnyCallable]], classmethod]
 
 
-def parse(*fields, **parse_kwargs) -> ClassParser:
+def parser(*fields, **parser_kwargs) -> ClassParser:
     """Defines DataFrameModel parse methods for columns/indexes."""
 
     def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
-        parser_fn, parse_method = _to_function_and_classmethod(fn)
-        parse_kwargs.setdefault("description", fn.__doc__)
+        parser_fn, parser_method = _to_function_and_classmethod(fn)
+        parser_kwargs.setdefault("description", fn.__doc__)
         setattr(
-            parse_method,
+            parser_method,
             PARSER_KEY,
-            FieldParserInfo(set(fields), parser_fn, **parse_kwargs),
+            FieldParserInfo(set(fields), parser_fn, **parser_kwargs),
         )
-        return parse_method
+        return parser_method
 
     return _wrapper
 
 
-def dataframe_parse(_fn=None, **parse_kwargs) -> ClassParser:
+def dataframe_parser(_fn=None, **parser_kwargs) -> ClassParser:
     """Defines DataFrameModel parse methods for dataframes."""
 
     def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
-        parser_fn, parse_method = _to_function_and_classmethod(fn)
-        parse_kwargs.setdefault("description", fn.__doc__)
+        parser_fn, parser_method = _to_function_and_classmethod(fn)
+        parser_kwargs.setdefault("description", fn.__doc__)
         setattr(
-            parse_method,
+            parser_method,
             DATAFRAME_PARSER_KEY,
-            ParserInfo(parser_fn, **parse_kwargs),
+            ParserInfo(parser_fn, **parser_kwargs),
         )
-        return parse_method
+        return parser_method
 
     if _fn:
         return _wrapper(_fn)  # type: ignore

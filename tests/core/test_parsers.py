@@ -1,10 +1,15 @@
 """Tests the way Columns are Parsed"""
 
+import copy
 import pandas as pd
 import numpy as np
 
+import pytest
+
+import pandera as pa
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.parsers import Parser
+from pandera.typing import Series
 
 
 def test_dataframe_schema_parse() -> None:
@@ -17,3 +22,53 @@ def test_dataframe_schema_parse() -> None:
     assert schema_check_return_bool.validate(data).equals(
         data.applymap(np.sqrt)
     )
+
+
+def test_parser_equality_operators() -> None:
+    """Test the usage of == between a Parser and an entirely different Parser,
+    and a non-Parser."""
+    parser = Parser(lambda g: g["foo"]["col1"].iat[0] == 1)
+
+    not_equal_parser = Parser(lambda x: x.isna().sum() == 0)
+    assert parser == copy.deepcopy(parser)
+    assert parser != not_equal_parser
+    assert parser != "not a parser"
+
+
+def test_equality_operators_functional_equivalence() -> None:
+    """Test the usage of == for Parsers where the Parser callable object has
+    the same implementation."""
+    main_parser = Parser(lambda g: g["foo"]["col1"].iat[0] == 1)
+    same_parser = Parser(lambda h: h["foo"]["col1"].iat[0] == 1)
+
+    assert main_parser == same_parser
+
+
+def test_check_backend_not_found():
+    """Test that parsers complain if a backend is not register for that type."""
+
+    class CustomDataObject:
+        """Custom data object."""
+
+    dummy_check = Parser(lambda _: True)
+
+    with pytest.raises(KeyError, match="Backend not found for class"):
+        dummy_check(CustomDataObject())
+
+
+def test_parser_non_existing() -> None:
+    """Test a check on a non-existing column."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[int]
+
+        @pa.check("nope")
+        @classmethod
+        def int_column_lt_100(cls, series: pd.Series):
+            return series < 100
+
+    err_msg = (
+        "Check int_column_lt_100 is assigned to a non-existing field 'nope'"
+    )
+    with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
+        Schema.to_schema()

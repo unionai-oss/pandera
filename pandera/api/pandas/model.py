@@ -85,7 +85,6 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
             field_parsers = parsers.get(field_name, [])
             field_name = field.name
             check_name = getattr(field, "check_name", None)
-            parser_name = getattr(field, "parser_name", None)
 
             use_raw_annotation = False
             if annotation.metadata:
@@ -121,11 +120,6 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
                 if check_name is False:
                     raise SchemaInitError(
                         f"'check_name' is not supported for {field_name}."
-                    )
-
-                if parser_name is False:
-                    raise SchemaInitError(
-                        f"'parser_name' is not supported for {field_name}."
                     )
 
                 column_kwargs = (

@@ -75,14 +75,10 @@ class ArraySchemaBackend(PandasSchemaBackend):
             )
 
         # run custom parsers
-        try:
-            check_obj = self.run_parsers_and_handle_error(
-                error_handler,
-                schema,
-                check_obj,
-            )
-        except SchemaErrors as exc:
-            error_handler.collect_errors(exc.schema_errors)
+        check_obj = self.run_parsers(
+            schema,
+            check_obj,
+        )
 
         # run the core checks
         error_handler = self.run_checks_and_handle_errors(
@@ -189,62 +185,18 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 reason_code=SchemaErrorReason.DATATYPE_COERCION,
             ) from exc
 
-    def run_parsers_and_handle_error(self, error_handler, schema, check_obj):
+    def run_parsers(self, schema, check_obj):
         parser_results: List[CoreParserResult] = []
         for parser_index, parser in enumerate(schema.parsers):
             parser_args = [None] if is_field(check_obj) else [schema.name]
-            try:
-                result = self.run_parser(
-                    check_obj,
-                    parser,
-                    parser_index,
-                    *parser_args,
-                )
-                check_obj = result.parser_output
-                parser_results.append(result)
-            except Exception as err:  # pylint: disable=broad-except
-                # catch other exceptions that may occur when executing the Parser
-                if isinstance(err, DispatchError):
-                    # if the error was raised by a parser registered via
-                    # multimethod, get the underlying __cause__
-                    err = err.__cause__
-                err_msg = f'"{err.args[0]}"' if len(err.args) > 0 else ""
-                msg = f"{err.__class__.__name__}({err_msg})"
-                parser_results.append(
-                    CoreParserResult(
-                        passed=False,
-                        parser=parser,
-                        parser_index=parser_index,
-                        reason_code=SchemaErrorReason.PARSER_ERROR,
-                        message=msg,
-                        failure_cases=scalar_failure_case(msg),
-                        original_exc=err,
-                    )
-                )
-            for result in parser_results:
-                if not result.passed:
-                    error = SchemaError(
-                        schema=schema,
-                        data=check_obj,
-                        message=result.message,
-                        failure_cases=result.failure_cases,
-                        parser=result.parser,
-                        parser_index=result.parser_index,
-                        parser_output=result.parser_output,
-                        reason_code=result.reason_code,
-                    )
-                    error_handler.collect_error(
-                        validation_type(result.reason_code),
-                        result.reason_code,
-                        error,
-                        original_exc=result.original_exc,
-                    )
-            if error_handler.collected_errors:
-                raise SchemaErrors(
-                    schema=schema,
-                    schema_errors=error_handler.schema_errors,
-                    data=check_obj,
-                )
+            result = self.run_parser(
+                check_obj,
+                parser,
+                parser_index,
+                *parser_args,
+            )
+            check_obj = result.parser_output
+            parser_results.append(result)
         return check_obj
 
     @validate_scope(scope=ValidationScope.SCHEMA)

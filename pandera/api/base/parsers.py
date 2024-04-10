@@ -1,12 +1,9 @@
 """Data validation base parse."""
 
 import inspect
-from itertools import chain
 from typing import (
     Any,
-    Callable,
     Dict,
-    Iterable,
     NamedTuple,
     Optional,
     Tuple,
@@ -16,7 +13,6 @@ from typing import (
     no_type_check,
 )
 
-from pandera.api.base.checks import multidispatch
 from pandera.backends.base import BaseParserBackend
 
 
@@ -36,67 +32,12 @@ class MetaParser(type):
     BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseParserBackend]] = {}
     """Registry of parser backends implemented for specific data objects."""
 
-    PARSER_FUNCTION_REGISTRY: Dict[str, Callable] = {}
-    """Built-in parser function registry"""
-
-    def __getattr__(cls, name: str) -> Any:
-        """Prevent attribute errors for registered parsers."""
-        attr = {
-            **cls.__dict__,
-            **cls.PARSER_FUNCTION_REGISTRY,
-        }.get(name)
-        if attr is None:
-            raise AttributeError(
-                f"'{cls}' object has no attribute '{name}'. "
-                "Make sure any custom parsers have been registered "
-                "using the extensions api."
-            )
-        return attr
-
-    def __dir__(cls) -> Iterable[str]:
-        """Allow custom parsers to show up as attributes when autocompleting."""
-        return chain(
-            super().__dir__(),
-            cls.PARSER_FUNCTION_REGISTRY.keys(),
-        )
-
-    # pylint: disable=line-too-long
-    # mypy has limited metaclass support so this doesn't pass typecheck
-    # see https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
-    # pylint: enable=line-too-long
-    @no_type_check
-    def __contains__(cls: Type[_T], item: Union[_T, str]) -> bool:
-        """Allow lookups for registered parsers."""
-        if isinstance(item, cls):
-            name = item.name
-            return hasattr(cls, name)
-
-        # assume item is str
-        return hasattr(cls, item)
-
 
 class BaseParser(metaclass=MetaParser):
     """Parser base class."""
 
     def __init__(self, name: Optional[str] = None):
         self.name = name
-
-    @classmethod
-    def register_builtin_parser_fn(cls, fn: Callable):
-        """Registers a built-in parser function"""
-        cls.PARSER_FUNCTION_REGISTRY[fn.__name__] = multidispatch(fn)
-        return fn
-
-    @classmethod
-    def get_builtin_parser_fn(cls, name: str):
-        """Gets a built-in parser function"""
-        return cls.PARSER_FUNCTION_REGISTRY[name]
-
-    @classmethod
-    def from_builtin_parser_name(cls, name: str, init_kwargs, **parser_kwargs):
-        """Create a Parse object from a built-in parse's name."""
-        kws = {**init_kwargs, **parser_kwargs}
-        return cls(cls.get_builtin_parser_fn(name), **kws)
 
     @classmethod
     def register_backend(cls, type_: Type, backend: Type[BaseParserBackend]):

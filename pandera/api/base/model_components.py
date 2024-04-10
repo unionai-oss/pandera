@@ -45,7 +45,6 @@ class BaseFieldInfo:
         "coerce",
         "regex",
         "check_name",
-        "parse_name",
         "alias",
         "original_name",
         "dtype_kwargs",
@@ -65,7 +64,6 @@ class BaseFieldInfo:
         regex: bool = False,
         alias: Any = None,
         check_name: Optional[bool] = None,
-        parse_name: Optional[bool] = None,
         dtype_kwargs: Optional[Dict[str, Any]] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -80,7 +78,6 @@ class BaseFieldInfo:
         self.regex = regex
         self.alias = alias
         self.check_name = check_name
-        self.parse_name = parse_name
         self.original_name = cast(str, None)  # always set by BaseModel
         self.dtype_kwargs = dtype_kwargs
         self.title = title
