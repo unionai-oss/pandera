@@ -61,7 +61,7 @@ try:
         "collection_check_strategy": CollectionCheckStrategy.ALL_ITEMS,
     }
     TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = True
-    TYPEGUARD_ERROR = typeguard.TypeError
+    TYPEGUARD_ERROR = typeguard.TypeCheckError
 except ImportError:
     type_types_kwargs = {}
     TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = False
