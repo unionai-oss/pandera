@@ -26,14 +26,14 @@ class PandasParserBackend(BaseParserBackend):
         self.parser_fn = partial(parser._parser_fn, **parser._parser_kwargs)
 
     @overload
-    def prerprocess(
+    def preprocess(
         self, parse_obj, key  # pylint:disable=unused-argument
     ) -> pd.Series:  # pylint:disable=unused-argument
         """Preprocesses a parser object before applying the parse function."""
         return parse_obj
 
     @overload  # type: ignore [no-redef]
-    def prerprocess(
+    def preprocess(
         self,
         parse_obj: is_table,  # type: ignore [valid-type]
         key,
@@ -41,7 +41,7 @@ class PandasParserBackend(BaseParserBackend):
         return parse_obj[key]
 
     @overload  # type: ignore [no-redef]
-    def prerprocess(
+    def preprocess(
         self, parse_obj: is_table, key: None  # type: ignore [valid-type]  # pylint:disable=unused-argument
     ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         return parse_obj
@@ -82,7 +82,7 @@ class PandasParserBackend(BaseParserBackend):
         parse_obj: Union[pd.Series, pd.DataFrame],
         key: Optional[str] = None,
     ):
-        parse_obj = self.prerprocess(parse_obj, key)
+        parse_obj = self.preprocess(parse_obj, key)
         try:
             parser_output = self.apply(parse_obj)
         except DispatchError as exc:
