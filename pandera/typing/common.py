@@ -168,8 +168,9 @@ def __patched_generic_alias_call__(self, *args, **kwargs):
     result = self.__origin__(*args, **kwargs)
     try:
         result.__orig_class__ = self
-    # Limit the patched behavior to pandera errors.
+    # Limit the patched behavior to subset of exception types
     except (
+        TypeError,
         errors.SchemaError,
         errors.SchemaError,
         errors.SchemaInitError,
