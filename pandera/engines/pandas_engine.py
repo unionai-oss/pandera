@@ -30,7 +30,6 @@ import numpy as np
 import pandas as pd
 import typeguard
 from pydantic import BaseModel, ValidationError, create_model
-from typeguard import CollectionCheckStrategy
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
@@ -53,6 +52,20 @@ try:
     PYARROW_INSTALLED = True
 except ImportError:
     PYARROW_INSTALLED = False
+
+try:
+    from typeguard import CollectionCheckStrategy
+
+    # This may be worth making configurable at the global level.
+    type_types_kwargs = {
+        "collection_check_strategy": CollectionCheckStrategy.ALL_ITEMS,
+    }
+    TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = True
+    TYPEGUARD_ERROR = typeguard.TypeError
+except ImportError:
+    type_types_kwargs = {}
+    TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = False
+    TYPEGUARD_ERROR = TypeError
 
 
 PANDAS_1_2_0_PLUS = pandas_version().release >= (1, 2, 0)
@@ -1361,14 +1374,14 @@ class PythonGenericType(DataType):
 
                 _type = _TypedDict(_type.__name__, _type.__annotations__)  # type: ignore
 
-            typeguard.check_type(
-                element,
-                _type,
-                # This may be worth making configurable at the global level.
-                collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS,
-            )
+            if TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE:
+                typeguard.check_type(element, _type, **type_types_kwargs)
+            else:
+                # typeguard <= 3 takes `argname` as the first positional argument
+                typeguard.check_type("data_container", element, _type)
+
             return True
-        except typeguard.TypeCheckError:
+        except TYPEGUARD_ERROR:
             return False
 
     def _coerce_element(self, element: Any) -> Any:

@@ -183,6 +183,7 @@ intersphinx_mapping = {
     "pyspark": ("https://spark.apache.org/docs/latest/api/python/", None),
     "modin": ("https://modin.readthedocs.io/en/latest/", None),
     "polars": ("https://docs.pola.rs/py-polars/html/", None),
+    "typeguard": ("https://typeguard.readthedocs.io/en/stable/", None),
 }
 
 # strip prompts
@@ -284,6 +285,7 @@ jupyterlite_bind_ipynb_suffix = False
 myst_enable_extensions = [
     "colon_fence",
 ]
+myst_heading_anchors = 3
 
 nb_execution_mode = "auto"
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]
