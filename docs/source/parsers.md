@@ -165,15 +165,15 @@ class DFModel(pa.DataFrameModel):
     b: float
     c: float
 
-    @pa.dataframe_parse
+    @pa.dataframe_parser
     def sqrt(cls, df):
         return df.transform("sqrt")
 
-    @pa.parse("b")
+    @pa.parser("b")
     def negate(cls, series):
         return series * -1
 
-    @pa.parse("c")
+    @pa.parser("c")
     def plus_one(cls, series):
         return series + 1
 ```

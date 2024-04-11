@@ -8,9 +8,6 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    TypeVar,
-    Union,
-    no_type_check,
 )
 
 from pandera.backends.base import BaseParserBackend
@@ -21,9 +18,6 @@ class ParserResult(NamedTuple):
 
     parser_output: Any
     parsed_object: Any
-
-
-_T = TypeVar("_T", bound="BaseParser")
 
 
 class MetaParser(type):

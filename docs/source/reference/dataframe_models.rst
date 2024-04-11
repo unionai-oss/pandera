@@ -23,8 +23,8 @@ Model Components
    pandera.api.dataframe.model_components.Field
    pandera.api.dataframe.model_components.check
    pandera.api.dataframe.model_components.dataframe_check
-   pandera.api.dataframe.model_components.parse
-   pandera.api.dataframe.model_components.dataframe_parse
+   pandera.api.dataframe.model_components.parser
+   pandera.api.dataframe.model_components.dataframe_parser
 
 Typing
 ------
