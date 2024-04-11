@@ -43,6 +43,7 @@ from pandera.engines.utils import pandas_version
 from pandera.engines import PYDANTIC_V2
 from pandera.system import FLOAT_128_AVAILABLE
 
+
 if PYDANTIC_V2:
     from pydantic import RootModel
 
@@ -63,6 +64,11 @@ try:
     TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = True
     TYPEGUARD_ERROR = typeguard.TypeCheckError
 except ImportError:
+    warnings.warn(
+        "Using typeguard < 3. Generic types like List[TYPE], Dict[TYPE, TYPE] "
+        "will only validate the first element in the collection.",
+        UserWarning,
+    )
     type_types_kwargs = {}
     TYPEGUARD_COLLECTION_STRATEGY_AVAILABLE = False
     TYPEGUARD_ERROR = TypeError
