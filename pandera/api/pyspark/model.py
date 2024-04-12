@@ -1,4 +1,5 @@
 """Class-based api for pyspark models."""
+
 # pylint:disable=abstract-method
 import copy
 import inspect
@@ -272,7 +273,6 @@ class DataFrameModel(BaseModel):
         """
         return cls.to_schema().to_yaml(stream)
 
-
     @classmethod
     def to_structtype(cls) -> StructType:
         """Recover fields of DataFrameModel as a Pyspark StructType object.
@@ -281,7 +281,6 @@ class DataFrameModel(BaseModel):
         """
         return cls.to_schema().to_structtype()
 
-
     @classmethod
     def to_ddl(cls) -> str:
         """Recover fields of DataFrameModel as a Pyspark DDL string.
@@ -289,7 +288,6 @@ class DataFrameModel(BaseModel):
         :returns: String with current model fields, in compact DDL format.
         """
         return cls.to_schema().to_ddl()
-
 
     @classmethod
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
