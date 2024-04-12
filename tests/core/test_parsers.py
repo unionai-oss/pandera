@@ -29,7 +29,10 @@ def test_dataframe_schema_parse_with_element_wise() -> None:
     schema_check_return_bool = DataFrameSchema(
         parsers=Parser(np.sqrt, element_wise=True)
     )
-    assert schema_check_return_bool.validate(data).equals(data.map(np.sqrt))
+    result = (
+        data.map(np.sqrt) if hasattr(data, "map") else data.applymap(np.sqrt)
+    )
+    assert schema_check_return_bool.validate(data).equals(result)
 
 
 def test_series_schema_parse_with_element_wise() -> None:
@@ -37,7 +40,10 @@ def test_series_schema_parse_with_element_wise() -> None:
     schema_check_return_bool = SeriesSchema(
         parsers=Parser(np.sqrt, element_wise=True)
     )
-    assert schema_check_return_bool.validate(data).equals(data.map(np.sqrt))
+    result = (
+        data.map(np.sqrt) if hasattr(data, "map") else data.applymap(np.sqrt)
+    )
+    assert schema_check_return_bool.validate(data).equals(result)
 
 
 def test_parser_equality_operators() -> None:
