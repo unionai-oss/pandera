@@ -53,7 +53,7 @@ pre_commit
 furo
 grpcio
 ray
-typeguard >= 3.0.2
+typeguard
 types-click
 types-pyyaml
 types-pkg_resources
