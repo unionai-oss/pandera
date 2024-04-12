@@ -587,6 +587,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         """
         # `StructType.toDDL()` is only available in internal java classes
         spark = SparkSession.builder.getOrCreate()
+        # Create a base dataframe from where we access underlying Java classes
         empty_df_with_schema = spark.createDataFrame([], self.to_structtype())
 
         return empty_df_with_schema._jdf.schema().toDDL()
