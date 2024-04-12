@@ -331,6 +331,7 @@ def test_schema_to_ddl(schema_with_datatypes):
             "date DATE",
             "timestamp TIMESTAMP",
             "timestamp_ntz TIMESTAMP",
-            "array ARRAY<STRING>,map MAP<STRING, INT>",
+            "array ARRAY<STRING>",
+            "map MAP<STRING, INT>",
         ]
     )
