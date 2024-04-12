@@ -15,8 +15,11 @@ from typing import (
 from pandera.api.base.model_components import (
     BaseCheckInfo,
     BaseFieldInfo,
+    BaseParserInfo,
     CheckArg,
     to_checklist,
+    ParserArg,
+    to_parserlist,
 )
 from pandera.api.checks import Check
 from pandera.errors import SchemaInitError
@@ -25,6 +28,8 @@ AnyCallable = Callable[..., Any]
 
 CHECK_KEY = "__check_config__"
 DATAFRAME_CHECK_KEY = "__dataframe_check_config__"
+PARSER_KEY = "__parser_config__"
+DATAFRAME_PARSER_KEY = "__dataframe_parser_config__"
 
 
 class FieldInfo(BaseFieldInfo):
@@ -37,6 +42,7 @@ class FieldInfo(BaseFieldInfo):
         self,
         dtype: Any,
         checks: CheckArg = None,
+        parsers: ParserArg = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         if self.dtype_kwargs:
@@ -44,6 +50,7 @@ class FieldInfo(BaseFieldInfo):
         return {
             "dtype": dtype,
             "checks": self.checks + to_checklist(checks),
+            "parsers": self.parses + to_parserlist(parsers),
             **kwargs,
         }
 
@@ -51,6 +58,7 @@ class FieldInfo(BaseFieldInfo):
         self,
         dtype: Any,
         checks: CheckArg = None,
+        parsers: ParserArg = None,
         required: bool = True,
         name: str = None,
     ) -> Dict[str, Any]:
@@ -64,6 +72,7 @@ class FieldInfo(BaseFieldInfo):
             required=required,
             name=name,
             checks=checks,
+            parsers=parsers,
             title=self.title,
             description=self.description,
             default=self.default,
@@ -95,6 +104,7 @@ class FieldInfo(BaseFieldInfo):
         return {
             "dtype": self.dtype_kwargs,
             "checks": self.checks,
+            "parses": self.parses,
             "nullable": self.nullable,
             "coerce": self.coerce,
             "name": self.name,
@@ -253,6 +263,25 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
         self.regex = regex
 
 
+class ParserInfo(BaseParserInfo):  # pylint:disable=too-few-public-methods
+    """Captures extra information about a Parser."""
+
+
+class FieldParserInfo(ParserInfo):  # pylint:disable=too-few-public-methods
+    """Captures extra information about a Parser assigned to a field."""
+
+    def __init__(
+        self,
+        fields: Set[Union[str, FieldInfo]],
+        parser_fn: AnyCallable,
+        regex: bool = False,
+        **parser_kwargs: Any,
+    ) -> None:
+        super().__init__(parser_fn, **parser_kwargs)
+        self.fields = fields
+        self.regex = regex
+
+
 def _to_function_and_classmethod(
     fn: Union[AnyCallable, classmethod]
 ) -> Tuple[AnyCallable, classmethod]:
@@ -320,3 +349,38 @@ def dataframe_check(_fn=None, **check_kwargs) -> ClassCheck:
     if _fn:
         return _wrapper(_fn)  # type: ignore
     return _wrapper
+
+
+ClassParser = Callable[[Union[classmethod, AnyCallable]], classmethod]
+
+
+def parser(*fields, **parser_kwargs) -> ClassParser:
+    """Defines DataFrameModel parse methods for columns/indexes."""
+
+    def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
+        parser_fn, parser_method = _to_function_and_classmethod(fn)
+        parser_kwargs.setdefault("description", fn.__doc__)
+        setattr(
+            parser_method,
+            PARSER_KEY,
+            FieldParserInfo(set(fields), parser_fn, **parser_kwargs),
+        )
+        return parser_method
+
+    return _wrapper
+
+
+def dataframe_parser(_fn=None, **parser_kwargs) -> ClassParser:
+    """Defines DataFrameModel parse methods for dataframes."""
+
+    def _wrapper(fn: Union[classmethod, AnyCallable]) -> classmethod:
+        parser_fn, parser_method = _to_function_and_classmethod(fn)
+        parser_kwargs.setdefault("description", fn.__doc__)
+        setattr(
+            parser_method,
+            DATAFRAME_PARSER_KEY,
+            ParserInfo(parser_fn, **parser_kwargs),
+        )
+        return parser_method
+
+    return _wrapper(_fn)  # type: ignore

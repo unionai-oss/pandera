@@ -8,7 +8,8 @@ import pandas as pd
 from pandera import errors
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
-from pandera.api.base.types import CheckList
+from pandera.api.base.types import CheckList, ParserList
+from pandera.api.parsers import Parser
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
@@ -32,6 +33,7 @@ class ArraySchema(BaseSchema):
         self,
         dtype: Optional[PandasDtypeInputTypes] = None,
         checks: Optional[CheckList] = None,
+        parsers: Optional[ParserList] = None,
         nullable: bool = False,
         unique: bool = False,
         report_duplicates: UniqueSettings = "all",
@@ -75,6 +77,7 @@ class ArraySchema(BaseSchema):
         super().__init__(
             dtype=dtype,
             checks=checks,
+            parsers=parsers,
             coerce=coerce,
             name=name,
             title=title,
@@ -83,11 +86,17 @@ class ArraySchema(BaseSchema):
             drop_invalid_rows=drop_invalid_rows,
         )
 
+        if parsers is None:
+            parsers = []
+        if isinstance(parsers, Parser):
+            parsers = [parsers]
+
         if checks is None:
             checks = []
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
+        self.parsers = parsers
         self.checks = checks
         self.nullable = nullable
         self.unique = unique
@@ -315,6 +324,7 @@ class SeriesSchema(ArraySchema):
         self,
         dtype: PandasDtypeInputTypes = None,
         checks: Optional[CheckList] = None,
+        parsers: Optional[ParserList] = None,
         index=None,
         nullable: bool = False,
         unique: bool = False,
@@ -360,6 +370,7 @@ class SeriesSchema(ArraySchema):
         super().__init__(
             dtype,
             checks,
+            parsers,
             nullable,
             unique,
             report_duplicates,

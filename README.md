@@ -49,6 +49,8 @@ This is useful in production-critical or reproducible research settings. With
    properties of columns in a `DataFrame` or values in a `Series`.
 1. Perform more complex statistical validation like
    [hypothesis testing](https://pandera.readthedocs.io/en/stable/hypothesis.html#hypothesis).
+1. [Parse](https://pandera.readthedocs.io/en/stable/parsers.html) data to standardize
+   the preprocessing steps needed to produce valid data.
 1. Seamlessly integrate with existing data analysis/processing pipelines
    via [function decorators](https://pandera.readthedocs.io/en/stable/decorators.html#decorators).
 1. Define dataframe models with the

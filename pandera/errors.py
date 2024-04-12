@@ -85,6 +85,8 @@ class SchemaError(ReducedPickleExceptionBase):
         "failure_cases",
         "check",
         "check_output",
+        "parser",
+        "parser_output",
         "reason_code",
     ]
 
@@ -97,6 +99,9 @@ class SchemaError(ReducedPickleExceptionBase):
         check=None,
         check_index=None,
         check_output=None,
+        parser=None,
+        parser_index=None,
+        parser_output=None,
         reason_code=None,
     ):
         super().__init__(message)
@@ -106,6 +111,9 @@ class SchemaError(ReducedPickleExceptionBase):
         self.check = check
         self.check_index = check_index
         self.check_output = check_output
+        self.parser = parser
+        self.parser_index = parser_index
+        self.parser_output = parser_output
         self.reason_code = reason_code
 
 
@@ -137,6 +145,9 @@ class SchemaErrorReason(Enum):
     SCHEMA_COMPONENT_CHECK = "schema_component_check"
     DATAFRAME_CHECK = "dataframe_check"
     CHECK_ERROR = "check_error"
+    SCHEMA_COMPONENT_PARSER = "schema_component_parser"
+    DATAFRAME_PARSER = "dataframe_parser"
+    PARSER_ERROR = "parser_error"
     DUPLICATES = "duplicates"
     WRONG_FIELD_NAME = "wrong_field_name"
     SERIES_CONTAINS_NULLS = "series_contains_nulls"
