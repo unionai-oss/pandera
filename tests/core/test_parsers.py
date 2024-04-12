@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 import pandera as pa
+from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.parsers import Parser
 from pandera.typing import Series
@@ -19,21 +20,24 @@ def test_dataframe_schema_parse() -> None:
     schema_check_return_bool = DataFrameSchema(
         parsers=Parser(lambda df: df.transform("sqrt"))
     )
-    assert schema_check_return_bool.validate(data).equals(
-        data.applymap(np.sqrt)
-    )
+    assert schema_check_return_bool.validate(data).equals(data.apply(np.sqrt))
 
 
 def test_dataframe_schema_parse_with_element_wise() -> None:
     """Test that DataFrameSchema-level Parses work properly."""
     data = pd.DataFrame([[1, 4, 9, 16, 25] for _ in range(10)])
-
     schema_check_return_bool = DataFrameSchema(
-        parsers=Parser(lambda df: df.transform("sqrt"), element_wise=True)
+        parsers=Parser(np.sqrt, element_wise=True)
     )
-    assert schema_check_return_bool.validate(data).equals(
-        data.applymap(np.sqrt)
+    assert schema_check_return_bool.validate(data).equals(data.map(np.sqrt))
+
+
+def test_series_schema_parse_with_element_wise() -> None:
+    data = pd.Series([1, 4, 9, 16, 25])
+    schema_check_return_bool = SeriesSchema(
+        parsers=Parser(np.sqrt, element_wise=True)
     )
+    assert schema_check_return_bool.validate(data).equals(data.map(np.sqrt))
 
 
 def test_parser_equality_operators() -> None:

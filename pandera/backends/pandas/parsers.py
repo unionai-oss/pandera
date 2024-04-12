@@ -60,7 +60,7 @@ class PandasParserBackend(BaseParserBackend):
     @overload  # type: ignore [no-redef]
     def apply(self, parse_obj: is_table):  # type: ignore [valid-type]
         if self.parser.element_wise:
-            return parse_obj.apply(self.parser_fn, axis=1)
+            return parse_obj.map(self.parser_fn)
         return self.parser_fn(parse_obj)
 
     def postprocess(
