@@ -24,6 +24,18 @@ def test_dataframe_schema_parse() -> None:
     )
 
 
+def test_dataframe_schema_parse_with_element_wise() -> None:
+    """Test that DataFrameSchema-level Parses work properly."""
+    data = pd.DataFrame([[1, 4, 9, 16, 25] for _ in range(10)])
+
+    schema_check_return_bool = DataFrameSchema(
+        parsers=Parser(lambda df: df.transform("sqrt"), element_wise=True)
+    )
+    assert schema_check_return_bool.validate(data).equals(
+        data.applymap(np.sqrt)
+    )
+
+
 def test_parser_equality_operators() -> None:
     """Test the usage of == between a Parser and an entirely different Parser,
     and a non-Parser."""

@@ -111,18 +111,11 @@ class ColumnBackend(ArraySchemaBackend):
 
             if schema.parsers:
                 for parser_index, parser in enumerate(schema.parsers):
-                    try:
-                        check_obj[column_name] = self.run_parser(
-                            check_obj[column_name],
-                            parser,
-                            parser_index,
-                        ).parser_output
-                    except SchemaError as err:
-                        error_handler.collect_error(
-                            validation_type(err.reason_code),
-                            err.reason_code,
-                            err,
-                        )
+                    check_obj[column_name] = self.run_parser(
+                        check_obj[column_name],
+                        parser,
+                        parser_index,
+                    ).parser_output
 
             if is_table(check_obj[column_name]):
                 for i in range(check_obj[column_name].shape[1]):

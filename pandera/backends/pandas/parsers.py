@@ -4,7 +4,7 @@ from functools import partial
 from typing import Dict, Optional, Union
 
 import pandas as pd
-from multimethod import DispatchError, overload
+from multimethod import overload
 
 from pandera.api.base.parsers import ParserResult
 from pandera.api.parsers import Parser
@@ -52,10 +52,6 @@ class PandasParserBackend(BaseParserBackend):
         raise NotImplementedError
 
     @overload  # type: ignore [no-redef]
-    def apply(self, parse_obj: dict):
-        return self.parser_fn(parse_obj)
-
-    @overload  # type: ignore [no-redef]
     def apply(self, parse_obj: is_field):  # type: ignore [valid-type]
         if self.parser.element_wise:
             return parse_obj.map(self.parser_fn)
@@ -83,10 +79,5 @@ class PandasParserBackend(BaseParserBackend):
         key: Optional[str] = None,
     ):
         parse_obj = self.preprocess(parse_obj, key)
-        try:
-            parser_output = self.apply(parse_obj)
-        except DispatchError as exc:
-            if exc.__cause__ is not None:
-                raise exc.__cause__
-            raise exc
+        parser_output = self.apply(parse_obj)
         return self.postprocess(parse_obj, parser_output)

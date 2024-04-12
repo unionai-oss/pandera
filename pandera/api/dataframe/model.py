@@ -447,8 +447,6 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 parser_info = getattr(attr_value, key, None)
                 if not isinstance(parser_info, ParserInfo):
                     continue
-                if attr_name in method_names:  # parser overridden by subclass
-                    continue
                 method_names.add(attr_name)
                 parser_infos.append(parser_info)
         return parser_infos

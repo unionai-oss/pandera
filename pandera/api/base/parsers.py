@@ -73,16 +73,9 @@ class BaseParser(metaclass=MetaParser):
 
     def _get_parser_fn_code(self):
         parser_fn = self.__dict__["_parser_fn"]
-        try:
-            code = parser_fn.__code__.co_code
-        except AttributeError:
-            # try accessing the functools.partial wrapper
-            code = parser_fn.func.__code__.co_code
+        code = parser_fn.__code__.co_code
 
         return code
-
-    def __hash__(self) -> int:
-        return hash(self._get_parser_fn_code())
 
     def __repr__(self) -> str:
         return f"<Parser {self.name}>"
