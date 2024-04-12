@@ -8,7 +8,8 @@ import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast, overload
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.types import StructType, StructField
 
 from pandera import errors
 from pandera.api.base.schema import BaseSchema
@@ -562,6 +563,33 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         import pandera.io
 
         return pandera.io.to_json(self, target, **kwargs)
+
+    def to_structtype(self) -> StructType:
+        """Recover fields of DataFrameSchema as a Pyspark StructType object.
+
+        As the output of this method will be used to specify a read schema in Pyspark
+            (avoiding automatic schema inference), the False `nullable` properties are
+            just ignored, as this check will be executed by the Pandera validations
+            after a dataset is read.
+
+        :returns: StructType object with current schema fields.
+        """
+        fields = [
+            StructField(column, self.columns[column]._dtype.type, True)
+            for column in self.columns
+        ]
+        return StructType(fields)
+
+    def to_ddl(self) -> str:
+        """Recover fields of DataFrameSchema as a Pyspark DDL string.
+
+        :returns: String with current schema fields, in compact DDL format.
+        """
+        # `StructType.toDDL()` is only available in internal java classes
+        spark = SparkSession.builder.getOrCreate()
+        empty_df_with_schema = spark.createDataFrame([], self.to_structtype())
+
+        return empty_df_with_schema._jdf.schema().toDDL()
 
 
 def _validate_columns(

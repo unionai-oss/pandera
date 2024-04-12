@@ -231,3 +231,106 @@ def test_pyspark_nullable():
         df_out = schema_nullable_true.validate(df)
     assert isinstance(df_out, DataFrame)
     assert df_out.pandera.errors == {}
+
+
+@pytest.fixture(scope="module")
+def schema_with_datatypes():
+    """
+    Model containing all common datatypes for PySpark namespace.
+    """
+    schema = DataFrameSchema(
+        {
+            "non_nullable": Column(T.IntegerType(), nullable=False),
+            "binary": Column(T.BinaryType()),
+            "byte": Column(T.ByteType()),
+            "text": Column(T.StringType()),
+            "integer": Column(T.IntegerType()),
+            "long": Column(T.LongType()),
+            "float": Column(T.FloatType()),
+            "double": Column(T.DoubleType()),
+            "boolean": Column(T.BooleanType()),
+            "decimal": Column(T.DecimalType()),
+            "date": Column(T.DateType()),
+            "timestamp": Column(T.TimestampType()),
+            "timestamp_ntz": Column(T.TimestampNTZType()),
+            "array": Column(T.ArrayType(T.StringType())),
+            "map": Column(T.MapType(T.StringType(), T.IntegerType())),
+        }
+    )
+
+    return schema
+
+
+def test_schema_to_structtype(schema_with_datatypes):
+    """
+    Test the conversion from a schema to a StructType object through `to_structtype()`.
+    """
+
+    assert schema_with_datatypes.to_structtype() == T.StructType(
+        [
+            T.StructField(
+                name="non_nullable", dataType=T.IntegerType(), nullable=True
+            ),
+            T.StructField(
+                name="binary", dataType=T.BinaryType(), nullable=True
+            ),
+            T.StructField(name="byte", dataType=T.ByteType(), nullable=True),
+            T.StructField(name="text", dataType=T.StringType(), nullable=True),
+            T.StructField(
+                name="integer", dataType=T.IntegerType(), nullable=True
+            ),
+            T.StructField(name="long", dataType=T.LongType(), nullable=True),
+            T.StructField(name="float", dataType=T.FloatType(), nullable=True),
+            T.StructField(
+                name="double", dataType=T.DoubleType(), nullable=True
+            ),
+            T.StructField(
+                name="boolean", dataType=T.BooleanType(), nullable=True
+            ),
+            T.StructField(
+                name="decimal", dataType=T.DecimalType(), nullable=True
+            ),
+            T.StructField(name="date", dataType=T.DateType(), nullable=True),
+            T.StructField(
+                name="timestamp", dataType=T.TimestampType(), nullable=True
+            ),
+            T.StructField(
+                name="timestamp_ntz", dataType=T.TimestampType(), nullable=True
+            ),
+            T.StructField(
+                name="array",
+                dataType=T.ArrayType(T.StringType()),
+                nullable=True,
+            ),
+            T.StructField(
+                name="map",
+                dataType=T.MapType(T.StringType(), T.IntegerType()),
+                nullable=True,
+            ),
+        ]
+    )
+
+
+def test_schema_to_ddl(schema_with_datatypes):
+    """
+    Test the conversion from a schema to a DDL string through `to_ddl()`.
+    """
+
+    assert schema_with_datatypes.to_ddl() == ",".join(
+        [
+            "non_nullable INT",
+            "binary BINARY",
+            "byte TINYINT",
+            "text STRING",
+            "integer INT",
+            "long BIGINT",
+            "float FLOAT",
+            "double DOUBLE",
+            "boolean BOOLEAN",
+            "decimal DECIMAL(10,0)",
+            "date DATE",
+            "timestamp TIMESTAMP",
+            "timestamp_ntz TIMESTAMP",
+            "array ARRAY<STRING>,map MAP<STRING, INT>",
+        ]
+    )

@@ -22,6 +22,7 @@ from typing import (
 )
 
 import pyspark.sql as ps
+from pyspark.sql.types import StructType
 
 from pandera.api.base.model import BaseModel
 from pandera.api.checks import Check
@@ -270,6 +271,25 @@ class DataFrameModel(BaseModel):
         Convert `Schema` to yaml using `io.to_yaml`.
         """
         return cls.to_schema().to_yaml(stream)
+
+
+    @classmethod
+    def to_structtype(cls) -> StructType:
+        """Recover fields of DataFrameModel as a Pyspark StructType object.
+
+        :returns: StructType object with current model fields.
+        """
+        return cls.to_schema().to_structtype()
+
+
+    @classmethod
+    def to_ddl(cls) -> str:
+        """Recover fields of DataFrameModel as a Pyspark DDL string.
+
+        :returns: String with current model fields, in compact DDL format.
+        """
+        return cls.to_schema().to_ddl()
+
 
     @classmethod
     @docstring_substitution(validate_doc=DataFrameSchema.validate.__doc__)
