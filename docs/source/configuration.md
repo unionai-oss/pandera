@@ -15,5 +15,5 @@ export PANDERA_VALIDATION_DEPTH=DATA_ONLY  # SCHEMA_AND_DATA, SCHEMA_ONLY, DATA_
 
 Runtime data validation incurs a performance overhead. To mitigate this, you have
 the option to disable validation globally. This can be achieved by setting the
-environment variable `PANDERA_VALIDATION_ENABLE=False`. When validation is
+environment variable `PANDERA_VALIDATION_ENABLED=False`. When validation is
 disabled, any `validate` call will return `None`.
