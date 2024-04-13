@@ -11,6 +11,8 @@ from pandera.api.polars.components import Column
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.model import DataFrameModel
 from pandera.api.polars.types import PolarsData
+from pandera.backends.polars.register import register_polars_backends
 from pandera.decorators import check_input, check_io, check_output, check_types
 
-import pandera.backends.polars
+
+register_polars_backends()
