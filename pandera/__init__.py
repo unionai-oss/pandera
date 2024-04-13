@@ -69,6 +69,7 @@ from pandera.engines.pandas_engine import (
 import pandera.backends.base.builtin_checks
 import pandera.backends.base.builtin_hypotheses
 import pandera.backends.pandas
+from pandera.backends.pandas.register import register_pandas_backends
 
 from pandera.schema_inference.pandas import infer_schema
 from pandera.version import __version__
@@ -178,3 +179,6 @@ __all__ = [
     # version
     "__version__",
 ]
+
+
+register_pandas_backends()
