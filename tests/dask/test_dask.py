@@ -22,7 +22,9 @@ def test_model_validation() -> None:
     """
     Test that model based pandera validation works with Dask DataFrames.
     """
-    df = pd.DataFrame({"col": ["1"]})
+    df = pd.DataFrame(
+        {"col": pd.Series(["1"], dtype=pd.StringDtype(storage="pyarrow"))}
+    )
     ddf = dd.from_pandas(df, npartitions=1)
 
     ddf = StrSchema.validate(ddf)  # type: ignore[arg-type]
