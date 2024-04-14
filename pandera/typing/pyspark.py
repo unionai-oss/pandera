@@ -2,9 +2,6 @@
 import functools
 from typing import TYPE_CHECKING, Generic, TypeVar, Any, get_args
 
-from pydantic import GetCoreSchemaHandler
-from pydantic_core import core_schema
-
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError, SchemaError
 from pandera.typing.common import (
@@ -44,6 +41,10 @@ class _PydanticIntegrationMixIn:
         return schema_model
 
     if PYDANTIC_V2:
+
+        # pylint: disable=import-outside-toplevel
+        from pydantic import GetCoreSchemaHandler
+        from pydantic_core import core_schema
 
         @classmethod
         def __get_pydantic_core_schema__(
