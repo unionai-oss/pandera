@@ -12,7 +12,7 @@ _extras_require = {
     "hypotheses": ["scipy"],
     "io": ["pyyaml >= 5.1", "black", "frictionless <= 4.40.8"],
     "pyspark": ["pyspark >= 3.2.0"],
-    "modin": ["modin", "ray", "dask"],
+    "modin": ["modin", "ray", "dask[dataframe]"],
     "modin-ray": ["modin", "ray"],
     "modin-dask": ["modin", "dask[dataframe]"],
     "dask": ["dask[dataframe]"],

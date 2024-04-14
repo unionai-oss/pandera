@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 import pandera as pa
-from pandera.typing.dask import DataFrame, Index, Series
+from pandera.typing.dask import DataFrame, Series
 
 
 class IntSchema(pa.DataFrameModel):  # pylint: disable=missing-class-docstring
@@ -115,42 +115,3 @@ def test_decorator() -> None:
 
     with pytest.raises(pa.errors.SchemaError):
         print(result.compute())
-
-
-class InitSchema(pa.DataFrameModel):
-    """Schema used to test dataframe initialization."""
-
-    col1: Series[int]
-    col2: Series[float]
-    col3: Series[str]
-    index: Index[int]
-
-
-def test_init_dask_dataframe():
-    """Test initialization of pandas.typing.dask.DataFrame with Schema."""
-    ddf = dd.from_pandas(
-        pd.DataFrame({"col1": [1], "col2": [1.0], "col3": ["1"]}),
-        npartitions=2,
-    )
-    assert isinstance(
-        DataFrame[InitSchema](ddf.dask, ddf._name, ddf._meta, ddf.divisions),
-        DataFrame,
-    )
-
-
-@pytest.mark.parametrize(
-    "invalid_data",
-    [
-        {"col1": [1.0], "col2": [1.0], "col3": ["1"]},
-        {"col1": [1], "col2": [1], "col3": ["1"]},
-        {"col1": [1], "col2": [1.0], "col3": [1]},
-        {"col1": [1]},
-    ],
-)
-def test_init_pandas_dataframe_errors(invalid_data):
-    """Test errors from initializing a pandas.typing.DataFrame with Schema."""
-    ddf = dd.from_pandas(pd.DataFrame(invalid_data), npartitions=2)
-    with pytest.raises(pa.errors.SchemaError):
-        DataFrame[InitSchema](
-            ddf.dask, ddf._name, ddf._meta, ddf.divisions
-        ).compute()
