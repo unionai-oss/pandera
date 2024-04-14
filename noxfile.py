@@ -322,10 +322,6 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
     if session.python == "3.8" and pandas == "2.2.0":
         session.skip()
 
-    additional_args = []
-    if session.python == "3.11":
-        additional_args.extend(["--upgrade-package", "dask"])
-
     session.install("uv")
 
     requirements = []
@@ -336,6 +332,14 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
                 line = f"pandas=={pandas}\n"
             if _line == "pydantic":
                 line = f"pydantic=={pydantic}\n"
+            # for some reason uv will try to install an old version of dask,
+            # have to specifically pin dask[dataframe] to a higher version
+            if _line == "dask[dataframe]" and session.python in (
+                "3.9",
+                "3.10",
+                "3.11",
+            ):
+                line = "dask[dataframe]>=2021.4.0\n"
             requirements.append(line)
 
     with tempfile.NamedTemporaryFile("a") as f:
@@ -349,7 +353,6 @@ def ci_requirements(session: Session, pandas: str, pydantic: str) -> None:
             "--output-file",
             _ci_requirement_file_name(session, pandas, pydantic),
             "--no-header",
-            *additional_args,
         )
 
 

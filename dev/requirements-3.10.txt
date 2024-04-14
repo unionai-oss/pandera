@@ -319,6 +319,7 @@ nodeenv==1.8.0
 nox==2023.4.22
 numpy==1.26.0
     # via
+    #   dask
     #   modin
     #   pandas
     #   pandas-stubs
@@ -345,6 +346,7 @@ packaging==23.1
     #   sphinx
 pandas==2.0.3
     # via
+    #   dask
     #   geopandas
     #   modin
 pandas-stubs==2.0.3.230814

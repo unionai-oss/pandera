@@ -20,8 +20,6 @@ pyspark >= 3.2.0
 polars >= 0.20.0
 modin
 protobuf
-dask
-distributed
 geopandas
 shapely
 fastapi
@@ -50,6 +48,8 @@ myst-nb
 twine
 asv >= 0.5.1
 pre_commit
+dask[dataframe]
+distributed
 furo
 grpcio
 ray

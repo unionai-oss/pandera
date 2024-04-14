@@ -34,10 +34,6 @@ dependencies:
   - modin
   - protobuf
 
-  # dask extra
-  - dask
-  - distributed
-
   # geopandas extra
   - geopandas
   - shapely
@@ -85,6 +81,11 @@ dependencies:
   - pre_commit
 
   - pip:
+      # dask extra
+      - dask[dataframe]
+      - distributed
+
+      # docs
       - furo
       - grpcio
       - ray
