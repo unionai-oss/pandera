@@ -114,6 +114,8 @@ jobs:
         exclude:
         - python-version: "3.8"
           pandas-version: "2.2.0"
+        - python-version: "3.11"
+          pandas-version: "1.5.3"
 
     steps:
       - uses: actions/checkout@v4
@@ -166,7 +168,6 @@ jobs:
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='geopandas', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Dask
-        if: ${{ !( matrix.pandas-version == '1.5.3' && matrix.python-version == '3.11' ) }}
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Pyspark
@@ -174,7 +175,6 @@ jobs:
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='pyspark', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Modin-Dask
-        if: ${{ !( matrix.pandas-version == '1.5.3' && matrix.python-version == '3.11' ) }}
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='modin-dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Modin-Ray
