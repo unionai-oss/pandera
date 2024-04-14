@@ -15,7 +15,7 @@ class IntSchema(pa.DataFrameModel):  # pylint: disable=missing-class-docstring
 
 
 class StrSchema(pa.DataFrameModel):  # pylint: disable=missing-class-docstring
-    col: Series[str]
+    col: Series[pd.StringDtype] = pa.Field(dtype_kwargs={"storage": "pyarrow"})
 
 
 def test_model_validation() -> None:
@@ -47,7 +47,9 @@ def test_dataframe_schema() -> None:
     int_schema = pa.DataFrameSchema({"col": pa.Column(int)})
     str_schema = pa.DataFrameSchema({"col": pa.Column(str)})
 
-    df = pd.DataFrame({"col": ["1"]})
+    df = pd.DataFrame(
+        {"col": pd.Series(["1"], dtype=pd.StringDtype(storage="pyarrow"))}
+    )
     ddf = dd.from_pandas(df, npartitions=1)
 
     ddf = str_schema.validate(ddf)  # type: ignore[arg-type]
@@ -71,7 +73,7 @@ def test_series_schema() -> None:
     integer_schema = pa.SeriesSchema(int)
     string_schema = pa.SeriesSchema(str)
 
-    series = pd.Series(["1"])
+    series = pd.Series(["1"], dtype=pd.StringDtype(storage="pyarrow"))
     dseries = dd.from_pandas(series, npartitions=1)
 
     dseries = string_schema.validate(dseries)  # type: ignore[arg-type]
@@ -99,7 +101,9 @@ def test_decorator() -> None:
     def int_func(x: DataFrame[IntSchema]) -> DataFrame[IntSchema]:
         return x
 
-    df = pd.DataFrame({"col": ["1"]})
+    df = pd.DataFrame(
+        {"col": pd.Series(["1"], dtype=pd.StringDtype(storage="pyarrow"))}
+    )
     ddf = dd.from_pandas(df, npartitions=1)
     pd.testing.assert_frame_equal(
         df, str_func(cast(pa.typing.dask.DataFrame[StrSchema], ddf)).compute()
