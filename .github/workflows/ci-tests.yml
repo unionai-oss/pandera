@@ -171,7 +171,6 @@ jobs:
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='dask', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Pyspark
-        if: ${{ matrix.os != 'windows-latest'}}
         run: nox ${{ env.NOX_FLAGS }} --session "tests(extra='pyspark', pydantic='${{ matrix.pydantic-version }}', python='${{ matrix.python-version }}', pandas='${{ matrix.pandas-version }}')"
 
       - name: Unit Tests - Modin-Dask
