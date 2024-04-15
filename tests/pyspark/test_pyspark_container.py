@@ -255,6 +255,12 @@ def schema_with_datatypes():
             "timestamp_ntz": Column(T.TimestampNTZType()),
             "array": Column(T.ArrayType(T.StringType())),
             "map": Column(T.MapType(T.StringType(), T.IntegerType())),
+            "nested_structure": Column(
+                T.MapType(
+                    T.ArrayType(T.StringType()),
+                    T.MapType(T.StringType(), T.ArrayType(T.StringType())),
+                )
+            ),
         }
     )
 
@@ -307,6 +313,14 @@ def test_schema_to_structtype(schema_with_datatypes):
                 dataType=T.MapType(T.StringType(), T.IntegerType()),
                 nullable=True,
             ),
+            T.StructField(
+                name="nested_structure",
+                dataType=T.MapType(
+                    T.ArrayType(T.StringType()),
+                    T.MapType(T.StringType(), T.ArrayType(T.StringType())),
+                ),
+                nullable=True,
+            ),
         ]
     )
 
@@ -333,5 +347,6 @@ def test_schema_to_ddl(schema_with_datatypes):
             "timestamp_ntz TIMESTAMP",
             "array ARRAY<STRING>",
             "map MAP<STRING, INT>",
+            "nested_structure MAP<ARRAY<STRING>, MAP<STRING, ARRAY<STRING>>>",
         ]
     )
