@@ -488,9 +488,11 @@ def test_init_pandas_dataframe_errors(invalid_data):
     with pytest.raises(pa.errors.SchemaError):
         DataFrame[InitSchema](invalid_data)
 
+
 class ExampleNamedTuple(NamedTuple):
     a: int
     b: float
+
 
 class SchemaComplexPythonCollectionTypes(pa.DataFrameModel):
     list: list[pa.typing.Int32]
@@ -498,15 +500,20 @@ class SchemaComplexPythonCollectionTypes(pa.DataFrameModel):
     tuple2: tuple[pa.typing.Int32, pa.typing.Int32]
     named_tuple: ExampleNamedTuple
 
+
 def test_complex_python_collection_types():
     """Test complex python collection types."""
     assert isinstance(
-        DataFrame[SchemaComplexPythonCollectionTypes]({
-            "list": [[1, 2], [3, 4, 5]], 
-            "dict": [{ "a": 1, "b": 2 }, { "c": 1, "d": 2 }] ,
-            "tuple2": [[6, 7], [8, 9]],
-            "named_tuple": [ExampleNamedTuple(1, 2), ExampleNamedTuple(3, 4)]
-        }),
+        DataFrame[SchemaComplexPythonCollectionTypes](
+            {
+                "list": [[1, 2], [3, 4, 5]],
+                "dict": [{"a": 1, "b": 2}, {"c": 1, "d": 2}],
+                "tuple2": [[6, 7], [8, 9]],
+                "named_tuple": [
+                    ExampleNamedTuple(1, 2),
+                    ExampleNamedTuple(3, 4),
+                ],
+            }
+        ),
         DataFrame,
     )
-    
