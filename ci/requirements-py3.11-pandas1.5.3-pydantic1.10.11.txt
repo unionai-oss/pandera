@@ -107,7 +107,6 @@ docutils==0.20.1
     #   readme-renderer
     #   recommonmark
     #   sphinx
-    #   sphinx-panels
 doit==0.36.0
     # via jupyterlite-core
 execnet==2.1.1
@@ -527,13 +526,11 @@ sphinx==7.2.6
     #   sphinx-basic-ng
     #   sphinx-copybutton
     #   sphinx-design
-    #   sphinx-panels
 sphinx-autodoc-typehints==1.14.1
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinx-copybutton==0.5.2
 sphinx-design==0.5.0
-sphinx-panels==0.4.1
 sphinxcontrib-applehelp==1.0.8
     # via sphinx
 sphinxcontrib-devhelp==1.0.6
