@@ -46,7 +46,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
-    "sphinx_panels",
+    "sphinx_design",
     "jupyterlite_sphinx",
     "myst_nb",
 ]
@@ -215,6 +215,8 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
                     '"pandera.api.polars.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.api.pyspark.container.DataFrameSchema',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Series"',
                 )
             )
         )

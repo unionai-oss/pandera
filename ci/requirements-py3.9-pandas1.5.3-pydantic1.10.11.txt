@@ -8,7 +8,7 @@ anyio==4.3.0
     #   starlette
 appnope==0.1.4
     # via ipykernel
-argcomplete==3.2.3
+argcomplete==3.3.0
     # via nox
 argon2-cffi==23.1.0
     # via jupyter-server
@@ -34,7 +34,7 @@ babel==2.14.0
     # via
     #   jupyterlab-server
     #   sphinx
-backports-tarfile==1.0.0
+backports-tarfile==1.1.0
     # via jaraco-context
 beautifulsoup4==4.12.3
     # via
@@ -107,7 +107,6 @@ docutils==0.20.1
     #   readme-renderer
     #   recommonmark
     #   sphinx
-    #   sphinx-panels
 doit==0.36.0
     # via jupyterlite-core
 exceptiongroup==1.2.0
@@ -274,7 +273,7 @@ markupsafe==2.1.5
     # via
     #   jinja2
     #   nbconvert
-matplotlib-inline==0.1.6
+matplotlib-inline==0.1.7
     # via
     #   ipykernel
     #   ipython
@@ -325,7 +324,7 @@ nh3==0.2.17
     # via readme-renderer
 nodeenv==1.8.0
     # via pre-commit
-nox==2024.3.2
+nox==2024.4.15
 numpy==1.26.4
     # via
     #   dask
@@ -382,7 +381,7 @@ platformdirs==4.2.0
     #   virtualenv
 pluggy==1.4.0
     # via pytest
-polars==0.20.20
+polars==0.20.21
 pre-commit==3.7.0
 prometheus-client==0.20.0
     # via jupyter-server
@@ -457,7 +456,7 @@ pyyaml==6.0.1
     #   myst-parser
     #   pre-commit
     #   ray
-pyzmq==25.1.2
+pyzmq==26.0.0
     # via
     #   ipykernel
     #   jupyter-client
@@ -506,7 +505,7 @@ send2trash==1.8.3
     # via jupyter-server
 setuptools==69.5.1
     # via nodeenv
-shapely==2.0.3
+shapely==2.0.4
     # via geopandas
 shellingham==1.5.4
     # via typer
@@ -530,7 +529,7 @@ sortedcontainers==2.4.0
     #   hypothesis
 soupsieve==2.5
     # via beautifulsoup4
-sphinx==7.2.6
+sphinx==7.3.4
     # via
     #   furo
     #   jupyterlite-sphinx
@@ -541,13 +540,11 @@ sphinx==7.2.6
     #   sphinx-basic-ng
     #   sphinx-copybutton
     #   sphinx-design
-    #   sphinx-panels
 sphinx-autodoc-typehints==1.14.1
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinx-copybutton==0.5.2
 sphinx-design==0.5.0
-sphinx-panels==0.4.1
 sphinxcontrib-applehelp==1.0.8
     # via sphinx
 sphinxcontrib-devhelp==1.0.6
@@ -590,9 +587,11 @@ tomli==2.0.1
     #   build
     #   coverage
     #   mypy
+    #   nox
     #   pylint
     #   pyproject-hooks
     #   pytest
+    #   sphinx
 tomlkit==0.12.4
     # via pylint
 toolz==0.12.1
@@ -628,7 +627,7 @@ types-click==7.1.8
 types-pkg-resources==0.1.3
 types-python-dateutil==2.9.0.20240316
     # via arrow
-types-pytz==2024.1.0.20240203
+types-pytz==2024.1.0.20240417
     # via pandas-stubs
 types-pyyaml==6.0.12.20240311
 types-requests==2.31.0.20240406
@@ -661,7 +660,7 @@ urllib3==2.2.1
 uvicorn==0.29.0
 validators==0.28.0
     # via frictionless
-virtualenv==20.25.1
+virtualenv==20.25.2
     # via
     #   asv
     #   nox
