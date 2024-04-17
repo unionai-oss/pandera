@@ -215,6 +215,8 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
                     '"pandera.api.polars.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.api.pyspark.container.DataFrameSchema',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Series"',
                 )
             )
         )
