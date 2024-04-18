@@ -444,6 +444,32 @@ def test_lazy_validation_errors():
         assert exc.failure_cases.shape[0] == 6
 
 
+def test_dataframe_validation_errors_nullable():
+    schema = DataFrameSchema(
+        {"a": Column(str, pa.Check.isin([*"abc"]), nullable=False)}
+    )
+    invalid_df = pl.DataFrame(
+        {"a": ["a", "b", "f", None]}
+    )  # 2 errors: "f" and None
+    try:
+        schema.validate(invalid_df, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == 2
+
+
+def test_dataframe_validation_errors_unique():
+    schema = DataFrameSchema(
+        {"a": Column(str, pa.Check.isin([*"abc"]), unique=True)}
+    )
+    invalid_df = pl.DataFrame(
+        {"a": ["a", "b", "b", "a"]}
+    )  # 4 errors, polars reports all duplicates
+    try:
+        schema.validate(invalid_df, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases.shape[0] == 4
+
+
 @pytest.fixture
 def lf_with_nested_types():
     return pl.LazyFrame(
