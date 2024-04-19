@@ -1,11 +1,10 @@
-(api-schema-inference)=
+.. _api-schema-inference:
 
-# Schema Inference
+Schema Inference
+================
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :nosignatures:
 
    pandera.schema_inference.pandas.infer_schema
-```

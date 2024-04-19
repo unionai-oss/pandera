@@ -46,7 +46,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
-    "sphinx_panels",
+    "sphinx_design",
     "jupyterlite_sphinx",
     "myst_nb",
 ]
@@ -183,6 +183,7 @@ intersphinx_mapping = {
     "pyspark": ("https://spark.apache.org/docs/latest/api/python/", None),
     "modin": ("https://modin.readthedocs.io/en/latest/", None),
     "polars": ("https://docs.pola.rs/py-polars/html/", None),
+    "typeguard": ("https://typeguard.readthedocs.io/en/stable/", None),
 }
 
 # strip prompts
@@ -214,6 +215,8 @@ class FilterTypeAnnotationWarnings(pylogging.Filter):
                     '"pandera.api.polars.container.DataFrameSchema',
                     "Cannot resolve forward reference in type annotations of "
                     '"pandera.api.pyspark.container.DataFrameSchema',
+                    "Cannot resolve forward reference in type annotations of "
+                    '"pandera.typing.Series"',
                 )
             )
         )
@@ -284,6 +287,9 @@ jupyterlite_bind_ipynb_suffix = False
 myst_enable_extensions = [
     "colon_fence",
 ]
+myst_heading_anchors = 3
+
+myst_heading_anchors = 3
 
 nb_execution_mode = "auto"
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]

@@ -18,7 +18,7 @@ pip install pandera[mypy]
 
 Then enable the plugin in your `mypy.ini` or `setug.cfg` file:
 
-```toml
+```
 [mypy]
 plugins = pandera.mypy
 ```
@@ -31,7 +31,7 @@ Mypy static type-linting is supported for only pandas dataframes.
 This functionality is experimental 🧪. Since the
 [pandas-stubs](https://github.com/pandas-dev/pandas-stubs) type stub
 annotations don't always match the official
-[pandas effort to support type annotations](https://github.com/pandas-dev/pandas/issues/28142#issuecomment-991967009)),
+[pandas effort to support type annotations](https://github.com/pandas-dev/pandas/issues/28142#issuecomment-991967009),
 installing the `pandera[mypy]` extra may yield false positives in your
 pandas code, many of which are are documented in `tests/mypy/modules`
 (see [here](https://github.com/unionai-oss/pandera/tree/main/tests/mypy/modules) ).

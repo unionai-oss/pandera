@@ -2,8 +2,9 @@
 
 # pylint:disable=abstract-method,too-many-ancestors,invalid-name
 
+import copy
 import inspect
-from typing import (
+from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
     Generic,
@@ -15,12 +16,13 @@ from typing import (
     Dict,
     Tuple,
     NamedTuple,
+    _GenericAlias,
 )
 
 import pandas as pd
 import typing_inspect
 
-from pandera import dtypes
+from pandera import dtypes, errors
 from pandera.engines import numpy_engine, pandas_engine
 
 Bool = dtypes.Bool  #: ``"bool"`` numpy dtype
@@ -164,6 +166,45 @@ if TYPE_CHECKING:
     T = TypeVar("T")  # pragma: no cover
 else:
     T = DataFrameModel
+
+
+__orig_generic_alias_call = copy.copy(_GenericAlias.__call__)
+
+
+def __patched_generic_alias_call(self, *args, **kwargs):
+    """
+    Patched implementation of _GenericAlias.__call__ so that validation errors
+    can be raised when instantiating an instance of pandera DataFrame generics,
+    e.g. DataFrame[A](data).
+    """
+    if DataFrameBase not in self.__origin__.__bases__:
+        return __orig_generic_alias_call(self, *args, **kwargs)
+
+    if not self._inst:
+        raise TypeError(
+            f"Type {self._name} cannot be instantiated; "
+            f"use {self.__origin__.__name__}() instead"
+        )
+    result = self.__origin__(*args, **kwargs)
+    try:
+        result.__orig_class__ = self
+    # Limit the patched behavior to subset of exception types
+    except (
+        TypeError,
+        errors.SchemaError,
+        errors.SchemaError,
+        errors.SchemaInitError,
+        errors.SchemaDefinitionError,
+    ):
+        raise
+    # In python 3.11.9, all exceptions when setting attributes when defining
+    # _GenericAlias subclasses are caught and ignored.
+    except Exception:  # pylint: disable=broad-except
+        pass
+    return result
+
+
+_GenericAlias.__call__ = __patched_generic_alias_call
 
 
 class DataFrameBase(Generic[T]):

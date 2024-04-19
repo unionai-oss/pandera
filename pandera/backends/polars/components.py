@@ -10,6 +10,7 @@ from pandera.api.polars.components import Column
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
 from pandera.config import ValidationScope, ValidationDepth, get_config_context
+from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -221,15 +222,18 @@ class ColumnBackend(PolarsSchemaBackend):
                 continue
             failure_cases = (
                 check_obj.with_context(
-                    isna.select(pl.col(column).alias("_isna"))
+                    isna.select(pl.col(column).alias(CHECK_OUTPUT_KEY))
                 )
-                .filter(pl.col("_isna").not_())
+                .filter(pl.col(CHECK_OUTPUT_KEY).not_())
                 .select(column)
                 .collect()
             )
             results.append(
                 CoreCheckResult(
                     passed=cast(bool, passed.select(column).item()),
+                    check_output=isna.collect().rename(
+                        {column: CHECK_OUTPUT_KEY}
+                    ),
                     check="not_nullable",
                     reason_code=SchemaErrorReason.SERIES_CONTAINS_NULLS,
                     message=(
@@ -279,6 +283,9 @@ class ColumnBackend(PolarsSchemaBackend):
                     CoreCheckResult(
                         passed=False,
                         check=check_name,
+                        check_output=duplicates.select(
+                            pl.col(column).not_().alias(CHECK_OUTPUT_KEY)
+                        ),
                         reason_code=SchemaErrorReason.SERIES_CONTAINS_DUPLICATES,
                         message=(
                             f"column '{schema.selector}' "

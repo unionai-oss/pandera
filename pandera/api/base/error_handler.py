@@ -131,7 +131,7 @@ class ErrorHandler:
                 continue
 
             if isinstance(error.check, Check):
-                check = error.check.error
+                check = error.check.error or error.check.name
             else:
                 check = error.check
 

@@ -1,10 +1,11 @@
-(api-core)=
+.. _api-core:
 
-# Core
+Core
+====
 
-## Schemas
+Schemas
+-------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -14,11 +15,10 @@
    pandera.api.pandas.array.SeriesSchema
    pandera.api.polars.container.DataFrameSchema
    pandera.api.pyspark.container.DataFrameSchema
-```
 
-## Schema Components
+Schema Components
+-----------------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -29,11 +29,10 @@
    pandera.api.pandas.components.MultiIndex
    pandera.api.polars.components.Column
    pandera.api.pyspark.components.Column
-```
 
-## Checks
+Checks
+------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -41,11 +40,10 @@
 
    pandera.api.checks.Check
    pandera.api.hypotheses.Hypothesis
-```
 
-## Data Objects
+Data Objects
+------------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -53,4 +51,3 @@
 
    pandera.api.polars.types.PolarsData
    pandera.api.pyspark.types.PysparkDataframeColumnObject
-```

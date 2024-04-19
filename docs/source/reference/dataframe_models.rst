@@ -1,10 +1,11 @@
-(api-dataframe-models)=
+.. _api-dataframe-models:
 
-# DataFrame Models
+DataFrame Models
+================
 
-## DataFrame Model
+DataFrame Model
+---------------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -12,33 +13,32 @@
    pandera.api.pandas.model.DataFrameModel
    pandera.api.polars.model.DataFrameModel
    pandera.api.pyspark.model.DataFrameModel
-```
 
-## Model Components
+Model Components
+----------------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
 
    pandera.api.dataframe.model_components.Field
    pandera.api.dataframe.model_components.check
    pandera.api.dataframe.model_components.dataframe_check
-```
+   pandera.api.dataframe.model_components.parser
+   pandera.api.dataframe.model_components.dataframe_parser
 
-## Typing
+Typing
+------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: typing_module.rst
    :nosignatures:
 
    pandera.typing
-```
 
-## Config
+Config
+------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: model_component_class.rst
@@ -47,4 +47,3 @@
    pandera.api.pandas.model_config.BaseConfig
    pandera.api.polars.model_config.BaseConfig
    pandera.api.pyspark.model_config.BaseConfig
-```

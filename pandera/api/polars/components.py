@@ -35,6 +35,7 @@ class Column(_Column):
         default: Optional[Any] = None,
         metadata: Optional[dict] = None,
         drop_invalid_rows: bool = False,
+        **column_kwargs,
     ) -> None:
         """Create column validator object.
 
@@ -97,6 +98,7 @@ class Column(_Column):
             default=default,
             metadata=metadata,
             drop_invalid_rows=drop_invalid_rows,
+            **column_kwargs,
         )
         self.set_regex()
 

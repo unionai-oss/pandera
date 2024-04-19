@@ -7,7 +7,7 @@ import pandas as pd
 
 import pandera.strategies as st
 from pandera import errors
-from pandera.api.base.types import CheckList
+from pandera.api.base.types import CheckList, ParserList
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
@@ -21,6 +21,7 @@ class Column(ArraySchema):
         self,
         dtype: PandasDtypeInputTypes = None,
         checks: Optional[CheckList] = None,
+        parsers: Optional[ParserList] = None,
         nullable: bool = False,
         unique: bool = False,
         report_duplicates: UniqueSettings = "all",
@@ -41,6 +42,7 @@ class Column(ArraySchema):
             one of the valid pandas string values:
             http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
         :param checks: checks to verify validity of the column
+        :param parsers: parsers to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique
         :param report_duplicates: how to report unique errors
@@ -81,6 +83,7 @@ class Column(ArraySchema):
         """
         super().__init__(
             dtype=dtype,
+            parsers=parsers,
             checks=checks,
             nullable=nullable,
             unique=unique,
@@ -116,6 +119,7 @@ class Column(ArraySchema):
         """Get column properties."""
         return {
             "dtype": self.dtype,
+            "parsers": self.parsers,
             "checks": self.checks,
             "nullable": self.nullable,
             "unique": self.unique,
@@ -196,7 +200,7 @@ class Column(ArraySchema):
 
         def _compare_dict(obj):
             return {
-                k: v if k != "_checks" else set(v)
+                k: v if k not in ["_checks", "_parsers"] else set(v)
                 for k, v in obj.__dict__.items()
             }
 

@@ -13,7 +13,12 @@ import pandas as pd
 
 from pandera.api.base.checks import CheckResult
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
+from pandera.api.parsers import Parser
+from pandera.backends.base import (
+    BaseSchemaBackend,
+    CoreCheckResult,
+    CoreParserResult,
+)
 from pandera.backends.pandas.error_formatters import (
     consolidate_failure_cases,
     format_generic_error_message,
@@ -66,6 +71,34 @@ class PandasSchemaBackend(BaseSchemaBackend):
             else pd.concat(pandas_obj_subsample).pipe(
                 lambda x: x[~x.index.duplicated()]
             )
+        )
+
+    def run_parser(
+        self,
+        check_obj,
+        parser: Parser,
+        parser_index: int,
+        *args,
+    ) -> CoreParserResult:
+        """Handle parser results.
+
+        :param check_obj: data object to be validated.
+        :param schema: pandera schema object
+        :param parser: Parser object used to validate pandas object.
+        :param parser_index: index of parser in the schema component parser list.
+        :param args: arguments to pass into parser object.
+        :returns:  ParserResult
+        """
+        parser_result = parser(check_obj, *args)
+
+        return CoreParserResult(
+            passed=True,
+            parser=parser,
+            parser_index=parser_index,
+            parser_output=parser_result.parser_output,
+            reason_code=SchemaErrorReason.DATAFRAME_PARSER,
+            failure_cases=None,
+            message=None,
         )
 
     def run_check(

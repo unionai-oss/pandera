@@ -1430,3 +1430,108 @@ def test_pandas_fields_metadata():
         }
     }
     assert PanderaSchema.get_metadata() == expected
+
+
+def test_parse_single_column():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parser("col1")
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 4.0, 9.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 4, 9]}).astype(float)
+    )
+
+
+def test_parse_dataframe():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the dataframe level
+        @pa.dataframe_parser
+        def dataframe_sqrt(cls, df):
+            # pylint:disable=no-self-argument
+            return df.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 4.0, 9.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 2, 3]}).astype(float)
+    )
+
+
+def test_parse_both_dataframe_and_column():
+    """Test that a single column can be parsed from a DataFrame"""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parser("col1")
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+        # parsers at the dataframe level
+        @pa.dataframe_parser
+        def dataframe_sqrt(cls, df):
+            # pylint:disable=no-self-argument
+            return df.transform("sqrt")
+
+    assert Schema.validate(
+        pd.DataFrame({"col1": [1.0, 16.0, 81.0], "col2": [1.0, 4.0, 9.0]})
+    ).equals(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": [1, 2, 3]}).astype(float)
+    )
+
+
+def test_parse_non_existing() -> None:
+    """Test a parser on a non-existing column."""
+
+    class Schema(pa.DataFrameModel):
+        col1: pa.typing.Series[float]
+        col2: pa.typing.Series[float]
+
+        # parsers at the column level
+        @pa.parser("nope")
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+    err_msg = "Parser sqrt is assigned to a non-existing field 'nope'"
+    with pytest.raises(pa.errors.SchemaInitError, match=err_msg):
+        Schema.to_schema()
+
+
+def test_parse_regex() -> None:
+    """Test the regex argument of the parse decorator."""
+
+    class Schema(pa.DataFrameModel):
+        a: Series[float]
+        abc: Series[float]
+        cba: Series[float]
+
+        @pa.parser("^a", regex=True)
+        @classmethod
+        def sqrt(cls, series):
+            # pylint:disable=no-self-argument
+            return series.transform("sqrt")
+
+    df = pd.DataFrame({"a": [121.0], "abc": [1.0], "cba": [200.0]})
+
+    assert Schema.validate(df).equals(  # type: ignore [attr-defined]
+        pd.DataFrame({"a": [11.0], "abc": [1.0], "cba": [200.0]})
+    )

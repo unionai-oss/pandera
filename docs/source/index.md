@@ -101,15 +101,17 @@ settings. With `pandera`, you can:
    `pd.DataFrame` or values in a `pd.Series`.
 3. Perform more complex statistical validation like
    {ref}`hypothesis testing<hypothesis>`.
-4. Seamlessly integrate with existing data analysis/processing pipelines
+4. {ref}`Parse<parsers>` data to standardize the preprocessing steps needed to
+   produce valid data.
+5. Seamlessly integrate with existing data analysis/processing pipelines
    via {ref}`function decorators<decorators>`.
-5. Define dataframe models with the {ref}`class-based API <dataframe-models>` with
+6. Define dataframe models with the {ref}`class-based API <dataframe-models>` with
    pydantic-style syntax and validate dataframes using the typing syntax.
-6. {ref}`Synthesize data <data-synthesis-strategies>` from schema objects for
+7. {ref}`Synthesize data <data-synthesis-strategies>` from schema objects for
    property-based testing with pandas data structures.
-7. {ref}`Lazily Validate <lazy-validation>` dataframes so that all validation
+8. {ref}`Lazily Validate <lazy-validation>` dataframes so that all validation
    rules are executed before raising an error.
-8. {ref}`Integrate <integrations>` with a rich ecosystem of python tools like
+9. {ref}`Integrate <integrations>` with a rich ecosystem of python tools like
    [pydantic](https://pydantic-docs.helpmanual.io/),
    [fastapi](https://fastapi.tiangolo.com/) and [mypy](http://mypy-lang.org/).
 
@@ -133,43 +135,42 @@ conda install -c conda-forge pandera
 
 Installing additional functionality:
 
-```{eval-rst}
-.. tabbed:: pip
+::::{tab-set}
 
-   .. code:: bash
-
-      pip install 'pandera[hypotheses]'  # hypothesis checks
-      pip install 'pandera[io]'          # yaml/script schema io utilities
-      pip install 'pandera[strategies]'  # data synthesis strategies
-      pip install 'pandera[mypy]'        # enable static type-linting of pandas
-      pip install 'pandera[fastapi]'     # fastapi integration
-      pip install 'pandera[dask]'        # validate dask dataframes
-      pip install 'pandera[pyspark]'     # validate pyspark dataframes
-      pip install 'pandera[modin]'       # validate modin dataframes
-      pip install 'pandera[modin-ray]'   # validate modin dataframes with ray
-      pip install 'pandera[modin-dask]'  # validate modin dataframes with dask
-      pip install 'pandera[geopandas]'   # validate geopandas geodataframes
-      pip install 'pandera[polars]'      # validate polars dataframes
+:::{tab-item} pip
+```{code} bash
+pip install 'pandera[hypotheses]'  # hypothesis checks
+pip install 'pandera[io]'          # yaml/script schema io utilities
+pip install 'pandera[strategies]'  # data synthesis strategies
+pip install 'pandera[mypy]'        # enable static type-linting of pandas
+pip install 'pandera[fastapi]'     # fastapi integration
+pip install 'pandera[dask]'        # validate dask dataframes
+pip install 'pandera[pyspark]'     # validate pyspark dataframes
+pip install 'pandera[modin]'       # validate modin dataframes
+pip install 'pandera[modin-ray]'   # validate modin dataframes with ray
+pip install 'pandera[modin-dask]'  # validate modin dataframes with dask
+pip install 'pandera[geopandas]'   # validate geopandas geodataframes
+pip install 'pandera[polars]'      # validate polars dataframes
 ```
+:::
 
-```{eval-rst}
-.. tabbed:: conda
-
-   .. code:: bash
-
-      conda install -c conda-forge pandera-hypotheses  # hypothesis checks
-      conda install -c conda-forge pandera-io          # yaml/script schema io utilities
-      conda install -c conda-forge pandera-strategies  # data synthesis strategies
-      conda install -c conda-forge pandera-mypy        # enable static type-linting of pandas
-      conda install -c conda-forge pandera-fastapi     # fastapi integration
-      conda install -c conda-forge pandera-dask        # validate dask dataframes
-      conda install -c conda-forge pandera-pyspark     # validate pyspark dataframes
-      conda install -c conda-forge pandera-modin       # validate modin dataframes
-      conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
-      conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
-      conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
-      conda install -c conda-forge pandera-polars      # validate polars dataframes
+:::{tab-item} conda
+```{code} bash
+conda install -c conda-forge pandera-hypotheses  # hypothesis checks
+conda install -c conda-forge pandera-io          # yaml/script schema io utilities
+conda install -c conda-forge pandera-strategies  # data synthesis strategies
+conda install -c conda-forge pandera-mypy        # enable static type-linting of pandas
+conda install -c conda-forge pandera-fastapi     # fastapi integration
+conda install -c conda-forge pandera-dask        # validate dask dataframes
+conda install -c conda-forge pandera-pyspark     # validate pyspark dataframes
+conda install -c conda-forge pandera-modin       # validate modin dataframes
+conda install -c conda-forge pandera-modin-ray   # validate modin dataframes with ray
+conda install -c conda-forge pandera-modin-dask  # validate modin dataframes with dask
+conda install -c conda-forge pandera-geopandas   # validate geopandas geodataframes
+conda install -c conda-forge pandera-polars      # validate polars dataframes
 ```
+:::
+::::
 
 ## Quick Start
 
@@ -368,6 +369,7 @@ series_schemas
 dtype_validation
 checks
 hypothesis
+parsers
 dtypes
 decorators
 drop_invalid_rows

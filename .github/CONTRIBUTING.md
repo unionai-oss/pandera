@@ -193,8 +193,6 @@ New feature issues can be found under the
 [enhancements](https://github.com/pandera-dev/pandera/labels/enhancement) label.
 You can request a feature by creating a new issue [here](https://github.com/pandera-dev/pandera/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=).
 
-(making-pull-requests)=
-
 ### Making Pull Requests
 
 Once your changes are ready to be submitted, make sure to push your changes to

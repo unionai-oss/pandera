@@ -13,8 +13,10 @@ from typing import (
 )
 
 from pandera.api.checks import Check
+from pandera.api.parsers import Parser
 
 CheckArg = Union[Check, List[Check]]
+ParserArg = Union[Parser, List[Parser]]
 AnyCallable = Callable[..., Any]
 
 
@@ -22,6 +24,11 @@ def to_checklist(checks: Optional[CheckArg]) -> List[Check]:
     """Convert value to list of checks."""
     checks = checks or []
     return [checks] if isinstance(checks, Check) else checks
+
+
+def to_parserlist(parsers: Optional[ParserArg]) -> List[Parser]:
+    parsers = parsers or []
+    return [parsers] if isinstance(parsers, Parser) else parsers
 
 
 class BaseFieldInfo:
@@ -32,6 +39,7 @@ class BaseFieldInfo:
 
     __slots__ = (
         "checks",
+        "parses",
         "nullable",
         "unique",
         "coerce",
@@ -49,6 +57,7 @@ class BaseFieldInfo:
     def __init__(
         self,
         checks: Optional[CheckArg] = None,
+        parses: Optional[ParserArg] = None,
         nullable: bool = False,
         unique: bool = False,
         coerce: bool = False,
@@ -62,6 +71,7 @@ class BaseFieldInfo:
         metadata: Optional[dict] = None,
     ) -> None:
         self.checks = to_checklist(checks)
+        self.parses = to_parserlist(parses)
         self.nullable = nullable
         self.unique = unique
         self.coerce = coerce
@@ -130,3 +140,24 @@ class BaseCheckInfo:  # pylint:disable=too-few-public-methods
             return self.check_fn(model_cls, arg)
 
         return Check(_adapter, name=name, **self.check_kwargs)
+
+
+class BaseParserInfo:  # pylint:disable=too-few-public-methods
+    """Captures extra information about a Parse."""
+
+    def __init__(self, parser_fn: AnyCallable, **parser_kwargs: Any) -> None:
+        self.parser_fn = parser_fn
+        self.parser_kwargs = parser_kwargs
+
+    def to_parser(self, model_cls: Type) -> Parser:
+        """Create a Parser from metadata."""
+        name = self.parser_kwargs.pop("name", None)
+        if not name:
+            name = getattr(
+                self.parser_fn, "__name__", self.parser_fn.__class__.__name__
+            )
+
+        def _adapter(arg: Any) -> Union[bool, Iterable[bool]]:
+            return self.parser_fn(model_cls, arg)
+
+        return Parser(_adapter, name=name, **self.parser_kwargs)

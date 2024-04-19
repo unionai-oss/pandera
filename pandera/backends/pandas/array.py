@@ -7,7 +7,7 @@ from multimethod import DispatchError
 from pandera.api.base.error_handler import ErrorHandler
 
 from pandera.api.pandas.types import is_field
-from pandera.backends.base import CoreCheckResult
+from pandera.backends.base import CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
@@ -73,6 +73,12 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 exc.reason_code,
                 exc,
             )
+
+        # run custom parsers
+        check_obj = self.run_parsers(
+            schema,
+            check_obj,
+        )
 
         # run the core checks
         error_handler = self.run_checks_and_handle_errors(
@@ -178,6 +184,20 @@ class ArraySchemaBackend(PandasSchemaBackend):
                 check=f"coerce_dtype('{schema.dtype}')",
                 reason_code=SchemaErrorReason.DATATYPE_COERCION,
             ) from exc
+
+    def run_parsers(self, schema, check_obj):
+        parser_results: List[CoreParserResult] = []
+        for parser_index, parser in enumerate(schema.parsers):
+            parser_args = [None] if is_field(check_obj) else [schema.name]
+            result = self.run_parser(
+                check_obj,
+                parser,
+                parser_index,
+                *parser_args,
+            )
+            check_obj = result.parser_output
+            parser_results.append(result)
+        return check_obj
 
     @validate_scope(scope=ValidationScope.SCHEMA)
     def check_name(self, check_obj: pd.Series, schema) -> CoreCheckResult:

@@ -1,10 +1,11 @@
-(api-dtypes)=
+.. _api-dtypes:
 
-# Data Types
+Data Types
+==========
 
-## Library-agnostic dtypes
+Library-agnostic dtypes
+-----------------------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: dtype.rst
@@ -38,14 +39,12 @@
    pandera.dtypes.Decimal
    pandera.dtypes.String
 
-```
-
-## Pandas Dtypes
+Pandas Dtypes
+-------------
 
 Listed here for compatibility with pandera versions \< 0.7.
 Passing native pandas dtypes to pandera components is preferred.
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: dtype.rst
@@ -66,13 +65,12 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.pandas_engine.Date
    pandera.engines.pandas_engine.Decimal
    pandera.engines.pandas_engine.Category
-```
 
-## GeoPandas Dtypes
+GeoPandas Dtypes
+----------------
 
 *new in 0.9.0*
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: dtype.rst
@@ -80,26 +78,23 @@ Passing native pandas dtypes to pandera components is preferred.
 
    pandera.engines.pandas_engine.Geometry
 
-```
-
-## Pydantic Dtypes
+Pydantic Dtypes
+---------------
 
 *new in 0.10.0*
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: dtype.rst
    :nosignatures:
 
    pandera.engines.pandas_engine.PydanticModel
-```
 
-## Polars Dtypes
+Polars Dtypes
+-------------
 
 *new in 0.19.0*
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: dtype.rst
@@ -130,11 +125,10 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.polars_engine.Null
    pandera.engines.polars_engine.Object
 
-```
 
-## Utility functions
+Utility functions
+-----------------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :nosignatures:
@@ -150,11 +144,10 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.dtypes.is_datetime
    pandera.dtypes.is_timedelta
    pandera.dtypes.immutable
-```
 
-## Engines
+Engines
+-------
 
-```{eval-rst}
 .. autosummary::
    :toctree: generated
    :template: class.rst
@@ -163,4 +156,3 @@ Passing native pandas dtypes to pandera components is preferred.
    pandera.engines.engine.Engine
    pandera.engines.numpy_engine.Engine
    pandera.engines.pandas_engine.Engine
-```
