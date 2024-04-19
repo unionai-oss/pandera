@@ -11,9 +11,14 @@ except ImportError:
 import polars as pl
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from polars.testing.parametric import dataframes, column
+
 import pandera as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
+from pandera.engines import polars_engine as pe
 from pandera.polars import Column, DataFrameSchema, DataFrameModel
 
 
@@ -528,3 +533,34 @@ def test_dataframe_schema_with_kwargs_nested_types(lf_with_nested_types):
         lf_with_nested_types, lazy=True
     )
     assert validated_lf.collect().equals(validated_lf.collect())
+
+
+@pytest.mark.parametrize(
+    "time_zone",
+    [
+        None,
+        "UTC",
+        "GMT",
+        "EST",
+    ],
+)
+@given(st.data())
+def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
+    strategy = dataframes(
+        column("datetime_col", dtype=pl.Datetime()),
+        lazy=True,
+        size=10,
+    )
+    lf = data.draw(strategy)
+    lf = lf.cast({"datetime_col": pl.Datetime(time_zone=time_zone)})
+    schema_tz_agnostic = DataFrameSchema(
+        {"datetime_col": Column(pe.DateTime(time_zone_agnostic=True))}
+    )
+    schema_tz_agnostic.validate(lf)
+
+    schema_tz_sensitive = DataFrameSchema(
+        {"datetime_col": Column(pe.DateTime(time_zone_agnostic=False))}
+    )
+    if time_zone:
+        with pytest.raises(pa.errors.SchemaError):
+            schema_tz_sensitive.validate(lf)
