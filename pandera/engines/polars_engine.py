@@ -5,7 +5,16 @@ import datetime
 import decimal
 import inspect
 import warnings
-from typing import Any, Union, Optional, Iterable, Literal, Sequence, Tuple
+from typing import (
+    Any,
+    Union,
+    Optional,
+    Iterable,
+    Literal,
+    Sequence,
+    Tuple,
+    Type,
+)
 
 
 import polars as pl
@@ -416,16 +425,26 @@ class Date(DataType, dtypes.Date):
 class DateTime(DataType, dtypes.DateTime):
     """Polars datetime data type."""
 
-    type = pl.Datetime
+    type: Type[pl.Datetime] = pl.Datetime
+    time_zone_agnostic: bool = False
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
         time_zone: Optional[str] = None,
         time_unit: Optional[str] = None,
+        time_zone_agnostic: bool = False,
     ) -> None:
+
+        _kwargs = {}
+        if time_unit is not None:
+            # avoid deprecated warning when initializing pl.Datetime:
+            # passing time_unit=None is deprecated.
+            _kwargs["time_unit"] = time_unit
+
         object.__setattr__(
-            self, "type", pl.Datetime(time_zone=time_zone, time_unit=time_unit)
+            self, "type", pl.Datetime(time_zone=time_zone, **_kwargs)
         )
+        object.__setattr__(self, "time_zone_agnostic", time_zone_agnostic)
 
     @classmethod
     def from_parametrized_dtype(cls, polars_dtype: pl.Datetime):
@@ -434,6 +453,24 @@ class DateTime(DataType, dtypes.DateTime):
         return cls(
             time_zone=polars_dtype.time_zone, time_unit=polars_dtype.time_unit
         )
+
+    def check(
+        self,
+        pandera_dtype: dtypes.DataType,
+        data_container: Optional[PolarsDataContainer] = None,
+    ) -> Union[bool, Iterable[bool]]:
+        try:
+            pandera_dtype = Engine.dtype(pandera_dtype)
+        except TypeError:
+            return False
+
+        if self.time_zone_agnostic:
+            return (
+                isinstance(pandera_dtype.type, pl.Datetime)
+                and pandera_dtype.type.time_unit == self.type.time_unit
+            )
+
+        return self.type == pandera_dtype.type and super().check(pandera_dtype)
 
 
 @Engine.register_dtype(

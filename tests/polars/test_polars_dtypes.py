@@ -1,4 +1,6 @@
 """Polars dtype tests."""
+
+import datetime
 import decimal
 from decimal import Decimal
 from typing import Union, Tuple, Sequence
@@ -403,3 +405,41 @@ def test_polars_nested_dtypes_try_coercion(
         pe.Engine.dtype(noncoercible_dtype).try_coerce(PolarsData(data))
     except pandera.errors.ParserError as exc:
         assert exc.failure_cases.equals(data.collect())
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "datetime",
+        datetime.datetime,
+        pl.Datetime,
+        pl.Datetime(),
+        pl.Datetime(time_unit="ns"),
+        pl.Datetime(time_unit="us"),
+        pl.Datetime(time_unit="ms"),
+        pl.Datetime(time_zone="UTC"),
+    ],
+)
+def test_datetime_time_zone_agnostic(dtype):
+
+    tz_agnostic = pe.DateTime(time_zone_agnostic=True)
+    dtype = pe.Engine.dtype(dtype)
+
+    if tz_agnostic.type.time_unit == getattr(dtype.type, "time_unit", "us"):
+        # timezone agnostic pandera dtype should pass regardless of timezone
+        assert tz_agnostic.check(dtype)
+    else:
+        # but fail if the time units don't match
+        assert not tz_agnostic.check(dtype)
+
+    tz_sensitive = pe.DateTime()
+    if getattr(dtype.type, "time_zone", None) is not None:
+        assert not tz_sensitive.check(dtype)
+
+    tz_sensitive_utc = pe.DateTime(time_zone="UTC")
+    if getattr(
+        dtype.type, "time_zone", None
+    ) is None and tz_sensitive_utc.type.time_zone != getattr(
+        dtype.type, "time_zone", None
+    ):
+        assert not tz_sensitive_utc.check(dtype)
