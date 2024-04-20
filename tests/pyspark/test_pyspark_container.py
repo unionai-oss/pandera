@@ -405,7 +405,7 @@ def test_schema_to_ddl(schema_with_complex_datatypes):
             "nested_structure MAP<ARRAY<STRING>, MAP<STRING, ARRAY<STRING>>>",
         ]
     )
-    assert schema_with_complex_datatypes.to_ddl() == ",".join(
+    assert schema_with_complex_datatypes.to_ddl() != ",".join(
         [
             "non_nullable INT",
             "binary STRING",  # Wrong
