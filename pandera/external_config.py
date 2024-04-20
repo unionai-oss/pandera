@@ -21,6 +21,8 @@ try:
         os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
 
     import pyspark.pandas
+except (ImportError, ModuleNotFoundError):
+    pass
 finally:
     if is_spark_local_ip_dirty:
         os.environ.pop("SPARK_LOCAL_IP")
