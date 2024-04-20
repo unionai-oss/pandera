@@ -170,7 +170,13 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                     check=pl.lit(check_identifier),
                     check_number=pl.lit(err.check_index),
                     index=index,
-                ).cast({"failure_case": pl.Utf8, "index": pl.Int32})
+                ).cast(
+                    {
+                        "failure_case": pl.Utf8,
+                        "index": pl.Int32,
+                        "check_number": pl.Int32,
+                    }
+                )
 
             else:
                 scalar_failure_cases = defaultdict(list)

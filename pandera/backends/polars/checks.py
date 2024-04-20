@@ -44,9 +44,10 @@ class PolarsCheckBackend(BaseCheckBackend):
     def apply(self, check_obj: PolarsData):
         """Apply the check function to a check object."""
         if self.check.element_wise:
+            selector = pl.col(check_obj.key or "*")
             out = check_obj.lazyframe.with_columns(
-                pl.col(check_obj.key or "*").map_elements(self.check_fn)
-            )
+                selector.map_elements(self.check_fn, return_dtype=pl.Boolean)
+            ).select(selector)
         else:
             out = self.check_fn(check_obj)
 

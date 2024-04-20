@@ -14,8 +14,9 @@ from pandera import errors
 from pandera.config import get_config_context
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
-from pandera.api.base.types import StrictType, CheckList
+from pandera.api.base.types import StrictType, CheckList, ParserList
 from pandera.api.checks import Check
+from pandera.api.parsers import Parser
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.backends.pandas.register import register_pandas_backends
@@ -39,6 +40,7 @@ class DataFrameSchema(BaseSchema):
             Dict[Any, "pandera.api.pandas.components.Column"]  # type: ignore [name-defined]
         ] = None,
         checks: Optional[CheckList] = None,
+        parsers: Optional[ParserList] = None,
         index=None,
         dtype: PandasDtypeInputTypes = None,
         coerce: bool = False,
@@ -61,6 +63,7 @@ class DataFrameSchema(BaseSchema):
             particular column.
         :type columns: mapping of column names and column schema component.
         :param checks: dataframe-wide checks.
+        :param parsers: dataframe-wide parsers.
         :param index: specify the datatypes and properties of the index.
         :param dtype: datatype of the dataframe. This overrides the data
             types specified in any of the columns. If a string is specified,
@@ -135,9 +138,15 @@ class DataFrameSchema(BaseSchema):
         if isinstance(checks, (Check, Hypothesis)):
             checks = [checks]
 
+        if parsers is None:
+            parsers = []
+        if isinstance(parsers, Parser):
+            parsers = [parsers]
+
         super().__init__(
             dtype=dtype,
             checks=checks,
+            parsers=parsers,
             name=name,
             title=title,
             description=description,
@@ -445,6 +454,7 @@ class DataFrameSchema(BaseSchema):
             f"<Schema {self.__class__.__name__}("
             f"columns={self.columns}, "
             f"checks={self.checks}, "
+            f"parsers={self.parsers}, "
             f"index={self.index.__repr__()}, "
             f"coerce={self.coerce}, "
             f"dtype={self._dtype}, "
@@ -484,6 +494,14 @@ class DataFrameSchema(BaseSchema):
         else:
             checks_str = f"{indent}checks=[]"
 
+        if self.parsers:
+            parsers_str = f"{indent}parsers=[\n"
+            for parser in self.parsers:
+                parsers_str += f"{indent * 2}{parser}\n"
+            parsers_str += f"{indent}]"
+        else:
+            parsers_str = f"{indent}parsers=[]"
+
         # add additional indents
         index_ = str(self.index).split("\n")
         if len(index_) == 1:
@@ -497,6 +515,7 @@ class DataFrameSchema(BaseSchema):
             f"<Schema {self.__class__.__name__}(\n"
             f"{columns_str},\n"
             f"{checks_str},\n"
+            f"{parsers_str},\n"
             f"{indent}coerce={self.coerce},\n"
             f"{indent}dtype={self._dtype},\n"
             f"{indent}index={index},\n"
@@ -582,6 +601,7 @@ class DataFrameSchema(BaseSchema):
                 'even_number': <Schema Column(name=even_number, type=DataType(bool))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -635,6 +655,7 @@ class DataFrameSchema(BaseSchema):
                 'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -699,6 +720,7 @@ class DataFrameSchema(BaseSchema):
                 'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -764,6 +786,7 @@ class DataFrameSchema(BaseSchema):
                 'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -848,6 +871,7 @@ class DataFrameSchema(BaseSchema):
                 'probabilities': <Schema Column(name=probabilities, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -928,6 +952,7 @@ class DataFrameSchema(BaseSchema):
                 'category': <Schema Column(name=category, type=DataType(str))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -996,6 +1021,7 @@ class DataFrameSchema(BaseSchema):
                 'probability': <Schema Column(name=probability, type=DataType(float64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=<Schema Index(name=category, type=DataType(str))>,
@@ -1025,6 +1051,7 @@ class DataFrameSchema(BaseSchema):
                 'column1': <Schema Column(name=column1, type=DataType(str))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=<Schema MultiIndex(
@@ -1135,6 +1162,7 @@ class DataFrameSchema(BaseSchema):
                 'unique_id': <Schema Column(name=unique_id, type=DataType(int64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=None,
@@ -1167,6 +1195,7 @@ class DataFrameSchema(BaseSchema):
                 'unique_id1': <Schema Column(name=unique_id1, type=DataType(int64))>
             },
             checks=[],
+            parsers=[],
             coerce=False,
             dtype=None,
             index=<Schema Index(name=unique_id2, type=DataType(str))>,
@@ -1262,6 +1291,7 @@ class DataFrameSchema(BaseSchema):
                 {
                     k: Column(
                         dtype=v.dtype,
+                        parsers=v.parsers,
                         checks=v.checks,
                         nullable=v.nullable,
                         unique=v.unique,

@@ -181,6 +181,13 @@ Pandera also supports a limited set of generic and special types in the
 - `typing.TypedDict`
 - `typing.NamedTuple`
 
+```{important}
+Under the hood, `pandera` uses [typeguard](https://typeguard.readthedocs.io/en/latest/)
+to validate these generic types. If you have `typeguard >= 3.0.0` installed,
+`pandera` will use {class}`typeguard.CollectionCheckStrategy` to validate all
+the items in the data value, otherwise it will only check the first item.
+```
+
 For example:
 
 ```{code-cell} python

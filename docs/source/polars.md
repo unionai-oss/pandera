@@ -148,8 +148,9 @@ ground-work for future performance improvements.
 
 ### `LazyFrame` Method Chain
 
-::::{tabbed} DataFrameSchema
+::::{tab-set}
 
+:::{tab-item} DataFrameSchema
 ```{testcode} polars
 import pandera.polars as pa
 import polars as pl
@@ -179,9 +180,9 @@ shape: (3, 2)
 │ 3   ┆ a   │
 └─────┴─────┘
 ```
-::::
+:::
 
-::::{tabbed} DataFrameModel
+:::{tab-item} DataFrameModel
 
 ```{testcode} polars
 import pandera.polars as pa
@@ -213,12 +214,15 @@ shape: (3, 2)
 │ 3   ┆ a   │
 └─────┴─────┘
 ```
+:::
+
 ::::
 
 ### `DataFrame` Method Chain
 
-::::{tabbed} DataFrameSchema
+::::{tab-set}
 
+:::{tab-item} DataFrameSchema
 ```{testcode} polars
 schema = pa.DataFrameSchema({"a": pa.Column(int)})
 
@@ -244,10 +248,9 @@ shape: (3, 2)
 │ 3   ┆ a   │
 └─────┴─────┘
 ```
-::::
+:::
 
-::::{tabbed} DataFrameModel
-
+:::{tab-item} DataFrameModel
 ```{testcode} polars
 class SimpleModel(pa.DataFrameModel):
     a: int
@@ -274,7 +277,10 @@ shape: (3, 2)
 │ 3   ┆ a   │
 └─────┴─────┘
 ```
+:::
+
 ::::
+
 
 ## Error Reporting
 
@@ -306,7 +312,9 @@ executing it in-line, where you call `.collect()` to actually execute
 the computation.
 :::
 
-::::{tabbed} LazyFrame validation
+::::{tab-set}
+
+:::{tab-item} LazyFrame validation
 
 By default, ``pl.LazyFrame`` validation will only validate schema-level properties:
 
@@ -340,9 +348,9 @@ pandera.errors.SchemaErrors: {
     }
 }
 ```
-::::
+:::
 
-::::{tabbed} DataFrame validation
+:::{tab-item} DataFrame validation
 
 By default, ``pl.DataFrame`` validation will validate both schema-level
 and data-level properties:
@@ -399,7 +407,10 @@ pandera.errors.SchemaErrors: {
     }
 }
 ```
+:::
+
 ::::
+
 
 ## Supported Data Types
 
@@ -438,7 +449,9 @@ Polars nested datetypes are also supported via {ref}`parameterized data types <p
 See the examples below for the different ways to specify this through the
 object-based and class-based APIs:
 
-::::{tabbed} DataFrameSchema
+::::{tab-set}
+
+:::{tab-item} DataFrameSchema
 
 ```{testcode} polars
 schema = pa.DataFrameSchema(
@@ -449,10 +462,9 @@ schema = pa.DataFrameSchema(
     },
 )
 ```
-::::
+:::
 
-
-::::{tabbed} DataFrameModel (Annotated)
+:::{tab-item} DataFrameModel (Annotated)
 
 ```{testcode} polars
 try:
@@ -465,10 +477,9 @@ class ModelWithAnnotated(pa.DataFrameModel):
     array_col: Annotated[pl.Array, pl.Int64(), 3]
     struct_col: Annotated[pl.Struct, {"a": pl.Utf8(), "b": pl.Float64()}]
 ```
-::::
+:::
 
-
-::::{tabbed} DataFrameModel (Field)
+:::{tab-item} DataFrameModel (Field)
 
 ```{testcode} polars
 class ModelWithDtypeKwargs(pa.DataFrameModel):
@@ -476,8 +487,10 @@ class ModelWithDtypeKwargs(pa.DataFrameModel):
     array_col: pl.Array = pa.Field(dtype_kwargs={"inner": pl.Int64(), "width": 3})
     struct_col: pl.Struct = pa.Field(dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}})
 ```
+:::
 
 ::::
+
 
 ## Custom checks
 
@@ -507,7 +520,9 @@ function, which is slower than the native polars expressions API.
 
 Here's an example of a column-level custom check:
 
-::::{tabbed} DataFrameSchema
+::::{tab-set}
+
+:::{tab-item} DataFrameSchema
 
 ```{testcode} polars
 from pandera.polars import PolarsData
@@ -553,9 +568,9 @@ shape: (3, 1)
 │ 3   │
 └─────┘
 ```
-::::
+:::
 
-::::{tabbed} DataFrameModel
+:::{tab-item} DataFrameModel
 
 ```{testcode} polars
 from pandera.polars import PolarsData
@@ -595,6 +610,8 @@ shape: (3, 1)
 │ 3   │
 └─────┘
 ```
+:::
+
 ::::
 
 
@@ -607,7 +624,9 @@ If you need to validate values on an entire dataframe, you can specify at check
 at the dataframe level. The expected output is a `polars.LazyFrame` containing
 multiple boolean columns, a single boolean column, or a scalar boolean.
 
-::::{tabbed} DataFrameSchema
+::::{tab-set}
+
+:::{tab-item} DataFrameSchema
 
 ```{testcode} polars
 def col1_gt_col2(data: PolarsData, col1: str, col2: str) -> pl.LazyFrame:
@@ -651,10 +670,9 @@ shape: (3, 2)
 │ 4   ┆ 3   │
 └─────┴─────┘
 ```
-::::
+:::
 
-
-::::{tabbed} DataFrameModel
+:::{tab-item} DataFrameModel
 
 ```{testcode} polars
 class ModelWithDFChecks(pa.DataFrameModel):
@@ -692,7 +710,10 @@ shape: (3, 2)
 │ 4   ┆ 3   │
 └─────┴─────┘
 ```
+:::
+
 ::::
+
 
 ## Data-level Validation with LazyFrames
 

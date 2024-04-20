@@ -89,9 +89,19 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 columns[field_name] = Column(**column_kwargs)
 
             else:
+                origin_name = (
+                    f"{annotation.origin.__module__}."
+                    f"{annotation.origin.__name__}"
+                )
+                msg = (
+                    " Series[TYPE] annotations are not supported for polars. "
+                    "Use the bare TYPE directly"
+                    if origin_name == "pandera.typing.pandas.Series"
+                    else ""
+                )
                 raise SchemaInitError(
                     f"Invalid annotation '{field_name}: "
-                    f"{annotation.raw_annotation}'"
+                    f"{annotation.raw_annotation}'.{msg}"
                 )
 
         return columns

@@ -14,6 +14,7 @@ import pytest
 from pandera import (
     Category,
     Check,
+    Parser,
     Column,
     DataFrameModel,
     DataFrameSchema,
@@ -989,6 +990,7 @@ def test_schema_equality_operators():
     series_schema = SeriesSchema(
         str,
         checks=[Check(lambda s: s.str.startswith("foo"))],
+        parsers=Parser(lambda s: s.str.upper()),
         nullable=False,
         unique=False,
         name="my_series",
@@ -996,6 +998,7 @@ def test_schema_equality_operators():
     series_schema_base = ArraySchema(
         str,
         checks=[Check(lambda s: s.str.startswith("foo"))],
+        parsers=[Parser(lambda s: s.str.upper())],
         nullable=False,
         unique=False,
         name="my_series",
@@ -2039,6 +2042,7 @@ def test_dataframe_duplicated_columns(data, error, schema) -> None:
             DataFrameSchema(
                 columns={"col": Column(int)},
                 checks=Check.gt(0),
+                parsers=Parser(lambda x: x),
                 index=Index(int),
                 dtype=int,
                 coerce=True,
@@ -2049,6 +2053,7 @@ def test_dataframe_duplicated_columns(data, error, schema) -> None:
             [
                 "columns",
                 "checks",
+                "parsers",
                 "index",
                 "dtype",
                 "coerce",

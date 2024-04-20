@@ -34,10 +34,6 @@ dependencies:
   - modin
   - protobuf
 
-  # dask extra
-  - dask
-  - distributed
-
   # geopandas extra
   - geopandas
   - shapely
@@ -69,7 +65,6 @@ dependencies:
   # documentation
   - sphinx
   - sphinx-design
-  - sphinx-panels
   - sphinx-autodoc-typehints <= 1.14.1
   - sphinx-copybutton
   - recommonmark
@@ -85,10 +80,15 @@ dependencies:
   - pre_commit
 
   - pip:
+      # dask extra
+      - dask[dataframe]
+      - distributed
+
+      # docs
       - furo
       - grpcio
       - ray
-      - typeguard >= 3.0.2
+      - typeguard
       - types-click
       - types-pyyaml
       - types-pkg_resources

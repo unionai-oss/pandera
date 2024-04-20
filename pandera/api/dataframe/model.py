@@ -26,12 +26,17 @@ from pandera.api.base.schema import BaseSchema
 from pandera.api.dataframe.model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
+    PARSER_KEY,
+    DATAFRAME_PARSER_KEY,
     CheckInfo,
     Field,
     FieldCheckInfo,
     FieldInfo,
+    FieldParserInfo,
+    ParserInfo,
 )
 from pandera.api.dataframe.model_config import BaseConfig
+from pandera.api.parsers import Parser
 from pandera.engines import PYDANTIC_V2
 from pandera.errors import SchemaInitError
 from pandera.strategies import base_strategies as st
@@ -122,7 +127,9 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     #: Key according to `FieldInfo.name`
     __fields__: Dict[str, Tuple[AnnotationInfo, FieldInfo]] = {}
     __checks__: Dict[str, List[Check]] = {}
+    __parsers__: Dict[str, List[Parser]] = {}
     __root_checks__: List[Check] = []
+    __root_parsers__: List[Parser] = []
 
     @docstring_substitution(validate_doc=BaseSchema.validate.__doc__)
     def __new__(cls, *args, **kwargs) -> DataFrameBase[TDataFrameModel]:  # type: ignore [misc]
@@ -224,6 +231,18 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
             {} if cls.__extras__ is None else cls.__extras__
         )
         cls.__root_checks__ = df_custom_checks + df_registered_checks
+
+        parser_infos = typing.cast(
+            List[FieldParserInfo], cls._collect_parser_infos(PARSER_KEY)
+        )
+
+        cls.__parsers__ = cls._extract_parsers(
+            parser_infos, field_names=list(cls.__fields__.keys())
+        )
+
+        df_parser_infos = cls._collect_parser_infos(DATAFRAME_PARSER_KEY)
+        df_custom_parsers = cls._extract_df_parsers(df_parser_infos)
+        cls.__root_parsers__ = df_custom_parsers
 
         kwargs = {}
         if cls.__config__ is not None:
@@ -410,6 +429,28 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
                 check_infos.append(check_info)
         return check_infos
 
+    @classmethod
+    def _collect_parser_infos(cls, key: str) -> List[ParserInfo]:
+        """Collect inherited parser metadata from bases.
+        Inherited classmethods are not in cls.__dict__, that's why we need to
+        walk the inheritance tree.
+        """
+        bases = inspect.getmro(cls)[:-2]  # bases -> DataFrameModel -> object
+        bases = tuple(
+            base for base in bases if issubclass(base, DataFrameModel)
+        )
+
+        method_names = set()
+        parser_infos = []
+        for base in bases:
+            for attr_name, attr_value in vars(base).items():
+                parser_info = getattr(attr_value, key, None)
+                if not isinstance(parser_info, ParserInfo):
+                    continue
+                method_names.add(attr_name)
+                parser_infos.append(parser_info)
+        return parser_infos
+
     @staticmethod
     def _regex_filter(seq: Iterable, regexps: Iterable[str]) -> Set[str]:
         """Filter items matching at least one of the regexes."""
@@ -451,6 +492,41 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
     def _extract_df_checks(cls, check_infos: List[CheckInfo]) -> List[Check]:
         """Collect field annotations from bases in mro reverse order."""
         return [check_info.to_check(cls) for check_info in check_infos]
+
+    @classmethod
+    def _extract_parsers(
+        cls, parser_infos: List[FieldParserInfo], field_names: List[str]
+    ) -> Dict[str, List[Parser]]:
+        """Collect field annotations from bases in mro reverse order."""
+        parsers: Dict[str, List[Parser]] = {}
+        for parser_info in parser_infos:
+            parser_info_fields = {
+                field.name if isinstance(field, FieldInfo) else field
+                for field in parser_info.fields
+            }
+            if parser_info.regex:
+                matched = cls._regex_filter(field_names, parser_info_fields)
+            else:
+                matched = parser_info_fields
+
+            parser_ = parser_info.to_parser(cls)
+
+            for field in matched:
+                if field not in field_names:
+                    raise SchemaInitError(
+                        f"Parser {parser_.name} is assigned to a non-existing field '{field}'."
+                    )
+                if field not in parsers:
+                    parsers[field] = []
+                parsers[field].append(parser_)
+        return parsers
+
+    @classmethod
+    def _extract_df_parsers(
+        cls, parser_infos: List[ParserInfo]
+    ) -> List[Parser]:
+        """Collect field annotations from bases in mro reverse order."""
+        return [parser_info.to_parser(cls) for parser_info in parser_infos]
 
     @classmethod
     def get_metadata(cls) -> Optional[dict]:

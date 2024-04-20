@@ -151,3 +151,33 @@ def test_polars_element_wise_dataframe_check(lf):
             schema.validate(invalid_lf)
         except pa.errors.SchemaError as exc:
             exc.failure_cases.equals(pl.DataFrame({col: [-1, -4]}))
+
+
+def test_polars_element_wise_dataframe_different_dtypes(column_lf):
+
+    # Custom check function
+    def check_gt_2(v: int) -> bool:
+        return v > 2
+
+    def check_len_ge_2(v: str) -> bool:
+        return len(v) >= 2
+
+    lf = column_lf.with_columns(
+        str_col=pl.Series(["aaa", "bb", "c", "dd"], dtype=str)
+    )
+
+    schema = pa.DataFrameSchema(
+        {
+            "col": pa.Column(
+                dtype=int, checks=pa.Check(check_gt_2, element_wise=True)
+            ),
+            "str_col": pa.Column(
+                dtype=str, checks=pa.Check(check_len_ge_2, element_wise=True)
+            ),
+        }
+    )
+
+    try:
+        schema.validate(lf, lazy=True)
+    except pa.errors.SchemaErrors as exc:
+        assert exc.failure_cases["failure_case"].to_list() == ["1", "2", "c"]
