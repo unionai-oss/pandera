@@ -1,7 +1,7 @@
 """Test typing annotations for the model api."""
 # pylint:disable=missing-class-docstring,too-few-public-methods
 import re
-from typing import Any, Dict, NamedTuple, Optional, Type
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd
@@ -495,9 +495,9 @@ class ExampleNamedTuple(NamedTuple):
 
 
 class SchemaComplexPythonCollectionTypes(pa.DataFrameModel):
-    list: list[pa.typing.Int32]
-    dict: dict[str, pa.typing.Int32]
-    tuple2: tuple[pa.typing.Int32, pa.typing.Int32]
+    list: List[pa.typing.Int32]
+    dict: Dict[str, pa.typing.Int32]
+    tuple2: Tuple[pa.typing.Int32, pa.typing.Int32]
     named_tuple: ExampleNamedTuple
 
 
