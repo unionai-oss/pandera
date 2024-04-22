@@ -575,7 +575,7 @@ class DataFrameSchema(BaseSchema):  # pylint: disable=too-many-public-methods
         :returns: StructType object with current schema fields.
         """
         fields = [
-            StructField(column, self.columns[column]._dtype.type, True)
+            StructField(column, self.columns[column].dtype.type, True)
             for column in self.columns
         ]
         return StructType(fields)
