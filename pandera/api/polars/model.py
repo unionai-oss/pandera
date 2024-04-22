@@ -19,6 +19,7 @@ from pandera.api.dataframe.model_components import FieldInfo
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.components import Column
 from pandera.api.polars.model_config import BaseConfig
+from pandera.engines import polars_engine as pe
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
 
@@ -52,24 +53,29 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             field_name = field.name
             check_name = getattr(field, "check_name", None)
 
-            if annotation.metadata:
-                if field.dtype_kwargs:
-                    raise TypeError(
-                        "Cannot specify redundant 'dtype_kwargs' "
-                        + f"for {annotation.raw_annotation}."
-                        + "\n Usage Tip: Drop 'typing.Annotated'."
-                    )
-                dtype_kwargs = get_dtype_kwargs(annotation)
-                dtype = annotation.arg(**dtype_kwargs)  # type: ignore
-            elif annotation.default_dtype:
-                dtype = annotation.default_dtype
-            else:
-                dtype = annotation.arg
+            engine_dtype = None
+            try:
+                engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
+                dtype = engine_dtype.type
+            except TypeError:
+                if annotation.metadata:
+                    if field.dtype_kwargs:
+                        raise TypeError(
+                            "Cannot specify redundant 'dtype_kwargs' "
+                            + f"for {annotation.raw_annotation}."
+                            + "\n Usage Tip: Drop 'typing.Annotated'."
+                        )
+                    dtype_kwargs = get_dtype_kwargs(annotation)
+                    dtype = annotation.arg(**dtype_kwargs)  # type: ignore
+                elif annotation.default_dtype:
+                    dtype = annotation.default_dtype
+                else:
+                    dtype = annotation.arg
 
-            dtype = None if dtype is Any else dtype
-
-            if annotation.origin is None or isinstance(
-                annotation.origin, pl.datatypes.DataTypeClass
+            if (
+                annotation.origin is None
+                or isinstance(annotation.origin, pl.datatypes.DataTypeClass)
+                or engine_dtype
             ):
                 if check_name is False:
                     raise SchemaInitError(
