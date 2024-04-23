@@ -114,6 +114,10 @@ jobs:
           pip-cache: ~/.cache/pip
         - os: macos-latest
           pip-cache: ~/Library/Caches/pip
+        - os: macos-13
+          pip-cache: ~/Library/Caches/pip
+        - os: macos-14
+          pip-cache: ~/Library/Caches/pip
         - os: windows-latest
           pip-cache: ~/AppData/Local/pip/Cache
         exclude:
