@@ -1,5 +1,6 @@
 """Unit tests for polars dataframe model."""
 
+import sys
 from typing import Optional
 
 import pytest
@@ -187,3 +188,25 @@ def test_model_with_custom_dataframe_checks(
         invalid_df.pipe(
             ldf_model_with_custom_dataframe_checks.validate
         ).collect()
+
+
+@pytest.fixture
+def schema_with_list_type():
+    return DataFrameSchema(
+        name="ModelWithNestedDtypes",
+        columns={
+            "list_col": Column(pl.List(pl.Utf8)),
+        },
+    )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="standard collection generics are not supported in python < 3.9",
+)
+def test_polars_python_list_df_model(schema_with_list_type):
+    class ModelWithNestedDtypes(DataFrameModel):
+        list_col: list[str]
+
+    schema = ModelWithNestedDtypes.to_schema()
+    assert schema_with_list_type == schema
