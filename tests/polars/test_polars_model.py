@@ -206,6 +206,7 @@ def schema_with_list_type():
 )
 def test_polars_python_list_df_model(schema_with_list_type):
     class ModelWithNestedDtypes(DataFrameModel):
+        # pylint: disable=unsubscriptable-object
         list_col: list[str]
 
     schema = ModelWithNestedDtypes.to_schema()
