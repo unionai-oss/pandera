@@ -1,7 +1,6 @@
 """Class-based api for polars models."""
 
 from typing import (
-    Any,
     Dict,
     List,
     Tuple,
@@ -57,14 +56,14 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             try:
                 engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
                 dtype = engine_dtype.type
-            except TypeError:
+            except TypeError as exc:
                 if annotation.metadata:
                     if field.dtype_kwargs:
                         raise TypeError(
                             "Cannot specify redundant 'dtype_kwargs' "
                             + f"for {annotation.raw_annotation}."
                             + "\n Usage Tip: Drop 'typing.Annotated'."
-                        )
+                        ) from exc
                     dtype_kwargs = get_dtype_kwargs(annotation)
                     dtype = annotation.arg(**dtype_kwargs)  # type: ignore
                 elif annotation.default_dtype:
