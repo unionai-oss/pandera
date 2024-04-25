@@ -418,7 +418,7 @@ py4j==0.10.9.7
 pyarrow==15.0.2
 pycparser==2.22
     # via cffi
-pydantic==2.3.0
+pydantic==1.10.13
     # via fastapi
 pydantic-core==2.6.3
     # via pydantic
