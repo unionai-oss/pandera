@@ -3,8 +3,8 @@
 from decimal import Decimal
 from datetime import date, datetime
 from contextlib import nullcontext as does_not_raise
-from pyspark.sql import DataFrame, SparkSession, Row
 import platform
+from pyspark.sql import DataFrame, SparkSession, Row
 import pyspark.sql.types as T
 import pytest
 import pandera.pyspark as pa
