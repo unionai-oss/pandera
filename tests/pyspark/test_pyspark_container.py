@@ -4,6 +4,7 @@ from decimal import Decimal
 from datetime import date, datetime
 from contextlib import nullcontext as does_not_raise
 from pyspark.sql import DataFrame, SparkSession, Row
+import platform
 import pyspark.sql.types as T
 import pytest
 import pandera.pyspark as pa
@@ -452,6 +453,10 @@ def schema_with_simple_datatypes():
     return schema
 
 
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="skipping due to issues with opening file names for temp files.",
+)
 def test_pyspark_read(schema_with_simple_datatypes, tmp_path, spark):
     """
     Test reading a file using an automatically generated schema object.
