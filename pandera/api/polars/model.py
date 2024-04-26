@@ -21,6 +21,7 @@ from pandera.api.polars.model_config import BaseConfig
 from pandera.engines import polars_engine as pe
 from pandera.errors import SchemaInitError
 from pandera.typing import AnnotationInfo
+from pandera.typing.polars import Series
 
 
 class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
@@ -74,6 +75,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             if (
                 annotation.origin is None
                 or isinstance(annotation.origin, pl.datatypes.DataTypeClass)
+                or annotation.origin is Series
                 or engine_dtype
             ):
                 if check_name is False:
@@ -94,19 +96,9 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
                 columns[field_name] = Column(**column_kwargs)
 
             else:
-                origin_name = (
-                    f"{annotation.origin.__module__}."
-                    f"{annotation.origin.__name__}"
-                )
-                msg = (
-                    " Series[TYPE] annotations are not supported for polars. "
-                    "Use the bare TYPE directly"
-                    if origin_name == "pandera.typing.pandas.Series"
-                    else ""
-                )
                 raise SchemaInitError(
                     f"Invalid annotation '{field_name}: "
-                    f"{annotation.raw_annotation}'.{msg}"
+                    f"{annotation.raw_annotation}'."
                 )
 
         return columns

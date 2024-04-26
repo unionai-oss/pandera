@@ -740,7 +740,7 @@ def from_frictionless_schema(
     schema: Union[str, Path, Dict, FrictionlessSchema]
 ) -> DataFrameSchema:
     # pylint: disable=line-too-long,anomalous-backslash-in-string
-    """Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a
+    r"""Create a :class:`~pandera.api.pandas.container.DataFrameSchema` from either a
     frictionless json/yaml schema file saved on disk, or from a frictionless
     schema already loaded into memory.
 
