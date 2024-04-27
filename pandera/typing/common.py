@@ -60,103 +60,60 @@ STRING = pandas_engine.STRING  #: ``"str"`` numpy dtype
 BOOL = pandas_engine.BOOL  #: ``"str"`` numpy dtype
 
 
-try:
+if pandas_engine.GEOPANDAS_INSTALLED:
     Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
-    GEOPANDAS_INSTALLED = True
-except AttributeError:
-    GEOPANDAS_INSTALLED = False
-
-if GEOPANDAS_INSTALLED:
-    GenericDtype = TypeVar(  # type: ignore
-        "GenericDtype",
-        bound=Union[
-            bool,
-            int,
-            str,
-            float,
-            List[Any],
-            Dict[Any, Any],
-            Tuple[Any],
-            NamedTuple,
-            pd.core.dtypes.base.ExtensionDtype,
-            Bool,
-            Date,
-            DateTime,
-            Decimal,
-            Timedelta,
-            Category,
-            Float,
-            Float16,
-            Float32,
-            Float64,
-            Int,
-            Int8,
-            Int16,
-            Int32,
-            Int64,
-            UInt8,
-            UInt16,
-            UInt32,
-            UInt64,
-            INT8,
-            INT16,
-            INT32,
-            INT64,
-            UINT8,
-            UINT16,
-            UINT32,
-            UINT64,
-            Object,
-            String,
-            STRING,
-            Geometry,
-        ],
-    )
 else:
-    GenericDtype = TypeVar(  # type: ignore
-        "GenericDtype",
-        bound=Union[
-            bool,
-            int,
-            str,
-            float,
-            List[Any],
-            Dict[Any, Any],
-            Tuple[Any],
-            NamedTuple,
-            pd.core.dtypes.base.ExtensionDtype,
-            Bool,
-            Date,
-            DateTime,
-            Decimal,
-            Timedelta,
-            Category,
-            Float,
-            Float16,
-            Float32,
-            Float64,
-            Int,
-            Int8,
-            Int16,
-            Int32,
-            Int64,
-            UInt8,
-            UInt16,
-            UInt32,
-            UInt64,
-            INT8,
-            INT16,
-            INT32,
-            INT64,
-            UINT8,
-            UINT16,
-            UINT32,
-            UINT64,
-            Object,
-            String,
-            STRING,
-        ],
-    )
+
+    class Geometry:  # type: ignore [no-redef]
+        # pylint: disable=too-few-public-methods
+        ...  #  stub Geometry type
+
+
+GenericDtype = TypeVar(  # type: ignore
+    "GenericDtype",
+    bound=Union[
+        bool,
+        int,
+        str,
+        float,
+        List[Any],
+        Dict[Any, Any],
+        Tuple[Any],
+        NamedTuple,
+        pd.core.dtypes.base.ExtensionDtype,
+        Bool,
+        Date,
+        DateTime,
+        Decimal,
+        Timedelta,
+        Category,
+        Float,
+        Float16,
+        Float32,
+        Float64,
+        Int,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        Object,
+        String,
+        STRING,
+        Geometry,
+    ],
+)
 
 DataFrameModel = TypeVar("DataFrameModel", bound="DataFrameModel")  # type: ignore
 
