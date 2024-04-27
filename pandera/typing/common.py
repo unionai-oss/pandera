@@ -59,7 +59,8 @@ if pandas_engine.GEOPANDAS_INSTALLED:
     Geometry = pandas_engine.Geometry  # : ``"geometry"`` geopandas dtype
 else:
 
-    class Geometry:  # type: ignore [no-redef]  # pylint: disable=too-few-public-methods
+    class Geometry:  # type: ignore [no-redef]
+        # pylint: disable=too-few-public-methods
         ...  #  stub Geometry type
 
 
