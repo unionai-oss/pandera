@@ -4,7 +4,24 @@ import polars as pl
 import pytest
 
 import pandera.polars as pa
-from pandera.typing.polars import LazyFrame
+from pandera.typing.polars import LazyFrame, Series
+
+
+def test_series_annotation():
+    class Model(pa.DataFrameModel):
+        col1: Series[pl.Int64]
+
+    data = pl.LazyFrame(
+        {
+            "col1": [1, 2, 3],
+        }
+    )
+
+    assert data.collect().equals(Model.validate(data).collect())
+
+    invalid_data = data.cast({"col1": pl.Float64})
+    with pytest.raises(pa.errors.SchemaError):
+        Model.validate(invalid_data).collect()
 
 
 def test_lazyframe_generic_simple():

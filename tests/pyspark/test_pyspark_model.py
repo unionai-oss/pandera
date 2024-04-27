@@ -495,3 +495,186 @@ def test_registered_dataframemodel_checks(spark) -> None:
     out = ExampleDFModel.validate(df, lazy=False)
 
     assert not out.pandera.errors
+
+
+@pytest.fixture(scope="module")
+def model_with_datatypes():
+    """
+    Model containing all common datatypes for PySpark namespace.
+    """
+
+    class SchemaWithDatatypes(DataFrameModel):
+        non_nullable: T.IntegerType = Field(nullable=False)
+        binary: T.BinaryType = Field()
+        byte: T.ByteType = Field()
+        text: T.StringType = Field()
+        integer: T.IntegerType = Field()
+        long: T.LongType = Field()
+        float: T.FloatType = Field()
+        double: T.DoubleType = Field()
+        boolean: T.BooleanType = Field()
+        decimal: T.DecimalType = Field()
+        date: T.DateType = Field()
+        timestamp: T.TimestampType = Field()
+        timestamp_ntz: T.TimestampNTZType = Field()
+        array: T.ArrayType(T.StringType()) = Field()
+        map: T.MapType(T.StringType(), T.IntegerType()) = Field()
+        nested_structure: T.MapType(
+            T.ArrayType(T.StringType()),
+            T.MapType(T.StringType(), T.ArrayType(T.StringType())),
+        ) = Field()
+
+    return SchemaWithDatatypes
+
+
+@pytest.fixture(scope="module")
+def model_with_multiple_parent_classes():
+    """
+    Model inherited from multiple parent classes.
+    """
+
+    class BaseClassA1(DataFrameModel):
+        byte: T.ByteType = Field()
+        text: T.StringType = Field()
+        array: T.ArrayType(T.StringType()) = Field()
+
+    class BaseClassA2(DataFrameModel):
+        non_nullable: T.IntegerType = Field(nullable=False)
+        text: T.StringType = Field()
+        integer: T.IntegerType = Field()
+        map: T.MapType(T.StringType(), T.IntegerType()) = Field()
+
+    class BaseClassB(BaseClassA1, BaseClassA2):
+        array: T.ArrayType(T.IntegerType()) = Field()
+        map: T.MapType(T.IntegerType(), T.DoubleType()) = Field()
+
+    class BaseClassC(DataFrameModel):
+        text_new: T.StringType = Field()
+
+    class BaseClassFinal(BaseClassB, BaseClassC):
+        # Notes:
+        # - B overwrites the types annotations for `array` and `map`
+        # - `text` is duplicated between A1 and A2
+        # - Adding a new field in C
+        pass
+
+    return BaseClassFinal
+
+
+def test_schema_to_structtype(model_with_datatypes):
+    """
+    Test the conversion from a model to a StructType object through `to_structtype()`.
+    """
+
+    assert model_with_datatypes.to_structtype() == T.StructType(
+        [
+            T.StructField(
+                name="non_nullable", dataType=T.IntegerType(), nullable=True
+            ),
+            T.StructField(
+                name="binary", dataType=T.BinaryType(), nullable=True
+            ),
+            T.StructField(name="byte", dataType=T.ByteType(), nullable=True),
+            T.StructField(name="text", dataType=T.StringType(), nullable=True),
+            T.StructField(
+                name="integer", dataType=T.IntegerType(), nullable=True
+            ),
+            T.StructField(name="long", dataType=T.LongType(), nullable=True),
+            T.StructField(name="float", dataType=T.FloatType(), nullable=True),
+            T.StructField(
+                name="double", dataType=T.DoubleType(), nullable=True
+            ),
+            T.StructField(
+                name="boolean", dataType=T.BooleanType(), nullable=True
+            ),
+            T.StructField(
+                name="decimal", dataType=T.DecimalType(), nullable=True
+            ),
+            T.StructField(name="date", dataType=T.DateType(), nullable=True),
+            T.StructField(
+                name="timestamp", dataType=T.TimestampType(), nullable=True
+            ),
+            T.StructField(
+                name="timestamp_ntz", dataType=T.TimestampType(), nullable=True
+            ),
+            T.StructField(
+                name="array",
+                dataType=T.ArrayType(T.StringType()),
+                nullable=True,
+            ),
+            T.StructField(
+                name="map",
+                dataType=T.MapType(T.StringType(), T.IntegerType()),
+                nullable=True,
+            ),
+            T.StructField(
+                name="nested_structure",
+                dataType=T.MapType(
+                    T.ArrayType(T.StringType()),
+                    T.MapType(T.StringType(), T.ArrayType(T.StringType())),
+                ),
+                nullable=True,
+            ),
+        ]
+    )
+
+
+def test_schema_to_ddl(model_with_datatypes):
+    """
+    Test the conversion from a model to a DDL string through `to_ddl()`.
+    """
+
+    assert model_with_datatypes.to_ddl() == ",".join(
+        [
+            "non_nullable INT",
+            "binary BINARY",
+            "byte TINYINT",
+            "text STRING",
+            "integer INT",
+            "long BIGINT",
+            "float FLOAT",
+            "double DOUBLE",
+            "boolean BOOLEAN",
+            "decimal DECIMAL(10,0)",
+            "date DATE",
+            "timestamp TIMESTAMP",
+            "timestamp_ntz TIMESTAMP",
+            "array ARRAY<STRING>",
+            "map MAP<STRING, INT>",
+            "nested_structure MAP<ARRAY<STRING>, MAP<STRING, ARRAY<STRING>>>",
+        ]
+    )
+
+
+def test_inherited_schema_to_structtype(model_with_multiple_parent_classes):
+    """
+    Test the final inheritance for a model with a longer parent class structure.
+    """
+
+    assert model_with_multiple_parent_classes.to_structtype() == T.StructType(
+        [
+            T.StructField(
+                name="text_new", dataType=T.StringType(), nullable=True
+            ),  # A new field was kept
+            T.StructField(
+                name="non_nullable", dataType=T.IntegerType(), nullable=True
+            ),
+            T.StructField(
+                name="text", dataType=T.StringType(), nullable=True
+            ),  # Only one `text` was kept
+            T.StructField(
+                name="integer", dataType=T.IntegerType(), nullable=True
+            ),
+            T.StructField(
+                name="map",
+                dataType=T.MapType(T.IntegerType(), T.DoubleType()),
+                nullable=True,
+            ),  # `map` has the overloaded `IntegerType/DoubleType`
+            T.StructField(name="byte", dataType=T.ByteType(), nullable=True),
+            T.StructField(
+                name="array",
+                dataType=T.ArrayType(T.IntegerType()),
+                nullable=True,
+            ),  # `array` has the overloaded `IntegerType`
+        ]
+    )

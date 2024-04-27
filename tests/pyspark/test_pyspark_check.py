@@ -3,6 +3,7 @@
 # pylint:disable=abstract-method
 import datetime
 import decimal
+from unittest import mock
 
 from pyspark.sql.functions import col
 from pyspark.sql.types import (
@@ -32,6 +33,29 @@ from pandera.pyspark import DataFrameModel, Field
 from pandera.backends.pyspark.decorators import validate_scope
 from pandera.pyspark import DataFrameSchema, Column
 from pandera.errors import PysparkSchemaError
+
+
+@pytest.fixture(scope="function")
+def extra_registered_checks():
+    """temporarily registers custom checks onto the Check class"""
+
+    # pylint: disable=unused-variable
+    with mock.patch(
+        "pandera.Check.REGISTERED_CUSTOM_CHECKS", new_callable=dict
+    ):
+
+        @pandera.extensions.register_check_method
+        def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
+            """Ensure values of a series are strictly below a maximum value.
+            :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
+            :param max_value: Upper bound not to be exceeded. Must be
+                a type comparable to the dtype of the column datatype of pyspark
+            """
+            # test case exists but not detected by pytest so no cover added
+            cond = col(pyspark_obj.column_name) <= max_value
+            return pyspark_obj.dataframe.filter(~cond).limit(1).count() == 0
+
+        yield
 
 
 class TestDecorator:
@@ -1598,19 +1622,9 @@ class TestCustomCheck(BaseClass):
             if df_out.pandera.errors:
                 raise PysparkSchemaError
 
-    @staticmethod
-    @pandera.extensions.register_check_method
-    def new_pyspark_check(pyspark_obj, *, max_value) -> bool:
-        """Ensure values of a series are strictly below a maximum value.
-        :param data: PysparkDataframeColumnObject column object which is a contains dataframe and column name to do the check
-        :param max_value: Upper bound not to be exceeded. Must be
-            a type comparable to the dtype of the column datatype of pyspark
-        """
-        # test case exists but not detected by pytest so no cover added
-        cond = col(pyspark_obj.column_name) <= max_value
-        return pyspark_obj.dataframe.filter(~cond).limit(1).count() == 0
-
-    def test_extension(self, spark):
+    def test_extension(
+        self, spark, extra_registered_checks
+    ):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameSchema way of defining schema"""
         schema = DataFrameSchema(
             {
@@ -1631,7 +1645,9 @@ class TestCustomCheck(BaseClass):
             IntegerType(),
         )
 
-    def test_extension_pydantic(self, spark):
+    def test_extension_pydantic(
+        self, spark, extra_registered_checks
+    ):  # pylint: disable=unused-argument
         """Test custom extension with DataFrameModel way of defining schema"""
 
         class Schema(DataFrameModel):
