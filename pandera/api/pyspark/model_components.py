@@ -178,7 +178,7 @@ def Field(
         else:
             check_ = check_constructor(arg_value, **check_kwargs)
         checks.append(check_)
-    if unique is True:
+    if unique:
         raise SchemaInitError(
             "unique Field argument not yet implemented for pyspark"
         )
