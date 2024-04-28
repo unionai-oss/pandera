@@ -334,7 +334,7 @@ This feature is available for `pyspark.sql` and `pandas` both.
 :::{warning}
 The `unique` support for PySpark-based validations to define which columns must be
 tested for unique values may incur in a performance hit, given Spark's distributed
-nature.
+nature. It only works with `Config`.
 
 Use with caution.
 :::

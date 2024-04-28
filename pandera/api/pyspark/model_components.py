@@ -1,4 +1,5 @@
 """DataFrameModel components"""
+
 from typing import (
     Any,
     Callable,
@@ -131,7 +132,7 @@ def Field(
     to the built-in :py:class:`~pandera.api.checks.Check` methods.
 
     :param nullable: Whether or not the column/index can contain null values.
-    :param unique: Whether column values should be unique.
+    :param unique: Whether column values should be unique. Currently Not supported
     :param coerce: coerces the data type if ``True``.
     :param regex: whether or not the field name or alias is a regex pattern.
     :param ignore_na: whether or not to ignore null values in the checks.
@@ -177,6 +178,10 @@ def Field(
         else:
             check_ = check_constructor(arg_value, **check_kwargs)
         checks.append(check_)
+    if unique:
+        raise SchemaInitError(
+            "unique Field argument not yet implemented for pyspark"
+        )
 
     return FieldInfo(
         checks=checks or None,
@@ -235,7 +240,7 @@ class FieldCheckInfo(CheckInfo):  # pylint:disable=too-few-public-methods
 
 
 def _to_function_and_classmethod(
-    fn: Union[AnyCallable, classmethod]
+    fn: Union[AnyCallable, classmethod],
 ) -> Tuple[AnyCallable, classmethod]:
     if isinstance(fn, classmethod):
         fn, method = fn.__func__, cast(classmethod, fn)

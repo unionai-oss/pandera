@@ -10,7 +10,7 @@ import pytest
 import pandera.pyspark as pa
 import pandera.errors
 from pandera.config import PanderaConfig, ValidationDepth
-from pandera.pyspark import DataFrameSchema, Column
+from pandera.pyspark import DataFrameSchema, Column, DataFrameModel
 
 spark = SparkSession.builder.getOrCreate()
 
@@ -234,6 +234,64 @@ def test_pyspark_nullable():
         df_out = schema_nullable_true.validate(df)
     assert isinstance(df_out, DataFrame)
     assert df_out.pandera.errors == {}
+
+
+def test_pyspark_unique_field():
+    """
+    Test that field unique True raise an error.
+    """
+    with pytest.raises(pandera.errors.SchemaInitError):
+        # pylint: disable=W0223
+        class PanderaSchema(DataFrameModel):
+            id: T.StringType() = pa.Field(unique=True)
+
+        data = [
+            ("id1"),
+        ]
+        spark_schema = T.StructType(
+            [
+                T.StructField("id", T.StringType(), False),
+            ],
+        )
+        df = spark.createDataFrame(data=data, schema=spark_schema)
+        df_out = PanderaSchema.validate(df)
+        assert len(df_out.pandera.errors) == 0
+
+
+def test_pyspark_unique_config():
+    """
+    Test the sample functionality of pyspark
+    """
+
+    # pylint: disable=W0223
+    class PanderaSchema(DataFrameModel):
+        product: T.StringType() = pa.Field()
+        price: T.IntegerType() = pa.Field()
+
+        class Config:
+            unique = "product"
+
+    data = [
+        ("Bread", 9),
+        ("Butter", 15),
+        ("Ice Cream", 10),
+        ("Cola", 12),
+        ("Chocolate", 7),
+        ("Chocolate", 7),
+    ]
+
+    spark_schema = T.StructType(
+        [
+            T.StructField("product", T.StringType(), False),
+            T.StructField("price", T.IntegerType(), False),
+        ],
+    )
+
+    df = spark.createDataFrame(data=data, schema=spark_schema)
+
+    df_out = PanderaSchema.validate(df)
+
+    assert len(df_out.pandera.errors["DATA"]["DUPLICATES"]) == 1
 
 
 @pytest.fixture(scope="module")
