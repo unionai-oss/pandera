@@ -9,8 +9,10 @@ import pytest
 from pandera import (
     Check,
     Column,
+    DataFrameModel,
     DataFrameSchema,
     DateTime,
+    Field,
     Float,
     Index,
     Int,
@@ -20,6 +22,7 @@ from pandera import (
     errors,
 )
 from pandera.engines.pandas_engine import Engine, pandas_version
+from pandera.typing import Series
 
 
 def test_column() -> None:
@@ -51,6 +54,35 @@ def test_column_coerce() -> None:
     validated = column_schema.validate(data)
     assert isinstance(validated, pd.DataFrame)
     assert Engine.dtype(validated.a.dtype) == Engine.dtype(int)
+
+
+def test_config_coerce() -> None:
+    """Test that setting coerce=True in the Config of a DataFrameModel is sufficient to coerce a column."""
+
+    class Model(DataFrameModel):
+        class Config:
+            coerce = True
+
+        col: Series[bool] = Field()
+
+    df = pd.DataFrame({"col": [1, 0]})
+
+    assert isinstance(Model.validate(df), pd.DataFrame)
+
+
+def test_config_coerce_with_regex() -> None:
+    """Test that setting coerce=True in the Config of a DataFrameModel is sufficient to coerce a column in the case
+    where the column has regex=True."""
+
+    class ModelWithRegex(DataFrameModel):
+        class Config:
+            coerce = True
+
+        col: Series[bool] = Field(alias="alias", regex=True)
+
+    df = pd.DataFrame({"alias": [1, 0]})
+
+    assert isinstance(ModelWithRegex.validate(df), pd.DataFrame)
 
 
 def test_column_in_dataframe_schema():
