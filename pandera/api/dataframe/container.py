@@ -1,9 +1,10 @@
 """Common class for dataframe schema objects."""
 
-from __future__ import annotations
+# from __future__ import annotations
 
 import copy
 import os
+import sys
 import warnings
 from pathlib import Path
 from typing import (
@@ -12,7 +13,6 @@ from typing import (
     Generic,
     List,
     Optional,
-    Self,
     TypeVar,
     Union,
     cast,
@@ -22,25 +22,31 @@ from typing import (
 from pandera import errors
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
-from pandera.api.base.types import StrictType, CheckList, ParserList
+from pandera.api.base.types import CheckList, ParserList, StrictType
 from pandera.api.checks import Check
-from pandera.api.parsers import Parser
 from pandera.api.hypotheses import Hypothesis
+from pandera.api.parsers import Parser
 from pandera.dtypes import DataType, UniqueSettings
-
 from pandera.engines import PYDANTIC_V2
+
+# if python version is < 3.11, import Self from typing_extensions
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 
 TDataObject = TypeVar("TDataObject")
 
 
 if PYDANTIC_V2:
-    from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
+    from pydantic_core import core_schema
 
 N_INDENT_SPACES = 4
 
 
+# pylint: disable=too-many-public-methods
 class DataFrameSchema(Generic[TDataObject], BaseSchema):
     def __init__(
         self,
@@ -186,6 +192,18 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
                 "strict parameter must equal either `True`, `False`, "
                 "or `'filter'`."
             )
+
+    @property
+    def dtype(
+        self,
+    ) -> DataType:
+        """Get the dtype property."""
+        return self._dtype  # type: ignore
+
+    @dtype.setter
+    def dtype(self, value: Any) -> None:
+        """Set the pandas dtype property."""
+        raise NotImplementedError
 
     @property
     def coerce(self) -> bool:
@@ -998,7 +1016,9 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
 
         return cast(Self, new_schema)
 
-    def reset_index(self, level: List[str] = None, drop: bool = False) -> Self:
+    def reset_index(
+        self, level: Optional[List[str]] = None, drop: bool = False
+    ) -> Self:
         """
         A method for resetting the :class:`Index` of a :class:`DataFrameSchema`
 
@@ -1179,7 +1199,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
     # Schema IO Methods #
     #####################
 
-    def to_script(self, fp: Union[str, Path] = None) -> Self:
+    def to_script(self, fp: Optional[Union[str, Path]] = None) -> Self:
         """Write DataFrameSchema to python script.
 
         :param path: str, Path to write script

@@ -9,11 +9,11 @@ import inspect
 import os
 from abc import ABC
 from functools import wraps
-from typing import Any, Dict, Tuple, Type, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from pandera.backends.base import BaseSchemaBackend
-from pandera.errors import BackendNotFoundError
 from pandera.dtypes import DataType
+from pandera.errors import BackendNotFoundError
 
 DtypeInputTypes = Union[str, type, DataType, Type]
 
@@ -38,7 +38,7 @@ class BaseSchema(ABC):
         drop_invalid_rows=False,
     ):
         """Abstract base schema initializer."""
-        self.dtype = dtype
+        self._dtype = dtype
         self.checks = checks
         self.coerce = coerce
         self.parsers = parsers

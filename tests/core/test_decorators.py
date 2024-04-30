@@ -10,12 +10,12 @@ import pytest
 from pandera import (
     Check,
     Column,
+    DataFrameModel,
     DataFrameSchema,
     DateTime,
     Field,
     Float,
     Int,
-    DataFrameModel,
     String,
     check_input,
     check_io,
@@ -30,7 +30,7 @@ try:
     # python 3.8+
     from typing import Literal  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[misc]
+    from typing_extensions import Literal  # type: ignore[assignment]
 
 
 def test_check_function_decorators() -> None:
@@ -1007,7 +1007,7 @@ def test_check_types_star_kwargs() -> None:
     @check_types
     def get_star_kwargs_keys_dataframe(
         # pylint: disable=unused-argument
-        kwarg1: DataFrame[InSchema] = None,
+        kwarg1: typing.Optional[DataFrame[InSchema]] = None,
         **kwargs: DataFrame[InSchema],
     ) -> typing.List[str]:
         return list(kwargs.keys())

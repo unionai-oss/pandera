@@ -162,7 +162,7 @@ class BaseCheck(metaclass=MetaCheck):
         name: str,
         init_kwargs,
         error: Union[str, Callable],
-        statistics: Dict[str, Any] = None,
+        statistics: Optional[Dict[str, Any]] = None,
         **check_kwargs,
     ):
         """Create a Check object from a built-in check's name."""

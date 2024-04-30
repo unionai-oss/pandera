@@ -8,8 +8,8 @@ import typing
 from typing import (
     Any,
     Dict,
-    Iterable,
     Generic,
+    Iterable,
     List,
     Optional,
     Set,
@@ -21,13 +21,13 @@ from typing import (
 )
 
 from pandera.api.base.model import BaseModel
-from pandera.api.checks import Check
 from pandera.api.base.schema import BaseSchema
+from pandera.api.checks import Check
 from pandera.api.dataframe.model_components import (
     CHECK_KEY,
     DATAFRAME_CHECK_KEY,
-    PARSER_KEY,
     DATAFRAME_PARSER_KEY,
+    PARSER_KEY,
     CheckInfo,
     Field,
     FieldCheckInfo,
@@ -45,8 +45,8 @@ from pandera.typing.common import DataFrameBase
 from pandera.utils import docstring_substitution
 
 if PYDANTIC_V2:
+    from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic_core import core_schema
-    from pydantic import GetJsonSchemaHandler, GetCoreSchemaHandler
 
 try:
     from typing_extensions import get_type_hints
@@ -325,7 +325,7 @@ class DataFrameModel(Generic[TDataFrame, TSchema], BaseModel):
         Similar to inspect.get_members but bypass descriptors __get__.
         """
         bases = inspect.getmro(cls)[:-1]  # bases -> DataFrameModel -> object
-        attrs = {}
+        attrs: dict = {}
         for base in reversed(bases):
             if issubclass(base, DataFrameModel):
                 attrs.update(base.__dict__)

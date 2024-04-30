@@ -25,7 +25,6 @@ import typing_inspect
 
 from pandera.dtypes import DataType
 
-
 # register different TypedDict type depending on python version
 if sys.version_info >= (3, 12):
     from typing import TypedDict
@@ -146,7 +145,7 @@ class Engine(ABCMeta):
 
     def register_dtype(
         cls: _EngineType,
-        pandera_dtype_cls: Type[_DataType] = None,
+        pandera_dtype_cls: Optional[Type[_DataType]] = None,
         *,
         equivalents: Optional[List[Any]] = None,
     ) -> Callable:
