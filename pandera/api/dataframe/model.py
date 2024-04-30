@@ -1,4 +1,4 @@
-"""Class-based api for pandas models."""
+"""Class-based api for dataframe models."""
 
 import copy
 import inspect
