@@ -57,7 +57,7 @@ class DataFrameModel(_DataFrameModel[pl.LazyFrame, DataFrameSchema]):
             try:
                 engine_dtype = pe.Engine.dtype(annotation.raw_annotation)
                 dtype = engine_dtype.type
-            except TypeError as exc:
+            except (TypeError, ValueError) as exc:
                 if annotation.metadata:
                     if field.dtype_kwargs:
                         raise TypeError(

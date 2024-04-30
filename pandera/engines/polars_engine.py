@@ -156,6 +156,8 @@ class DataType(dtypes.DataType):
             is_coercible, failure_cases = polars_coerce_failure_cases(
                 data_container=data_container, type_=self.type
             )
+            if data_container.key:
+                failure_cases = failure_cases.select(data_container.key)
             raise errors.ParserError(
                 f"Could not coerce {_key} LazyFrame with schema "
                 f"{data_container.lazyframe.schema} "

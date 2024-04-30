@@ -158,7 +158,7 @@ class PolarsSchemaBackend(BaseSchemaBackend):
                         failure_case=pl.Series(
                             err.failure_cases.rows(named=True)
                         )
-                    ).select(pl.col.failure_case)
+                    ).select(pl.col.failure_case.struct.json_encode())
                 else:
                     failure_cases_df = err.failure_cases.rename(
                         {err.failure_cases.columns[0]: "failure_case"}
