@@ -2,6 +2,7 @@
 
 import pandas as pd
 from joblib import Parallel, delayed
+
 from pandera import Column, DataFrameSchema
 
 schema = DataFrameSchema({"a": Column("int64")}, coerce=True)

@@ -5,9 +5,9 @@ from typing import Any, List, Optional, TypeVar, cast
 
 import pyspark.sql as ps
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.checks import Check
-from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.dtypes import DataType

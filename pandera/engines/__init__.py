@@ -1,7 +1,6 @@
 """Pandera type engines."""
 
 import pydantic
-
 from packaging import version
 
 

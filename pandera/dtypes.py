@@ -1,4 +1,5 @@
 """Pandera data types."""
+
 # pylint:disable=too-many-ancestors
 from __future__ import annotations
 

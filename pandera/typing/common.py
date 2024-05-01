@@ -1,4 +1,5 @@
 """Common typing functionality."""
+
 # pylint:disable=abstract-method,too-many-ancestors,invalid-name
 
 import copy

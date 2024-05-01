@@ -3,7 +3,6 @@
 from functools import wraps
 from typing import Callable, Dict, Generic, Tuple, Type, TypeVar, cast
 
-
 F = TypeVar("F", bound=Callable)
 
 

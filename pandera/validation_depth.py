@@ -7,7 +7,6 @@ from pandera.backends.base import CoreCheckResult
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
 from pandera.errors import SchemaErrorReason
 
-
 logger = logging.getLogger(__name__)
 
 

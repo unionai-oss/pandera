@@ -1,9 +1,8 @@
 """Pandera configuration."""
 
-
 import os
-from copy import deepcopy
 from contextlib import contextmanager
+from copy import deepcopy
 from enum import Enum
 from typing import Optional
 

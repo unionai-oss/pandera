@@ -14,7 +14,6 @@ import pytest
 from pandera import (
     Category,
     Check,
-    Parser,
     Column,
     DataFrameModel,
     DataFrameSchema,
@@ -22,6 +21,7 @@ from pandera import (
     Index,
     Int,
     MultiIndex,
+    Parser,
     SeriesSchema,
     String,
     errors,

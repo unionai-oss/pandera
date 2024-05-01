@@ -3,10 +3,10 @@
 import pytest
 
 from pandera.config import (
-    config_context,
-    get_config_global,
-    get_config_context,
     ValidationDepth,
+    config_context,
+    get_config_context,
+    get_config_global,
 )
 
 

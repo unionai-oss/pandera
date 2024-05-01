@@ -12,8 +12,8 @@ from pandera.backends.pyspark.base import PysparkSchemaBackend
 from pandera.backends.pyspark.decorators import validate_scope
 from pandera.backends.pyspark.error_formatters import scalar_failure_case
 from pandera.engines.pyspark_engine import Engine
-from pandera.validation_depth import ValidationScope
 from pandera.errors import ParserError, SchemaError, SchemaErrorReason
+from pandera.validation_depth import ValidationScope
 
 
 class CoreCheckResult(NamedTuple):

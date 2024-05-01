@@ -5,9 +5,7 @@ from typing import Any, List, Union
 
 import pandas as pd
 
-from pandera.errors import (
-    SchemaError,
-)
+from pandera.errors import SchemaError
 
 
 def format_generic_error_message(

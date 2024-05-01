@@ -1,5 +1,6 @@
 """Tests a variety of python and pandas dtypes, and tests some specific
 coercion examples."""
+
 # pylint doesn't know about __init__ generated with dataclass
 # pylint:disable=unexpected-keyword-arg,no-value-for-parameter
 # pylint:disable=unsubscriptable-object
@@ -29,7 +30,6 @@ from pandera.system import FLOAT_128_AVAILABLE
 # except for parameterizable dtypes that should also list examples of
 # instances.
 from pandera.typing.geopandas import GEOPANDAS_INSTALLED
-
 
 # register different TypedDict type depending on python version
 if sys.version_info >= (3, 12):
@@ -217,9 +217,11 @@ def pretty_param(*values: Any, **kw: Any) -> ParameterSet:
     id_ = kw.pop("id", None)
     if not id_:
         id_ = "-".join(
-            f"{val.__module__}.{val.__name__}"
-            if inspect.isclass(val)
-            else repr(val)
+            (
+                f"{val.__module__}.{val.__name__}"
+                if inspect.isclass(val)
+                else repr(val)
+            )
             for val in values
         )
     return pytest.param(*values, id=id_, **kw)

@@ -1,13 +1,8 @@
 """Pandas Parsing, Validation, and Error Reporting Backends."""
 
 import warnings
-from typing import (
-    List,
-    Optional,
-    TypeVar,
-    Union,
-)
 from collections import defaultdict
+from typing import List, Optional, TypeVar, Union
 
 import pandas as pd
 
@@ -32,7 +27,6 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaWarning,
 )
-
 
 FieldCheckObj = Union[pd.Series, pd.DataFrame]
 

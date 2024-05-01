@@ -3,22 +3,20 @@
 import datetime
 import decimal
 from decimal import Decimal
-from typing import Union, Tuple, Sequence
+from typing import Sequence, Tuple, Union
 
-from hypothesis import strategies as st, settings
+import polars as pl
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import dataframes
-import polars as pl
 
 import pandera.errors
 from pandera.api.polars.types import PolarsData
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.engines import polars_engine as pe
-from pandera.engines.polars_engine import (
-    polars_object_coercible,
-)
+from pandera.engines.polars_engine import polars_object_coercible
 
 
 def convert_object_to_decimal(

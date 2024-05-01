@@ -8,8 +8,7 @@ import pytest
 import pandera.polars as pa
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.components import ColumnBackend
-from pandera.errors import SchemaError, SchemaDefinitionError
-
+from pandera.errors import SchemaDefinitionError, SchemaError
 
 DTYPES_AND_DATA = [
     # python types
@@ -212,5 +211,4 @@ def test_set_default(data, dtype, default):
     assert validated_data.select(pl.col("column").eq(default).any()).item()
 
 
-def test_column_schema_on_lazyframe_coerce():
-    ...
+def test_column_schema_on_lazyframe_coerce(): ...

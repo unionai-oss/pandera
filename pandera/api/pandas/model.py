@@ -1,30 +1,20 @@
 """Class-based api for pandas models."""
 
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import pandas as pd
+
 from pandera.api.checks import Check
-from pandera.api.dataframe.model import (
-    DataFrameModel as _DataFrameModel,
-    get_dtype_kwargs,
-)
+from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
+from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.api.dataframe.model_components import FieldInfo
-from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.components import Column, Index, MultiIndex
+from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.model_config import BaseConfig
 from pandera.api.parsers import Parser
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import SchemaInitError
-from pandera.typing import AnnotationInfo, INDEX_TYPES, SERIES_TYPES
-
+from pandera.typing import INDEX_TYPES, SERIES_TYPES, AnnotationInfo
 
 SchemaIndex = Union[Index, MultiIndex]
 
@@ -72,7 +62,10 @@ class DataFrameModel(_DataFrameModel[pd.DataFrame, DataFrameSchema]):
         checks: Dict[str, List[Check]],
         parsers: Dict[str, List[Parser]],
         **multiindex_kwargs: Any,
-    ) -> Tuple[Dict[str, Column], Optional[Union[Index, MultiIndex]],]:
+    ) -> Tuple[
+        Dict[str, Column],
+        Optional[Union[Index, MultiIndex]],
+    ]:
         index_count = sum(
             annotation.origin in INDEX_TYPES
             for annotation, _ in fields.values()

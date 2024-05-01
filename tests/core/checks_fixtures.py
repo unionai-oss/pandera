@@ -1,4 +1,5 @@
 """Pytest fixtures for testing custom checks."""
+
 from typing import Generator
 from unittest import mock
 

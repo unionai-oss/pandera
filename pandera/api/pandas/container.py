@@ -7,8 +7,8 @@ import pandas as pd
 
 from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
-from pandera.config import get_config_context
 from pandera.backends.pandas.register import register_pandas_backends
+from pandera.config import get_config_context
 from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
 

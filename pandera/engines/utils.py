@@ -1,4 +1,5 @@
 """Engine module utilities."""
+
 from typing import Any, Union
 
 import numpy as np

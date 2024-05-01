@@ -3,16 +3,16 @@
 import sys
 from typing import Optional
 
+import polars as pl
 import pytest
 
-import polars as pl
 from pandera.errors import SchemaError
 from pandera.polars import (
+    Column,
     DataFrameModel,
     DataFrameSchema,
-    Column,
-    PolarsData,
     Field,
+    PolarsData,
     check,
     dataframe_check,
 )

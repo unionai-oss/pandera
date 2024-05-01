@@ -7,18 +7,17 @@ import inspect
 import warnings
 from typing import (
     Any,
-    Union,
-    Optional,
     Iterable,
     Literal,
+    Optional,
     Sequence,
     Tuple,
     Type,
+    Union,
 )
 
-
 import polars as pl
-from polars.datatypes import py_type_to_dtype, DataTypeClass
+from polars.datatypes import DataTypeClass, py_type_to_dtype
 from polars.type_aliases import SchemaDict
 
 from pandera import dtypes, errors
@@ -26,7 +25,6 @@ from pandera.api.polars.types import PolarsData
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.dtypes import immutable
 from pandera.engines import engine
-
 
 PolarsDataContainer = Union[pl.LazyFrame, PolarsData]
 PolarsDataType = Union[DataTypeClass, pl.DataType]

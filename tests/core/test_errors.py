@@ -19,8 +19,8 @@ import pandas as pd
 import pytest
 
 from pandera import Check, Column, DataFrameSchema
-from pandera.config import config_context, ValidationDepth
-from pandera.engines import pandas_engine, numpy_engine
+from pandera.config import ValidationDepth, config_context
+from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import (
     ParserError,
     ReducedPickleExceptionBase,

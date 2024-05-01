@@ -8,7 +8,6 @@ import pandas as pd
 
 from pandera.dtypes import DataType
 
-
 PandasDtypeInputTypes = Union[
     str,
     type,

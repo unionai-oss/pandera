@@ -1,22 +1,16 @@
 """Class-based api for polars models."""
 
-from typing import (
-    Dict,
-    List,
-    Tuple,
-    Type,
-)
+from typing import Dict, List, Tuple, Type
 
 import pandas as pd
 import polars as pl
+
 from pandera.api.checks import Check
-from pandera.api.dataframe.model import (
-    DataFrameModel as _DataFrameModel,
-    get_dtype_kwargs,
-)
+from pandera.api.dataframe.model import DataFrameModel as _DataFrameModel
+from pandera.api.dataframe.model import get_dtype_kwargs
 from pandera.api.dataframe.model_components import FieldInfo
-from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.components import Column
+from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.model_config import BaseConfig
 from pandera.engines import polars_engine as pe
 from pandera.errors import SchemaInitError

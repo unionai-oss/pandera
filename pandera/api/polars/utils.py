@@ -4,9 +4,9 @@ import polars as pl
 
 from pandera.api.polars.types import PolarsCheckObjects
 from pandera.config import (
+    ValidationDepth,
     get_config_context,
     get_config_global,
-    ValidationDepth,
 )
 
 
