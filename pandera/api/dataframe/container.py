@@ -1,6 +1,6 @@
 """Common class for dataframe schema objects."""
 
-# from __future__ import annotations
+from __future__ import annotations
 
 import copy
 import os
@@ -154,6 +154,8 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
             parsers = []
         if isinstance(parsers, Parser):
             parsers = [parsers]
+
+        self._dtype: Optional[DataType] = None
 
         super().__init__(
             dtype=dtype,

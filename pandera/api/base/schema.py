@@ -38,7 +38,7 @@ class BaseSchema(ABC):
         drop_invalid_rows=False,
     ):
         """Abstract base schema initializer."""
-        self._dtype = dtype
+        self.dtype = dtype
         self.checks = checks
         self.coerce = coerce
         self.parsers = parsers

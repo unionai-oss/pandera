@@ -47,7 +47,7 @@ dependencies:
   # testing
   - isort >= 5.7.0
   - joblib
-  - mypy = 0.982
+  - mypy = 1.10.0
   - pylint <= 2.17.3
   - pytest
   - pytest-cov
