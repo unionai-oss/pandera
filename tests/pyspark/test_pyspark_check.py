@@ -5,34 +5,32 @@ import datetime
 import decimal
 from unittest import mock
 
+import pytest
 from pyspark.sql.functions import col
 from pyspark.sql.types import (
-    LongType,
-    StringType,
-    StructField,
-    StructType,
-    IntegerType,
+    ArrayType,
+    BooleanType,
     ByteType,
-    ShortType,
-    TimestampType,
     DateType,
     DecimalType,
     DoubleType,
-    BooleanType,
     FloatType,
-    ArrayType,
+    IntegerType,
+    LongType,
     MapType,
+    ShortType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
 )
-
-import pytest
-from pandera.validation_depth import ValidationScope
 
 import pandera.extensions
 import pandera.pyspark as pa
-from pandera.pyspark import DataFrameModel, Field
 from pandera.backends.pyspark.decorators import validate_scope
-from pandera.pyspark import DataFrameSchema, Column
 from pandera.errors import PysparkSchemaError
+from pandera.pyspark import Column, DataFrameModel, DataFrameSchema, Field
+from pandera.validation_depth import ValidationScope
 
 
 @pytest.fixture(scope="function")

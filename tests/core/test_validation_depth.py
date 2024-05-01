@@ -3,7 +3,7 @@
 import pytest
 
 from pandera.backends.base import CoreCheckResult
-from pandera.config import config_context, ValidationDepth, ValidationScope
+from pandera.config import ValidationDepth, ValidationScope, config_context
 from pandera.validation_depth import validate_scope
 
 

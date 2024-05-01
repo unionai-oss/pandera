@@ -3,17 +3,16 @@
 import pandas as pd
 
 import pandera.typing
-from pandera.backends.pandas.parsers import PandasParserBackend
-from pandera.backends.pandas.checks import PandasCheckBackend
-from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
 from pandera.backends.pandas.array import SeriesSchemaBackend
-from pandera.backends.pandas.container import DataFrameSchemaBackend
+from pandera.backends.pandas.checks import PandasCheckBackend
 from pandera.backends.pandas.components import (
     ColumnBackend,
     IndexBackend,
     MultiIndexBackend,
 )
-
+from pandera.backends.pandas.container import DataFrameSchemaBackend
+from pandera.backends.pandas.hypotheses import PandasHypothesisBackend
+from pandera.backends.pandas.parsers import PandasParserBackend
 
 dataframe_datatypes = [pd.DataFrame]
 series_datatypes = [pd.Series]
@@ -67,10 +66,10 @@ def register_pandas_backends():
     # pylint: disable=import-outside-toplevel,unused-import,cyclic-import
     from pandera.api.checks import Check
     from pandera.api.hypotheses import Hypothesis
-    from pandera.api.parsers import Parser
     from pandera.api.pandas.array import SeriesSchema
-    from pandera.api.pandas.container import DataFrameSchema
     from pandera.api.pandas.components import Column, Index, MultiIndex
+    from pandera.api.pandas.container import DataFrameSchema
+    from pandera.api.parsers import Parser
     from pandera.backends.pandas import builtin_checks, builtin_hypotheses
 
     for t in check_backend_types:

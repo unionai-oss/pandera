@@ -5,7 +5,7 @@ from typing import Optional
 
 import polars as pl
 
-from pandera.api.pandas.container import DataFrameSchema as _DataFrameSchema
+from pandera.api.dataframe.container import DataFrameSchema as _DataFrameSchema
 from pandera.api.polars.types import PolarsCheckObjects
 from pandera.api.polars.utils import get_validation_depth
 from pandera.backends.polars.register import register_polars_backends
@@ -14,7 +14,7 @@ from pandera.dtypes import DataType
 from pandera.engines import polars_engine
 
 
-class DataFrameSchema(_DataFrameSchema):
+class DataFrameSchema(_DataFrameSchema[PolarsCheckObjects]):
     """A polars LazyFrame or DataFrame validator."""
 
     def _validate_attributes(self):

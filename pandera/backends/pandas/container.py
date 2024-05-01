@@ -8,9 +8,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import pandas as pd
 from pydantic import BaseModel
 
-from pandera.api.pandas.types import is_table
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.backends.base import CoreCheckResult, ColumnInfo, CoreParserResult
+from pandera.api.pandas.types import is_table
+from pandera.backends.base import ColumnInfo, CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
 from pandera.backends.pandas.error_formatters import (
     reshape_failure_cases,
@@ -19,10 +19,6 @@ from pandera.backends.pandas.error_formatters import (
 from pandera.backends.utils import convert_uniquesettings
 from pandera.config import ValidationScope
 from pandera.engines import pandas_engine
-from pandera.validation_depth import (
-    validation_type,
-    validate_scope,
-)
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
@@ -30,6 +26,7 @@ from pandera.errors import (
     SchemaErrorReason,
     SchemaErrors,
 )
+from pandera.validation_depth import validate_scope, validation_type
 
 
 class DataFrameSchemaBackend(PandasSchemaBackend):

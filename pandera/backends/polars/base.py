@@ -2,16 +2,17 @@
 
 import warnings
 from collections import defaultdict
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 import polars as pl
+
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.types import CheckResult
 from pandera.backends.base import BaseSchemaBackend, CoreCheckResult
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
-    SchemaError,
     FailureCaseMetadata,
+    SchemaError,
     SchemaErrorReason,
     SchemaWarning,
 )
@@ -132,13 +133,19 @@ class PolarsSchemaBackend(BaseSchemaBackend):
             check_identifier = (
                 None
                 if err.check is None
-                else err.check
-                if isinstance(err.check, str)
-                else err.check.error
-                if err.check.error is not None
-                else err.check.name
-                if err.check.name is not None
-                else str(err.check)
+                else (
+                    err.check
+                    if isinstance(err.check, str)
+                    else (
+                        err.check.error
+                        if err.check.error is not None
+                        else (
+                            err.check.name
+                            if err.check.name is not None
+                            else str(err.check)
+                        )
+                    )
+                )
             )
 
             if isinstance(err.failure_cases, pl.LazyFrame):

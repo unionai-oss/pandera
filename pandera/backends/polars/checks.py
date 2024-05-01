@@ -4,8 +4,9 @@ from functools import partial
 from typing import Optional
 
 import polars as pl
-from polars.lazyframe.group_by import LazyGroupBy
 from multimethod import overload
+from polars.lazyframe.group_by import LazyGroupBy
+
 from pandera.api.base.checks import CheckResult
 from pandera.api.checks import Check
 from pandera.api.polars.types import PolarsData

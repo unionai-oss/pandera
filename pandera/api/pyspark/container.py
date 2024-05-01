@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast, overload
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import StructType, StructField
+from pyspark.sql.types import StructField, StructType
 
 from pandera import errors
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.base.schema import BaseSchema
 from pandera.api.base.types import StrictType
 from pandera.api.checks import Check
-from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pyspark.types import CheckList, PySparkDtypeInputTypes
 from pandera.backends.pyspark.register import register_pyspark_backends
 from pandera.config import get_config_context

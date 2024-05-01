@@ -1,10 +1,9 @@
 """Built-in checks for polars."""
 
-from typing import Any, TypeVar, Iterable, Union, Optional
-
 import re
-import polars as pl
+from typing import Any, Iterable, Optional, TypeVar, Union
 
+import polars as pl
 
 from pandera.api.extensions import register_builtin_check
 from pandera.api.polars.types import PolarsData

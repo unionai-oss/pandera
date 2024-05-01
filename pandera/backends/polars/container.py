@@ -3,28 +3,25 @@
 import copy
 import traceback
 import warnings
-from typing import Any, Optional, List, Callable, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.container import DataFrameSchema
 from pandera.api.polars.types import PolarsData
-from pandera.backends.base import CoreCheckResult, ColumnInfo
+from pandera.backends.base import ColumnInfo, CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend
-from pandera.config import ValidationScope, ValidationDepth, get_config_context
+from pandera.config import ValidationDepth, ValidationScope, get_config_context
 from pandera.errors import (
     ParserError,
-    SchemaError,
-    SchemaErrors,
-    SchemaErrorReason,
     SchemaDefinitionError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
 )
 from pandera.utils import is_regex
-from pandera.validation_depth import (
-    validation_type,
-    validate_scope,
-)
+from pandera.validation_depth import validate_scope, validation_type
 
 
 class DataFrameSchemaBackend(PolarsSchemaBackend):

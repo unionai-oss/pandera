@@ -8,8 +8,7 @@ import pytest
 import pandera.polars as pa
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.components import ColumnBackend
-from pandera.errors import SchemaError, SchemaDefinitionError
-
+from pandera.errors import SchemaDefinitionError, SchemaError
 
 DTYPES_AND_DATA = [
     # python types

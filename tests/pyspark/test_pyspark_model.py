@@ -1,22 +1,22 @@
 """Unit tests for DataFrameModel module."""
+
 # pylint:disable=abstract-method
 
 from contextlib import nullcontext as does_not_raise
 from typing import Optional
-from pyspark.sql import DataFrame
+
 import pyspark.sql.types as T
 import pytest
+from pyspark.sql import DataFrame
 
 import pandera
 import pandera.api.extensions as pax
 import pandera.pyspark as pa
+from pandera.api.pyspark.model import docstring_substitution
 from pandera.config import PanderaConfig, ValidationDepth
+from pandera.errors import SchemaDefinitionError
 from pandera.pyspark import DataFrameModel, DataFrameSchema, Field
 from tests.pyspark.conftest import spark_df
-from pandera.api.pyspark.model import docstring_substitution
-from pandera.errors import (
-    SchemaDefinitionError,
-)
 
 
 def test_schema_with_bare_types():

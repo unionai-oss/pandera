@@ -17,8 +17,8 @@ from pandera.api.base.model_components import (
     BaseFieldInfo,
     BaseParserInfo,
     CheckArg,
-    to_checklist,
     ParserArg,
+    to_checklist,
     to_parserlist,
 )
 from pandera.api.checks import Check
@@ -41,8 +41,8 @@ class FieldInfo(BaseFieldInfo):
     def _get_schema_properties(
         self,
         dtype: Any,
-        checks: CheckArg = None,
-        parsers: ParserArg = None,
+        checks: Optional[CheckArg] = None,
+        parsers: Optional[ParserArg] = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         if self.dtype_kwargs:
@@ -57,10 +57,10 @@ class FieldInfo(BaseFieldInfo):
     def column_properties(
         self,
         dtype: Any,
-        checks: CheckArg = None,
-        parsers: ParserArg = None,
+        checks: Optional[CheckArg] = None,
+        parsers: Optional[ParserArg] = None,
         required: bool = True,
-        name: str = None,
+        name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create a schema_components.Column from a field."""
         return self._get_schema_properties(
@@ -82,8 +82,8 @@ class FieldInfo(BaseFieldInfo):
     def index_properties(
         self,
         dtype: Any,
-        checks: CheckArg = None,
-        name: str = None,
+        checks: Optional[CheckArg] = None,
+        name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create a schema_components.Index from a field."""
         return self._get_schema_properties(
@@ -117,15 +117,15 @@ class FieldInfo(BaseFieldInfo):
 
 def Field(
     *,
-    eq: Any = None,
-    ne: Any = None,
-    gt: Any = None,
-    ge: Any = None,
-    lt: Any = None,
-    le: Any = None,
-    in_range: Dict[str, Any] = None,
-    isin: Iterable = None,
-    notin: Iterable = None,
+    eq: Optional[Any] = None,
+    ne: Optional[Any] = None,
+    gt: Optional[Any] = None,
+    ge: Optional[Any] = None,
+    lt: Optional[Any] = None,
+    le: Optional[Any] = None,
+    in_range: Optional[Dict[str, Any]] = None,
+    isin: Optional[Iterable] = None,
+    notin: Optional[Iterable] = None,
     str_contains: Optional[str] = None,
     str_endswith: Optional[str] = None,
     str_length: Optional[Dict[str, Any]] = None,
@@ -137,8 +137,8 @@ def Field(
     regex: bool = False,
     ignore_na: bool = True,
     raise_warning: bool = False,
-    n_failure_cases: int = None,
-    alias: Any = None,
+    n_failure_cases: Optional[int] = None,
+    alias: Optional[Any] = None,
     check_name: Optional[bool] = None,
     dtype_kwargs: Optional[Dict[str, Any]] = None,
     title: Optional[str] = None,

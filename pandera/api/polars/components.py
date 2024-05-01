@@ -7,12 +7,11 @@ import polars as pl
 
 from pandera.api.base.types import CheckList
 from pandera.api.pandas.components import Column as _Column
-from pandera.api.polars.types import PolarsDtypeInputTypes, PolarsCheckObjects
+from pandera.api.polars.types import PolarsCheckObjects, PolarsDtypeInputTypes
 from pandera.backends.polars.register import register_polars_backends
 from pandera.config import config_context, get_config_context
 from pandera.engines import polars_engine
 from pandera.utils import is_regex
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,8 @@
 # pylint: disable=unused-argument
 """Unit tests for polars validation based on configuration settings."""
 
-import pytest
-
 import polars as pl
+import pytest
 
 import pandera.polars as pa
 from pandera.api.base.error_handler import ErrorCategory
@@ -11,8 +10,8 @@ from pandera.config import (
     CONFIG,
     ValidationDepth,
     config_context,
-    get_config_global,
     get_config_context,
+    get_config_global,
     reset_config_context,
 )
 

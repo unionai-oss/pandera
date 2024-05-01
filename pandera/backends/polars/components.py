@@ -9,19 +9,16 @@ from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
-from pandera.config import ValidationScope, ValidationDepth, get_config_context
+from pandera.config import ValidationDepth, ValidationScope, get_config_context
 from pandera.constants import CHECK_OUTPUT_KEY
 from pandera.errors import (
     ParserError,
     SchemaDefinitionError,
     SchemaError,
-    SchemaErrors,
     SchemaErrorReason,
+    SchemaErrors,
 )
-from pandera.validation_depth import (
-    validation_type,
-    validate_scope,
-)
+from pandera.validation_depth import validate_scope, validation_type
 
 
 class ColumnBackend(PolarsSchemaBackend):

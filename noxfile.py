@@ -1,4 +1,5 @@
 """Nox sessions."""
+
 # isort: skip_file
 import os
 import re

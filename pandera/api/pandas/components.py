@@ -311,7 +311,7 @@ class Index(ArraySchema):
     ###########################
 
     @st.strategy_import_error
-    def strategy(self, *, size: int = None):
+    def strategy(self, *, size: Optional[int] = None):
         """Create a ``hypothesis`` strategy for generating an Index.
 
         :param size: number of elements to generate.
@@ -336,7 +336,7 @@ class Index(ArraySchema):
             name=self.name,
         )
 
-    def example(self, size: int = None) -> pd.Index:
+    def example(self, size: Optional[int] = None) -> pd.Index:
         """Generate an example of a particular size.
 
         :param size: number of elements in the generated Index.
@@ -365,7 +365,7 @@ class MultiIndex(DataFrameSchema):
         indexes: List[Index],
         coerce: bool = False,
         strict: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
         ordered: bool = True,
         unique: Optional[Union[str, List[str]]] = None,
     ) -> None:

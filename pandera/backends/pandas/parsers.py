@@ -1,4 +1,4 @@
-"Parser backend for pandas"
+"""Parser backend for pandas"""
 
 from functools import partial
 from typing import Dict, Optional, Union
@@ -7,12 +7,9 @@ import pandas as pd
 from multimethod import overload
 
 from pandera.api.base.parsers import ParserResult
+from pandera.api.pandas.types import is_field, is_table
 from pandera.api.parsers import Parser
 from pandera.backends.base import BaseParserBackend
-from pandera.api.pandas.types import (
-    is_field,
-    is_table,
-)
 
 
 class PandasParserBackend(BaseParserBackend):

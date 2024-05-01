@@ -3,24 +3,25 @@
 import copy
 import warnings
 from typing import Any, List, Optional, TypeVar, Union, cast
+
 import pandas as pd
 
 from pandera import errors
 from pandera import strategies as st
 from pandera.api.base.schema import BaseSchema, inferred_schema_guard
 from pandera.api.base.types import CheckList, ParserList
-from pandera.api.parsers import Parser
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.pandas.types import PandasDtypeInputTypes, is_field
+from pandera.api.parsers import Parser
 from pandera.backends.pandas.register import register_pandas_backends
 from pandera.config import get_config_context
 from pandera.dtypes import DataType, UniqueSettings
-from pandera.engines import pandas_engine, PYDANTIC_V2
+from pandera.engines import PYDANTIC_V2, pandas_engine
 
 if PYDANTIC_V2:
-    from pydantic_core import core_schema
     from pydantic import GetCoreSchemaHandler
+    from pydantic_core import core_schema
 
 
 TArraySchemaBase = TypeVar("TArraySchemaBase", bound="ArraySchema")
@@ -322,7 +323,7 @@ class SeriesSchema(ArraySchema):
 
     def __init__(
         self,
-        dtype: PandasDtypeInputTypes = None,
+        dtype: Optional[PandasDtypeInputTypes] = None,
         checks: Optional[CheckList] = None,
         parsers: Optional[ParserList] = None,
         index=None,
@@ -330,7 +331,7 @@ class SeriesSchema(ArraySchema):
         unique: bool = False,
         report_duplicates: UniqueSettings = "all",
         coerce: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
         default: Optional[Any] = None,

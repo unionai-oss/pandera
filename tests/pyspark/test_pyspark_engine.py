@@ -1,7 +1,9 @@
 """Tests Engine subclassing and registring DataTypes.Test pyspark engine."""
+
 # pylint:disable=redefined-outer-name,unused-argument
 
 import pytest
+
 from pandera.engines import pyspark_engine
 
 

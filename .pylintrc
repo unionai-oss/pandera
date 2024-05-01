@@ -54,4 +54,5 @@ disable=
     fixme,
     too-many-locals,
     redefined-outer-name,
-    logging-fstring-interpolation
+    logging-fstring-interpolation,
+    multiple-statements

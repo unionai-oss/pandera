@@ -20,22 +20,22 @@ from typing import (
     cast,
     overload,
 )
-import pandas as pd
 
+import pandas as pd
 import wrapt
 from pydantic import validate_arguments
 
 from pandera import errors
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.array import SeriesSchema
 from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.model import DataFrameModel
 from pandera.inspection_utils import (
     is_classmethod_from_meta,
     is_decorated_classmethod,
 )
-from pandera.validation_depth import validation_type
 from pandera.typing import AnnotationInfo
+from pandera.validation_depth import validation_type
 
 Schemas = Union[DataFrameSchema, SeriesSchema]
 InputGetter = Union[str, int]
@@ -427,16 +427,17 @@ def check_output(
 
 
 def check_io(
-    head: int = None,
-    tail: int = None,
-    sample: int = None,
-    random_state: int = None,
+    head: Optional[int] = None,
+    tail: Optional[int] = None,
+    sample: Optional[int] = None,
+    random_state: Optional[int] = None,
     lazy: bool = False,
     inplace: bool = False,
     out: Union[
         Schemas,
         Tuple[OutputGetter, Schemas],
         List[Tuple[OutputGetter, Schemas]],
+        None,
     ] = None,
     **inputs: Schemas,
 ) -> Callable[[F], F]:

@@ -1,11 +1,11 @@
 """Pandera array backends."""
 
-from typing import cast, List, Optional
+from typing import List, Optional, cast
 
 import pandas as pd
 from multimethod import DispatchError
-from pandera.api.base.error_handler import ErrorHandler
 
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.types import is_field
 from pandera.backends.base import CoreCheckResult, CoreParserResult
 from pandera.backends.pandas.base import PandasSchemaBackend
@@ -18,15 +18,12 @@ from pandera.config import ValidationScope
 from pandera.engines.pandas_engine import Engine
 from pandera.errors import (
     ParserError,
+    SchemaDefinitionError,
     SchemaError,
     SchemaErrorReason,
     SchemaErrors,
-    SchemaDefinitionError,
 )
-from pandera.validation_depth import (
-    validation_type,
-    validate_scope,
-)
+from pandera.validation_depth import validate_scope, validation_type
 
 
 class ArraySchemaBackend(PandasSchemaBackend):

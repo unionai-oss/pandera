@@ -36,7 +36,7 @@ class Check(BaseCheck):
         n_failure_cases: Optional[int] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        statistics: Dict[str, Any] = None,
+        statistics: Optional[Dict[str, Any]] = None,
         strategy: Optional[SearchStrategy] = None,
         **check_kwargs,
     ) -> None:

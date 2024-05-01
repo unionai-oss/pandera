@@ -1,4 +1,5 @@
 """Unit tests for pandas_accessor module."""
+
 from typing import Union
 from unittest.mock import patch
 

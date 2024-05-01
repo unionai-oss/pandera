@@ -3,23 +3,22 @@
 
 from typing import Optional
 
-try:
-    from typing import Annotated  # type: ignore
-except ImportError:
-    from typing_extensions import Annotated  # type: ignore
-
 import polars as pl
-
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing.parametric import dataframes, column
+from polars.testing.parametric import column, dataframes
 
 import pandera as pa
 from pandera import Check as C
 from pandera.api.polars.types import PolarsData
 from pandera.engines import polars_engine as pe
-from pandera.polars import Column, DataFrameSchema, DataFrameModel
+from pandera.polars import Column, DataFrameModel, DataFrameSchema
+
+try:
+    from typing import Annotated  # type: ignore
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
 
 
 @pytest.fixture

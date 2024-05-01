@@ -42,16 +42,16 @@ from pandera.dtypes import (
 from pandera.engines import numpy_engine, pandas_engine
 from pandera.errors import BaseStrategyOnlyError, SchemaDefinitionError
 from pandera.strategies.base_strategies import (
-    STRATEGY_DISPATCHER,
     HAS_HYPOTHESIS,
+    STRATEGY_DISPATCHER,
 )
 
 if HAS_HYPOTHESIS:
     import hypothesis
     import hypothesis.extra.numpy as npst
     import hypothesis.extra.pandas as pdst
-    from hypothesis.internal.filtering import max_len, min_len
     import hypothesis.strategies as st
+    from hypothesis.internal.filtering import max_len, min_len
     from hypothesis.strategies import SearchStrategy, composite
 else:
     from pandera.strategies.base_strategies import SearchStrategy, composite
@@ -284,8 +284,8 @@ def numpy_complex_dtypes(
     dtype,
     min_value: complex = complex(0, 0),
     max_value: Optional[complex] = None,
-    allow_infinity: bool = None,
-    allow_nan: bool = None,
+    allow_infinity: Optional[bool] = None,
+    allow_nan: Optional[bool] = None,
 ):
     """Create numpy strategy for complex numbers.
 

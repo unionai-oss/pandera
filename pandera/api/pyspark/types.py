@@ -9,7 +9,6 @@ from pyspark.sql import DataFrame
 from pandera.api.checks import Check
 from pandera.dtypes import DataType
 
-
 CheckList = Union[Check, List[Check]]
 
 PysparkDefaultTypes = Union[

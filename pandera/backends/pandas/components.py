@@ -8,25 +8,25 @@ from typing import Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from pandera.api.base.error_handler import ErrorHandler
 
-from pandera.backends.base import CoreCheckResult
-from pandera.backends.pandas.array import ArraySchemaBackend
-from pandera.backends.pandas.container import DataFrameSchemaBackend
+from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.pandas.types import (
     is_field,
     is_index,
     is_multiindex,
     is_table,
 )
+from pandera.backends.base import CoreCheckResult
+from pandera.backends.pandas.array import ArraySchemaBackend
+from pandera.backends.pandas.container import DataFrameSchemaBackend
 from pandera.backends.pandas.error_formatters import scalar_failure_case
-from pandera.validation_depth import validation_type
 from pandera.errors import (
-    SchemaError,
-    SchemaErrors,
-    SchemaErrorReason,
     SchemaDefinitionError,
+    SchemaError,
+    SchemaErrorReason,
+    SchemaErrors,
 )
+from pandera.validation_depth import validation_type
 
 
 class ColumnBackend(ArraySchemaBackend):

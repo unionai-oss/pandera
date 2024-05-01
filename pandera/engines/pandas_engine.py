@@ -1,4 +1,5 @@
 """Pandas engine and data types."""
+
 # pylint:disable=too-many-ancestors
 
 # docstrings are inherited
@@ -33,16 +34,14 @@ from pydantic import BaseModel, ValidationError, create_model
 
 from pandera import dtypes, errors
 from pandera.dtypes import immutable
-from pandera.engines import engine, numpy_engine, utils
+from pandera.engines import PYDANTIC_V2, engine, numpy_engine, utils
 from pandera.engines.type_aliases import (
     PandasDataType,
     PandasExtensionType,
     PandasObject,
 )
 from pandera.engines.utils import pandas_version
-from pandera.engines import PYDANTIC_V2
 from pandera.system import FLOAT_128_AVAILABLE
-
 
 if PYDANTIC_V2:
     from pydantic import RootModel
@@ -89,7 +88,7 @@ try:
     # python 3.8+
     from typing import Literal  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[misc]
+    from typing_extensions import Literal  # type: ignore[assignment]
 
 
 def is_extension_dtype(
@@ -1087,10 +1086,10 @@ except ImportError:  # pragma: no cover
 
 if GEOPANDAS_INSTALLED:
 
-    from geopandas.array import GeometryArray, GeometryDtype, from_shapely
+    import pyproj
     import shapely
     import shapely.geometry
-    import pyproj
+    from geopandas.array import GeometryArray, GeometryDtype, from_shapely
 
     GeoPandasObject = Union[
         pd.Series, pd.DataFrame, gpd.GeoSeries, gpd.GeoDataFrame

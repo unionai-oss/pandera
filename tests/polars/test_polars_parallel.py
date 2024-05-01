@@ -2,6 +2,7 @@
 
 import polars as pl
 from joblib import Parallel, delayed
+
 from pandera.polars import Column, DataFrameSchema
 
 schema = DataFrameSchema({"a": Column(pl.Int32)}, coerce=True)

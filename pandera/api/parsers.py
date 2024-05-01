@@ -1,6 +1,7 @@
 """Data validation parse definition."""
 
 from typing import Any, Callable, Optional
+
 from pandera.api.base.parsers import BaseParser, ParserResult
 
 

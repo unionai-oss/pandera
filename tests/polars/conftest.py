@@ -2,7 +2,7 @@
 
 import pytest
 
-from pandera.config import CONFIG, reset_config_context, ValidationDepth
+from pandera.config import CONFIG, ValidationDepth, reset_config_context
 
 
 @pytest.fixture(scope="function", autouse=True)

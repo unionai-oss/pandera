@@ -1,9 +1,9 @@
 """Tests the way Columns are Parsed"""
 
 import copy
-import pandas as pd
-import numpy as np
 
+import numpy as np
+import pandas as pd
 import pytest
 
 import pandera as pa

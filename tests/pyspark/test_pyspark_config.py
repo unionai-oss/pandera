@@ -5,12 +5,12 @@
 import pyspark.sql.types as T
 import pytest
 
-from pandera.config import get_config_context, config_context, ValidationDepth
+from pandera.config import ValidationDepth, config_context, get_config_context
 from pandera.pyspark import (
     Check,
-    DataFrameSchema,
     Column,
     DataFrameModel,
+    DataFrameSchema,
     Field,
 )
 from tests.pyspark.conftest import spark_df

@@ -1,4 +1,5 @@
 """This module is to test the behaviour change based on defined config in pandera"""
+
 # pylint:disable=import-outside-toplevel,abstract-method,redefined-outer-name
 
 
@@ -7,7 +8,7 @@ import pytest
 
 import pandera as pa
 from pandera import DataFrameModel, DataFrameSchema, SeriesSchema
-from pandera.config import config_context, get_config_context, ValidationDepth
+from pandera.config import ValidationDepth, config_context, get_config_context
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -23,6 +24,7 @@ class TestPandasDataFrameConfig:
     sample_data = pd.DataFrame(
         (("Bread", 9), ("Cutter", 15)), columns=["product", "price_val"]
     )
+
     # pylint: disable=unused-argument
     def test_disable_validation(self):
         """This function validates that a none object is loaded if validation is disabled"""
@@ -58,6 +60,7 @@ class TestPandasSeriesConfig:
     """Class to test all the different configs types"""
 
     sample_data = pd.Series([1, 1, 2, 2, 3, 3])
+
     # pylint: disable=unused-argument
     def test_disable_validation(self):
         """This function validates that a none object is loaded if validation is disabled"""

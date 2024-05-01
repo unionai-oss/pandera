@@ -4,12 +4,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from packaging import version
 
-from pandera.typing.common import (
-    DataFrameBase,
-    DataFrameModel,
-    SeriesBase,
-)
-
+from pandera.typing.common import DataFrameBase, DataFrameModel, SeriesBase
 
 try:
     import polars as pl

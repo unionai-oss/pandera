@@ -5,9 +5,9 @@ from enum import Enum
 from typing import Any, Dict, List, Union
 
 from pandera.api.checks import Check
-from pandera.config import get_config_context, ValidationDepth
-from pandera.validation_depth import ValidationScope, validation_type
+from pandera.config import ValidationDepth, get_config_context
 from pandera.errors import SchemaError, SchemaErrorReason
+from pandera.validation_depth import ValidationScope, validation_type
 
 
 class ErrorCategory(Enum):

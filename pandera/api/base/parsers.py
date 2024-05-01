@@ -1,14 +1,7 @@
 """Data validation base parse."""
 
 import inspect
-from typing import (
-    Any,
-    Dict,
-    NamedTuple,
-    Optional,
-    Tuple,
-    Type,
-)
+from typing import Any, Dict, NamedTuple, Optional, Tuple, Type
 
 from pandera.backends.base import BaseParserBackend
 

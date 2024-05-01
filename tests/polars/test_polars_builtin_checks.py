@@ -1,38 +1,38 @@
 """Unit tests for polars checks."""
+
 # pylint:disable=abstract-method
 import datetime
 import decimal
 import re
 from operator import methodcaller
-import polars as pl
 
+import polars as pl
+import pytest
 from polars.datatypes import (
+    Binary,
+    Boolean,
+    Categorical,
+    Date,
+    Datetime,
+    Duration,
     Float32,
     Float64,
     Int8,
     Int16,
     Int32,
     Int64,
+    List,
+    Time,
     UInt8,
     UInt16,
     UInt32,
     UInt64,
-    Date,
-    Time,
-    Duration,
-    Datetime,
-    Binary,
-    List,
-    Boolean,
-    Categorical,
     Utf8,
 )
-import pytest
-from pandera.errors import SchemaError
-
 
 import pandera.polars as pa
-from pandera.polars import DataFrameSchema, Column
+from pandera.errors import SchemaError
+from pandera.polars import Column, DataFrameSchema
 
 
 class BaseClass:
@@ -144,9 +144,11 @@ class BaseClass:
         schema = DataFrameSchema(
             {
                 "product": Column(Utf8()),
-                "code": Column(data_types, check_fn(*function_args))
-                if isinstance(function_args, tuple)
-                else Column(data_types, check_fn(function_args)),
+                "code": (
+                    Column(data_types, check_fn(*function_args))
+                    if isinstance(function_args, tuple)
+                    else Column(data_types, check_fn(function_args))
+                ),
             }
         )
 
