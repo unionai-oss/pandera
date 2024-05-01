@@ -21,8 +21,8 @@ repos:
       - id: mixed-line-ending
         description: Replaces or checks mixed line ending
 
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
     hooks:
       - id: isort
         args: ["--line-length=79", "--skip=docs/source/conf.py"]
@@ -33,7 +33,7 @@ repos:
       - id: flynt
 
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 24.4.2
     hooks:
       - id: black
 
