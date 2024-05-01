@@ -83,9 +83,9 @@ class multidispatch(_multidispatch):
 class MetaCheck(type):  # pragma: no cover
     """Check metaclass."""
 
-    BACKEND_REGISTRY: Dict[Tuple[Type, Type], Type[BaseCheckBackend]] = (
-        {}
-    )  # noqa
+    BACKEND_REGISTRY: Dict[
+        Tuple[Type, Type], Type[BaseCheckBackend]
+    ] = {}  # noqa
     """Registry of check backends implemented for specific data objects."""
 
     CHECK_FUNCTION_REGISTRY: Dict[str, Callable] = {}  # noqa

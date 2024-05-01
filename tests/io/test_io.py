@@ -1009,7 +1009,8 @@ def test_serialize_deserialize_custom_datetime_checks():
 
     # pylint: disable=unused-variable,unused-argument
     @pandera.extensions.register_check_method(statistics=["stat"])
-    def datetime_check(pandas_obj, *, stat): ...
+    def datetime_check(pandas_obj, *, stat):
+        ...
 
     schema = pandera.DataFrameSchema(
         {
