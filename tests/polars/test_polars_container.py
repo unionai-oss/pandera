@@ -564,3 +564,28 @@ def test_dataframe_schema_with_tz_agnostic_dates(time_zone, data):
     if time_zone:
         with pytest.raises(pa.errors.SchemaError):
             schema_tz_sensitive.validate(lf)
+
+
+def test_dataframe_coerce_col_with_null_in_other_column():
+    class Model(DataFrameModel):
+        col1: int = pa.Field(nullable=False, coerce=True)
+        col2: float = pa.Field(nullable=True, coerce=True)
+
+    invalid_lf = pl.DataFrame(
+        {
+            "col1": ["1", "2", "abc"],
+            "col2": [1.0, 2.0, None],
+        }
+    )
+
+    try:
+        print(Model.validate(invalid_lf, lazy=True))
+    except pa.errors.SchemaErrors as exc:
+        failures = exc.failure_cases.select("failure_case").rows(named=True)
+        # two failures should occur:
+        # - Coercing "abc" to int
+        # - Validating that col1 is an integer
+        assert failures == [
+            {"failure_case": "abc"},
+            {"failure_case": "String"},
+        ]

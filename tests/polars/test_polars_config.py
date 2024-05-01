@@ -171,6 +171,4 @@ def test_coerce_validation_depth_none(validation_depth_none, schema):
         try:
             schema.validate(data)
         except pa.errors.SchemaError as exc:
-            assert exc.failure_cases.rows(named=True) == [
-                {"a": "foo", "b": "c"}
-            ]
+            assert exc.failure_cases.rows(named=True) == [{"a": "foo"}]
