@@ -12,7 +12,7 @@ from pyspark.sql import DataFrame, Row, SparkSession
 import pandera.errors
 import pandera.pyspark as pa
 from pandera.config import PanderaConfig, ValidationDepth
-from pandera.pyspark import DataFrameSchema, Column, DataFrameModel
+from pandera.pyspark import Column, DataFrameModel, DataFrameSchema
 
 spark = SparkSession.builder.getOrCreate()
 
