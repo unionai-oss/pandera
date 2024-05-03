@@ -54,7 +54,7 @@ class DataFrameSchema(Generic[TDataObject], BaseSchema):
         checks: Optional[CheckList] = None,
         parsers: Optional[ParserList] = None,
         index=None,
-        dtype: Any = None,
+        dtype: Optional[Any] = None,
         coerce: bool = False,
         strict: StrictType = False,
         name: Optional[str] = None,

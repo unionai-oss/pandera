@@ -8,13 +8,14 @@ import pandas as pd
 import pandera.strategies as st
 from pandera import errors
 from pandera.api.base.types import CheckList, ParserList
+from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
 from pandera.dtypes import UniqueSettings
 
 
-class Column(ArraySchema):
+class Column(ArraySchema[pd.DataFrame]):
     """Validate types and properties of pandas DataFrame columns."""
 
     def __init__(
@@ -252,7 +253,7 @@ class Column(ArraySchema):
             )
 
 
-class Index(ArraySchema):
+class Index(ArraySchema[pd.Index]):
     """Validate types and properties of a pandas DataFrame Index."""
 
     @property
@@ -353,7 +354,7 @@ class Index(ArraySchema):
             return self.strategy(size=size).example()
 
 
-class MultiIndex(DataFrameSchema):
+class MultiIndex(DataFrameSchema[Union[pd.Series, pd.DataFrame]]):
     """Validate types and properties of a pandas DataFrame MultiIndex.
 
     This class inherits from :class:`~pandera.api.pandas.container.DataFrameSchema` to

@@ -1,7 +1,7 @@
 """Core pandas dataframe container specification."""
 
 import warnings
-from typing import Optional
+from typing import Optional, TypeVar, Union
 
 import pandas as pd
 
@@ -13,8 +13,14 @@ from pandera.dtypes import DataType
 from pandera.engines import pandas_engine
 
 
+TDataFrameObject = TypeVar(
+    "TDataFrameObject",
+    bound=Union[pd.DataFrame, pd.Series],
+)
+
+
 # pylint: disable=too-many-public-methods,too-many-locals
-class DataFrameSchema(_DataFrameSchema[pd.DataFrame]):
+class DataFrameSchema(_DataFrameSchema[TDataFrameObject]):
     """A light-weight pandas DataFrame validator."""
 
     def _register_default_backends(self):
