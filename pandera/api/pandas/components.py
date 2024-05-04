@@ -8,7 +8,6 @@ import pandas as pd
 import pandera.strategies as st
 from pandera import errors
 from pandera.api.base.types import CheckList, ParserList
-from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.pandas.array import ArraySchema
 from pandera.api.pandas.container import DataFrameSchema
 from pandera.api.pandas.types import PandasDtypeInputTypes
@@ -144,44 +143,6 @@ class Column(ArraySchema[pd.DataFrame]):
         self.name = name
         return self
 
-    def validate(
-        self,
-        check_obj: pd.DataFrame,
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> pd.DataFrame:
-        """Validate a Column in a DataFrame object.
-
-        :param check_obj: pandas DataFrame to validate.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame.
-        """
-        return self.get_backend(check_obj).validate(
-            check_obj,
-            self,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
-
     def get_regex_columns(self, check_obj) -> Iterable:
         """Get matching column names based on regex column name pattern.
 
@@ -266,44 +227,6 @@ class Index(ArraySchema[pd.Index]):
         """Whether the schema or schema component allows groupby operations."""
         return False
 
-    def validate(
-        self,
-        check_obj: Union[pd.DataFrame, pd.Series],
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate DataFrameSchema or SeriesSchema Index.
-
-        :check_obj: pandas DataFrame of Series containing index to validate.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame or Series.
-        """
-        return self.get_backend(check_obj).validate(
-            check_obj,
-            self,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
-
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
@@ -354,7 +277,7 @@ class Index(ArraySchema[pd.Index]):
             return self.strategy(size=size).example()
 
 
-class MultiIndex(DataFrameSchema[Union[pd.Series, pd.DataFrame]]):
+class MultiIndex(DataFrameSchema):
     """Validate types and properties of a pandas DataFrame MultiIndex.
 
     This class inherits from :class:`~pandera.api.pandas.container.DataFrameSchema` to
@@ -461,44 +384,6 @@ class MultiIndex(DataFrameSchema[Union[pd.Series, pd.DataFrame]]):
     def coerce(self, value: bool) -> None:
         """Set coerce attribute."""
         self._coerce = value
-
-    def validate(  # type: ignore
-        self,
-        check_obj: Union[pd.DataFrame, pd.Series],
-        head: Optional[int] = None,
-        tail: Optional[int] = None,
-        sample: Optional[int] = None,
-        random_state: Optional[int] = None,
-        lazy: bool = False,
-        inplace: bool = False,
-    ) -> Union[pd.DataFrame, pd.Series]:
-        """Validate DataFrame or Series MultiIndex.
-
-        :param check_obj: pandas DataFrame of Series to validate.
-        :param head: validate the first n rows. Rows overlapping with `tail` or
-            `sample` are de-duplicated.
-        :param tail: validate the last n rows. Rows overlapping with `head` or
-            `sample` are de-duplicated.
-        :param sample: validate a random sample of n rows. Rows overlapping
-            with `head` or `tail` are de-duplicated.
-        :param random_state: random seed for the ``sample`` argument.
-        :param lazy: if True, lazily evaluates dataframe against all validation
-            checks and raises a ``SchemaErrors``. Otherwise, raise
-            ``SchemaError`` as soon as one occurs.
-        :param inplace: if True, applies coercion to the object of validation,
-            otherwise creates a copy of the data.
-        :returns: validated DataFrame or Series.
-        """
-        return self.get_backend(check_obj).validate(
-            check_obj,
-            schema=self,
-            head=head,
-            tail=tail,
-            sample=sample,
-            random_state=random_state,
-            lazy=lazy,
-            inplace=inplace,
-        )
 
     def __repr__(self):
         return (

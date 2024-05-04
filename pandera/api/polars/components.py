@@ -6,7 +6,7 @@ from typing import Any, Optional
 import polars as pl
 
 from pandera.api.base.types import CheckList
-from pandera.api.pandas.components import Column as _Column
+from pandera.api.dataframe.components import ComponentSchema
 from pandera.api.polars.types import PolarsCheckObjects, PolarsDtypeInputTypes
 from pandera.backends.polars.register import register_polars_backends
 from pandera.config import config_context, get_config_context
@@ -16,7 +16,7 @@ from pandera.utils import is_regex
 logger = logging.getLogger(__name__)
 
 
-class Column(_Column):
+class Column(ComponentSchema[PolarsCheckObjects]):
     """Polars column schema component."""
 
     def __init__(
@@ -39,9 +39,9 @@ class Column(_Column):
         """Create column validator object.
 
         :param dtype: datatype of the column. The datatype for type-checking
-            a dataframe. If a string is specified, then assumes
-            one of the valid pandas string values:
-            http://pandas.pydata.org/pandas-docs/stable/basics.html#dtypes
+            a dataframe. All `polars datatypes <https://docs.pola.rs/py-polars/html/reference/datatypes.html>`__,
+            supported built-in python types that are supported by polars,
+            and the pandera polars engine :ref:`datatypes <polars-dtypes>`.
         :param checks: checks to verify validity of the column
         :param nullable: Whether or not column can contain null values.
         :param unique: whether column values should be unique
@@ -89,9 +89,7 @@ class Column(_Column):
             nullable=nullable,
             unique=unique,
             coerce=coerce,
-            required=required,
             name=name,
-            regex=regex,
             title=title,
             description=description,
             default=default,
@@ -99,6 +97,10 @@ class Column(_Column):
             drop_invalid_rows=drop_invalid_rows,
             **column_kwargs,
         )
+        self.required = required
+        self.regex = regex
+        self.name = name
+
         self.set_regex()
 
     def _register_default_backends(self):

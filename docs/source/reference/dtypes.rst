@@ -90,6 +90,8 @@ Pydantic Dtypes
 
    pandera.engines.pandas_engine.PydanticModel
 
+.. _polars-dtypes:
+
 Polars Dtypes
 -------------
 

@@ -8,7 +8,7 @@ from pandera.api.base.types import CheckList, ParserList
 from pandera.api.checks import Check
 from pandera.api.hypotheses import Hypothesis
 from pandera.api.parsers import Parser
-from pandera.dtypes import DataType, UniqueSettings
+from pandera.dtypes import UniqueSettings
 from pandera.engines import PYDANTIC_V2
 
 if PYDANTIC_V2:
@@ -122,16 +122,6 @@ class ComponentSchema(Generic[TDataObject], BaseSchema):
             "The _allow_groupby property must be implemented by subclasses "
             "of SeriesSchemaBase"
         )
-
-    # @property
-    # def dtype(self) -> DataType:
-    #     """Get the dtype"""
-    #     return self._dtype  # type: ignore
-
-    # @dtype.setter
-    # def dtype(self, value: Any) -> None:
-    #     """Set the dtype"""
-    #     raise NotImplementedError
 
     def coerce_dtype(self, check_obj: TDataObject) -> TDataObject:
         """Coerce type of the data by type specified in dtype.
