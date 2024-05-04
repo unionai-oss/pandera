@@ -7,6 +7,7 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes
 
 import pandera as pa
@@ -588,3 +589,23 @@ def test_dataframe_coerce_col_with_null_in_other_column():
             {"failure_case": "abc"},
             {"failure_case": "String"},
         ]
+
+
+def test_dataframe_column_level_coerce():
+
+    schema = DataFrameSchema(
+        {
+            "a": Column(int, coerce=True),
+            "b": Column(float, coerce=False),
+        }
+    )
+
+    df = pl.DataFrame({"a": [1.5, 2.2, 3.1], "b": ["1.0", "2.8", "3"]})
+    with pytest.raises(
+        pa.errors.SchemaError,
+        match="expected column 'b' to have type Float64, got String",
+    ):
+        schema.validate(df)
+
+    schema = schema.update_column("b", coerce=True)
+    assert_frame_equal(schema.validate(df), df.cast({"a": int, "b": float}))
