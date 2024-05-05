@@ -430,9 +430,9 @@ class DateTime(DataType, dtypes.DateTime):
 
     def __init__(  # pylint:disable=super-init-not-called
         self,
+        time_zone_agnostic: bool = False,
         time_zone: Optional[str] = None,
         time_unit: Optional[str] = None,
-        time_zone_agnostic: bool = False,
     ) -> None:
 
         _kwargs = {}
