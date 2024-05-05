@@ -29,6 +29,7 @@ from pandera import (
 from pandera.api.pandas.array import ArraySchema
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
+from pandera.typing import Series
 
 
 def test_dataframe_schema() -> None:
@@ -2419,6 +2420,35 @@ def test_drop_invalid_for_model_schema():
 
     with pytest.raises(errors.SchemaDefinitionError):
         MySchema.validate(actual_obj, lazy=False)
+
+
+def test_config_coerce() -> None:
+    """Test that setting coerce=True in the Config of a DataFrameModel is sufficient to coerce a column."""
+
+    class Model(DataFrameModel):
+        class Config:
+            coerce = True
+
+        col: Series[bool] = Field()
+
+    df = pd.DataFrame({"col": [1, 0]})
+
+    assert isinstance(Model.validate(df), pd.DataFrame)
+
+
+def test_config_coerce_with_regex() -> None:
+    """Test that setting coerce=True in the Config of a DataFrameModel is sufficient to coerce a column in the case
+    where the column has regex=True."""
+
+    class ModelWithRegex(DataFrameModel):
+        class Config:
+            coerce = True
+
+        col: Series[bool] = Field(alias="alias", regex=True)
+
+    df = pd.DataFrame({"alias": [1, 0]})
+
+    assert isinstance(ModelWithRegex.validate(df), pd.DataFrame)
 
 
 @pytest.mark.parametrize(
