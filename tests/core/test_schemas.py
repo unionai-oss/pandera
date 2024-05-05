@@ -2421,7 +2421,7 @@ def test_drop_invalid_for_model_schema():
         MySchema.validate(actual_obj, lazy=False)
 
 
-def test_config_coerce() -> None:
+def test_schema_coerce() -> None:
     """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column."""
 
     schema = DataFrameSchema(
@@ -2434,7 +2434,7 @@ def test_config_coerce() -> None:
     assert isinstance(schema.validate(df), pd.DataFrame)
 
 
-def test_config_coerce_with_regex() -> None:
+def test_schema_coerce_with_regex() -> None:
     """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column in the case
     where the column has regex=True."""
 
