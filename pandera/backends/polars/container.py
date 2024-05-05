@@ -431,6 +431,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
         error_handler = ErrorHandler(lazy=True)
 
         config_ctx = get_config_context(validation_depth_default=None)
+
+        # If validation depth involves validating data, use try_coerce since we
+        # want to check actual data values. Otherwise, coerce simply detects
+        # datatype mismatches.
         coerce_fn: str = (
             "try_coerce"
             if config_ctx.validation_depth
@@ -446,9 +450,10 @@ class DataFrameSchemaBackend(PolarsSchemaBackend):
                 obj = getattr(schema.dtype, coerce_fn)(obj)
             else:
                 for col_schema in schema.columns.values():
-                    obj = getattr(col_schema.dtype, coerce_fn)(
-                        PolarsData(obj, col_schema.selector)
-                    )
+                    if schema.coerce or col_schema.coerce:
+                        obj = getattr(col_schema.dtype, coerce_fn)(
+                            PolarsData(obj, col_schema.selector)
+                        )
         except ParserError as exc:
             error_handler.collect_error(
                 validation_type(SchemaErrorReason.DATATYPE_COERCION),
