@@ -29,7 +29,6 @@ from pandera import (
 from pandera.api.pandas.array import ArraySchema
 from pandera.dtypes import UniqueSettings
 from pandera.engines.pandas_engine import Engine
-from pandera.typing import Series
 
 
 def test_dataframe_schema() -> None:
@@ -2423,32 +2422,30 @@ def test_drop_invalid_for_model_schema():
 
 
 def test_config_coerce() -> None:
-    """Test that setting coerce=True in the Config of a DataFrameModel is sufficient to coerce a column."""
+    """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column."""
 
-    class Model(DataFrameModel):
-        class Config:
-            coerce = True
-
-        col: Series[bool] = Field()
+    schema = DataFrameSchema(
+        columns={"col": Column(dtype=bool)},
+        coerce=True,
+    )
 
     df = pd.DataFrame({"col": [1, 0]})
 
-    assert isinstance(Model.validate(df), pd.DataFrame)
+    assert isinstance(schema.validate(df), pd.DataFrame)
 
 
 def test_config_coerce_with_regex() -> None:
-    """Test that setting coerce=True in the Config of a DataFrameModel is sufficient to coerce a column in the case
+    """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column in the case
     where the column has regex=True."""
 
-    class ModelWithRegex(DataFrameModel):
-        class Config:
-            coerce = True
+    schema_with_regex = DataFrameSchema(
+        columns={"col": Column(dtype=bool, regex=True)},
+        coerce=True,
+    )
 
-        col: Series[bool] = Field(alias="alias", regex=True)
+    df = pd.DataFrame({"col": [1, 0]})
 
-    df = pd.DataFrame({"alias": [1, 0]})
-
-    assert isinstance(ModelWithRegex.validate(df), pd.DataFrame)
+    assert isinstance(schema_with_regex.validate(df), pd.DataFrame)
 
 
 @pytest.mark.parametrize(
