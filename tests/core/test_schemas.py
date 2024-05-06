@@ -2421,6 +2421,33 @@ def test_drop_invalid_for_model_schema():
         MySchema.validate(actual_obj, lazy=False)
 
 
+def test_schema_coerce() -> None:
+    """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column."""
+
+    schema = DataFrameSchema(
+        columns={"col": Column(dtype=bool)},
+        coerce=True,
+    )
+
+    df = pd.DataFrame({"col": [1, 0]})
+
+    assert isinstance(schema.validate(df), pd.DataFrame)
+
+
+def test_schema_coerce_with_regex() -> None:
+    """Test that setting coerce=True for a DataFrameSchema is sufficient to coerce a column in the case
+    where the column has regex=True."""
+
+    schema_with_regex = DataFrameSchema(
+        columns={"col": Column(dtype=bool, regex=True)},
+        coerce=True,
+    )
+
+    df = pd.DataFrame({"col": [1, 0]})
+
+    assert isinstance(schema_with_regex.validate(df), pd.DataFrame)
+
+
 @pytest.mark.parametrize(
     "schema, obj, expected_obj",
     [

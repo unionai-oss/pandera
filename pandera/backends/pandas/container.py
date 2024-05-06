@@ -630,9 +630,13 @@ class DataFrameSchemaBackend(PandasSchemaBackend):
                     matched_columns = pd.Index([])
 
                 for matched_colname in matched_columns:
-                    if col_schema.coerce or schema.coerce:
+                    if (
+                        col_schema.coerce or schema.coerce
+                    ) and schema.dtype is None:
+                        _col_schema = copy.deepcopy(col_schema)
+                        _col_schema.coerce = True
                         obj[matched_colname] = _try_coercion(
-                            col_schema.coerce_dtype, obj[matched_colname]
+                            _col_schema.coerce_dtype, obj[matched_colname]
                         )
             elif (
                 (col_schema.coerce or schema.coerce)
