@@ -338,3 +338,14 @@ nature. It only works with `Config`.
 
 Use with caution.
 :::
+
+
+## Supported and Unsupported Functionality
+
+Since the pandera-pyspark-sql integration is less mature than pandas support, some
+of the functionality offered by the pandera with pandas DataFrames are
+not yet supported with pyspark sql DataFrames.
+
+Here is a list of supported and unsupported features. You can
+refer to the {ref}`supported features matrix <supported-features>` to see
+which features are implemented in the pyspark-sql validation backend.

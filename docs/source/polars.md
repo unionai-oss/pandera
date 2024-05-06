@@ -27,6 +27,14 @@ pip install 'pandera[polars]'
 :::{important}
 If you're on an Apple Silicon machine, you'll need to install polars via
 `pip install polars-lts-cpu`.
+
+You may have to delete `polars` if it's already installed:
+
+```
+pip uninstall polars
+pip install polars-lts-cpu
+```
+
 :::
 
 Then you can use pandera schemas to validate polars dataframes. In the example
@@ -89,14 +97,18 @@ schema.validate(lf).collect()
 
 You can also validate {py:class}`polars.DataFrame` objects, which are objects that
 execute computations eagerly. Under the hood, `pandera` will convert
-the `polars.DataFrame` to a `polars.LazyFrame` before validating it:
+the `polars.DataFrame` to a `polars.LazyFrame` before validating it. This is done
+so that the internal validation routine that pandera implements can take
+advantage of the optimizations that the polars lazy API provides.
 
 ```{code-cell} python
-df = lf.collect()
+df: pl.DataFrame = lf.collect()
 schema.validate(df)
 ```
 
-:::{note}
+## Synthesizing data for testing
+
+:::{warning}
 The {ref}`data-synthesis-strategies` functionality is not yet supported in
 the polars integration. At this time you can use the polars-native
 [parametric testing](https://docs.pola.rs/py-polars/html/reference/testing.html#parametric-testing)
@@ -107,7 +119,7 @@ functions to generate test data for polars.
 
 Compared to the way `pandera` handles `pandas` dataframes, `pandera`
 attempts to leverage the `polars` [lazy API](https://docs.pola.rs/user-guide/lazy/using/)
-as much as possible to leverage its performance optimization benefits.
+as much as possible to leverage its query optimization benefits.
 
 At a high level, this is what happens during schema validation:
 
@@ -130,19 +142,19 @@ informative error messages since all failure cases can be reported.
 :::
 
 `pandera`'s validation behavior aligns with the way `polars` handles lazy
-vs. eager operations. When you can `schema.validate()` on a `polars.LazyFrame`,
+vs. eager operations. When you call `schema.validate()` on a `polars.LazyFrame`,
 `pandera` will apply all of the parsers and checks that can be done without
 any `collect()` operations. This means that it only does validations
 at the schema-level, e.g. column names and data types.
 
-However, if you validate a `polars.DataFrame`, `pandera` perform
+However, if you validate a `polars.DataFrame`, `pandera` performs
 schema-level and data-level validations.
 
 :::{note}
-Under the hood, `pandera` will convert ``` polars.DataFrame``s to a
-``polars.LazyFrame``s before validating them. This is done to leverage the
+Under the hood, `pandera` will convert `polars.DataFrame`s to a
+`polars.LazyFrame`s before validating them. This is done to leverage the
 polars lazy API during the validation process. While this feature isn't
-fully optimized in the ``pandera ``` library, this design decision lays the
+fully optimized in the `pandera` library, this design decision lays the
 ground-work for future performance improvements.
 :::
 
@@ -411,6 +423,7 @@ pandera.errors.SchemaErrors: {
 
 ::::
 
+(supported-polars-dtypes)=
 
 ## Supported Data Types
 
@@ -487,6 +500,53 @@ class ModelWithDtypeKwargs(pa.DataFrameModel):
     array_col: pl.Array = pa.Field(dtype_kwargs={"inner": pl.Int64(), "width": 3})
     struct_col: pl.Struct = pa.Field(dtype_kwargs={"fields": {"a": pl.Utf8(), "b": pl.Float64()}})
 ```
+:::
+
+::::
+
+### Time-agnostic DateTime
+
+In some use cases, it may not matter whether a column containing `pl.DateTime`
+data has a timezone or not. In that case, you can use the pandera-native
+polars datatype:
+
+::::{tab-set}
+
+:::{tab-item} DataFrameSchema
+
+```{testcode} polars
+from pandera.engines.polars_engine import DateTime
+
+
+schema = pa.DataFrameSchema({
+    "created_at": pa.Column(DateTime(time_zone_agnostic=True)),
+})
+```
+
+:::
+
+:::{tab-item} DataFrameModel (Annotated)
+
+```{testcode} polars
+from pandera.engines.polars_engine import DateTime
+
+
+class DateTimeModel(pa.DataFrameModel):
+    created_at: Annotated[DateTime, True]
+```
+
+:::
+
+:::{tab-item} DataFrameModel (Field)
+
+```{testcode} polars
+from pandera.engines.polars_engine import DateTime
+
+
+class DateTimeModel(pa.DataFrameModel):
+    created_at: DateTime = pa.Field(dtype_kwargs={"time_zone_agnostic": True})
+```
+
 :::
 
 ::::
@@ -620,7 +680,7 @@ For column-level checks, the custom check function should return a
 
 ### DataFrame-level Checks
 
-If you need to validate values on an entire dataframe, you can specify at check
+If you need to validate values on an entire dataframe, you can specify a check
 at the dataframe level. The expected output is a `polars.LazyFrame` containing
 multiple boolean columns, a single boolean column, or a scalar boolean.
 
@@ -737,11 +797,11 @@ lf: pl.LazyFrame = (
 ```
 
 This syntax is nice because it's clear what's happening just from reading the
-code. Pandera schemas serve as an apparent point in the method chain that
-materializes data.
+code. Pandera schemas serve as a clear point in the method chain where the data
+is materialized.
 
 However, if you don't mind a little magic 🪄, you can set the
-`PANDERA_VALIDATION_DEPTH` variable to `SCHEMA_AND_DATA` to
+`PANDERA_VALIDATION_DEPTH` environment variable to `SCHEMA_AND_DATA` to
 validate data-level properties on a `polars.LazyFrame`. This will be equivalent
 to the explicit code above:
 
@@ -761,3 +821,13 @@ lf: pl.LazyFrame = (
 Under the hood, the validation process will make `.collect()` calls on the
 LazyFrame in order to run data-level validation checks, and it will still
 return a `pl.LazyFrame` after validation is done.
+
+## Supported and Unsupported Functionality
+
+Since the pandera-polars integration is less mature than pandas support, some
+of the functionality offered by the pandera with pandas DataFrames are
+not yet supported with polars DataFrames.
+
+Here is a list of supported and unsupported features. You can
+refer to the {ref}`supported features matrix <supported-features>` to see
+which features are implemented in the polars validation backend.

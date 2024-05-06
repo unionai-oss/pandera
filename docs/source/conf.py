@@ -292,4 +292,5 @@ myst_heading_anchors = 3
 myst_heading_anchors = 3
 
 nb_execution_mode = "auto"
+nb_execution_timeout = 60
 nb_execution_excludepatterns = ["_contents/try_pandera.ipynb"]

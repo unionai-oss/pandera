@@ -7,13 +7,15 @@ file_format: mystnb
 
 (schema-inference)=
 
-# Schema Inference
+# Schema Inference and Persistence
 
 *New in version 0.4.0*
 
 With simple use cases, writing a schema definition manually is pretty
 straight-forward with pandera. However, it can get tedious to do this with
 dataframes that have many columns of various data types.
+
+## Inferring a schema from data
 
 To help you handle these cases, the {func}`~pandera.schema_inference.pandas.infer_schema` function enables
 you to quickly infer a draft schema from a pandas dataframe or series. Below
@@ -52,7 +54,7 @@ inferred schema.
 
 (schema-persistence)=
 
-## Schema Persistence
+## Persisting a schema
 
 The schema persistence feature requires a pandera installation with the `io`
 extension. See the {ref}`installation<installation>` instructions for more

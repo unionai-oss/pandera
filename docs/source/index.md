@@ -326,6 +326,59 @@ extra column and the `None` value.
 This error report can be useful for debugging, with each item in the various
 lists corresponding to a `SchemaError`
 
+
+(supported-features)=
+
+## Supported Features by DataFrame Backend
+
+Currently, pandera provides three validation backends: `pandas`, `pyspark`, and
+`polars`. The table below shows which of pandera's features are available for the
+{ref}`supported dataframe libraries <dataframe-libraries>`:
+
+:::{table}
+:widths: auto
+:align: left
+
+| feature | pandas | pyspark | polars |
+| :------ | ------ | ------- | ------ |
+| {ref}`DataFrameSchema validation <dataframeschemas>`                      | ✅ | ✅ | ✅ |
+| {ref}`DataFrameModel validation <dataframe-models>`                       | ✅ | ✅ | ✅ |
+| {ref}`SeriesSchema validation <seriesschemas>`                            | ✅ | 🚫 | ❌ |
+| {ref}`Index/MultiIndex validation <index-validation>`                     | ✅ | 🚫 | 🚫 |
+| {ref}`Built-in and custom Checks <checks>`                                | ✅ | ✅ | ✅ |
+| {ref}`Groupby checks <column-check-groups>`                               | ✅ | ❌ | ❌ |
+| {ref}`Custom check registration <extensions>`                             | ✅ | ✅ | ❌ |
+| {ref}`Hypothesis testing <hypothesis>`                                    | ✅ | ❌ | ❌ |
+| {ref}`Built-in <dtype-validation>` and {ref}`custom <dtypes>` `DataType`s | ✅ | ✅ | ✅ |
+| {ref}`Preprocessing with Parsers <parsers>`                               | ✅ | ❌ | ❌ |
+| {ref}`Data synthesis strategies <data-synthesis-strategies>`              | ✅ | ❌ | ❌ |
+| {ref}`Validation decorators <decorators>`                                 | ✅ | ✅ | ✅ |
+| {ref}`Lazy validation <lazy-validation>`                                  | ✅ | ✅ | ✅ |
+| {ref}`Dropping inalid rows <drop-invalid-rows>`                           | ✅ | ❌ | ✅ |
+| {ref}`Pandera configuration <configuration>`                              | ✅ | ✅ | ✅ |
+| {ref}`Schema Inference <schema-inference>`                                | ✅ | ❌ | ❌ |
+| {ref}`Schema persistence <schema-persistence>`                            | ✅ | ❌ | ❌ |
+| {ref}`Data Format Conversion <data-format-conversion>`                    | ✅ | ❌ | ❌ |
+| {ref}`Pydantic type support <pydantic-integration>`                       | ✅ | ❌ | ❌ |
+| {ref}`FastAPI support <fastapi-integration>`                              | ✅ | ❌ | ❌ |
+
+:::
+
+:::{admonition} Legend
+:class: important
+
+- ✅: Supported
+- ❌: Not supported
+- 🚫: Not applicable
+:::
+
+
+:::{note}
+The `dask`, `modin`, `geopandas`, and `pyspark.pandas` support in pandera all
+leverage the pandas validation backend.
+:::
+
+
 ## Contributing
 
 All contributions, bug reports, bug fixes, documentation improvements,

@@ -18,6 +18,10 @@ series objects before running the validation checks. This is useful when you wan
 to normalize, clip, or otherwise clean data values before applying validation
 checks.
 
+:::{important}
+This feature is only available in the pandas validation backend.
+:::
+
 ## Parsing versus validation
 
 Pandera distinguishes between data validation and parsing. Validation is the act

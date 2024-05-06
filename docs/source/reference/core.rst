@@ -51,3 +51,17 @@ Data Objects
 
    pandera.api.polars.types.PolarsData
    pandera.api.pyspark.types.PysparkDataframeColumnObject
+
+Configuration
+-------------
+
+.. autosummary::
+   :toctree: generated
+   :template: class.rst
+   :nosignatures:
+
+   pandera.config.PanderaConfig
+   pandera.config.ValidationDepth
+   pandera.config.ValidationScope
+   pandera.config.config_context
+   pandera.config.get_config_context

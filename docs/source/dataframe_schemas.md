@@ -472,6 +472,8 @@ df = pd.DataFrame({"a": [1, 2, 3]})
 schema.validate(df)
 ```
 
+(index-validation)=
+
 ## Index Validation
 
 You can also specify an {class}`~pandera.api.pandas.components.Index` in the {class}`~pandera.api.pandas.container.DataFrameSchema`.
@@ -508,6 +510,8 @@ try:
 except pa.errors.SchemaError as exc:
     print(exc)
 ```
+
+(multiindex-validation)=
 
 ## MultiIndex Validation
 
