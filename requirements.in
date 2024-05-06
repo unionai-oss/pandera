@@ -59,4 +59,4 @@ types-pkg_resources
 types-requests
 types-pytz
 jupyterlite
-jupyterlite_sphinx
+jupyterlite_sphinx >= 0.14.0

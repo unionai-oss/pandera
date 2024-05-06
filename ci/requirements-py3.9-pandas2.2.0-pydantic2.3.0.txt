@@ -259,7 +259,7 @@ jupyterlite-core==0.3.0
     # via
     #   jupyterlite
     #   jupyterlite-sphinx
-jupyterlite-sphinx==0.9.3
+jupyterlite-sphinx==0.14.0
 keyring==25.1.0
     # via twine
 lazy-object-proxy==1.10.0
@@ -321,6 +321,7 @@ nbformat==5.10.4
     # via
     #   jupyter-cache
     #   jupyter-server
+    #   jupyterlite-sphinx
     #   myst-nb
     #   nbclient
     #   nbconvert

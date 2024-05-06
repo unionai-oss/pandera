@@ -1,8 +1,7 @@
 Try Pandera
 ===============
 
-.. |jupyterlite_link| raw:: html
-
-   <a href="lite/retro/notebooks/?path=try_pandera.ipynb" target="_blank">here</a>
-
-.. retrolite:: notebooks/try_pandera.ipynb
+.. notebooklite:: notebooks/try_pandera.ipynb
+   :width: 100%
+   :height: 1000px
+   :prompt: Run notebook
