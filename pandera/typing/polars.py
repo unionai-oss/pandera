@@ -35,6 +35,13 @@ if POLARS_INSTALLED:
         *new in 0.19.0*
         """
 
+    class DataFrame(DataFrameBase, pl.DataFrame, Generic[T]):
+        """
+        Pandera generic for pl.LazyFrame, only used for type annotation.
+
+        *new in 0.19.0*
+        """
+
     # pylint: disable=too-few-public-methods
     class Series(SeriesBase, pl.Series, Generic[T]):
         """
