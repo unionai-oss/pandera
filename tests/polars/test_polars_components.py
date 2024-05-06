@@ -1,6 +1,6 @@
 """Unit tests for polars components."""
 
-from typing import List
+from typing import Iterable, List, Optional, Union
 
 import polars as pl
 import pytest
@@ -8,6 +8,8 @@ import pytest
 import pandera.polars as pa
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.components import ColumnBackend
+from pandera.dtypes import DataType
+from pandera.engines import polars_engine
 from pandera.errors import SchemaDefinitionError, SchemaError
 
 DTYPES_AND_DATA = [
@@ -192,6 +194,47 @@ def test_check_dtype(data, from_dtype, check_dtype):
         assert (
             result.passed if from_dtype == check_dtype else not result.passed
         )
+
+
+def test_check_data_container():
+    @polars_engine.Engine.register_dtype
+    class MyTestStartsWithID(polars_engine.String):
+        """
+        Test DataType which expects strings starting with "id_"
+        """
+
+        def check(
+            self,
+            pandera_dtype: DataType,
+            data_container: Optional[polars_engine.PolarsDataContainer] = None,
+        ) -> Union[bool, Iterable[bool]]:
+            if key := data_container.key:
+                ldf = data_container.lazyframe
+                if (
+                    ldf.select(pl.col(key).str.starts_with("id_").arg_true())
+                    .count()
+                    .collect()
+                    .item()
+                    == ldf.count().collect().item()
+                ):
+                    return True
+                else:
+                    return False
+
+        def __str__(self) -> str:
+            return str(self.__class__.__name__)
+
+        def __repr__(self) -> str:
+            return f"DataType({self})"
+
+    schema = pa.DataFrameSchema(columns={"id": pa.Column(MyTestStartsWithID)})
+
+    data = pl.LazyFrame({"id": pl.Series(["id_1", "id_2", "id_3"])})
+    schema.validate(data)
+
+    data = pl.LazyFrame({"id": pl.Series(["1", "id_2", "id_3"])})
+    with pytest.raises(SchemaError):
+        schema.validate(data)
 
 
 @pytest.mark.parametrize(
