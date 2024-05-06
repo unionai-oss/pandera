@@ -254,5 +254,4 @@ def test_set_default(data, dtype, default):
     assert validated_data.select(pl.col("column").eq(default).any()).item()
 
 
-def test_column_schema_on_lazyframe_coerce():
-    ...
+def test_column_schema_on_lazyframe_coerce(): ...
