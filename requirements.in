@@ -44,6 +44,9 @@ sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
 recommonmark
 myst-nb
+jupyterlite
+jupyterlite_sphinx >= 0.14.0
+jupyterlite-xeus
 twine
 asv >= 0.5.1
 pre_commit
@@ -58,6 +61,3 @@ types-pyyaml
 types-pkg_resources
 types-requests
 types-pytz
-jupyterlite
-jupyterlite_sphinx >= 0.14.0
-jupyterlite-pyodide-kernel

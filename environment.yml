@@ -69,6 +69,9 @@ dependencies:
   - sphinx-copybutton
   - recommonmark
   - myst-nb
+  - jupyterlite
+  - jupyterlite_sphinx >= 0.14.0
+  - jupyterlite-xeus
 
   # packaging
   - twine
@@ -94,6 +97,3 @@ dependencies:
       - types-pkg_resources
       - types-requests
       - types-pytz
-      - jupyterlite
-      - jupyterlite_sphinx >= 0.14.0
-      - jupyterlite-pyodide-kernel
