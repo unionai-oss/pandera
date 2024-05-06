@@ -27,9 +27,9 @@ from pydantic import validate_arguments
 
 from pandera import errors
 from pandera.api.base.error_handler import ErrorHandler
-from pandera.api.pandas.array import SeriesSchema
-from pandera.api.pandas.container import DataFrameSchema
-from pandera.api.pandas.model import DataFrameModel
+from pandera.api.dataframe.components import ComponentSchema
+from pandera.api.dataframe.container import DataFrameSchema
+from pandera.api.dataframe.model import DataFrameModel
 from pandera.inspection_utils import (
     is_classmethod_from_meta,
     is_decorated_classmethod,
@@ -37,7 +37,7 @@ from pandera.inspection_utils import (
 from pandera.typing import AnnotationInfo
 from pandera.validation_depth import validation_type
 
-Schemas = Union[DataFrameSchema, SeriesSchema]
+Schemas = Union[DataFrameSchema, ComponentSchema]
 InputGetter = Union[str, int]
 OutputGetter = Union[str, int, Callable]
 F = TypeVar("F", bound=Callable)
@@ -84,7 +84,7 @@ def _get_fn_argnames(fn: Callable) -> List[str]:
 def _handle_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[DataFrameSchema, SeriesSchema],
+    schema: Union[DataFrameSchema, ComponentSchema],
     data_obj: Any,
     schema_error: errors.SchemaError,
 ) -> NoReturn:
@@ -110,7 +110,7 @@ def _handle_schema_error(
 def _parse_schema_error(
     decorator_name,
     fn: Callable,
-    schema: Union[DataFrameSchema, SeriesSchema],
+    schema: Union[DataFrameSchema, ComponentSchema],
     data_obj: Any,
     schema_error: errors.SchemaError,
     reason_code: errors.SchemaErrorReason,
@@ -355,7 +355,7 @@ def check_output(
     # pylint: disable=too-many-boolean-expressions
     if callable(obj_getter) and (
         schema.coerce
-        or (schema.index is not None and schema.index.coerce)
+        or (schema.index is not None and schema.index.coerce)  # type: ignore[union-attr]
         or (
             isinstance(schema, DataFrameSchema)
             and any(col.coerce for col in schema.columns.values())
@@ -490,7 +490,7 @@ def check_io(
         out_schemas = out
         if isinstance(out, list):
             out_schemas = out
-        elif isinstance(out, (DataFrameSchema, SeriesSchema)):
+        elif isinstance(out, (DataFrameSchema, ComponentSchema)):
             out_schemas = [(None, out)]  # type: ignore
         elif isinstance(out, tuple):
             out_schemas = [out]
