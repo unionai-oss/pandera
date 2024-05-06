@@ -42,7 +42,7 @@ class Check(BaseCheck):
     ) -> None:
         """Apply a validation function to a data object.
 
-        :param check_fn: A function to check pandas data structure. For Column
+        :param check_fn: A function to check data object. For Column
             or SeriesSchema checks, if element_wise is True, this function
             should have the signature: ``Callable[[pd.Series],
             Union[pd.Series, bool]]``, where the output series is a boolean
@@ -105,6 +105,9 @@ class Check(BaseCheck):
         :param check_kwargs: key-word arguments to pass into ``check_fn``
 
         :example:
+
+        The example below uses ``pandas``, but will apply to any of the supported
+        :ref:`dataframe libraries <dataframe-libraries>`.
 
         >>> import pandas as pd
         >>> import pandera as pa
@@ -202,9 +205,9 @@ class Check(BaseCheck):
         column: Optional[str] = None,
     ) -> CheckResult:
         # pylint: disable=too-many-branches
-        """Validate pandas DataFrame or Series.
+        """Validate DataFrame or Series.
 
-        :param check_obj: pandas DataFrame of Series to validate.
+        :param check_obj: DataFrame of Series to validate.
         :param column: for dataframe checks, apply the check function to this
             column.
         :returns: CheckResult tuple containing:
@@ -216,10 +219,10 @@ class Check(BaseCheck):
             passed overall.
 
             ``checked_object``: the checked object itself. Depending on the
-            options provided to the ``Check``, this will be a pandas Series,
-            DataFrame, or if the ``groupby`` option is specified, a
-            ``Dict[str, Series]`` or ``Dict[str, DataFrame]`` where the keys
-            are distinct groups.
+            options provided to the ``Check``, this will be a Series,
+            DataFrame, or if the ``groupby`` option is supported by the validation
+            backend and specified, a ``Dict[str, Series]`` or ``Dict[str, DataFrame]``
+            where the keys are distinct groups.
 
             ``failure_cases``: subset of the check_object that failed.
         """
@@ -230,7 +233,7 @@ class Check(BaseCheck):
     def equal_to(cls, value: Any, **kwargs) -> "Check":
         """Ensure all elements of a data container equal a certain value.
 
-        :param value: values in this pandas data structure must be
+        :param value: values in this data object must be
             equal to this value.
         """
         return cls.from_builtin_check_name(
@@ -244,8 +247,7 @@ class Check(BaseCheck):
     def not_equal_to(cls, value: Any, **kwargs) -> "Check":
         """Ensure no elements of a data container equals a certain value.
 
-        :param value: This value must not occur in the checked
-            :class:`pandas.Series`.
+        :param value: This value must not occur in the data object.
         """
         return cls.from_builtin_check_name(
             "not_equal_to",
@@ -261,7 +263,7 @@ class Check(BaseCheck):
         value.
 
         :param min_value: Lower bound to be exceeded. Must be a type comparable
-            to the dtype of the :class:`pandas.Series` to be validated (e.g. a
+            to the dtype of the data object to be validated (e.g. a
             numerical type for float or int and a datetime for datetime).
         """
         if min_value is None:
@@ -277,8 +279,8 @@ class Check(BaseCheck):
     def greater_than_or_equal_to(cls, min_value: Any, **kwargs) -> "Check":
         """Ensure all values are greater or equal a certain value.
 
-        :param min_value: Allowed minimum value for values of a series. Must be
-            a type comparable to the dtype of the :class:`pandas.Series` to be
+        :param min_value: Allowed minimum value for values of the data. Must be
+            a type comparable to the dtype of the data object to be
             validated.
         """
         if min_value is None:
@@ -296,7 +298,7 @@ class Check(BaseCheck):
 
         :param max_value: All elements of a series must be strictly smaller
             than this. Must be a type comparable to the dtype of the
-            :class:`pandas.Series` to be validated.
+            data object to be validated.
         """
         if max_value is None:
             raise ValueError("max_value must not be None")
@@ -312,7 +314,7 @@ class Check(BaseCheck):
         """Ensure values of a series are strictly below a maximum value.
 
         :param max_value: Upper bound not to be exceeded. Must be a type
-            comparable to the dtype of the :class:`pandas.Series` to be
+            comparable to the dtype of the data object to be
             validated.
         """
         if max_value is None:
