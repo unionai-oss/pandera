@@ -60,3 +60,4 @@ types-requests
 types-pytz
 jupyterlite
 jupyterlite_sphinx >= 0.14.0
+jupyterlite-xeus
