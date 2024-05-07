@@ -45,11 +45,12 @@ sphinx-copybutton
 recommonmark
 myst-nb
 jupyterlite
-jupyterlite_sphinx >= 0.14.0
+jupyterlite-sphinx >= 0.14.0
 jupyterlite-xeus
 twine
 asv >= 0.5.1
 pre_commit
+.
 dask[dataframe]
 distributed
 furo

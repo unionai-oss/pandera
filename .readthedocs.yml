@@ -12,10 +12,15 @@ build:
 
 # Build documentation in the docs/ directory with Sphinx
 conda:
-  environment: environment.yml
+  environment: dev-environment.yml
+
+# Optionally set the version of Python and requirements required to build your docs
+python:
+  install:
+    - method: pip
+      path: .
 
 sphinx:
-  builder: html
   configuration: docs/source/conf.py
 
 # Build documentation with MkDocs
