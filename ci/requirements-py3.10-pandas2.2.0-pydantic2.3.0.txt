@@ -5,21 +5,11 @@ alabaster==0.7.16
 annotated-types==0.6.0
     # via pydantic
 anyio==4.3.0
-    # via
-    #   jupyter-server
-    #   starlette
-appdirs==1.4.4
-    # via empack
+    # via starlette
 appnope==0.1.4
     # via ipykernel
 argcomplete==3.3.0
     # via nox
-argon2-cffi==23.1.0
-    # via jupyter-server
-argon2-cffi-bindings==21.2.0
-    # via argon2-cffi
-arrow==1.3.0
-    # via isoduration
 astroid==2.15.8
     # via pylint
 asttokens==2.4.1
@@ -35,18 +25,12 @@ attrs==23.2.0
     #   jupyter-cache
     #   referencing
 babel==2.14.0
-    # via
-    #   jupyterlab-server
-    #   sphinx
+    # via sphinx
 backports-tarfile==1.1.0
     # via jaraco-context
 beautifulsoup4==4.12.3
-    # via
-    #   furo
-    #   nbconvert
+    # via furo
 black==24.4.0
-bleach==6.1.0
-    # via nbconvert
 build==1.2.1
     # via asv
 certifi==2024.2.2
@@ -54,8 +38,6 @@ certifi==2024.2.2
     #   fiona
     #   pyproj
     #   requests
-cffi==1.16.0
-    # via argon2-cffi-bindings
 cfgv==3.4.0
     # via pre-commit
 chardet==5.2.0
@@ -82,7 +64,6 @@ cloudpickle==3.0.0
     # via
     #   dask
     #   distributed
-    #   doit
 colorlog==6.8.2
     # via nox
 comm==0.2.2
@@ -101,8 +82,6 @@ debugpy==1.8.1
     # via ipykernel
 decorator==5.1.1
     # via ipython
-defusedxml==0.7.1
-    # via nbconvert
 dill==0.3.8
     # via pylint
 distlib==0.3.8
@@ -110,15 +89,10 @@ distlib==0.3.8
 distributed==2024.4.1
 docutils==0.20.1
     # via
-    #   jupyterlite-sphinx
     #   myst-parser
     #   readme-renderer
     #   recommonmark
     #   sphinx
-doit==0.36.0
-    # via jupyterlite-core
-empack==3.3.3
-    # via jupyterlite-xeus
 exceptiongroup==1.2.0
     # via
     #   anyio
@@ -138,8 +112,6 @@ filelock==3.13.4
     #   virtualenv
 fiona==1.9.6
     # via geopandas
-fqdn==1.5.1
-    # via jsonschema
 frictionless==4.40.8
 frozenlist==1.4.1
     # via
@@ -162,7 +134,6 @@ identify==2.5.35
 idna==3.7
     # via
     #   anyio
-    #   jsonschema
     #   requests
 imagesize==1.4.1
     # via sphinx
@@ -170,7 +141,6 @@ importlib-metadata==7.1.0
     # via
     #   asv-runner
     #   dask
-    #   doit
     #   jupyter-cache
     #   keyring
     #   myst-nb
@@ -185,8 +155,6 @@ ipython==8.23.0
     #   myst-nb
 isodate==0.6.1
     # via frictionless
-isoduration==20.11.0
-    # via jsonschema
 isort==5.13.2
     # via pylint
 jaraco-classes==3.4.0
@@ -201,23 +169,14 @@ jinja2==3.1.3
     # via
     #   distributed
     #   frictionless
-    #   jupyter-server
-    #   jupyterlab-server
     #   myst-parser
-    #   nbconvert
     #   sphinx
 joblib==1.4.0
 json5==0.9.25
-    # via
-    #   asv
-    #   jupyterlab-server
-jsonpointer==2.4
-    # via jsonschema
+    # via asv
 jsonschema==4.21.1
     # via
     #   frictionless
-    #   jupyter-events
-    #   jupyterlab-server
     #   nbformat
     #   ray
 jsonschema-specifications==2023.12.1
@@ -227,37 +186,13 @@ jupyter-cache==1.0.0
 jupyter-client==8.6.1
     # via
     #   ipykernel
-    #   jupyter-server
     #   nbclient
 jupyter-core==5.7.2
     # via
     #   ipykernel
     #   jupyter-client
-    #   jupyter-server
-    #   jupyterlite-core
     #   nbclient
-    #   nbconvert
     #   nbformat
-jupyter-events==0.10.0
-    # via jupyter-server
-jupyter-server==2.14.0
-    # via
-    #   jupyterlab-server
-    #   jupyterlite-sphinx
-jupyter-server-terminals==0.5.3
-    # via jupyter-server
-jupyterlab-pygments==0.3.0
-    # via nbconvert
-jupyterlab-server==2.26.0
-    # via jupyterlite-sphinx
-jupyterlite==0.3.0
-jupyterlite-core==0.3.0
-    # via
-    #   jupyterlite
-    #   jupyterlite-sphinx
-    #   jupyterlite-xeus
-jupyterlite-sphinx==0.14.0
-jupyterlite-xeus==0.1.8
 keyring==25.1.0
     # via twine
 lazy-object-proxy==1.10.0
@@ -274,9 +209,7 @@ markdown-it-py==3.0.0
 marko==2.0.3
     # via frictionless
 markupsafe==2.1.5
-    # via
-    #   jinja2
-    #   nbconvert
+    # via jinja2
 matplotlib-inline==0.1.7
     # via
     #   ipykernel
@@ -287,8 +220,6 @@ mdit-py-plugins==0.4.0
     # via myst-parser
 mdurl==0.1.2
     # via markdown-it-py
-mistune==3.0.2
-    # via nbconvert
 modin==0.29.0
 more-itertools==10.2.0
     # via
@@ -312,21 +243,13 @@ nbclient==0.10.0
     # via
     #   jupyter-cache
     #   myst-nb
-    #   nbconvert
-nbconvert==7.16.3
-    # via jupyter-server
 nbformat==5.10.4
     # via
     #   jupyter-cache
-    #   jupyter-server
-    #   jupyterlite-sphinx
     #   myst-nb
     #   nbclient
-    #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
-networkx==3.3
-    # via empack
 nh3==0.2.17
     # via readme-renderer
 nodeenv==1.8.0
@@ -341,8 +264,6 @@ numpy==1.26.4
     #   pyarrow
     #   scipy
     #   shapely
-overrides==7.7.0
-    # via jupyter-server
 packaging==24.0
     # via
     #   black
@@ -351,10 +272,7 @@ packaging==24.0
     #   distributed
     #   geopandas
     #   ipykernel
-    #   jupyter-server
-    #   jupyterlab-server
     #   modin
-    #   nbconvert
     #   nox
     #   pytest
     #   ray
@@ -366,8 +284,6 @@ pandas==2.2.0
     #   geopandas
     #   modin
 pandas-stubs==2.2.1.240316
-pandocfilters==1.5.1
-    # via nbconvert
 parso==0.8.4
     # via jedi
 partd==1.4.1
@@ -391,8 +307,6 @@ pluggy==1.4.0
     # via pytest
 polars==0.20.21
 pre-commit==3.7.0
-prometheus-client==0.20.0
-    # via jupyter-server
 prompt-toolkit==3.0.43
     # via ipython
 protobuf==5.26.1
@@ -403,17 +317,13 @@ psutil==5.9.8
     #   ipykernel
     #   modin
 ptyprocess==0.7.0
-    # via
-    #   pexpect
-    #   terminado
+    # via pexpect
 pure-eval==0.2.2
     # via stack-data
 py4j==0.10.9.7
     # via pyspark
 pyarrow==15.0.2
     # via dask-expr
-pycparser==2.22
-    # via cffi
 pydantic==2.3.0
     # via fastapi
 pydantic-core==2.6.3
@@ -422,7 +332,6 @@ pygments==2.17.2
     # via
     #   furo
     #   ipython
-    #   nbconvert
     #   readme-renderer
     #   rich
     #   sphinx
@@ -444,12 +353,9 @@ pytest-cov==5.0.0
 pytest-xdist==3.5.0
 python-dateutil==2.9.0.post0
     # via
-    #   arrow
     #   frictionless
     #   jupyter-client
     #   pandas
-python-json-logger==2.0.7
-    # via jupyter-events
 python-multipart==0.0.9
 python-slugify==8.0.4
     # via frictionless
@@ -460,11 +366,8 @@ pyyaml==6.0.1
     #   asv
     #   dask
     #   distributed
-    #   empack
     #   frictionless
     #   jupyter-cache
-    #   jupyter-events
-    #   jupyterlite-xeus
     #   myst-nb
     #   myst-parser
     #   pre-commit
@@ -473,7 +376,6 @@ pyzmq==26.0.0
     # via
     #   ipykernel
     #   jupyter-client
-    #   jupyter-server
 ray==2.10.0
 readme-renderer==43.0
     # via twine
@@ -482,31 +384,19 @@ referencing==0.34.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-    #   jupyter-events
 requests==2.31.0
     # via
-    #   empack
     #   frictionless
-    #   jupyterlab-server
-    #   jupyterlite-xeus
     #   ray
     #   requests-toolbelt
     #   sphinx
     #   twine
 requests-toolbelt==1.0.0
     # via twine
-rfc3339-validator==0.1.4
-    # via
-    #   jsonschema
-    #   jupyter-events
 rfc3986==2.0.0
     # via
     #   frictionless
     #   twine
-rfc3986-validator==0.1.1
-    # via
-    #   jsonschema
-    #   jupyter-events
 rich==13.7.1
     # via
     #   twine
@@ -516,8 +406,6 @@ rpds-py==0.18.0
     #   jsonschema
     #   referencing
 scipy==1.13.0
-send2trash==1.8.3
-    # via jupyter-server
 setuptools==69.5.1
     # via nodeenv
 shapely==2.0.4
@@ -529,11 +417,9 @@ simpleeval==0.9.13
 six==1.16.0
     # via
     #   asttokens
-    #   bleach
     #   fiona
     #   isodate
     #   python-dateutil
-    #   rfc3339-validator
 sniffio==1.3.1
     # via anyio
 snowballstemmer==2.2.0
@@ -547,7 +433,6 @@ soupsieve==2.5
 sphinx==7.3.4
     # via
     #   furo
-    #   jupyterlite-sphinx
     #   myst-nb
     #   myst-parser
     #   recommonmark
@@ -587,14 +472,8 @@ tabulate==0.9.0
     #   jupyter-cache
 tblib==3.0.0
     # via distributed
-terminado==0.18.1
-    # via
-    #   jupyter-server
-    #   jupyter-server-terminals
 text-unidecode==1.3
     # via python-slugify
-tinycss2==1.2.1
-    # via nbconvert
 tomli==2.0.1
     # via
     #   asv
@@ -619,8 +498,6 @@ tornado==6.4
     #   distributed
     #   ipykernel
     #   jupyter-client
-    #   jupyter-server
-    #   terminado
 traitlets==5.14.2
     # via
     #   comm
@@ -628,23 +505,15 @@ traitlets==5.14.2
     #   ipython
     #   jupyter-client
     #   jupyter-core
-    #   jupyter-events
-    #   jupyter-server
-    #   jupyterlite-xeus
     #   matplotlib-inline
     #   nbclient
-    #   nbconvert
     #   nbformat
 twine==5.0.0
 typeguard==4.2.1
 typer==0.12.3
-    # via
-    #   empack
-    #   frictionless
+    # via frictionless
 types-click==7.1.8
 types-pkg-resources==0.1.3
-types-python-dateutil==2.9.0.20240316
-    # via arrow
 types-pytz==2024.1.0.20240417
     # via pandas-stubs
 types-pyyaml==6.0.12.20240311
@@ -668,8 +537,6 @@ typing-extensions==4.11.0
 typing-inspect==0.9.0
 tzdata==2024.1
     # via pandas
-uri-template==1.3.0
-    # via jsonschema
 urllib3==2.2.1
     # via
     #   distributed
@@ -686,14 +553,6 @@ virtualenv==20.25.2
     #   pre-commit
 wcwidth==0.2.13
     # via prompt-toolkit
-webcolors==1.13
-    # via jsonschema
-webencodings==0.5.1
-    # via
-    #   bleach
-    #   tinycss2
-websocket-client==1.7.0
-    # via jupyter-server
 wrapt==1.16.0
     # via astroid
 xdoctest==1.1.3

@@ -44,9 +44,6 @@ sphinx-autodoc-typehints <= 1.14.1
 sphinx-copybutton
 recommonmark
 myst-nb
-jupyterlite
-jupyterlite-sphinx >= 0.14.0
-jupyterlite-xeus
 twine
 asv >= 0.5.1
 pre_commit
