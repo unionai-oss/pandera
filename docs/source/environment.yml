@@ -13,3 +13,4 @@ dependencies:
     - packaging
     - typeguard
     - typing_inspect
+    - mypy_extensions
