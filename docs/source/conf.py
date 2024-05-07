@@ -47,7 +47,6 @@ extensions = [
     "sphinx.ext.linkcode",  # link to github, see linkcode_resolve() below
     "sphinx_copybutton",
     "sphinx_design",
-    "jupyterlite_sphinx",
     "myst_nb",
 ]
 
@@ -167,6 +166,7 @@ html_css_files = [
     "default.css",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
 ]
+html_js_files = ["custom.js"]
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
@@ -278,10 +278,6 @@ def linkcode_resolve(domain, info):
 
     return f"https://github.com/pandera-dev/pandera/blob/{tag}/pandera/{fn}{linespec}"
 
-
-# jupyterlite config
-jupyterlite_contents = ["notebooks/try_pandera.ipynb"]
-jupyterlite_bind_ipynb_suffix = False
 
 # myst-nb configuration
 myst_enable_extensions = [

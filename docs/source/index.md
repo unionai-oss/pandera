@@ -407,7 +407,7 @@ page or reach out to the maintainers and pandera community on
 :maxdepth: 6
 
 Welcome to Pandera <self>
-▶️ Try Pandera <try_pandera>
+▶️ Try Pandera <https://colab.research.google.com/github/unionai-oss/pandera/blob/main/docs/source/notebooks/try_pandera.ipynb>
 Official Website <https://union.ai/pandera>
 ```
 
