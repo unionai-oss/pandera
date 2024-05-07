@@ -50,7 +50,6 @@ jupyterlite-xeus
 twine
 asv >= 0.5.1
 pre_commit
-.
 dask[dataframe]
 distributed
 furo
