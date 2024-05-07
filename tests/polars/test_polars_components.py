@@ -206,20 +206,23 @@ def test_check_data_container():
         def check(
             self,
             pandera_dtype: DataType,
-            data_container: Optional[polars_engine.PolarsDataContainer] = None,
+            data_container: Optional[polars_engine.PolarsData] = None,
         ) -> Union[bool, Iterable[bool]]:
-            if key := data_container.key:
+            if data_container:
                 ldf = data_container.lazyframe
-                if (
-                    ldf.select(pl.col(key).str.starts_with("id_").arg_true())
+                return (
+                    ldf.select(
+                        pl.col(data_container.key)
+                        .str.starts_with("id_")
+                        .arg_true()
+                    )
                     .count()
                     .collect()
                     .item()
                     == ldf.count().collect().item()
-                ):
-                    return True
-                else:
-                    return False
+                )
+
+            return False
 
         def __str__(self) -> str:
             return str(self.__class__.__name__)
