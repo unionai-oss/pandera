@@ -7,6 +7,7 @@ import polars as pl
 
 from pandera.api.base.error_handler import ErrorHandler
 from pandera.api.polars.components import Column
+from pandera.api.polars.types import PolarsData
 from pandera.backends.base import CoreCheckResult
 from pandera.backends.polars.base import PolarsSchemaBackend, is_float_dtype
 from pandera.config import ValidationDepth, ValidationScope, get_config_context
@@ -322,7 +323,10 @@ class ColumnBackend(PolarsSchemaBackend):
             obj_dtype = check_obj_subset.schema[column]
             results.append(
                 CoreCheckResult(
-                    passed=schema.dtype.check(obj_dtype),
+                    passed=schema.dtype.check(
+                        obj_dtype,
+                        PolarsData(check_obj_subset, schema.selector),
+                    ),
                     check=f"dtype('{schema.dtype}')",
                     reason_code=SchemaErrorReason.WRONG_DATATYPE,
                     message=(
