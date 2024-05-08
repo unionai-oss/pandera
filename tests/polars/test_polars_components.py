@@ -129,7 +129,7 @@ def test_coerce_dtype(data, from_dtype, to_dtype, exception_cls):
 NULLABLE_DTYPES_AND_DATA = [
     [pl.Int64, [1, 2, 3, None]],
     [pl.Utf8, ["foo", "bar", "baz", None]],
-    [pl.Float64, [1.0, 2.0, 3.0, float("nan")]],
+    [pl.Float64, [1.0, 2.0, 3.0, float("nan"), None]],
     [pl.Boolean, [True, False, True, None]],
 ]
 
@@ -138,7 +138,7 @@ NULLABLE_DTYPES_AND_DATA = [
 @pytest.mark.parametrize("nullable", [True, False])
 def test_check_nullable(dtype, data, nullable):
     data = pl.LazyFrame({"column": pl.Series(data, dtype=dtype)})
-    column_schema = pa.Column(pl.Int64, nullable=nullable, name="column")
+    column_schema = pa.Column(dtype, nullable=nullable, name="column")
     backend = ColumnBackend()
     check_results: List[CoreCheckResult] = backend.check_nullable(
         data, column_schema
@@ -153,9 +153,7 @@ def test_check_nullable_regex(dtype, data, nullable):
     data = pl.LazyFrame(
         {f"column_{i}": pl.Series(data, dtype=dtype) for i in range(3)}
     )
-    column_schema = pa.Column(
-        pl.Int64, nullable=nullable, name=r"^column_\d+$"
-    )
+    column_schema = pa.Column(dtype, nullable=nullable, name=r"^column_\d+$")
     backend = ColumnBackend()
     check_results = backend.check_nullable(data, column_schema)
     for result in check_results:
