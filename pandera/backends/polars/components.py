@@ -207,10 +207,9 @@ class ColumnBackend(PolarsSchemaBackend):
                 )
             ]
 
+        expr = pl.col(schema.selector).is_not_null()
         if is_float_dtype(check_obj, schema.selector):
-            expr = pl.col(schema.selector).is_not_nan()
-        else:
-            expr = pl.col(schema.selector).is_not_null()
+            expr = expr & pl.col(schema.selector).is_not_nan()
 
         isna = check_obj.select(expr)
         passed = isna.select([pl.col("*").all()]).collect()
